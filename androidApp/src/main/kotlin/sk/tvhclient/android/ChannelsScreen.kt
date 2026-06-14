@@ -60,6 +60,15 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel()) {
 
     LaunchedEffect(Unit) { vm.loadIfNeeded() }
 
+    // tikajuci cas pre live ciaru priebehu (prekreslenie kazdych 30s)
+    var nowTick by remember { mutableStateOf(System.currentTimeMillis() / 1000) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(30_000)
+            nowTick = System.currentTimeMillis() / 1000
+        }
+    }
+
     val epgRow = epgFor
     if (epgRow != null) {
         EpgScreen(
@@ -107,7 +116,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel()) {
                     // Vyhladavanie: plochy filtrovany zoznam
                     val q = query.trim().lowercase()
                     val results = s.allRows.filter { it.channel.name.lowercase().contains(q) }
-                    ChannelList(results, listStateSearch) { epgFor = it }
+                    ChannelList(results, listStateSearch, nowTick) { epgFor = it }
                 } else {
                     // Filtre podla tagov
                     val tags = s.categories.mapNotNull { it.tag }
@@ -133,7 +142,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel()) {
                     } else {
                         s.categories.firstOrNull { it.tag?.uuid == selectedTag }?.rows ?: emptyList()
                     }
-                    ChannelList(rows, listStateMain) { epgFor = it }
+                    ChannelList(rows, listStateMain, nowTick) { epgFor = it }
                 }
             }
         }
@@ -144,6 +153,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel()) {
 private fun ChannelList(
     rows: List<ChannelRow>,
     listState: androidx.compose.foundation.lazy.LazyListState,
+    nowSec: Long,
     onShowEpg: (ChannelRow) -> Unit
 ) {
     val context = LocalContext.current
@@ -156,7 +166,7 @@ private fun ChannelList(
     }
     LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         items(rows, key = { it.channel.uuid }) { row ->
-            ChannelItem(row, loader, context, onShowEpg)
+            ChannelItem(row, loader, context, nowSec, onShowEpg)
         }
     }
 }
@@ -167,6 +177,7 @@ private fun ChannelItem(
     row: ChannelRow,
     loader: coil.ImageLoader,
     context: android.content.Context,
+    nowSec: Long,
     onShowEpg: (ChannelRow) -> Unit
 ) {
     Row(
@@ -236,7 +247,6 @@ private fun ChannelItem(
                 )
                 // Ciara priebehu aktualnej relacie
                 if (row.nowStart > 0 && row.nowStop > row.nowStart) {
-                    val nowSec = System.currentTimeMillis() / 1000
                     val frac = ((nowSec - row.nowStart).toFloat() /
                         (row.nowStop - row.nowStart).toFloat()).coerceIn(0f, 1f)
                     Spacer(Modifier.height(3.dp))
