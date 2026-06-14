@@ -220,6 +220,16 @@ private fun ChannelItem(
                 )
             }
         }
+        // Ikona sipky -> otvori EPG kanala
+        Text(
+            "\u203A",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { onShowEpg(row) }
+                .padding(horizontal = 14.dp, vertical = 4.dp)
+        )
     }
 }
 

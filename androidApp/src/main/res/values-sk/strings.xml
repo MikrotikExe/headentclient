@@ -30,4 +30,17 @@
     <string name="no_active_server">Žiadny aktívny server. Pridaj ho v záložke Servery.</string>
     <string name="playback_error">Prehrávanie zlyhalo: %1$s</string>
     <string name="field_profile">Stream profil</string>
+    <string name="show_epg">Zobraziť EPG</string>
+    <string name="genre_film">Film / Dráma</string>
+    <string name="genre_news">Spravodajstvo</string>
+    <string name="genre_show">Šou / Zábava</string>
+    <string name="genre_sport">Šport</string>
+    <string name="genre_children">Detské</string>
+    <string name="genre_music">Hudba</string>
+    <string name="genre_arts">Umenie / Kultúra</string>
+    <string name="genre_social">Spoločnosť</string>
+    <string name="genre_education">Vzdelávanie / Dokument</string>
+    <string name="genre_leisure">Voľný čas / Hobby</string>
+    <string name="epg_no_description">Popis nie je k dispozícii.</string>
+    <string name="epg_age">Prístupnosť: %1$d+</string>
 </resources>

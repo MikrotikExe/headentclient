@@ -49,9 +49,17 @@ private sealed class EpgState {
 @Composable
 fun EpgScreen(channelUuid: String, channelName: String, onBack: () -> Unit) {
     var state by remember { mutableStateOf<EpgState>(EpgState.Loading) }
+    var detail by remember { mutableStateOf<EpgEvent?>(null) }
 
     // Systemove tlacidlo Spat zavrie EPG (navrat na zoznam), nie celu appku
     BackHandler { onBack() }
+
+    // Detail relacie ako samostatna obrazovka
+    val sel = detail
+    if (sel != null) {
+        EpgDetailScreen(event = sel, onBack = { detail = null })
+        return
+    }
 
     LaunchedEffect(channelUuid) {
         state = EpgState.Loading
@@ -95,14 +103,14 @@ fun EpgScreen(channelUuid: String, channelName: String, onBack: () -> Unit) {
                     Modifier.align(Alignment.Center),
                     color = MaterialTheme.colorScheme.error
                 )
-                is EpgState.Loaded -> EpgList(s.events)
+                is EpgState.Loaded -> EpgList(s.events) { detail = it }
             }
         }
     }
 }
 
 @Composable
-private fun EpgList(events: List<EpgEvent>) {
+private fun EpgList(events: List<EpgEvent>, onClick: (EpgEvent) -> Unit) {
     if (events.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Žiadny program")
@@ -128,17 +136,18 @@ private fun EpgList(events: List<EpgEvent>) {
                 )
             }
             items(dayEvents, key = { it.eventId ?: it.start }) { ev ->
-                EpgRow(ev, isNow = ev.start <= now && now < ev.stop)
+                EpgRow(ev, isNow = ev.start <= now && now < ev.stop, onClick = { onClick(ev) })
             }
         }
     }
 }
 
 @Composable
-private fun EpgRow(ev: EpgEvent, isNow: Boolean) {
+private fun EpgRow(ev: EpgEvent, isNow: Boolean, onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
+            .clickable { onClick() }
             .background(if (isNow) Color(0x22FFFFFF) else Color.Transparent)
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {

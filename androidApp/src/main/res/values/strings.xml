@@ -30,4 +30,17 @@
     <string name="no_active_server">No active server. Add one in the Servers tab.</string>
     <string name="playback_error">Playback failed: %1$s</string>
     <string name="field_profile">Stream profile</string>
+    <string name="show_epg">Show EPG</string>
+    <string name="genre_film">Movie / Drama</string>
+    <string name="genre_news">News</string>
+    <string name="genre_show">Show / Entertainment</string>
+    <string name="genre_sport">Sport</string>
+    <string name="genre_children">Children</string>
+    <string name="genre_music">Music</string>
+    <string name="genre_arts">Arts / Culture</string>
+    <string name="genre_social">Society</string>
+    <string name="genre_education">Education / Documentary</string>
+    <string name="genre_leisure">Leisure / Hobby</string>
+    <string name="epg_no_description">No description available.</string>
+    <string name="epg_age">Rating: %1$d+</string>
 </resources>
