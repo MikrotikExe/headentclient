@@ -47,6 +47,8 @@ private sealed class DvrNav {
     data class Dates(val channel: String) : DvrNav()
     data class Day(val channel: String, val dateKey: String) : DvrNav()
     data class Category(val catKey: String) : DvrNav()
+    data class Subgenre(val catKey: String, val subKey: String) : DvrNav()
+    data class Series(val catKey: String, val subKey: String, val seriesTitle: String) : DvrNav()
 }
 
 @Composable
@@ -63,6 +65,8 @@ fun DvrScreen(vm: DvrViewModel = viewModel()) {
             is DvrNav.Day -> DvrNav.Dates(n.channel)
             is DvrNav.Dates -> DvrNav.Channels
             is DvrNav.Channels -> DvrNav.Root
+            is DvrNav.Series -> DvrNav.Subgenre(n.catKey, n.subKey)
+            is DvrNav.Subgenre -> DvrNav.Category(n.catKey)
             is DvrNav.Category -> DvrNav.Root
             else -> DvrNav.Root
         }
@@ -163,10 +167,59 @@ private fun DvrContent(
         }
 
         is DvrNav.Category -> {
-            val list = entries
-                .filter { DvrClassifier.classify(it) == nav.catKey }
-                .sortedByDescending { it.start }
-            RecordingList(list, context, header = catLabel(nav.catKey))
+            val inCat = entries.filter { DvrClassifier.classify(it) == nav.catKey }
+            if (DvrClassifier.hasSubgenres(nav.catKey)) {
+                // Zlozky sub-zanrov ktore maju zaznamy
+                val bySub = inCat.groupBy { DvrClassifier.subgenre(it, nav.catKey) }
+                val order = DvrClassifier.subOrderFor(nav.catKey)
+                LazyColumn(Modifier.fillMaxSize()) {
+                    item("hdr") { Header(catLabel(nav.catKey)) }
+                    items(order.filter { bySub.containsKey(it) }, key = { it }) { sub ->
+                        FolderRow("\uD83D\uDCC1  " + subLabel(sub), sub = "${bySub[sub]?.size ?: 0}") {
+                            onNav(DvrNav.Subgenre(nav.catKey, sub))
+                        }
+                    }
+                }
+            } else {
+                RecordingList(inCat.sortedByDescending { it.start }, context, header = catLabel(nav.catKey))
+            }
+        }
+
+        is DvrNav.Subgenre -> {
+            val inSub = entries.filter {
+                DvrClassifier.classify(it) == nav.catKey &&
+                DvrClassifier.subgenre(it, nav.catKey) == nav.subKey
+            }
+            if (DvrClassifier.isSeriesLike(nav.catKey)) {
+                // Zoskup epizody pod serial (canonical title).
+                val bySeries = inSub.groupBy { DvrClassifier.seriesCanonicalTitle(it.title) }
+                val titles = bySeries.keys.sortedBy { it.lowercase() }
+                LazyColumn(Modifier.fillMaxSize()) {
+                    item("hdr") { Header(subLabel(nav.subKey)) }
+                    items(titles, key = { it }) { t ->
+                        val grp = bySeries[t] ?: emptyList()
+                        if (grp.size == 1) {
+                            // Jedna epizoda -> rovno prehrat
+                            RecordingRow(grp.first(), context)
+                        } else {
+                            FolderRow("\uD83D\uDCFA  $t", sub = "${grp.size}") {
+                                onNav(DvrNav.Series(nav.catKey, nav.subKey, t))
+                            }
+                        }
+                    }
+                }
+            } else {
+                RecordingList(inSub.sortedByDescending { it.start }, context, header = subLabel(nav.subKey))
+            }
+        }
+
+        is DvrNav.Series -> {
+            val eps = entries.filter {
+                DvrClassifier.classify(it) == nav.catKey &&
+                DvrClassifier.subgenre(it, nav.catKey) == nav.subKey &&
+                DvrClassifier.seriesCanonicalTitle(it.title) == nav.seriesTitle
+            }.sortedByDescending { it.start }
+            RecordingList(eps, context, header = nav.seriesTitle)
         }
     }
 }
@@ -254,6 +307,39 @@ private fun FolderRow(label: String, sub: String, onClick: () -> Unit) {
         Text("  \u203A", style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+}
+
+@Composable
+private fun subLabel(key: String): String {
+    val resId = when (key) {
+        DvrClassifier.MV_AKCNY -> R.string.sub_mv_akcny
+        DvrClassifier.MV_KOMEDIA -> R.string.sub_mv_komedia
+        DvrClassifier.MV_KRIMI -> R.string.sub_mv_krimi
+        DvrClassifier.MV_DRAMA -> R.string.sub_mv_drama
+        DvrClassifier.MV_SCIFI -> R.string.sub_mv_scifi
+        DvrClassifier.MV_ROMANTIKA -> R.string.sub_mv_romantika
+        DvrClassifier.MV_HOROR -> R.string.sub_mv_horor
+        DvrClassifier.MV_DOBRODR -> R.string.sub_mv_dobrodruzny
+        DvrClassifier.MV_ANIMAK -> R.string.sub_mv_animovany
+        DvrClassifier.MV_HISTORICKY -> R.string.sub_mv_historicky
+        DvrClassifier.MV_WESTERN -> R.string.sub_mv_western
+        DvrClassifier.MV_INE -> R.string.sub_mv_ine
+        DvrClassifier.SP_FUTBAL -> R.string.sub_sp_futbal
+        DvrClassifier.SP_HOKEJ -> R.string.sub_sp_hokej
+        DvrClassifier.SP_BASKETBAL -> R.string.sub_sp_basketbal
+        DvrClassifier.SP_TENIS -> R.string.sub_sp_tenis
+        DvrClassifier.SP_VOLEJBAL -> R.string.sub_sp_volejbal
+        DvrClassifier.SP_HADZANA -> R.string.sub_sp_hadzana
+        DvrClassifier.SP_BOJOVE -> R.string.sub_sp_bojove
+        DvrClassifier.SP_ATLETIKA -> R.string.sub_sp_atletika
+        DvrClassifier.SP_CYKLISTIKA -> R.string.sub_sp_cyklistika
+        DvrClassifier.SP_MOTORSPORT -> R.string.sub_sp_motorsport
+        DvrClassifier.SP_ZIMNE -> R.string.sub_sp_zimne
+        DvrClassifier.SP_VODNE -> R.string.sub_sp_vodne
+        DvrClassifier.SP_NEWS -> R.string.sub_sp_news
+        else -> R.string.sub_mv_ine
+    }
+    return stringResource(resId)
 }
 
 @Composable

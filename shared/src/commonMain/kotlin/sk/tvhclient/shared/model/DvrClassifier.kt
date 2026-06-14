@@ -68,6 +68,15 @@ object DvrClassifier {
         "docubox" to DOCUMENTARY
     )
 
+    // Filmove kanaly -> ak nie je serial, je to film. (plugin to riesi corpusom;
+    // toto je lacny nahradny signal kym corpus nie je portovany)
+    private val movieChannelHints: List<String> = listOf(
+        "hbo", "cinemax", "cinema", "amc", "filmbox", "film europe", "film+",
+        "film +", "filmplus", "kviff", "canal+ film", "canal+ action", "warner tv",
+        "axn", "paramount", "viasat film", "epic drama", "kino", "nova cinema",
+        "prima max", "joj cinema", "markiza klasik"
+    )
+
     private val fallback: List<Pair<Regex, String>> = listOf(
         Regex("""\b(futbal|hokej|tenis|golf|formula|f1|oktagon|liga|majstrov|rally|cyklist|atletik|box|wrestlin|biatlon|lyzovan|sjazd|mma|ufc|pml)""") to SPORT,
         Regex("""\b(spravodajstvo|spravy|spravi|udalosti|aktualn|reporter|noviny tv|tv noviny|pocasi|uvodnik)""") to NEWS,
@@ -177,6 +186,134 @@ object DvrClassifier {
 
         if (yearSuffix.containsMatchIn(entry.dispTitle)) return FILM
 
+        // Filmovy kanal + nie serial -> Film (nahrada za corpus)
+        val ch = entry.channelName.lowercase()
+        if (ch.isNotBlank() && movieChannelHints.any { ch.contains(it) }) return FILM
+
         return OTHER
+    }
+
+    // ----------------------------------------------------------------------
+    // Sub-zanre (Level 2). Prebrate z classifier.py _KEYWORD_TO_SUBCAT
+    // (film) a _SPORT_KEYWORD_TO_SUBCAT (sport). Pouzite pre Film/Serial/
+    // Detske (filmova mapa) a Sport (sportova mapa).
+    // ----------------------------------------------------------------------
+
+    // Film/serial/detske sub-zanre
+    const val MV_AKCNY = "mv_akcny"
+    const val MV_KOMEDIA = "mv_komedia"
+    const val MV_KRIMI = "mv_krimi"
+    const val MV_DRAMA = "mv_drama"
+    const val MV_SCIFI = "mv_scifi"
+    const val MV_ROMANTIKA = "mv_romantika"
+    const val MV_HOROR = "mv_horor"
+    const val MV_DOBRODR = "mv_dobrodruzny"
+    const val MV_ANIMAK = "mv_animovany"
+    const val MV_HISTORICKY = "mv_historicky"
+    const val MV_WESTERN = "mv_western"
+    const val MV_INE = "mv_ine"
+
+    val movieSubOrder = listOf(
+        MV_AKCNY, MV_KOMEDIA, MV_KRIMI, MV_DRAMA, MV_SCIFI, MV_ROMANTIKA,
+        MV_HOROR, MV_DOBRODR, MV_ANIMAK, MV_HISTORICKY, MV_WESTERN, MV_INE
+    )
+
+    // poradie = specificke najprv (ako plugin)
+    private val movieKeyword: List<Pair<Regex, String>> = listOf(
+        Regex("""\b(detektiv|kriminal|krimi|thriller|vraz|policajn|vysetrov)""") to MV_KRIMI,
+        Regex("""\b(sci-?fi|sci\.\s?fi|fantasy|vedeckofant|vesmirn|mimozem|robot|kybern)""") to MV_SCIFI,
+        Regex("""\b(komedi|veselohra|humor|grotesk|sitcom)""") to MV_KOMEDIA,
+        Regex("""\b(romantick|milostn|romant)""") to MV_ROMANTIKA,
+        Regex("""\b(akcn|action|honic|prestrelk)""") to MV_AKCNY,
+        Regex("""\b(western|kovbo)""") to MV_WESTERN,
+        Regex("""\b(historick|valecn|vojensk|vojnov|histori)""") to MV_HISTORICKY,
+        Regex("""\b(dobrodruz|adventur|exped|cestopis)""") to MV_DOBRODR,
+        Regex("""\b(animovan|kreslen|animak|loutkov|cartoon|anime)""") to MV_ANIMAK,
+        Regex("""\b(drama|dramati)""") to MV_DRAMA
+    )
+    private val horrorTitle = Regex("""\b(horor|horror|hruza|strasidel|zombie|upir|krvav)""")
+
+    // Sport sub-zanre
+    const val SP_FUTBAL = "sp_futbal"
+    const val SP_HOKEJ = "sp_hokej"
+    const val SP_BASKETBAL = "sp_basketbal"
+    const val SP_TENIS = "sp_tenis"
+    const val SP_VOLEJBAL = "sp_volejbal"
+    const val SP_HADZANA = "sp_hadzana"
+    const val SP_BOJOVE = "sp_bojove"
+    const val SP_ATLETIKA = "sp_atletika"
+    const val SP_CYKLISTIKA = "sp_cyklistika"
+    const val SP_MOTORSPORT = "sp_motorsport"
+    const val SP_ZIMNE = "sp_zimne"
+    const val SP_VODNE = "sp_vodne"
+    const val SP_NEWS = "sp_news"
+    const val SP_INE = "sp_ine"
+
+    val sportSubOrder = listOf(
+        SP_FUTBAL, SP_HOKEJ, SP_BASKETBAL, SP_TENIS, SP_VOLEJBAL, SP_HADZANA,
+        SP_BOJOVE, SP_ATLETIKA, SP_CYKLISTIKA, SP_MOTORSPORT, SP_ZIMNE,
+        SP_VODNE, SP_NEWS, SP_INE
+    )
+
+    private val sportKeyword: List<Pair<Regex, String>> = listOf(
+        Regex("""\b(sportove noviny|sportovni noviny|sport news|spravy zo sportu|sportovni studio)""") to SP_NEWS,
+        Regex("""\b(hokej|hockey|nhl|iihf|khl)""") to SP_HOKEJ,
+        Regex("""\b(ufc|mma|oktagon|pml|kickbox|judo|karate|wrestl|zapas|sumo)""") to SP_BOJOVE,
+        Regex("""\bbox(er|ing|u|y)?\b""") to SP_BOJOVE,
+        Regex("""\b(futbal|football|uefa|nike liga|fortuna liga|premier league|bundesliga|la liga|champions league|europa league|ligue 1|serie a)""") to SP_FUTBAL,
+        Regex("""\b(basketbal|nba|wnba|sbl)""") to SP_BASKETBAL,
+        Regex("""\b(volejbal|volleyball)""") to SP_VOLEJBAL,
+        Regex("""\b(hadzana|handball)""") to SP_HADZANA,
+        Regex("""\b(tenis|tennis|atp|wta|grand slam|wimbledon|roland garros)""") to SP_TENIS,
+        Regex("""\b(atletik|athletics|maraton)""") to SP_ATLETIKA,
+        Regex("""\b(cyklist|cycling|tour de france)""") to SP_CYKLISTIKA,
+        Regex("""\b(formula|f1|motogp|moto gp|rally|nascar|motorsport)""") to SP_MOTORSPORT,
+        Regex("""\b(lyzov|sjazd|biatlon|snowboard|curling|zjazd)""") to SP_ZIMNE,
+        Regex("""\b(plavan|vodne|kanoist|veslov|water polo)""") to SP_VODNE
+    )
+
+    /** Ma dana top kategoria sub-zanre? */
+    fun hasSubgenres(topCat: String): Boolean =
+        topCat == FILM || topCat == SERIAL || topCat == CHILDREN || topCat == SPORT
+
+    /** Su zaznamy danej kategorie serialy (zoskupit epizody pod serial)? */
+    fun isSeriesLike(topCat: String): Boolean =
+        topCat == SERIAL || topCat == CHILDREN
+
+    fun subOrderFor(topCat: String): List<String> =
+        if (topCat == SPORT) sportSubOrder else movieSubOrder
+
+    /** Sub-zaner pre zaznam v danej top kategorii. */
+    fun subgenre(entry: DvrEntry, topCat: String): String {
+        val text = stripAccentsLower(
+            listOf(entry.dispTitle, entry.dispSubtitle, entry.dispDescription)
+                .filter { it.isNotBlank() }.joinToString(" ")
+        )
+        if (topCat == SPORT) {
+            for ((p, sub) in sportKeyword) if (p.containsMatchIn(text)) return sub
+            return SP_INE
+        }
+        // film/serial/detske
+        if (text.isNotBlank()) {
+            for ((p, sub) in movieKeyword) if (p.containsMatchIn(text)) return sub
+        }
+        val titleOnly = stripAccentsLower(entry.dispTitle)
+        if (titleOnly.isNotBlank() && horrorTitle.containsMatchIn(titleOnly)) return MV_HOROR
+        return MV_INE
+    }
+
+    /** Kanonicky nazov serialu (bez epizodneho sufixu a tech markerov) na
+     *  zoskupenie epizod. "Otec Brown IV (1)" -> "Otec Brown IV". */
+    fun seriesCanonicalTitle(title: String): String {
+        if (title.isBlank()) return ""
+        var clean = techMarker.replace(title, " ").trim()
+        val m = episodeSuffix.find(clean)
+        if (m != null) {
+            val n = m.groupValues[1].toIntOrNull()
+            if (n != null && n !in 1900..2099) {
+                clean = clean.substring(0, m.range.first).trim()
+            }
+        }
+        return clean
     }
 }
