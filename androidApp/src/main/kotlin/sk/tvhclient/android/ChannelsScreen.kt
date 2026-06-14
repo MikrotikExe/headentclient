@@ -62,7 +62,13 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel()) {
     val viewMode by vm.viewMode.collectAsState()
     var viewMenu by remember { mutableStateOf(false) }
     var selectedTag by remember { mutableStateOf<String?>(null) } // tag uuid alebo null = vsetky
+    var favOnly by remember { mutableStateOf(false) }
     var epgFor by remember { mutableStateOf<ChannelRow?>(null) }
+    var contextRow by remember { mutableStateOf<ChannelRow?>(null) }
+    var profileFor by remember { mutableStateOf<ChannelRow?>(null) }
+    var favTick by remember { mutableStateOf(0) }
+    val ctx = LocalContext.current
+    val serverId = remember { Tvh.store.active()?.id }
     // Scroll pozicie prezivaju odskok do EPG a spat (remember v scope obrazovky)
     val listStateMain = androidx.compose.foundation.lazy.rememberLazyListState()
     val listStateSearch = androidx.compose.foundation.lazy.rememberLazyListState()
@@ -157,33 +163,156 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel()) {
                     // Vyhladavanie: plochy filtrovany zoznam
                     val q = query.trim().lowercase()
                     val results = s.allRows.filter { it.channel.name.lowercase().contains(q) }
-                    ChannelView(viewMode, results, listStateSearch, nowTick, epgMap) { epgFor = it }
+                    ChannelView(viewMode, results, listStateSearch, nowTick, epgMap) { contextRow = it }
                 } else {
                     // Filtre podla tagov
                     val tags = s.categories.mapNotNull { it.tag }
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        item {
+                        item("fav") {
                             FilterChip(
-                                selected = selectedTag == null,
-                                onClick = { selectedTag = null },
+                                selected = favOnly,
+                                onClick = { favOnly = true },
+                                label = { Text("\u2605 " + stringResource(R.string.favorites)) }
+                            )
+                        }
+                        item("all") {
+                            FilterChip(
+                                selected = !favOnly && selectedTag == null,
+                                onClick = { favOnly = false; selectedTag = null },
                                 label = { Text(stringResource(R.string.all_channels)) }
                             )
                         }
                         items(tags, key = { it.uuid }) { tag ->
                             FilterChip(
-                                selected = selectedTag == tag.uuid,
-                                onClick = { selectedTag = tag.uuid },
+                                selected = !favOnly && selectedTag == tag.uuid,
+                                onClick = { favOnly = false; selectedTag = tag.uuid },
                                 label = { Text(tag.name) }
                             )
                         }
                     }
                     Spacer(Modifier.height(8.dp))
-                    val rows = if (selectedTag == null) {
-                        s.categories.flatMap { it.rows }.distinctBy { it.channel.uuid }
-                    } else {
-                        s.categories.firstOrNull { it.tag?.uuid == selectedTag }?.rows ?: emptyList()
+                    val favs = remember(favTick, serverId) {
+                        if (serverId != null) Favorites.all(ctx, serverId) else emptySet()
                     }
-                    ChannelView(viewMode, rows, listStateMain, nowTick, epgMap) { epgFor = it }
+                    val rows = when {
+                        favOnly -> s.allRows.filter { it.channel.uuid in favs }
+                        selectedTag == null ->
+                            s.categories.flatMap { it.rows }.distinctBy { it.channel.uuid }
+                        else ->
+                            s.categories.firstOrNull { it.tag?.uuid == selectedTag }?.rows ?: emptyList()
+                    }
+                    ChannelView(viewMode, rows, listStateMain, nowTick, epgMap) { contextRow = it }
+                }
+            }
+        }
+    }
+
+    // Kontextove menu kanala (dlhy klik): Program / Oblubene / Profil
+    val cr = contextRow
+    if (cr != null && serverId != null) {
+        val isFav = remember(favTick) { Favorites.isFav(ctx, serverId, cr.channel.uuid) }
+        ChannelActionDialog(
+            channelName = cr.channel.name,
+            isFav = isFav,
+            onProgram = { epgFor = cr; contextRow = null },
+            onToggleFav = {
+                Favorites.toggle(ctx, serverId, cr.channel.uuid); favTick++; contextRow = null
+            },
+            onProfile = { profileFor = cr; contextRow = null },
+            onDismiss = { contextRow = null }
+        )
+    }
+
+    // Vyber profilu prehravania pre kanal
+    val pf = profileFor
+    if (pf != null && serverId != null) {
+        val current = remember { ChannelPrefs.getProfile(ctx, serverId, pf.channel.uuid) }
+        ProfilePickerDialog(
+            channelName = pf.channel.name,
+            current = current,
+            onPick = {
+                ChannelPrefs.setProfile(ctx, serverId, pf.channel.uuid, it); profileFor = null
+            },
+            onDismiss = { profileFor = null }
+        )
+    }
+}
+
+@Composable
+private fun ChannelActionDialog(
+    channelName: String,
+    isFav: Boolean,
+    onProgram: () -> Unit,
+    onToggleFav: () -> Unit,
+    onProfile: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        androidx.compose.material3.Surface(
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+            tonalElevation = 6.dp
+        ) {
+            Column(Modifier.padding(vertical = 8.dp)) {
+                Text(
+                    channelName,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                )
+                ActionRow(stringResource(R.string.menu_program), onProgram)
+                ActionRow(
+                    if (isFav) stringResource(R.string.fav_remove) else stringResource(R.string.fav_add),
+                    onToggleFav
+                )
+                ActionRow(stringResource(R.string.ch_profile), onProfile)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionRow(label: String, onClick: () -> Unit) {
+    Text(
+        label,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        style = MaterialTheme.typography.bodyLarge
+    )
+}
+
+@Composable
+private fun ProfilePickerDialog(
+    channelName: String,
+    current: String,
+    onPick: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        androidx.compose.material3.Surface(
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+            tonalElevation = 6.dp
+        ) {
+            Column(Modifier.padding(vertical = 8.dp)) {
+                Text(
+                    stringResource(R.string.ch_profile) + " · " + channelName,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                )
+                ChannelPrefs.profileOptions.forEach { (code, label) ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable { onPick(code) }
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            if (code == current) "\u2713  " else "     ",
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(label, style = MaterialTheme.typography.bodyLarge)
+                    }
                 }
             }
         }

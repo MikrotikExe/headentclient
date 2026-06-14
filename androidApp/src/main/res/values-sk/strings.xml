@@ -162,4 +162,9 @@
     <string name="resume_question">Obnoviť prehrávanie od poslednej pozície?</string>
     <string name="dvr_recent">Posledné sledované</string>
     <string name="dvr_resume_at">Skončili ste na %1$s</string>
+    <string name="favorites">Obľúbené</string>
+    <string name="menu_program">Program (EPG)</string>
+    <string name="fav_add">Pridať do obľúbených</string>
+    <string name="fav_remove">Odobrať z obľúbených</string>
+    <string name="ch_profile">Profil prehrávania</string>
 </resources>

@@ -162,4 +162,9 @@
     <string name="resume_question">Resume from last position?</string>
     <string name="dvr_recent">Recently watched</string>
     <string name="dvr_resume_at">Stopped at %1$s</string>
+    <string name="favorites">Favorites</string>
+    <string name="menu_program">Programme (EPG)</string>
+    <string name="fav_add">Add to favorites</string>
+    <string name="fav_remove">Remove from favorites</string>
+    <string name="ch_profile">Playback profile</string>
 </resources>

@@ -146,10 +146,13 @@ class PlayerActivity : ComponentActivity() {
             }
         }
 
-        // DVR: priame dvrfile URL (s creds). Live: zostav z kanala.
+        // DVR: priame dvrfile URL (s creds). Live: zostav z kanala s per-kanal
+        // profilom (ak je nastaveny), inak profil servera.
+        val chProfile = if (channelUuid != null)
+            ChannelPrefs.getProfile(this, server.id, channelUuid) else ""
         val streamUrl = directUrl ?: Tvh.liveUrl(
             server, channelUuid!!, channelTitle,
-            server.profile.ifBlank { "pass" }
+            chProfile.ifBlank { server.profile.ifBlank { "pass" } }
         )
 
         setContent {
@@ -339,23 +342,30 @@ private fun PlayerUi(
         }
     }
 
-    // Auto-vyber preferovanej audio stopy (SK -> CZ -> EN ...) po nacitani stop
-    if (preferredAudio.isNotEmpty()) {
-        LaunchedEffect(Unit) {
-            repeat(30) {
-                kotlinx.coroutines.delay(500)
-                val tracks = player.audioTracks
-                val real = tracks?.filter { it.id >= 0 } ?: emptyList()
-                if (real.size >= 2) {
-                    for (code in preferredAudio) {
-                        val m = real.firstOrNull { AudioPref.matches(it.name ?: "", code) }
-                        if (m != null) {
-                            if (player.audioTrack != m.id) player.audioTrack = m.id
-                            return@LaunchedEffect
-                        }
+    // Auto-vyber audio stopy po nacitani: 1) zapamatana pre kanal, 2) jazykove priority
+    LaunchedEffect(Unit) {
+        repeat(30) {
+            kotlinx.coroutines.delay(500)
+            val real = player.audioTracks?.filter { it.id >= 0 } ?: emptyList()
+            if (real.size >= 2) {
+                val remembered = if (liveChannelUuid != null && serverId != null)
+                    ChannelPrefs.getLastAudio(ctx, serverId, liveChannelUuid) else ""
+                if (remembered.isNotBlank()) {
+                    val m = real.firstOrNull { (it.name ?: "") == remembered }
+                        ?: real.firstOrNull { (it.name ?: "").contains(remembered) }
+                    if (m != null) {
+                        if (player.audioTrack != m.id) player.audioTrack = m.id
+                        return@LaunchedEffect
                     }
-                    return@LaunchedEffect
                 }
+                for (code in preferredAudio) {
+                    val m = real.firstOrNull { AudioPref.matches(it.name ?: "", code) }
+                    if (m != null) {
+                        if (player.audioTrack != m.id) player.audioTrack = m.id
+                        return@LaunchedEffect
+                    }
+                }
+                return@LaunchedEffect
             }
         }
     }
@@ -514,7 +524,18 @@ private fun PlayerUi(
                 currentId = currentId,
                 allowOff = (menu == "spu"),  // titulky sa daju vypnut (-1)
                 onPick = { id ->
-                    if (menu == "audio") player.audioTrack = id else player.spuTrack = id
+                    if (menu == "audio") {
+                        player.audioTrack = id
+                        // zapamataj vyber pre kanal (live)
+                        if (liveChannelUuid != null && serverId != null) {
+                            val name = items.firstOrNull { it.id == id }?.name
+                            if (!name.isNullOrBlank()) {
+                                ChannelPrefs.setLastAudio(ctx, serverId, liveChannelUuid, name)
+                            }
+                        }
+                    } else {
+                        player.spuTrack = id
+                    }
                     menu = null
                 },
                 onDismiss = { menu = null }
