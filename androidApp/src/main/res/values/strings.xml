@@ -43,7 +43,7 @@
     <string name="genre_leisure">Leisure / Hobby</string>
     <string name="epg_no_description">No description available.</string>
     <string name="epg_age">Rating: %1$d+</string>
-    <string name="tab_dvr">Recordings</string>
+    <string name="tab_dvr">Archive</string>
     <string name="dvr_empty">No recordings.</string>
     <string name="dvr_delete">Delete</string>
     <string name="dvr_delete_confirm">Delete this recording?</string>

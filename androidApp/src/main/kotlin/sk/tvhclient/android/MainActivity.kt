@@ -69,25 +69,29 @@ fun App() {
                 NavigationBarItem(
                     selected = tab == 0,
                     onClick = { tab = 0 },
-                    icon = {},
+                    icon = { androidx.compose.material3.Icon(
+                        androidx.compose.material.icons.Icons.Default.LiveTv, contentDescription = null) },
                     label = { Text(stringResource(R.string.tab_channels)) }
                 )
                 NavigationBarItem(
                     selected = tab == 1,
                     onClick = { tab = 1 },
-                    icon = {},
+                    icon = { androidx.compose.material3.Icon(
+                        androidx.compose.material.icons.Icons.Default.Radio, contentDescription = null) },
                     label = { Text(stringResource(R.string.tab_radio)) }
                 )
                 NavigationBarItem(
                     selected = tab == 2,
                     onClick = { tab = 2 },
-                    icon = {},
+                    icon = { androidx.compose.material3.Icon(
+                        androidx.compose.material.icons.Icons.Default.Dvr, contentDescription = null) },
                     label = { Text(stringResource(R.string.tab_dvr)) }
                 )
                 NavigationBarItem(
                     selected = tab == 3,
                     onClick = { tab = 3 },
-                    icon = {},
+                    icon = { androidx.compose.material3.Icon(
+                        androidx.compose.material.icons.Icons.Default.Dns, contentDescription = null) },
                     label = { Text(stringResource(R.string.servers_title)) }
                 )
             }

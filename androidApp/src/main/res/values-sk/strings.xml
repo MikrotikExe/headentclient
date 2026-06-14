@@ -43,7 +43,7 @@
     <string name="genre_leisure">Voľný čas / Hobby</string>
     <string name="epg_no_description">Popis nie je k dispozícii.</string>
     <string name="epg_age">Prístupnosť: %1$d+</string>
-    <string name="tab_dvr">Nahrávky</string>
+    <string name="tab_dvr">Archív</string>
     <string name="dvr_empty">Žiadne nahrávky.</string>
     <string name="dvr_delete">Zmazať</string>
     <string name="dvr_delete_confirm">Zmazať túto nahrávku?</string>
