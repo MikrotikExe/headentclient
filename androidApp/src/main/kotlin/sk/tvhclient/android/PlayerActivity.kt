@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
@@ -60,6 +61,14 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Immersive fullscreen — skry status aj navigacnu listu, nech
+        // neprekryvaju ovladanie. Listy sa daju vytiahnut potiahnutim.
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        val insetsController = androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
+        insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        insetsController.systemBarsBehavior =
+            androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
 
         val channelUuid = intent.getStringExtra(EXTRA_UUID)
         val channelTitle = intent.getStringExtra(EXTRA_TITLE) ?: ""
@@ -195,7 +204,7 @@ private fun PlayerUi(
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize()
         ) {
-            Box(Modifier.fillMaxSize().background(Color(0x66000000))) {
+            Box(Modifier.fillMaxSize().systemBarsPadding().background(Color(0x66000000))) {
                 // Horny pruh: zavriet + nazov
                 Row(
                     Modifier.fillMaxWidth().padding(12.dp),
