@@ -2,9 +2,11 @@ package sk.tvhclient.android
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.api.ConnectionResult
 import sk.tvhclient.shared.model.TvhServer
@@ -53,7 +55,7 @@ class ServersViewModel : ViewModel() {
     fun test(server: TvhServer) {
         _testState.value = TestState.Running
         viewModelScope.launch {
-            val result = Tvh.testConnection(server)
+            val result = withContext(Dispatchers.IO) { Tvh.testConnection(server) }
             _testState.value = TestState.Done(result)
         }
     }
