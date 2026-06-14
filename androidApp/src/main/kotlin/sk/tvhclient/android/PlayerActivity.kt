@@ -72,9 +72,10 @@ class PlayerActivity : ComponentActivity() {
 
         val channelUuid = intent.getStringExtra(EXTRA_UUID)
         val channelTitle = intent.getStringExtra(EXTRA_TITLE) ?: ""
+        val directUrl = intent.getStringExtra(EXTRA_URL)
 
         val server = Tvh.store.active()
-        if (server == null || channelUuid == null) {
+        if (server == null || (channelUuid == null && directUrl == null)) {
             finish()
             return
         }
@@ -97,8 +98,9 @@ class PlayerActivity : ComponentActivity() {
             }
         }
 
-        val streamUrl = Tvh.liveUrl(
-            server, channelUuid, channelTitle,
+        // DVR: priame dvrfile URL (s creds). Live: zostav z kanala.
+        val streamUrl = directUrl ?: Tvh.liveUrl(
+            server, channelUuid!!, channelTitle,
             server.profile.ifBlank { "pass" }
         )
 
@@ -141,6 +143,7 @@ class PlayerActivity : ComponentActivity() {
     companion object {
         const val EXTRA_UUID = "channel_uuid"
         const val EXTRA_TITLE = "channel_title"
+        const val EXTRA_URL = "stream_url"
     }
 }
 

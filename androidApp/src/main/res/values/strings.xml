@@ -43,4 +43,23 @@
     <string name="genre_leisure">Leisure / Hobby</string>
     <string name="epg_no_description">No description available.</string>
     <string name="epg_age">Rating: %1$d+</string>
+    <string name="tab_dvr">Recordings</string>
+    <string name="dvr_empty">No recordings.</string>
+    <string name="dvr_delete">Delete</string>
+    <string name="dvr_delete_confirm">Delete this recording?</string>
+    <string name="dvr_play">Play</string>
+    <string name="cat_film">Movies</string>
+    <string name="cat_serial">Series</string>
+    <string name="cat_sport">Sport</string>
+    <string name="cat_news">News</string>
+    <string name="cat_show">Shows</string>
+    <string name="cat_children">Children</string>
+    <string name="cat_music">Music</string>
+    <string name="cat_arts">Arts</string>
+    <string name="cat_documentary">Documentaries</string>
+    <string name="cat_hobby">Hobby</string>
+    <string name="cat_other">Uncategorized</string>
+    <string name="epg_record">Record</string>
+    <string name="epg_record_done">Recording scheduled</string>
+    <string name="epg_record_fail">Failed to schedule recording</string>
 </resources>

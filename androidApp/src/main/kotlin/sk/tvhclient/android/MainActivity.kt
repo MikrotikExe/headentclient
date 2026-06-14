@@ -74,6 +74,12 @@ fun App() {
                     selected = tab == 1,
                     onClick = { tab = 1 },
                     icon = {},
+                    label = { Text(stringResource(R.string.tab_dvr)) }
+                )
+                NavigationBarItem(
+                    selected = tab == 2,
+                    onClick = { tab = 2 },
+                    icon = {},
                     label = { Text(stringResource(R.string.servers_title)) }
                 )
             }
@@ -82,6 +88,7 @@ fun App() {
         Box(Modifier.padding(padding)) {
             when (tab) {
                 0 -> ChannelsScreen()
+                1 -> DvrScreen()
                 else -> ServersTab()
             }
         }

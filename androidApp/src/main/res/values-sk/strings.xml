@@ -43,4 +43,23 @@
     <string name="genre_leisure">Voľný čas / Hobby</string>
     <string name="epg_no_description">Popis nie je k dispozícii.</string>
     <string name="epg_age">Prístupnosť: %1$d+</string>
+    <string name="tab_dvr">Nahrávky</string>
+    <string name="dvr_empty">Žiadne nahrávky.</string>
+    <string name="dvr_delete">Zmazať</string>
+    <string name="dvr_delete_confirm">Zmazať túto nahrávku?</string>
+    <string name="dvr_play">Prehrať</string>
+    <string name="cat_film">Filmy</string>
+    <string name="cat_serial">Seriály</string>
+    <string name="cat_sport">Šport</string>
+    <string name="cat_news">Spravodajstvo</string>
+    <string name="cat_show">Šou / Zábava</string>
+    <string name="cat_children">Detské</string>
+    <string name="cat_music">Hudba</string>
+    <string name="cat_arts">Umenie</string>
+    <string name="cat_documentary">Dokumenty</string>
+    <string name="cat_hobby">Hobby</string>
+    <string name="cat_other">Nezaradené</string>
+    <string name="epg_record">Nahrať</string>
+    <string name="epg_record_done">Nahrávka naplánovaná</string>
+    <string name="epg_record_fail">Nahrávku sa nepodarilo naplánovať</string>
 </resources>

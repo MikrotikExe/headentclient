@@ -3,9 +3,10 @@
 Kotlin Multiplatform projekt: zdieľané jadro (Ktor, modely, secure storage),
 natívne UI — Jetpack Compose (Android mobil + TV), SwiftUI (iOS).
 
-Stav: Míľnik M4 — EPG. Now/next v zozname (M2) + denný grid: dlhý klik na
-kanál ukáže program na celý deň zoskupený po dňoch, práve bežiaci zvýraznený.
-Krátky klik = prehrávanie (M3). M1-M3 overené na reálnom serveri.
+Stav: Míľnik M5 — DVR. Záložka Nahrávky: dokončené nahrávky zoskupené po
+kategóriách (klasifikátor prebratý z classifier.py — DVB žáner + keyword
+fallback), prehrávanie cez dvrfile (libVLC), mazanie. Plánovanie nahrávky z
+EPG detailu (tlačidlo Nahrať → create_by_event). M1-M4 overené na serveri.
 
 ## Čo je prebraté z Enigma2 pluginu (plugin_video_tvheadend)
 
@@ -68,6 +69,23 @@ open TvhClient.xcodeproj
 
 Xcode pri builde sám zavolá gradle task embedAndSignAppleFrameworkForXcode,
 ktorý skompiluje shared modul do Shared.framework.
+
+## Test checklist M5
+
+1. Záložka Nahrávky → zoznam dokončených nahrávok, zoskupený po kategóriách
+   (Filmy, Seriály, Šport, Spravodajstvo, Šou, Detské, Hudba, Dokumenty…)
+2. Kategórie sedia podľa obsahu (DVB žáner zo servera + keyword fallback)
+3. Klik na nahrávku → prehrávanie cez libVLC (dvrfile), video aj zvuk
+4. Pri nahrávke: kanál, dátum/čas, dĺžka v minútach
+5. Ikona koša → potvrdzovací dialóg → zmazanie nahrávky (zo servera aj súbor)
+6. Po zmazaní sa zoznam obnoví
+7. Plánovanie: v EPG detaile relácie tlačidlo Nahrať → "Nahrávka naplánovaná"
+8. Naplánovaná nahrávka sa po čase objaví v Nahrávkach (po dokončení)
+9. Bez nahrávok → "Žiadne nahrávky"
+
+Pozn.: sub-žánre (Akčný/Krimi/Sci-fi…), 1945-titulový corpus a IMDb lookup
+z classifier.py zatiaľ NEsú portované — len top kategórie. Doplní sa neskôr.
+DVR prehrávač zatiaľ nemá seek lištu (pridá sa v polish kroku).
 
 ## Test checklist M4
 
