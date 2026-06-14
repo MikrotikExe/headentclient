@@ -76,6 +76,7 @@ class PlayerActivity : ComponentActivity() {
         val durationMs = intent.getLongExtra(EXTRA_DURATION_MS, 0L)
         val progStart = intent.getLongExtra(EXTRA_PROG_START, 0L)
         val progStop = intent.getLongExtra(EXTRA_PROG_STOP, 0L)
+        val progTitle = intent.getStringExtra(EXTRA_PROG_TITLE) ?: ""
 
         val server = Tvh.store.active()
         if (server == null || (channelUuid == null && directUrl == null)) {
@@ -115,6 +116,9 @@ class PlayerActivity : ComponentActivity() {
                 knownDurationMs = durationMs,  // dlzka z DVR entry (TS subor ju nenese)
                 progStartSec = progStart,
                 progStopSec = progStop,
+                progTitleArg = progTitle,
+                server = server,
+                liveChannelUuid = if (directUrl == null) channelUuid else null,
                 onAttach = { layout -> mediaPlayer.attachViews(layout, null, false, false) },
                 onStart = {
                     val media = Media(libVlc, Uri.parse(streamUrl))
@@ -154,6 +158,7 @@ class PlayerActivity : ComponentActivity() {
         const val EXTRA_DURATION_MS = "duration_ms"
         const val EXTRA_PROG_START = "prog_start"
         const val EXTRA_PROG_STOP = "prog_stop"
+        const val EXTRA_PROG_TITLE = "prog_title"
     }
 }
 
@@ -174,6 +179,9 @@ private fun PlayerUi(
     knownDurationMs: Long,
     progStartSec: Long = 0,
     progStopSec: Long = 0,
+    progTitleArg: String = "",
+    server: sk.tvhclient.shared.model.TvhServer? = null,
+    liveChannelUuid: String? = null,
     onAttach: (VLCVideoLayout) -> Unit,
     onStart: () -> Unit,
     onClose: () -> Unit
@@ -209,8 +217,42 @@ private fun PlayerUi(
 
     // Live priebeh aktualnej relacie (z EPG): tika po sekundach
     var liveNowSec by remember { mutableStateOf(System.currentTimeMillis() / 1000) }
-    val hasLiveProg = !seekable && progStartSec > 0 && progStopSec > progStartSec
-    if (hasLiveProg) {
+    // Aktualna relacia (mutable — pri dobehnuti sa nacita dalsia)
+    var progStart by remember { mutableStateOf(progStartSec) }
+    var progStop by remember { mutableStateOf(progStopSec) }
+    var progTitle by remember { mutableStateOf(progTitleArg) }
+    val hasLiveProg = !seekable && progStart > 0 && progStop > progStart
+
+    if (!seekable && liveChannelUuid != null && server != null) {
+        LaunchedEffect(Unit) {
+            // tik kazdu sekundu
+            while (true) {
+                liveNowSec = System.currentTimeMillis() / 1000
+                kotlinx.coroutines.delay(1000)
+            }
+        }
+        LaunchedEffect(Unit) {
+            // ak nemame relaciu alebo dobehla -> nacitaj aktualnu/dalsiu
+            while (true) {
+                val now = System.currentTimeMillis() / 1000
+                if (progStart == 0L || progStop == 0L || now >= progStop) {
+                    val list = try {
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            val api = Tvh.apiFor(server)
+                            try { Tvh.fetchEpgForChannel(server, api, liveChannelUuid) }
+                            finally { api.close() }
+                        }
+                    } catch (e: Exception) { emptyList() }
+                    val cur = list.firstOrNull { it.start <= now && now < it.stop }
+                    if (cur != null) {
+                        progStart = cur.start; progStop = cur.stop
+                        progTitle = cur.title
+                    }
+                }
+                kotlinx.coroutines.delay(5000)
+            }
+        }
+    } else if (hasLiveProg) {
         LaunchedEffect(Unit) {
             while (true) {
                 liveNowSec = System.currentTimeMillis() / 1000
@@ -264,13 +306,24 @@ private fun PlayerUi(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     CircleButton("\u2715", onClick = onClose)
-                    Text(
-                        title,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(start = 12.dp).weight(1f),
-                        maxLines = 1
-                    )
+                    Column(
+                        Modifier.padding(start = 12.dp).weight(1f)
+                    ) {
+                        Text(
+                            title,
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1
+                        )
+                        if (progTitle.isNotBlank()) {
+                            Text(
+                                progTitle,
+                                color = Color(0xCCFFFFFF),
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1
+                            )
+                        }
+                    }
                     // Zamok orientacie: zamknuty = aktualna poloha, odomknuty = podla telefonu
                     CircleButton(
                         label = if (orientationLocked) "\uD83D\uDD12" else "\uD83D\uDD13",
@@ -306,8 +359,8 @@ private fun PlayerUi(
                         .padding(16.dp)
                 ) {
                     if (hasLiveProg) {
-                        val total = (progStopSec - progStartSec).coerceAtLeast(1)
-                        val elapsed = (liveNowSec - progStartSec).coerceIn(0, total)
+                        val total = (progStop - progStart).coerceAtLeast(1)
+                        val elapsed = (liveNowSec - progStart).coerceIn(0, total)
                         val frac = elapsed.toFloat() / total.toFloat()
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(fmtMs(elapsed * 1000), color = Color.White,

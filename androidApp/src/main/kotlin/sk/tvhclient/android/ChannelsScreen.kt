@@ -191,6 +191,7 @@ private fun ChannelItem(
                         putExtra(PlayerActivity.EXTRA_TITLE, row.channel.name)
                         putExtra(PlayerActivity.EXTRA_PROG_START, row.nowStart)
                         putExtra(PlayerActivity.EXTRA_PROG_STOP, row.nowStop)
+                        putExtra(PlayerActivity.EXTRA_PROG_TITLE, row.nowTitle ?: "")
                     }
                     context.startActivity(intent)
                 },
