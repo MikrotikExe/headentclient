@@ -1,5 +1,6 @@
 package sk.tvhclient.android
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -48,6 +49,9 @@ private sealed class EpgState {
 @Composable
 fun EpgScreen(channelUuid: String, channelName: String, onBack: () -> Unit) {
     var state by remember { mutableStateOf<EpgState>(EpgState.Loading) }
+
+    // Systemove tlacidlo Spat zavrie EPG (navrat na zoznam), nie celu appku
+    BackHandler { onBack() }
 
     LaunchedEffect(channelUuid) {
         state = EpgState.Loading
