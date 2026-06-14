@@ -1,6 +1,12 @@
 package sk.tvhclient.android
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.material3.Button
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.foundation.clickable
@@ -124,23 +130,21 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
             val eid = event.eventId
             if (eid != null && eid > 0) {
                 Spacer(Modifier.height(20.dp))
-                val context = androidx.compose.ui.platform.LocalContext.current
-                val scope = androidx.compose.runtime.rememberCoroutineScope()
-                var scheduling by androidx.compose.runtime.remember {
-                    androidx.compose.runtime.mutableStateOf(false)
-                }
-                androidx.compose.material3.Button(
+                val context = LocalContext.current
+                val scope = rememberCoroutineScope()
+                val scheduling = remember { mutableStateOf(false) }
+                Button(
                     onClick = {
-                        scheduling = true
+                        scheduling.value = true
                         scope.launch {
                             val server = sk.tvhclient.shared.Tvh.store.active()
                             val ok = if (server != null) {
-                                withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                withContext(Dispatchers.IO) {
                                     val api = sk.tvhclient.shared.Tvh.apiFor(server)
                                     try { api.dvrRecordEvent(eid) } finally { api.close() }
                                 }
                             } else false
-                            scheduling = false
+                            scheduling.value = false
                             android.widget.Toast.makeText(
                                 context,
                                 context.getString(
@@ -150,7 +154,7 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
                             ).show()
                         }
                     },
-                    enabled = !scheduling
+                    enabled = !scheduling.value
                 ) {
                     Text("\u23FA  " + stringResource(R.string.epg_record))
                 }
