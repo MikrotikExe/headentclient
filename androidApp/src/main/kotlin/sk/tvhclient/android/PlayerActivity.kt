@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -63,6 +64,29 @@ class PlayerActivity : ComponentActivity() {
     private lateinit var libVlc: LibVLC
     private lateinit var mediaPlayer: MediaPlayer
 
+    // DVR progress (sledovanie pozicie pre archiv)
+    private var dvrUuid: String? = null
+    private var dvrServerId: String? = null
+    private var dvrDurationMs: Long = 0
+    private var reachedEnd = false
+
+    private fun saveDvrProgress() {
+        val uuid = dvrUuid ?: return
+        val sid = dvrServerId ?: return
+        if (!::mediaPlayer.isInitialized) return
+        val dur = if (dvrDurationMs > 0) dvrDurationMs else mediaPlayer.length
+        if (dur <= 0) return
+        if (reachedEnd) {
+            WatchProgress.markCompleted(this, sid, uuid, dur)
+            return
+        }
+        val pos = mediaPlayer.position
+        // neprepisuj dobru poziciu nulou (napr. ked sa media este nenacitala)
+        if (pos > 0.001f && pos <= 1f) {
+            WatchProgress.save(this, sid, uuid, (pos * dur).toLong(), dur)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -81,12 +105,22 @@ class PlayerActivity : ComponentActivity() {
         val progStart = intent.getLongExtra(EXTRA_PROG_START, 0L)
         val progStop = intent.getLongExtra(EXTRA_PROG_STOP, 0L)
         val progTitle = intent.getStringExtra(EXTRA_PROG_TITLE) ?: ""
+        dvrUuid = intent.getStringExtra(EXTRA_DVR_UUID)
+        dvrDurationMs = durationMs
 
         val server = Tvh.store.active()
         if (server == null || (channelUuid == null && directUrl == null)) {
             finish()
             return
         }
+        dvrServerId = server.id
+
+        // Ulozena pozicia: ponuknut obnovenie ak nie je dopozerane a nie je
+        // tesne na zaciatku/konci
+        val saved = dvrUuid?.let { WatchProgress.get(this, server.id, it) }
+        val resumeMs = if (saved != null && !saved.completed && saved.posMs > 30_000 &&
+            (durationMs <= 0 || durationMs - saved.posMs > 60_000)
+        ) saved.posMs else 0L
 
         val options = arrayListOf(
             "--network-caching=1500",
@@ -97,12 +131,18 @@ class PlayerActivity : ComponentActivity() {
         mediaPlayer = MediaPlayer(libVlc)
 
         mediaPlayer.setEventListener { event ->
-            if (event.type == MediaPlayer.Event.EncounteredError) {
-                Toast.makeText(
-                    this,
-                    getString(R.string.playback_error, "VLC"),
-                    Toast.LENGTH_LONG
-                ).show()
+            when (event.type) {
+                MediaPlayer.Event.EncounteredError -> {
+                    Toast.makeText(
+                        this,
+                        getString(R.string.playback_error, "VLC"),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                MediaPlayer.Event.EndReached -> {
+                    reachedEnd = true
+                    saveDvrProgress()
+                }
             }
         }
 
@@ -124,6 +164,9 @@ class PlayerActivity : ComponentActivity() {
                 server = server,
                 liveChannelUuid = if (directUrl == null) channelUuid else null,
                 preferredAudio = AudioPref.get(this),
+                resumeMs = resumeMs,
+                dvrUuid = dvrUuid,
+                serverId = server.id,
                 onAttach = { layout -> mediaPlayer.attachViews(layout, null, false, false) },
                 onStart = {
                     val media = Media(libVlc, Uri.parse(streamUrl))
@@ -138,6 +181,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     override fun onStop() {
+        saveDvrProgress()
         super.onStop()
         if (::mediaPlayer.isInitialized && mediaPlayer.isPlaying) {
             mediaPlayer.pause()
@@ -145,6 +189,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        saveDvrProgress()
         super.onDestroy()
         if (::mediaPlayer.isInitialized) {
             mediaPlayer.stop()
@@ -164,6 +209,7 @@ class PlayerActivity : ComponentActivity() {
         const val EXTRA_PROG_START = "prog_start"
         const val EXTRA_PROG_STOP = "prog_stop"
         const val EXTRA_PROG_TITLE = "prog_title"
+        const val EXTRA_DVR_UUID = "dvr_uuid"
     }
 }
 
@@ -188,6 +234,9 @@ private fun PlayerUi(
     server: sk.tvhclient.shared.model.TvhServer? = null,
     liveChannelUuid: String? = null,
     preferredAudio: List<String> = emptyList(),
+    resumeMs: Long = 0,
+    dvrUuid: String? = null,
+    serverId: String? = null,
     onAttach: (VLCVideoLayout) -> Unit,
     onStart: () -> Unit,
     onClose: () -> Unit
@@ -196,6 +245,7 @@ private fun PlayerUi(
     var isPlaying by remember { mutableStateOf(true) }
     var orientationLocked by remember { mutableStateOf(false) }
     val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     // menu: null = ziadne, "audio" = audio stopy, "spu" = titulky
     var menu by remember { mutableStateOf<String?>(null) }
     // seek stav (len pre DVR). TS subor nenese dlzku, takze pouzivame:
@@ -208,13 +258,35 @@ private fun PlayerUi(
     // Dlzka: primarne z DVR entry, fallback co hlasi VLC
     val lengthMs = if (knownDurationMs > 0) knownDurationMs else player.length
 
+    // Obnovenie pozicie (len DVR): spytaj sa, a po potvrdeni pretoc ked je
+    // media nacitana
+    var askResume by remember { mutableStateOf(resumeMs > 0) }
+    var pendingResumeMs by remember { mutableStateOf(0L) }
+
     // Aktualizuj poziciu kazdu sekundu (len ked je seekable a netiahneme)
     if (seekable) {
         LaunchedEffect(Unit) {
+            var sinceSave = 0
             while (true) {
+                // obnovenie po potvrdeni
+                if (pendingResumeMs > 0 && lengthMs > 0 && player.isSeekable) {
+                    val f = (pendingResumeMs.toFloat() / lengthMs).coerceIn(0f, 1f)
+                    player.position = f
+                    posFraction = f
+                    pendingResumeMs = 0
+                }
                 if (!dragging) {
                     val p = player.position
                     if (p in 0f..1f) posFraction = p
+                }
+                // priebezne ukladaj poziciu (kazdych ~5s)
+                sinceSave++
+                if (sinceSave >= 5 && !askResume) {
+                    sinceSave = 0
+                    val p = player.position
+                    if (p > 0.001f && p <= 1f && lengthMs > 0 && dvrUuid != null && serverId != null) {
+                        WatchProgress.save(ctx, serverId, dvrUuid, (p * lengthMs).toLong(), lengthMs)
+                    }
                 }
                 kotlinx.coroutines.delay(1000)
             }
@@ -447,6 +519,53 @@ private fun PlayerUi(
                 },
                 onDismiss = { menu = null }
             )
+        }
+
+        // Dialog: obnovit prehravanie od poslednej pozicie?
+        if (askResume) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color(0xAA000000))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    Modifier
+                        .widthIn(min = 260.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xEE202020))
+                        .padding(20.dp)
+                ) {
+                    Text(
+                        androidx.compose.ui.res.stringResource(R.string.resume_question),
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        fmtMs(resumeMs),
+                        color = Color(0xCCFFFFFF),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Row(
+                        Modifier.align(Alignment.End),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        TextChip(androidx.compose.ui.res.stringResource(R.string.no)) {
+                            askResume = false
+                        }
+                        TextChip(androidx.compose.ui.res.stringResource(R.string.yes)) {
+                            pendingResumeMs = resumeMs
+                            askResume = false
+                        }
+                    }
+                }
+            }
         }
     }
 }

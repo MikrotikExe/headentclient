@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +46,7 @@ import sk.tvhclient.shared.model.DvrEntry
 // Navigacia v archive (read-only zlozky)
 private sealed class DvrNav {
     data object Root : DvrNav()
+    data object Recent : DvrNav()
     data object Channels : DvrNav()
     data class Dates(val channel: String) : DvrNav()
     data class Day(val channel: String, val dateKey: String) : DvrNav()
@@ -59,6 +61,17 @@ fun DvrScreen(vm: DvrViewModel = viewModel()) {
     val context = LocalContext.current
     var nav by remember { mutableStateOf<DvrNav>(DvrNav.Root) }
 
+    // Po navrate z prehravaca obnov priznaky sledovania (hviezdicka/pozicia)
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    var progressTick by remember { mutableStateOf(0) }
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME) progressTick++
+        }
+        lifecycleOwner.lifecycle.addObserver(obs)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+    }
+
     LaunchedEffect(Unit) { vm.load() }
 
     // Spat: ak nie sme v root, vrat sa o uroven vyssie (nie zavri appku)
@@ -67,6 +80,7 @@ fun DvrScreen(vm: DvrViewModel = viewModel()) {
             is DvrNav.Day -> DvrNav.Dates(n.channel)
             is DvrNav.Dates -> DvrNav.Channels
             is DvrNav.Channels -> DvrNav.Root
+            is DvrNav.Recent -> DvrNav.Root
             is DvrNav.Series -> DvrNav.Subgenre(n.catKey, n.subKey)
             is DvrNav.Subgenre -> DvrNav.Category(n.catKey)
             is DvrNav.Category -> DvrNav.Root
@@ -94,7 +108,7 @@ fun DvrScreen(vm: DvrViewModel = viewModel()) {
                 if (s.entries.isEmpty()) {
                     Text(stringResource(R.string.dvr_empty), Modifier.align(Alignment.Center))
                 } else {
-                    DvrContent(s.entries, s.channelOrder, s.channelPicons, nav, context, onNav = { nav = it })
+                    DvrContent(s.entries, s.channelOrder, s.channelPicons, nav, context, progressTick, onNav = { nav = it })
                 }
             }
         }
@@ -108,16 +122,31 @@ private fun DvrContent(
     channelPicons: Map<String, String?>,
     nav: DvrNav,
     context: Context,
+    progressTick: Int,
     onNav: (DvrNav) -> Unit
 ) {
     val server = remember { Tvh.store.active() }
     val piconLoader = remember(server?.id) { PiconImageLoader.get(context, server) }
     when (nav) {
         is DvrNav.Root -> {
-            // Zlozky: Podla kanalov + kategorie ktore maju nahravky
+            // Zlozky: Posledne sledovane + Podla kanalov + kategorie
             val byCat = entries.groupBy { DvrClassifier.classify(it) }
+            val recentCount = remember(progressTick, entries) {
+                if (server == null) 0 else {
+                    val uuids = entries.mapTo(HashSet()) { it.uuid }
+                    WatchProgress.recent(context, server.id).count { it.first in uuids }
+                }
+            }
             LazyColumn(Modifier.fillMaxSize()) {
                 item("hdr") { Header(stringResource(R.string.dvr_archive)) }
+                if (recentCount > 0) {
+                    item("recent") {
+                        FolderRow(
+                            "\u25B6  " + stringResource(R.string.dvr_recent),
+                            sub = "$recentCount"
+                        ) { onNav(DvrNav.Recent) }
+                    }
+                }
                 item("by_channel") {
                     FolderRow(
                         "\uD83D\uDCFA  " + stringResource(R.string.dvr_by_channel),
@@ -134,6 +163,16 @@ private fun DvrContent(
                     ) { onNav(DvrNav.Category(cat)) }
                 }
             }
+        }
+
+        is DvrNav.Recent -> {
+            val list = remember(progressTick, entries) {
+                if (server == null) emptyList() else {
+                    val byUuid = entries.associateBy { it.uuid }
+                    WatchProgress.recent(context, server.id).mapNotNull { byUuid[it.first] }
+                }
+            }
+            RecordingList(list, context, progressTick, header = stringResource(R.string.dvr_recent))
         }
 
         is DvrNav.Channels -> {
@@ -174,7 +213,7 @@ private fun DvrContent(
             val list = entries
                 .filter { it.channelName.ifBlank { "—" } == nav.channel && dateKey(it.start) == nav.dateKey }
                 .sortedByDescending { it.start }
-            RecordingList(list, context, header = nav.channel)
+            RecordingList(list, context, progressTick, header = nav.channel)
         }
 
         is DvrNav.Category -> {
@@ -192,7 +231,7 @@ private fun DvrContent(
                     }
                 }
             } else {
-                RecordingList(inCat.sortedByDescending { it.start }, context, header = catLabel(nav.catKey))
+                RecordingList(inCat.sortedByDescending { it.start }, context, progressTick, header = catLabel(nav.catKey))
             }
         }
 
@@ -216,7 +255,7 @@ private fun DvrContent(
                     }
                 }
             } else {
-                RecordingList(inSub.sortedByDescending { it.start }, context, header = subLabel(nav.subKey))
+                RecordingList(inSub.sortedByDescending { it.start }, context, progressTick, header = subLabel(nav.subKey))
             }
         }
 
@@ -226,39 +265,49 @@ private fun DvrContent(
                 DvrClassifier.subgenre(it, nav.catKey) == nav.subKey &&
                 DvrClassifier.seriesCanonicalTitle(it.title) == nav.seriesTitle
             }.sortedByDescending { it.start }
-            RecordingList(eps, context, header = nav.seriesTitle)
+            RecordingList(eps, context, progressTick, header = nav.seriesTitle)
         }
     }
 }
 
 @Composable
-private fun RecordingList(list: List<DvrEntry>, context: Context, header: String) {
+private fun RecordingList(list: List<DvrEntry>, context: Context, progressTick: Int, header: String) {
     LazyColumn(Modifier.fillMaxSize()) {
         item("hdr") { Header(header) }
         items(list, key = { it.uuid }) { entry ->
-            RecordingRow(entry, context)
+            RecordingRow(entry, context, progressTick)
         }
     }
 }
 
 @Composable
-private fun RecordingRow(entry: DvrEntry, context: Context) {
+private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int) {
+    val server = remember { Tvh.store.active() }
+    val info = remember(entry.uuid, progressTick) {
+        server?.let { WatchProgress.get(context, it.id, entry.uuid) }
+    }
     Row(
         Modifier
             .fillMaxWidth()
             .clickable {
-                val server = Tvh.store.active() ?: return@clickable
-                val url = Tvh.dvrUrl(server, entry.uuid)
+                val srv = Tvh.store.active() ?: return@clickable
+                val url = Tvh.dvrUrl(srv, entry.uuid)
                 val intent = Intent(context, PlayerActivity::class.java).apply {
                     putExtra(PlayerActivity.EXTRA_URL, url)
                     putExtra(PlayerActivity.EXTRA_TITLE, entry.title)
                     putExtra(PlayerActivity.EXTRA_DURATION_MS, entry.durationSec * 1000)
+                    putExtra(PlayerActivity.EXTRA_DVR_UUID, entry.uuid)
                 }
                 context.startActivity(intent)
             }
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Dopozerane = hviezdicka
+        if (info?.completed == true) {
+            Text("\u2605  ", color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleMedium)
+        }
         Column(Modifier.weight(1f)) {
             Text(entry.title, style = MaterialTheme.typography.titleSmall,
                 maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -279,10 +328,37 @@ private fun RecordingRow(entry: DvrEntry, context: Context) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
+            // Rozpozeranie (nie dopozerane): pozicia + ciara priebehu
+            if (info != null && !info.completed && info.posMs > 0) {
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    stringResource(R.string.dvr_resume_at, fmtPos(info.posMs)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1
+                )
+                if (info.fraction > 0f) {
+                    Spacer(Modifier.height(2.dp))
+                    LinearProgressIndicator(
+                        progress = { info.fraction },
+                        modifier = Modifier.fillMaxWidth().height(3.dp),
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                }
+            }
         }
         Text("\u25B6", Modifier.padding(start = 8.dp),
             color = MaterialTheme.colorScheme.primary)
     }
+}
+
+private fun fmtPos(ms: Long): String {
+    val totalSec = ms / 1000
+    val h = totalSec / 3600
+    val m = (totalSec % 3600) / 60
+    val s = totalSec % 60
+    return if (h > 0) "$h:" + m.toString().padStart(2, '0') + ":" + s.toString().padStart(2, '0')
+    else "$m:" + s.toString().padStart(2, '0')
 }
 
 @Composable

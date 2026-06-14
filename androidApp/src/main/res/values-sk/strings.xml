@@ -157,4 +157,9 @@
     <string name="audio_pref_1">1. audio</string>
     <string name="audio_pref_2">2. audio</string>
     <string name="audio_pref_3">3. audio</string>
+    <string name="yes">Áno</string>
+    <string name="no">Nie</string>
+    <string name="resume_question">Obnoviť prehrávanie od poslednej pozície?</string>
+    <string name="dvr_recent">Posledné sledované</string>
+    <string name="dvr_resume_at">Skončili ste na %1$s</string>
 </resources>
