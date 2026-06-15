@@ -356,18 +356,32 @@ private fun GridDetailContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             Spacer(Modifier.height(16.dp))
-            androidx.compose.material3.Button(
-                onClick = onPlay,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                androidx.compose.material3.Icon(
-                    androidx.compose.material.icons.Icons.Default.PlayArrow,
-                    contentDescription = null
-                )
-                Spacer(Modifier.width(8.dp))
+            // Prehrat len ak je co prehrat: DVR nahravka, alebo EPG relacia
+            // ktora prave bezi (naziva). Buduca/nenahravana sa prehrat neda.
+            val nowSec = currentTimeSeconds()
+            val playable = recorded || (start <= nowSec && nowSec < stop)
+            if (playable) {
+                androidx.compose.material3.Button(
+                    onClick = onPlay,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    androidx.compose.material3.Icon(
+                        androidx.compose.material.icons.Icons.Default.PlayArrow,
+                        contentDescription = null
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        stringResource(R.string.play),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            } else {
                 Text(
-                    stringResource(R.string.play),
-                    style = MaterialTheme.typography.titleMedium
+                    stringResource(
+                        if (start > nowSec) R.string.not_started else R.string.not_available
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 

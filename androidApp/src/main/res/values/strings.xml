@@ -173,4 +173,6 @@
     <string name="login_more_options">More options</string>
     <string name="tv_guide">TV Guide</string>
     <string name="play">Play</string>
+    <string name="not_started">Programme has not started yet</string>
+    <string name="not_available">Not available</string>
 </resources>

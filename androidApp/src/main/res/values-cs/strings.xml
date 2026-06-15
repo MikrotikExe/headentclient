@@ -173,4 +173,6 @@
     <string name="login_more_options">Více možností</string>
     <string name="tv_guide">TV Program</string>
     <string name="play">Přehrát</string>
+    <string name="not_started">Pořad ještě nezačal</string>
+    <string name="not_available">Není k dispozici</string>
 </resources>
