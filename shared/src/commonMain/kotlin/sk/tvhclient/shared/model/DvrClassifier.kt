@@ -230,6 +230,30 @@ object DvrClassifier {
     )
     private val horrorTitle = Regex("""\b(horor|horror|hruza|strasidel|zombie|upir|krvav)""")
 
+    // ---- Korpus titulov (~1945) + DVB full-byte mapa (port z classifier.py) ----
+    // Korpus: kanonicky nazov -> MV_ konstanta. Plni ho platforma zo zdroja
+    // (Android asset title_genre_corpus.json) cez setCorpus().
+    private var corpus: Map<String, String> = emptyMap()
+    fun setCorpus(m: Map<String, String>) { corpus = m }
+    fun hasCorpus(): Boolean = corpus.isNotEmpty()
+
+    // Plny DVB genre bajt (0x11-0x18) -> sub-kategoria. Dostupne ak server dava
+    // full byte (HTSP s minor nibblom); HTTP dava len major, takze sa nepouzije.
+    private val dvbGenreToSubcat: Map<Int, String> = mapOf(
+        0x11 to MV_KRIMI, 0x12 to MV_DOBRODR, 0x13 to MV_SCIFI, 0x14 to MV_KOMEDIA,
+        0x15 to MV_DRAMA, 0x16 to MV_ROMANTIKA, 0x17 to MV_HISTORICKY, 0x18 to MV_DRAMA
+    )
+
+    private val yearSuffixEnd = Regex("""\s*\(\s*(?:19|20)\d{2}\s*\)\s*$""")
+
+    /** Kanonizacia nazvu pre korpus lookup (musi ladit s tvorbou korpus JSON). */
+    private fun canonicalTitleForCorpus(title: String): String {
+        if (title.isBlank()) return ""
+        val noEp = seriesCanonicalTitle(title)        // strip tech markery + epizodny sufix
+        val noYear = yearSuffixEnd.replace(noEp, "").trim()
+        return stripAccentsLower(noYear)
+    }
+
     // -- Sport sub-zanre --
     const val SP_FUTBAL = "sp_futbal"
     const val SP_HOKEJ = "sp_hokej"
@@ -412,6 +436,15 @@ object DvrClassifier {
     /** Sub-zaner pre zaznam v danej top kategorii. */
     fun subgenre(entry: DvrEntry, topCat: String): String {
         val cfg = subConfig(topCat) ?: return ""
+        // Film/serial: najprv DVB full byte, potom korpus titulov, az potom keyword
+        if (topCat == FILM || topCat == SERIAL) {
+            val ct = entry.contentType
+            if (ct in 0x11..0x18) dvbGenreToSubcat[ct]?.let { return it }
+            if (corpus.isNotEmpty()) {
+                val key = canonicalTitleForCorpus(entry.dispTitle)
+                if (key.isNotEmpty()) corpus[key]?.let { return it }
+            }
+        }
         val text = stripAccentsLower(
             listOf(entry.dispTitle, entry.dispSubtitle, entry.dispDescription)
                 .filter { it.isNotBlank() }.joinToString(" ")

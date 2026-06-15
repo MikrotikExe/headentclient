@@ -65,6 +65,14 @@ fun DvrScreen(vm: DvrViewModel = viewModel()) {
     val context = LocalContext.current
     var nav by remember { mutableStateOf<DvrNav>(DvrNav.Root) }
     var search by remember { mutableStateOf("") }
+    // Korpus titulov pre podzanre (nacita sa raz z assetu)
+    var corpusReady by remember { mutableStateOf(DvrClassifier.hasCorpus()) }
+    LaunchedEffect(Unit) {
+        if (!DvrClassifier.hasCorpus()) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { loadCorpusFromAssets(context) }
+            corpusReady = true
+        }
+    }
 
     // Po navrate z prehravaca obnov priznaky sledovania (hviezdicka/pozicia)
     val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
@@ -154,7 +162,9 @@ fun DvrScreen(vm: DvrViewModel = viewModel()) {
                     } else if (s.entries.isEmpty()) {
                         Text(stringResource(R.string.dvr_empty), Modifier.align(Alignment.Center))
                     } else {
-                        DvrContent(s.entries, s.channelOrder, s.channelPicons, nav, context, progressTick, onReload = { vm.refresh() }, onNav = { nav = it })
+                        androidx.compose.runtime.key(corpusReady) {
+                            DvrContent(s.entries, s.channelOrder, s.channelPicons, nav, context, progressTick, onReload = { vm.refresh() }, onNav = { nav = it })
+                        }
                     }
                 }
             }
@@ -616,4 +626,28 @@ private fun normalizeSearch(s: String): String {
         )
     }
     return sb.toString()
+}
+
+/** Nacita korpus titulov z assetu a vlozi do DvrClassifier. Volat raz, na IO. */
+private fun loadCorpusFromAssets(context: Context) {
+    if (DvrClassifier.hasCorpus()) return
+    try {
+        val json = context.assets.open("title_genre_corpus.json")
+            .bufferedReader().use { it.readText() }
+        val titles = org.json.JSONObject(json).getJSONObject("titles")
+        val code2cat = mapOf(
+            "ak" to "mv_akcny", "ko" to "mv_komedia", "kr" to "mv_krimi",
+            "dr" to "mv_drama", "sf" to "mv_scifi", "ro" to "mv_romantika",
+            "ho" to "mv_horor", "do" to "mv_dobrodruzny", "an" to "mv_animovany",
+            "hi" to "mv_historicky", "we" to "mv_western"
+        )
+        val map = HashMap<String, String>(titles.length() * 2)
+        val keys = titles.keys()
+        while (keys.hasNext()) {
+            val k = keys.next()
+            code2cat[titles.getString(k)]?.let { map[k] = it }
+        }
+        DvrClassifier.setCorpus(map)
+    } catch (_: Exception) {
+    }
 }
