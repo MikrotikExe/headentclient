@@ -177,4 +177,7 @@
     <string name="not_available">Not available</string>
     <string name="play_from_start">Play from start (recording)</string>
     <string name="play_live">Play live</string>
+    <string name="dvr_search">Search recordings</string>
+    <string name="dvr_search_results">Results</string>
+    <string name="dvr_search_empty">Nothing found</string>
 </resources>

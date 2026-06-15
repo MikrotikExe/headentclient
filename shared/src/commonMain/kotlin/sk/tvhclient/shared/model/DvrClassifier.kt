@@ -220,10 +220,10 @@ object DvrClassifier {
         Regex("""\b(detektiv|kriminal|krimi|thriller|vraz|policajn|vysetrov)""") to MV_KRIMI,
         Regex("""\b(sci-?fi|sci\.\s?fi|fantasy|vedeckofant|vesmirn|mimozem|robot|kybern)""") to MV_SCIFI,
         Regex("""\b(komedi|veselohra|humor|grotesk|sitcom)""") to MV_KOMEDIA,
-        Regex("""\b(romantick|milostn|romant)""") to MV_ROMANTIKA,
-        Regex("""\b(akcn|action|honic|prestrelk)""") to MV_AKCNY,
+        Regex("""\b(romantick|milostn|romant|zamilovan)""") to MV_ROMANTIKA,
+        Regex("""\b(akcn|action|honic|prestrelk|katastrof|komiks|superhrdin)""") to MV_AKCNY,
         Regex("""\b(western|kovbo)""") to MV_WESTERN,
-        Regex("""\b(historick|valecn|vojensk|vojnov|histori)""") to MV_HISTORICKY,
+        Regex("""\b(historick|valecn|vojensk|vojnov|histori|stredovek)""") to MV_HISTORICKY,
         Regex("""\b(dobrodruz|adventur|exped|cestopis)""") to MV_DOBRODR,
         Regex("""\b(animovan|kreslen|animak|loutkov|cartoon|anime)""") to MV_ANIMAK,
         Regex("""\b(drama|dramati)""") to MV_DRAMA

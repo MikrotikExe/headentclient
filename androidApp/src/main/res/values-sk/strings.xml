@@ -177,4 +177,7 @@
     <string name="not_available">Nie je k dispozícii</string>
     <string name="play_from_start">Prehrať od začiatku (nahráva sa)</string>
     <string name="play_live">Prehrať naživo</string>
+    <string name="dvr_search">Hľadať nahrávky</string>
+    <string name="dvr_search_results">Výsledky</string>
+    <string name="dvr_search_empty">Nič sa nenašlo</string>
 </resources>

@@ -62,6 +62,7 @@ fun DvrScreen(vm: DvrViewModel = viewModel()) {
     val state by vm.state.collectAsState()
     val context = LocalContext.current
     var nav by remember { mutableStateOf<DvrNav>(DvrNav.Root) }
+    var search by remember { mutableStateOf("") }
 
     // Po navrate z prehravaca obnov priznaky sledovania (hviezdicka/pozicia)
     val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
@@ -76,41 +77,83 @@ fun DvrScreen(vm: DvrViewModel = viewModel()) {
 
     LaunchedEffect(Unit) { vm.loadIfNeeded() }
 
-    // Spat: ak nie sme v root, vrat sa o uroven vyssie (nie zavri appku)
-    BackHandler(enabled = nav != DvrNav.Root) {
-        nav = when (val n = nav) {
-            is DvrNav.Day -> DvrNav.Dates(n.channel)
-            is DvrNav.Dates -> DvrNav.Channels
-            is DvrNav.Channels -> DvrNav.Root
-            is DvrNav.Recent -> DvrNav.Root
-            is DvrNav.Series -> DvrNav.Subgenre(n.catKey, n.subKey)
-            is DvrNav.Subgenre -> DvrNav.Category(n.catKey)
-            is DvrNav.Category -> DvrNav.Root
-            else -> DvrNav.Root
+    // Spat: ak hladame, zrus hladanie; inak ak nie sme v root, vrat sa vyssie
+    BackHandler(enabled = nav != DvrNav.Root || search.isNotBlank()) {
+        if (search.isNotBlank()) {
+            search = ""
+        } else {
+            nav = when (val n = nav) {
+                is DvrNav.Day -> DvrNav.Dates(n.channel)
+                is DvrNav.Dates -> DvrNav.Channels
+                is DvrNav.Channels -> DvrNav.Root
+                is DvrNav.Recent -> DvrNav.Root
+                is DvrNav.Series -> DvrNav.Subgenre(n.catKey, n.subKey)
+                is DvrNav.Subgenre -> DvrNav.Category(n.catKey)
+                is DvrNav.Category -> DvrNav.Root
+                else -> DvrNav.Root
+            }
         }
     }
 
-    Box(Modifier.fillMaxSize()) {
-        when (val s = state) {
-            is DvrState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-            is DvrState.NoServer -> Text(
-                stringResource(R.string.no_active_server), Modifier.align(Alignment.Center)
-            )
-            is DvrState.Error -> Column(
-                Modifier.align(Alignment.Center).padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(s.message, color = MaterialTheme.colorScheme.error)
-                Spacer(Modifier.height(12.dp))
-                androidx.compose.material3.Button(onClick = { vm.load() }) {
-                    Text(stringResource(R.string.retry))
+    Column(Modifier.fillMaxSize()) {
+        // Vyhladavanie nahravok (cez vsetky, podla nazvu)
+        androidx.compose.material3.OutlinedTextField(
+            value = search,
+            onValueChange = { search = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            singleLine = true,
+            leadingIcon = {
+                androidx.compose.material3.Icon(
+                    androidx.compose.material.icons.Icons.Default.Search, contentDescription = null
+                )
+            },
+            trailingIcon = {
+                if (search.isNotBlank()) {
+                    androidx.compose.material3.IconButton(onClick = { search = "" }) {
+                        androidx.compose.material3.Icon(
+                            androidx.compose.material.icons.Icons.Default.Close, contentDescription = null
+                        )
+                    }
                 }
-            }
-            is DvrState.Loaded -> {
-                if (s.entries.isEmpty()) {
-                    Text(stringResource(R.string.dvr_empty), Modifier.align(Alignment.Center))
-                } else {
-                    DvrContent(s.entries, s.channelOrder, s.channelPicons, nav, context, progressTick, onReload = { vm.refresh() }, onNav = { nav = it })
+            },
+            placeholder = { Text(stringResource(R.string.dvr_search)) }
+        )
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            when (val s = state) {
+                is DvrState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+                is DvrState.NoServer -> Text(
+                    stringResource(R.string.no_active_server), Modifier.align(Alignment.Center)
+                )
+                is DvrState.Error -> Column(
+                    Modifier.align(Alignment.Center).padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(s.message, color = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.height(12.dp))
+                    androidx.compose.material3.Button(onClick = { vm.load() }) {
+                        Text(stringResource(R.string.retry))
+                    }
+                }
+                is DvrState.Loaded -> {
+                    if (search.isNotBlank()) {
+                        val q = normalizeSearch(search)
+                        val results = remember(search, s.entries) {
+                            s.entries.filter { normalizeSearch(it.title).contains(q) }
+                                .sortedByDescending { it.start }
+                        }
+                        if (results.isEmpty()) {
+                            Text(stringResource(R.string.dvr_search_empty), Modifier.align(Alignment.Center))
+                        } else {
+                            RecordingList(results, context, progressTick,
+                                header = stringResource(R.string.dvr_search_results) + " (${results.size})")
+                        }
+                    } else if (s.entries.isEmpty()) {
+                        Text(stringResource(R.string.dvr_empty), Modifier.align(Alignment.Center))
+                    } else {
+                        DvrContent(s.entries, s.channelOrder, s.channelPicons, nav, context, progressTick, onReload = { vm.refresh() }, onNav = { nav = it })
+                    }
                 }
             }
         }
@@ -554,4 +597,21 @@ private fun catLabel(key: String): String {
         else -> R.string.cat_other
     }
     return stringResource(resId)
+}
+
+private fun normalizeSearch(s: String): String {
+    val sb = StringBuilder(s.length)
+    for (c in s.lowercase()) {
+        sb.append(
+            when (c) {
+                'á','ä','à','â' -> 'a'; 'č','ç' -> 'c'; 'ď' -> 'd'
+                'é','ě','è','ê' -> 'e'; 'í','ì','î' -> 'i'; 'ĺ','ľ' -> 'l'
+                'ň' -> 'n'; 'ó','ô','ö','ò' -> 'o'; 'ŕ','ř' -> 'r'
+                'š','ś' -> 's'; 'ť' -> 't'; 'ú','ů','ü','ù' -> 'u'
+                'ý' -> 'y'; 'ž','ź','ż' -> 'z'
+                else -> c
+            }
+        )
+    }
+    return sb.toString()
 }
