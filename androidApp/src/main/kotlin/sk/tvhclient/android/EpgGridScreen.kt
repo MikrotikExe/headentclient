@@ -19,8 +19,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -69,6 +71,9 @@ fun EpgGridScreen(
     val context = LocalContext.current
     val server = remember { Tvh.store.active() }
     val loader = remember(server?.id) { PiconImageLoader.get(context, server) }
+
+    // Detail relacie/nahravky (prekryva mriezku); klik na blok ho otvori
+    var detail by remember { mutableStateOf<GridDetail?>(null) }
 
     var dayOffset by remember { mutableStateOf(0) }
     val dayStart = remember(dayOffset) { dayStartSec(dayOffset) }
@@ -128,6 +133,7 @@ fun EpgGridScreen(
         hScroll.scrollTo(targetPx.coerceAtMost(hScroll.maxValue))
     }
 
+    Box(Modifier.fillMaxSize()) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -213,10 +219,160 @@ fun EpgGridScreen(
                         visEndMin = visEndMin,
                         hScroll = hScroll,
                         loader = loader,
-                        onClick = { ev -> playLive(context, row, ev) },
-                        onDvr = { e -> playDvr(context, e) }
+                        onClick = { ev -> detail = GridDetail.Epg(row, ev) },
+                        onDvr = { e -> detail = GridDetail.Dvr(e) }
                     )
                 }
+            }
+        }
+    }
+
+        // Overlay s detailom (prekryva mriezku, zachova jej poziciu)
+        detail?.let { d ->
+            BackHandler { detail = null }
+            androidx.compose.material3.Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                GridDetailContent(
+                    detail = d,
+                    loader = loader,
+                    onBack = { detail = null },
+                    onPlay = {
+                        when (d) {
+                            is GridDetail.Epg -> playLive(context, d.row, d.ev)
+                            is GridDetail.Dvr -> playDvr(context, d.rec)
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+private sealed class GridDetail {
+    data class Epg(val row: ChannelRow, val ev: EpgEvent) : GridDetail()
+    data class Dvr(val rec: sk.tvhclient.shared.model.DvrEntry) : GridDetail()
+}
+
+@Composable
+private fun GridDetailContent(
+    detail: GridDetail,
+    loader: coil.ImageLoader,
+    onBack: () -> Unit,
+    onPlay: () -> Unit
+) {
+    val context = LocalContext.current
+    // Spolocne polia z oboch typov
+    val title: String
+    val subtitle: String
+    val channelName: String
+    val piconUrl: String?
+    val start: Long
+    val stop: Long
+    val desc: String
+    val ageRating: Int
+    val episode: String
+    val recorded: Boolean
+    when (detail) {
+        is GridDetail.Epg -> {
+            title = detail.ev.title.ifBlank { "—" }
+            subtitle = detail.ev.subtitle
+            channelName = detail.row.channel.name
+            piconUrl = detail.row.piconUrl
+            start = detail.ev.start; stop = detail.ev.stop
+            desc = detail.ev.bestDescription
+            ageRating = detail.ev.ageRating
+            episode = detail.ev.episodeOnscreen
+            recorded = false
+        }
+        is GridDetail.Dvr -> {
+            title = detail.rec.title
+            subtitle = detail.rec.dispSubtitle
+            channelName = detail.rec.channelName
+            piconUrl = null
+            start = detail.rec.start; stop = detail.rec.stop
+            desc = detail.rec.dispDescription
+            ageRating = 0
+            episode = ""
+            recorded = true
+        }
+    }
+    val durationMin = ((stop - start) / 60).toInt()
+
+    androidx.compose.foundation.layout.Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(androidx.compose.foundation.rememberScrollState())
+    ) {
+        // Hlavicka s piconom a tlacidlom spat
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(160.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            if (piconUrl != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context).data(piconUrl).build(),
+                    contentDescription = channelName,
+                    imageLoader = loader,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.height(90.dp).padding(8.dp)
+                )
+            } else {
+                Text(channelName, style = MaterialTheme.typography.titleLarge)
+            }
+            androidx.compose.material3.IconButton(
+                onClick = onBack,
+                modifier = Modifier.align(Alignment.TopStart).padding(4.dp)
+            ) {
+                Text("\u2190", style = MaterialTheme.typography.titleLarge)
+            }
+        }
+
+        androidx.compose.foundation.layout.Column(Modifier.padding(16.dp)) {
+            Text(title, style = MaterialTheme.typography.headlineSmall)
+            if (subtitle.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(subtitle, style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.height(8.dp))
+            // Meta riadok: kanal · datum · cas · dlzka
+            val meta = buildString {
+                append(channelName)
+                append("  ·  ")
+                append(formatDayLabel(start))
+                append("  ·  ")
+                append(formatTimeHm(start)); append(" - "); append(formatTimeHm(stop))
+                if (durationMin > 0) { append("  ·  "); append(durationMin); append(" min") }
+                if (episode.isNotBlank()) { append("  ·  "); append(episode) }
+                if (ageRating > 0) { append("  ·  "); append(ageRating); append("+") }
+            }
+            Text(meta, style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            Spacer(Modifier.height(16.dp))
+            androidx.compose.material3.Button(
+                onClick = onPlay,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                androidx.compose.material3.Icon(
+                    androidx.compose.material.icons.Icons.Default.PlayArrow,
+                    contentDescription = null
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.play),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+
+            if (desc.isNotBlank()) {
+                Spacer(Modifier.height(16.dp))
+                Text(desc, style = MaterialTheme.typography.bodyMedium)
             }
         }
     }

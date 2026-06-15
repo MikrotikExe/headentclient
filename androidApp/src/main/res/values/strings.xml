@@ -172,4 +172,5 @@
     <string name="login_connect">Sign in</string>
     <string name="login_more_options">More options</string>
     <string name="tv_guide">TV Guide</string>
+    <string name="play">Play</string>
 </resources>

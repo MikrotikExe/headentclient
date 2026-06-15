@@ -172,4 +172,5 @@
     <string name="login_connect">Přihlásit se</string>
     <string name="login_more_options">Více možností</string>
     <string name="tv_guide">TV Program</string>
+    <string name="play">Přehrát</string>
 </resources>
