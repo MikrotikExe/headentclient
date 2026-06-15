@@ -91,6 +91,8 @@ fun EpgGridScreen(
     val epgFull by epgVm.epg.collectAsState()
     val epgLoading by epgVm.loading.collectAsState()
     val epgGen by epgVm.gen.collectAsState()
+    // HTSP: jedno spojenie, progresivne vsetky kanaly (no-op pre HTTP)
+    LaunchedEffect(epgGen) { epgVm.loadHtsp() }
     val epg = remember(epgFull, seed) {
         // seed (now/next) ako zaklad nech sa hned nieco ukaze; per-kanal EPG
         // (progresivne) prepise kanaly kde uz mame plne data

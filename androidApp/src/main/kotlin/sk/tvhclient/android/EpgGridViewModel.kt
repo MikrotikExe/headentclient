@@ -11,11 +11,13 @@ import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.model.EpgEvent
 
 /**
- * EPG pre mriezku - PROGRESIVNE per-kanal nacitanie: kanal sa stiahne az ked
- * je jeho riadok viditelny (cez ensureChannel), takze viditelne kanaly sa
- * objavia rychlo a dalsie pribudaju pri skrolovani. Vysledok sa drzi v cache
- * (Activity-scoped ViewModel), takze prepnutie kariet ani znovuotvorenie
- * mriezky uz nestahuje to iste zo servera.
+ * EPG pre mriezku. Drzi sa v cache (Activity-scoped ViewModel), takze prepnutie
+ * kariet ani znovuotvorenie mriezky uz nestahuje to iste.
+ *
+ * HTTP: per-kanal na poziadanie (ensureChannel) ked je riadok viditelny.
+ * HTSP: JEDNO spojenie, vsetky kanaly progresivne (loadHtsp) — server nezvlada
+ *       spojenie per kanal, preto sa to robi naraz na jednom spojeni, ale
+ *       eventy pribudaju priebezne (po kanaloch).
  */
 class EpgGridViewModel : ViewModel() {
 
@@ -25,16 +27,18 @@ class EpgGridViewModel : ViewModel() {
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading
 
-    // generacia: po refresh sa zvysi a riadky znova spustia ensureChannel
+    // generacia: po refresh sa zvysi a nacitanie sa spusti nanovo
     private val _gen = MutableStateFlow(0)
     val gen: StateFlow<Int> = _gen
 
     private val inFlight = HashSet<String>()
+    private var htspStarted = false
 
-    /** Nacita EPG pre jeden kanal, ak ho este nemame (volane pri zobrazeni riadku). */
+    /** HTTP: nacita EPG pre jeden kanal, ak ho este nemame (volane pri zobrazeni riadku). */
     fun ensureChannel(uuid: String) {
-        if (_epg.value.containsKey(uuid) || inFlight.contains(uuid)) return
         val server = Tvh.store.active() ?: return
+        if (server.connectionMode == "htsp") return   // HTSP ide cez loadHtsp()
+        if (_epg.value.containsKey(uuid) || inFlight.contains(uuid)) return
         inFlight.add(uuid)
         _loading.value = true
         viewModelScope.launch {
@@ -52,10 +56,32 @@ class EpgGridViewModel : ViewModel() {
         }
     }
 
-    /** Vynutene obnovenie - zahodi cache, riadky sa nacitaju nanovo. */
+    /** HTSP: jedno spojenie, vsetky kanaly progresivne (eventy pribudaju po kanaloch). */
+    fun loadHtsp() {
+        val server = Tvh.store.active() ?: return
+        if (server.connectionMode != "htsp") return
+        if (htspStarted) return
+        htspStarted = true
+        _loading.value = true
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    Tvh.fetchEpgGridProgressive(server) { uuid, evs ->
+                        _epg.value = _epg.value + (uuid to evs)
+                    }
+                }
+            } catch (_: Exception) {
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
+    /** Vynutene obnovenie - zahodi cache, nacitanie sa spusti nanovo. */
     fun refresh() {
         _epg.value = emptyMap()
         inFlight.clear()
+        htspStarted = false
         _gen.value = _gen.value + 1
     }
 }

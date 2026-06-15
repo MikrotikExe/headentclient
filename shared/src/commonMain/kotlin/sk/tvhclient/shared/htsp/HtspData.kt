@@ -194,4 +194,32 @@ object HtspData {
             client.close()
         }
     }
+
+    /** EPG pre mriezku PROGRESIVNE na JEDNOM spojeni: prejde vsetky kanaly v
+     *  poradi a po kazdom zavola onChannel (uuid, eventy), takze UI ich vie
+     *  zobrazovat priebezne. Jedno spojenie = nezahltime server (na rozdiel od
+     *  spojenia per kanal, ktore HTSP server nezvlada). */
+    suspend fun epgProgressive(
+        server: TvhServer,
+        nowSec: Long,
+        onChannel: (String, List<EpgEvent>) -> Unit
+    ) {
+        val meta = metadata(server, withEpg = false, nowSec = nowSec)
+        val channelIds = meta.channels.mapNotNull { longOf(it, "channelId") }
+        if (channelIds.isEmpty()) return
+        val client = HtspClient(server.host, server.htspPort, server.username, server.password)
+        client.connect()
+        try {
+            for (cid in channelIds) {
+                val evs = try {
+                    client.getEvents(cid, numFollowing = 80, maxTime = nowSec + 3 * 86400)
+                        .mapNotNull { mapEvent(it) }
+                        .sortedBy { it.start }
+                } catch (e: Exception) { emptyList() }
+                onChannel(cid.toString(), evs)
+            }
+        } finally {
+            client.close()
+        }
+    }
 }

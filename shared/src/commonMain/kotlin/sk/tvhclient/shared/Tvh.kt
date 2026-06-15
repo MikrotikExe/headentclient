@@ -124,6 +124,15 @@ object Tvh {
             sk.tvhclient.shared.htsp.HtspData.epgForChannel(server, channelUuid, currentTimeSeconds())
         } else api.epgForChannel(channelUuid)
 
+    /** HTSP: progresivne EPG pre mriezku na jednom spojeni (callback po kanaloch). */
+    suspend fun fetchEpgGridProgressive(
+        server: TvhServer,
+        onChannel: (String, List<sk.tvhclient.shared.model.EpgEvent>) -> Unit
+    ) {
+        if (server.connectionMode != "htsp") return
+        sk.tvhclient.shared.htsp.HtspData.epgProgressive(server, currentTimeSeconds(), onChannel)
+    }
+
     fun liveUrl(server: TvhServer, channelUuid: String, channelTitle: String?, profile: String): String =
         StreamUrlBuilder.liveUrl(server, channelUuid, profile, channelTitle, htsp = server.connectionMode == "htsp")
 
