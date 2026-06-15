@@ -446,9 +446,9 @@ private fun PlayerUi(
     // Live priebeh aktualnej relacie (z EPG): tika po sekundach
     var liveNowSec by remember { mutableStateOf(System.currentTimeMillis() / 1000) }
     // Aktualna relacia (mutable — pri dobehnuti sa nacita dalsia)
-    var progStart by remember { mutableStateOf(progStartSec) }
-    var progStop by remember { mutableStateOf(progStopSec) }
-    var progTitle by remember { mutableStateOf(progTitleArg) }
+    var progStart by remember(liveChannelUuid) { mutableStateOf(progStartSec) }
+    var progStop by remember(liveChannelUuid) { mutableStateOf(progStopSec) }
+    var progTitle by remember(liveChannelUuid) { mutableStateOf(progTitleArg) }
     val hasLiveProg = !seekable && progStart > 0 && progStop > progStart
 
     if (!seekable && liveChannelUuid != null && server != null) {
@@ -459,7 +459,7 @@ private fun PlayerUi(
                 kotlinx.coroutines.delay(1000)
             }
         }
-        LaunchedEffect(Unit) {
+        LaunchedEffect(liveChannelUuid) {
             // ak nemame relaciu alebo dobehla -> nacitaj aktualnu/dalsiu
             while (true) {
                 val now = System.currentTimeMillis() / 1000
