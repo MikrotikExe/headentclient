@@ -7,6 +7,8 @@ import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -83,6 +85,55 @@ class PlayerActivity : ComponentActivity() {
     private val liveProgStopState = androidx.compose.runtime.mutableStateOf(0L)
     private val liveProgTitleState = androidx.compose.runtime.mutableStateOf("")
     private val liveIndexState = androidx.compose.runtime.mutableStateOf(-1)
+    private val liveChannelsState =
+        androidx.compose.runtime.mutableStateOf<List<LivePlaylist.LiveChannel>>(emptyList())
+
+    /** Obnovi now/next pre vsetky kanaly v zozname (kym je otvoreny). */
+    private suspend fun refreshOverlayEpg() {
+        val srv = liveServer ?: return
+        val cur = liveChannelsState.value
+        if (cur.isEmpty()) return
+        val nowS = System.currentTimeMillis() / 1000
+        try {
+            if (srv.connectionMode == "htsp") {
+                val map = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    Tvh.fetchEpgUpcoming(srv)
+                }
+                if (map.isNotEmpty()) {
+                    val updated = cur.map { ch ->
+                        val ev = map[ch.uuid]?.firstOrNull { it.start <= nowS && nowS < it.stop }
+                        if (ev != null) ch.copy(nowTitle = ev.title, nowStart = ev.start, nowStop = ev.stop)
+                        else ch
+                    }
+                    liveChannelsState.value = updated
+                    LivePlaylist.channels = updated
+                }
+            } else {
+                // HTTP: now/next je v dumpe kanalov -> nacitaj nanovo
+                val rows = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    val api = Tvh.apiFor(srv)
+                    try {
+                        val repo = Tvh.channelRepository(srv, api)
+                        repo.load(true)
+                        repo.allRows(false).associateBy { it.channel.uuid }
+                    } finally {
+                        api.close()
+                    }
+                }
+                val updated = cur.map { ch ->
+                    val r = rows[ch.uuid]
+                    if (r != null) ch.copy(
+                        nowTitle = r.nowTitle ?: "",
+                        nowStart = r.nowStart,
+                        nowStop = r.nowStop
+                    ) else ch
+                }
+                liveChannelsState.value = updated
+                LivePlaylist.channels = updated
+            }
+        } catch (e: Exception) {
+        }
+    }
 
     /** Prepne na konkretny kanal podla indexu, prebuduje URL a nacita. */
     private fun switchToIndex(i: Int) {
@@ -227,6 +278,7 @@ class PlayerActivity : ComponentActivity() {
                 ?: liveUuids.indexOf(channelUuid)
             liveServer = server
         }
+        liveChannelsState.value = LivePlaylist.channels
         liveIndexState.value = liveIndex
         liveTitleState.value = channelTitle
         liveUuidState.value = channelUuid
@@ -260,9 +312,12 @@ class PlayerActivity : ComponentActivity() {
                 },
                 onPrevChannel = if (canZap) ({ switchLive(-1) }) else null,
                 onNextChannel = if (canZap) ({ switchLive(+1) }) else null,
-                liveChannels = if (canZap) LivePlaylist.channels else emptyList(),
+                liveChannels = if (canZap) liveChannelsState.value else emptyList(),
                 liveCurrentIndex = liveIndexState.value,
                 onSelectChannel = { idx -> switchToIndex(idx) },
+                onRefreshEpg = {
+                    lifecycleScope.launch { refreshOverlayEpg() }
+                },
                 onClose = { finish() }
             )
         }
@@ -332,6 +387,7 @@ private fun PlayerUi(
     liveChannels: List<LivePlaylist.LiveChannel> = emptyList(),
     liveCurrentIndex: Int = -1,
     onSelectChannel: (Int) -> Unit = {},
+    onRefreshEpg: () -> Unit = {},
     onClose: () -> Unit
 ) {
     var controlsVisible by remember { mutableStateOf(true) }
@@ -469,6 +525,17 @@ private fun PlayerUi(
     }
 
     androidx.activity.compose.BackHandler(enabled = showChannelList) { showChannelList = false }
+
+    // Kym je zoznam kanalov otvoreny, obnovuj EPG (now/next) aby relacie
+    // postupne prechadzali na dalsie
+    LaunchedEffect(showChannelList) {
+        if (showChannelList) {
+            while (true) {
+                onRefreshEpg()
+                kotlinx.coroutines.delay(60_000)
+            }
+        }
+    }
 
     Box(
         Modifier
