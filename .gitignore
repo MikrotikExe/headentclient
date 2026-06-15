@@ -24,3 +24,8 @@ iosApp/Pods/
 
 # Misc
 *.log
+
+# Signing (Play) — nikdy necommitovat
+keystore.properties
+*.jks
+*.keystore
