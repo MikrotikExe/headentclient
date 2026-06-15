@@ -110,17 +110,8 @@ fun DvrScreen(vm: DvrViewModel = viewModel()) {
                 if (s.entries.isEmpty()) {
                     Text(stringResource(R.string.dvr_empty), Modifier.align(Alignment.Center))
                 } else {
-                    DvrContent(s.entries, s.channelOrder, s.channelPicons, nav, context, progressTick, onNav = { nav = it })
+                    DvrContent(s.entries, s.channelOrder, s.channelPicons, nav, context, progressTick, onReload = { vm.refresh() }, onNav = { nav = it })
                 }
-            }
-        }
-        // Obnovit nahravky (vytiahne aj nove zo servera)
-        if (state is DvrState.Loaded && nav == DvrNav.Root) {
-            androidx.compose.material3.IconButton(
-                onClick = { vm.refresh() },
-                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)
-            ) {
-                androidx.compose.material3.Icon(Icons.Default.Refresh, contentDescription = null)
             }
         }
     }
@@ -134,6 +125,7 @@ private fun DvrContent(
     nav: DvrNav,
     context: Context,
     progressTick: Int,
+    onReload: () -> Unit,
     onNav: (DvrNav) -> Unit
 ) {
     val server = remember { Tvh.store.active() }
@@ -149,7 +141,7 @@ private fun DvrContent(
                 }
             }
             LazyColumn(Modifier.fillMaxSize()) {
-                item("hdr") { Header(stringResource(R.string.dvr_archive)) }
+                item("hdr") { HeaderWithAction(stringResource(R.string.dvr_archive), onReload) }
                 if (recentCount > 0) {
                     item("recent") {
                         FolderRow(
@@ -384,6 +376,27 @@ private fun Header(text: String) {
         style = MaterialTheme.typography.titleSmall,
         fontWeight = FontWeight.Bold
     )
+}
+
+@Composable
+private fun HeaderWithAction(text: String, onReload: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(start = 12.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text,
+            Modifier.weight(1f).padding(vertical = 8.dp),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold
+        )
+        androidx.compose.material3.IconButton(onClick = onReload) {
+            androidx.compose.material3.Icon(Icons.Default.Refresh, contentDescription = null)
+        }
+    }
 }
 
 @Composable
