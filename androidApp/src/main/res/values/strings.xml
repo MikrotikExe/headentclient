@@ -169,4 +169,6 @@
     <string name="ch_profile">Playback profile</string>
     <string name="welcome_title">Welcome</string>
     <string name="welcome_subtitle">Connect to your Tvheadend server to get started.</string>
+    <string name="login_connect">Sign in</string>
+    <string name="login_more_options">More options</string>
 </resources>

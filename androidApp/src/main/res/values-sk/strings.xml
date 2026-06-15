@@ -169,4 +169,6 @@
     <string name="ch_profile">Profil prehrávania</string>
     <string name="welcome_title">Vitajte</string>
     <string name="welcome_subtitle">Pripojte sa k svojmu Tvheadend serveru a môžete začať.</string>
+    <string name="login_connect">Prihlásiť sa</string>
+    <string name="login_more_options">Viac možností</string>
 </resources>

@@ -26,7 +26,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Dvr
 import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Radio
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -78,40 +82,192 @@ fun App() {
     if (servers.isEmpty()) WelcomeScreen(serversVm) else AppMain()
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WelcomeScreen(vm: ServersViewModel) {
-    var showForm by remember { mutableStateOf(false) }
-    if (showForm) {
-        ServerForm(vm = vm, existing = null, onClose = { showForm = false; vm.resetTest() })
-        return
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var host by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var showPw by remember { mutableStateOf(false) }
+    var advanced by remember { mutableStateOf(false) }
+    // pokrocile
+    var name by remember { mutableStateOf("") }
+    var port by remember { mutableStateOf("9981") }
+    var useHttps by remember { mutableStateOf(false) }
+    var authMode by remember { mutableStateOf("auto") }
+    var connMode by remember { mutableStateOf("http") }
+    var htspPort by remember { mutableStateOf("9982") }
+    var profile by remember { mutableStateOf("pass") }
+    var localError by remember { mutableStateOf(false) }
+
+    val testState by vm.testState.collectAsState()
+    var pending by remember { mutableStateOf<TvhServer?>(null) }
+
+    // Po uspesnom teste uloz server a vojdi do appky
+    LaunchedEffect(testState) {
+        val st = testState
+        if (st is TestState.Done && st.result is ConnectionResult.Success) {
+            pending?.let { vm.save(it); vm.setActive(it.id); vm.resetTest() }
+            pending = null
+        }
     }
-    Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            androidx.compose.material3.Icon(
-                Icons.Default.LiveTv,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(72.dp)
-            )
-            Spacer(Modifier.height(20.dp))
-            Text(
-                stringResource(R.string.welcome_title),
-                style = MaterialTheme.typography.headlineSmall,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(Modifier.height(24.dp))
+        // Logo (zatial TV ikona — nahradit vlastnym logom)
+        androidx.compose.material3.Icon(
+            Icons.Default.LiveTv,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(72.dp)
+        )
+        Spacer(Modifier.height(12.dp))
+        Text("TVHeadend Client", style = MaterialTheme.typography.headlineSmall)
+        Spacer(Modifier.height(32.dp))
+
+        OutlinedTextField(
+            value = host, onValueChange = { host = it; localError = false },
+            label = { Text(stringResource(R.string.field_host)) },
+            leadingIcon = { androidx.compose.material3.Icon(Icons.Default.Dns, null) },
+            singleLine = true, modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(10.dp))
+        OutlinedTextField(
+            value = username, onValueChange = { username = it },
+            label = { Text(stringResource(R.string.field_username)) },
+            leadingIcon = { androidx.compose.material3.Icon(Icons.Default.Person, null) },
+            singleLine = true, modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(10.dp))
+        OutlinedTextField(
+            value = password, onValueChange = { password = it },
+            label = { Text(stringResource(R.string.field_password)) },
+            leadingIcon = { androidx.compose.material3.Icon(Icons.Default.Lock, null) },
+            trailingIcon = {
+                androidx.compose.material3.IconButton(onClick = { showPw = !showPw }) {
+                    androidx.compose.material3.Icon(
+                        if (showPw) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = null
+                    )
+                }
+            },
+            visualTransformation = if (showPw) androidx.compose.ui.text.input.VisualTransformation.None
+            else PasswordVisualTransformation(),
+            singleLine = true, modifier = Modifier.fillMaxWidth()
+        )
+
+        if (localError) {
             Spacer(Modifier.height(8.dp))
             Text(
-                stringResource(R.string.welcome_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                stringResource(R.string.field_host) + " ?",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
             )
-            Spacer(Modifier.height(28.dp))
-            Button(onClick = { showForm = true }) {
-                Text(stringResource(R.string.add_server))
+        }
+
+        Spacer(Modifier.height(12.dp))
+        TestResultView(testState)
+        Spacer(Modifier.height(12.dp))
+
+        Button(
+            onClick = {
+                val p = port.toIntOrNull()
+                if (host.isBlank() || p == null) {
+                    localError = true
+                } else {
+                    val srv = TvhServer(
+                        id = vm.newId(),
+                        name = name.ifBlank { host.trim() },
+                        host = host.trim(),
+                        port = p,
+                        useHttps = useHttps,
+                        username = username.trim(),
+                        password = password,
+                        profile = profile.trim().ifBlank { "pass" },
+                        authMode = authMode,
+                        connectionMode = connMode,
+                        htspPort = htspPort.toIntOrNull() ?: 9982
+                    )
+                    pending = srv
+                    vm.test(srv)
+                }
+            },
+            enabled = testState !is TestState.Running,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.login_connect))
+        }
+
+        Spacer(Modifier.height(16.dp))
+        androidx.compose.material3.TextButton(onClick = { advanced = !advanced }) {
+            Text(stringResource(R.string.login_more_options))
+        }
+
+        if (advanced) {
+            Spacer(Modifier.height(4.dp))
+            OutlinedTextField(
+                value = name, onValueChange = { name = it },
+                label = { Text(stringResource(R.string.field_name)) },
+                singleLine = true, modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(10.dp))
+            OutlinedTextField(
+                value = port, onValueChange = { port = it },
+                label = { Text(stringResource(R.string.field_port)) },
+                singleLine = true, modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(10.dp))
+            DropdownField(
+                label = stringResource(R.string.field_conn_mode),
+                value = connMode,
+                options = listOf("http", "htsp"),
+                optionLabel = {
+                    if (it == "htsp") stringResource(R.string.conn_htsp)
+                    else stringResource(R.string.conn_http)
+                }
+            ) { connMode = it }
+            if (connMode == "htsp") {
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = htspPort, onValueChange = { htspPort = it },
+                    label = { Text(stringResource(R.string.field_htsp_port)) },
+                    singleLine = true, modifier = Modifier.fillMaxWidth()
+                )
             }
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = useHttps, onCheckedChange = { useHttps = it })
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.field_https))
+            }
+            Spacer(Modifier.height(10.dp))
+            DropdownField(
+                label = stringResource(R.string.field_auth),
+                value = authMode,
+                options = listOf("auto", "basic", "digest", "none"),
+                optionLabel = {
+                    when (it) {
+                        "auto" -> stringResource(R.string.auth_auto)
+                        "basic" -> stringResource(R.string.auth_basic)
+                        "digest" -> stringResource(R.string.auth_digest)
+                        else -> stringResource(R.string.auth_none)
+                    }
+                }
+            ) { authMode = it }
+            Spacer(Modifier.height(10.dp))
+            DropdownField(
+                label = stringResource(R.string.field_profile),
+                value = profile,
+                options = ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() },
+                optionLabel = { it }
+            ) { profile = it }
         }
     }
 }
