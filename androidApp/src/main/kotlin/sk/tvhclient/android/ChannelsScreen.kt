@@ -56,7 +56,7 @@ import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.api.ChannelRow
 
 @Composable
-fun ChannelsScreen(vm: ChannelsViewModel = viewModel()) {
+fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0) {
     val state by vm.state.collectAsState()
     val query by vm.query.collectAsState()
     val epgMap by vm.epgMap.collectAsState()
@@ -84,6 +84,18 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel()) {
 
     LaunchedEffect(Unit) { vm.loadIfNeeded() }
     LaunchedEffect(Unit) { dvrVm.loadIfNeeded() }
+
+    // Klik na tab Kanaly (aj uz vybrany) vrati obrazovku na zaciatok
+    LaunchedEffect(resetSignal) {
+        epgFor = null
+        showGrid = false
+        selectedTag = null
+        favOnly = false
+        contextRow = null
+        profileFor = null
+        recChoice = null
+        vm.setQuery("")
+    }
 
     // tikajuci cas pre live ciaru priebehu (prekreslenie kazdych 30s)
     var nowTick by remember { mutableStateOf(System.currentTimeMillis() / 1000) }

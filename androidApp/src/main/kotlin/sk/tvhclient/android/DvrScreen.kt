@@ -61,11 +61,16 @@ private sealed class DvrNav {
 }
 
 @Composable
-fun DvrScreen(vm: DvrViewModel = viewModel()) {
+fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
     val state by vm.state.collectAsState()
     val context = LocalContext.current
     var nav by remember { mutableStateOf<DvrNav>(DvrNav.Root) }
     var search by remember { mutableStateOf("") }
+    // Klik na tab Archiv (aj uz vybrany) vrati na zaciatok (root + zrusene hladanie)
+    LaunchedEffect(resetSignal) {
+        nav = DvrNav.Root
+        search = ""
+    }
     // Korpus titulov pre podzanre (nacita sa raz z assetu)
     var corpusReady by remember { mutableStateOf(DvrClassifier.hasCorpus()) }
     LaunchedEffect(Unit) {

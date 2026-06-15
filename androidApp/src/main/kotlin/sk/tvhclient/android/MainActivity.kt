@@ -276,12 +276,15 @@ fun WelcomeScreen(vm: ServersViewModel) {
 @Composable
 fun AppMain() {
     var tab by remember { mutableStateOf(0) }
+    // Reset signaly: klik na tab (aj uz vybrany) vrati danu obrazovku na zaciatok
+    var resetCh by remember { mutableStateOf(0) }
+    var resetDvr by remember { mutableStateOf(0) }
     Scaffold(
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
                     selected = tab == 0,
-                    onClick = { tab = 0 },
+                    onClick = { resetCh++; tab = 0 },
                     icon = { androidx.compose.material3.Icon(
                         Icons.Default.LiveTv, contentDescription = null) },
                     label = { Text(stringResource(R.string.tab_channels)) }
@@ -295,7 +298,7 @@ fun AppMain() {
                 )
                 NavigationBarItem(
                     selected = tab == 2,
-                    onClick = { tab = 2 },
+                    onClick = { resetDvr++; tab = 2 },
                     icon = { androidx.compose.material3.Icon(
                         Icons.Default.Dvr, contentDescription = null) },
                     label = { Text(stringResource(R.string.tab_dvr)) }
@@ -312,9 +315,9 @@ fun AppMain() {
     ) { padding ->
         Box(Modifier.padding(padding)) {
             when (tab) {
-                0 -> ChannelsScreen()
+                0 -> ChannelsScreen(resetSignal = resetCh)
                 1 -> RadioScreen()
-                2 -> DvrScreen()
+                2 -> DvrScreen(resetSignal = resetDvr)
                 else -> ServersTab()
             }
         }
