@@ -40,7 +40,8 @@ fun TvSearchBar(
     placeholder: String,
     onQueryChange: (String) -> Unit,
     focusRequester: FocusRequester,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onUp: () -> Unit = {}
 ) {
     var editing by remember { mutableStateOf(false) }
 
@@ -69,6 +70,11 @@ fun TvSearchBar(
                 .heightIn(min = 56.dp)
                 .focusRequester(focusRequester)
                 .dpadFocusable()
+                .onPreviewKeyEvent { e ->
+                    if (e.type == KeyEventType.KeyDown &&
+                        e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_DPAD_UP
+                    ) { onUp(); true } else false
+                }
                 .clickable { editing = true }
                 .border(
                     1.dp,

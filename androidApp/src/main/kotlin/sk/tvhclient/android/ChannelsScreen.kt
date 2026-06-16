@@ -64,7 +64,7 @@ import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.api.ChannelRow
 
 @Composable
-fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0) {
+fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, onGoToNav: () -> Unit = {}) {
     val state by vm.state.collectAsState()
     val query by vm.query.collectAsState()
     val epgMap by vm.epgMap.collectAsState()
@@ -164,6 +164,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0) {
                 placeholder = stringResource(R.string.search_channels),
                 onQueryChange = { vm.setQuery(it) },
                 focusRequester = searchFocus,
+                onUp = onGoToNav,
                 modifier = Modifier.weight(1f)
             )
             androidx.compose.material3.IconButton(onClick = { showGrid = true }) {
@@ -232,7 +233,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0) {
                     // Vyhladavanie: plochy filtrovany zoznam
                     val q = query.trim().lowercase()
                     val results = s.allRows.filter { it.channel.name.lowercase().contains(q) }
-                    ChannelView(viewMode, results, listStateSearch, nowTick, epgMap, recordingByChannel, onRecordingTap = { r, rec -> recChoice = r to rec }) { contextRow = it }
+                    ChannelView(viewMode, results, listStateSearch, nowTick, epgMap, recordingByChannel, onRecordingTap = { r, rec -> recChoice = r to rec }, onTopUp = { runCatching { searchFocus.requestFocus() } }) { contextRow = it }
                 } else {
                     // Filtre podla tagov
                     val tags = s.categories.mapNotNull { it.tag }
@@ -274,7 +275,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0) {
                         LastChannel.get(ctx, serverId)?.takeIf { u -> rows.any { it.channel.uuid == u } }
                             ?: rows.firstOrNull()?.channel?.uuid
                     }
-                    ChannelView(viewMode, rows, listStateMain, nowTick, epgMap, recordingByChannel, onRecordingTap = { r, rec -> recChoice = r to rec }, focusUuid = focusUuid) { contextRow = it }
+                    ChannelView(viewMode, rows, listStateMain, nowTick, epgMap, recordingByChannel, onRecordingTap = { r, rec -> recChoice = r to rec }, focusUuid = focusUuid, onTopUp = { runCatching { searchFocus.requestFocus() } }) { contextRow = it }
                 }
             }
         }
@@ -527,10 +528,11 @@ private fun ChannelView(
     recordingByChannel: Map<String, sk.tvhclient.shared.model.DvrEntry>,
     onRecordingTap: (ChannelRow, sk.tvhclient.shared.model.DvrEntry) -> Unit,
     focusUuid: String? = null,
+    onTopUp: () -> Unit = {},
     onShowEpg: (ChannelRow) -> Unit
 ) {
     when (mode) {
-        ChannelViewMode.LIST -> ChannelList(rows, listState, nowSec, epgMap, recordingByChannel, onRecordingTap, focusUuid, onShowEpg)
+        ChannelViewMode.LIST -> ChannelList(rows, listState, nowSec, epgMap, recordingByChannel, onRecordingTap, focusUuid, onTopUp, onShowEpg)
         ChannelViewMode.GRID -> ChannelGrid(rows, nowSec, epgMap, columns = 2, recordingByChannel, onRecordingTap, onShowEpg)
         ChannelViewMode.TILES -> ChannelGrid(rows, nowSec, epgMap, columns = 4, recordingByChannel, onRecordingTap, onShowEpg)
     }
@@ -645,6 +647,7 @@ private fun ChannelList(
     recordingByChannel: Map<String, sk.tvhclient.shared.model.DvrEntry>,
     onRecordingTap: (ChannelRow, sk.tvhclient.shared.model.DvrEntry) -> Unit,
     focusUuid: String? = null,
+    onTopUp: () -> Unit = {},
     onShowEpg: (ChannelRow) -> Unit
 ) {
     val context = LocalContext.current
@@ -693,8 +696,10 @@ private fun ChannelList(
             val keyMod = focusMod.onPreviewKeyEvent { e ->
                 if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (e.nativeKeyEvent.keyCode) {
-                    // Hore/dole nechavame normalne: na 1. kanali hore vyjde na
-                    // vyhladavanie/kategorie, na poslednom dole na spodne menu.
+                    // Na 1. kanali hore -> skoc na vyhladavacie pole (a odtial
+                    // dalsim hore na spodne menu). Dole na poslednom -> spodne menu.
+                    android.view.KeyEvent.KEYCODE_DPAD_UP ->
+                        if (idx == 0) { onTopUp(); true } else false
                     android.view.KeyEvent.KEYCODE_DPAD_LEFT -> {
                         // -5; ak uz si na zaciatku, skoc na koniec (wrap)
                         jumpTarget = if (idx == 0) last else (idx - 5).coerceAtLeast(0)

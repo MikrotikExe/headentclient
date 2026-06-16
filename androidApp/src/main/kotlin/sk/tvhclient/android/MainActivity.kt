@@ -53,6 +53,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -279,6 +284,7 @@ fun AppMain() {
     // Reset signaly: klik na tab (aj uz vybrany) vrati danu obrazovku na zaciatok
     var resetCh by remember { mutableStateOf(0) }
     var resetDvr by remember { mutableStateOf(0) }
+    val navFocus = remember { FocusRequester() }
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -287,7 +293,8 @@ fun AppMain() {
                     onClick = { resetCh++; tab = 0 },
                     icon = { androidx.compose.material3.Icon(
                         Icons.Default.LiveTv, contentDescription = null) },
-                    label = { Text(stringResource(R.string.tab_channels)) }
+                    label = { Text(stringResource(R.string.tab_channels)) },
+                    modifier = Modifier.focusRequester(navFocus)
                 )
                 NavigationBarItem(
                     selected = tab == 1,
@@ -315,7 +322,10 @@ fun AppMain() {
     ) { padding ->
         Box(Modifier.padding(padding)) {
             when (tab) {
-                0 -> ChannelsScreen(resetSignal = resetCh)
+                0 -> ChannelsScreen(
+                    resetSignal = resetCh,
+                    onGoToNav = { runCatching { navFocus.requestFocus() } }
+                )
                 1 -> RadioScreen()
                 2 -> DvrScreen(resetSignal = resetDvr)
                 else -> {
@@ -593,20 +603,20 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            OutlinedTextField(
+            TvTextField(
+                label = stringResource(R.string.field_name),
                 value = name, onValueChange = { name = it },
-                label = { Text(stringResource(R.string.field_name)) },
-                singleLine = true, modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth()
             )
-            OutlinedTextField(
+            TvTextField(
+                label = stringResource(R.string.field_host),
                 value = host, onValueChange = { host = it },
-                label = { Text(stringResource(R.string.field_host)) },
-                singleLine = true, modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth()
             )
-            OutlinedTextField(
+            TvTextField(
+                label = stringResource(R.string.field_port),
                 value = port, onValueChange = { port = it.filter(Char::isDigit) },
-                label = { Text(stringResource(R.string.field_port)) },
-                singleLine = true, modifier = Modifier.width(160.dp)
+                modifier = Modifier.width(160.dp), numeric = true
             )
             DropdownField(
                 label = stringResource(R.string.field_conn_mode),
@@ -619,10 +629,10 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                 onSelect = { connMode = it }
             )
             if (connMode == "htsp") {
-                OutlinedTextField(
+                TvTextField(
+                    label = stringResource(R.string.field_htsp_port),
                     value = htspPort, onValueChange = { htspPort = it.filter(Char::isDigit) },
-                    label = { Text(stringResource(R.string.field_htsp_port)) },
-                    singleLine = true, modifier = Modifier.width(160.dp)
+                    modifier = Modifier.width(160.dp), numeric = true
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -630,17 +640,15 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.field_https))
             }
-            OutlinedTextField(
+            TvTextField(
+                label = stringResource(R.string.field_username),
                 value = username, onValueChange = { username = it },
-                label = { Text(stringResource(R.string.field_username)) },
-                singleLine = true, modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = password, onValueChange = { password = it },
-                label = { Text(stringResource(R.string.field_password)) },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth()
+            )
+            TvTextField(
+                label = stringResource(R.string.field_password),
+                value = password, onValueChange = { password = it },
+                modifier = Modifier.fillMaxWidth(), password = true
             )
             DropdownField(
                 label = stringResource(R.string.field_profile),
