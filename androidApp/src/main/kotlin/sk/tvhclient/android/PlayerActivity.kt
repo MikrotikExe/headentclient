@@ -93,6 +93,10 @@ class PlayerActivity : ComponentActivity() {
     // D-pad / diaľkové: signál na zobrazenie ovládania, info pre seek a sw dekóder
     private val controlsPokeState = androidx.compose.runtime.mutableStateOf(0)
     private val softwareDecodeState = androidx.compose.runtime.mutableStateOf(false)
+    private val isPlayingState = androidx.compose.runtime.mutableStateOf(true)
+    // D-pad navigacia zoznamu kanalov v prehravaci
+    private val openChannelListState = androidx.compose.runtime.mutableStateOf(0)
+    private val navChannelIndexState = androidx.compose.runtime.mutableStateOf(0)
     private var seekablePlayback = false
     private var currentStreamUrl: String? = null
 
@@ -208,37 +212,91 @@ class PlayerActivity : ComponentActivity() {
         switchToIndex(((liveIndex + delta) % n + n) % n)
     }
 
-    // true = je otvorene prekrytie (menu stop / zoznam kanalov) -> D-pad nechame Compose
-    private var overlayOpen = false
+    // stav prekryti (z Compose) — kym je otvorene, D-pad riesime my (zoznam) alebo Compose (menu)
+    private var trackMenuOpen = false
+    private var channelListOpen = false
+    private val closeChannelListState = androidx.compose.runtime.mutableStateOf(0)
+    private var okDownAt = 0L
+    private var okLongFired = false
+
+    private fun openChannelList() {
+        if (liveUuids.size < 2) return
+        navChannelIndexState.value = liveIndex.coerceAtLeast(0)
+        openChannelListState.value = openChannelListState.value + 1
+    }
+    private fun closeChannelList() {
+        closeChannelListState.value = closeChannelListState.value + 1
+    }
 
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
-        if (event.action == android.view.KeyEvent.ACTION_DOWN && !overlayOpen &&
-            ::mediaPlayer.isInitialized
-        ) {
+        val down = event.action == android.view.KeyEvent.ACTION_DOWN
+
+        // 1) Otvoreny zoznam kanalov -> navigujeme my
+        if (channelListOpen) {
+            val n = liveUuids.size
+            if (down && n > 0) {
+                when (event.keyCode) {
+                    android.view.KeyEvent.KEYCODE_DPAD_UP ->
+                        { navChannelIndexState.value = (navChannelIndexState.value - 1 + n) % n; return true }
+                    android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
+                        { navChannelIndexState.value = (navChannelIndexState.value + 1) % n; return true }
+                    android.view.KeyEvent.KEYCODE_DPAD_CENTER,
+                    android.view.KeyEvent.KEYCODE_ENTER,
+                    android.view.KeyEvent.KEYCODE_NUMPAD_ENTER ->
+                        { switchToIndex(navChannelIndexState.value); closeChannelList(); return true }
+                    android.view.KeyEvent.KEYCODE_DPAD_LEFT,
+                    android.view.KeyEvent.KEYCODE_BACK ->
+                        { closeChannelList(); return true }
+                }
+            }
+            // ostatne klavesy kym je zoznam otvoreny prehltni (okrem hlasitosti)
+            when (event.keyCode) {
+                android.view.KeyEvent.KEYCODE_VOLUME_UP,
+                android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
+                android.view.KeyEvent.KEYCODE_VOLUME_MUTE -> return super.dispatchKeyEvent(event)
+            }
+            return true
+        }
+
+        // 2) Otvorene menu stop (audio/titulky) -> nechame Compose/dotyk
+        if (trackMenuOpen) return super.dispatchKeyEvent(event)
+
+        // 3) Bezne prehravanie
+        if (::mediaPlayer.isInitialized) {
             val canZap = liveUuids.size > 1
             when (event.keyCode) {
-                android.view.KeyEvent.KEYCODE_CHANNEL_UP -> {
-                    if (canZap) { switchLive(+1); pokeControls(); return true }
-                }
-                android.view.KeyEvent.KEYCODE_CHANNEL_DOWN -> {
-                    if (canZap) { switchLive(-1); pokeControls(); return true }
-                }
-                android.view.KeyEvent.KEYCODE_DPAD_LEFT -> {
+                android.view.KeyEvent.KEYCODE_CHANNEL_UP ->
+                    if (down && canZap) { switchLive(+1); pokeControls(); return true }
+                android.view.KeyEvent.KEYCODE_CHANNEL_DOWN ->
+                    if (down && canZap) { switchLive(-1); pokeControls(); return true }
+                android.view.KeyEvent.KEYCODE_DPAD_LEFT -> if (down) {
                     if (canZap) { switchLive(-1); pokeControls(); return true }
                     if (seekablePlayback) { seekRelative(-15_000); pokeControls(); return true }
                 }
-                android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> if (down) {
                     if (canZap) { switchLive(+1); pokeControls(); return true }
                     if (seekablePlayback) { seekRelative(+30_000); pokeControls(); return true }
                 }
+                android.view.KeyEvent.KEYCODE_DPAD_UP -> if (down) {
+                    if (canZap) { openChannelList(); return true }
+                    pokeControls(); return true
+                }
+                android.view.KeyEvent.KEYCODE_DPAD_DOWN -> if (down) { pokeControls(); return true }
                 android.view.KeyEvent.KEYCODE_DPAD_CENTER,
                 android.view.KeyEvent.KEYCODE_ENTER,
                 android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                    togglePlayPause(); pokeControls(); return true
-                }
-                android.view.KeyEvent.KEYCODE_DPAD_UP,
-                android.view.KeyEvent.KEYCODE_DPAD_DOWN -> {
-                    pokeControls(); return true
+                    // kratke OK = play/pause, dlhe podrzanie OK = zoznam kanalov
+                    if (down) {
+                        if (event.repeatCount == 0) { okDownAt = System.currentTimeMillis(); okLongFired = false }
+                        else if (!okLongFired && canZap &&
+                            System.currentTimeMillis() - okDownAt >= 500
+                        ) { okLongFired = true; openChannelList() }
+                        return true
+                    } else {
+                        if (!okLongFired) { togglePlayPause(); pokeControls() }
+                        okLongFired = false
+                        return true
+                    }
                 }
             }
         }
@@ -320,7 +378,11 @@ class PlayerActivity : ComponentActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 }
+                MediaPlayer.Event.Playing -> isPlayingState.value = true
+                MediaPlayer.Event.Paused -> isPlayingState.value = false
+                MediaPlayer.Event.Stopped -> isPlayingState.value = false
                 MediaPlayer.Event.EndReached -> {
+                    isPlayingState.value = false
                     reachedEnd = true
                     saveDvrProgress()
                 }
@@ -387,7 +449,15 @@ class PlayerActivity : ComponentActivity() {
                     softwareDecodeState.value = newVal
                     restartPlayback()
                 },
-                onOverlayChange = { overlayOpen = it },
+                playing = isPlayingState.value,
+                channelNavIndex = navChannelIndexState.value,
+                openListSignal = openChannelListState.value,
+                closeListSignal = closeChannelListState.value,
+                onTrackMenuChange = { trackMenuOpen = it },
+                onChannelListChange = {
+                    channelListOpen = it
+                    if (it) navChannelIndexState.value = liveIndex.coerceAtLeast(0)
+                },
                 onPrevChannel = if (canZap) ({ switchLive(-1) }) else null,
                 onNextChannel = if (canZap) ({ switchLive(+1) }) else null,
                 liveChannels = if (canZap) liveChannelsState.value else emptyList(),
@@ -469,7 +539,12 @@ private fun PlayerUi(
     controlsPoke: Int = 0,
     softwareDecode: Boolean = false,
     onToggleSoftwareDecode: () -> Unit = {},
-    onOverlayChange: (Boolean) -> Unit = {},
+    playing: Boolean = true,
+    channelNavIndex: Int = -1,
+    openListSignal: Int = 0,
+    closeListSignal: Int = 0,
+    onTrackMenuChange: (Boolean) -> Unit = {},
+    onChannelListChange: (Boolean) -> Unit = {},
     onClose: () -> Unit
 ) {
     var controlsVisible by remember { mutableStateOf(true) }
@@ -485,10 +560,18 @@ private fun PlayerUi(
     LaunchedEffect(controlsPoke) {
         if (controlsPoke > 0) controlsVisible = true
     }
-    // oznam Activity ci je otvorene prekrytie (menu/zoznam) -> tam D-pad riesi Compose
-    LaunchedEffect(menu, showChannelList) {
-        onOverlayChange(menu != null || showChannelList)
+    // oznam Activity stav prekryti (kvoli D-pad smerovaniu)
+    LaunchedEffect(menu) { onTrackMenuChange(menu != null) }
+    LaunchedEffect(showChannelList) { onChannelListChange(showChannelList) }
+    // Activity ziada otvorit/zavriet zoznam kanalov (D-pad / podrzanie OK)
+    LaunchedEffect(openListSignal) {
+        if (openListSignal > 0) { showChannelList = true; controlsVisible = false }
     }
+    LaunchedEffect(closeListSignal) {
+        if (closeListSignal > 0) showChannelList = false
+    }
+    // ikona play/pause podla skutocneho stavu prehravaca
+    LaunchedEffect(playing) { isPlaying = playing }
     // seek stav (len pre DVR). TS subor nenese dlzku, takze pouzivame:
     //  - dlzku z DVR entry (knownDurationMs), fallback player.length
     //  - position (zlomok 0..1) na zobrazenie aj pretacanie (na TS spolahlivejsie nez setTime)
@@ -805,6 +888,11 @@ private fun PlayerUi(
             val listState = rememberLazyListState(
                 initialFirstVisibleItemIndex = liveCurrentIndex.coerceAtLeast(0)
             )
+            // efektivny vyber: pri D-pad navigacii navIndex, inak aktualny kanal
+            val sel = if (channelNavIndex >= 0) channelNavIndex else liveCurrentIndex
+            LaunchedEffect(channelNavIndex) {
+                if (channelNavIndex in liveChannels.indices) listState.animateScrollToItem(channelNavIndex)
+            }
             Row(Modifier.fillMaxSize()) {
                 Column(
                     Modifier
@@ -829,7 +917,7 @@ private fun PlayerUi(
                     }
                     LazyColumn(state = listState, modifier = Modifier.weight(1f)) {
                         itemsIndexed(liveChannels) { idx, ch ->
-                            val selected = idx == liveCurrentIndex
+                            val selected = idx == sel
                             Row(
                                 Modifier
                                     .fillMaxWidth()

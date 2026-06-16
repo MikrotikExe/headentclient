@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+    <!-- tmave pozadie -->
+    <path
+        android:fillColor="#0B1220"
+        android:pathData="M0,0 h320 v180 h-320 z" />
+    <!-- modry zaobleny stvorec (akcent) -->
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M118,56 h84 a16,16 0 0 1 16,16 v36 a16,16 0 0 1 -16,16 h-84 a16,16 0 0 1 -16,-16 v-36 a16,16 0 0 1 16,-16 z" />
+    <!-- bila play sipka -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M150,74 l26,16 l-26,16 z" />
+</vector>
