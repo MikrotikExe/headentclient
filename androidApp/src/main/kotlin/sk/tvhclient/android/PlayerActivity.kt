@@ -8,7 +8,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
@@ -16,6 +15,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -109,6 +109,11 @@ class PlayerActivity : ComponentActivity() {
     }
 
     private fun pokeControls() { controlsPokeState.value = controlsPokeState.value + 1 }
+    private fun showControlsFocused() {
+        val order = playerControlOrder(!seekablePlayback && liveUuids.size > 1)
+        controlNavState.value = order.indexOf("play").coerceAtLeast(0)
+        pokeControls()
+    }
 
     private fun togglePlayPause() {
         if (!::mediaPlayer.isInitialized) return
@@ -232,6 +237,12 @@ class PlayerActivity : ComponentActivity() {
     private val optionsNavState = androidx.compose.runtime.mutableStateOf(0)
     private val openAudioMenuState = androidx.compose.runtime.mutableStateOf(0)
     private val openSpuMenuState = androidx.compose.runtime.mutableStateOf(0)
+    // Navigacia ovladacieho panela (focus riadime z Activity, nie cez Compose focus)
+    private val controlNavState = androidx.compose.runtime.mutableStateOf(0)
+    // Navigacia track menu (audio/titulky)
+    private val trackNavState = androidx.compose.runtime.mutableStateOf(0)
+    private val closeMenuState = androidx.compose.runtime.mutableStateOf(0)
+    private var trackMenuKind = "audio"
     private var okDownAt = 0L
     private var okLongFired = false
 
@@ -249,6 +260,46 @@ class PlayerActivity : ComponentActivity() {
     }
     private fun closeOptions() {
         closeOptionsState.value = closeOptionsState.value + 1
+    }
+
+    // --- Track menu (audio/titulky) riadene z Activity ---
+    private fun trackMenuIds(): List<Int> {
+        if (!::mediaPlayer.isInitialized) return emptyList()
+        return if (trackMenuKind == "audio") {
+            mediaPlayer.audioTrackItems().map { it.id }
+        } else {
+            listOf(-1) + mediaPlayer.spuTrackItems().map { it.id }  // -1 = Vypnute
+        }
+    }
+    private fun openAudioMenu() {
+        trackMenuKind = "audio"; trackNavState.value = 0
+        openAudioMenuState.value = openAudioMenuState.value + 1
+    }
+    private fun openSpuMenu() {
+        trackMenuKind = "spu"; trackNavState.value = 0
+        openSpuMenuState.value = openSpuMenuState.value + 1
+    }
+    private fun closeTrackMenu() { closeMenuState.value = closeMenuState.value + 1 }
+    private fun selectTrackAtNav() {
+        if (!::mediaPlayer.isInitialized) return
+        val ids = trackMenuIds()
+        val id = ids.getOrNull(trackNavState.value) ?: return
+        if (trackMenuKind == "audio") mediaPlayer.audioTrack = id else mediaPlayer.spuTrack = id
+        closeTrackMenu()
+    }
+
+    // --- Aktivacia zvyrazneneho prvku ovladacieho panela ---
+    private fun activateControl(id: String?) {
+        when (id) {
+            "close" -> finish()
+            "list" -> openChannelList()
+            "prev" -> { switchLive(-1); pokeControls() }
+            "play" -> { togglePlayPause(); pokeControls() }
+            "next" -> { switchLive(+1); pokeControls() }
+            "audio" -> openAudioMenu()
+            "subs" -> openSpuMenu()
+            "sw" -> { toggleSoftwareDecodeRemote(); pokeControls() }
+        }
     }
 
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
@@ -317,12 +368,36 @@ class PlayerActivity : ComponentActivity() {
             return true
         }
 
-        // 3) Otvorene menu stop (audio/titulky) -> nechame Compose (focus + dpadFocusable)
-        if (trackMenuOpen) return super.dispatchKeyEvent(event)
+        // 3) Otvorene track menu (audio/titulky) -> navigujeme my (hore/dole + OK)
+        if (trackMenuOpen) {
+            val ids = trackMenuIds()
+            val n = ids.size
+            if (down && n > 0) {
+                when (kc) {
+                    android.view.KeyEvent.KEYCODE_DPAD_UP ->
+                        { trackNavState.value = (trackNavState.value - 1 + n) % n; return true }
+                    android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
+                        { trackNavState.value = (trackNavState.value + 1) % n; return true }
+                    android.view.KeyEvent.KEYCODE_DPAD_CENTER,
+                    android.view.KeyEvent.KEYCODE_ENTER,
+                    android.view.KeyEvent.KEYCODE_NUMPAD_ENTER ->
+                        { selectTrackAtNav(); return true }
+                    android.view.KeyEvent.KEYCODE_DPAD_LEFT,
+                    android.view.KeyEvent.KEYCODE_BACK ->
+                        { closeTrackMenu(); return true }
+                }
+            }
+            when (kc) {
+                android.view.KeyEvent.KEYCODE_VOLUME_UP,
+                android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
+                android.view.KeyEvent.KEYCODE_VOLUME_MUTE -> return super.dispatchKeyEvent(event)
+            }
+            return true
+        }
 
         // 4) Bezne prehravanie
         if (::mediaPlayer.isInitialized) {
-            val canZap = liveUuids.size > 1
+            val canZap = !seekablePlayback && liveUuids.size > 1
             // dedikovane channel tlacidla + Page+/- = zap vzdy
             when (kc) {
                 android.view.KeyEvent.KEYCODE_CHANNEL_UP,
@@ -332,10 +407,39 @@ class PlayerActivity : ComponentActivity() {
                 android.view.KeyEvent.KEYCODE_PAGE_DOWN ->
                     if (down && canZap) { switchLive(-1); pokeControls(); return true }
             }
-            // ovladanie zobrazene -> sipky naviguju panel (Compose focus), OK spusti
-            // zvyraznene tlacidlo; len obnovime auto-hide casovac
+            // ovladanie zobrazene -> sipky naviguju panel (riadime my), OK aktivuje
+            // zvyrazneny prvok; dlhe podrzanie OK = zoznam kanalov
             if (controlsShown) {
-                if (down) pokeControls()
+                val order = playerControlOrder(canZap)
+                val n = order.size
+                when (kc) {
+                    android.view.KeyEvent.KEYCODE_DPAD_LEFT,
+                    android.view.KeyEvent.KEYCODE_DPAD_UP -> if (down) {
+                        controlNavState.value = (controlNavState.value - 1 + n) % n
+                        pokeControls(); return true
+                    }
+                    android.view.KeyEvent.KEYCODE_DPAD_RIGHT,
+                    android.view.KeyEvent.KEYCODE_DPAD_DOWN -> if (down) {
+                        controlNavState.value = (controlNavState.value + 1) % n
+                        pokeControls(); return true
+                    }
+                    android.view.KeyEvent.KEYCODE_DPAD_CENTER,
+                    android.view.KeyEvent.KEYCODE_ENTER,
+                    android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                        if (down) {
+                            if (event.repeatCount == 0) { okDownAt = System.currentTimeMillis(); okLongFired = false }
+                            else if (!okLongFired && canZap &&
+                                System.currentTimeMillis() - okDownAt >= 500
+                            ) { okLongFired = true; openChannelList() }
+                            return true
+                        } else {
+                            if (!okLongFired) activateControl(order.getOrNull(controlNavState.value))
+                            okLongFired = false
+                            return true
+                        }
+                    }
+                }
+                // BACK necháme Compose BackHandler (skryje ovladanie); volume/ostatne tiez
                 return super.dispatchKeyEvent(event)
             }
             // ovladanie skryte -> klavesa ho zobrazi a da focus na panel
@@ -351,22 +455,22 @@ class PlayerActivity : ComponentActivity() {
                         ) { okLongFired = true; openChannelList() }
                         return true
                     } else {
-                        if (!okLongFired) { togglePlayPause(); pokeControls() }
+                        if (!okLongFired) { togglePlayPause(); showControlsFocused() }
                         okLongFired = false
                         return true
                     }
                 }
                 android.view.KeyEvent.KEYCODE_DPAD_LEFT -> if (down) {
                     if (seekablePlayback) { seekRelative(-15_000); return true }
-                    pokeControls(); return true
+                    showControlsFocused(); return true
                 }
                 android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> if (down) {
                     if (seekablePlayback) { seekRelative(+30_000); return true }
-                    pokeControls(); return true
+                    showControlsFocused(); return true
                 }
                 android.view.KeyEvent.KEYCODE_DPAD_UP,
                 android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
-                    if (down) { pokeControls(); return true }
+                    if (down) { showControlsFocused(); return true }
                 android.view.KeyEvent.KEYCODE_MENU ->
                     if (down) { openOptions(); return true }
             }
@@ -527,6 +631,9 @@ class PlayerActivity : ComponentActivity() {
                 openOptionsSignal = openOptionsState.value,
                 closeOptionsSignal = closeOptionsState.value,
                 optionsNavIndex = optionsNavState.value,
+                controlNavIndex = controlNavState.value,
+                trackNavIndex = trackNavState.value,
+                closeMenuSignal = closeMenuState.value,
                 openAudioSignal = openAudioMenuState.value,
                 openSpuSignal = openSpuMenuState.value,
                 onOptionsChange = { optionsOpen = it },
@@ -621,6 +728,9 @@ private fun PlayerUi(
     openOptionsSignal: Int = 0,
     closeOptionsSignal: Int = 0,
     optionsNavIndex: Int = 0,
+    controlNavIndex: Int = 0,
+    trackNavIndex: Int = 0,
+    closeMenuSignal: Int = 0,
     openAudioSignal: Int = 0,
     openSpuSignal: Int = 0,
     onOptionsChange: (Boolean) -> Unit = {},
@@ -636,19 +746,12 @@ private fun PlayerUi(
     // menu: null = ziadne, "audio" = audio stopy, "spu" = titulky
     var menu by remember { mutableStateOf<String?>(null) }
     var showOptions by remember { mutableStateOf(false) }
-    // focus na hlavne tlacidlo (play/pause) ked sa ovladanie zobrazi klavesom -> D-pad navigacia
-    val playFocus = remember { androidx.compose.ui.focus.FocusRequester() }
 
-    // D-pad / dialkove poslalo signal -> zobraz ovladanie; focus na panel daj len ked
-    // sa ovladanie objavi zo skryteho stavu (inak by kurzor odskakoval pri navigacii)
+    // D-pad / dialkove poslalo signal -> zobraz ovladanie (navigaciu panela riesi Activity)
     LaunchedEffect(controlsPoke) {
-        if (controlsPoke > 0) {
-            val wasHidden = !controlsVisible
-            controlsVisible = true
-            if (wasHidden) runCatching { playFocus.requestFocus() }
-        }
+        if (controlsPoke > 0) controlsVisible = true
     }
-    // oznam Activity ci je ovladanie zobrazene (vtedy D-pad navigaciu riesi Compose focus)
+    // oznam Activity ci je ovladanie zobrazene (vtedy D-pad navigaciu riesi Activity)
     LaunchedEffect(controlsVisible) { onControlsVisibleChange(controlsVisible) }
     // oznam Activity stav prekryti (kvoli D-pad smerovaniu)
     LaunchedEffect(menu) { onTrackMenuChange(menu != null) }
@@ -668,8 +771,9 @@ private fun PlayerUi(
     LaunchedEffect(closeOptionsSignal) {
         if (closeOptionsSignal > 0) showOptions = false
     }
-    LaunchedEffect(openAudioSignal) { if (openAudioSignal > 0) menu = "audio" }
-    LaunchedEffect(openSpuSignal) { if (openSpuSignal > 0) menu = "spu" }
+    LaunchedEffect(openAudioSignal) { if (openAudioSignal > 0) { menu = "audio"; controlsVisible = false } }
+    LaunchedEffect(openSpuSignal) { if (openSpuSignal > 0) { menu = "spu"; controlsVisible = false } }
+    LaunchedEffect(closeMenuSignal) { if (closeMenuSignal > 0) menu = null }
     // ikona play/pause podla skutocneho stavu prehravaca
     LaunchedEffect(playing) { isPlaying = playing }
     // seek stav (len pre DVR). TS subor nenese dlzku, takze pouzivame:
@@ -858,12 +962,13 @@ private fun PlayerUi(
             modifier = Modifier.fillMaxSize()
         ) {
             Box(Modifier.fillMaxSize().systemBarsPadding().background(Color(0x66000000))) {
+                val selCtrl = playerControlOrder(onPrevChannel != null).getOrNull(controlNavIndex)
                 // Horny pruh: zavriet + nazov
                 Row(
                     Modifier.fillMaxWidth().padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    CircleButton("\u2715", onClick = onClose)
+                    CircleButton("\u2715", selected = selCtrl == "close", onClick = onClose)
                     Column(
                         Modifier.padding(start = 12.dp).weight(1f)
                     ) {
@@ -886,6 +991,7 @@ private fun PlayerUi(
                     if (liveChannels.isNotEmpty()) {
                         CircleButton(
                             label = "\u2630",
+                            selected = selCtrl == "list",
                             onClick = { showChannelList = true; controlsVisible = false }
                         )
                         Spacer(Modifier.width(8.dp))
@@ -909,13 +1015,13 @@ private fun PlayerUi(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (onPrevChannel != null) {
-                        CircleButton(label = "\u23EE", onClick = onPrevChannel)
+                        CircleButton(label = "\u23EE", selected = selCtrl == "prev", onClick = onPrevChannel)
                         Spacer(Modifier.width(28.dp))
                     }
                     CircleButton(
                         label = if (isPlaying) "\u23F8" else "\u25B6",
                         big = true,
-                        modifier = Modifier.focusRequester(playFocus),
+                        selected = selCtrl == "play",
                         onClick = {
                             if (player.isPlaying) {
                                 player.pause(); isPlaying = false
@@ -926,7 +1032,7 @@ private fun PlayerUi(
                     )
                     if (onNextChannel != null) {
                         Spacer(Modifier.width(28.dp))
-                        CircleButton(label = "\u23ED", onClick = onNextChannel)
+                        CircleButton(label = "\u23ED", selected = selCtrl == "next", onClick = onNextChannel)
                     }
                 }
 
@@ -977,9 +1083,9 @@ private fun PlayerUi(
                         Modifier.align(Alignment.End),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        TextChip("\uD83D\uDD0A Audio") { menu = if (menu == "audio") null else "audio" }
-                        TextChip("\uD83D\uDCAC Titulky") { menu = if (menu == "spu") null else "spu" }
-                        TextChip(if (softwareDecode) "\u2699 SW dekód: ZAP" else "\u2699 SW dekód: VYP") {
+                        TextChip("\uD83D\uDD0A Audio", selected = selCtrl == "audio") { menu = if (menu == "audio") null else "audio" }
+                        TextChip("\uD83D\uDCAC Titulky", selected = selCtrl == "subs") { menu = if (menu == "spu") null else "spu" }
+                        TextChip(if (softwareDecode) "\u2699 SW dekód: ZAP" else "\u2699 SW dekód: VYP", selected = selCtrl == "sw") {
                             onToggleSoftwareDecode()
                         }
                     }
@@ -1157,6 +1263,7 @@ private fun PlayerUi(
                 items = items,
                 currentId = currentId,
                 allowOff = (menu == "spu"),  // titulky sa daju vypnut (-1)
+                navIndex = trackNavIndex,
                 onPick = { id ->
                     if (menu == "audio") {
                         player.audioTrack = id
@@ -1231,11 +1338,10 @@ private fun TrackMenu(
     items: List<TrackItem>,
     currentId: Int,
     allowOff: Boolean,
+    navIndex: Int,
     onPick: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val firstFocus = remember { androidx.compose.ui.focus.FocusRequester() }
-    LaunchedEffect(header) { runCatching { firstFocus.requestFocus() } }
     Box(
         Modifier
             .fillMaxSize()
@@ -1259,9 +1365,10 @@ private fun TrackMenu(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(12.dp)
             )
+            // poradie riadkov musi sediet s trackMenuIds() v Activity: [Vypnute] + items (pre titulky)
+            val offset = if (allowOff) 1 else 0
             if (allowOff) {
-                TrackRow("Vypnuté", selected = currentId == -1,
-                    modifier = Modifier.focusRequester(firstFocus)) { onPick(-1) }
+                TrackRow("Vypnuté", selected = currentId == -1, highlighted = navIndex == 0) { onPick(-1) }
             }
             if (items.isEmpty() && !allowOff) {
                 Text(
@@ -1271,20 +1378,19 @@ private fun TrackMenu(
                 )
             }
             items.forEachIndexed { i, t ->
-                val m = if (!allowOff && i == 0) Modifier.focusRequester(firstFocus) else Modifier
-                TrackRow(t.name, selected = t.id == currentId, modifier = m) { onPick(t.id) }
+                TrackRow(t.name, selected = t.id == currentId, highlighted = navIndex == i + offset) { onPick(t.id) }
             }
         }
     }
 }
 
 @Composable
-private fun TrackRow(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun TrackRow(label: String, selected: Boolean, highlighted: Boolean = false, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Row(
         modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .dpadFocusable()
+            .background(if (highlighted) Color(0x553B82F6) else Color.Transparent)
             .clickable { onClick() }
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -1298,12 +1404,13 @@ private fun TrackRow(label: String, selected: Boolean, modifier: Modifier = Modi
 }
 
 @Composable
-private fun TextChip(label: String, onClick: () -> Unit) {
+private fun TextChip(label: String, selected: Boolean = false, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(20.dp)
     Box(
         Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .dpadFocusable(RoundedCornerShape(20.dp))
-            .background(Color(0x88000000))
+            .clip(shape)
+            .background(if (selected) Color(0xCC1E88E5) else Color(0x88000000))
+            .then(if (selected) Modifier.border(3.dp, Color.White, shape) else Modifier)
             .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
@@ -1316,6 +1423,7 @@ private fun CircleButton(
     label: String,
     onClick: () -> Unit,
     big: Boolean = false,
+    selected: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val s = if (big) 76.dp else 44.dp
@@ -1323,8 +1431,8 @@ private fun CircleButton(
         modifier
             .size(s)
             .clip(CircleShape)
-            .dpadFocusable(CircleShape)
-            .background(Color(0x88000000))
+            .background(if (selected) Color(0xCC1E88E5) else Color(0x88000000))
+            .then(if (selected) Modifier.border(3.dp, Color.White, CircleShape) else Modifier)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
@@ -1335,6 +1443,16 @@ private fun CircleButton(
             fontSize = if (big) 34.sp else 20.sp
         )
     }
+}
+
+// Poradie ovladacich prvkov v paneli prehravaca pre D-pad navigaciu (Activity ich navriguje).
+// Musi sediet s vykreslenim v PlayerUi (rovnaka podmienka canZap).
+private fun playerControlOrder(canZap: Boolean): List<String> = buildList {
+    add("close")
+    if (canZap) { add("list"); add("prev") }
+    add("play")
+    if (canZap) add("next")
+    add("audio"); add("subs"); add("sw")
 }
 
 private fun fmtMs(ms: Long): String {
