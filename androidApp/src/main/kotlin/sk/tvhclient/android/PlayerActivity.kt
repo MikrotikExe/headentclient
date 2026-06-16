@@ -235,6 +235,7 @@ class PlayerActivity : ComponentActivity() {
         mediaPlayer.media = media
         media.release()
         mediaPlayer.play()
+        pokeControls()
     }
 
     /** Prepne na susedny live kanal (delta +1 / -1). */
@@ -754,6 +755,7 @@ class PlayerActivity : ComponentActivity() {
                         mediaPlayer.media = media
                         media.release()
                         mediaPlayer.play()
+                        pokeControls()
                     }
                     if (requirePin && ParentalLock.needsPin(this)) {
                         requestPin(onOk = doPlay, onCancel = { finish() })
