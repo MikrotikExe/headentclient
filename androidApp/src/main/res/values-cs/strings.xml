@@ -208,4 +208,5 @@
     <string name="autostart_note">Nemusí fungovat na všech zařízeních</string>
     <string name="autostart_open_settings">Oprávnění aplikace (systémová nastavení)</string>
     <string name="autostart_battery">Povolit běh na pozadí (baterie)</string>
+    <string name="autostart_overlay">Povolit zobrazení přes ostatní aplikace</string>
 </resources>

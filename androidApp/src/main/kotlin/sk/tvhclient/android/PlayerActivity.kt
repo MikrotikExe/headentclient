@@ -1004,10 +1004,12 @@ private fun PlayerUi(
             }
         }
         LaunchedEffect(liveChannelUuid) {
-            // ak nemame relaciu alebo dobehla -> nacitaj aktualnu/dalsiu
+            // hned po prepnuti nacitaj plne EPG (popis + dalsia relacia),
+            // potom obnovuj ked aktualna relacia dobehne
+            var firstDone = false
             while (true) {
                 val now = System.currentTimeMillis() / 1000
-                if (progStart == 0L || progStop == 0L || now >= progStop) {
+                if (!firstDone || progStart == 0L || progStop == 0L || now >= progStop) {
                     val list = try {
                         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                             val api = Tvh.apiFor(server)
@@ -1025,6 +1027,7 @@ private fun PlayerUi(
                             nextTitle = nx.title; nextStart = nx.start; nextStop = nx.stop
                         }
                     }
+                    firstDone = true
                 }
                 kotlinx.coroutines.delay(5000)
             }

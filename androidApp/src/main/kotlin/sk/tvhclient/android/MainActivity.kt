@@ -578,11 +578,32 @@ fun ServerList(vm: ServersViewModel, onAdd: () -> Unit, onEdit: (TvhServer) -> U
             // Automaticke spustenie po zapnuti zariadenia
             Text(stringResource(R.string.autostart_title), style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(4.dp))
+            // Povolenie "zobrazenie nad ostatnymi aplikaciami" — vdaka nemu sa
+            // appka smie spustit z pozadia (boot / prebudenie). Bez neho to Android blokuje.
+            fun requestOverlay() {
+                if (android.os.Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(ctx)) {
+                    val i = Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:" + ctx.packageName)
+                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    if (runCatching { ctx.startActivity(i) }.isFailure) {
+                        runCatching {
+                            ctx.startActivity(
+                                Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        }
+                    }
+                }
+            }
             var autostart by remember { mutableStateOf(AutostartPref.isEnabled(ctx)) }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Switch(
                     checked = autostart,
-                    onCheckedChange = { on -> autostart = on; AutostartPref.setEnabled(ctx, on) }
+                    onCheckedChange = { on ->
+                        autostart = on; AutostartPref.setEnabled(ctx, on)
+                        if (on) requestOverlay()
+                    }
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.autostart_enable))
@@ -591,7 +612,10 @@ fun ServerList(vm: ServersViewModel, onAdd: () -> Unit, onEdit: (TvhServer) -> U
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Switch(
                     checked = autostartWake,
-                    onCheckedChange = { on -> autostartWake = on; AutostartPref.setWakeEnabled(ctx, on) }
+                    onCheckedChange = { on ->
+                        autostartWake = on; AutostartPref.setWakeEnabled(ctx, on)
+                        if (on) requestOverlay()
+                    }
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(stringResource(R.string.autostart_wake))
@@ -601,6 +625,12 @@ fun ServerList(vm: ServersViewModel, onAdd: () -> Unit, onEdit: (TvhServer) -> U
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            OutlinedButton(
+                onClick = { requestOverlay() },
+                modifier = Modifier.padding(top = 4.dp)
+            ) {
+                Text(stringResource(R.string.autostart_overlay))
+            }
             OutlinedButton(
                 onClick = {
                     val i = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
@@ -612,26 +642,6 @@ fun ServerList(vm: ServersViewModel, onAdd: () -> Unit, onEdit: (TvhServer) -> U
                 modifier = Modifier.padding(top = 4.dp)
             ) {
                 Text(stringResource(R.string.autostart_open_settings))
-            }
-            OutlinedButton(
-                onClick = {
-                    val i = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                        data = Uri.fromParts("package", ctx.packageName, null)
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    // fallback: zoznam vsetkych appiek pre optimalizaciu baterie
-                    if (runCatching { ctx.startActivity(i) }.isFailure) {
-                        runCatching {
-                            ctx.startActivity(
-                                Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            )
-                        }
-                    }
-                },
-                modifier = Modifier.padding(top = 4.dp)
-            ) {
-                Text(stringResource(R.string.autostart_battery))
             }
             Spacer(Modifier.height(16.dp))
             if (servers.isEmpty()) {

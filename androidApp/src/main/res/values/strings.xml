@@ -208,4 +208,5 @@
     <string name="autostart_note">May not work on all devices</string>
     <string name="autostart_open_settings">App permissions (system settings)</string>
     <string name="autostart_battery">Allow background run (battery)</string>
+    <string name="autostart_overlay">Allow display over other apps</string>
 </resources>
