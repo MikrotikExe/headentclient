@@ -41,6 +41,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,6 +77,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0) {
     var profileFor by remember { mutableStateOf<ChannelRow?>(null) }
     var favTick by remember { mutableStateOf(0) }
     var lockTick by remember { mutableStateOf(0) }
+    var hiddenTick by remember { mutableStateOf(0) }
     // Pri zamknutom kanali / nastaveniach: akcia, ktora sa vykona po spravnom PINe
     var pinAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var showGrid by remember { mutableStateOf(false) }
@@ -86,16 +93,19 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0) {
     // Scroll pozicie prezivaju odskok do EPG a spat (remember v scope obrazovky)
     val listStateMain = androidx.compose.foundation.lazy.rememberLazyListState()
     val listStateSearch = androidx.compose.foundation.lazy.rememberLazyListState()
+    val searchFocus = remember { FocusRequester() }
 
     LaunchedEffect(Unit) { vm.loadIfNeeded() }
     LaunchedEffect(Unit) { dvrVm.loadIfNeeded() }
 
-    // Zoznam kanalov pre zapping a zoznam v prehravaci (CH+/CH-, overlay)
-    LaunchedEffect(state, epgMap) {
+    // Zoznam kanalov pre zapping a zoznam v prehravaci (CH+/CH-, overlay).
+    // Skryte kanaly sem nepatria (v prehravaci sa nezobrazuju).
+    LaunchedEffect(state, epgMap, hiddenTick) {
         val srv = Tvh.store.active()
         (state as? ChannelsState.Loaded)?.let { st ->
             val nowS = System.currentTimeMillis() / 1000
-            LivePlaylist.channels = st.allRows.map { r ->
+            val hidden = HiddenChannels.all(ctx, srv?.id)
+            LivePlaylist.channels = st.allRows.filter { it.channel.uuid !in hidden }.map { r ->
                 val (nt, ns, ne) = currentNow(r, epgMap[r.channel.uuid], nowS)
                 LivePlaylist.LiveChannel(
                     uuid = r.channel.uuid,
@@ -149,11 +159,11 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0) {
 
     Column(Modifier.fillMaxSize().padding(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = { vm.setQuery(it) },
-                label = { Text(stringResource(R.string.search_channels)) },
-                singleLine = true,
+            TvSearchBar(
+                query = query,
+                placeholder = stringResource(R.string.search_channels),
+                onQueryChange = { vm.setQuery(it) },
+                focusRequester = searchFocus,
                 modifier = Modifier.weight(1f)
             )
             androidx.compose.material3.IconButton(onClick = { showGrid = true }) {
@@ -302,10 +312,14 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0) {
         val isLocked = remember(lockTick) {
             ParentalLock.isChannelLocked(ctx, serverId, cr.channel.uuid)
         }
+        val isHidden = remember(hiddenTick) {
+            HiddenChannels.isHidden(ctx, serverId, cr.channel.uuid)
+        }
         ChannelActionDialog(
             channelName = cr.channel.name,
             isFav = isFav,
             isLocked = isLocked,
+            isHidden = isHidden,
             onProgram = { epgFor = cr; contextRow = null },
             onToggleFav = {
                 Favorites.toggle(ctx, serverId, cr.channel.uuid); favTick++; contextRow = null
@@ -318,6 +332,10 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0) {
                 }
                 contextRow = null
                 if (ParentalLock.needsPin(ctx)) pinAction = doToggle else doToggle()
+            },
+            onToggleHide = {
+                HiddenChannels.setHidden(ctx, serverId, cr.channel.uuid, !isHidden)
+                hiddenTick++; contextRow = null
             },
             onDismiss = { contextRow = null }
         )
@@ -359,10 +377,12 @@ private fun ChannelActionDialog(
     channelName: String,
     isFav: Boolean,
     isLocked: Boolean,
+    isHidden: Boolean,
     onProgram: () -> Unit,
     onToggleFav: () -> Unit,
     onProfile: () -> Unit,
     onToggleLock: () -> Unit,
+    onToggleHide: () -> Unit,
     onDismiss: () -> Unit
 ) {
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
@@ -385,6 +405,10 @@ private fun ChannelActionDialog(
                 ActionRow(
                     if (isLocked) stringResource(R.string.plock_unlock) else stringResource(R.string.plock_lock),
                     onToggleLock
+                )
+                ActionRow(
+                    if (isHidden) stringResource(R.string.ch_unhide) else stringResource(R.string.ch_hide),
+                    onToggleHide
                 )
             }
         }
@@ -634,6 +658,8 @@ private fun ChannelList(
     // Pociatocny focus na posledny zvoleny (alebo prvy) kanal -> nech sa pri
     // starte neoznaci vyhladavacie pole a nevyskoci klavesnica.
     val firstFocus = remember { FocusRequester() }
+    val jumpFocus = remember { FocusRequester() }
+    var jumpTarget by remember { androidx.compose.runtime.mutableStateOf(-1) }
     val targetIndex = remember(rows, focusUuid) {
         (focusUuid?.let { u -> rows.indexOfFirst { it.channel.uuid == u } } ?: 0).coerceAtLeast(0)
     }
@@ -645,11 +671,44 @@ private fun ChannelList(
             didFocus = true
         }
     }
+    // Skok na index (wrap hore/dole, posun po 5): najprv doscrolluj, pockaj
+    // snimku nech sa polozka vytvori, az potom ju zameraj.
+    LaunchedEffect(jumpTarget) {
+        val t = jumpTarget
+        if (t >= 0) {
+            listState.scrollToItem(t)
+            androidx.compose.runtime.withFrameNanos { }
+            runCatching { jumpFocus.requestFocus() }
+            jumpTarget = -1
+        }
+    }
+    val last = rows.lastIndex
     LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         itemsIndexed(rows, key = { _, it -> it.channel.uuid }) { idx, row ->
+            val focusMod = when {
+                jumpTarget >= 0 && idx == jumpTarget -> Modifier.focusRequester(jumpFocus)
+                idx == targetIndex -> Modifier.focusRequester(firstFocus)
+                else -> Modifier
+            }
+            val keyMod = focusMod.onPreviewKeyEvent { e ->
+                if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when (e.nativeKeyEvent.keyCode) {
+                    android.view.KeyEvent.KEYCODE_DPAD_UP ->
+                        if (idx == 0) { jumpTarget = last; true } else false
+                    android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
+                        if (idx == last) { jumpTarget = 0; true } else false
+                    android.view.KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        jumpTarget = (idx - 5).coerceAtLeast(0); true
+                    }
+                    android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        jumpTarget = (idx + 5).coerceAtMost(last); true
+                    }
+                    else -> false
+                }
+            }
             ChannelItem(row, loader, context, nowSec, epgMap[row.channel.uuid],
                 recordingByChannel[row.channel.name], onRecordingTap, onShowEpg,
-                itemModifier = if (idx == targetIndex) Modifier.focusRequester(firstFocus) else Modifier)
+                itemModifier = keyMod)
         }
     }
 }
@@ -669,6 +728,7 @@ private fun ChannelItem(
 ) {
     val (curTitle, curStart, curStop) = currentNow(row, epgList, nowSec)
     val locked = ParentalLock.isChannelLocked(context, Tvh.store.active()?.id, row.channel.uuid)
+    val hidden = HiddenChannels.isHidden(context, Tvh.store.active()?.id, row.channel.uuid)
     Row(
         modifier = itemModifier
             .fillMaxWidth()
@@ -734,6 +794,14 @@ private fun ChannelItem(
                 if (locked) {
                     Spacer(Modifier.width(6.dp))
                     Text("\uD83D\uDD12", style = MaterialTheme.typography.bodySmall)
+                }
+                if (hidden) {
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "\uD83D\uDEAB",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
             // Aktualna relacia uz vypocitana hore (curTitle/curStart/curStop)

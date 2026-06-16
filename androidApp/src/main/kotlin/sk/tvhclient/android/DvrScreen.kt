@@ -149,29 +149,16 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        // Vyhladavanie nahravok (cez vsetky, podla nazvu)
-        androidx.compose.material3.OutlinedTextField(
-            value = search,
-            onValueChange = { search = it },
+        // Vyhladavanie nahravok (cez vsetky, podla nazvu) — klavesnica az po OK
+        val searchFocus = remember { FocusRequester() }
+        TvSearchBar(
+            query = search,
+            placeholder = stringResource(R.string.dvr_search),
+            onQueryChange = { search = it },
+            focusRequester = searchFocus,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            singleLine = true,
-            leadingIcon = {
-                androidx.compose.material3.Icon(
-                    androidx.compose.material.icons.Icons.Default.Search, contentDescription = null
-                )
-            },
-            trailingIcon = {
-                if (search.isNotBlank()) {
-                    androidx.compose.material3.IconButton(onClick = { search = "" }) {
-                        androidx.compose.material3.Icon(
-                            androidx.compose.material.icons.Icons.Default.Close, contentDescription = null
-                        )
-                    }
-                }
-            },
-            placeholder = { Text(stringResource(R.string.dvr_search)) }
+                .padding(horizontal = 12.dp, vertical = 8.dp)
         )
         val contentFocus = remember { FocusRequester() }
         // Po nacitani / zmene urovne daj focus na obsah (prvu zlozku), nech sa

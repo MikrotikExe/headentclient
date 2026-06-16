@@ -167,6 +167,8 @@
     <string name="fav_add">Přidat do oblíbených</string>
     <string name="fav_remove">Odebrat z oblíbených</string>
     <string name="ch_profile">Profil přehrávání</string>
+    <string name="ch_hide">Skrýt z přehrávače</string>
+    <string name="ch_unhide">Zobrazit v přehrávači</string>
     <string name="welcome_title">Vítejte</string>
     <string name="welcome_subtitle">Připojte se ke svému Tvheadend serveru a můžete začít.</string>
     <string name="login_connect">Přihlásit se</string>
