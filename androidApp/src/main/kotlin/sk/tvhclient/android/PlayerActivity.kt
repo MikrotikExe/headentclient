@@ -15,6 +15,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -117,6 +118,16 @@ class PlayerActivity : ComponentActivity() {
     }
 
     private fun pokeControls() { controlsPokeState.value = controlsPokeState.value + 1 }
+    // INFO kláves / tlacidlo -> okno s detailom aktualnej relacie
+    private val infoPokeState = androidx.compose.runtime.mutableStateOf(0)
+    private fun toggleInfo() { infoPokeState.value = infoPokeState.value + 1 }
+    // EPG kláves / tlacidlo -> otvor TV program (mriezku) v hlavnej aplikacii
+    private fun openEpgInApp() {
+        val i = android.content.Intent(this, MainActivity::class.java).apply {
+            putExtra("open_epg", true)
+        }
+        runCatching { startActivity(i) }
+    }
     private fun showControlsFocused() {
         val order = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback)
         controlNavState.value = order.indexOf("play").coerceAtLeast(0)
@@ -378,6 +389,8 @@ class PlayerActivity : ComponentActivity() {
             "next" -> { switchLive(+1); pokeControls() }
             "audio" -> openAudioMenu()
             "subs" -> openSpuMenu()
+            "epg" -> openEpgInApp()
+            "info" -> { toggleInfo(); pokeControls() }
             "sw" -> { toggleSoftwareDecodeRemote(); pokeControls() }
         }
     }
@@ -405,6 +418,15 @@ class PlayerActivity : ComponentActivity() {
                 }
             }
             return true
+        }
+
+        // 0b) EPG kláves -> TV program; INFO kláves -> okno s relaciou (vzdy)
+        if (down) {
+            when (kc) {
+                android.view.KeyEvent.KEYCODE_GUIDE,
+                android.view.KeyEvent.KEYCODE_TV_DATA_SERVICE -> { openEpgInApp(); return true }
+                android.view.KeyEvent.KEYCODE_INFO -> { toggleInfo(); return true }
+            }
         }
 
         // 1) Otvoreny zoznam kanalov -> navigujeme my
@@ -762,6 +784,8 @@ class PlayerActivity : ComponentActivity() {
                     } else doPlay()
                 },
                 controlsPoke = controlsPokeState.value,
+                infoPoke = infoPokeState.value,
+                onOpenEpg = { openEpgInApp() },
                 softwareDecode = softwareDecodeState.value,
                 onToggleSoftwareDecode = { toggleSoftwareDecodeRemote() },
                 playing = isPlayingState.value,
@@ -873,6 +897,8 @@ private fun PlayerUi(
     onRefreshEpg: () -> Unit = {},
     numberEntry: String = "",
     controlsPoke: Int = 0,
+    infoPoke: Int = 0,
+    onOpenEpg: () -> Unit = {},
     softwareDecode: Boolean = false,
     onToggleSoftwareDecode: () -> Unit = {},
     playing: Boolean = true,
@@ -902,6 +928,7 @@ private fun PlayerUi(
     onClose: () -> Unit
 ) {
     var controlsVisible by remember { mutableStateOf(false) }
+    var showInfo by remember { mutableStateOf(false) }
     var showChannelList by remember { mutableStateOf(false) }
     var isPlaying by remember { mutableStateOf(true) }
     var orientationLocked by remember { mutableStateOf(false) }
@@ -914,6 +941,10 @@ private fun PlayerUi(
     // D-pad / dialkove poslalo signal -> zobraz ovladanie (navigaciu panela riesi Activity)
     LaunchedEffect(controlsPoke) {
         if (controlsPoke > 0) controlsVisible = true
+    }
+    // INFO signal -> prepni okno s detailom relacie
+    LaunchedEffect(infoPoke) {
+        if (infoPoke > 0) showInfo = !showInfo
     }
     // oznam Activity ci je ovladanie zobrazene (vtedy D-pad navigaciu riesi Activity)
     LaunchedEffect(controlsVisible) { onControlsVisibleChange(controlsVisible) }
@@ -1344,12 +1375,73 @@ private fun PlayerUi(
                                 "subs" -> TextChip("\uD83D\uDCAC Titulky", selected = selCtrl == "subs", scale = bk) {
                                     menu = if (menu == "spu") null else "spu"
                                 }
+                                "epg" -> CircleButton(
+                                    label = "\u25A6", selected = selCtrl == "epg", scale = bk,
+                                    onClick = onOpenEpg
+                                )
+                                "info" -> CircleButton(
+                                    label = "\u24D8", selected = selCtrl == "info", scale = bk,
+                                    onClick = { showInfo = !showInfo }
+                                )
                                 "sw" -> TextChip(
                                     if (softwareDecode) "\u2699 SW dek\u00f3d: ZAP" else "\u2699 SW dek\u00f3d: VYP",
                                     selected = selCtrl == "sw",
                                     scale = bk
                                 ) { onToggleSoftwareDecode() }
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Info okno: detail prave beziacej relacie (INFO kláves / tlacidlo)
+        if (showInfo) {
+            androidx.activity.compose.BackHandler { showInfo = false }
+            val clk: (Long) -> String = { sec ->
+                if (sec <= 0) "" else java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                    .format(java.util.Date(sec * 1000))
+            }
+            val tRange = if (progStart > 0 && progStop > progStart)
+                clk(progStart) + " \u2013 " + clk(progStop) else ""
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color(0xCC000000))
+                    .clickable { showInfo = false },
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.Surface(
+                    color = Color(0xF21C1C1C),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(0.72f)
+                ) {
+                    Column(
+                        Modifier
+                            .padding(28.dp)
+                            .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                    ) {
+                        Text(
+                            progTitle.ifBlank { title },
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 22.sp
+                        )
+                        if (tRange.isNotBlank()) {
+                            Spacer(Modifier.height(6.dp))
+                            Text(tRange, color = Color(0xCCFFFFFF), fontSize = 15.sp)
+                        }
+                        if (progDesc.isNotBlank()) {
+                            Spacer(Modifier.height(14.dp))
+                            Text(progDesc, color = Color(0xDDFFFFFF), fontSize = 16.sp, lineHeight = 22.sp)
+                        }
+                        if (nextTitle.isNotBlank()) {
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                "Nasleduje: " + (if (nextStart > 0) clk(nextStart) + "  " else "") + nextTitle,
+                                color = Color(0x99FFFFFF),
+                                fontSize = 14.sp
+                            )
                         }
                     }
                 }
@@ -1800,7 +1892,10 @@ private fun playerControlOrder(canZap: Boolean, seekable: Boolean = false): List
     add("play")
     if (canZap) add("next")
     if (seekable) add("seek")
-    add("audio"); add("subs"); add("sw")
+    add("audio"); add("subs")
+    if (canZap) add("epg")
+    add("info")
+    add("sw")
 }
 
 private fun fmtMs(ms: Long): String {

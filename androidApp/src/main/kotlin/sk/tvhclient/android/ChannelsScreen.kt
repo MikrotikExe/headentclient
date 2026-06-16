@@ -81,6 +81,9 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     // Pri zamknutom kanali / nastaveniach: akcia, ktora sa vykona po spravnom PINe
     var pinAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var showGrid by remember { mutableStateOf(false) }
+    // EPG kláves dialkoveho -> otvor TV program (mriezku)
+    val epgSignal by TabController.epgGrid
+    LaunchedEffect(epgSignal) { if (epgSignal > 0) showGrid = true }
     // Zdielany DvrViewModel — vieme ktore kanaly sa prave nahravaju
     val dvrVm: DvrViewModel = viewModel()
     val dvrState by dvrVm.state.collectAsState()

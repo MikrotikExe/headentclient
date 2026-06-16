@@ -75,6 +75,12 @@ import sk.tvhclient.shared.model.TvhServer
 object TabController {
     val requested = mutableStateOf(-1)
     fun request(tab: Int) { requested.value = tab }
+    // EPG (TV program) kláves dialkoveho -> otvor mriezku v Kanaloch
+    val epgGrid = mutableStateOf(0)
+    fun openEpgGrid() { epgGrid.value = epgGrid.value + 1 }
+    // INFO kláves -> detail vybranej relacie (v mriezke)
+    val infoKey = mutableStateOf(0)
+    fun pressInfo() { infoKey.value = infoKey.value + 1 }
 }
 
 class MainActivity : ComponentActivity() {
@@ -84,10 +90,21 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (intent?.getBooleanExtra("open_epg", false) == true) {
+            TabController.request(0); TabController.openEpgGrid()
+        }
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 App()
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra("open_epg", false)) {
+            TabController.request(0); TabController.openEpgGrid()
         }
     }
 
@@ -102,6 +119,15 @@ class MainActivity : ComponentActivity() {
                 else -> -1
             }
             if (t >= 0) { TabController.request(t); return true }
+            when (event.keyCode) {
+                // EPG / TV program kláves (ikona vlavo od 0)
+                android.view.KeyEvent.KEYCODE_GUIDE,
+                android.view.KeyEvent.KEYCODE_TV_DATA_SERVICE -> {
+                    TabController.request(0); TabController.openEpgGrid(); return true
+                }
+                // INFO kláves (ikona vpravo od 0)
+                android.view.KeyEvent.KEYCODE_INFO -> { TabController.pressInfo(); return true }
+            }
         }
         return super.dispatchKeyEvent(event)
     }

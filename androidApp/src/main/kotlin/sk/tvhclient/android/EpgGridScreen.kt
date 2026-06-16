@@ -26,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -137,6 +138,12 @@ fun EpgGridScreen(
 
     // Detail relacie/nahravky (prekryva mriezku); klik na blok ho otvori
     var detail by remember { mutableStateOf<GridDetail?>(null) }
+    // Posledny zafokusovany blok (D-pad) -> INFO kláves zobrazi jeho detail
+    var lastFocused by remember { mutableStateOf<GridDetail?>(null) }
+    val infoSig by TabController.infoKey
+    LaunchedEffect(infoSig) {
+        if (infoSig > 0) detail = if (detail == null) lastFocused else null
+    }
 
     var dayOffset by remember { mutableStateOf(0) }
     val dayStart = remember(dayOffset) { dayStartSec(dayOffset) }
@@ -371,7 +378,8 @@ fun EpgGridScreen(
                         loader = loader,
                         onClick = { ev -> detail = GridDetail.Epg(row, ev) },
                         onDvr = { e -> detail = GridDetail.Dvr(e) },
-                        onInProgress = { rec -> detail = GridDetail.InProgress(row, rec) }
+                        onInProgress = { rec -> detail = GridDetail.InProgress(row, rec) },
+                        onFocusDetail = { lastFocused = it }
                     )
                 }
             }
@@ -596,7 +604,8 @@ private fun EpgGridRow(
     loader: coil.ImageLoader,
     onClick: (EpgEvent) -> Unit,
     onDvr: (sk.tvhclient.shared.model.DvrEntry) -> Unit,
-    onInProgress: (sk.tvhclient.shared.model.DvrEntry) -> Unit
+    onInProgress: (sk.tvhclient.shared.model.DvrEntry) -> Unit,
+    onFocusDetail: (GridDetail) -> Unit = {}
 ) {
     val context = LocalContext.current
     Row(Modifier.height(ROW_H.dp)) {
@@ -641,7 +650,8 @@ private fun EpgGridRow(
                         timeLabel = formatTimeHm(rec.start) + " - " + formatTimeHm(rec.stop),
                         bg = Color(0x3366BB6A),       // zelenkavy = nahrate, da sa prehrat
                         recorded = true,
-                        onClick = { onDvr(rec) }
+                        onClick = { onDvr(rec) },
+                        onFocused = { onFocusDetail(GridDetail.Dvr(rec)) }
                     )
                 }
                 // Prave prebiehajuce nahravky (● REC) — vyplnia medzeru hned,
@@ -658,7 +668,8 @@ private fun EpgGridRow(
                         bg = Color(0x33EF5350),       // cervenkavy = prave sa nahrava
                         recorded = false,
                         prefix = "\u25CF ",
-                        onClick = { onInProgress(rec) }
+                        onClick = { onInProgress(rec) },
+                        onFocused = { onFocusDetail(GridDetail.InProgress(row, rec)) }
                     )
                 }
                 // Relacie z EPG vratane minulych (historia); preskoc tie, ktore uz
@@ -684,7 +695,8 @@ private fun EpgGridRow(
                         },
                         recorded = false,
                         progressMin = if (isNow) ((now - ev.start) / 60).toInt() else 0,
-                        onClick = { onClick(ev) }
+                        onClick = { onClick(ev) },
+                        onFocused = { onFocusDetail(GridDetail.Epg(row, ev)) }
                     )
                 }
                 // Zvisla live ciara aktualneho casu (jemna, ladi s farbou)
@@ -715,7 +727,8 @@ private fun GridBlock(
     recorded: Boolean,
     progressMin: Int = 0,
     prefix: String? = null,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onFocused: () -> Unit = {}
 ) {
     val wMin = endMin - startMin
     if (wMin <= 0) return
@@ -727,6 +740,7 @@ private fun GridBlock(
             .padding(2.dp)
             .clip(RoundedCornerShape(4.dp))
             .background(bg)
+            .onFocusEvent { if (it.isFocused) onFocused() }
             .clickable { onClick() }
     ) {
         // Live priebeh (svetlejsia vypln zlava) pre bezzhiacu relaciu
