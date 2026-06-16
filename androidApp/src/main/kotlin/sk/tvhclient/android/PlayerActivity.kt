@@ -100,6 +100,10 @@ class PlayerActivity : ComponentActivity() {
     private val navChannelIndexState = androidx.compose.runtime.mutableStateOf(0)
     private var seekablePlayback = false
     private var currentStreamUrl: String? = null
+    // Zadavanie kanala cislami z dialkoveho ovladaca
+    private val numEntryState = androidx.compose.runtime.mutableStateOf("")
+    private var numEntry = ""
+    private var numJob: kotlinx.coroutines.Job? = null
 
     /** Vytvori Media s HW/SW dekoderom podla preferencie (lacne boxy = SW). */
     private fun buildMedia(url: String): Media {
@@ -223,6 +227,27 @@ class PlayerActivity : ComponentActivity() {
         if (liveUuids.size < 2 || liveIndex < 0) return
         val n = liveUuids.size
         switchToIndex(((liveIndex + delta) % n + n) % n)
+    }
+
+    /** Zadanie cisla kanala z dialkoveho: nazbieraj cislice, po 1,5 s sa prepne. */
+    private fun onChannelDigit(d: Int) {
+        if (liveUuids.isEmpty()) return
+        numEntry = (numEntry + d).takeLast(4)
+        numEntryState.value = numEntry
+        numJob?.cancel()
+        numJob = lifecycleScope.launch {
+            kotlinx.coroutines.delay(1500)
+            commitChannelNumber()
+        }
+    }
+
+    private fun commitChannelNumber() {
+        val typed = numEntry.toIntOrNull()
+        numEntry = ""
+        numEntryState.value = ""
+        if (typed == null) return
+        val idx = LivePlaylist.channels.indexOfFirst { it.number == typed }
+        if (idx in liveUuids.indices) { switchToIndex(idx); pokeControls() }
     }
 
     // stav prekryti (z Compose) — kym je otvorene, D-pad riesime my (zoznam) alebo Compose (menu)
@@ -407,6 +432,17 @@ class PlayerActivity : ComponentActivity() {
                 android.view.KeyEvent.KEYCODE_PAGE_DOWN ->
                     if (down && canZap) { switchLive(-1); pokeControls(); return true }
             }
+            // cislice 0-9 (aj numericka klavesnica) = volba kanala cislom
+            run {
+                val digit = when (kc) {
+                    in android.view.KeyEvent.KEYCODE_0..android.view.KeyEvent.KEYCODE_9 ->
+                        kc - android.view.KeyEvent.KEYCODE_0
+                    in android.view.KeyEvent.KEYCODE_NUMPAD_0..android.view.KeyEvent.KEYCODE_NUMPAD_9 ->
+                        kc - android.view.KeyEvent.KEYCODE_NUMPAD_0
+                    else -> -1
+                }
+                if (digit >= 0) { if (down) onChannelDigit(digit); return true }
+            }
             // ovladanie zobrazene -> sipky naviguju panel (riadime my), OK aktivuje
             // zvyrazneny prvok; dlhe podrzanie OK = zoznam kanalov
             if (controlsShown) {
@@ -590,6 +626,8 @@ class PlayerActivity : ComponentActivity() {
         liveProgTitleState.value = progTitle
         val canZap = directUrl == null && liveUuids.size > 1
         seekablePlayback = directUrl != null
+        // predvolene zvyraznenie ovladacieho panela = play (nie krizik)
+        controlNavState.value = playerControlOrder(canZap).indexOf("play").coerceAtLeast(0)
         currentStreamUrl = streamUrl
         softwareDecodeState.value = DecoderPref.get(this)
 
@@ -646,6 +684,7 @@ class PlayerActivity : ComponentActivity() {
                 onRefreshEpg = {
                     lifecycleScope.launch { refreshOverlayEpg() }
                 },
+                numberEntry = numEntryState.value,
                 onClose = { finish() }
             )
         }
@@ -716,6 +755,7 @@ private fun PlayerUi(
     liveCurrentIndex: Int = -1,
     onSelectChannel: (Int) -> Unit = {},
     onRefreshEpg: () -> Unit = {},
+    numberEntry: String = "",
     controlsPoke: Int = 0,
     softwareDecode: Boolean = false,
     onToggleSoftwareDecode: () -> Unit = {},
@@ -737,7 +777,7 @@ private fun PlayerUi(
     onControlsVisibleChange: (Boolean) -> Unit = {},
     onClose: () -> Unit
 ) {
-    var controlsVisible by remember { mutableStateOf(true) }
+    var controlsVisible by remember { mutableStateOf(false) }
     var showChannelList by remember { mutableStateOf(false) }
     var isPlaying by remember { mutableStateOf(true) }
     var orientationLocked by remember { mutableStateOf(false) }
@@ -955,6 +995,20 @@ private fun PlayerUi(
             }
         )
 
+        // prekrytie s prave zadavanym cislom kanala
+        if (numberEntry.isNotEmpty()) {
+            Box(
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xCC000000))
+                    .padding(horizontal = 28.dp, vertical = 14.dp)
+            ) {
+                Text(numberEntry, color = Color.White, fontSize = 48.sp)
+            }
+        }
+
         AnimatedVisibility(
             visible = controlsVisible,
             enter = fadeIn(),
@@ -1018,9 +1072,8 @@ private fun PlayerUi(
                         CircleButton(label = "\u23EE", selected = selCtrl == "prev", onClick = onPrevChannel)
                         Spacer(Modifier.width(28.dp))
                     }
-                    CircleButton(
-                        label = if (isPlaying) "\u23F8" else "\u25B6",
-                        big = true,
+                    PlayPauseButton(
+                        isPlaying = isPlaying,
                         selected = selCtrl == "play",
                         onClick = {
                             if (player.isPlaying) {
@@ -1415,6 +1468,50 @@ private fun TextChip(label: String, selected: Boolean = false, onClick: () -> Un
             .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
         Text(label, color = Color.White)
+    }
+}
+
+// Velke stredove tlacidlo play/pauza. Ikonu kreslime cez Canvas, aby
+// pauza nemala farebny "emoji" (VLC) vzhlad a sedela so stylom play trojuholnika.
+@Composable
+private fun PlayPauseButton(isPlaying: Boolean, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(76.dp)
+            .clip(CircleShape)
+            .background(if (selected) Color(0xCC1E88E5) else Color(0x88000000))
+            .then(if (selected) Modifier.border(3.dp, Color.White, CircleShape) else Modifier)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        androidx.compose.foundation.Canvas(Modifier.size(30.dp)) {
+            val w = size.width
+            val h = size.height
+            if (isPlaying) {
+                // dve zvisle ciary = pauza
+                val barW = w * 0.26f
+                val gap = w * 0.18f
+                drawRect(
+                    Color.White,
+                    topLeft = androidx.compose.ui.geometry.Offset(w / 2f - gap / 2f - barW, 0f),
+                    size = androidx.compose.ui.geometry.Size(barW, h)
+                )
+                drawRect(
+                    Color.White,
+                    topLeft = androidx.compose.ui.geometry.Offset(w / 2f + gap / 2f, 0f),
+                    size = androidx.compose.ui.geometry.Size(barW, h)
+                )
+            } else {
+                // trojuholnik = play
+                val p = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(w * 0.14f, 0f)
+                    lineTo(w * 0.14f, h)
+                    lineTo(w * 0.92f, h / 2f)
+                    close()
+                }
+                drawPath(p, Color.White)
+            }
+        }
     }
 }
 
