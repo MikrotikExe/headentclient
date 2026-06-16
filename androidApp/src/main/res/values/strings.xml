@@ -197,4 +197,11 @@
     <string name="plock_unlock_settings">Enter PIN to open settings</string>
     <string name="plock_hint">4 digits (0000-9999)</string>
     <string name="plock_no_pin">Set a PIN first</string>
+    <string name="tab_settings">Settings</string>
+    <string name="exit_title">Exit</string>
+    <string name="exit_msg">Really exit TVH Client?</string>
+    <string name="exit_yes">Exit</string>
+    <string name="exit_no">Cancel</string>
+    <string name="autostart_title">Autostart</string>
+    <string name="autostart_enable">Start app after device boot</string>
 </resources>

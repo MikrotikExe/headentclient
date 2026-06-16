@@ -3,6 +3,7 @@ package sk.tvhclient.android
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,6 +54,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.KeyEventType
@@ -64,6 +67,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import sk.tvhclient.shared.api.ConnectionResult
 import sk.tvhclient.shared.model.TvhServer
+
+/** Most medzi farebnymi tlacidlami dialkoveho (dispatchKeyEvent) a Compose tabmi. */
+object TabController {
+    val requested = mutableStateOf(-1)
+    fun request(tab: Int) { requested.value = tab }
+}
 
 class MainActivity : ComponentActivity() {
     override fun attachBaseContext(newBase: android.content.Context) {
@@ -77,6 +86,21 @@ class MainActivity : ComponentActivity() {
                 App()
             }
         }
+    }
+
+    // Farebne tlacidla na dialkovom -> prepnutie tabu
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
+        if (event.action == android.view.KeyEvent.ACTION_DOWN) {
+            val t = when (event.keyCode) {
+                android.view.KeyEvent.KEYCODE_PROG_RED -> 0     // Kanaly
+                android.view.KeyEvent.KEYCODE_PROG_GREEN -> 1   // Radio
+                android.view.KeyEvent.KEYCODE_PROG_YELLOW -> 2  // Archiv
+                android.view.KeyEvent.KEYCODE_PROG_BLUE -> 3    // Nastavenie
+                else -> -1
+            }
+            if (t >= 0) { TabController.request(t); return true }
+        }
+        return super.dispatchKeyEvent(event)
     }
 }
 
@@ -279,12 +303,53 @@ fun WelcomeScreen(vm: ServersViewModel) {
 }
 
 @Composable
+private fun TabLabel(dot: Color, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier
+                .size(8.dp)
+                .clip(androidx.compose.foundation.shape.CircleShape)
+                .background(dot)
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(text)
+    }
+}
+
+@Composable
 fun AppMain() {
     var tab by remember { mutableStateOf(0) }
     // Reset signaly: klik na tab (aj uz vybrany) vrati danu obrazovku na zaciatok
     var resetCh by remember { mutableStateOf(0) }
     var resetDvr by remember { mutableStateOf(0) }
     val navFocus = remember { FocusRequester() }
+    val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
+    var showExit by remember { mutableStateOf(false) }
+
+    // Farebne tlacidla na dialkovom (cez TabController) prepnu tab
+    val reqTab by TabController.requested
+    LaunchedEffect(reqTab) {
+        if (reqTab in 0..3) {
+            when (reqTab) {
+                0 -> { resetCh++; tab = 0 }
+                2 -> { resetDvr++; tab = 2 }
+                else -> tab = reqTab
+            }
+            TabController.requested.value = -1
+        }
+    }
+
+    // Spat: z ineho tabu spat na Kanaly; na Kanaloch -> potvrdenie ukoncenia.
+    // (Vnutorne obrazovky maju vlastny BackHandler, ten ma prednost.)
+    androidx.activity.compose.BackHandler(enabled = !showExit) {
+        if (tab != 0) { resetCh++; tab = 0 } else showExit = true
+    }
+
+    val red = Color(0xFFE53935)
+    val green = Color(0xFF43A047)
+    val yellow = Color(0xFFFDD835)
+    val blue = Color(0xFF1E88E5)
+
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -293,7 +358,7 @@ fun AppMain() {
                     onClick = { resetCh++; tab = 0 },
                     icon = { androidx.compose.material3.Icon(
                         Icons.Default.LiveTv, contentDescription = null) },
-                    label = { Text(stringResource(R.string.tab_channels)) },
+                    label = { TabLabel(red, stringResource(R.string.tab_channels)) },
                     modifier = Modifier.focusRequester(navFocus)
                 )
                 NavigationBarItem(
@@ -301,21 +366,21 @@ fun AppMain() {
                     onClick = { tab = 1 },
                     icon = { androidx.compose.material3.Icon(
                         Icons.Default.Radio, contentDescription = null) },
-                    label = { Text(stringResource(R.string.tab_radio)) }
+                    label = { TabLabel(green, stringResource(R.string.tab_radio)) }
                 )
                 NavigationBarItem(
                     selected = tab == 2,
                     onClick = { resetDvr++; tab = 2 },
                     icon = { androidx.compose.material3.Icon(
                         Icons.Default.Dvr, contentDescription = null) },
-                    label = { Text(stringResource(R.string.tab_dvr)) }
+                    label = { TabLabel(yellow, stringResource(R.string.tab_dvr)) }
                 )
                 NavigationBarItem(
                     selected = tab == 3,
                     onClick = { tab = 3 },
                     icon = { androidx.compose.material3.Icon(
                         Icons.Default.Dns, contentDescription = null) },
-                    label = { Text(stringResource(R.string.servers_title)) }
+                    label = { TabLabel(blue, stringResource(R.string.tab_settings)) }
                 )
             }
         }
@@ -347,6 +412,24 @@ fun AppMain() {
                 }
             }
         }
+    }
+
+    if (showExit) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showExit = false },
+            title = { Text(stringResource(R.string.exit_title)) },
+            text = { Text(stringResource(R.string.exit_msg)) },
+            confirmButton = {
+                TextButton(onClick = { showExit = false; activity?.finish() }) {
+                    Text(stringResource(R.string.exit_yes))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExit = false }) {
+                    Text(stringResource(R.string.exit_no))
+                }
+            }
+        )
     }
 }
 
@@ -381,7 +464,7 @@ fun ServerList(vm: ServersViewModel, onAdd: () -> Unit, onEdit: (TvhServer) -> U
     val activeId by vm.activeId.collectAsState()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.servers_title)) }) }
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.tab_settings)) }) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -486,6 +569,20 @@ fun ServerList(vm: ServersViewModel, onAdd: () -> Unit, onEdit: (TvhServer) -> U
                         } else { firstPin = ""; pinStage = 1; true }  // nezhoda -> zadaj odznova
                     }
                 )
+            }
+            Spacer(Modifier.height(16.dp))
+
+            // Automaticke spustenie po zapnuti zariadenia
+            Text(stringResource(R.string.autostart_title), style = MaterialTheme.typography.titleSmall)
+            Spacer(Modifier.height(4.dp))
+            var autostart by remember { mutableStateOf(AutostartPref.isEnabled(ctx)) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(
+                    checked = autostart,
+                    onCheckedChange = { on -> autostart = on; AutostartPref.setEnabled(ctx, on) }
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.autostart_enable))
             }
             Spacer(Modifier.height(16.dp))
             if (servers.isEmpty()) {

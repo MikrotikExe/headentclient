@@ -197,4 +197,11 @@
     <string name="plock_unlock_settings">Zadejte PIN pro vstup do nastavení</string>
     <string name="plock_hint">4 číslice (0000-9999)</string>
     <string name="plock_no_pin">Nejprve nastavte PIN</string>
+    <string name="tab_settings">Nastavení</string>
+    <string name="exit_title">Ukončit</string>
+    <string name="exit_msg">Opravdu chcete ukončit TVH Client?</string>
+    <string name="exit_yes">Ukončit</string>
+    <string name="exit_no">Zrušit</string>
+    <string name="autostart_title">Automatické spuštění</string>
+    <string name="autostart_enable">Spustit aplikaci po zapnutí zařízení</string>
 </resources>
