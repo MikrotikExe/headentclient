@@ -1343,63 +1343,96 @@ private fun PlayerUi(
                     Spacer(Modifier.height((6 * k).dp))
                     // Tlacidla: zavriet, zoznam, prev, play, next, audio, titulky, sw
                     val bk = (0.78f * k)
-                    // Posuvny riadok tlacidiel: na uzkom (vyska telefonu) sa zmesti,
-                    // vybrane tlacidlo (D-pad) sa samo doskroluje do zorneho pola.
-                    val btnRowState = rememberLazyListState()
-                    LaunchedEffect(controlNavIndex, order.size) {
-                        val idx = controlNavIndex.coerceIn(0, (order.size - 1).coerceAtLeast(0))
-                        runCatching { btnRowState.animateScrollToItem(idx) }
+                    val portrait = cfg.screenHeightDp >= cfg.screenWidthDp
+                    fun has(id: String) = order.contains(id)
+                    // jedno tlacidlo podla id (zachytava okolity stav)
+                    @Composable
+                    fun barCtrl(c: String) {
+                        when (c) {
+                            "close" -> CircleButton("\u2715", selected = selCtrl == "close", scale = bk, onClick = onClose)
+                            "list" -> CircleButton(
+                                label = "\u2630", selected = selCtrl == "list", scale = bk,
+                                onClick = { showChannelList = true; controlsVisible = false }
+                            )
+                            "prev" -> if (onPrevChannel != null) CircleButton(
+                                label = "\u23EE", selected = selCtrl == "prev", scale = bk, onClick = onPrevChannel
+                            )
+                            "play" -> PlayPauseButton(
+                                isPlaying = isPlaying,
+                                selected = selCtrl == "play",
+                                scale = bk,
+                                onClick = {
+                                    if (player.isPlaying) { player.pause(); isPlaying = false }
+                                    else { player.play(); isPlaying = true }
+                                }
+                            )
+                            "next" -> if (onNextChannel != null) CircleButton(
+                                label = "\u23ED", selected = selCtrl == "next", scale = bk, onClick = onNextChannel
+                            )
+                            "epg" -> CircleButton(
+                                label = "\u25A6", selected = selCtrl == "epg", scale = bk, onClick = onOpenEpg
+                            )
+                            "info" -> CircleButton(
+                                label = "\u24D8", selected = selCtrl == "info", scale = bk,
+                                onClick = { showInfo = !showInfo }
+                            )
+                            "audio" -> if (portrait) CircleButton(
+                                label = "\uD83D\uDD0A", selected = selCtrl == "audio", scale = bk
+                            ) { menu = if (menu == "audio") null else "audio" }
+                            else TextChip("\uD83D\uDD0A Audio", selected = selCtrl == "audio", scale = bk) {
+                                menu = if (menu == "audio") null else "audio"
+                            }
+                            "subs" -> if (portrait) CircleButton(
+                                label = "\uD83D\uDCAC", selected = selCtrl == "subs", scale = bk
+                            ) { menu = if (menu == "spu") null else "spu" }
+                            else TextChip("\uD83D\uDCAC Titulky", selected = selCtrl == "subs", scale = bk) {
+                                menu = if (menu == "spu") null else "spu"
+                            }
+                            "sw" -> if (portrait) CircleButton(
+                                label = "\u2699", selected = selCtrl == "sw", active = softwareDecode, scale = bk
+                            ) { onToggleSoftwareDecode() }
+                            else TextChip(
+                                if (softwareDecode) "\u2699 SW dek\u00f3d: ZAP" else "\u2699 SW dek\u00f3d: VYP",
+                                selected = selCtrl == "sw", scale = bk
+                            ) { onToggleSoftwareDecode() }
+                        }
                     }
-                    LazyRow(
-                        state = btnRowState,
+                    val gap = Arrangement.spacedBy((8 * k).dp)
+                    Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy((8 * k).dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        items(order) { c ->
-                            when (c) {
-                                "close" -> CircleButton("\u2715", selected = selCtrl == "close", scale = bk, onClick = onClose)
-                                "list" -> if (liveChannels.isNotEmpty()) CircleButton(
-                                    label = "\u2630",
-                                    selected = selCtrl == "list",
-                                    scale = bk,
-                                    onClick = { showChannelList = true; controlsVisible = false }
-                                )
-                                "prev" -> if (onPrevChannel != null) CircleButton(
-                                    label = "\u23EE", selected = selCtrl == "prev", scale = bk, onClick = onPrevChannel
-                                )
-                                "play" -> PlayPauseButton(
-                                    isPlaying = isPlaying,
-                                    selected = selCtrl == "play",
-                                    scale = bk,
-                                    onClick = {
-                                        if (player.isPlaying) { player.pause(); isPlaying = false }
-                                        else { player.play(); isPlaying = true }
-                                    }
-                                )
-                                "next" -> if (onNextChannel != null) CircleButton(
-                                    label = "\u23ED", selected = selCtrl == "next", scale = bk, onClick = onNextChannel
-                                )
-                                "audio" -> TextChip("\uD83D\uDD0A Audio", selected = selCtrl == "audio", scale = bk) {
-                                    menu = if (menu == "audio") null else "audio"
-                                }
-                                "subs" -> TextChip("\uD83D\uDCAC Titulky", selected = selCtrl == "subs", scale = bk) {
-                                    menu = if (menu == "spu") null else "spu"
-                                }
-                                "epg" -> CircleButton(
-                                    label = "\u25A6", selected = selCtrl == "epg", scale = bk,
-                                    onClick = onOpenEpg
-                                )
-                                "info" -> CircleButton(
-                                    label = "\u24D8", selected = selCtrl == "info", scale = bk,
-                                    onClick = { showInfo = !showInfo }
-                                )
-                                "sw" -> TextChip(
-                                    if (softwareDecode) "\u2699 SW dek\u00f3d: ZAP" else "\u2699 SW dek\u00f3d: VYP",
-                                    selected = selCtrl == "sw",
-                                    scale = bk
-                                ) { onToggleSoftwareDecode() }
-                            }
+                        // vlavo: zavriet, zoznam, EPG
+                        Row(
+                            horizontalArrangement = gap,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            barCtrl("close")
+                            if (has("list") && liveChannels.isNotEmpty()) barCtrl("list")
+                            if (has("epg")) barCtrl("epg")
+                        }
+                        // stred: prepinanie + play/stop
+                        Row(
+                            horizontalArrangement = gap,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (has("prev")) barCtrl("prev")
+                            barCtrl("play")
+                            if (has("next")) barCtrl("next")
+                        }
+                        // vpravo: audio, titulky, info, SW
+                        Row(
+                            horizontalArrangement = gap,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f),
+                            // zarovnaj k pravej hrane
+                        ) {
+                            Spacer(Modifier.weight(1f))
+                            barCtrl("audio")
+                            barCtrl("subs")
+                            barCtrl("info")
+                            barCtrl("sw")
                         }
                     }
                 }
@@ -1873,6 +1906,7 @@ private fun CircleButton(
     onClick: () -> Unit,
     big: Boolean = false,
     selected: Boolean = false,
+    active: Boolean = false,
     scale: Float = 1f,
     modifier: Modifier = Modifier
 ) {
@@ -1881,7 +1915,13 @@ private fun CircleButton(
         modifier
             .size(s)
             .clip(CircleShape)
-            .background(if (selected) Color(0xCC1E88E5) else Color(0x88000000))
+            .background(
+                when {
+                    selected -> Color(0xCC1E88E5)
+                    active -> Color(0x9943A047)
+                    else -> Color(0x88000000)
+                }
+            )
             .then(if (selected) Modifier.border(3.dp, Color.White, CircleShape) else Modifier)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
@@ -1898,15 +1938,16 @@ private fun CircleButton(
 // Poradie ovladacich prvkov v paneli prehravaca pre D-pad navigaciu (Activity ich navriguje).
 // Musi sediet s vykreslenim v PlayerUi (rovnaka podmienka canZap).
 private fun playerControlOrder(canZap: Boolean, seekable: Boolean = false): List<String> = buildList {
+    // vlavo
     add("close")
-    if (canZap) { add("list"); add("prev") }
+    if (canZap) { add("list"); add("epg") }
+    // stred (transport)
+    if (canZap) add("prev")
     add("play")
     if (canZap) add("next")
     if (seekable) add("seek")
-    add("audio"); add("subs")
-    if (canZap) add("epg")
-    add("info")
-    add("sw")
+    // vpravo
+    add("audio"); add("subs"); add("info"); add("sw")
 }
 
 private fun fmtMs(ms: Long): String {
