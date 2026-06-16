@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
@@ -38,6 +39,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -254,7 +257,11 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0) {
                         else ->
                             s.categories.firstOrNull { it.tag?.uuid == selectedTag }?.rows ?: emptyList()
                     }
-                    ChannelView(viewMode, rows, listStateMain, nowTick, epgMap, recordingByChannel, onRecordingTap = { r, rec -> recChoice = r to rec }) { contextRow = it }
+                    val focusUuid = remember(rows, serverId) {
+                        LastChannel.get(ctx, serverId)?.takeIf { u -> rows.any { it.channel.uuid == u } }
+                            ?: rows.firstOrNull()?.channel?.uuid
+                    }
+                    ChannelView(viewMode, rows, listStateMain, nowTick, epgMap, recordingByChannel, onRecordingTap = { r, rec -> recChoice = r to rec }, focusUuid = focusUuid) { contextRow = it }
                 }
             }
         }
@@ -269,14 +276,18 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0) {
             title = { Text(rcRow.channel.name) },
             text = { Text(rcRec.title) },
             confirmButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    playChannel(ctx, rcRow, null, 0, 0); recChoice = null
-                }) { Text(stringResource(R.string.play_live)) }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = {
-                    playDvrFile(ctx, rcRec); recChoice = null
-                }) { Text(stringResource(R.string.play_from_start)) }
+                Row {
+                    val liveFocus = remember { FocusRequester() }
+                    LaunchedEffect(Unit) { runCatching { liveFocus.requestFocus() } }
+                    androidx.compose.material3.TextButton(
+                        onClick = { playChannel(ctx, rcRow, null, 0, 0); recChoice = null },
+                        modifier = Modifier.focusRequester(liveFocus)
+                    ) { Text(stringResource(R.string.play_live)) }
+                    Spacer(Modifier.width(8.dp))
+                    androidx.compose.material3.TextButton(onClick = {
+                        playDvrFile(ctx, rcRec); recChoice = null
+                    }) { Text(stringResource(R.string.play_from_start)) }
+                }
             }
         )
     }
@@ -410,6 +421,7 @@ private fun playChannel(
         putExtra(PlayerActivity.EXTRA_PROG_TITLE, title ?: "")
     }
     LivePlaylist.setIndexForUuid(row.channel.uuid)
+    LastChannel.set(context, Tvh.store.active()?.id, row.channel.uuid)
     context.startActivity(intent)
 }
 
@@ -449,10 +461,11 @@ private fun ChannelView(
     epgMap: Map<String, List<sk.tvhclient.shared.model.EpgEvent>>,
     recordingByChannel: Map<String, sk.tvhclient.shared.model.DvrEntry>,
     onRecordingTap: (ChannelRow, sk.tvhclient.shared.model.DvrEntry) -> Unit,
+    focusUuid: String? = null,
     onShowEpg: (ChannelRow) -> Unit
 ) {
     when (mode) {
-        ChannelViewMode.LIST -> ChannelList(rows, listState, nowSec, epgMap, recordingByChannel, onRecordingTap, onShowEpg)
+        ChannelViewMode.LIST -> ChannelList(rows, listState, nowSec, epgMap, recordingByChannel, onRecordingTap, focusUuid, onShowEpg)
         ChannelViewMode.GRID -> ChannelGrid(rows, nowSec, epgMap, columns = 2, recordingByChannel, onRecordingTap, onShowEpg)
         ChannelViewMode.TILES -> ChannelGrid(rows, nowSec, epgMap, columns = 4, recordingByChannel, onRecordingTap, onShowEpg)
     }
@@ -566,6 +579,7 @@ private fun ChannelList(
     epgMap: Map<String, List<sk.tvhclient.shared.model.EpgEvent>>,
     recordingByChannel: Map<String, sk.tvhclient.shared.model.DvrEntry>,
     onRecordingTap: (ChannelRow, sk.tvhclient.shared.model.DvrEntry) -> Unit,
+    focusUuid: String? = null,
     onShowEpg: (ChannelRow) -> Unit
 ) {
     val context = LocalContext.current
@@ -576,10 +590,25 @@ private fun ChannelList(
         CenterBox { Text(stringResource(R.string.no_channels)) }
         return
     }
+    // Pociatocny focus na posledny zvoleny (alebo prvy) kanal -> nech sa pri
+    // starte neoznaci vyhladavacie pole a nevyskoci klavesnica.
+    val firstFocus = remember { FocusRequester() }
+    val targetIndex = remember(rows, focusUuid) {
+        (focusUuid?.let { u -> rows.indexOfFirst { it.channel.uuid == u } } ?: 0).coerceAtLeast(0)
+    }
+    var didFocus by remember { androidx.compose.runtime.mutableStateOf(false) }
+    LaunchedEffect(rows) {
+        if (!didFocus && rows.isNotEmpty()) {
+            listState.scrollToItem(targetIndex)
+            runCatching { firstFocus.requestFocus() }
+            didFocus = true
+        }
+    }
     LazyColumn(state = listState, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        items(rows, key = { it.channel.uuid }) { row ->
+        itemsIndexed(rows, key = { _, it -> it.channel.uuid }) { idx, row ->
             ChannelItem(row, loader, context, nowSec, epgMap[row.channel.uuid],
-                recordingByChannel[row.channel.name], onRecordingTap, onShowEpg)
+                recordingByChannel[row.channel.name], onRecordingTap, onShowEpg,
+                itemModifier = if (idx == targetIndex) Modifier.focusRequester(firstFocus) else Modifier)
         }
     }
 }
@@ -594,11 +623,12 @@ private fun ChannelItem(
     epgList: List<sk.tvhclient.shared.model.EpgEvent>?,
     recording: sk.tvhclient.shared.model.DvrEntry?,
     onRecordingTap: (ChannelRow, sk.tvhclient.shared.model.DvrEntry) -> Unit,
-    onShowEpg: (ChannelRow) -> Unit
+    onShowEpg: (ChannelRow) -> Unit,
+    itemModifier: Modifier = Modifier
 ) {
     val (curTitle, curStart, curStop) = currentNow(row, epgList, nowSec)
     Row(
-        modifier = Modifier
+        modifier = itemModifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .dpadFocusable()
