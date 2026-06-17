@@ -1390,14 +1390,6 @@ private fun PlayerUi(
                             else TextChip("\uD83D\uDCAC Titulky", selected = selCtrl == "subs", scale = bk) {
                                 menu = if (menu == "spu") null else "spu"
                             }
-                            "sw" -> if (portrait) CircleButton(
-                                label = "\u2699", selected = selCtrl == "sw", active = softwareDecode, scale = bk,
-                                onClick = { onToggleSoftwareDecode() }
-                            )
-                            else TextChip(
-                                if (softwareDecode) "\u2699 SW dek\u00f3d: ZAP" else "\u2699 SW dek\u00f3d: VYP",
-                                selected = selCtrl == "sw", scale = bk
-                            ) { onToggleSoftwareDecode() }
                         }
                     }
                     val gap = Arrangement.spacedBy((8 * k).dp)
@@ -1435,7 +1427,6 @@ private fun PlayerUi(
                             barCtrl("audio")
                             barCtrl("subs")
                             barCtrl("info")
-                            barCtrl("sw")
                         }
                     }
                 }
@@ -1950,7 +1941,7 @@ private fun playerControlOrder(canZap: Boolean, seekable: Boolean = false): List
     if (canZap) add("next")
     if (seekable) add("seek")
     // vpravo
-    add("audio"); add("subs"); add("info"); add("sw")
+    add("audio"); add("subs"); add("info")
 }
 
 private fun fmtMs(ms: Long): String {
