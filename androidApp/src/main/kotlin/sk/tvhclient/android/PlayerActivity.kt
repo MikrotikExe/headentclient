@@ -1800,6 +1800,29 @@ private fun PlayerUi(
                             .padding(28.dp)
                             .verticalScroll(androidx.compose.foundation.rememberScrollState())
                     ) {
+                        // hlavicka kanala (len pri zivom vysielani)
+                        val infoCh = liveChannels.getOrNull(liveCurrentIndex)
+                        if (infoCh != null) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (infoCh.number > 0) {
+                                    Text(
+                                        "${infoCh.number}",
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                }
+                                Text(
+                                    infoCh.name,
+                                    color = Color(0xCCFFFFFF),
+                                    fontSize = 15.sp,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
+                            }
+                            Spacer(Modifier.height(14.dp))
+                        }
                         Text(
                             progTitle.ifBlank { title },
                             color = Color.White,
@@ -1810,14 +1833,35 @@ private fun PlayerUi(
                             Spacer(Modifier.height(6.dp))
                             Text(tRange, color = Color(0xCCFFFFFF), fontSize = 15.sp)
                         }
+                        // priebeh + zostavajuci cas (len zive vysielanie)
+                        if (!seekable && progStart > 0 && progStop > progStart) {
+                            val totalI = (progStop - progStart).coerceAtLeast(1)
+                            val fracI = ((liveNowSec - progStart).toFloat() / totalI.toFloat())
+                                .coerceIn(0f, 1f)
+                            val remainI = ((progStop - liveNowSec) / 60).coerceAtLeast(0)
+                            Spacer(Modifier.height(12.dp))
+                            androidx.compose.material3.LinearProgressIndicator(
+                                progress = { fracI },
+                                modifier = Modifier.fillMaxWidth().height(4.dp),
+                                trackColor = Color(0x55FFFFFF)
+                            )
+                            Spacer(Modifier.height(6.dp))
+                            Text("Ostáva $remainI min", color = Color(0x99FFFFFF), fontSize = 13.sp)
+                        }
                         if (progDesc.isNotBlank()) {
                             Spacer(Modifier.height(14.dp))
                             Text(progDesc, color = Color(0xDDFFFFFF), fontSize = 16.sp, lineHeight = 22.sp)
                         }
                         if (nextTitle.isNotBlank()) {
                             Spacer(Modifier.height(16.dp))
+                            val nr = when {
+                                nextStart > 0 && nextStop > nextStart ->
+                                    clk(nextStart) + " \u2013 " + clk(nextStop) + "  "
+                                nextStart > 0 -> clk(nextStart) + "  "
+                                else -> ""
+                            }
                             Text(
-                                "Nasleduje: " + (if (nextStart > 0) clk(nextStart) + "  " else "") + nextTitle,
+                                "Nasleduje: " + nr + nextTitle,
                                 color = Color(0x99FFFFFF),
                                 fontSize = 14.sp
                             )
