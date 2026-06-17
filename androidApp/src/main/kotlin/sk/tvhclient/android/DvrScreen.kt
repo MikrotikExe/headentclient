@@ -512,7 +512,7 @@ private fun RecordingList(
 }
 
 /** Spusti prehravanie DVR nahravky. */
-private fun playDvr(context: Context, entry: DvrEntry) {
+internal fun playDvr(context: Context, entry: DvrEntry) {
     val srv = Tvh.store.active() ?: return
     val url = Tvh.dvrUrl(srv, entry.uuid)
     val intent = Intent(context, PlayerActivity::class.java).apply {

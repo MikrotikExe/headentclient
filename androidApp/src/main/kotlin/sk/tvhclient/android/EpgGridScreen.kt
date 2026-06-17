@@ -793,17 +793,6 @@ private fun playLiveChannel(context: android.content.Context, row: ChannelRow) {
 }
 
 /** Spatne prehratie minulej relacie z DVR nahravky (vratane resume/pozicie). */
-private fun playDvr(context: android.content.Context, rec: sk.tvhclient.shared.model.DvrEntry) {
-    val server = Tvh.store.active() ?: return
-    val url = Tvh.dvrUrl(server, rec.uuid)
-    val intent = android.content.Intent(context, PlayerActivity::class.java).apply {
-        putExtra(PlayerActivity.EXTRA_URL, url)
-        putExtra(PlayerActivity.EXTRA_TITLE, rec.title)
-        putExtra(PlayerActivity.EXTRA_DURATION_MS, rec.durationSec * 1000)
-        putExtra(PlayerActivity.EXTRA_DVR_UUID, rec.uuid)
-    }
-    context.startActivity(intent)
-}
 
 /** Zaciatok dna (lokalna polnoc) + offset dni, v sekundach. */
 private fun dayStartSec(offset: Int): Long {
