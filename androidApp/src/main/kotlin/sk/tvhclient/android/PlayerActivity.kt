@@ -152,7 +152,7 @@ class PlayerActivity : ComponentActivity() {
 
     private fun togglePlayPause() {
         if (!::mediaPlayer.isInitialized) return
-        if (mediaPlayer.isPlaying) mediaPlayer.pause() else mediaPlayer.play()
+        if (isPlayingState.value) mediaPlayer.pause() else mediaPlayer.play()
     }
 
     /** Pretacanie pre DVR (live TS sa pretacat neda). TS subor nenese dlzku,
@@ -406,6 +406,7 @@ class PlayerActivity : ComponentActivity() {
             "audio" -> openAudioMenu()
             "subs" -> openSpuMenu()
             "epg" -> openEpgInApp()
+            "pip" -> enterPipIfPossible()
             "info" -> { toggleInfo(); pokeControls() }
             "sw" -> { toggleSoftwareDecodeRemote(); pokeControls() }
         }
@@ -729,9 +730,9 @@ class PlayerActivity : ComponentActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 }
-                MediaPlayer.Event.Playing -> isPlayingState.value = true
-                MediaPlayer.Event.Paused -> isPlayingState.value = false
-                MediaPlayer.Event.Stopped -> isPlayingState.value = false
+                MediaPlayer.Event.Playing -> { isPlayingState.value = true; refreshPipIfActive() }
+                MediaPlayer.Event.Paused -> { isPlayingState.value = false; refreshPipIfActive() }
+                MediaPlayer.Event.Stopped -> { isPlayingState.value = false; refreshPipIfActive() }
                 MediaPlayer.Event.EndReached -> {
                     isPlayingState.value = false
                     reachedEnd = true
@@ -804,6 +805,7 @@ class PlayerActivity : ComponentActivity() {
                 infoPoke = infoPokeState.value,
                 inPip = inPipState.value,
                 onOpenEpg = { openEpgInApp() },
+                onEnterPip = { enterPipIfPossible() },
                 softwareDecode = softwareDecodeState.value,
                 onToggleSoftwareDecode = { toggleSoftwareDecodeRemote() },
                 playing = isPlayingState.value,
@@ -850,7 +852,7 @@ class PlayerActivity : ComponentActivity() {
     // ---- Picture-in-Picture ----
     @androidx.annotation.RequiresApi(26)
     private fun buildPipParams(): android.app.PictureInPictureParams {
-        val playing = ::mediaPlayer.isInitialized && mediaPlayer.isPlaying
+        val playing = isPlayingState.value
         val icon = android.graphics.drawable.Icon.createWithResource(
             this,
             if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
@@ -877,10 +879,11 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    override fun onUserLeaveHint() {
-        super.onUserLeaveHint()
-        // Pri odchode z appky (Home) prejdi do PiP, ak sa prehrava
-        if (::mediaPlayer.isInitialized && mediaPlayer.isPlaying) enterPipIfPossible()
+    // aktualizuj ikonu play/pauza v PiP podla skutocneho stavu prehravania
+    private fun refreshPipIfActive() {
+        if (android.os.Build.VERSION.SDK_INT >= 26 && isInPictureInPictureMode) {
+            runCatching { setPictureInPictureParams(buildPipParams()) }
+        }
     }
 
     override fun onPictureInPictureModeChanged(
@@ -893,12 +896,7 @@ class PlayerActivity : ComponentActivity() {
             if (pipReceiver == null) {
                 pipReceiver = object : android.content.BroadcastReceiver() {
                     override fun onReceive(c: android.content.Context?, i: android.content.Intent?) {
-                        if (i?.action == PIP_ACTION) {
-                            togglePlayPause()
-                            if (android.os.Build.VERSION.SDK_INT >= 26) {
-                                runCatching { setPictureInPictureParams(buildPipParams()) }
-                            }
-                        }
+                        if (i?.action == PIP_ACTION) togglePlayPause()
                     }
                 }
                 val filter = android.content.IntentFilter(PIP_ACTION)
@@ -1004,6 +1002,7 @@ private fun PlayerUi(
     infoPoke: Int = 0,
     inPip: Boolean = false,
     onOpenEpg: () -> Unit = {},
+    onEnterPip: () -> Unit = {},
     softwareDecode: Boolean = false,
     onToggleSoftwareDecode: () -> Unit = {},
     playing: Boolean = true,
@@ -1482,6 +1481,9 @@ private fun PlayerUi(
                             "epg" -> CircleButton(
                                 label = "\u25A6", selected = selCtrl == "epg", scale = bk, onClick = onOpenEpg
                             )
+                            "pip" -> CircleButton(
+                                label = "\u29C9", selected = selCtrl == "pip", scale = bk, onClick = onEnterPip
+                            )
                             "info" -> CircleButton(
                                 label = "\u24D8", selected = selCtrl == "info", scale = bk,
                                 onClick = { showInfo = !showInfo }
@@ -1514,6 +1516,7 @@ private fun PlayerUi(
                             modifier = Modifier.weight(1f)
                         ) {
                             barCtrl("close")
+                            barCtrl("pip")
                             if (has("list") && liveChannels.isNotEmpty()) barCtrl("list")
                             if (has("epg")) barCtrl("epg")
                         }
@@ -2044,6 +2047,7 @@ private fun CircleButton(
 private fun playerControlOrder(canZap: Boolean, seekable: Boolean = false): List<String> = buildList {
     // vlavo
     add("close")
+    add("pip")
     if (canZap) { add("list"); add("epg") }
     // stred (transport)
     if (canZap) add("prev")
