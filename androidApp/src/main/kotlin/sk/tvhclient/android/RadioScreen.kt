@@ -154,7 +154,7 @@ fun RadioScreen(vm: RadioViewModel = viewModel()) {
                         when (viewMode) {
                             ChannelViewMode.LIST -> LazyColumn(Modifier.fillMaxSize()) {
                                 items(rows, key = { it.channel.uuid }) { row ->
-                                    RadioRow(row, loader, context, onContext = { contextRow = it })
+                                    RadioRow(row, rows, loader, context, onContext = { contextRow = it })
                                 }
                             }
                             ChannelViewMode.GRID, ChannelViewMode.TILES -> {
@@ -164,7 +164,7 @@ fun RadioScreen(vm: RadioViewModel = viewModel()) {
                                     modifier = Modifier.fillMaxSize()
                                 ) {
                                     gridItems(rows, key = { it.channel.uuid }) { row ->
-                                        RadioTile(row, loader, context, onContext = { contextRow = it })
+                                        RadioTile(row, rows, loader, context, onContext = { contextRow = it })
                                     }
                                 }
                             }
@@ -226,6 +226,7 @@ fun RadioScreen(vm: RadioViewModel = viewModel()) {
 @Composable
 private fun RadioRow(
     row: ChannelRow,
+    allRows: List<ChannelRow>,
     loader: coil.ImageLoader,
     context: android.content.Context,
     onContext: (ChannelRow) -> Unit
@@ -234,17 +235,7 @@ private fun RadioRow(
         Modifier
             .fillMaxWidth()
             .combinedClickable(
-                onClick = {
-                    val server = Tvh.store.active() ?: return@combinedClickable
-                    val prof = ChannelPrefs.getProfile(context, server.id, row.channel.uuid)
-                        .ifBlank { server.profile.ifBlank { "pass" } }
-                    val url = Tvh.liveUrl(server, row.channel.uuid, row.channel.name, prof)
-                    val intent = Intent(context, PlayerActivity::class.java).apply {
-                        putExtra(PlayerActivity.EXTRA_URL, url)
-                        putExtra(PlayerActivity.EXTRA_TITLE, row.channel.name)
-                    }
-                    context.startActivity(intent)
-                },
+                onClick = { playRadio(context, allRows, row) },
                 onLongClick = { onContext(row) }
             )
             .padding(horizontal = 4.dp, vertical = 10.dp),
@@ -289,6 +280,7 @@ private fun RadioRow(
 @Composable
 private fun RadioTile(
     row: ChannelRow,
+    allRows: List<ChannelRow>,
     loader: coil.ImageLoader,
     context: android.content.Context,
     onContext: (ChannelRow) -> Unit
@@ -297,17 +289,7 @@ private fun RadioTile(
         Modifier
             .fillMaxWidth()
             .combinedClickable(
-                onClick = {
-                    val server = Tvh.store.active() ?: return@combinedClickable
-                    val prof = ChannelPrefs.getProfile(context, server.id, row.channel.uuid)
-                        .ifBlank { server.profile.ifBlank { "pass" } }
-                    val url = Tvh.liveUrl(server, row.channel.uuid, row.channel.name, prof)
-                    val intent = Intent(context, PlayerActivity::class.java).apply {
-                        putExtra(PlayerActivity.EXTRA_URL, url)
-                        putExtra(PlayerActivity.EXTRA_TITLE, row.channel.name)
-                    }
-                    context.startActivity(intent)
-                },
+                onClick = { playRadio(context, allRows, row) },
                 onLongClick = { onContext(row) }
             )
             .padding(6.dp),
@@ -338,6 +320,40 @@ private fun RadioTile(
             maxLines = 1, overflow = TextOverflow.Ellipsis
         )
     }
+}
+
+/** Spusti rozhlasovu stanicu cez EXTRA_UUID a naplni LivePlaylist (zapping + zoznam v prehravaci). */
+private fun playRadio(
+    context: android.content.Context,
+    allRows: List<ChannelRow>,
+    row: ChannelRow
+) {
+    val server = Tvh.store.active() ?: return
+    LivePlaylist.channels = allRows.map {
+        LivePlaylist.LiveChannel(
+            uuid = it.channel.uuid,
+            name = it.channel.name,
+            number = it.channel.number ?: 0,
+            piconUrl = it.piconUrl,
+            nowTitle = it.nowTitle ?: "",
+            nowStart = it.nowStart,
+            nowStop = it.nowStop
+        )
+    }
+    LivePlaylist.setIndexForUuid(row.channel.uuid)
+    LastChannel.set(context, server.id, row.channel.uuid)
+    val intent = Intent(context, PlayerActivity::class.java).apply {
+        putExtra(PlayerActivity.EXTRA_UUID, row.channel.uuid)
+        putExtra(PlayerActivity.EXTRA_TITLE, row.channel.name)
+        putExtra(PlayerActivity.EXTRA_PROG_START, row.nowStart)
+        putExtra(PlayerActivity.EXTRA_PROG_STOP, row.nowStop)
+        putExtra(PlayerActivity.EXTRA_PROG_TITLE, row.nowTitle ?: "")
+        putExtra(
+            PlayerActivity.EXTRA_REQUIRE_PIN,
+            ParentalLock.channelNeedsPin(context, server.id, row.channel.uuid)
+        )
+    }
+    context.startActivity(intent)
 }
 
 object RadioViewPref {

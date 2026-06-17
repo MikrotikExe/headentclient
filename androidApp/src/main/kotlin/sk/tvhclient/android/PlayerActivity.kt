@@ -89,6 +89,8 @@ class PlayerActivity : ComponentActivity() {
     private var wasPlaying: Boolean = false
     // Picture-in-Picture (obraz v obraze)
     private val inPipState = androidx.compose.runtime.mutableStateOf(false)
+    // false = audio-only (rozhlas) -> zobraz logo namiesto ciernej
+    private val hasVideoState = androidx.compose.runtime.mutableStateOf(true)
     private var pipReceiver: android.content.BroadcastReceiver? = null
     private val PIP_ACTION = "sk.tvhclient.android.PIP_TOGGLE"
     private var liveServer: sk.tvhclient.shared.model.TvhServer? = null
@@ -733,6 +735,7 @@ class PlayerActivity : ComponentActivity() {
                 MediaPlayer.Event.Playing -> { isPlayingState.value = true; refreshPipIfActive() }
                 MediaPlayer.Event.Paused -> { isPlayingState.value = false; refreshPipIfActive() }
                 MediaPlayer.Event.Stopped -> { isPlayingState.value = false; refreshPipIfActive() }
+                MediaPlayer.Event.Vout -> hasVideoState.value = event.voutCount > 0
                 MediaPlayer.Event.EndReached -> {
                     isPlayingState.value = false
                     reachedEnd = true
@@ -804,6 +807,8 @@ class PlayerActivity : ComponentActivity() {
                 controlsPoke = controlsPokeState.value,
                 infoPoke = infoPokeState.value,
                 inPip = inPipState.value,
+                hasVideo = hasVideoState.value,
+                centerLogoUrl = liveChannelsState.value.getOrNull(liveIndexState.value)?.piconUrl,
                 onOpenEpg = { openEpgInApp() },
                 onEnterPip = { enterPipIfPossible() },
                 softwareDecode = softwareDecodeState.value,
@@ -1001,6 +1006,8 @@ private fun PlayerUi(
     controlsPoke: Int = 0,
     infoPoke: Int = 0,
     inPip: Boolean = false,
+    hasVideo: Boolean = true,
+    centerLogoUrl: String? = null,
     onOpenEpg: () -> Unit = {},
     onEnterPip: () -> Unit = {},
     softwareDecode: Boolean = false,
@@ -1272,6 +1279,27 @@ private fun PlayerUi(
                 layout
             }
         )
+
+        // Audio-only (rozhlas): namiesto ciernej zobraz vycentrovane logo
+        if (!hasVideo) {
+            val ctxLogo = androidx.compose.ui.platform.LocalContext.current
+            val cfgLogo = androidx.compose.ui.platform.LocalConfiguration.current
+            val side = (minOf(cfgLogo.screenWidthDp, cfgLogo.screenHeightDp) * 0.42f).dp
+            val logoLoader = remember(server?.id) { PiconImageLoader.get(ctxLogo, server) }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                if (centerLogoUrl != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(ctxLogo).data(centerLogoUrl).build(),
+                        contentDescription = null,
+                        imageLoader = logoLoader,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                        modifier = Modifier.size(side)
+                    )
+                } else {
+                    Text("\uD83D\uDCFB", fontSize = (side.value * 0.5f).sp, color = Color.White)
+                }
+            }
+        }
 
         // prekrytie s prave zadavanym cislom kanala
         if (numberEntry.isNotEmpty()) {
