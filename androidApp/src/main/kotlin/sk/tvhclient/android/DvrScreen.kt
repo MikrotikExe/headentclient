@@ -325,7 +325,7 @@ private fun DvrContent(
                     }
                     item(key = "cat_hdr", span = { GridItemSpan(maxLineSpan) }) { Header(stringResource(R.string.dvr_by_genre)) }
                     gridItems(cats, key = { it }) { cat ->
-                        FolderCard(catLabel(cat), sub = "${byCat[cat]?.size ?: 0}") { onNav(DvrNav.Category(cat)) }
+                        FolderCard(catLabel(cat), sub = "${byCat[cat]?.size ?: 0}", onClick = { onNav(DvrNav.Category(cat)) })
                     }
                 }
             }
@@ -405,7 +405,7 @@ private fun DvrContent(
                     gridItems(dates, key = { it }) { dk ->
                         val list = byDate[dk] ?: emptyList()
                         val label = list.firstOrNull()?.let { formatDateFull(it.start) } ?: dk
-                        FolderCard(label, sub = "${list.size}") { onNav(DvrNav.Day(nav.channel, dk)) }
+                        FolderCard(label, sub = "${list.size}", onClick = { onNav(DvrNav.Day(nav.channel, dk)) })
                     }
                 }
             }
@@ -439,7 +439,7 @@ private fun DvrContent(
                     LazyVerticalGrid(columns = GridCells.Fixed(cols), modifier = Modifier.fillMaxSize()) {
                         item(key = "hdr", span = { GridItemSpan(maxLineSpan) }) { Header(catLabel(nav.catKey)) }
                         gridItems(order.filter { bySub.containsKey(it) }, key = { it }) { sub ->
-                            FolderCard(subLabel(sub), sub = "${bySub[sub]?.size ?: 0}") { onNav(DvrNav.Subgenre(nav.catKey, sub)) }
+                            FolderCard(subLabel(sub), sub = "${bySub[sub]?.size ?: 0}", onClick = { onNav(DvrNav.Subgenre(nav.catKey, sub)) })
                         }
                     }
                 }
@@ -475,7 +475,7 @@ private fun DvrContent(
                         item(key = "hdr", span = { GridItemSpan(maxLineSpan) }) { Header(subLabel(nav.subKey)) }
                         gridItems(titles, key = { it }) { t ->
                             val grp = bySeries[t] ?: emptyList()
-                            FolderCard(t, sub = "${grp.size}") { onNav(DvrNav.Series(nav.catKey, nav.subKey, t)) }
+                            FolderCard(t, sub = "${grp.size}", onClick = { onNav(DvrNav.Series(nav.catKey, nav.subKey, t)) })
                         }
                     }
                 }
