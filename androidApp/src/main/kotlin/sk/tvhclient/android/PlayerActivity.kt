@@ -33,6 +33,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import coil.compose.AsyncImage
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Radio
 import coil.request.ImageRequest
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -1296,7 +1298,36 @@ private fun PlayerUi(
                         modifier = Modifier.size(side)
                     )
                 } else {
-                    Text("\uD83D\uDCFB", fontSize = (side.value * 0.5f).sp, color = Color.White)
+                    // Predvolena grafika radia (ked stanica nema picon)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            modifier = Modifier
+                                .size(side * 0.7f)
+                                .clip(RoundedCornerShape(side.value.dp * 0.12f))
+                                .background(
+                                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                                        listOf(Color(0x33FFFFFF), Color(0x11FFFFFF))
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            androidx.compose.material3.Icon(
+                                Icons.Default.Radio,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(side * 0.42f)
+                            )
+                        }
+                        if (title.isNotBlank()) {
+                            Spacer(Modifier.height(side * 0.06f))
+                            Text(
+                                title,
+                                color = Color.White,
+                                fontSize = (side.value * 0.08f).coerceIn(14f, 28f).sp,
+                                maxLines = 1
+                            )
+                        }
+                    }
                 }
             }
         }
