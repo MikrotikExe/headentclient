@@ -220,4 +220,8 @@
     <string name="sleep_timer">Časovač uspání</string>
     <string name="sleep_off">Vypnout</string>
     <string name="sleep_set">Časovač: %1$d min</string>
+    <string name="set_cat_remote">Dálkové ovládání</string>
+    <string name="remote_debug_title">Diagnostika kláves</string>
+    <string name="remote_debug_enable">Zobrazovat kódy kláves</string>
+    <string name="remote_debug_note">V přehrávači se při stisku neobvyklé klávesy krátce zobrazí její kód. Slouží ke zjištění kódu EPG tlačítka dálkového ovladače.</string>
 </resources>

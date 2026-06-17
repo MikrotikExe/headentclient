@@ -235,6 +235,27 @@ internal fun ServersSettings(
 
 // --- Informacie: verzia appky + aktivny server ---
 @Composable
+internal fun RemoteSettings(ctx: android.content.Context) {
+    Text(stringResource(R.string.remote_debug_title), style = MaterialTheme.typography.titleSmall)
+    Spacer(Modifier.height(4.dp))
+    var on by remember { mutableStateOf(RemoteDebugPref.isEnabled(ctx)) }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Switch(
+            checked = on,
+            onCheckedChange = { v -> on = v; RemoteDebugPref.setEnabled(ctx, v) }
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(stringResource(R.string.remote_debug_enable))
+    }
+    Spacer(Modifier.height(8.dp))
+    Text(
+        stringResource(R.string.remote_debug_note),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
+
+@Composable
 internal fun InfoSettings(ctx: android.content.Context, servers: List<TvhServer>, activeId: String?) {
     val version = remember {
         runCatching {

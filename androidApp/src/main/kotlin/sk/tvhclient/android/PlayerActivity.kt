@@ -293,6 +293,7 @@ class PlayerActivity : ComponentActivity() {
     private val closeChannelListState = androidx.compose.runtime.mutableStateOf(0)
     // Moznosti (Zvuk / Titulky / SW dekod) — vertikalne overlay, navigujeme z Activity
     private var optionsOpen = false
+    private var remoteDebug = false
     private var controlsShown = false
     private val openOptionsState = androidx.compose.runtime.mutableStateOf(0)
     private val closeOptionsState = androidx.compose.runtime.mutableStateOf(0)
@@ -436,9 +437,36 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    private fun isCommonKey(c: Int): Boolean {
+        return c in android.view.KeyEvent.KEYCODE_0..android.view.KeyEvent.KEYCODE_9 ||
+            c in android.view.KeyEvent.KEYCODE_NUMPAD_0..android.view.KeyEvent.KEYCODE_NUMPAD_9 ||
+            c == android.view.KeyEvent.KEYCODE_DPAD_UP ||
+            c == android.view.KeyEvent.KEYCODE_DPAD_DOWN ||
+            c == android.view.KeyEvent.KEYCODE_DPAD_LEFT ||
+            c == android.view.KeyEvent.KEYCODE_DPAD_RIGHT ||
+            c == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
+            c == android.view.KeyEvent.KEYCODE_ENTER ||
+            c == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER ||
+            c == android.view.KeyEvent.KEYCODE_BACK ||
+            c == android.view.KeyEvent.KEYCODE_DEL ||
+            c == android.view.KeyEvent.KEYCODE_VOLUME_UP ||
+            c == android.view.KeyEvent.KEYCODE_VOLUME_DOWN ||
+            c == android.view.KeyEvent.KEYCODE_VOLUME_MUTE ||
+            c == android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+    }
+
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
         val down = event.action == android.view.KeyEvent.ACTION_DOWN
         val kc = event.keyCode
+
+        // DIAGNOSTIKA (volitelna v nastaveniach): kod nezvycajneho klavesu
+        if (remoteDebug && down && !isCommonKey(kc)) {
+            Toast.makeText(
+                this,
+                "Klávesa: $kc (${android.view.KeyEvent.keyCodeToString(kc)})",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
 
         // 0) PIN rodicovskeho zamku -> cislice zadavame my
         if (pinPromptState.value) {
@@ -704,6 +732,7 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        remoteDebug = RemoteDebugPref.isEnabled(this)
 
         // Immersive fullscreen — skry status aj navigacnu listu, nech
         // neprekryvaju ovladanie. Listy sa daju vytiahnut potiahnutim.
