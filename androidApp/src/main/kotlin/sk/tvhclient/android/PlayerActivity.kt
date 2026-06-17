@@ -624,6 +624,16 @@ class PlayerActivity : ComponentActivity() {
                 }
                 if (digit >= 0) { if (down) onChannelDigit(digit); return true }
             }
+            // rozpisane cislo kanala + OK => potvrd hned (rychlejsie prepnutie,
+            // netreba cakat na 1,5 s casovac)
+            if (numEntry.isNotEmpty() && (
+                    kc == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
+                    kc == android.view.KeyEvent.KEYCODE_ENTER ||
+                    kc == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER)
+            ) {
+                if (down && event.repeatCount == 0) { numJob?.cancel(); commitChannelNumber() }
+                return true
+            }
             // ovladanie zobrazene -> vlavo/vpravo naviguju panel, OK aktivuje
             // zvyrazneny prvok (hore/dole prepinaju kanal vyssie)
             if (controlsShown) {
