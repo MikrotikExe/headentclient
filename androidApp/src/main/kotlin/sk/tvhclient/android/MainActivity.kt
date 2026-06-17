@@ -286,7 +286,7 @@ fun AppMain() {
                 2 -> DvrScreen(resetSignal = resetDvr)
                 else -> {
                     val ctx = androidx.compose.ui.platform.LocalContext.current
-                    var unlocked by remember { mutableStateOf(!ParentalLock.needsPin(ctx)) }
+                    var unlocked by remember { mutableStateOf(!ParentalLock.settingsNeedsPin(ctx)) }
                     if (unlocked) {
                         ServersTab(resetSignal = resetSet)
                     } else {
@@ -394,7 +394,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0, onAdd: () -> Unit, on
     val title = when (section) {
         "general" -> stringResource(R.string.set_cat_general)
         "playback" -> stringResource(R.string.set_cat_playback)
-        "playlist" -> stringResource(R.string.set_cat_playlist)
+        "plock" -> stringResource(R.string.plock_title)
         "servers" -> stringResource(R.string.set_cat_servers)
         "remote" -> stringResource(R.string.set_cat_remote)
         "info" -> stringResource(R.string.set_cat_info)
@@ -428,14 +428,14 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0, onAdd: () -> Unit, on
                 null -> {
                     SettingsCategory(stringResource(R.string.set_cat_general)) { section = "general" }
                     SettingsCategory(stringResource(R.string.set_cat_playback)) { section = "playback" }
-                    SettingsCategory(stringResource(R.string.set_cat_playlist)) { section = "playlist" }
+                    SettingsCategory(stringResource(R.string.plock_title)) { section = "plock" }
                     SettingsCategory(stringResource(R.string.set_cat_servers)) { section = "servers" }
                     SettingsCategory(stringResource(R.string.set_cat_remote)) { section = "remote" }
                     SettingsCategory(stringResource(R.string.set_cat_info)) { section = "info" }
                 }
                 "general" -> GeneralSettings(ctx)
                 "playback" -> PlaybackSettings(ctx)
-                "playlist" -> PlaylistSettings(ctx)
+                "plock" -> ParentalSettings(ctx)
                 "servers" -> ServersSettings(vm, servers, activeId, onAdd, onEdit)
                 "remote" -> RemoteSettings(ctx)
                 "info" -> InfoSettings(ctx, servers, activeId)

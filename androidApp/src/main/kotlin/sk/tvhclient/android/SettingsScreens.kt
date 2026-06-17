@@ -146,9 +146,7 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
 
 // --- Playlist: rodicovsky zamok (PIN) ---
 @Composable
-internal fun PlaylistSettings(ctx: android.content.Context) {
-    Text(stringResource(R.string.plock_title), style = MaterialTheme.typography.titleSmall)
-    Spacer(Modifier.height(4.dp))
+internal fun ParentalSettings(ctx: android.content.Context) {
     var lockEnabled by remember { mutableStateOf(ParentalLock.isEnabled(ctx)) }
     var pinStage by remember { mutableStateOf(0) }
     var firstPin by remember { mutableStateOf("") }
@@ -178,6 +176,53 @@ internal fun PlaylistSettings(ctx: android.content.Context) {
             else stringResource(R.string.plock_set_pin)
         )
     }
+
+    // Okno po odomknuti (kym sa PIN znovu nepyta)
+    Spacer(Modifier.height(16.dp))
+    val graceOpts = listOf("0", "5", "10", "30", "60", "120")
+    var grace by remember { mutableStateOf(ParentalLock.graceMinutes(ctx).toString()) }
+    val graceLabel: @Composable (String) -> String = { v ->
+        when (v) {
+            "0" -> stringResource(R.string.plock_grace_always)
+            "60" -> "1 h"
+            "120" -> "2 h"
+            else -> "$v min"
+        }
+    }
+    DropdownField(
+        label = stringResource(R.string.plock_grace_title),
+        value = grace,
+        options = graceOpts,
+        optionLabel = graceLabel,
+        onSelect = { v ->
+            grace = v
+            ParentalLock.setGraceMinutes(ctx, v.toIntOrNull() ?: ParentalLock.DEFAULT_GRACE_MIN)
+            TabController.settingsDirty.value = true
+        }
+    )
+
+    // Co PIN chrani
+    Spacer(Modifier.height(16.dp))
+    Text(stringResource(R.string.plock_scope_title), style = MaterialTheme.typography.titleSmall)
+    var protCh by remember { mutableStateOf(ParentalLock.protectChannels(ctx)) }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Switch(
+            checked = protCh,
+            onCheckedChange = { protCh = it; ParentalLock.setProtectChannels(ctx, it); TabController.settingsDirty.value = true }
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(stringResource(R.string.plock_scope_channels))
+    }
+    var protSet by remember { mutableStateOf(ParentalLock.protectSettings(ctx)) }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Switch(
+            checked = protSet,
+            onCheckedChange = { protSet = it; ParentalLock.setProtectSettings(ctx, it); TabController.settingsDirty.value = true }
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(stringResource(R.string.plock_scope_settings))
+    }
+
     if (pinStage == 1) {
         PinDialog(
             title = stringResource(R.string.plock_enter_new),

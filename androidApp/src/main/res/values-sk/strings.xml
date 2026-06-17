@@ -224,4 +224,9 @@
     <string name="remote_debug_title">Diagnostika klávesov</string>
     <string name="remote_debug_enable">Zobrazovať kódy klávesov</string>
     <string name="remote_debug_note">V prehrávači sa pri stlačení nezvyčajného klávesu nakrátko ukáže jeho kód. Slúži na zistenie kódu EPG tlačidla tvojho diaľkového.</string>
+    <string name="plock_grace_title">Po odomknutí nevyžadovať PIN</string>
+    <string name="plock_grace_always">Vždy vyžiadať</string>
+    <string name="plock_scope_title">Vyžaduje sa PIN kód pre</string>
+    <string name="plock_scope_channels">Kanály</string>
+    <string name="plock_scope_settings">Nastavenia</string>
 </resources>

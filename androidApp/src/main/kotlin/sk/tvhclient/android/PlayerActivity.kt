@@ -876,7 +876,7 @@ class PlayerActivity : ComponentActivity() {
                         mediaPlayer.play()
                         pokeControls()
                     }
-                    if (requirePin && ParentalLock.needsPin(this)) {
+                    if (requirePin && ParentalLock.needsPin(this) && ParentalLock.protectChannels(this)) {
                         requestPin(onOk = doPlay, onCancel = { finish() })
                     } else doPlay()
                 },
