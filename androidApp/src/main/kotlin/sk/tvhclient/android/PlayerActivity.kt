@@ -1300,16 +1300,22 @@ private fun PlayerUi(
             val side = (minOf(cfgLogo.screenWidthDp, cfgLogo.screenHeightDp) * 0.42f).dp
             val logoLoader = remember(server?.id) { PiconImageLoader.get(ctxLogo, server) }
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                if (centerLogoUrl != null) {
+                var logoOk by remember(centerLogoUrl) {
+                    androidx.compose.runtime.mutableStateOf(centerLogoUrl != null)
+                }
+                if (centerLogoUrl != null && logoOk) {
                     AsyncImage(
                         model = ImageRequest.Builder(ctxLogo).data(centerLogoUrl).build(),
                         contentDescription = null,
                         imageLoader = logoLoader,
                         contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                        onState = { st ->
+                            if (st is coil.compose.AsyncImagePainter.State.Error) logoOk = false
+                        },
                         modifier = Modifier.size(side)
                     )
                 } else {
-                    // Predvolena grafika radia (ked stanica nema picon)
+                    // Predvolena grafika radia (ked stanica nema picon alebo sa nenacita)
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
                             modifier = Modifier
