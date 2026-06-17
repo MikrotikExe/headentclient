@@ -302,6 +302,7 @@ class PlayerActivity : ComponentActivity() {
     // Casovac uspatia + stranka v menu Moznosti (0=hlavne, 1=casovac)
     private val optionsPageState = androidx.compose.runtime.mutableStateOf(0)
     private val sleepMinutesState = androidx.compose.runtime.mutableStateOf(0)
+    private val sleepDeadlineState = androidx.compose.runtime.mutableStateOf(0L)
     private val sleepHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val sleepDurations = listOf(0, 15, 30, 45, 60, 90)
     // Navigacia ovladacieho panela (focus riadime z Activity, nie cez Compose focus)
@@ -370,14 +371,23 @@ class PlayerActivity : ComponentActivity() {
         closeOptionsState.value = closeOptionsState.value + 1
     }
 
+    /** Otvori menu Moznosti rovno na vybere casovaca uspatia (dostupne aj dotykom). */
+    private fun openSleepMenu() {
+        optionsPageState.value = 1
+        optionsNavState.value = 0
+        openOptionsState.value = openOptionsState.value + 1
+    }
+
     /** Nastavi casovac uspatia (0 = vypnut). Po uplynuti zastavi a zavrie prehravac. */
     private fun setSleepTimer(minutes: Int) {
         sleepHandler.removeCallbacksAndMessages(null)
         sleepMinutesState.value = minutes
         if (minutes <= 0) {
+            sleepDeadlineState.value = 0L
             Toast.makeText(this, getString(R.string.sleep_off), Toast.LENGTH_SHORT).show()
             return
         }
+        sleepDeadlineState.value = System.currentTimeMillis() + minutes * 60_000L
         sleepHandler.postDelayed({
             runCatching { if (::mediaPlayer.isInitialized && mediaPlayer.isPlaying) mediaPlayer.stop() }
             finish()
@@ -438,6 +448,7 @@ class PlayerActivity : ComponentActivity() {
             "epg" -> openEpgInApp()
             "pip" -> enterPipIfPossible()
             "info" -> { toggleInfo(); pokeControls() }
+            "sleep" -> openSleepMenu()
         }
     }
 
@@ -859,6 +870,7 @@ class PlayerActivity : ComponentActivity() {
                 centerLogoUrl = liveChannelsState.value.getOrNull(liveIndexState.value)?.piconUrl,
                 onOpenEpg = { openEpgInApp() },
                 onEnterPip = { enterPipIfPossible() },
+                onOpenSleep = { openSleepMenu() },
                 playing = isPlayingState.value,
                 channelNavIndex = navChannelIndexState.value,
                 openListSignal = openChannelListState.value,
@@ -873,6 +885,7 @@ class PlayerActivity : ComponentActivity() {
                 optionsNavIndex = optionsNavState.value,
                 optionsPage = optionsPageState.value,
                 sleepMinutes = sleepMinutesState.value,
+                sleepDeadline = sleepDeadlineState.value,
                 onOptionsSelect = { page, idx -> selectOption(page, idx) },
                 controlNavIndex = controlNavState.value,
                 trackNavIndex = trackNavState.value,
@@ -1095,6 +1108,7 @@ private fun PlayerUi(
     centerLogoUrl: String? = null,
     onOpenEpg: () -> Unit = {},
     onEnterPip: () -> Unit = {},
+    onOpenSleep: () -> Unit = {},
     playing: Boolean = true,
     channelNavIndex: Int = -1,
     openListSignal: Int = 0,
@@ -1106,6 +1120,7 @@ private fun PlayerUi(
     optionsNavIndex: Int = 0,
     optionsPage: Int = 0,
     sleepMinutes: Int = 0,
+    sleepDeadline: Long = 0,
     onOptionsSelect: (Int, Int) -> Unit = { _, _ -> },
     controlNavIndex: Int = 0,
     trackNavIndex: Int = 0,
@@ -1126,6 +1141,16 @@ private fun PlayerUi(
 ) {
     var controlsVisible by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
+    // odpocet casovaca uspatia (aktualizuje sa kym je casovac aktivny)
+    var sleepNow by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(sleepDeadline) {
+        while (sleepDeadline > 0) {
+            sleepNow = System.currentTimeMillis()
+            kotlinx.coroutines.delay(20_000)
+        }
+    }
+    val sleepLeftMin = if (sleepDeadline > 0)
+        (((sleepDeadline - sleepNow) + 59_999) / 60_000).coerceAtLeast(0) else 0L
     var showChannelList by remember { mutableStateOf(false) }
     var isPlaying by remember { mutableStateOf(true) }
     var orientationLocked by remember { mutableStateOf(false) }
@@ -1603,6 +1628,14 @@ private fun PlayerUi(
                             color = Color(0xCCFFFFFF),
                             fontSize = (12 * k).sp
                         )
+                        if (sleepLeftMin > 0) {
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                "\u23F2 ${sleepLeftMin} min",
+                                color = Color(0xCC8AB4F8),
+                                fontSize = (12 * k).sp
+                            )
+                        }
                     }
                     Spacer(Modifier.height((6 * k).dp))
                     // Tlacidla: zavriet, zoznam, prev, play, next, audio, titulky, sw
@@ -1642,6 +1675,10 @@ private fun PlayerUi(
                             "info" -> CircleButton(
                                 label = "\u24D8", selected = selCtrl == "info", scale = bk,
                                 onClick = { showInfo = !showInfo }
+                            )
+                            "sleep" -> CircleButton(
+                                label = "\u23F2", selected = selCtrl == "sleep", scale = bk,
+                                onClick = onOpenSleep
                             )
                             "audio" -> if (portrait) CircleButton(
                                 label = "\uD83D\uDD0A", selected = selCtrl == "audio", scale = bk,
@@ -1694,6 +1731,7 @@ private fun PlayerUi(
                             Spacer(Modifier.weight(1f))
                             barCtrl("audio")
                             barCtrl("subs")
+                            barCtrl("sleep")
                             barCtrl("info")
                         }
                     }
@@ -2210,7 +2248,7 @@ private fun playerControlOrder(canZap: Boolean, seekable: Boolean = false): List
     if (canZap) add("next")
     if (seekable) add("seek")
     // vpravo
-    add("audio"); add("subs"); add("info")
+    add("audio"); add("subs"); add("sleep"); add("info")
 }
 
 private fun fmtMs(ms: Long): String {
