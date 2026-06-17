@@ -735,9 +735,18 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    private fun keepScreenOn(on: Boolean) {
+        runOnUiThread {
+            if (on) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         remoteDebug = RemoteDebugPref.isEnabled(this)
+        // Drz obrazovku zapnutu od startu prehravaca (setric/ambient na boxoch sa nesmie spustit)
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         // Immersive fullscreen — skry status aj navigacnu listu, nech
         // neprekryvaju ovladanie. Listy sa daju vytiahnut potiahnutim.
@@ -797,6 +806,7 @@ class PlayerActivity : ComponentActivity() {
                 }
                 MediaPlayer.Event.Playing -> {
                     isPlayingState.value = true; refreshPipIfActive()
+                    keepScreenOn(true)  // pocas prehravania nedovol setric/ambient na boxoch
                     cancelReconnect()  // uspesne pripojenie -> vynuluj pokusy
                     // po nabehnuti zisti ci stream ma video; ak nie -> rozhlas (logo)
                     videoCheckHandler.removeCallbacksAndMessages(null)
@@ -805,8 +815,8 @@ class PlayerActivity : ComponentActivity() {
                         if (n != null && n >= 0) hasVideoState.value = n > 0
                     }, 1500)
                 }
-                MediaPlayer.Event.Paused -> { isPlayingState.value = false; refreshPipIfActive() }
-                MediaPlayer.Event.Stopped -> { isPlayingState.value = false; refreshPipIfActive() }
+                MediaPlayer.Event.Paused -> { isPlayingState.value = false; keepScreenOn(false); refreshPipIfActive() }
+                MediaPlayer.Event.Stopped -> { isPlayingState.value = false; keepScreenOn(false); refreshPipIfActive() }
                 MediaPlayer.Event.Vout -> { if (event.voutCount > 0) hasVideoState.value = true }
                 MediaPlayer.Event.EndReached -> {
                     isPlayingState.value = false
@@ -815,6 +825,7 @@ class PlayerActivity : ComponentActivity() {
                         scheduleReconnect()
                     } else {
                         reachedEnd = true
+                        keepScreenOn(false)
                         saveDvrProgress()
                     }
                 }
