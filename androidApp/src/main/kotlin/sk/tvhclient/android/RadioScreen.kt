@@ -45,7 +45,7 @@ fun RadioScreen(vm: RadioViewModel = viewModel()) {
     val query by vm.query.collectAsState()
     val context = LocalContext.current
     val server = remember { Tvh.store.active() }
-    val serverId = server?.id
+    val serverId = server?.id ?: ""
     val loader = remember(server?.id) { PiconImageLoader.get(context, server) }
 
     var contextRow by remember { mutableStateOf<ChannelRow?>(null) }
