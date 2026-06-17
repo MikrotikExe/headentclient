@@ -213,4 +213,6 @@
     <string name="set_leave_no">Stay</string>
     <string name="pip_play">Play</string>
     <string name="pip_pause">Pause</string>
+    <string name="reconnecting">Reconnecting…</string>
+    <string name="reconnect_failed">Couldn't reconnect to the stream</string>
 </resources>

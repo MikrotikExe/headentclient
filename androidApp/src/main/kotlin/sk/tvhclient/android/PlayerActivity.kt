@@ -93,6 +93,11 @@ class PlayerActivity : ComponentActivity() {
     // false = audio-only (rozhlas) -> zobraz logo namiesto ciernej
     private val hasVideoState = androidx.compose.runtime.mutableStateOf(true)
     private val videoCheckHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    // automaticke znovupripojenie zivého streamu po vypadku siete
+    private val reconnectHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val reconnectingState = androidx.compose.runtime.mutableStateOf(false)
+    private var reconnectAttempts = 0
+    private val maxReconnectAttempts = 8
     private var pipReceiver: android.content.BroadcastReceiver? = null
     private val PIP_ACTION = "sk.tvhclient.android.PIP_TOGGLE"
     private var liveServer: sk.tvhclient.shared.model.TvhServer? = null
@@ -244,6 +249,7 @@ class PlayerActivity : ComponentActivity() {
             .ifBlank { srv.profile.ifBlank { "pass" } }
         val url = Tvh.liveUrl(srv, uuid, name, prof)
         currentStreamUrl = url
+        cancelReconnect()  // nove pripojenie -> zrus stare pokusy
         hasVideoState.value = true  // predpokladaj video; kontrola po Playing to opravi
         val media = buildMedia(url)
         mediaPlayer.media = media
@@ -709,14 +715,20 @@ class PlayerActivity : ComponentActivity() {
         mediaPlayer.setEventListener { event ->
             when (event.type) {
                 MediaPlayer.Event.EncounteredError -> {
-                    Toast.makeText(
-                        this,
-                        getString(R.string.playback_error, "VLC"),
-                        Toast.LENGTH_LONG
-                    ).show()
+                    // zivé vysielanie: skus znovu pripojit (vypadok siete); inak nahlas chybu
+                    if (!seekablePlayback) {
+                        scheduleReconnect()
+                    } else {
+                        Toast.makeText(
+                            this,
+                            getString(R.string.playback_error, "VLC"),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
                 }
                 MediaPlayer.Event.Playing -> {
                     isPlayingState.value = true; refreshPipIfActive()
+                    cancelReconnect()  // uspesne pripojenie -> vynuluj pokusy
                     // po nabehnuti zisti ci stream ma video; ak nie -> rozhlas (logo)
                     videoCheckHandler.removeCallbacksAndMessages(null)
                     videoCheckHandler.postDelayed({
@@ -729,8 +741,13 @@ class PlayerActivity : ComponentActivity() {
                 MediaPlayer.Event.Vout -> { if (event.voutCount > 0) hasVideoState.value = true }
                 MediaPlayer.Event.EndReached -> {
                     isPlayingState.value = false
-                    reachedEnd = true
-                    saveDvrProgress()
+                    if (!seekablePlayback) {
+                        // zivý stream "skoncil" = vypadok -> znovu pripojit
+                        scheduleReconnect()
+                    } else {
+                        reachedEnd = true
+                        saveDvrProgress()
+                    }
                 }
             }
         }
@@ -798,6 +815,7 @@ class PlayerActivity : ComponentActivity() {
                 infoPoke = infoPokeState.value,
                 inPip = inPipState.value,
                 hasVideo = hasVideoState.value,
+                reconnecting = reconnectingState.value,
                 centerLogoUrl = liveChannelsState.value.getOrNull(liveIndexState.value)?.piconUrl,
                 onOpenEpg = { openEpgInApp() },
                 onEnterPip = { enterPipIfPossible() },
@@ -879,6 +897,38 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    /** Zrusi naplanovane znovupripojenie a skryje indikator. */
+    private fun cancelReconnect() {
+        reconnectHandler.removeCallbacksAndMessages(null)
+        reconnectAttempts = 0
+        reconnectingState.value = false
+    }
+
+    /** Naplanuje znovupripojenie zivého streamu po vypadku (narastajuce oneskorenie). */
+    private fun scheduleReconnect() {
+        if (seekablePlayback) return  // DVR nahravka sa neobnovuje
+        val url = currentStreamUrl ?: return
+        if (!::mediaPlayer.isInitialized) return
+        if (reconnectAttempts >= maxReconnectAttempts) {
+            reconnectingState.value = false
+            Toast.makeText(this, getString(R.string.reconnect_failed), Toast.LENGTH_LONG).show()
+            return
+        }
+        reconnectAttempts++
+        reconnectingState.value = true
+        val delay = (1500L * reconnectAttempts).coerceAtMost(8000L)
+        reconnectHandler.removeCallbacksAndMessages(null)
+        reconnectHandler.postDelayed({
+            if (!::mediaPlayer.isInitialized) return@postDelayed
+            runCatching {
+                val m = buildMedia(url)
+                mediaPlayer.media = m
+                m.release()
+                mediaPlayer.play()
+            }
+        }, delay)
+    }
+
     override fun onPictureInPictureModeChanged(
         isInPictureInPictureMode: Boolean,
         newConfig: android.content.res.Configuration
@@ -934,6 +984,7 @@ class PlayerActivity : ComponentActivity() {
         saveDvrProgress()
         super.onDestroy()
         videoCheckHandler.removeCallbacksAndMessages(null)
+        reconnectHandler.removeCallbacksAndMessages(null)
         pipReceiver?.let { runCatching { unregisterReceiver(it) } }
         pipReceiver = null
         if (::mediaPlayer.isInitialized) {
@@ -996,6 +1047,7 @@ private fun PlayerUi(
     infoPoke: Int = 0,
     inPip: Boolean = false,
     hasVideo: Boolean = true,
+    reconnecting: Boolean = false,
     centerLogoUrl: String? = null,
     onOpenEpg: () -> Unit = {},
     onEnterPip: () -> Unit = {},
@@ -1310,6 +1362,21 @@ private fun PlayerUi(
                             )
                         }
                     }
+                }
+            }
+        }
+
+        // indikator opätovného pripájania (vypadok siete pri zivom vysielani)
+        if (reconnecting) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    androidx.compose.material3.CircularProgressIndicator(color = Color.White)
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        stringResource(R.string.reconnecting),
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
         }

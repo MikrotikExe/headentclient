@@ -213,4 +213,6 @@
     <string name="set_leave_no">Zůstat</string>
     <string name="pip_play">Přehrát</string>
     <string name="pip_pause">Pauza</string>
+    <string name="reconnecting">Opětovné připojování…</string>
+    <string name="reconnect_failed">Nepodařilo se znovu připojit ke streamu</string>
 </resources>
