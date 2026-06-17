@@ -16,6 +16,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -1491,6 +1492,7 @@ private fun PlayerUi(
                 // skalovanie podla rozlisenia boxu (kompaktny, citatelny pruh)
                 val cfg = androidx.compose.ui.platform.LocalConfiguration.current
                 val k = (cfg.screenWidthDp / 640f).coerceIn(0.9f, 1.25f)
+                val portrait = cfg.screenHeightDp >= cfg.screenWidthDp
 
                 // Jeden spolocny info+ovladaci pruh dole
                 Column(
@@ -1551,19 +1553,27 @@ private fun PlayerUi(
                                     Text(
                                         clock(progStart) + " \u2013 " + clock(progStop),
                                         color = Color(0xCCFFFFFF),
-                                        fontSize = (12 * k).sp
+                                        fontSize = (12 * k).sp,
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
-                                    androidx.compose.material3.LinearProgressIndicator(
-                                        progress = { fracNow },
-                                        modifier = Modifier
-                                            .width((90 * k).dp)
-                                            .padding(horizontal = 8.dp),
-                                        trackColor = Color(0x55FFFFFF)
-                                    )
+                                    if (!portrait) {
+                                        androidx.compose.material3.LinearProgressIndicator(
+                                            progress = { fracNow },
+                                            modifier = Modifier
+                                                .width((90 * k).dp)
+                                                .padding(horizontal = 8.dp),
+                                            trackColor = Color(0x55FFFFFF)
+                                        )
+                                    } else {
+                                        Spacer(Modifier.width(8.dp))
+                                    }
                                     Text(
                                         "$remainMin min",
                                         color = Color(0xCCFFFFFF),
-                                        fontSize = (12 * k).sp
+                                        fontSize = (12 * k).sp,
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                 }
                             }
@@ -1623,24 +1633,28 @@ private fun PlayerUi(
                             }
                         }
                         Spacer(Modifier.width(12.dp))
-                        Text(
-                            dateTime,
-                            color = Color(0xCCFFFFFF),
-                            fontSize = (12 * k).sp
-                        )
-                        if (sleepLeftMin > 0) {
-                            Spacer(Modifier.width(10.dp))
+                        Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                "\u23F2 ${sleepLeftMin} min",
-                                color = Color(0xCC8AB4F8),
-                                fontSize = (12 * k).sp
+                                dateTime,
+                                color = Color(0xCCFFFFFF),
+                                fontSize = (12 * k).sp,
+                                maxLines = 1,
+                                softWrap = false
                             )
+                            if (sleepLeftMin > 0) {
+                                Text(
+                                    "\u23F2 ${sleepLeftMin} min",
+                                    color = Color(0xCC8AB4F8),
+                                    fontSize = (12 * k).sp,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
                         }
                     }
                     Spacer(Modifier.height((6 * k).dp))
                     // Tlacidla: zavriet, zoznam, prev, play, next, audio, titulky, sw
                     val bk = (0.78f * k)
-                    val portrait = cfg.screenHeightDp >= cfg.screenWidthDp
                     fun has(id: String) = order.contains(id)
                     // jedno tlacidlo podla id (zachytava okolity stav)
                     @Composable
@@ -1697,6 +1711,30 @@ private fun PlayerUi(
                         }
                     }
                     val gap = Arrangement.spacedBy((8 * k).dp)
+                    if (portrait) {
+                        // PORTRET: vsetky tlacidla v jednom vodorovne posuvnom rade (nic sa neoreze)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(
+                                (6 * k).dp, Alignment.CenterHorizontally
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(androidx.compose.foundation.rememberScrollState())
+                        ) {
+                            barCtrl("close")
+                            barCtrl("pip")
+                            if (has("list") && liveChannels.isNotEmpty()) barCtrl("list")
+                            if (has("epg")) barCtrl("epg")
+                            if (has("prev")) barCtrl("prev")
+                            barCtrl("play")
+                            if (has("next")) barCtrl("next")
+                            barCtrl("audio")
+                            barCtrl("subs")
+                            barCtrl("sleep")
+                            barCtrl("info")
+                        }
+                    } else
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
