@@ -35,7 +35,7 @@ android {
         minSdk = 23
         targetSdk = 35
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "1.0.0"
     }
 
     buildFeatures {
@@ -64,9 +64,18 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            if (keystorePropsFile.exists()) {
-                signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            // Play: vlastny kluc ak je keystore.properties; inak (CI test) debug
+            // podpis, nech je release APK instalovatelny na otestovanie R8.
+            signingConfig = if (keystorePropsFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
             }
         }
     }

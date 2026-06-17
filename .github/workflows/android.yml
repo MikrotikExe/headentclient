@@ -32,3 +32,12 @@ jobs:
         with:
           name: TvhClient-debug
           path: androidApp/build/outputs/apk/debug/*.apk
+
+      - name: Build release APK (minified/R8)
+        run: gradle :androidApp:assembleRelease
+
+      - name: Upload release APK artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: TvhClient-release
+          path: androidApp/build/outputs/apk/release/*.apk
