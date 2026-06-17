@@ -299,6 +299,11 @@ class PlayerActivity : ComponentActivity() {
     private val optionsNavState = androidx.compose.runtime.mutableStateOf(0)
     private val openAudioMenuState = androidx.compose.runtime.mutableStateOf(0)
     private val openSpuMenuState = androidx.compose.runtime.mutableStateOf(0)
+    // Casovac uspatia + stranka v menu Moznosti (0=hlavne, 1=casovac)
+    private val optionsPageState = androidx.compose.runtime.mutableStateOf(0)
+    private val sleepMinutesState = androidx.compose.runtime.mutableStateOf(0)
+    private val sleepHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val sleepDurations = listOf(0, 15, 30, 45, 60, 90)
     // Navigacia ovladacieho panela (focus riadime z Activity, nie cez Compose focus)
     private val controlNavState = androidx.compose.runtime.mutableStateOf(0)
     // Navigacia track menu (audio/titulky)
@@ -357,10 +362,41 @@ class PlayerActivity : ComponentActivity() {
     }
     private fun openOptions() {
         optionsNavState.value = 0
+        optionsPageState.value = 0
         openOptionsState.value = openOptionsState.value + 1
     }
     private fun closeOptions() {
+        optionsPageState.value = 0
         closeOptionsState.value = closeOptionsState.value + 1
+    }
+
+    /** Nastavi casovac uspatia (0 = vypnut). Po uplynuti zastavi a zavrie prehravac. */
+    private fun setSleepTimer(minutes: Int) {
+        sleepHandler.removeCallbacksAndMessages(null)
+        sleepMinutesState.value = minutes
+        if (minutes <= 0) {
+            Toast.makeText(this, getString(R.string.sleep_off), Toast.LENGTH_SHORT).show()
+            return
+        }
+        sleepHandler.postDelayed({
+            runCatching { if (::mediaPlayer.isInitialized && mediaPlayer.isPlaying) mediaPlayer.stop() }
+            finish()
+        }, minutes * 60_000L)
+        Toast.makeText(this, getString(R.string.sleep_set, minutes), Toast.LENGTH_SHORT).show()
+    }
+
+    /** Vyber polozky v menu Moznosti (page 0 = hlavne, 1 = casovac uspatia). */
+    private fun selectOption(page: Int, idx: Int) {
+        if (page == 0) {
+            when (idx) {
+                0 -> { closeOptions(); openAudioMenuState.value = openAudioMenuState.value + 1 }
+                1 -> { closeOptions(); openSpuMenuState.value = openSpuMenuState.value + 1 }
+                2 -> { optionsPageState.value = 1; optionsNavState.value = 0 }
+            }
+        } else {
+            setSleepTimer(sleepDurations.getOrElse(idx) { 0 })
+            closeOptions()
+        }
     }
 
     // --- Track menu (audio/titulky) riadene z Activity ---
@@ -470,26 +506,29 @@ class PlayerActivity : ComponentActivity() {
             return true
         }
 
-        // 2) Otvorene Moznosti (Zvuk/Titulky/SW) -> vertikalna navigacia
+        // 2) Otvorene Moznosti (Zvuk/Titulky/Casovac) -> vertikalna navigacia
         if (optionsOpen) {
+            val count = if (optionsPageState.value == 0) 3 else sleepDurations.size
             if (down) {
                 when (kc) {
                     android.view.KeyEvent.KEYCODE_DPAD_UP ->
-                        { optionsNavState.value = (optionsNavState.value + 1) % 2; return true }
+                        { optionsNavState.value = (optionsNavState.value + count - 1) % count; return true }
                     android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
-                        { optionsNavState.value = (optionsNavState.value + 1) % 2; return true }
+                        { optionsNavState.value = (optionsNavState.value + 1) % count; return true }
                     android.view.KeyEvent.KEYCODE_DPAD_CENTER,
                     android.view.KeyEvent.KEYCODE_ENTER,
                     android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                        when (optionsNavState.value) {
-                            0 -> { closeOptions(); openAudioMenuState.value = openAudioMenuState.value + 1 }
-                            1 -> { closeOptions(); openSpuMenuState.value = openSpuMenuState.value + 1 }
-                        }
+                        selectOption(optionsPageState.value, optionsNavState.value)
                         return true
                     }
                     android.view.KeyEvent.KEYCODE_DPAD_LEFT,
-                    android.view.KeyEvent.KEYCODE_BACK ->
-                        { closeOptions(); return true }
+                    android.view.KeyEvent.KEYCODE_BACK -> {
+                        // z casovaca spat na hlavne menu, inak zatvor
+                        if (optionsPageState.value == 1) {
+                            optionsPageState.value = 0; optionsNavState.value = 0
+                        } else closeOptions()
+                        return true
+                    }
                 }
             }
             when (kc) {
@@ -832,6 +871,9 @@ class PlayerActivity : ComponentActivity() {
                 openOptionsSignal = openOptionsState.value,
                 closeOptionsSignal = closeOptionsState.value,
                 optionsNavIndex = optionsNavState.value,
+                optionsPage = optionsPageState.value,
+                sleepMinutes = sleepMinutesState.value,
+                onOptionsSelect = { page, idx -> selectOption(page, idx) },
                 controlNavIndex = controlNavState.value,
                 trackNavIndex = trackNavState.value,
                 closeMenuSignal = closeMenuState.value,
@@ -986,6 +1028,7 @@ class PlayerActivity : ComponentActivity() {
         super.onDestroy()
         videoCheckHandler.removeCallbacksAndMessages(null)
         reconnectHandler.removeCallbacksAndMessages(null)
+        sleepHandler.removeCallbacksAndMessages(null)
         pipReceiver?.let { runCatching { unregisterReceiver(it) } }
         pipReceiver = null
         if (::mediaPlayer.isInitialized) {
@@ -1061,6 +1104,9 @@ private fun PlayerUi(
     openOptionsSignal: Int = 0,
     closeOptionsSignal: Int = 0,
     optionsNavIndex: Int = 0,
+    optionsPage: Int = 0,
+    sleepMinutes: Int = 0,
+    onOptionsSelect: (Int, Int) -> Unit = { _, _ -> },
     controlNavIndex: Int = 0,
     trackNavIndex: Int = 0,
     closeMenuSignal: Int = 0,
@@ -1815,11 +1861,18 @@ private fun PlayerUi(
             }
         }
 
-        // Moznosti (Zvuk / Titulky / SW dekod) — vertikalne, navigacia z Activity (D-pad DOLE/MENU)
+        // Moznosti (Zvuk / Titulky / Casovac uspatia) — vertikalne, navigacia z Activity
         if (showOptions) {
-            val opts = listOf(
+            val sleepLabel = if (sleepMinutes > 0)
+                "\u23F2  ${stringResource(R.string.sleep_timer)}: $sleepMinutes min"
+            else "\u23F2  ${stringResource(R.string.sleep_timer)}"
+            val opts = if (optionsPage == 0) listOf(
                 "\uD83D\uDD0A  Zvuk (jazyk)",
-                "\uD83D\uDCAC  Titulky"
+                "\uD83D\uDCAC  Titulky",
+                sleepLabel
+            ) else listOf(
+                stringResource(R.string.sleep_off),
+                "15 min", "30 min", "45 min", "60 min", "90 min"
             )
             Box(
                 Modifier
@@ -1839,7 +1892,7 @@ private fun PlayerUi(
                         .padding(8.dp)
                 ) {
                     Text(
-                        "Možnosti",
+                        if (optionsPage == 0) "Možnosti" else stringResource(R.string.sleep_timer),
                         color = Color.White,
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(12.dp)
@@ -1851,12 +1904,7 @@ private fun PlayerUi(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(if (sel) Color(0x553B82F6) else Color.Transparent)
-                                .clickable {
-                                    when (idx) {
-                                        0 -> { showOptions = false; menu = "audio" }
-                                        1 -> { showOptions = false; menu = "spu" }
-                                    }
-                                }
+                                .clickable { onOptionsSelect(optionsPage, idx) }
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {

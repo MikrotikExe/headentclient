@@ -217,4 +217,7 @@
     <string name="reconnect_failed">Nepodařilo se znovu připojit ke streamu</string>
     <string name="error_connection_title">Chyba připojení</string>
     <string name="no_server_hint">Přidejte server v Nastavení</string>
+    <string name="sleep_timer">Časovač uspání</string>
+    <string name="sleep_off">Vypnout</string>
+    <string name="sleep_set">Časovač: %1$d min</string>
 </resources>

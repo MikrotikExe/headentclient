@@ -217,4 +217,7 @@
     <string name="reconnect_failed">Could not reconnect to the stream</string>
     <string name="error_connection_title">Connection error</string>
     <string name="no_server_hint">Add a server in Settings</string>
+    <string name="sleep_timer">Sleep timer</string>
+    <string name="sleep_off">Off</string>
+    <string name="sleep_set">Sleep timer: %1$d min</string>
 </resources>
