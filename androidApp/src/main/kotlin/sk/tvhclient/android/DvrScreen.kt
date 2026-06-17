@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -285,7 +286,7 @@ private fun DvrContent(
                 }
             }
             LazyColumn(Modifier.fillMaxSize()) {
-                item("hdr") { HeaderWithAction(stringResource(R.string.dvr_archive), onReload) }
+                item("hdr") { Header(stringResource(R.string.dvr_archive)) }
                 if (recentCount > 0) {
                     item("recent") {
                         FolderRow(
