@@ -45,6 +45,15 @@
 # --- kotlinx.coroutines ----------------------------------------------------
 -dontwarn kotlinx.coroutines.**
 
+# --- androidx.security.crypto / Tink ---------------------------------------
+# Tink (EncryptedSharedPreferences) referencuje compile-only errorprone a
+# javax anotacie, ktore nie su v runtime classpath -> R8 ich hlasi ako chybajuce.
+-dontwarn com.google.errorprone.annotations.**
+-dontwarn javax.annotation.**
+-dontwarn com.google.api.**
+-keep class com.google.crypto.tink.** { *; }
+-dontwarn com.google.crypto.tink.**
+
 # --- Kotlin metadata / reflexia --------------------------------------------
 -keep class kotlin.Metadata { *; }
 -dontwarn kotlin.**
