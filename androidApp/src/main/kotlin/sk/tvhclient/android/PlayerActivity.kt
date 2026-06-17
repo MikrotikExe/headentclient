@@ -93,6 +93,7 @@ class PlayerActivity : ComponentActivity() {
     private val inPipState = androidx.compose.runtime.mutableStateOf(false)
     // false = audio-only (rozhlas) -> zobraz logo namiesto ciernej
     private val hasVideoState = androidx.compose.runtime.mutableStateOf(true)
+    private val videoCheckHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var pipReceiver: android.content.BroadcastReceiver? = null
     private val PIP_ACTION = "sk.tvhclient.android.PIP_TOGGLE"
     private var liveServer: sk.tvhclient.shared.model.TvhServer? = null
@@ -262,6 +263,7 @@ class PlayerActivity : ComponentActivity() {
             .ifBlank { srv.profile.ifBlank { "pass" } }
         val url = Tvh.liveUrl(srv, uuid, name, prof)
         currentStreamUrl = url
+        hasVideoState.value = true  // predpokladaj video; kontrola po Playing to opravi
         val media = buildMedia(url)
         mediaPlayer.media = media
         media.release()
@@ -734,10 +736,18 @@ class PlayerActivity : ComponentActivity() {
                         Toast.LENGTH_LONG
                     ).show()
                 }
-                MediaPlayer.Event.Playing -> { isPlayingState.value = true; refreshPipIfActive() }
+                MediaPlayer.Event.Playing -> {
+                    isPlayingState.value = true; refreshPipIfActive()
+                    // po nabehnuti zisti ci stream ma video; ak nie -> rozhlas (logo)
+                    videoCheckHandler.removeCallbacksAndMessages(null)
+                    videoCheckHandler.postDelayed({
+                        val n = runCatching { mediaPlayer.videoTracksCount }.getOrNull()
+                        if (n != null && n >= 0) hasVideoState.value = n > 0
+                    }, 1500)
+                }
                 MediaPlayer.Event.Paused -> { isPlayingState.value = false; refreshPipIfActive() }
                 MediaPlayer.Event.Stopped -> { isPlayingState.value = false; refreshPipIfActive() }
-                MediaPlayer.Event.Vout -> hasVideoState.value = event.voutCount > 0
+                MediaPlayer.Event.Vout -> { if (event.voutCount > 0) hasVideoState.value = true }
                 MediaPlayer.Event.EndReached -> {
                     isPlayingState.value = false
                     reachedEnd = true
@@ -947,6 +957,7 @@ class PlayerActivity : ComponentActivity() {
     override fun onDestroy() {
         saveDvrProgress()
         super.onDestroy()
+        videoCheckHandler.removeCallbacksAndMessages(null)
         pipReceiver?.let { runCatching { unregisterReceiver(it) } }
         pipReceiver = null
         if (::mediaPlayer.isInitialized) {
