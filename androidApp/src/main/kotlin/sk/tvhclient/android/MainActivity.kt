@@ -11,6 +11,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.clickable
@@ -182,21 +184,45 @@ fun WelcomeScreen(vm: ServersViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color(0xFF1B1430), Color(0xFF120F1A), Color(0xFF0C0B10))
+                )
+            )
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.height(24.dp))
-        // Logo (zatial TV ikona — nahradit vlastnym logom)
-        androidx.compose.material3.Icon(
-            Icons.Default.LiveTv,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(72.dp)
+        Spacer(Modifier.height(40.dp))
+        // Logo v jemnom zaoblenom rámiku
+        Box(
+            modifier = Modifier
+                .size(96.dp)
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
+            contentAlignment = Alignment.Center
+        ) {
+            androidx.compose.material3.Icon(
+                Icons.Default.LiveTv,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(54.dp)
+            )
+        }
+        Spacer(Modifier.height(18.dp))
+        Text(
+            "TVHeadend Client",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
         )
-        Spacer(Modifier.height(12.dp))
-        Text("TVHeadend Client", style = MaterialTheme.typography.headlineSmall)
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(6.dp))
+        Text(
+            stringResource(R.string.welcome_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFFB6B2C2)
+        )
+        Spacer(Modifier.height(36.dp))
 
         OutlinedTextField(
             value = host, onValueChange = { host = it; localError = false },
