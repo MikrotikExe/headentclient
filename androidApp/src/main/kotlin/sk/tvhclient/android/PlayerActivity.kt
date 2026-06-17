@@ -154,7 +154,7 @@ class PlayerActivity : ComponentActivity() {
         runCatching { startActivity(i) }
     }
     private fun showControlsFocused() {
-        val order = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback)
+        val order = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipSupported)
         controlNavState.value = order.indexOf("play").coerceAtLeast(0)
         pokeControls()
     }
@@ -294,6 +294,10 @@ class PlayerActivity : ComponentActivity() {
     // Moznosti (Zvuk / Titulky / SW dekod) — vertikalne overlay, navigujeme z Activity
     private var optionsOpen = false
     private var remoteDebug = false
+    private val pipSupported: Boolean by lazy {
+        android.os.Build.VERSION.SDK_INT >= 26 &&
+            packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)
+    }
     private var controlsShown = false
     private val openOptionsState = androidx.compose.runtime.mutableStateOf(0)
     private val closeOptionsState = androidx.compose.runtime.mutableStateOf(0)
@@ -620,7 +624,7 @@ class PlayerActivity : ComponentActivity() {
             // ovladanie zobrazene -> vlavo/vpravo naviguju panel, OK aktivuje
             // zvyrazneny prvok (hore/dole prepinaju kanal vyssie)
             if (controlsShown) {
-                val order = playerControlOrder(canZap, seekablePlayback)
+                val order = playerControlOrder(canZap, seekablePlayback, pipSupported)
                 val n = order.size
                 if (seekablePlayback) {
                     val onSeek = order.getOrNull(controlNavState.value) == "seek"
@@ -844,7 +848,7 @@ class PlayerActivity : ComponentActivity() {
         val canZap = directUrl == null && liveUuids.size > 1
         seekablePlayback = directUrl != null
         // predvolene zvyraznenie ovladacieho panela = play (nie krizik)
-        controlNavState.value = playerControlOrder(canZap, seekablePlayback).indexOf("play").coerceAtLeast(0)
+        controlNavState.value = playerControlOrder(canZap, seekablePlayback, pipSupported).indexOf("play").coerceAtLeast(0)
         currentStreamUrl = streamUrl
 
         setContent {
@@ -879,6 +883,7 @@ class PlayerActivity : ComponentActivity() {
                 controlsPoke = controlsPokeState.value,
                 infoPoke = infoPokeState.value,
                 inPip = inPipState.value,
+                pipSupported = pipSupported,
                 hasVideo = hasVideoState.value,
                 reconnecting = reconnectingState.value,
                 centerLogoUrl = liveChannelsState.value.getOrNull(liveIndexState.value)?.piconUrl,
@@ -1115,6 +1120,7 @@ private fun PlayerUi(
     controlsPoke: Int = 0,
     infoPoke: Int = 0,
     inPip: Boolean = false,
+    pipSupported: Boolean = false,
     hasVideo: Boolean = true,
     reconnecting: Boolean = false,
     centerLogoUrl: String? = null,
@@ -1484,7 +1490,7 @@ private fun PlayerUi(
             modifier = Modifier.fillMaxSize()
         ) {
             Box(Modifier.fillMaxSize().systemBarsPadding()) {
-                val order = playerControlOrder(onPrevChannel != null, seekable)
+                val order = playerControlOrder(onPrevChannel != null, seekable, pipSupported)
                 val selCtrl = order.getOrNull(controlNavIndex)
                 val curCh = liveChannels.getOrNull(liveCurrentIndex)
                 val infoLoader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
@@ -1730,7 +1736,7 @@ private fun PlayerUi(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             barCtrl("close")
-                            barCtrl("pip")
+                            if (has("pip")) barCtrl("pip")
                             if (has("list") && liveChannels.isNotEmpty()) barCtrl("list")
                             if (has("epg")) barCtrl("epg")
                             if (has("prev")) barCtrl("prev")
@@ -1753,7 +1759,7 @@ private fun PlayerUi(
                             modifier = Modifier.weight(1f)
                         ) {
                             barCtrl("close")
-                            barCtrl("pip")
+                            if (has("pip")) barCtrl("pip")
                             if (has("list") && liveChannels.isNotEmpty()) barCtrl("list")
                             if (has("epg")) barCtrl("epg")
                         }

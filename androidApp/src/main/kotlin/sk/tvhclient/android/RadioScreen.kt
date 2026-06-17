@@ -30,7 +30,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -84,12 +83,13 @@ fun RadioScreen(vm: RadioViewModel = viewModel()) {
     }
 
     Column(Modifier.fillMaxSize().padding(12.dp)) {
+        val searchFocus = remember { androidx.compose.ui.focus.FocusRequester() }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = { vm.setQuery(it) },
-                label = { Text(stringResource(R.string.search_channels)) },
-                singleLine = true,
+            TvSearchBar(
+                query = query,
+                placeholder = stringResource(R.string.search_channels),
+                onQueryChange = { vm.setQuery(it) },
+                focusRequester = searchFocus,
                 modifier = Modifier.weight(1f)
             )
             IconButton(onClick = { vm.load() }) {
