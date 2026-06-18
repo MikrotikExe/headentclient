@@ -1693,17 +1693,13 @@ private fun PlayerUi(
                                         maxLines = 1,
                                         softWrap = false
                                     )
-                                    if (!portrait) {
-                                        androidx.compose.material3.LinearProgressIndicator(
-                                            progress = { fracNow },
-                                            modifier = Modifier
-                                                .width((90 * k).dp)
-                                                .padding(horizontal = 8.dp),
-                                            trackColor = Color(0x55FFFFFF)
-                                        )
-                                    } else {
-                                        Spacer(Modifier.width(8.dp))
-                                    }
+                                    androidx.compose.material3.LinearProgressIndicator(
+                                        progress = { fracNow },
+                                        modifier = (if (portrait) Modifier.weight(1f)
+                                                    else Modifier.width((90 * k).dp))
+                                            .padding(horizontal = 8.dp),
+                                        trackColor = Color(0x55FFFFFF)
+                                    )
                                     Text(
                                         "$remainMin min",
                                         color = Color(0xCCFFFFFF),
@@ -1758,8 +1754,8 @@ private fun PlayerUi(
                                                 val thumb = 10.dp.toPx()
                                                 val usable = (size.width - 2 * thumb).coerceAtLeast(0f)
                                                 val w = 3.dp.toPx()
-                                                // vyska len cez listu (nie cela dotykova plocha)
-                                                val half = 7.dp.toPx()
+                                                // vyska presne cez listu (~16 dp track), vystredene
+                                                val half = 8.dp.toPx()
                                                 val cy = size.height / 2f
                                                 fun tick(f: Float, c: Color) {
                                                     val x = thumb + f.coerceIn(0f, 1f) * usable
