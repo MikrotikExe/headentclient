@@ -1907,7 +1907,7 @@ private fun PlayerUi(
                                 trackColor = Color(0x55FFFFFF)
                             )
                             Spacer(Modifier.height(6.dp))
-                            Text("Ostáva $remainI min", color = Color(0x99FFFFFF), fontSize = 13.sp)
+                            Text(stringResource(R.string.time_remaining, remainI), color = Color(0x99FFFFFF), fontSize = 13.sp)
                         }
                         if (progDesc.isNotBlank()) {
                             Spacer(Modifier.height(14.dp))
@@ -2101,7 +2101,7 @@ private fun PlayerUi(
             val items = if (menu == "audio") player.audioTrackItems() else player.spuTrackItems()
             val currentId = if (menu == "audio") player.audioTrack else player.spuTrack
             TrackMenu(
-                header = if (menu == "audio") "Zvuková stopa" else "Titulky",
+                header = if (menu == "audio") stringResource(R.string.track_audio) else stringResource(R.string.track_subtitles),
                 items = items,
                 currentId = currentId,
                 allowOff = (menu == "spu"),  // titulky sa daju vypnut (-1)

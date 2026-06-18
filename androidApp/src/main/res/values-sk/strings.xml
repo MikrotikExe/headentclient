@@ -237,4 +237,9 @@
     <string name="plock_pin_input_title">Spôsob zadávania PIN</string>
     <string name="plock_pin_input_picker">Mriežka na obrazovke</string>
     <string name="plock_pin_input_keyboard">Klávesnica</string>
+    <string name="time_remaining">Ostáva %1$d min</string>
+    <string name="track_audio">Zvuková stopa</string>
+    <string name="track_subtitles">Titulky</string>
+    <string name="track_off">Vypnuté</string>
+    <string name="track_none">Žiadne stopy</string>
 </resources>

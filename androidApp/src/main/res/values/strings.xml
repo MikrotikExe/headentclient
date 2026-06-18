@@ -237,4 +237,9 @@
     <string name="plock_pin_input_title">PIN entry method</string>
     <string name="plock_pin_input_picker">On-screen picker</string>
     <string name="plock_pin_input_keyboard">Keyboard</string>
+    <string name="time_remaining">Remaining %1$d min</string>
+    <string name="track_audio">Audio track</string>
+    <string name="track_subtitles">Subtitles</string>
+    <string name="track_off">Off</string>
+    <string name="track_none">No tracks</string>
 </resources>

@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -64,11 +65,11 @@ internal fun TrackMenu(
             // poradie riadkov musi sediet s trackMenuIds() v Activity: [Vypnute] + items (pre titulky)
             val offset = if (allowOff) 1 else 0
             if (allowOff) {
-                TrackRow("Vypnuté", selected = currentId == -1, highlighted = navIndex == 0) { onPick(-1) }
+                TrackRow(stringResource(R.string.track_off), selected = currentId == -1, highlighted = navIndex == 0) { onPick(-1) }
             }
             if (items.isEmpty() && !allowOff) {
                 Text(
-                    "Žiadne stopy",
+                    stringResource(R.string.track_none),
                     color = Color.White.copy(alpha = 0.7f),
                     modifier = Modifier.padding(12.dp)
                 )
