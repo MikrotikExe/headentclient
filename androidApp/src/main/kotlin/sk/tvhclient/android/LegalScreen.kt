@@ -123,7 +123,7 @@ object LegalText {
 
     private val PRIVACY_SK = LegalDoc(
         title = "Zásady ochrany osobných údajov",
-        meta = "Účinné od: 17.6.2026 • Prevádzkovateľ: Juraj Chudý • Kontakt: juraj.chudy@outlook.com",
+        meta = "Účinné od: 17.6.2026 • Prevádzkovateľ: Juraj Chudý • Kontakt: support@headentclient.com",
         intro = "Headent Client je klientská aplikácia pre Tvheadend — open-source server na živé TV " +
             "vysielanie a nahrávanie. Aplikácia sa pripája k Tvheadend serveru, ku ktorému má " +
             "používateľ prístup a ktorý si sám nakonfiguruje. Aplikácia neposkytuje žiadny " +
@@ -154,13 +154,13 @@ object LegalText {
                 "Všetky údaje sú uložené len lokálne. Odinštalovaním aplikácie sa všetky uložené " +
                 "údaje (vrátane prihlasovacích údajov a PIN-u) odstránia.",
             "Deti" to "Aplikácia nie je určená deťom a nezbiera údaje o deťoch.",
-            "Kontakt" to "juraj.chudy@outlook.com"
+            "Kontakt" to "support@headentclient.com"
         )
     )
 
     private val PRIVACY_EN = LegalDoc(
         title = "Privacy Policy",
-        meta = "Effective date: 17 June 2026 • Operator: Juraj Chudý • Contact: juraj.chudy@outlook.com",
+        meta = "Effective date: 17 June 2026 • Operator: Juraj Chudý • Contact: support@headentclient.com",
         intro = "Headent Client is a client application for Tvheadend — an open-source server for live " +
             "TV and recording. The app connects to a Tvheadend server that the user has access " +
             "to and configures themselves. The app does not provide any TV content or channels.",
@@ -189,13 +189,13 @@ object LegalText {
                 "All data is stored locally only. Uninstalling the app removes all stored data " +
                 "(including credentials and PIN).",
             "Children" to "The app is not directed to children and does not collect data about children.",
-            "Contact" to "juraj.chudy@outlook.com"
+            "Contact" to "support@headentclient.com"
         )
     )
 
     private val TERMS_SK = LegalDoc(
         title = "Podmienky používania",
-        meta = "Účinné od: 17.6.2026 • Poskytovateľ: Juraj Chudý • Kontakt: juraj.chudy@outlook.com",
+        meta = "Účinné od: 17.6.2026 • Poskytovateľ: Juraj Chudý • Kontakt: support@headentclient.com",
         intro = "Headent Client je klient pre Tvheadend — open-source server na živé TV vysielanie a " +
             "nahrávanie. Používaním aplikácie súhlasíte s týmito podmienkami.",
         sections = listOf(
@@ -212,13 +212,13 @@ object LegalText {
                 "Aplikácia je poskytovaná „tak ako je\" (as-is), bez akýchkoľvek záruk. " +
                 "Poskytovateľ nezodpovedá za škody vzniknuté používaním aplikácie, za dostupnosť " +
                 "alebo funkčnosť servera používateľa, ani za obsah získaný z tohto servera.",
-            "Kontakt" to "juraj.chudy@outlook.com"
+            "Kontakt" to "support@headentclient.com"
         )
     )
 
     private val TERMS_EN = LegalDoc(
         title = "Terms of Use",
-        meta = "Effective date: 17 June 2026 • Provider: Juraj Chudý • Contact: juraj.chudy@outlook.com",
+        meta = "Effective date: 17 June 2026 • Provider: Juraj Chudý • Contact: support@headentclient.com",
         intro = "Headent Client is a client for Tvheadend — an open-source server for live TV and " +
             "recording. By using the app you agree to these terms.",
         sections = listOf(
@@ -235,7 +235,7 @@ object LegalText {
                 "The app is provided \"as is\", without warranties of any kind. The provider is " +
                 "not liable for any damages arising from use of the app, for the availability or " +
                 "functioning of the user's server, or for content obtained from that server.",
-            "Contact" to "juraj.chudy@outlook.com"
+            "Contact" to "support@headentclient.com"
         )
     )
 }
