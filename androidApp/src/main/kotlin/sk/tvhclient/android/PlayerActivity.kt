@@ -1536,8 +1536,9 @@ private fun PlayerUi(
                 // Zamok orientacie + ovladania (hlavne pre telefony)
                 CircleButton(
                     label = "\uD83D\uDD12", selected = false, scale = 0.62f,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 4.dp, end = 4.dp)
-                ) { orientationLocked = true; controlsVisible = false; onOrientationLockChange(true) }
+                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 4.dp, end = 4.dp),
+                    onClick = { orientationLocked = true; controlsVisible = false; onOrientationLockChange(true) }
+                )
                 val order = playerControlOrder(onPrevChannel != null, seekable, pipSupported)
                 val selCtrl = order.getOrNull(controlNavIndex)
                 val curCh = liveChannels.getOrNull(liveCurrentIndex)
@@ -1837,8 +1838,9 @@ private fun PlayerUi(
             Box(Modifier.fillMaxSize().systemBarsPadding()) {
                 CircleButton(
                     label = "\uD83D\uDD13", selected = false, scale = 0.7f,
-                    modifier = Modifier.align(Alignment.CenterStart).padding(start = 16.dp)
-                ) { orientationLocked = false; onOrientationLockChange(false) }
+                    modifier = Modifier.align(Alignment.CenterStart).padding(start = 16.dp),
+                    onClick = { orientationLocked = false; onOrientationLockChange(false) }
+                )
             }
         }
 
