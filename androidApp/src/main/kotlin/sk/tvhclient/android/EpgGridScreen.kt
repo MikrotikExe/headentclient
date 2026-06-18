@@ -693,12 +693,14 @@ private fun EpgGridRow(
                         title = ev.title.ifBlank { "—" },
                         timeLabel = formatTimeHm(ev.start) + " - " + formatTimeHm(ev.stop),
                         bg = when {
-                            isNow -> MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+                            isNow -> MaterialTheme.colorScheme.primaryContainer
                             isPast -> if (isLightTheme()) Color(0x0F000000) else Color(0x14FFFFFF)
                             else -> if (isLightTheme()) Color(0x1F000000) else Color(0x22FFFFFF)
                         },
                         recorded = false,
-                        progressMin = if (isNow) ((now - ev.start) / 60).toInt() else 0,
+                        progressMin = 0,
+                        fg = if (isNow) MaterialTheme.colorScheme.onPrimaryContainer else null,
+                        fgDim = if (isNow) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f) else null,
                         onClick = { onClick(ev) },
                         onFocused = { onFocusDetail(GridDetail.Epg(row, ev)) }
                     )
@@ -732,9 +734,13 @@ private fun GridBlock(
     progressMin: Int = 0,
     progressColor: Color? = null,
     prefix: String? = null,
+    fg: Color? = null,
+    fgDim: Color? = null,
     onClick: () -> Unit,
     onFocused: () -> Unit = {}
 ) {
+    val titleColor = fg ?: MaterialTheme.colorScheme.onSurface
+    val timeColor = fgDim ?: MaterialTheme.colorScheme.onSurfaceVariant
     val wMin = endMin - startMin
     if (wMin <= 0) return
     Box(
@@ -761,14 +767,14 @@ private fun GridBlock(
             Text(
                 (prefix ?: if (recorded) "\u25B6 " else "") + title,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = titleColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 timeLabel,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = timeColor,
                 maxLines = 1
             )
         }

@@ -49,6 +49,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.SideEffect
+import androidx.core.view.WindowCompat
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
@@ -94,6 +98,19 @@ class MainActivity : ComponentActivity() {
                 else -> isSystemInDarkTheme()
             }
             MaterialTheme(colorScheme = if (dark) darkColorScheme() else lightColorScheme()) {
+                val view = LocalView.current
+                val barColor = MaterialTheme.colorScheme.surface
+                if (!view.isInEditMode) {
+                    SideEffect {
+                        val window = (view.context as android.app.Activity).window
+                        window.statusBarColor = barColor.toArgb()
+                        window.navigationBarColor = barColor.toArgb()
+                        WindowCompat.getInsetsController(window, view).apply {
+                            isAppearanceLightStatusBars = !dark
+                            isAppearanceLightNavigationBars = !dark
+                        }
+                    }
+                }
                 App()
             }
         }
