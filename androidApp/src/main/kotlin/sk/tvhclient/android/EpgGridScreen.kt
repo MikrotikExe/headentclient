@@ -611,7 +611,9 @@ private fun EpgGridRow(
     Row(Modifier.height(ROW_H.dp)) {
         // Picon stlpec (fixny)
         Box(
-            Modifier.width(PICON_COL.dp).height(ROW_H.dp).padding(4.dp),
+            Modifier.width(PICON_COL.dp).height(ROW_H.dp).padding(4.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(piconBackground()),
             contentAlignment = Alignment.Center
         ) {
             if (row.piconUrl != null) {
@@ -620,7 +622,7 @@ private fun EpgGridRow(
                     contentDescription = row.channel.name,
                     imageLoader = loader,
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize().padding(3.dp)
                 )
             } else {
                 Text(
