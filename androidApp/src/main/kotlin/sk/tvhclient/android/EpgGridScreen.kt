@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -650,7 +651,7 @@ private fun EpgGridRow(
                         endMin = endMin,
                         title = rec.title,
                         timeLabel = formatTimeHm(rec.start) + " - " + formatTimeHm(rec.stop),
-                        bg = Color(0x3366BB6A),       // zelenkavy = nahrate, da sa prehrat
+                        bg = Color(0x5C43A047),       // zelena = nahrate, da sa prehrat
                         recorded = true,
                         onClick = { onDvr(rec) },
                         onFocused = { onFocusDetail(GridDetail.Dvr(rec)) }
@@ -693,12 +694,13 @@ private fun EpgGridRow(
                         title = ev.title.ifBlank { "—" },
                         timeLabel = formatTimeHm(ev.start) + " - " + formatTimeHm(ev.stop),
                         bg = when {
-                            isNow -> MaterialTheme.colorScheme.primaryContainer
+                            isNow -> lerp(MaterialTheme.colorScheme.primaryContainer, Color.Black, 0.38f)
                             isPast -> if (isLightTheme()) Color(0x0F000000) else Color(0x14FFFFFF)
                             else -> if (isLightTheme()) Color(0x1F000000) else Color(0x22FFFFFF)
                         },
                         recorded = false,
-                        progressMin = 0,
+                        progressMin = if (isNow) ((now - ev.start) / 60).toInt() else 0,
+                        progressColor = if (isNow) MaterialTheme.colorScheme.primaryContainer else null,
                         fg = if (isNow) MaterialTheme.colorScheme.onPrimaryContainer else null,
                         fgDim = if (isNow) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f) else null,
                         onClick = { onClick(ev) },
