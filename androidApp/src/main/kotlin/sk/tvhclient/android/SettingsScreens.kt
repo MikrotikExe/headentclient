@@ -197,6 +197,28 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         }
     )
 
+    // Tema overlay-u prehravaca (samostatne od temy aplikacie)
+    Spacer(Modifier.height(16.dp))
+    var playerTheme by remember { mutableStateOf(PlayerThemePref.get(ctx)) }
+    val playerThemeLabel: @Composable (String) -> String = { v ->
+        when (v) {
+            PlayerThemePref.LIGHT -> stringResource(R.string.theme_light)
+            PlayerThemePref.DARK -> stringResource(R.string.theme_dark)
+            else -> stringResource(R.string.theme_auto)
+        }
+    }
+    DropdownField(
+        label = stringResource(R.string.player_theme_title),
+        value = playerTheme,
+        options = PlayerThemePref.options,
+        optionLabel = playerThemeLabel,
+        onSelect = { v ->
+            playerTheme = v
+            PlayerThemePref.set(ctx, v)
+            TabController.settingsDirty.value = true
+        }
+    )
+
     // Automaticky PiP rezim (len zariadenia s podporou PiP - telefony/tablety)
     if (ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
         Spacer(Modifier.height(16.dp))

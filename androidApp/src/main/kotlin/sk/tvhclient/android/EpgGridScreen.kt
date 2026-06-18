@@ -665,8 +665,10 @@ private fun EpgGridRow(
                         endMin = endMin,
                         title = rec.title,
                         timeLabel = formatTimeHm(rec.start) + " - " + formatTimeHm(rec.stop),
-                        bg = Color(0x33EF5350),       // cervenkavy = prave sa nahrava
+                        bg = Color(0x2EEF5350),       // svetlejsia = este sa nenahralo (za ciarou)
                         recorded = false,
+                        progressMin = ((now - rec.start) / 60).toInt(),
+                        progressColor = Color(0x80EF5350),  // tmavsia = uz nahrate (pred ciarou)
                         prefix = "\u25CF ",
                         onClick = { onInProgress(rec) },
                         onFocused = { onFocusDetail(GridDetail.InProgress(row, rec)) }
@@ -726,6 +728,7 @@ private fun GridBlock(
     bg: Color,
     recorded: Boolean,
     progressMin: Int = 0,
+    progressColor: Color? = null,
     prefix: String? = null,
     onClick: () -> Unit,
     onFocused: () -> Unit = {}
@@ -743,13 +746,13 @@ private fun GridBlock(
             .onFocusEvent { if (it.isFocused) onFocused() }
             .clickable { onClick() }
     ) {
-        // Live priebeh (svetlejsia vypln zlava) pre bezzhiacu relaciu
+        // Priebeh zlava: pri zivej relacii svetlejsia primarna, pri nahravke tmavsia cervena
         if (progressMin > 0) {
             Box(
                 Modifier
                     .width((progressMin.coerceAtMost(wMin) * PX_PER_MIN).dp)
                     .height(ROW_H.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
+                    .background(progressColor ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
             )
         }
         Column(Modifier.padding(horizontal = 6.dp, vertical = 4.dp)) {

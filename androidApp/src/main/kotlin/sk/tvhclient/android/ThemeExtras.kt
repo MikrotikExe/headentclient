@@ -17,3 +17,19 @@ fun isLightTheme(): Boolean = MaterialTheme.colorScheme.surface.luminance() > 0.
 @Composable
 fun piconBackground(): Color =
     if (isLightTheme()) Color(0xFFB4B9C0) else Color(0x22FFFFFF)
+
+// --- Farby overlay-u prehravaca ---
+// V tmavom rezime vracaju presne povodne hodnoty (vizualne nezmenene),
+// vo svetlom rezime tmavy text / svetle panely (citatelne nad videom).
+@Composable fun playerFg(): Color =
+    if (isLightTheme()) Color(0xDE000000) else Color.White
+@Composable fun playerFgDim(): Color =
+    if (isLightTheme()) Color(0x99000000) else Color(0xCCFFFFFF)
+@Composable fun playerFgFaint(): Color =
+    if (isLightTheme()) Color(0x66000000) else Color(0x99FFFFFF)
+@Composable fun playerTrack(): Color =
+    if (isLightTheme()) Color(0x33000000) else Color(0x55FFFFFF)
+@Composable fun playerScrim(): Color =
+    if (isLightTheme()) Color(0xF2F2F2F6) else Color(0xE6000000)
+@Composable fun playerScrimSoft(): Color =
+    if (isLightTheme()) Color(0xC0F2F2F6) else Color(0x99000000)

@@ -246,6 +246,7 @@
     <string name="theme_auto">Automaticky (systém)</string>
     <string name="theme_light">Svetlá</string>
     <string name="theme_dark">Tmavá</string>
+    <string name="player_theme_title">Téma prehrávača</string>
     <string name="orient_title">Predvolené otáčanie obrazovky</string>
     <string name="orient_auto">Automaticky</string>
     <string name="orient_landscape">Na šírku</string>

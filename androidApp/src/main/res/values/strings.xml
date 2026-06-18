@@ -246,6 +246,7 @@
     <string name="theme_auto">Automatic (system)</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
+    <string name="player_theme_title">Player theme</string>
     <string name="orient_title">Default screen rotation</string>
     <string name="orient_auto">Automatic</string>
     <string name="orient_landscape">Landscape</string>

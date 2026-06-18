@@ -46,6 +46,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -895,6 +898,15 @@ class PlayerActivity : ComponentActivity() {
         currentStreamUrl = streamUrl
 
         setContent {
+            val pThemeMode = PlayerThemePref.stateOf(this).value
+            val pDark = when (pThemeMode) {
+                PlayerThemePref.DARK -> true
+                PlayerThemePref.LIGHT -> false
+                else -> isSystemInDarkTheme()
+            }
+            MaterialTheme(
+                colorScheme = if (pDark) darkColorScheme() else lightColorScheme()
+            ) {
             PlayerUi(
                 title = liveTitleState.value,
                 player = mediaPlayer,
@@ -982,6 +994,7 @@ class PlayerActivity : ComponentActivity() {
                 zapPoke = zapPokeState.value,
                 onClose = { if (!autoPipIfPossible()) finish() }
             )
+            }
         }
     }
 
@@ -1552,7 +1565,7 @@ private fun PlayerUi(
                                 .clip(RoundedCornerShape(side.value.dp * 0.12f))
                                 .background(
                                     androidx.compose.ui.graphics.Brush.verticalGradient(
-                                        listOf(Color(0x33FFFFFF), Color(0x11FFFFFF))
+                                        listOf(playerTrack(), playerTrack())
                                     )
                                 ),
                             contentAlignment = Alignment.Center
@@ -1560,7 +1573,7 @@ private fun PlayerUi(
                             androidx.compose.material3.Icon(
                                 Icons.Default.Radio,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = playerFg(),
                                 modifier = Modifier.size(side * 0.42f)
                             )
                         }
@@ -1573,11 +1586,11 @@ private fun PlayerUi(
         if (reconnecting) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    androidx.compose.material3.CircularProgressIndicator(color = Color.White)
+                    androidx.compose.material3.CircularProgressIndicator(color = playerFg())
                     Spacer(Modifier.height(12.dp))
                     Text(
                         stringResource(R.string.reconnecting),
-                        color = Color.White,
+                        color = playerFg(),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -1591,10 +1604,10 @@ private fun PlayerUi(
                     .align(Alignment.TopCenter)
                     .padding(top = 40.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xCC000000))
+                    .background(playerScrim())
                     .padding(horizontal = 28.dp, vertical = 14.dp)
             ) {
-                Text(numberEntry, color = Color.White, fontSize = 48.sp)
+                Text(numberEntry, color = playerFg(), fontSize = 48.sp)
             }
         }
 
@@ -1635,7 +1648,7 @@ private fun PlayerUi(
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .background(Color(0xE6000000))
+                            .background(playerScrim())
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
                     Row(verticalAlignment = Alignment.Top) {
@@ -1648,7 +1661,7 @@ private fun PlayerUi(
                             if ((curCh?.number ?: 0) > 0) {
                                 Text(
                                     "${curCh?.number}",
-                                    color = Color.White,
+                                    color = playerFg(),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = (24 * k).sp
                                 )
@@ -1665,7 +1678,7 @@ private fun PlayerUi(
                             }
                             Text(
                                 title,
-                                color = Color(0xCCFFFFFF),
+                                color = playerFgDim(),
                                 fontSize = (11 * k).sp,
                                 maxLines = 1,
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
@@ -1680,7 +1693,7 @@ private fun PlayerUi(
                             if (headline.isNotBlank()) {
                                 Text(
                                     headline,
-                                    color = Color.White,
+                                    color = playerFg(),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = (16 * k).sp,
                                     maxLines = if (seekable) 2 else 1,
@@ -1691,7 +1704,7 @@ private fun PlayerUi(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         clock(progStart) + " \u2013 " + clock(progStop),
-                                        color = Color(0xCCFFFFFF),
+                                        color = playerFgDim(),
                                         fontSize = (12 * k).sp,
                                         maxLines = 1,
                                         softWrap = false
@@ -1701,11 +1714,11 @@ private fun PlayerUi(
                                         modifier = (if (portrait) Modifier.weight(1f)
                                                     else Modifier.width((90 * k).dp))
                                             .padding(horizontal = 8.dp),
-                                        trackColor = Color(0x55FFFFFF)
+                                        trackColor = playerTrack()
                                     )
                                     Text(
                                         "$remainMin min",
-                                        color = Color(0xCCFFFFFF),
+                                        color = playerFgDim(),
                                         fontSize = (12 * k).sp,
                                         maxLines = 1,
                                         softWrap = false
@@ -1715,7 +1728,7 @@ private fun PlayerUi(
                             if (progDesc.isNotBlank()) {
                                 Text(
                                     progDesc,
-                                    color = Color(0xBBFFFFFF),
+                                    color = playerFgDim(),
                                     fontSize = (12 * k).sp,
                                     maxLines = 1,
                                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
@@ -1724,7 +1737,7 @@ private fun PlayerUi(
                             if (nextTitle.isNotBlank()) {
                                 Text(
                                     clock(nextStart) + " \u2013 " + clock(nextStop) + "  " + nextTitle,
-                                    color = Color(0x99FFFFFF),
+                                    color = playerFgFaint(),
                                     fontSize = (12 * k).sp,
                                     maxLines = 1,
                                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
@@ -1735,7 +1748,7 @@ private fun PlayerUi(
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
                                 dateTime,
-                                color = Color(0xCCFFFFFF),
+                                color = playerFgDim(),
                                 fontSize = (12 * k).sp,
                                 maxLines = 1,
                                 softWrap = false
@@ -1768,12 +1781,12 @@ private fun PlayerUi(
                             .clip(RoundedCornerShape(8.dp))
                                 .then(
                                     if (seekFocused) Modifier.border(
-                                        2.dp, Color.White, RoundedCornerShape(8.dp)
+                                        2.dp, playerFg(), RoundedCornerShape(8.dp)
                                     ) else Modifier
                                 )
                                 .padding(horizontal = 4.dp)
                         ) {
-                            Text(fmtMs(cur), color = Color.White,
+                            Text(fmtMs(cur), color = playerFg(),
                                 style = MaterialTheme.typography.bodySmall)
                             Box(
                                 modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
@@ -1812,7 +1825,7 @@ private fun PlayerUi(
                                     }
                                 }
                             }
-                            Text(fmtMs(lengthMs), color = Color.White,
+                            Text(fmtMs(lengthMs), color = playerFg(),
                                 style = MaterialTheme.typography.bodySmall)
                         }
                     }
@@ -1966,12 +1979,12 @@ private fun PlayerUi(
             Box(
                 Modifier
                     .fillMaxSize()
-                    .background(Color(0xCC000000))
+                    .background(playerScrim())
                     .clickable { showInfo = false },
                 contentAlignment = Alignment.Center
             ) {
                 androidx.compose.material3.Surface(
-                    color = Color(0xF21C1C1C),
+                    color = playerScrim(),
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth(0.72f)
                 ) {
@@ -1995,7 +2008,7 @@ private fun PlayerUi(
                                 }
                                 Text(
                                     infoCh.name,
-                                    color = Color(0xCCFFFFFF),
+                                    color = playerFgDim(),
                                     fontSize = 15.sp,
                                     maxLines = 1,
                                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
@@ -2005,13 +2018,13 @@ private fun PlayerUi(
                         }
                         Text(
                             progTitle.ifBlank { title },
-                            color = Color.White,
+                            color = playerFg(),
                             fontWeight = FontWeight.Bold,
                             fontSize = 22.sp
                         )
                         if (tRange.isNotBlank()) {
                             Spacer(Modifier.height(6.dp))
-                            Text(tRange, color = Color(0xCCFFFFFF), fontSize = 15.sp)
+                            Text(tRange, color = playerFgDim(), fontSize = 15.sp)
                         }
                         // priebeh + zostavajuci cas (len zive vysielanie)
                         if (!seekable && progStart > 0 && progStop > progStart) {
@@ -2023,14 +2036,14 @@ private fun PlayerUi(
                             androidx.compose.material3.LinearProgressIndicator(
                                 progress = { fracI },
                                 modifier = Modifier.fillMaxWidth().height(4.dp),
-                                trackColor = Color(0x55FFFFFF)
+                                trackColor = playerTrack()
                             )
                             Spacer(Modifier.height(6.dp))
-                            Text(stringResource(R.string.time_remaining, remainI), color = Color(0x99FFFFFF), fontSize = 13.sp)
+                            Text(stringResource(R.string.time_remaining, remainI), color = playerFgFaint(), fontSize = 13.sp)
                         }
                         if (progDesc.isNotBlank()) {
                             Spacer(Modifier.height(14.dp))
-                            Text(progDesc, color = Color(0xDDFFFFFF), fontSize = 16.sp, lineHeight = 22.sp)
+                            Text(progDesc, color = playerFgDim(), fontSize = 16.sp, lineHeight = 22.sp)
                         }
                         if (nextTitle.isNotBlank()) {
                             Spacer(Modifier.height(16.dp))
@@ -2042,7 +2055,7 @@ private fun PlayerUi(
                             }
                             Text(
                                 "Nasleduje: " + nr + nextTitle,
-                                color = Color(0x99FFFFFF),
+                                color = playerFgFaint(),
                                 fontSize = 14.sp
                             )
                         }
@@ -2074,7 +2087,7 @@ private fun PlayerUi(
                     Modifier
                         .fillMaxHeight()
                         .fillMaxWidth(0.52f)
-                        .background(Color(0xDD0A0A0A))
+                        .background(playerScrim())
                 ) {
                     Row(
                         Modifier
@@ -2083,11 +2096,11 @@ private fun PlayerUi(
                             .padding(horizontal = 12.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("\u2039", color = Color.White, fontSize = 24.sp)
+                        Text("\u2039", color = playerFg(), fontSize = 24.sp)
                         Spacer(Modifier.width(10.dp))
                         Text(
                             androidx.compose.ui.res.stringResource(R.string.player_channel_list),
-                            color = Color.White,
+                            color = playerFg(),
                             style = MaterialTheme.typography.titleMedium
                         )
                     }
@@ -2104,7 +2117,7 @@ private fun PlayerUi(
                             ) {
                                 Text(
                                     if (ch.number > 0) ch.number.toString() else "",
-                                    color = if (selected) Color.White else Color(0xFF6699FF),
+                                    color = if (selected) playerFg() else Color(0xFF6699FF),
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.width(34.dp)
                                 )
@@ -2125,14 +2138,14 @@ private fun PlayerUi(
                                 Column(Modifier.weight(1f)) {
                                     Text(
                                         ch.name,
-                                        color = Color.White,
+                                        color = playerFg(),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                     if (ch.nowTitle.isNotBlank()) {
                                         Text(
                                             ch.nowTitle,
-                                            color = Color(0xCCFFFFFF),
+                                            color = playerFgDim(),
                                             style = MaterialTheme.typography.bodySmall,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
@@ -2146,7 +2159,7 @@ private fun PlayerUi(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .padding(top = 4.dp),
-                                                trackColor = Color(0x55FFFFFF)
+                                                trackColor = playerTrack()
                                             )
                                         }
                                     }
@@ -2177,7 +2190,7 @@ private fun PlayerUi(
             Box(
                 Modifier
                     .fillMaxSize()
-                    .background(Color(0x99000000))
+                    .background(playerScrimSoft())
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -2188,12 +2201,12 @@ private fun PlayerUi(
                     Modifier
                         .widthIn(min = 300.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xEE202020))
+                        .background(playerScrim())
                         .padding(8.dp)
                 ) {
                     Text(
                         stringResource(R.string.sleep_timer),
-                        color = Color.White,
+                        color = playerFg(),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(12.dp)
                     )
@@ -2208,7 +2221,7 @@ private fun PlayerUi(
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(label, color = Color.White)
+                            Text(label, color = playerFg())
                         }
                     }
                 }
@@ -2249,7 +2262,7 @@ private fun PlayerUi(
             Box(
                 Modifier
                     .fillMaxSize()
-                    .background(Color(0xAA000000))
+                    .background(playerScrimSoft())
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -2260,17 +2273,17 @@ private fun PlayerUi(
                     Modifier
                         .widthIn(min = 260.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xEE202020))
+                        .background(playerScrim())
                         .padding(20.dp)
                 ) {
                     Text(
                         androidx.compose.ui.res.stringResource(R.string.resume_question),
-                        color = Color.White,
+                        color = playerFg(),
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
                         fmtMs(resumeMs),
-                        color = Color(0xCCFFFFFF),
+                        color = playerFgDim(),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -2294,13 +2307,13 @@ private fun PlayerUi(
         // Rodicovsky zamok: zadanie PIN (cislice z dialkoveho riesi Activity)
         if (pinPrompt) {
             Box(
-                Modifier.fillMaxSize().background(Color(0xCC000000)),
+                Modifier.fillMaxSize().background(playerScrim()),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         androidx.compose.ui.res.stringResource(R.string.plock_enter),
-                        color = Color.White,
+                        color = playerFg(),
                         style = MaterialTheme.typography.titleLarge
                     )
                     Spacer(Modifier.height(20.dp))
@@ -2308,7 +2321,7 @@ private fun PlayerUi(
                         repeat(4) { i ->
                             Box(
                                 Modifier.size(20.dp).clip(CircleShape).background(
-                                    if (i < pinLen) Color(0xFF3B82F6) else Color(0x44FFFFFF)
+                                    if (i < pinLen) Color(0xFF3B82F6) else playerTrack()
                                 )
                             )
                         }
@@ -2323,7 +2336,7 @@ private fun PlayerUi(
                     Spacer(Modifier.height(16.dp))
                     Text(
                         androidx.compose.ui.res.stringResource(R.string.plock_hint),
-                        color = Color(0xAAFFFFFF),
+                        color = playerFgDim(),
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
