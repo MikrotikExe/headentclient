@@ -167,6 +167,7 @@ internal fun CircleButton(
     selected: Boolean = false,
     active: Boolean = false,
     scale: Float = 1f,
+    labelScale: Float = 1f,
     modifier: Modifier = Modifier
 ) {
     val s = (if (big) 76 else 44).dp * scale
@@ -189,7 +190,7 @@ internal fun CircleButton(
             label,
             color = Color.White,
             textAlign = TextAlign.Center,
-            fontSize = (if (big) 34f else 20f).sp * scale
+            fontSize = (if (big) 34f else 20f).sp * scale * labelScale
         )
     }
 }

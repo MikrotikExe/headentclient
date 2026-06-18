@@ -148,6 +148,8 @@ class PlayerActivity : ComponentActivity() {
     private fun toggleInfo() { infoPokeState.value = infoPokeState.value + 1 }
     // EPG kláves / tlacidlo -> otvor TV program (mriezku) v hlavnej aplikacii
     private fun openEpgInApp() {
+        // na telefonoch: vstup do PiP, aby video bezalo v plavajucom okne nad EPG
+        autoPipIfPossible()
         val i = android.content.Intent(this, MainActivity::class.java).apply {
             putExtra("open_epg", true)
             // zapamataj aktualny zivy kanal, nech BACK z EPG vrati do prehravaca nan
@@ -959,7 +961,7 @@ class PlayerActivity : ComponentActivity() {
                 progNextStart = liveNextStartState.value,
                 progNextStop = liveNextStopState.value,
                 zapPoke = zapPokeState.value,
-                onClose = { finish() }
+                onClose = { if (!autoPipIfPossible()) finish() }
             )
         }
     }
@@ -992,6 +994,21 @@ class PlayerActivity : ComponentActivity() {
         ) {
             runCatching { enterPictureInPictureMode(buildPipParams()) }
         }
+    }
+
+    /**
+     * Auto-PiP pri navigacii v ramci appky (EPG / navrat domov).
+     * Vstupi do PiP len na telefonoch (pipSupported), ak hra a este nie je v PiP.
+     * Vrati true, ak presiel do PiP (volajuci moze podla toho preskocit finish()).
+     */
+    private fun autoPipIfPossible(): Boolean {
+        if (pipSupported && isPlayingState.value &&
+            !(android.os.Build.VERSION.SDK_INT >= 24 && isInPictureInPictureMode)
+        ) {
+            enterPipIfPossible()
+            return android.os.Build.VERSION.SDK_INT >= 24 && isInPictureInPictureMode
+        }
+        return false
     }
 
     // aktualizuj ikonu play/pauza v PiP podla skutocneho stavu prehravania
@@ -1396,6 +1413,11 @@ private fun PlayerUi(
         }
     }
 
+    // telefon: BACK z cisteho prehravania -> PiP (odkryje domovsku obrazovku), nie ukoncenie.
+    // skomponovany ako prvy => ma najnizsiu prioritu, specifickejsie handlery nizsie maju prednost.
+    androidx.activity.compose.BackHandler(
+        enabled = pipSupported && playing && !controlsVisible && menu == null && !showChannelList && !showOptions
+    ) { onEnterPip() }
     androidx.activity.compose.BackHandler(enabled = showChannelList) { showChannelList = false }
     androidx.activity.compose.BackHandler(enabled = menu != null) { menu = null }
     androidx.activity.compose.BackHandler(
@@ -1549,7 +1571,9 @@ private fun PlayerUi(
                 // skalovanie podla rozlisenia boxu (kompaktny, citatelny pruh)
                 val cfg = androidx.compose.ui.platform.LocalConfiguration.current
                 val k = (cfg.screenWidthDp / 640f).coerceIn(0.9f, 1.25f)
-                val portrait = cfg.screenHeightDp >= cfg.screenWidthDp
+                // pouzi sirkovy breakpoint (nie height>=width): siroke obrazovky (landscape/TV/tablet)
+                // dostanu konzistentne landscape layout, uzke (telefon na vysku) kompaktny
+                val portrait = cfg.screenWidthDp < 600
 
                 // Jeden spolocny info+ovladaci pruh dole
                 Column(
@@ -1752,7 +1776,7 @@ private fun PlayerUi(
                                 onClick = onOpenSleep
                             )
                             "audio" -> CircleButton(
-                                label = "\u266A", selected = selCtrl == "audio", scale = bk,
+                                label = "\u266A", selected = selCtrl == "audio", scale = bk, labelScale = 1.4f,
                                 onClick = { menu = if (menu == "audio") null else "audio" }
                             )
                             "subs" -> CircleButton(
