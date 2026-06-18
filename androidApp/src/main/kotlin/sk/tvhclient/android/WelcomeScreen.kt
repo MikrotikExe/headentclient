@@ -152,9 +152,19 @@ fun WelcomeScreen(vm: ServersViewModel) {
         // V prihlaseni nezobrazuj technicku verziu/API; pocas pripajania aj po uspesnom
         // teste (kym sa vojde do appky) ukaz "Prihlasenie prebieha". Chyby zobraz cez TestResultView.
         when (val st = testState) {
-            is TestState.Running -> Text(stringResource(R.string.login_in_progress))
+            is TestState.Running -> Text(
+                stringResource(R.string.login_in_progress),
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
+            )
             is TestState.Done -> if (st.result is ConnectionResult.Success) {
-                Text(stringResource(R.string.login_in_progress))
+                Text(
+                    stringResource(R.string.login_in_progress),
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
             } else {
                 TestResultView(testState)
             }
