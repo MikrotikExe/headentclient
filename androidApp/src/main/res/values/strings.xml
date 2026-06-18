@@ -247,4 +247,6 @@
     <string name="orient_landscape">Landscape</string>
     <string name="orient_portrait">Portrait</string>
     <string name="welcome_tagline">Tvheadend client app</string>
+    <string name="login_in_progress">Logging in…</string>
+    <string name="auto_pip_title">Automatic picture-in-picture</string>
 </resources>

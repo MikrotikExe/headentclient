@@ -16,15 +16,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.LiveTv
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,7 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import sk.tvhclient.shared.api.ConnectionResult
 import sk.tvhclient.shared.model.TvhServer
@@ -53,7 +47,6 @@ fun WelcomeScreen(vm: ServersViewModel) {
     var host by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var showPw by remember { mutableStateOf(false) }
     var advanced by remember { mutableStateOf(false) }
     // pokrocile
     var name by remember { mutableStateOf("") }
@@ -120,37 +113,26 @@ fun WelcomeScreen(vm: ServersViewModel) {
         )
         Spacer(Modifier.height(36.dp))
 
-        OutlinedTextField(
-            value = host, onValueChange = { host = it; localError = false },
-            label = { Text(stringResource(R.string.field_host)) },
-            leadingIcon = { androidx.compose.material3.Icon(Icons.Default.Dns, null) },
-            singleLine = true, modifier = Modifier.fillMaxWidth()
+        TvTextField(
+            label = stringResource(R.string.field_host),
+            value = host,
+            onValueChange = { host = it; localError = false },
+            modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(10.dp))
-        OutlinedTextField(
-            value = username, onValueChange = { username = it },
-            label = { Text(stringResource(R.string.field_username)) },
-            leadingIcon = { androidx.compose.material3.Icon(Icons.Default.Person, null) },
-            singleLine = true, modifier = Modifier.fillMaxWidth()
+        TvTextField(
+            label = stringResource(R.string.field_username),
+            value = username,
+            onValueChange = { username = it },
+            modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(10.dp))
-        OutlinedTextField(
-            value = password, onValueChange = { password = it },
-            label = { Text(stringResource(R.string.field_password)) },
-            leadingIcon = { androidx.compose.material3.Icon(Icons.Default.Lock, null) },
-            trailingIcon = {
-                androidx.compose.material3.IconButton(onClick = { showPw = !showPw }) {
-                    androidx.compose.material3.Icon(
-                        if (showPw) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = stringResource(
-                            if (showPw) R.string.hide_password else R.string.show_password
-                        )
-                    )
-                }
-            },
-            visualTransformation = if (showPw) androidx.compose.ui.text.input.VisualTransformation.None
-            else PasswordVisualTransformation(),
-            singleLine = true, modifier = Modifier.fillMaxWidth()
+        TvTextField(
+            label = stringResource(R.string.field_password),
+            value = password,
+            onValueChange = { password = it },
+            password = true,
+            modifier = Modifier.fillMaxWidth()
         )
 
         if (localError) {
@@ -163,7 +145,17 @@ fun WelcomeScreen(vm: ServersViewModel) {
         }
 
         Spacer(Modifier.height(12.dp))
-        TestResultView(testState)
+        // V prihlaseni nezobrazuj technicku verziu/API; pocas pripajania aj po uspesnom
+        // teste (kym sa vojde do appky) ukaz "Prihlasenie prebieha". Chyby zobraz cez TestResultView.
+        when (val st = testState) {
+            is TestState.Running -> Text(stringResource(R.string.login_in_progress))
+            is TestState.Done -> if (st.result is ConnectionResult.Success) {
+                Text(stringResource(R.string.login_in_progress))
+            } else {
+                TestResultView(testState)
+            }
+            else -> {}
+        }
         Spacer(Modifier.height(12.dp))
 
         Button(
@@ -192,7 +184,15 @@ fun WelcomeScreen(vm: ServersViewModel) {
             enabled = testState !is TestState.Running,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(stringResource(R.string.login_connect))
+            if (testState is TestState.Running) {
+                CircularProgressIndicator(
+                    modifier = Modifier.width(22.dp).height(22.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text(stringResource(R.string.login_connect))
+            }
         }
 
         Spacer(Modifier.height(16.dp))
@@ -202,16 +202,19 @@ fun WelcomeScreen(vm: ServersViewModel) {
 
         if (advanced) {
             Spacer(Modifier.height(4.dp))
-            OutlinedTextField(
-                value = name, onValueChange = { name = it },
-                label = { Text(stringResource(R.string.field_name)) },
-                singleLine = true, modifier = Modifier.fillMaxWidth()
+            TvTextField(
+                label = stringResource(R.string.field_name),
+                value = name,
+                onValueChange = { name = it },
+                modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(10.dp))
-            OutlinedTextField(
-                value = port, onValueChange = { port = it },
-                label = { Text(stringResource(R.string.field_port)) },
-                singleLine = true, modifier = Modifier.fillMaxWidth()
+            TvTextField(
+                label = stringResource(R.string.field_port),
+                value = port,
+                onValueChange = { port = it },
+                numeric = true,
+                modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(10.dp))
             DropdownField(
@@ -225,10 +228,12 @@ fun WelcomeScreen(vm: ServersViewModel) {
             ) { connMode = it }
             if (connMode == "htsp") {
                 Spacer(Modifier.height(10.dp))
-                OutlinedTextField(
-                    value = htspPort, onValueChange = { htspPort = it },
-                    label = { Text(stringResource(R.string.field_htsp_port)) },
-                    singleLine = true, modifier = Modifier.fillMaxWidth()
+                TvTextField(
+                    label = stringResource(R.string.field_htsp_port),
+                    value = htspPort,
+                    onValueChange = { htspPort = it },
+                    numeric = true,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
             Spacer(Modifier.height(10.dp))

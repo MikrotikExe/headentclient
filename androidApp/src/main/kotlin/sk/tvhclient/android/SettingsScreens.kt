@@ -175,6 +175,24 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
             TabController.settingsDirty.value = true
         }
     )
+
+    // Automaticky PiP rezim (len zariadenia s podporou PiP - telefony/tablety)
+    if (ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
+        Spacer(Modifier.height(16.dp))
+        var autoPip by remember { mutableStateOf(AutoPipPref.get(ctx)) }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(
+                checked = autoPip,
+                onCheckedChange = { on ->
+                    autoPip = on
+                    AutoPipPref.set(ctx, on)
+                    TabController.settingsDirty.value = true
+                }
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.auto_pip_title))
+        }
+    }
 }
 
 // --- Playlist: rodicovsky zamok (PIN) ---

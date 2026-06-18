@@ -1015,7 +1015,7 @@ class PlayerActivity : ComponentActivity() {
      * Vrati true, ak presiel do PiP (volajuci moze podla toho preskocit finish()).
      */
     private fun autoPipIfPossible(): Boolean {
-        if (pipSupported && isPlayingState.value &&
+        if (AutoPipPref.get(this) && pipSupported && isPlayingState.value &&
             android.os.Build.VERSION.SDK_INT >= 26 &&
             packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
             ::mediaPlayer.isInitialized &&
@@ -1117,7 +1117,7 @@ class PlayerActivity : ComponentActivity() {
         super.onUserLeaveHint()
         // Auto-PiP na telefonoch pri odchode z aplikacie.
         // TV boxy nemaju FEATURE_PICTURE_IN_PICTURE, takze pipSupported = telefon/tablet.
-        if (pipSupported && isPlayingState.value &&
+        if (AutoPipPref.get(this) && pipSupported && isPlayingState.value &&
             !(android.os.Build.VERSION.SDK_INT >= 24 && isInPictureInPictureMode)) {
             enterPipIfPossible()
         }
@@ -1454,8 +1454,10 @@ private fun PlayerUi(
 
     // telefon: BACK z cisteho prehravania -> PiP (odkryje domovsku obrazovku), nie ukoncenie.
     // skomponovany ako prvy => ma najnizsiu prioritu, specifickejsie handlery nizsie maju prednost.
+    // riadi sa nastavenim automatickeho PiP.
+    val autoPipEnabled = remember { AutoPipPref.get(ctx) }
     androidx.activity.compose.BackHandler(
-        enabled = pipSupported && playing && !controlsVisible && menu == null && !showChannelList && !showOptions
+        enabled = autoPipEnabled && pipSupported && playing && !controlsVisible && menu == null && !showChannelList && !showOptions
     ) { onEnterPip() }
     androidx.activity.compose.BackHandler(enabled = showChannelList) { showChannelList = false }
     androidx.activity.compose.BackHandler(enabled = menu != null) { menu = null }

@@ -247,4 +247,6 @@
     <string name="orient_landscape">Na šírku</string>
     <string name="orient_portrait">Na výšku</string>
     <string name="welcome_tagline">Aplikácia – klient pre Tvheadend</string>
+    <string name="login_in_progress">Prihlásenie prebieha…</string>
+    <string name="auto_pip_title">Automatický režim PiP</string>
 </resources>
