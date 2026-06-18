@@ -107,10 +107,16 @@ fun WelcomeScreen(vm: ServersViewModel) {
         }
         Spacer(Modifier.height(18.dp))
         Text(
-            "TVHeadend Client",
+            "Headent Client",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = Color.White
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            stringResource(R.string.welcome_tagline),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(36.dp))
 

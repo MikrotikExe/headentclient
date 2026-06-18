@@ -246,4 +246,5 @@
     <string name="orient_auto">Automaticky</string>
     <string name="orient_landscape">Na šířku</string>
     <string name="orient_portrait">Na výšku</string>
+    <string name="welcome_tagline">Aplikace – klient pro Tvheadend</string>
 </resources>
