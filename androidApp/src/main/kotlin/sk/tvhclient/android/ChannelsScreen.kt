@@ -633,7 +633,9 @@ private fun ChannelGrid(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
-                    Modifier.size(if (tiles) 64.dp else 72.dp, if (tiles) 44.dp else 48.dp),
+                    Modifier.size(if (tiles) 64.dp else 72.dp, if (tiles) 44.dp else 48.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(piconBackground()),
                     contentAlignment = Alignment.Center
                 ) {
                     if (row.piconUrl != null) {
@@ -807,7 +809,7 @@ private fun ChannelItem(
             modifier = Modifier
                 .size(56.dp, 40.dp)
                 .clip(RoundedCornerShape(4.dp))
-                .background(Color(0x22FFFFFF)),
+                .background(piconBackground()),
             contentAlignment = Alignment.Center
         ) {
             if (row.piconUrl != null) {

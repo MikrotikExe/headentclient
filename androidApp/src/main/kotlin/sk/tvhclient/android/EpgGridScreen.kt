@@ -690,8 +690,8 @@ private fun EpgGridRow(
                         timeLabel = formatTimeHm(ev.start) + " - " + formatTimeHm(ev.stop),
                         bg = when {
                             isNow -> MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
-                            isPast -> Color(0x14FFFFFF)   // minule = jemnejsie
-                            else -> Color(0x22FFFFFF)
+                            isPast -> if (isLightTheme()) Color(0x0F000000) else Color(0x14FFFFFF)
+                            else -> if (isLightTheme()) Color(0x1F000000) else Color(0x22FFFFFF)
                         },
                         recorded = false,
                         progressMin = if (isNow) ((now - ev.start) / 60).toInt() else 0,

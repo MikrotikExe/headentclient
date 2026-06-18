@@ -229,7 +229,9 @@ private fun RadioRow(
             .padding(horizontal = 4.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(Modifier.size(width = 56.dp, height = 40.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(width = 56.dp, height = 40.dp)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(4.dp))
+            .background(piconBackground()), contentAlignment = Alignment.Center) {
             if (row.piconUrl != null) {
                 AsyncImage(
                     model = ImageRequest.Builder(context).data(row.piconUrl).build(),
@@ -286,7 +288,7 @@ private fun RadioTile(
         Box(
             Modifier.fillMaxWidth().height(56.dp)
                 .clip(androidx.compose.foundation.shape.RoundedCornerShape(6.dp))
-                .background(androidx.compose.ui.graphics.Color(0x22FFFFFF)),
+                .background(piconBackground()),
             contentAlignment = Alignment.Center
         ) {
             if (row.piconUrl != null) {

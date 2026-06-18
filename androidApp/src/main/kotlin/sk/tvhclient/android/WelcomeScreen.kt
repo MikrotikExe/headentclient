@@ -1,6 +1,7 @@
 package sk.tvhclient.android
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Box
@@ -70,19 +71,22 @@ fun WelcomeScreen(vm: ServersViewModel) {
         }
     }
 
+    // Pozadie aj text podla temy (svetla/tmava). Prepinac temy je hore,
+    // lebo pred prihlasenim sa pouzivatel do nastaveni nedostane.
+    val bgColors = if (isLightTheme())
+        listOf(Color(0xFFEDEAF5), Color(0xFFF6F4FB), Color(0xFFFFFFFF))
+    else
+        listOf(Color(0xFF1B1430), Color(0xFF120F1A), Color(0xFF0C0B10))
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFF1B1430), Color(0xFF120F1A), Color(0xFF0C0B10))
-                )
-            )
+            .background(Brush.verticalGradient(bgColors))
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 32.dp),
+            .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(Modifier.height(40.dp))
+        ThemeSwitch(ctx)
+        Spacer(Modifier.height(24.dp))
         // Logo v jemnom zaoblenom rámiku
         Box(
             modifier = Modifier
@@ -103,7 +107,7 @@ fun WelcomeScreen(vm: ServersViewModel) {
             "Headent Client",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = Color.White
+            color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(Modifier.height(6.dp))
         Text(
@@ -270,3 +274,36 @@ fun WelcomeScreen(vm: ServersViewModel) {
     }
 }
 
+
+/** Kompaktny prepinac temy (Auto / svetla / tmava) — hore na prihlasovacej obrazovke. */
+@Composable
+private fun ThemeSwitch(ctx: android.content.Context) {
+    val mode = ThemePref.get(ctx)
+    Row(
+        modifier = Modifier
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+            .padding(3.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val items = listOf(
+            ThemePref.AUTO to "Auto",
+            ThemePref.LIGHT to "\u2600",   // slnko
+            ThemePref.DARK to "\u263D"     // mesiac
+        )
+        items.forEach { (m, glyph) ->
+            val sel = mode == m
+            Text(
+                glyph,
+                color = if (sel) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                    .background(if (sel) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .clickable { ThemePref.set(ctx, m) }
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
+            )
+        }
+    }
+}
