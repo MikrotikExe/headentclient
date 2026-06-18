@@ -242,4 +242,8 @@
     <string name="track_subtitles">Titulky</string>
     <string name="track_off">Vypnuto</string>
     <string name="track_none">Žádné stopy</string>
+    <string name="orient_title">Výchozí otáčení obrazovky</string>
+    <string name="orient_auto">Automaticky</string>
+    <string name="orient_landscape">Na šířku</string>
+    <string name="orient_portrait">Na výšku</string>
 </resources>

@@ -242,4 +242,8 @@
     <string name="track_subtitles">Subtitles</string>
     <string name="track_off">Off</string>
     <string name="track_none">No tracks</string>
+    <string name="orient_title">Default screen rotation</string>
+    <string name="orient_auto">Automatic</string>
+    <string name="orient_landscape">Landscape</string>
+    <string name="orient_portrait">Portrait</string>
 </resources>

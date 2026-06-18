@@ -153,6 +153,28 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
     DropdownField(stringResource(R.string.audio_pref_1), audio[0], audioOptions, audioLabels) { setSlot(0, it) }
     DropdownField(stringResource(R.string.audio_pref_2), audio[1], audioOptions, audioLabels) { setSlot(1, it) }
     DropdownField(stringResource(R.string.audio_pref_3), audio[2], audioOptions, audioLabels) { setSlot(2, it) }
+
+    // Predvolene otacanie obrazovky v prehravaci
+    Spacer(Modifier.height(16.dp))
+    var orient by remember { mutableStateOf(OrientationPref.get(ctx)) }
+    val orientLabel: @Composable (String) -> String = { v ->
+        when (v) {
+            OrientationPref.PORTRAIT -> stringResource(R.string.orient_portrait)
+            OrientationPref.LANDSCAPE -> stringResource(R.string.orient_landscape)
+            else -> stringResource(R.string.orient_auto)
+        }
+    }
+    DropdownField(
+        label = stringResource(R.string.orient_title),
+        value = orient,
+        options = OrientationPref.options,
+        optionLabel = orientLabel,
+        onSelect = { v ->
+            orient = v
+            OrientationPref.set(ctx, v)
+            TabController.settingsDirty.value = true
+        }
+    )
 }
 
 // --- Playlist: rodicovsky zamok (PIN) ---

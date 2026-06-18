@@ -764,6 +764,14 @@ class PlayerActivity : ComponentActivity() {
         // nech pri prepnuti kanala nezostane stara PiP visiet. Nova sa otvori na celu obrazovku.
         liveInstance?.get()?.let { old -> if (old !== this) runCatching { old.finish() } }
         liveInstance = java.lang.ref.WeakReference(this)
+        // predvolene otacanie obrazovky podla nastavenia (auto = fullUser ako v manifeste)
+        runCatching {
+            requestedOrientation = when (OrientationPref.get(this)) {
+                OrientationPref.PORTRAIT -> android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                OrientationPref.LANDSCAPE -> android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                else -> android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_USER
+            }
+        }
         remoteDebug = RemoteDebugPref.isEnabled(this)
         // Drz obrazovku zapnutu od startu prehravaca (setric/ambient na boxoch sa nesmie spustit)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -946,7 +954,7 @@ class PlayerActivity : ComponentActivity() {
                     runCatching {
                         requestedOrientation =
                             if (locked) android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LOCKED
-                            else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                            else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_USER
                     }
                 },
                 onPrevChannel = if (canZap) ({ switchLive(-1) }) else null,
@@ -1771,6 +1779,11 @@ private fun PlayerUi(
                     Spacer(Modifier.height((6 * k).dp))
                     // Tlacidla: zavriet, zoznam, prev, play, next, audio, titulky, sw
                     val bk = if (portrait) 0.95f else (0.78f * k)
+                    // tlacidlo zamku otacania ma zmysel len ked je orientacia automaticka;
+                    // pri pevnej orientacii (na vysku/sirku) ho skry
+                    val lockVisible = remember {
+                        pipSupported && OrientationPref.get(ctx) == OrientationPref.AUTO
+                    }
                     fun has(id: String) = order.contains(id)
                     // jedno tlacidlo podla id (zachytava okolity stav)
                     @Composable
@@ -1853,7 +1866,7 @@ private fun PlayerUi(
                                 barCtrl("audio")
                                 barCtrl("subs")
                                 barCtrl("sleep")
-                                if (pipSupported) barCtrl("lock")
+                                if (lockVisible) barCtrl("lock")
                             }
                         }
                     } else
@@ -1893,7 +1906,7 @@ private fun PlayerUi(
                             barCtrl("subs")
                             barCtrl("sleep")
                             barCtrl("info")
-                            if (pipSupported) barCtrl("lock")
+                            if (lockVisible) barCtrl("lock")
                         }
                     }
                 }
