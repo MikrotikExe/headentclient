@@ -36,6 +36,17 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import coil.compose.AsyncImage
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Radio
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.ClosedCaption
+import androidx.compose.material.icons.filled.PictureInPictureAlt
+import androidx.compose.material.icons.filled.Lock
 import coil.request.ImageRequest
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -1850,13 +1861,13 @@ private fun PlayerUi(
                     @Composable
                     fun barCtrl(c: String) {
                         when (c) {
-                            "close" -> CircleButton("\u2190", selected = selCtrl == "close", scale = bk, labelScale = 1.5f, onClick = onClose)
+                            "close" -> CircleButton(Icons.AutoMirrored.Filled.ArrowBack, selected = selCtrl == "close", scale = bk, onClick = onClose)
                             "list" -> CircleButton(
-                                label = "\u2630", selected = selCtrl == "list", scale = bk,
+                                icon = Icons.AutoMirrored.Filled.List, selected = selCtrl == "list", scale = bk,
                                 onClick = { showChannelList = true; controlsVisible = false }
                             )
                             "prev" -> if (onPrevChannel != null) CircleButton(
-                                label = "\u23EE", selected = selCtrl == "prev", scale = bk, onClick = onPrevChannel
+                                icon = Icons.Default.SkipPrevious, selected = selCtrl == "prev", scale = bk, onClick = onPrevChannel
                             )
                             "play" -> PlayPauseButton(
                                 isPlaying = isPlaying,
@@ -1868,32 +1879,32 @@ private fun PlayerUi(
                                 }
                             )
                             "next" -> if (onNextChannel != null) CircleButton(
-                                label = "\u23ED", selected = selCtrl == "next", scale = bk, onClick = onNextChannel
+                                icon = Icons.Default.SkipNext, selected = selCtrl == "next", scale = bk, onClick = onNextChannel
                             )
                             "epg" -> CircleButton(
-                                label = "\u25A6", selected = selCtrl == "epg", scale = bk, onClick = onOpenEpg
+                                icon = Icons.Default.GridView, selected = selCtrl == "epg", scale = bk, onClick = onOpenEpg
                             )
                             "pip" -> CircleButton(
-                                label = "\u29C9", selected = selCtrl == "pip", scale = bk, onClick = onEnterPip
+                                icon = Icons.Default.PictureInPictureAlt, selected = selCtrl == "pip", scale = bk, onClick = onEnterPip
                             )
                             "info" -> CircleButton(
-                                label = "\u24D8", selected = selCtrl == "info", scale = bk,
+                                icon = Icons.Default.Info, selected = selCtrl == "info", scale = bk,
                                 onClick = { showInfo = !showInfo }
                             )
                             "sleep" -> CircleButton(
-                                label = "\u23F2", selected = selCtrl == "sleep", scale = bk,
+                                icon = Icons.Default.Timer, selected = selCtrl == "sleep", scale = bk,
                                 onClick = onOpenSleep
                             )
                             "audio" -> CircleButton(
-                                label = "\u266A", selected = selCtrl == "audio", scale = bk, labelScale = 1.4f,
+                                icon = Icons.Default.MusicNote, selected = selCtrl == "audio", scale = bk,
                                 onClick = { menu = if (menu == "audio") null else "audio" }
                             )
                             "subs" -> CircleButton(
-                                label = "CC", selected = selCtrl == "subs", scale = bk,
+                                icon = Icons.Default.ClosedCaption, selected = selCtrl == "subs", scale = bk,
                                 onClick = { menu = if (menu == "spu") null else "spu" }
                             )
                             "lock" -> CircleButton(
-                                label = "\u26BF", selected = orientationLocked, scale = bk,
+                                icon = Icons.Default.Lock, selected = orientationLocked, scale = bk,
                                 onClick = {
                                     orientationLocked = !orientationLocked
                                     onOrientationLockChange(orientationLocked)

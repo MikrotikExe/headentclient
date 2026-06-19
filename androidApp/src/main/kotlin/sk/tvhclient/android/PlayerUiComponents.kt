@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -206,6 +208,43 @@ internal fun CircleButton(
                     trim = LineHeightStyle.Trim.Both
                 )
             )
+        )
+    }
+}
+
+@Composable
+internal fun CircleButton(
+    icon: ImageVector,
+    onClick: () -> Unit,
+    big: Boolean = false,
+    selected: Boolean = false,
+    active: Boolean = false,
+    scale: Float = 1f,
+    labelScale: Float = 1f,
+    modifier: Modifier = Modifier
+) {
+    val s = (if (big) 76 else 44).dp * scale
+    val iconSize = (if (big) 38 else 24).dp * scale * labelScale
+    Box(
+        modifier
+            .size(s)
+            .clip(CircleShape)
+            .background(
+                when {
+                    selected -> Color(0xCC1E88E5)
+                    active -> Color(0x9943A047)
+                    else -> Color(0x88000000)
+                }
+            )
+            .then(if (selected) Modifier.border(3.dp, Color.White, CircleShape) else Modifier)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(iconSize)
         )
     }
 }
