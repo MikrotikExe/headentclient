@@ -1898,8 +1898,8 @@ private fun PlayerUi(
                                     )
                                     androidx.compose.material3.LinearProgressIndicator(
                                         progress = { fracNow },
-                                        modifier = (if (portrait) Modifier.weight(1f)
-                                                    else Modifier.width((90 * k).dp))
+                                        modifier = Modifier
+                                            .width(((if (portrait) 120 else 90) * k).dp)
                                             .padding(horizontal = 8.dp),
                                         trackColor = playerTrack()
                                     )
