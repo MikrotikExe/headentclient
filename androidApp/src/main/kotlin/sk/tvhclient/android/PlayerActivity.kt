@@ -49,6 +49,8 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.ClosedCaption
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Replay30
+import androidx.compose.material.icons.filled.Forward30
 import coil.request.ImageRequest
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -102,6 +104,7 @@ class PlayerActivity : ComponentActivity() {
     private lateinit var libVlc: LibVLC
     private var htspFeeder: HtspTsFeeder? = null
     private var htspLive = false
+    private val htspLiveState = androidx.compose.runtime.mutableStateOf(false)
     private val timeshiftOffsetState = androidx.compose.runtime.mutableStateOf(0L)
     private var tsAccumMs = 0L
     private var tsPauseStartedAt = 0L
@@ -171,6 +174,9 @@ class PlayerActivity : ComponentActivity() {
     /** Bezne HTTP prehravanie (zastavi pripadny HTSP feed). */
     private fun playHttp(url: String) {
         htspFeeder?.stop(); htspFeeder = null
+        htspLive = false
+        htspLiveState.value = false
+        resetTimeshift()
         currentStreamUrl = url
         val media = buildMedia(url)
         mediaPlayer.media = media
@@ -1061,8 +1067,10 @@ class PlayerActivity : ComponentActivity() {
                                 }
                                 if (ok && playHtspLive(server, cid)) {
                                     htspLive = true
+                                    htspLiveState.value = true
                                 } else {
                                     htspLive = false
+                                    htspLiveState.value = false
                                     playHttp(streamUrl)
                                 }
                                 pokeControls()
@@ -1116,6 +1124,10 @@ class PlayerActivity : ComponentActivity() {
                 },
                 onPrevChannel = if (canZap) ({ switchLive(-1) }) else null,
                 onNextChannel = if (canZap) ({ switchLive(+1) }) else null,
+                onTogglePlay = { togglePlayPause() },
+                timeshiftActive = htspLiveState.value,
+                onSkipBack = { timeshiftSkip(-30) },
+                onSkipFwd = { timeshiftSkip(+30) },
                 liveChannels = if (canZap) liveChannelsState.value else emptyList(),
                 liveCurrentIndex = liveIndexState.value,
                 onSelectChannel = { idx -> if (idx != liveIndex) switchToIndex(idx) else pokeControls() },
@@ -1383,6 +1395,10 @@ private fun PlayerUi(
     onStart: () -> Unit,
     onPrevChannel: (() -> Unit)? = null,
     onNextChannel: (() -> Unit)? = null,
+    onTogglePlay: () -> Unit = {},
+    timeshiftActive: Boolean = false,
+    onSkipBack: () -> Unit = {},
+    onSkipFwd: () -> Unit = {},
     liveChannels: List<LivePlaylist.LiveChannel> = emptyList(),
     liveCurrentIndex: Int = -1,
     onSelectChannel: (Int) -> Unit = {},
@@ -2022,10 +2038,13 @@ private fun PlayerUi(
                                 isPlaying = isPlaying,
                                 selected = selCtrl == "play",
                                 scale = bk,
-                                onClick = {
-                                    if (player.isPlaying) { player.pause(); isPlaying = false }
-                                    else { player.play(); isPlaying = true }
-                                }
+                                onClick = onTogglePlay
+                            )
+                            "tsrew" -> CircleButton(
+                                icon = Icons.Default.Replay30, selected = false, scale = bk, onClick = onSkipBack
+                            )
+                            "tsff" -> CircleButton(
+                                icon = Icons.Default.Forward30, selected = false, scale = bk, onClick = onSkipFwd
                             )
                             "next" -> if (onNextChannel != null) CircleButton(
                                 icon = Icons.Default.SkipNext, selected = selCtrl == "next", scale = bk, onClick = onNextChannel
@@ -2079,9 +2098,11 @@ private fun PlayerUi(
                                 barCtrl("info")
                             }
                             Row(horizontalArrangement = rowGap, verticalAlignment = Alignment.CenterVertically) {
+                                if (timeshiftActive) barCtrl("tsrew")
                                 if (has("prev")) barCtrl("prev")
                                 barCtrl("play")
                                 if (has("next")) barCtrl("next")
+                                if (timeshiftActive) barCtrl("tsff")
                             }
                             Row(horizontalArrangement = rowGap, verticalAlignment = Alignment.CenterVertically) {
                                 barCtrl("audio")
@@ -2111,9 +2132,11 @@ private fun PlayerUi(
                             horizontalArrangement = gap,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            if (timeshiftActive) barCtrl("tsrew")
                             if (has("prev")) barCtrl("prev")
                             barCtrl("play")
                             if (has("next")) barCtrl("next")
+                            if (timeshiftActive) barCtrl("tsff")
                         }
                         // vpravo: audio, titulky, info, SW
                         Row(
