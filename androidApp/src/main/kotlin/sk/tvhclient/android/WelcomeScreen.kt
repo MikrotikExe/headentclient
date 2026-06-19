@@ -108,26 +108,33 @@ fun WelcomeScreen(vm: ServersViewModel) {
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .statusBarsPadding()
-            .padding(top = if (compact) 56.dp else 60.dp)
+            .padding(top = if (compact) 56.dp else 0.dp)
             .padding(horizontal = 24.dp, vertical = vPad),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Logo v jemnom zaoblenom rámiku
-        Box(
-            modifier = Modifier
-                .size(logoSize)
-                .clip(androidx.compose.foundation.shape.RoundedCornerShape(24.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
-            contentAlignment = Alignment.Center
-        ) {
-            androidx.compose.material3.Icon(
-                Icons.Default.LiveTv,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(logoIcon)
-            )
+        // Na vysku (telefon) je prepinac temy v toku hore; na sirku (TV) je pripnuty mimo skrolu (nizsie)
+        if (!compact) {
+            ThemeSwitch(ctx)
+            Spacer(Modifier.height(8.dp))
         }
-        Spacer(Modifier.height(gapLogo))
+        // Logo (na sirku/TV ho skryvame - prekryval by ho pripnuty prepinac a niet na neho miesto)
+        if (!compact) {
+            Box(
+                modifier = Modifier
+                    .size(logoSize)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.Icon(
+                    Icons.Default.LiveTv,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(logoIcon)
+                )
+            }
+            Spacer(Modifier.height(gapLogo))
+        }
         Text(
             "Headent Client",
             style = MaterialTheme.typography.headlineMedium,
@@ -335,17 +342,19 @@ fun WelcomeScreen(vm: ServersViewModel) {
             )
         }
 
-        // Prepinac temy vzdy hore, mimo skrolovania - nech sa neodreze (TV overscan) ani neodscrolluje
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .background(bgColors.first())
-                .statusBarsPadding()
-                .padding(top = if (compact) 12.dp else 4.dp, bottom = 6.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            ThemeSwitch(ctx)
+        // Na sirku (TV): prepinac temy pripnuty hore, mimo skrolovania - nech sa neodreze (overscan) ani neodscrolluje
+        if (compact) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxWidth()
+                    .background(bgColors.first())
+                    .statusBarsPadding()
+                    .padding(top = 12.dp, bottom = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                ThemeSwitch(ctx)
+            }
         }
     }
 }
