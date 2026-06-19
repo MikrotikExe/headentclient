@@ -105,6 +105,78 @@ private fun collapseDvrOverlaps(
     return out
 }
 
+/** Jeden zluceny blok nahravky pre mriezku (dokoncena = zelena, prebiehajuca = cervena). */
+private data class RecBlock(
+    val start: Long,
+    val stop: Long,
+    val title: String,
+    val inProgress: Boolean,
+    val entry: sk.tvhclient.shared.model.DvrEntry
+)
+
+/** Normalizuje nazov pre porovnanie duplicit: mala pismena, bez "(ST)" a bez "(cislo)". */
+private fun normRecTitle(t: String): String {
+    var s = t.lowercase()
+    s = s.replace("(st)", " ")
+    s = Regex("\\(\\d+\\)").replace(s, " ")
+    s = Regex("\\s+").replace(s, " ").trim()
+    return s
+}
+
+/**
+ * Zluci dokoncene (zelene) aj prave prebiehajuce (cervene) nahravky jedneho kanala
+ * do jednej sady blokov. Ta ista relacia byva nahrata viackrat s odlisnym nazvom
+ * ("(ST)" varianty) aj casom (padding) — preto zluci zaznamy, ktorych nazov sa po
+ * normalizacii zhoduje, ALEBO sa casovo vyrazne prekryvaju (>=40 % kratsieho z dvoch,
+ * aby sa nespojili len susedne relacie dotykajuce sa cez padding). V zhluku s
+ * prebiehajucou nahravkou je blok cerveny (prebieha), inak zeleny. Na klik/prehratie
+ * sa vyberie zaznam s najvacsim suborom (najkompletnejsia kopia).
+ */
+private fun mergeRecordings(
+    dvrPast: List<sk.tvhclient.shared.model.DvrEntry>,
+    inProgress: List<sk.tvhclient.shared.model.DvrEntry>
+): List<RecBlock> {
+    data class Item(val e: sk.tvhclient.shared.model.DvrEntry, val live: Boolean)
+    val all = ArrayList<Item>()
+    dvrPast.forEach { all.add(Item(it, false)) }
+    inProgress.forEach { all.add(Item(it, true)) }
+    if (all.isEmpty()) return emptyList()
+    all.sortBy { it.e.start }
+
+    val out = ArrayList<RecBlock>()
+    val cluster = ArrayList<Item>()
+    val cTitles = HashSet<String>()
+    var cEnd = Long.MIN_VALUE
+
+    fun flush() {
+        if (cluster.isEmpty()) return
+        val live = cluster.any { it.live }
+        val start = cluster.minOf { it.e.start }
+        val stop = cluster.maxOf { it.e.stop }
+        val pick = (if (live) cluster.filter { it.live } else cluster)
+            .maxByOrNull { it.e.fileSize }?.e ?: cluster.first().e
+        out.add(RecBlock(start, stop, pick.title, live, pick))
+        cluster.clear(); cTitles.clear(); cEnd = Long.MIN_VALUE
+    }
+
+    for (item in all) {
+        val e = item.e
+        val len = (e.stop - e.start).coerceAtLeast(1)
+        val overlap = (minOf(cEnd, e.stop) - e.start).coerceAtLeast(0)
+        val joins = cluster.isNotEmpty() &&
+            (normRecTitle(e.title) in cTitles || overlap >= len * 4 / 10)
+        if (cluster.isEmpty() || joins) {
+            cluster.add(item); cTitles.add(normRecTitle(e.title))
+            if (e.stop > cEnd) cEnd = e.stop
+        } else {
+            flush()
+            cluster.add(item); cTitles.add(normRecTitle(e.title)); cEnd = e.stop
+        }
+    }
+    flush()
+    return out
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EpgGridScreen(
@@ -651,48 +723,47 @@ private fun EpgGridRow(
                 .height(ROW_H.dp)
         ) {
             Box(Modifier.width((DAY_MIN * PX_PER_MIN).dp).height(ROW_H.dp)) {
-                // Minule relacie z DVR (prehratelne dozadu) — len co skoncilo;
-                // vykreslime iba bloky v okolnom viditeľnom okne (cullovanie)
-                dvr.filter { it.stop <= now }.forEach { rec ->
-                    val startMin = (((rec.start - dayStart) / 60).toInt()).coerceAtLeast(0)
-                    val endMin = (((rec.stop - dayStart) / 60).toInt()).coerceAtMost(DAY_MIN)
-                    if (endMin <= visStartMin || startMin >= visEndMin) return@forEach
-                    GridBlock(
-                        startMin = startMin,
-                        endMin = endMin,
-                        title = rec.title,
-                        timeLabel = formatTimeHm(rec.start) + " - " + formatTimeHm(rec.stop),
-                        bg = Color(0x5C43A047),       // zelena = nahrate, da sa prehrat
-                        recorded = true,
-                        onClick = { onDvr(rec) },
-                        onFocused = { onFocusDetail(GridDetail.Dvr(rec)) }
-                    )
+                // Nahravky (dokoncene zelene + prebiehajuce cervene) zlucene do jednej
+                // sady blokov — bez prekryvov a duplicit (aj pri "(ST)" variantach nazvu);
+                // vykreslime iba bloky vo viditeľnom okne (cullovanie)
+                val recBlocks = remember(dvr, inProgress, now) {
+                    mergeRecordings(dvr.filter { it.stop <= now }, inProgress)
                 }
-                // Prave prebiehajuce nahravky (● REC) — vyplnia medzeru hned,
-                // klik pusti spravnu nahravku (presne uuid, ziadne fuzzy parovanie)
-                inProgress.forEach { rec ->
-                    val startMin = (((rec.start - dayStart) / 60).toInt()).coerceAtLeast(0)
-                    val endMin = (((rec.stop - dayStart) / 60).toInt()).coerceAtMost(DAY_MIN)
+                recBlocks.forEach { rb ->
+                    val startMin = (((rb.start - dayStart) / 60).toInt()).coerceAtLeast(0)
+                    val endMin = (((rb.stop - dayStart) / 60).toInt()).coerceAtMost(DAY_MIN)
                     if (endMin <= visStartMin || startMin >= visEndMin) return@forEach
-                    GridBlock(
-                        startMin = startMin,
-                        endMin = endMin,
-                        title = rec.title,
-                        timeLabel = formatTimeHm(rec.start) + " - " + formatTimeHm(rec.stop),
-                        bg = Color(0x2EEF5350),       // svetlejsia = este sa nenahralo (za ciarou)
-                        recorded = false,
-                        progressMin = ((now - rec.start) / 60).toInt(),
-                        progressColor = Color(0x80EF5350),  // tmavsia = uz nahrate (pred ciarou)
-                        prefix = "\u25CF ",
-                        onClick = { onInProgress(rec) },
-                        onFocused = { onFocusDetail(GridDetail.InProgress(row, rec)) }
-                    )
+                    if (rb.inProgress) {
+                        GridBlock(
+                            startMin = startMin,
+                            endMin = endMin,
+                            title = rb.title,
+                            timeLabel = formatTimeHm(rb.start) + " - " + formatTimeHm(rb.stop),
+                            bg = Color(0x2EEF5350),       // svetlejsia = este sa nenahralo (za ciarou)
+                            recorded = false,
+                            progressMin = ((now - rb.start) / 60).toInt(),
+                            progressColor = Color(0x80EF5350),  // tmavsia = uz nahrate (pred ciarou)
+                            prefix = "\u25CF ",
+                            onClick = { onInProgress(rb.entry) },
+                            onFocused = { onFocusDetail(GridDetail.InProgress(row, rb.entry)) }
+                        )
+                    } else {
+                        GridBlock(
+                            startMin = startMin,
+                            endMin = endMin,
+                            title = rb.title,
+                            timeLabel = formatTimeHm(rb.start) + " - " + formatTimeHm(rb.stop),
+                            bg = Color(0x5C43A047),       // zelena = nahrate, da sa prehrat
+                            recorded = true,
+                            onClick = { onDvr(rb.entry) },
+                            onFocused = { onFocusDetail(GridDetail.Dvr(rb.entry)) }
+                        )
+                    }
                 }
                 // Relacie z EPG vratane minulych (historia); preskoc tie, ktore uz
-                // ukazuje blok nahravky (DVR alebo prave prebiehajuca), nech nie su dva bloky
+                // ukazuje niektory zluceny blok nahravky, nech nie su dva bloky
                 events.filter { ev ->
-                    inProgress.none { it.start < ev.stop && it.stop > ev.start } &&
-                        dvr.none { it.stop <= now && it.start < ev.stop && it.stop > ev.start }
+                    recBlocks.none { it.start < ev.stop && it.stop > ev.start }
                 }.forEach { ev ->
                     val startMin = (((ev.start - dayStart) / 60).toInt()).coerceAtLeast(0)
                     val endMin = (((ev.stop - dayStart) / 60).toInt()).coerceAtMost(DAY_MIN)
