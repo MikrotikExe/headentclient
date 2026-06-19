@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -91,7 +92,6 @@ fun WelcomeScreen(vm: ServersViewModel) {
     val compact = configuration.screenWidthDp > configuration.screenHeightDp
     val logoSize = if (compact) 64.dp else 96.dp
     val logoIcon = if (compact) 36.dp else 54.dp
-    val gapTop = if (compact) 8.dp else 24.dp
     val gapLogo = if (compact) 10.dp else 18.dp
     val gapForm = if (compact) 20.dp else 36.dp
     val vPad = if (compact) 8.dp else 16.dp
@@ -107,11 +107,11 @@ fun WelcomeScreen(vm: ServersViewModel) {
             .widthIn(max = 520.dp)
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
+            .statusBarsPadding()
+            .padding(top = if (compact) 56.dp else 60.dp)
             .padding(horizontal = 24.dp, vertical = vPad),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        ThemeSwitch(ctx)
-        Spacer(Modifier.height(gapTop))
         // Logo v jemnom zaoblenom rámiku
         Box(
             modifier = Modifier
@@ -308,15 +308,45 @@ fun WelcomeScreen(vm: ServersViewModel) {
             // skryta moznost: obnova nastaveni zo zalohy
             BackupControls(compact = true, onImported = { vm.refresh() })
         }
-        Spacer(Modifier.height(28.dp))
-        Text(
-            "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) \u2022 ${BuildConfig.BUILD_DATE}",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-        Spacer(Modifier.height(8.dp))
+        if (compact) {
+            // na sirku (TV/setobox): verzia v obsahu (pripnutie dole tu sposobovalo prekrytie)
+            Spacer(Modifier.height(24.dp))
+            Text(
+                "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) \u2022 ${BuildConfig.BUILD_DATE}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+            Spacer(Modifier.height(8.dp))
+        } else {
+            Spacer(Modifier.height(56.dp))
+        }
     }
 
+        // na vysku (telefon): verzia pripnuta dole
+        if (!compact) {
+            Text(
+                "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) \u2022 ${BuildConfig.BUILD_DATE}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = 12.dp)
+            )
+        }
+
+        // Prepinac temy vzdy hore, mimo skrolovania - nech sa neodreze (TV overscan) ani neodscrolluje
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .fillMaxWidth()
+                .background(bgColors.first())
+                .statusBarsPadding()
+                .padding(top = if (compact) 12.dp else 4.dp, bottom = 6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            ThemeSwitch(ctx)
+        }
     }
 }
 
