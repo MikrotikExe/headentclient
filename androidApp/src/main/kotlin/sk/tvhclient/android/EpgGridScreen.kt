@@ -202,7 +202,12 @@ fun EpgGridScreen(
         (dvrState as? DvrState.Loaded)?.recording ?: emptyList()
     }
     val inProgressByChannel = remember(recordingList) {
+        // Rovnako ako pri dokoncenych nahravkach (zelene): ta ista relacia moze
+        // prave teraz bezat nahravana viackrat s mierne odlisnym casom (padding) /
+        // na viacerych tuneroch -> zlucime prekryvajuce sa zaznamy rovnakeho nazvu,
+        // nech sa v mriezke neprekryvaju dva cervene bloky.
         recordingList.groupBy { it.channelName }
+            .mapValues { (_, list) -> collapseDvrOverlaps(list) }
     }
 
     val hScroll = rememberScrollState()
