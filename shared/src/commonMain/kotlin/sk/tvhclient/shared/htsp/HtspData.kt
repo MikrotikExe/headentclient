@@ -92,6 +92,30 @@ object HtspData {
 
     fun clear(serverId: String) { cache.remove(serverId); nowCache.remove(serverId); gridCache.remove(serverId) }
 
+    /** M159 — diagnostika timeshiftu na prvom kanali servera. */
+    data class TimeshiftProbeResult(val channelName: String, val probe: HtspClient.TimeshiftProbe)
+
+    suspend fun probeTimeshift(
+        server: TvhServer,
+        nowSec: Long,
+        timeshiftPeriodSec: Int = 3600,
+        durationMs: Long = 8_000
+    ): TimeshiftProbeResult {
+        val meta = metadata(server, withEpg = false, nowSec = nowSec)
+        val first = meta.channels.firstOrNull { longOf(it, "channelId") != null }
+            ?: throw IllegalStateException("žiadny kanál na serveri")
+        val cid = longOf(first, "channelId")!!
+        val name = strOf(first, "channelName").ifBlank { cid.toString() }
+        val client = HtspClient(server.host, server.htspPort, server.username, server.password)
+        client.connect()
+        val probe = try {
+            client.probeTimeshift(cid, timeshiftPeriodSec, durationMs)
+        } finally {
+            client.close()
+        }
+        return TimeshiftProbeResult(name, probe)
+    }
+
     // ---- mapovanie ----
 
     fun channels(meta: HtspClient.Metadata): List<Channel> =

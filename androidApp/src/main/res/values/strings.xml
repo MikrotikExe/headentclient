@@ -227,6 +227,9 @@
     <string name="remote_debug_title">Key code diagnostics</string>
     <string name="remote_debug_enable">Show pressed key codes</string>
     <string name="remote_debug_note">In the player, pressing an unusual key briefly shows its code. Use it to find the code of the EPG button on your remote.</string>
+    <string name="ts_probe_title">HTSP timeshift test</string>
+    <string name="ts_probe_run">Run test</string>
+    <string name="ts_probe_running">Running…</string>
     <string name="plock_grace_title">After unlock, skip PIN for</string>
     <string name="plock_grace_always">Always ask</string>
     <string name="plock_scope_title">PIN required for</string>

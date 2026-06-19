@@ -503,7 +503,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0, onAdd: () -> Unit, on
                     "playback" -> PlaybackSettings(ctx)
                     "plock" -> ParentalSettings(ctx)
                     "servers" -> ServersSettings(vm, servers, activeId, onAdd, onEdit)
-                    "remote" -> RemoteSettings(ctx)
+                    "remote" -> RemoteSettings(ctx, servers, activeId)
                     "info" -> InfoSettings(ctx, servers, activeId) { legalDoc = it }
                 }
             }

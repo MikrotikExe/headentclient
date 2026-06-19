@@ -202,4 +202,103 @@ class HtspClient(
 
         return Metadata(channels, tags, events, dvr, syncDone || result == true)
     }
+
+    /** Vysledok diagnostiky HTSP subscription s timeshiftom (M159). */
+    data class TimeshiftProbe(
+        val started: Boolean,
+        val channelId: Long,
+        val streams: List<String>,     // "index:type" zo subscriptionStart
+        val muxPackets: Long,
+        val totalBytes: Long,
+        val timeshiftSeen: Boolean,
+        val tsFull: Boolean,
+        val tsStart: Long?,
+        val tsEnd: Long?,
+        val statuses: List<String>,
+        val stopped: String?           // dovod subscriptionStop, ak prisiel
+    )
+
+    /**
+     * M159 — overenie datoveho toku: otvori HTSP subscription so zapnutym
+     * server-side timeshiftom (timeshiftPeriod), pocita prijate muxpkt a
+     * zachyti subscriptionStart (stopy), timeshiftStatus a subscriptionStatus.
+     * Nic neprehrava — len overuje, ze data tecu a server timeshift drzi.
+     * Spojenie je dedikovane pre tento test; po dobehu ho zavri (close()).
+     */
+    suspend fun probeTimeshift(
+        channelId: Long,
+        timeshiftPeriodSec: Int = 3600,
+        durationMs: Long = 8_000,
+        profile: String? = null
+    ): TimeshiftProbe {
+        seq += 1
+        val subId = seq
+        val args = HashMap<String, Any?>()
+        args["channelId"] = channelId
+        args["subscriptionId"] = subId.toLong()
+        args["timeshiftPeriod"] = timeshiftPeriodSec.toLong()
+        args["normts"] = 1L
+        if (!profile.isNullOrBlank()) args["profile"] = profile
+        send("subscribe", args, withSeq = false)
+
+        val streams = ArrayList<String>()
+        val statuses = ArrayList<String>()
+        var started = false
+        var muxPackets = 0L
+        var totalBytes = 0L
+        var timeshiftSeen = false
+        var tsFull = false
+        var tsStart: Long? = null
+        var tsEnd: Long? = null
+        var stopped: String? = null
+
+        withTimeoutOrNull(durationMs) {
+            while (true) {
+                val m = recv()
+                val sid = (m["subscriptionId"] as? Long)?.toInt()
+                if (sid != null && sid != subId) continue
+                when (m["method"] as? String) {
+                    "subscriptionStart" -> {
+                        started = true
+                        @Suppress("UNCHECKED_CAST")
+                        val sl = m["streams"] as? List<Any?> ?: emptyList()
+                        for (s in sl) {
+                            val sm = s as? Map<*, *> ?: continue
+                            val idx = sm["index"] as? Long
+                            val typ = sm["type"] as? String
+                            streams.add("$idx:$typ")
+                        }
+                    }
+                    "muxpkt" -> {
+                        muxPackets += 1
+                        (m["payload"] as? ByteArray)?.let { totalBytes += it.size }
+                    }
+                    "timeshiftStatus" -> {
+                        timeshiftSeen = true
+                        tsFull = ((m["full"] as? Long) ?: 0L) != 0L
+                        tsStart = m["start"] as? Long
+                        tsEnd = m["end"] as? Long
+                    }
+                    "subscriptionStatus" -> {
+                        val st = m["status"] as? String
+                        val err = m["subscriptionError"] as? String
+                        if (!st.isNullOrBlank() || !err.isNullOrBlank()) {
+                            statuses.add((st ?: "") + (err?.let { " err=$it" } ?: ""))
+                        }
+                    }
+                    "subscriptionStop" -> {
+                        stopped = (m["subscriptionError"] as? String) ?: "stop"
+                        return@withTimeoutOrNull
+                    }
+                }
+            }
+            @Suppress("UNREACHABLE_CODE") Unit
+        }
+        try { send("unsubscribe", mapOf("subscriptionId" to subId.toLong()), withSeq = false) } catch (_: Throwable) {}
+
+        return TimeshiftProbe(
+            started, channelId, streams, muxPackets, totalBytes,
+            timeshiftSeen, tsFull, tsStart, tsEnd, statuses, stopped
+        )
+    }
 }
