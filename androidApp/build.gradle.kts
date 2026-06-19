@@ -36,10 +36,16 @@ android {
         targetSdk = 35
         versionCode = 7
         versionName = "1.0.0"
+        buildConfigField(
+            "String",
+            "BUILD_DATE",
+            "\"" + java.text.SimpleDateFormat("dd.MM.yyyy").format(java.util.Date()) + "\""
+        )
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     // libVLC bundluje natívne .so pre vsetky ABI (~200MB). Rozdelime APK

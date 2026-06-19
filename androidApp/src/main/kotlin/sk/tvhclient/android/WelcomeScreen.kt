@@ -282,6 +282,13 @@ fun WelcomeScreen(vm: ServersViewModel) {
             // skryta moznost: obnova nastaveni zo zalohy
             BackupControls(compact = true, onImported = { vm.refresh() })
         }
+
+        Spacer(Modifier.height(24.dp))
+        Text(
+            "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) \u2022 ${BuildConfig.BUILD_DATE}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
