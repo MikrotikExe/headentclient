@@ -77,10 +77,14 @@ fun WelcomeScreen(vm: ServersViewModel) {
         listOf(Color(0xFFEDEAF5), Color(0xFFF6F4FB), Color(0xFFFFFFFF))
     else
         listOf(Color(0xFF1B1430), Color(0xFF120F1A), Color(0xFF0C0B10))
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(bgColors))
+    ) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -282,12 +286,15 @@ fun WelcomeScreen(vm: ServersViewModel) {
             // skryta moznost: obnova nastaveni zo zalohy
             BackupControls(compact = true, onImported = { vm.refresh() })
         }
+    }
 
-        Spacer(Modifier.height(24.dp))
         Text(
             "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) \u2022 ${BuildConfig.BUILD_DATE}",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp)
         )
     }
 }
