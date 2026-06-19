@@ -37,6 +37,14 @@ class TsMuxer(streams: List<Stream>) {
     private var pmtCc = 0
     private var psiCounter = 0
 
+    // Prepis casovych znaciek na spojitu vystupnu os — aby libVLC nevidel spatny/dopredny
+    // skok pri subscriptionSkip (RW/FF). Pri beznom zivom je offset konstantny (= pass-through).
+    private var hasOffset = false
+    private var tsOffset = 0L
+    private var lastOut = 0L
+    private val discontTicks = 90000L * 4   // 4 s = diskontinuita -> re-base
+    private val frameGapTicks = 3000L        // ~33 ms medzera po skoku
+
     init {
         var nextPid = 0x1001
         val list = ArrayList<Track>()
@@ -72,15 +80,31 @@ class TsMuxer(streams: List<Stream>) {
     /** Jeden muxpkt → TS bajty. Prazdne ak je stopa nepodporovana. */
     fun mux(esIndex: Int, payload: ByteArray, pts: Long?, dts: Long?, randomAccess: Boolean): ByteArray {
         val t = trackByEs[esIndex] ?: return ByteArray(0)
+        val (outPts, outDts) = remap(pts, dts)
         val packets = ArrayList<ByteArray>()
         psiCounter -= 1
         if (psiCounter <= 0) {
             packets.add(pat()); packets.add(pmt()); psiCounter = siInterval
         }
-        val pes = buildPes(t, payload, pts, dts)
-        val pcr = if (t.pid == pcrPid) (dts ?: pts) else null
+        val pes = buildPes(t, payload, outPts, outDts)
+        val pcr = if (t.pid == pcrPid) (outDts ?: outPts) else null
         writePackets(t, pes, pcr, randomAccess, packets)
         return flatten(packets)
+    }
+
+    /** Premapuj vstupne pts/dts na spojitu rastucu vystupnu os. */
+    private fun remap(pts: Long?, dts: Long?): Pair<Long?, Long?> {
+        val ref = pts ?: dts ?: return Pair(pts, dts)
+        if (!hasOffset) { hasOffset = true; tsOffset = ref; lastOut = 0L }
+        var out = ref - tsOffset
+        if (out < lastOut - discontTicks || out > lastOut + discontTicks) {
+            tsOffset = ref - (lastOut + frameGapTicks)   // re-base po skoku
+            out = ref - tsOffset
+        }
+        if (out > lastOut) lastOut = out
+        val outPts = pts?.let { (it - tsOffset).coerceAtLeast(0L) }
+        val outDts = dts?.let { (it - tsOffset).coerceAtLeast(0L) }
+        return Pair(outPts, outDts)
     }
 
     // ---- PSI ----

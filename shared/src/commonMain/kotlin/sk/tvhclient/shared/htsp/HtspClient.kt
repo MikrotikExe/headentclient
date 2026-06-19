@@ -400,4 +400,16 @@ class HtspClient(
         if (id <= 0) return
         send("subscriptionLive", mapOf("subscriptionId" to id.toLong()), withSeq = false)
     }
+
+    /**
+     * Relativny skok v bufferi. Kedze subscribujeme s 90khz=1, server cita `time`
+     * v 90 kHz tikoch (htsp_server.c: skip.time = hs_90khz ? s64 : rescale). Zaporne =
+     * vzad, kladne = vpred. Bez `absolute` => relativny skok.
+     */
+    suspend fun skip(seconds: Int) {
+        val id = streamSubId
+        if (id <= 0) return
+        val ticks = seconds.toLong() * 90000L
+        send("subscriptionSkip", mapOf("subscriptionId" to id.toLong(), "time" to ticks), withSeq = false)
+    }
 }

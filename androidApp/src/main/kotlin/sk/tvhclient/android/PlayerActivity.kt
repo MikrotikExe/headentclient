@@ -102,6 +102,10 @@ class PlayerActivity : ComponentActivity() {
     private lateinit var libVlc: LibVLC
     private var htspFeeder: HtspTsFeeder? = null
     private var htspLive = false
+    private val timeshiftOffsetState = androidx.compose.runtime.mutableStateOf(0L)
+    private var tsAccumMs = 0L
+    private var tsPauseStartedAt = 0L
+    private var timeshiftTickerJob: kotlinx.coroutines.Job? = null
     private lateinit var mediaPlayer: MediaPlayer
 
     // Live zapping (prepinanie kanalov v prehravaci)
@@ -184,6 +188,7 @@ class PlayerActivity : ComponentActivity() {
             htspFeeder?.stop()
             val feeder = HtspTsFeeder(server)
             htspFeeder = feeder
+            resetTimeshift()
             val fd = feeder.start(channelId, lifecycleScope)
             val media = Media(libVlc, fd)
             media.setHWDecoderEnabled(true, false)
@@ -224,12 +229,64 @@ class PlayerActivity : ComponentActivity() {
     private fun togglePlayPause() {
         if (!::mediaPlayer.isInitialized) return
         if (isPlayingState.value) {
-            if (htspLive) htspFeeder?.pause()   // zastav server buffer pri pauze
+            if (htspLive) {
+                htspFeeder?.pause()             // zastav server buffer pri pauze
+                tsPauseStartedAt = System.currentTimeMillis()
+                startTimeshiftTicker()
+            }
             mediaPlayer.pause()
         } else {
-            if (htspLive) htspFeeder?.resume()  // obnov z miesta pauzy (timeshift)
+            if (htspLive) {
+                htspFeeder?.resume()            // obnov z miesta pauzy (timeshift)
+                if (tsPauseStartedAt > 0L) {
+                    tsAccumMs += System.currentTimeMillis() - tsPauseStartedAt
+                    tsPauseStartedAt = 0L
+                }
+                stopTimeshiftTicker()
+                timeshiftOffsetState.value = tsAccumMs
+            }
             mediaPlayer.play()
         }
+    }
+
+    /** Pocas pauzy rastie posun za zivym (1 s/s); aktualizuje ukazovatel kazdu sekundu. */
+    private fun startTimeshiftTicker() {
+        timeshiftTickerJob?.cancel()
+        timeshiftTickerJob = lifecycleScope.launch {
+            while (true) {
+                val extra = if (tsPauseStartedAt > 0L) System.currentTimeMillis() - tsPauseStartedAt else 0L
+                timeshiftOffsetState.value = tsAccumMs + extra
+                kotlinx.coroutines.delay(1000)
+            }
+        }
+    }
+
+    private fun stopTimeshiftTicker() {
+        timeshiftTickerJob?.cancel()
+        timeshiftTickerJob = null
+    }
+
+    /** Novy zivy zaciatok (cerstva subscription = na zivo) -> vynuluj timeshift. */
+    private fun resetTimeshift() {
+        stopTimeshiftTicker()
+        tsAccumMs = 0L
+        tsPauseStartedAt = 0L
+        timeshiftOffsetState.value = 0L
+    }
+
+    /** Relativny skok v timeshifte (sekundy; zaporne = vzad). Aktualizuje aj ukazovatel. */
+    private fun timeshiftSkip(seconds: Int) {
+        if (!htspLive) return
+        htspFeeder?.skip(seconds)
+        // pocas pauzy najprv zloz doteraz nazbierany cas, potom aplikuj skok
+        if (tsPauseStartedAt > 0L) {
+            val now = System.currentTimeMillis()
+            tsAccumMs += now - tsPauseStartedAt
+            tsPauseStartedAt = now
+        }
+        // vzad (zaporne sekundy) => vacsi posun za zivym; vpred => mensi
+        tsAccumMs = (tsAccumMs - seconds.toLong() * 1000L).coerceAtLeast(0L)
+        timeshiftOffsetState.value = tsAccumMs
     }
 
     /** Pretacanie pre DVR (live TS sa pretacat neda). TS subor nenese dlzku,
@@ -574,6 +631,11 @@ class PlayerActivity : ComponentActivity() {
                 android.view.KeyEvent.KEYCODE_TV_MEDIA_CONTEXT_MENU -> { openEpgInApp(); return true }
                 android.view.KeyEvent.KEYCODE_INFO -> { toggleInfo(); return true }
             }
+            // media RW/FF -> timeshift skok (ak je HTSP zivy)
+            if (htspLive) when (kc) {
+                android.view.KeyEvent.KEYCODE_MEDIA_REWIND -> { timeshiftSkip(-30); pokeControls(); return true }
+                android.view.KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> { timeshiftSkip(+30); pokeControls(); return true }
+            }
         }
 
         // 1) Otvoreny zoznam kanalov -> navigujeme my
@@ -778,10 +840,12 @@ class PlayerActivity : ComponentActivity() {
                 } else if (down) return true
                 android.view.KeyEvent.KEYCODE_DPAD_LEFT -> if (down) {
                     if (seekablePlayback) { seekRelative(-15_000); pokeControls(); return true }
+                    if (htspLive) { timeshiftSkip(-30); pokeControls(); return true }
                     showControlsFocused(); return true
                 }
                 android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> if (down) {
                     if (seekablePlayback) { seekRelative(+30_000); pokeControls(); return true }
+                    if (htspLive) { timeshiftSkip(+30); pokeControls(); return true }
                     showControlsFocused(); return true
                 }
                 // hore/dole sem prides len ak sa neda zapovat (napr. DVR) -> otvor panel
@@ -1059,6 +1123,7 @@ class PlayerActivity : ComponentActivity() {
                     lifecycleScope.launch { refreshOverlayEpg() }
                 },
                 numberEntry = numEntryState.value,
+                timeshiftOffsetMs = timeshiftOffsetState.value,
                 pinPrompt = pinPromptState.value,
                 pinLen = pinEntryState.value.length,
                 pinError = pinErrorState.value,
@@ -1263,6 +1328,7 @@ class PlayerActivity : ComponentActivity() {
         }
         htspFeeder?.stop()
         htspFeeder = null
+        stopTimeshiftTicker()
         if (::libVlc.isInitialized) {
             libVlc.release()
         }
@@ -1322,6 +1388,7 @@ private fun PlayerUi(
     onSelectChannel: (Int) -> Unit = {},
     onRefreshEpg: () -> Unit = {},
     numberEntry: String = "",
+    timeshiftOffsetMs: Long = 0L,
     controlsPoke: Int = 0,
     infoPoke: Int = 0,
     inPip: Boolean = false,
@@ -1693,6 +1760,22 @@ private fun PlayerUi(
                     .padding(horizontal = 28.dp, vertical = 14.dp)
             ) {
                 Text(numberEntry, color = playerFg(), fontSize = 48.sp)
+            }
+        } else if (timeshiftOffsetMs > 0L) {
+            // timeshift — ako daleko za zivym (rastie pocas pauzy)
+            Box(
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(playerScrim())
+                    .padding(horizontal = 18.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    "TIMESHIFT  −" + fmtMs(timeshiftOffsetMs),
+                    color = playerFg(),
+                    fontSize = 18.sp
+                )
             }
         }
 
