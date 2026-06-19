@@ -1,5 +1,7 @@
 import java.io.FileInputStream
 import java.util.Properties
+import java.text.SimpleDateFormat
+import java.util.Date
 
 plugins {
     alias(libs.plugins.androidApplication)
@@ -39,7 +41,7 @@ android {
         buildConfigField(
             "String",
             "BUILD_DATE",
-            "\"" + java.text.SimpleDateFormat("dd.MM.yyyy").format(java.util.Date()) + "\""
+            "\"" + SimpleDateFormat("dd.MM.yyyy").format(Date()) + "\""
         )
     }
 
