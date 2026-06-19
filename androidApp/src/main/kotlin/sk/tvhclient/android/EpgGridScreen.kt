@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.focus.onFocusEvent
+import androidx.compose.ui.focus.focusGroup
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -414,6 +415,7 @@ fun EpgGridScreen(
             LazyColumn(
                 Modifier
                     .fillMaxSize()
+                    .focusGroup()
                     .pointerInput(daysBack, daysForward) {
                         val edgePx = DAY_SWITCH_DP.dp.toPx()
                         awaitEachGesture {
@@ -726,7 +728,7 @@ private fun EpgGridRow(
                 // Nahravky (dokoncene zelene + prebiehajuce cervene) zlucene do jednej
                 // sady blokov — bez prekryvov a duplicit (aj pri "(ST)" variantach nazvu);
                 // vykreslime iba bloky vo viditeľnom okne (cullovanie)
-                val recBlocks = remember(dvr, inProgress, now) {
+                val recBlocks = remember(dvr, inProgress, now / 60) {
                     mergeRecordings(dvr.filter { it.stop <= now }, inProgress)
                 }
                 // Susedne nahravky roznych relacii sa casto prekryvaju o okraj (padding).
