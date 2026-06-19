@@ -11,6 +11,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -162,6 +164,16 @@ class PlayerActivity : ComponentActivity() {
         return m
     }
 
+    /** Bezne HTTP prehravanie (zastavi pripadny HTSP feed). */
+    private fun playHttp(url: String) {
+        htspFeeder?.stop(); htspFeeder = null
+        currentStreamUrl = url
+        val media = buildMedia(url)
+        mediaPlayer.media = media
+        media.release()
+        mediaPlayer.play()
+    }
+
     /**
      * M162 — zivy kanal cez HTSP (premuxovany na MPEG-TS, podavany libVLC cez pipe).
      * Vracia true ak sa podarilo spustit. Pouzite len ak je timeshift zapnuty a server
@@ -308,11 +320,7 @@ class PlayerActivity : ComponentActivity() {
             pokeControls()
             return
         }
-        htspFeeder?.stop(); htspFeeder = null
-        val media = buildMedia(url)
-        mediaPlayer.media = media
-        media.release()
-        mediaPlayer.play()
+        playHttp(url)
         pokeControls()
     }
 
@@ -855,18 +863,6 @@ class PlayerActivity : ComponentActivity() {
         }
         dvrServerId = server.id
 
-        // M162 — zivy kanal cez HTSP timeshift? Iba ak: je to live (nie DVR), uuid je
-        // numericke (HTSP channelId), pref zapnuty a server podporuje (z cache). Cold cache
-        // -> HTTP teraz a na pozadi sa over, nech dalsi raz ide HTSP.
-        val cidLive = if (directUrl == null) channelUuid?.toLongOrNull() else null
-        htspLive = cidLive != null && TimeshiftPref.get(this) &&
-            HtspData.timeshiftCapableCached(server.id)
-        if (cidLive != null && TimeshiftPref.get(this) && !HtspData.timeshiftCapableCached(server.id)) {
-            lifecycleScope.launch {
-                runCatching { HtspData.timeshiftAvailable(server, System.currentTimeMillis() / 1000) }
-            }
-        }
-
         // Ulozena pozicia: ponuknut obnovenie ak nie je dopozerane a nie je
         // tesne na zaciatku/konci
         val saved = dvrUuid?.let { WatchProgress.get(this, server.id, it) }
@@ -985,14 +981,24 @@ class PlayerActivity : ComponentActivity() {
                 onStart = {
                     val doPlay: () -> Unit = {
                         val cid = channelUuid?.toLongOrNull()
-                        if (htspLive && cid != null && playHtspLive(server, cid)) {
-                            pokeControls()
+                        if (cid != null && directUrl == null && TimeshiftPref.get(this)) {
+                            // Over dostupnost timeshiftu (cachovane 600 s) a podla toho vyber zdroj.
+                            lifecycleScope.launch {
+                                val ok = withContext(Dispatchers.IO) {
+                                    runCatching {
+                                        HtspData.timeshiftAvailable(server, System.currentTimeMillis() / 1000)
+                                    }.getOrDefault(false)
+                                }
+                                if (ok && playHtspLive(server, cid)) {
+                                    htspLive = true
+                                } else {
+                                    htspLive = false
+                                    playHttp(streamUrl)
+                                }
+                                pokeControls()
+                            }
                         } else {
-                            currentStreamUrl = streamUrl
-                            val media = buildMedia(streamUrl)
-                            mediaPlayer.media = media
-                            media.release()
-                            mediaPlayer.play()
+                            playHttp(streamUrl)
                             pokeControls()
                         }
                     }
