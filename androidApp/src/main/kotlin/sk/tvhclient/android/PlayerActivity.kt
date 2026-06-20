@@ -250,6 +250,8 @@ class PlayerActivity : ComponentActivity() {
         if (isPlayingState.value) {
             if (htspStream) htspFeeder?.pause()         // zastav HTSP delivery (aj bez timeshiftu)
             if (htspLive) {
+                // prva pauza "zapne" timeshift: odtialto sa rata buffer aj cervene pocitadlo
+                if (htspStartedAt <= 0L) htspStartedAt = System.currentTimeMillis()
                 tsPauseStartedAt = System.currentTimeMillis()
                 startTimeshiftTicker()
             }
@@ -296,7 +298,7 @@ class PlayerActivity : ComponentActivity() {
         pendingSkipMs = 0L
         tsAccumMs = 0L
         tsPauseStartedAt = 0L
-        htspStartedAt = System.currentTimeMillis()
+        htspStartedAt = 0L   // timeshift sa "zapne" az prvou pauzou (Tvheadend pred tym nema buffer)
         timeshiftOffsetState.value = 0L
     }
 
@@ -373,7 +375,10 @@ class PlayerActivity : ComponentActivity() {
         val step = if (forward) 10 else -10
         when {
             seekablePlayback -> seekRelative(step * 1000L)
-            htspLive -> timeshiftSkip(step)
+            htspLive -> {
+                if (maxRewindMs() <= 0L) return   // timeshift sa zapne az pauzou, dovtedy niet co pretacat
+                timeshiftSkip(step)
+            }
             else -> return   // ziadne pretacanie (zive bez timeshiftu) -> ignoruj
         }
         val cur = seekHintState.value
