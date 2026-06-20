@@ -281,13 +281,15 @@ fun WelcomeScreen(vm: ServersViewModel) {
                     }
                 }
             ) { authMode = it }
-            Spacer(Modifier.height(10.dp))
-            DropdownField(
-                label = stringResource(R.string.field_profile),
-                value = profile,
-                options = ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() },
-                optionLabel = { it }
-            ) { profile = it }
+            if (connMode != "htsp") {
+                Spacer(Modifier.height(10.dp))
+                DropdownField(
+                    label = stringResource(R.string.field_profile),
+                    value = profile,
+                    options = ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() },
+                    optionLabel = { it }
+                ) { profile = it }
+            }
             Spacer(Modifier.height(8.dp))
             BackupControls(compact = true, onImported = { vm.refresh() })
         }

@@ -193,16 +193,18 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                 value = password, onValueChange = { password = it },
                 modifier = Modifier.fillMaxWidth(), password = true
             )
-            DropdownField(
-                label = stringResource(R.string.field_profile),
-                value = profile,
-                options = listOf(
-                    "pass", "mpegts", "matroska",
-                    "webtv-h264-aac-matroska", "webtv-h264-aac-mpegts"
-                ),
-                optionLabel = { it },
-                onSelect = { profile = it }
-            )
+            if (connMode != "htsp") {
+                DropdownField(
+                    label = stringResource(R.string.field_profile),
+                    value = profile,
+                    options = listOf(
+                        "pass", "mpegts", "matroska",
+                        "webtv-h264-aac-matroska", "webtv-h264-aac-mpegts"
+                    ),
+                    optionLabel = { it },
+                    onSelect = { profile = it }
+                )
+            }
             DropdownField(
                 label = stringResource(R.string.field_auth),
                 value = authMode,
