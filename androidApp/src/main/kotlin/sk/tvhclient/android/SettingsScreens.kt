@@ -206,27 +206,33 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
     DropdownField(stringResource(R.string.audio_pref_2), audio[1], audioOptions, audioLabels) { setSlot(1, it) }
     DropdownField(stringResource(R.string.audio_pref_3), audio[2], audioOptions, audioLabels) { setSlot(2, it) }
 
-    // Predvolene otacanie obrazovky v prehravaci
-    Spacer(Modifier.height(16.dp))
-    var orient by remember { mutableStateOf(OrientationPref.get(ctx)) }
-    val orientLabel: @Composable (String) -> String = { v ->
-        when (v) {
-            OrientationPref.PORTRAIT -> stringResource(R.string.orient_portrait)
-            OrientationPref.LANDSCAPE -> stringResource(R.string.orient_landscape)
-            else -> stringResource(R.string.orient_auto)
-        }
+    // Predvolene otacanie obrazovky v prehravaci — na TV/STB nema zmysel, skry
+    val isTvDev = remember {
+        val um = ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
+        um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
     }
-    DropdownField(
-        label = stringResource(R.string.orient_title),
-        value = orient,
-        options = OrientationPref.options,
-        optionLabel = orientLabel,
-        onSelect = { v ->
-            orient = v
-            OrientationPref.set(ctx, v)
-            TabController.settingsDirty.value = true
+    if (!isTvDev) {
+        Spacer(Modifier.height(16.dp))
+        var orient by remember { mutableStateOf(OrientationPref.get(ctx)) }
+        val orientLabel: @Composable (String) -> String = { v ->
+            when (v) {
+                OrientationPref.PORTRAIT -> stringResource(R.string.orient_portrait)
+                OrientationPref.LANDSCAPE -> stringResource(R.string.orient_landscape)
+                else -> stringResource(R.string.orient_auto)
+            }
         }
-    )
+        DropdownField(
+            label = stringResource(R.string.orient_title),
+            value = orient,
+            options = OrientationPref.options,
+            optionLabel = orientLabel,
+            onSelect = { v ->
+                orient = v
+                OrientationPref.set(ctx, v)
+                TabController.settingsDirty.value = true
+            }
+        )
+    }
 
     // Tema overlay-u prehravaca (samostatne od temy aplikacie)
     Spacer(Modifier.height(16.dp))

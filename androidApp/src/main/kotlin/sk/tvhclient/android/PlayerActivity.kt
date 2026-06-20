@@ -95,6 +95,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.foundation.layout.absoluteOffset
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
@@ -788,9 +789,9 @@ class PlayerActivity : ComponentActivity() {
                     android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
                         { navChannelIndexState.value = (navChannelIndexState.value + 1) % n; return true }
                     android.view.KeyEvent.KEYCODE_DPAD_LEFT ->
-                        { navChannelIndexState.value = (navChannelIndexState.value - 8).coerceIn(0, n - 1); return true }
+                        { navChannelIndexState.value = (navChannelIndexState.value - 7).coerceIn(0, n - 1); return true }
                     android.view.KeyEvent.KEYCODE_DPAD_RIGHT ->
-                        { navChannelIndexState.value = (navChannelIndexState.value + 8).coerceIn(0, n - 1); return true }
+                        { navChannelIndexState.value = (navChannelIndexState.value + 7).coerceIn(0, n - 1); return true }
                     android.view.KeyEvent.KEYCODE_BACK ->
                         { closeChannelList(); return true }
                 }
@@ -2733,10 +2734,16 @@ private fun PlayerUi(
             LaunchedEffect(channelNavIndex) {
                 val i = channelNavIndex
                 if (i in liveChannels.indices) {
-                    val vis = listStateT.layoutInfo.visibleItemsInfo
-                    val first = vis.firstOrNull()?.index ?: 0
-                    val last = vis.lastOrNull()?.index ?: 0
-                    if (vis.isEmpty() || i < first || i > last) listStateT.scrollToItem(i)
+                    val info = listStateT.layoutInfo
+                    val item = info.visibleItemsInfo.firstOrNull { it.index == i }
+                    if (item == null) {
+                        listStateT.scrollToItem(i)
+                    } else {
+                        val startGap = item.offset - info.viewportStartOffset
+                        val endOverflow = (item.offset + item.size) - info.viewportEndOffset
+                        if (startGap < 0) listStateT.scrollBy(startGap.toFloat())            // orezany hore -> posun nahor
+                        else if (endOverflow > 0) listStateT.scrollBy(endOverflow.toFloat())  // orezany dole -> posun nadol (vybrany cely vidno)
+                    }
                 }
             }
             // pravy panel (EPG, nahlad, relacie) sleduje HRANY kanal — meni sa az po prepnuti (OK)
