@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FiberManualRecord
+import androidx.compose.material3.Icon
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.CalendarViewDay
 import androidx.compose.material.icons.filled.Refresh
@@ -339,9 +342,26 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
         val (rcRow, rcRec) = rc
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { recChoice = null },
-            title = { Text(rcRow.channel.name) },
-            text = { Text(rcRec.title) },
-            confirmButton = {
+            title = {
+                Text(rcRow.channel.name, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+            },
+            text = {
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(rcRec.title, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.FiberManualRecord, contentDescription = null,
+                            tint = Color(0xFFE53935), modifier = Modifier.size(12.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(stringResource(R.string.channel_archived),
+                            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            },
+            // vlavo = nazivo (fokus), vpravo = od zaciatku
+            dismissButton = {
                 val liveFocus = remember { FocusRequester() }
                 LaunchedEffect(Unit) { runCatching { liveFocus.requestFocus() } }
                 androidx.compose.material3.TextButton(
@@ -349,10 +369,10 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                     modifier = Modifier.focusRequester(liveFocus)
                 ) { AutoSizeText(stringResource(R.string.play_live), maxLines = 1) }
             },
-            dismissButton = {
+            confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     playDvrFile(ctx, rcRec); recChoice = null
-                }) { AutoSizeText(stringResource(R.string.play_from_start), maxLines = 2) }
+                }) { AutoSizeText(stringResource(R.string.play_from_start), maxLines = 1) }
             }
         )
     }

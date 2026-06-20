@@ -18,6 +18,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,11 +61,12 @@ fun EpgScreen(channelUuid: String, channelName: String, onBack: () -> Unit) {
         return
     }
 
+    val noActiveServerMsg = stringResource(R.string.no_active_server)
     LaunchedEffect(channelUuid) {
         state = EpgState.Loading
         val server = Tvh.store.active()
         if (server == null) {
-            state = EpgState.Error("Žiadny aktívny server")
+            state = EpgState.Error(noActiveServerMsg)
             return@LaunchedEffect
         }
         try {
@@ -112,7 +114,7 @@ fun EpgScreen(channelUuid: String, channelName: String, onBack: () -> Unit) {
 private fun EpgList(events: List<EpgEvent>, onClick: (EpgEvent) -> Unit) {
     if (events.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Žiadny program")
+            Text(stringResource(R.string.no_program))
         }
         return
     }

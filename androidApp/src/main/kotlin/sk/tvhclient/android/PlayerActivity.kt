@@ -95,7 +95,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.foundation.layout.absoluteOffset
-import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
@@ -2730,22 +2729,10 @@ private fun PlayerUi(
         if (showChannelList && isTvGest && liveChannels.isNotEmpty()) {
             val loaderT = remember(server?.id) { PiconImageLoader.get(ctx, server) }
             val selT = channelNavIndex.coerceIn(0, liveChannels.size - 1)
-            val listStateT = rememberLazyListState(initialFirstVisibleItemIndex = selT)
-            LaunchedEffect(channelNavIndex) {
-                val i = channelNavIndex
-                if (i in liveChannels.indices) {
-                    val info = listStateT.layoutInfo
-                    val item = info.visibleItemsInfo.firstOrNull { it.index == i }
-                    if (item == null) {
-                        listStateT.scrollToItem(i)
-                    } else {
-                        val startGap = item.offset - info.viewportStartOffset
-                        val endOverflow = (item.offset + item.size) - info.viewportEndOffset
-                        if (startGap < 0) listStateT.scrollBy(startGap.toFloat())            // orezany hore -> posun nahor
-                        else if (endOverflow > 0) listStateT.scrollBy(endOverflow.toFloat())  // orezany dole -> posun nadol (vybrany cely vidno)
-                    }
-                }
-            }
+            // strankovanie po 7: zobraz presne aktualnu sedmicku, po prekroceni sa preklopi dalsia
+            val pageSizeT = 7
+            val pageStartT = (selT / pageSizeT) * pageSizeT
+            val pageItemsT = liveChannels.drop(pageStartT).take(pageSizeT)
             // pravy panel (EPG, nahlad, relacie) sleduje HRANY kanal — meni sa az po prepnuti (OK)
             val detT = liveCurrentIndex.coerceIn(0, liveChannels.size - 1)
             var epgT by remember { mutableStateOf<List<sk.tvhclient.shared.model.EpgEvent>>(emptyList()) }
@@ -2795,12 +2782,12 @@ private fun PlayerUi(
                 }
                 Row(Modifier.fillMaxWidth().weight(1f)) {
                     // LAVA: zoznam kanalov (karty s ramikom)
-                    LazyColumn(
-                        state = listStateT,
-                        modifier = Modifier.fillMaxHeight().fillMaxWidth(0.46f),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                    Column(
+                        modifier = Modifier.fillMaxHeight().fillMaxWidth(0.46f)
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
-                        itemsIndexed(liveChannels) { idx, ch ->
+                        pageItemsT.forEachIndexed { localIdx, ch ->
+                            val idx = pageStartT + localIdx
                             val selRow = idx == selT
                             Row(
                                 Modifier

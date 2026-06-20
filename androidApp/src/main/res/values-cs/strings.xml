@@ -27,6 +27,7 @@
     <string name="all_channels">Všechny</string>
     <string name="no_channels">Žádné kanály.</string>
     <string name="no_active_server">Žádný aktivní server. Přidej ho v záložce Servery.</string>
+    <string name="no_program">Žádný program</string>
     <string name="playback_error">Přehrávání selhalo: %1$s</string>
     <string name="field_profile">Stream profil</string>
     <string name="genre_film">Film / Drama</string>
@@ -169,7 +170,8 @@
     <string name="play">Přehrát</string>
     <string name="not_started">Pořad ještě nezačal</string>
     <string name="not_available">Není k dispozici</string>
-    <string name="play_from_start">Přehrát od začátku (nahrává se)</string>
+    <string name="play_from_start">Přehrát od začátku</string>
+    <string name="channel_archived">Tento kanál se archivuje</string>
     <string name="play_live">Přehrát živě</string>
     <string name="dvr_search">Hledat nahrávky</string>
     <string name="dvr_search_results">Výsledky</string>

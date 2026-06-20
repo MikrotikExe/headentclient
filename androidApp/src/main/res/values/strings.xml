@@ -27,6 +27,7 @@
     <string name="all_channels">All</string>
     <string name="no_channels">No channels.</string>
     <string name="no_active_server">No active server. Add one in the Servers tab.</string>
+    <string name="no_program">No programme</string>
     <string name="playback_error">Playback failed: %1$s</string>
     <string name="field_profile">Stream profile</string>
     <string name="genre_film">Movie / Drama</string>
@@ -169,7 +170,8 @@
     <string name="play">Play</string>
     <string name="not_started">Programme has not started yet</string>
     <string name="not_available">Not available</string>
-    <string name="play_from_start">Play from start (recording)</string>
+    <string name="play_from_start">Play from start</string>
+    <string name="channel_archived">This channel is being archived</string>
     <string name="play_live">Play live</string>
     <string name="dvr_search">Search recordings</string>
     <string name="dvr_search_results">Results</string>
