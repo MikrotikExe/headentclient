@@ -1575,6 +1575,7 @@ private fun PlayerUi(
     var showChannelList by remember { mutableStateOf(false) }
     // vizualne vysunutie zoznamu zhora: 0 = zatvoreny, 1 = otvoreny (pocas tahania sleduje prst)
     var listFrac by remember { mutableStateOf(0f) }
+    val listScope = androidx.compose.runtime.rememberCoroutineScope()
     LaunchedEffect(showChannelList) {
         androidx.compose.animation.core.animate(
             initialValue = listFrac,
@@ -1863,9 +1864,9 @@ private fun PlayerUi(
                         if (secs != Int.MIN_VALUE && secs != 0) onScrubSeek(secs)
                     }
                     if (mode == 4) {
-                        if (listFrac > 0.33f) {
-                            showChannelList = true        // LaunchedEffect dotiahne na 1
-                        } else {
+                        val open = listFrac > 0.33f
+                        showChannelList = open        // open -> LaunchedEffect dotiahne na 1
+                        if (!open) listScope.launch {
                             androidx.compose.animation.core.animate(listFrac, 0f) { v, _ -> listFrac = v }
                         }
                     }
