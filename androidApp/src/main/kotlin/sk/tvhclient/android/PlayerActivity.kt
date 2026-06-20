@@ -159,6 +159,9 @@ class PlayerActivity : ComponentActivity() {
     private val liveIndexState = androidx.compose.runtime.mutableStateOf(-1)
     private val liveChannelsState =
         androidx.compose.runtime.mutableStateOf<List<LivePlaylist.LiveChannel>>(emptyList())
+    // cache mapa kanal(uuid) -> aktualna + najblizsie relacie (pre EPG browser na TV)
+    private val epgUpcomingState =
+        androidx.compose.runtime.mutableStateOf<Map<String, List<sk.tvhclient.shared.model.EpgEvent>>>(emptyMap())
 
     // D-pad / diaľkové: signál na zobrazenie ovládania, info pre seek a sw dekóder
     private val controlsPokeState = androidx.compose.runtime.mutableStateOf(0)
@@ -419,6 +422,7 @@ class PlayerActivity : ComponentActivity() {
                     Tvh.fetchEpgUpcoming(srv)
                 }
                 if (map.isNotEmpty()) {
+                    epgUpcomingState.value = map
                     val updated = cur.map { ch ->
                         val ev = map[ch.uuid]?.firstOrNull { it.start <= nowS && nowS < it.stop }
                         if (ev != null) ch.copy(nowTitle = ev.title, nowStart = ev.start, nowStop = ev.stop)
@@ -1240,11 +1244,18 @@ class PlayerActivity : ComponentActivity() {
                 onDoubleTapSeek = { fwd -> doubleTapSeek(fwd) },
                 onScrubSeek = { secs -> scrubSeek(secs) },
                 onLoadChannelEpg = { uuid, cb ->
-                    lifecycleScope.launch {
-                        val list = runCatching {
-                            Tvh.fetchEpgForChannel(server, Tvh.apiFor(server), uuid)
-                        }.getOrDefault(emptyList())
-                        cb(list)
+                    val cached = epgUpcomingState.value[uuid]
+                    if (!cached.isNullOrEmpty()) {
+                        cb(cached)
+                    } else {
+                        lifecycleScope.launch {
+                            val list = runCatching {
+                                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                    Tvh.fetchEpgForChannel(server, Tvh.apiFor(server), uuid)
+                                }
+                            }.getOrDefault(emptyList())
+                            cb(list)
+                        }
                     }
                 },
                 seekHint = seekHintState.value,
