@@ -1868,18 +1868,21 @@ private fun PlayerUi(
         // YouTube-style hint pri dvojkliku (skok o 10 s), na strane kliknutia, akumuluje sa
         if (seekHint != 0) {
             val fwd = seekHint > 0
+            val label = if (fwd) "+$seekHint  ›" else "‹  $seekHint"
             Box(
-                Modifier.fillMaxSize().padding(horizontal = 48.dp),
+                Modifier.fillMaxSize().padding(horizontal = 44.dp),
                 contentAlignment = if (fwd) Alignment.CenterEnd else Alignment.CenterStart
             ) {
                 Text(
-                    (if (fwd) "+" else "−") + kotlin.math.abs(seekHint) + " s",
+                    label,
                     color = Color.White,
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier
-                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(24.dp))
-                        .background(Color(0x99000000))
-                        .padding(horizontal = 22.dp, vertical = 12.dp)
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = Color(0xB3000000),
+                            blurRadius = 14f
+                        )
+                    )
                 )
             }
         }
