@@ -1824,8 +1824,9 @@ private fun PlayerUi(
     // narazi na EOF a TS zamrzne. Vacsia rezerva = playhead ostava v spolahlivo nahranych
     // datach. Hltavy koniec doriesi este aj automaticke znovu-otvorenie streamu.
     val liveMarginMs = 45_000L
-    val maxSeekFrac = if (recordingLive && lengthMs > liveMarginMs)
-        (lengthMs - liveMarginMs).toFloat() / lengthMs else 1f
+    // Dlzka pre seekbar = dosiahnutelny rozsah (bez 45 s rezervy pri prebiehajucej nahravke).
+    // Tak playhead dosiahne koniec baru bez viditeľnej medzery/"bariery" - rezerva je skryta.
+    val barLengthMs = if (recordingLive) (lengthMs - liveMarginMs).coerceAtLeast(1L) else lengthMs
 
     // Obnovenie pozicie (len DVR): spytaj sa, a po potvrdeni pretoc ked je
     // media nacitana
@@ -1840,12 +1841,14 @@ private fun PlayerUi(
                 val nowMs = System.currentTimeMillis()
                 val curLen = lengthMsLive.value
                 val curOff = offsetMsLive.value
+                // dosiahnutelny rozsah (bez rezervy) - playhead ani znovu-otvorenie nejde do nej
+                val curBar = if (recordingLive) (curLen - liveMarginMs).coerceAtLeast(1L) else curLen
                 // obnovenie po potvrdeni (ma prednost pred skokom na zaciatok relacie)
                 if (pendingResumeMs > 0 && curLen > 0 && player.isSeekable) {
                     val f = (pendingResumeMs.toFloat() / curLen).coerceIn(0f, 1f)
                     player.position = f
                     posFraction = f
-                    posTimeMs = pendingResumeMs.coerceIn(0L, curLen)
+                    posTimeMs = pendingResumeMs.coerceIn(0L, curBar)
                     pendingResumeMs = 0
                     initialSeekDone = true
                 }
@@ -1873,14 +1876,14 @@ private fun PlayerUi(
                         if (initialSeekDone && curLen > 0 && p > 0.02f &&
                             kotlin.math.abs(p - posFraction) > 0.05f) {
                             posTimeMs = (p * (curOff + curLen) - curOff).toLong()
-                                .coerceIn(0L, curLen)
+                                .coerceIn(0L, curBar)
                         }
                         posFraction = p
                     }
                     // Prehravacie hodiny: kym sa prehrava, pridavaj realny uplynuly cas.
                     if (lastPlayTickMs > 0L && player.isPlaying) {
                         val d = (nowMs - lastPlayTickMs).coerceIn(0L, 3000L)
-                        posTimeMs = (posTimeMs + d).coerceIn(0L, curLen)
+                        posTimeMs = (posTimeMs + d).coerceIn(0L, curBar)
                     }
                     // zrkadli playhead do Activity (pre spolahlive znovu-otvorenie in-progress streamu)
                     if (recordingLive) onPlayheadMs(posTimeMs)
@@ -2445,15 +2448,15 @@ private fun PlayerUi(
                     }
                     Spacer(Modifier.height((4 * k).dp))
                     // DVR: pretacacia lista (zvyraznena pri vybere "seek")
-                    if (seekable && lengthMs > 0) {
+                    if (seekable && barLengthMs > 0) {
                         val seekFocused = selCtrl == "seek"
                         val frac = when {
                             seekFocused -> scrubFrac
                             dragging -> dragValue
-                            else -> if (lengthMs > 0) (posTimeMs.toFloat() / lengthMs).coerceIn(0f, 1f) else posFraction
+                            else -> (posTimeMs.toFloat() / barLengthMs).coerceIn(0f, 1f)
                         }
                         // Lava strana: pocas tahania/vyberu cielovy cas, inak skutocny cas prehravania
-                        val cur = if (dragging || seekFocused) (frac * lengthMs).toLong() else posTimeMs
+                        val cur = if (dragging || seekFocused) (frac * barLengthMs).toLong() else posTimeMs
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -2474,12 +2477,19 @@ private fun PlayerUi(
                             ) {
                                 androidx.compose.material3.Slider(
                                     value = frac.coerceIn(0f, 1f),
-                                    onValueChange = { dragging = true; dragValue = it.coerceAtMost(maxSeekFrac) },
+                                    onValueChange = { dragging = true; dragValue = it },
                                     onValueChangeFinished = {
-                                        val tgt = dragValue.coerceAtMost(maxSeekFrac)
-                                        player.position = tgt
-                                        posFraction = tgt
-                                        posTimeMs = (tgt * lengthMs).toLong().coerceIn(0L, lengthMs)
+                                        // ciel v case relacie (v ramci dosiahnutelneho rozsahu)
+                                        val progMs = (dragValue.coerceIn(0f, 1f) * barLengthMs).toLong()
+                                        posTimeMs = progMs.coerceIn(0L, barLengthMs)
+                                        // skutocny seek: prepocet na poziciu v subore (offset + cas relacie).
+                                        // Cielom dosiahnutelneho rozsahu je stale ~45 s pred zivou hranou.
+                                        val fileFrac = if (lengthMs > 0)
+                                            ((recordingOffsetMs + progMs).toFloat() /
+                                                (recordingOffsetMs + lengthMs)).coerceIn(0f, 1f)
+                                        else 0f
+                                        player.position = fileFrac
+                                        posFraction = fileFrac
                                         dragging = false
                                     },
                                     modifier = Modifier.fillMaxWidth()
@@ -2507,7 +2517,7 @@ private fun PlayerUi(
                                     }
                                 }
                             }
-                            Text(fmtMs(lengthMs), color = playerFg(),
+                            Text(fmtMs(barLengthMs), color = playerFg(),
                                 style = MaterialTheme.typography.bodySmall)
                         }
                     }
