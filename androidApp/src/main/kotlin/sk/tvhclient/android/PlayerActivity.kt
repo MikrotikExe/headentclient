@@ -2679,10 +2679,48 @@ private fun PlayerUi(
                         )
                     }
                 }
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .pointerInput(Unit) {
+                                // Spodnych ~15% je vyhradenych na zatvaranie: tah zdola hore tam
+                                // zoznam zatvori (namiesto rolovania). Klik na kanal aj rolovanie
+                                // inde ostavaju zachovane - gesto citame na Initial passe a berieme
+                                // ho LEN ked tah zacne v spodnej zone a ide nahor.
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        val down = awaitPointerEvent(
+                                            androidx.compose.ui.input.pointer.PointerEventPass.Initial
+                                        ).changes.firstOrNull() ?: continue
+                                        if (!(down.pressed && !down.previousPressed)) continue
+                                        if (down.position.y < size.height * 0.85f) continue
+                                        val pid = down.id
+                                        var totalDy = 0f
+                                        var decided = false
+                                        var closing = false
+                                        while (true) {
+                                            val ev = awaitPointerEvent(
+                                                androidx.compose.ui.input.pointer.PointerEventPass.Initial
+                                            )
+                                            val ch = ev.changes.firstOrNull { it.id == pid } ?: break
+                                            if (!ch.pressed) break
+                                            totalDy += ch.position.y - ch.previousPosition.y
+                                            if (!decided && kotlin.math.abs(totalDy) > 12f) {
+                                                decided = true
+                                                closing = totalDy < 0f   // tah nahor -> zatvarame
+                                            }
+                                            if (closing) ch.consume()     // zober gesto LazyColumnu
+                                        }
+                                        if (closing && totalDy < -60f) showChannelList = false
+                                    }
+                                }
+                            }
+                    ) {
                     LazyColumn(
                         state = listState,
                         userScrollEnabled = listFrac >= 0.999f,   // rolovat az ked je zoznam uplne otvoreny
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.fillMaxSize()
                     ) {
                         itemsIndexed(liveChannels) { idx, ch ->
                             val selected = idx == sel
@@ -2759,23 +2797,6 @@ private fun PlayerUi(
                             }
                         }
                     }
-                    // Spodna vyhradena zona (~15%): tah zdola hore (alebo klik) zatvori zoznam;
-                    // kanaly sa tu neroluju (je mimo LazyColumn), takze gesto je jednoznacne.
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(fullH * 0.15f)
-                            .pointerInput(Unit) {
-                                var dyz = 0f
-                                detectVerticalDragGestures(
-                                    onDragStart = { dyz = 0f },
-                                    onDragEnd = { if (dyz < -60f) showChannelList = false }
-                                ) { _, amount -> dyz += amount }
-                            }
-                            .clickable { showChannelList = false },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("\u25B4", color = playerFgDim(), fontSize = 22.sp)
                     }
                 }
               }
