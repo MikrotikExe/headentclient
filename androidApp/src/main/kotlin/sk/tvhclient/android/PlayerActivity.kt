@@ -1862,8 +1862,8 @@ private fun PlayerUi(
         }
     }
 
-    LaunchedEffect(controlsVisible, menu, controlsPoke) {
-        if (controlsVisible && menu == null) {
+    LaunchedEffect(controlsVisible, menu, controlsPoke, dragging) {
+        if (controlsVisible && menu == null && !dragging) {
             kotlinx.coroutines.delay(4000)
             controlsVisible = false
         }
@@ -1897,7 +1897,7 @@ private fun PlayerUi(
         Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .pointerInput(isTvGest, seekable, timeshiftEngaged) {
+            .pointerInput(isTvGest, seekable, timeshiftEngaged, controlsVisible) {
                 val audio = ctx.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
                 val act = ctx as? android.app.Activity
                 val maxVol = audio.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC).coerceAtLeast(1)
@@ -1914,7 +1914,10 @@ private fun PlayerUi(
                         if (!ch.pressed) break
                         val dx = ch.position.x - down.position.x
                         val dy = ch.position.y - down.position.y
-                        if (mode == 0 && !showChannelList && (kotlin.math.abs(dx) > slop || kotlin.math.abs(dy) > slop)) {
+                        // Gesta zachovaj po ploche; zakaz ich len v oblasti spodneho baru
+                        // (ovladanie/slider), ked je viditelny - tam pretacas cez slider.
+                        val inBar = controlsVisible && down.position.y > size.height * 0.6f
+                        if (mode == 0 && !showChannelList && !inBar && (kotlin.math.abs(dx) > slop || kotlin.math.abs(dy) > slop)) {
                             mode = if (kotlin.math.abs(dx) >= kotlin.math.abs(dy)) {
                                 if (seekable || timeshiftEngaged) 1 else 0   // seek len ked je co pretacat
                             } else if (isTvGest) {
