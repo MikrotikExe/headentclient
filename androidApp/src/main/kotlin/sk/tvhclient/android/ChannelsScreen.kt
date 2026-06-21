@@ -589,6 +589,7 @@ private fun playDvrFile(
         putExtra(PlayerActivity.EXTRA_DVR_RECORDING, inProgress)
         putExtra(PlayerActivity.EXTRA_DVR_PROG_START_SEC, pStart)
         putExtra(PlayerActivity.EXTRA_DVR_PROG_STOP_SEC, pStop)
+        putExtra(PlayerActivity.EXTRA_DVR_REAL_START_SEC, rec.realStartSec)
     }
     context.startActivity(intent)
 }

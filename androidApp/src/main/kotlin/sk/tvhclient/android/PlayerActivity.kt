@@ -1009,6 +1009,7 @@ class PlayerActivity : ComponentActivity() {
     private var dvrRecording = false
     private var dvrProgStartSec: Long = 0
     private var dvrProgStopSec: Long = 0
+    private var dvrRealStartSec: Long = 0
     private val dvrDurationState = mutableStateOf(0L)
     private var reachedEnd = false
 
@@ -1077,6 +1078,7 @@ class PlayerActivity : ComponentActivity() {
         dvrRecording = intent.getBooleanExtra(EXTRA_DVR_RECORDING, false)
         dvrProgStartSec = intent.getLongExtra(EXTRA_DVR_PROG_START_SEC, 0L)
         dvrProgStopSec = intent.getLongExtra(EXTRA_DVR_PROG_STOP_SEC, 0L)
+        dvrRealStartSec = intent.getLongExtra(EXTRA_DVR_REAL_START_SEC, 0L)
         // Prebiehajuca relacia: dlzka rastie k zivej hrane; bar musi byt VZDY viditelny.
         // Ak mame hranice relacie, dopocitavame relativne k jej zaciatku (cap dlzkou relacie).
         // Ak hranice chybaju (nahravka nema vyplnene start/stop), drzime krok s dlzkou z VLC.
@@ -1343,6 +1345,8 @@ class PlayerActivity : ComponentActivity() {
                 zapPoke = zapPokeState.value,
                 recordingLive = dvrRecording,
                 recordingStopSec = dvrProgStopSec,
+                recordingOffsetMs = if (dvrProgStartSec > 0 && dvrRealStartSec in 1 until dvrProgStartSec)
+                    (dvrProgStartSec - dvrRealStartSec) * 1000 else 0L,
                 onClose = { if (!enterPipIfPossible()) finish() }
             )
             }
@@ -1561,6 +1565,7 @@ class PlayerActivity : ComponentActivity() {
         const val EXTRA_DVR_RECORDING = "dvr_recording"
         const val EXTRA_DVR_PROG_START_SEC = "dvr_prog_start_sec"
         const val EXTRA_DVR_PROG_STOP_SEC = "dvr_prog_stop_sec"
+        const val EXTRA_DVR_REAL_START_SEC = "dvr_real_start_sec"
 
         // Odkaz na prave zijucu instanciu prehravaca. Pri otvoreni noveho kanala zavrieme predoslu
         // (aj tu visiacu v PiP), inak by stara PiP zostala visiet so starym kanalom.
@@ -1651,6 +1656,7 @@ private fun PlayerUi(
     zapPoke: Int = 0,
     recordingLive: Boolean = false,
     recordingStopSec: Long = 0,
+    recordingOffsetMs: Long = 0,
     onOrientationLockChange: (Boolean) -> Unit = {},
     onClose: () -> Unit
 ) {
@@ -1780,7 +1786,10 @@ private fun PlayerUi(
                 if (!dragging) {
                     val p = player.position
                     if (p in 0f..1f) posFraction = p
-                    posTimeMs = player.time.coerceAtLeast(0L)
+                    // player.time je pozicia v SUBORE (vratane obsahu pred relaciou). Odpocitame
+                    // posun zaciatku relacie, aby lava strana bola relativna k relacii (a teda
+                    // nepredbiehala pravu = uplynuty cas relacie).
+                    posTimeMs = (player.time - recordingOffsetMs).coerceAtLeast(0L)
                 }
                 // Prebiehajuca relacia: ak playhead dobehne zivu hranu (koniec dostupnych dat),
                 // radsej pozastav nez nechat VLC narazit na EOF (zamrzne a nezotavi sa).
