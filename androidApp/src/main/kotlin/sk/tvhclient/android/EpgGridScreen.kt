@@ -453,7 +453,11 @@ fun EpgGridScreen(
     LaunchedEffect(selStart) {
         val s = selStart ?: return@LaunchedEffect
         val startMin = (((s - dayStart) / 60).toInt()).coerceIn(0, DAY_MIN)
-        val target = with(density) { (startMin * PX_PER_MIN).dp.toPx() - 40.dp.toPx() }
+        // vycentruj vybranu bunku do stredu viditelnej casovej osi (sirka obrazovky bez
+        // stlpca s logom), nie k lavemu okraju - takze "teraz" je pri otvoreni aj prepnuti
+        // dna v strede
+        val halfVisPx = with(density) { ((configuration.screenWidthDp - PICON_COL) / 2).dp.toPx() }
+        val target = with(density) { (startMin * PX_PER_MIN).dp.toPx() } - halfVisPx
         runCatching { hScroll.animateScrollTo(target.toInt().coerceAtLeast(0)) }
     }
 
