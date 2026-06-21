@@ -2684,7 +2684,7 @@ private fun PlayerUi(
                             .weight(1f)
                             .fillMaxWidth()
                             .pointerInput(Unit) {
-                                // Spodnych ~15% je vyhradenych na zatvaranie: tah zdola hore tam
+                                // Spodnych ~10% je vyhradenych na zatvaranie: tah zdola hore tam
                                 // zoznam zatvori (namiesto rolovania). Klik na kanal aj rolovanie
                                 // inde ostavaju zachovane - gesto citame na Initial passe a berieme
                                 // ho LEN ked tah zacne v spodnej zone a ide nahor.
@@ -2694,7 +2694,7 @@ private fun PlayerUi(
                                             androidx.compose.ui.input.pointer.PointerEventPass.Initial
                                         ).changes.firstOrNull() ?: continue
                                         if (!(down.pressed && !down.previousPressed)) continue
-                                        if (down.position.y < size.height * 0.85f) continue
+                                        if (down.position.y < size.height * 0.90f) continue
                                         val pid = down.id
                                         var totalDy = 0f
                                         var decided = false
