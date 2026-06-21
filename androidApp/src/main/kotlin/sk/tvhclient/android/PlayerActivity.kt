@@ -2759,12 +2759,28 @@ private fun PlayerUi(
                             }
                         }
                     }
+                    // Spodna vyhradena zona (~15%): tah zdola hore (alebo klik) zatvori zoznam;
+                    // kanaly sa tu neroluju (je mimo LazyColumn), takze gesto je jednoznacne.
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(fullH * 0.15f)
+                            .pointerInput(Unit) {
+                                var dyz = 0f
+                                detectVerticalDragGestures(
+                                    onDragStart = { dyz = 0f },
+                                    onDragEnd = { if (dyz < -60f) showChannelList = false }
+                                ) { _, amount -> dyz += amount }
+                            }
+                            .clickable { showChannelList = false },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("\u25B4", color = playerFgDim(), fontSize = 22.sp)
+                    }
                 }
               }
             }
         }
-
-        // Overlay: TV/STB EPG browser (cely displej, OK otvori) — vlavo zoznam, vpravo detail + nahlad + dalsie
         if (showChannelList && isTvGest && liveChannels.isNotEmpty()) {
             val loaderT = remember(server?.id) { PiconImageLoader.get(ctx, server) }
             val selT = channelNavIndex.coerceIn(0, liveChannels.size - 1)
