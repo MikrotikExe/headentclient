@@ -167,7 +167,7 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
             TvTextField(
                 label = stringResource(R.string.field_port),
                 value = port, onValueChange = { port = it.filter(Char::isDigit) },
-                modifier = Modifier.width(160.dp), numeric = true
+                modifier = Modifier.fillMaxWidth(), numeric = true
             )
             DropdownField(
                 label = stringResource(R.string.field_conn_mode),
@@ -183,7 +183,7 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                 TvTextField(
                     label = stringResource(R.string.field_htsp_port),
                     value = htspPort, onValueChange = { htspPort = it.filter(Char::isDigit) },
-                    modifier = Modifier.width(160.dp), numeric = true
+                    modifier = Modifier.fillMaxWidth(), numeric = true
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
