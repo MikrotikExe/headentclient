@@ -59,6 +59,10 @@ fun TvTextField(
     var editing by remember { mutableStateOf(false) }
     var everEdited by remember { mutableStateOf(false) }
     var revealed by remember { mutableStateOf(false) }
+    // Buffer znakov napisanych pocas prepinania box -> IME pole (USB klavesnica pise rychlejsie
+    // ako stiha prekreslenie). Lokalny stav sa cita vzdy aktualne, takze poradie sa zachova.
+    var starting by remember { mutableStateOf(false) }
+    var pending by remember { mutableStateOf("") }
     val internalFocus = remember { FocusRequester() }
     val boxFocus = focusRequester ?: internalFocus
 
@@ -103,10 +107,15 @@ fun TvTextField(
                     ) { editing = false; true } else false
                 }
         )
-        LaunchedEffect(Unit) { runCatching { imeFocus.requestFocus() } }
+        LaunchedEffect(Unit) {
+            if (pending.isNotEmpty()) { onValueChange(value + pending); pending = "" }
+            starting = false
+            runCatching { imeFocus.requestFocus() }
+        }
     } else {
-        // Po skonceni uprav vrat fokus na pole (nech nezostane visiet)
+        // Po skonceni uprav vrat fokus na pole (nech nezostane visiet) + vycisti buffer
         LaunchedEffect(editing) {
+            if (!editing) { starting = false; pending = "" }
             if (everEdited) runCatching { boxFocus.requestFocus() }
         }
         Column(
@@ -115,14 +124,14 @@ fun TvTextField(
                 .focusRequester(boxFocus)
                 .dpadFocusable()
                 .onPreviewKeyEvent { e ->
-                    // Pripojena klavesnica: ak je pole zamerane a stlaci sa znakovy kláves,
-                    // rovno spusti editaciu a zapise ten znak (netreba najprv OK/Enter).
+                    // Pripojena klavesnica: znaky napisane skor, nez sa stihne otvorit IME pole,
+                    // sa zhromazdia do bufra (v spravnom poradi) a aplikuju sa naraz pri aktivacii.
                     if (e.type == KeyEventType.KeyDown) {
                         val ch = e.nativeKeyEvent.unicodeChar
                         if (ch != 0 && !Character.isISOControl(ch)) {
-                            onValueChange(value + ch.toChar())
+                            pending += ch.toChar()
                             everEdited = true
-                            editing = true
+                            if (!starting) { starting = true; editing = true }
                             true
                         } else false
                     } else false

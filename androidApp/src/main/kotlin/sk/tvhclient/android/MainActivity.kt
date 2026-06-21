@@ -107,6 +107,11 @@ class MainActivity : ComponentActivity() {
                         val window = (view.context as android.app.Activity).window
                         window.statusBarColor = barColor.toArgb()
                         window.navigationBarColor = barColor.toArgb()
+                        // Pozadie okna na farbu povrchu, aby nepokryta plocha (napr. pri vyskoceni
+                        // klavesnice, ked sa okno zmensi) neukazovala cierny pruh.
+                        window.setBackgroundDrawable(
+                            android.graphics.drawable.ColorDrawable(barColor.toArgb())
+                        )
                         WindowCompat.getInsetsController(window, view).apply {
                             isAppearanceLightStatusBars = !dark
                             isAppearanceLightNavigationBars = !dark
