@@ -1754,9 +1754,13 @@ private fun PlayerUi(
     var dragValue by remember { mutableStateOf(0f) }
     // Aktualny cas prehravania v ms (player.time) - plynuly zdroj pozicie pre lavu stranu.
     var posTimeMs by remember { mutableStateOf(0L) }
-    // Pri prebiehajucej nahravke so znamym posunom (subor obsahuje obsah PRED relaciou)
-    // skocime raz na zaciatok relacie v subore, aby "od zaciatku" hralo od zaciatku relacie
-    // a player.time startoval na offsete (lava strana ide od 0 a sedi s pravou).
+    // player.time/position su pre rastuci TS nespolahlive (raz bezia, raz stoja, niekedy
+    // odpocet offsetu vynuluje lavu stranu). Lavu stranu preto pocitame ako prehraty cas:
+    // od zaciatku relacie (0) pridavame realny uplynuly cas, kym sa prehrava - rovnaky
+    // wall-clock princip akym spolahlivo funguje prava strana (lengthMs).
+    var lastPlayTickMs by remember { mutableStateOf(0L) }
+    // Jednorazovy skok na zaciatok relacie v subore (prebiehajuca nahravka s predprogramovym
+    // obsahom), aby "od zaciatku" hralo od zaciatku relacie a prehravacie hodiny od 0 sedeli.
     var initialSeekDone by remember { mutableStateOf(false) }
 
     // Dlzka baru = uplynuty cas relacie (knownDurationMs, plynulo rastie 1s/s).
@@ -1764,6 +1768,10 @@ private fun PlayerUi(
     // skokoch, co rozhadzovalo lavu stranu casomiery. Fallback na VLC dlzku len ked
     // EPG cas nemame.
     val lengthMs = if (knownDurationMs > 0) knownDurationMs else player.length.coerceAtLeast(0L)
+    // Cerstva dlzka pre ticker (LaunchedEffect(Unit) inak zachyti hodnotu zo startu a
+    // lava strana by sa nezmestila nad uroven zivej hrany pri starte).
+    val lengthMsLive = androidx.compose.runtime.rememberUpdatedState(lengthMs)
+    val offsetMsLive = androidx.compose.runtime.rememberUpdatedState(recordingOffsetMs)
     // Pri prebiehajucej nahravke nedovol pretocit uplne na zivu hranu (koniec dostupnych dat),
     // lebo TS stream tam zamrzne a nezotavi sa. Nechaj rezervu ~10 s.
     val liveMarginMs = 10_000L
@@ -1780,32 +1788,51 @@ private fun PlayerUi(
         LaunchedEffect(Unit) {
             var sinceSave = 0
             while (true) {
-                // obnovenie po potvrdeni
-                if (pendingResumeMs > 0 && lengthMs > 0 && player.isSeekable) {
-                    val f = (pendingResumeMs.toFloat() / lengthMs).coerceIn(0f, 1f)
+                val nowMs = System.currentTimeMillis()
+                val curLen = lengthMsLive.value
+                val curOff = offsetMsLive.value
+                // obnovenie po potvrdeni (ma prednost pred skokom na zaciatok relacie)
+                if (pendingResumeMs > 0 && curLen > 0 && player.isSeekable) {
+                    val f = (pendingResumeMs.toFloat() / curLen).coerceIn(0f, 1f)
                     player.position = f
                     posFraction = f
+                    posTimeMs = pendingResumeMs.coerceIn(0L, curLen)
                     pendingResumeMs = 0
-                    initialSeekDone = true  // obnova pozicie ma prednost pred skokom na zaciatok relacie
+                    initialSeekDone = true
                 }
-                // Jednorazovy skok na zaciatok relacie v subore (len prebiehajuca nahravka so
-                // znamym posunom a bez obnovy pozicie). Offset je v uz nahranej minulosti, takze
-                // seek tam je spolahlivy. Vdaka tomu player.time startuje na offsete -> lava
-                // strana ide od 0 a "od zaciatku" hra od zaciatku relacie, nie predprogramovy obsah.
-                if (!initialSeekDone && recordingLive && recordingOffsetMs > 0 &&
-                    !askResume && pendingResumeMs == 0L && player.isSeekable) {
-                    player.time = recordingOffsetMs
+                // Jednorazovy skok na zaciatok relacie v subore (prebiehajuca nahravka s
+                // predprogramovym obsahom). Seekujeme POZICIOU (zlomok), nie setTime - na
+                // rastucom TS je to spolahlivejsie. Zlomok = offset / (offset + uplynuty cas
+                // relacie) = poloha zaciatku relacie v aktualnom buffri.
+                if (!initialSeekDone && recordingLive && curOff > 0 &&
+                    !askResume && pendingResumeMs == 0L && curLen > 0 && player.isSeekable) {
+                    val f = (curOff.toFloat() / (curOff + curLen)).coerceIn(0f, 1f)
+                    player.position = f
+                    posFraction = f
                     posTimeMs = 0L
                     initialSeekDone = true
                 }
                 if (!dragging) {
                     val p = player.position
-                    if (p in 0f..1f) posFraction = p
-                    // player.time je pozicia v SUBORE (vratane obsahu pred relaciou). Odpocitame
-                    // posun zaciatku relacie, aby lava strana bola relativna k relacii (a teda
-                    // nepredbiehala pravu = uplynuty cas relacie).
-                    posTimeMs = (player.time - recordingOffsetMs).coerceAtLeast(0L)
+                    if (p in 0f..1f) {
+                        // Skok pozicie = doslo k seeku (slider/D-pad/dvojklik) -> zosulad
+                        // prehravacie hodiny so skutocnou poziciou. Mapujeme subor->cas relacie:
+                        // (p * (offset + dlzka)) - offset. Pri normalnom prehravani sa p meni
+                        // plynulo (<<5%), takze sa to nespusti a hodiny tikaju z wall-clocku.
+                        if (initialSeekDone && curLen > 0 &&
+                            kotlin.math.abs(p - posFraction) > 0.05f) {
+                            posTimeMs = (p * (curOff + curLen) - curOff).toLong()
+                                .coerceIn(0L, curLen)
+                        }
+                        posFraction = p
+                    }
+                    // Prehravacie hodiny: kym sa prehrava, pridavaj realny uplynuly cas.
+                    if (lastPlayTickMs > 0L && player.isPlaying) {
+                        val d = (nowMs - lastPlayTickMs).coerceIn(0L, 3000L)
+                        posTimeMs = (posTimeMs + d).coerceIn(0L, curLen)
+                    }
                 }
+                lastPlayTickMs = nowMs
                 // Prebiehajuca relacia: ak playhead dobehne zivu hranu (koniec dostupnych dat),
                 // radsej pozastav nez nechat VLC narazit na EOF (zamrzne a nezotavi sa).
                 // Po skonceni relacie (cas presiel jej koniec) nechaj dohrat az na koniec.
@@ -1818,13 +1845,12 @@ private fun PlayerUi(
                         if (player.position >= edge) player.pause()
                     }
                 }
-                // priebezne ukladaj poziciu (kazdych ~5s)
+                // priebezne ukladaj poziciu (kazdych ~5s) - z prehravacich hodin (spolahlive)
                 sinceSave++
                 if (sinceSave >= 5 && !askResume) {
                     sinceSave = 0
-                    val p = player.position
-                    if (p > 0.001f && p <= 1f && lengthMs > 0 && dvrUuid != null && serverId != null) {
-                        WatchProgress.save(ctx, serverId, dvrUuid, (p * lengthMs).toLong(), lengthMs)
+                    if (posTimeMs > 1000L && curLen > 0 && dvrUuid != null && serverId != null) {
+                        WatchProgress.save(ctx, serverId, dvrUuid, posTimeMs.coerceAtMost(curLen), curLen)
                     }
                 }
                 kotlinx.coroutines.delay(1000)
@@ -2406,8 +2432,10 @@ private fun PlayerUi(
                                     value = frac.coerceIn(0f, 1f),
                                     onValueChange = { dragging = true; dragValue = it.coerceAtMost(maxSeekFrac) },
                                     onValueChangeFinished = {
-                                        player.position = dragValue.coerceAtMost(maxSeekFrac)
-                                        posFraction = dragValue
+                                        val tgt = dragValue.coerceAtMost(maxSeekFrac)
+                                        player.position = tgt
+                                        posFraction = tgt
+                                        posTimeMs = (tgt * lengthMs).toLong().coerceIn(0L, lengthMs)
                                         dragging = false
                                     },
                                     modifier = Modifier.fillMaxWidth()
