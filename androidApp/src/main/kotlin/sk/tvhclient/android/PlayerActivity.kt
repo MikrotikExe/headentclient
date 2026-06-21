@@ -582,6 +582,10 @@ class PlayerActivity : ComponentActivity() {
     private val pinEntryState = androidx.compose.runtime.mutableStateOf("")
     private val pinErrorState = androidx.compose.runtime.mutableStateOf(false)
     private var pinOnSuccess: (() -> Unit)? = null
+    // Dialog "Obnovit prehravanie" — D-pad obsluha v dispatchKeyEvent (na boxe nemal fokus)
+    private val resumePromptState = androidx.compose.runtime.mutableStateOf(false)
+    private val resumeSelState = androidx.compose.runtime.mutableStateOf(1)   // 0=Nie, 1=Ano (predvolba)
+    private val resumeAnswerState = androidx.compose.runtime.mutableStateOf(0) // 0=ziadna, 1=Ano, 2=Nie
     private var pinOnCancel: (() -> Unit)? = null
 
     // DVR scrub focus: nahlad pozicie pri vybere casu sipkami (potvrdenie OK)
@@ -758,7 +762,23 @@ class PlayerActivity : ComponentActivity() {
             return true
         }
 
-        // OK-up po otvoreni zoznamu vzdy resetuj guard (nech sa nasledne OK neprehltne kvoli casovaniu)
+        // 0a) Dialog "Obnovit prehravanie" -> sipky vlavo/vpravo + OK riesime my (na boxe inak bez fokusu)
+        if (resumePromptState.value) {
+            if (down) {
+                when (kc) {
+                    android.view.KeyEvent.KEYCODE_DPAD_LEFT,
+                    android.view.KeyEvent.KEYCODE_DPAD_RIGHT ->
+                        { resumeSelState.value = 1 - resumeSelState.value; return true }
+                    android.view.KeyEvent.KEYCODE_DPAD_CENTER,
+                    android.view.KeyEvent.KEYCODE_ENTER,
+                    android.view.KeyEvent.KEYCODE_NUMPAD_ENTER ->
+                        { if (event.repeatCount == 0) resumeAnswerState.value = if (resumeSelState.value == 1) 1 else 2; return true }
+                    android.view.KeyEvent.KEYCODE_BACK ->
+                        { resumeAnswerState.value = 2; return true }
+                }
+            }
+            return true
+        }
         val okKey = kc == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
             kc == android.view.KeyEvent.KEYCODE_ENTER ||
             kc == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
@@ -1377,6 +1397,13 @@ class PlayerActivity : ComponentActivity() {
                 recordingOffsetMs = if (dvrProgStartSec > 0 && dvrRealStartSec in 1 until dvrProgStartSec)
                     (dvrProgStartSec - dvrRealStartSec) * 1000 else 0L,
                 onPlayheadMs = { dvrPlayheadMsState.value = it },
+                resumeSel = resumeSelState.value,
+                resumeAnswer = resumeAnswerState.value,
+                onAskResumeChange = {
+                    resumePromptState.value = it
+                    if (it) { resumeSelState.value = 1; resumeAnswerState.value = 0 }
+                },
+                onResumeAnswerHandled = { resumeAnswerState.value = 0 },
                 onClose = { if (!enterPipIfPossible()) finish() }
             )
             }
@@ -1719,6 +1746,10 @@ private fun PlayerUi(
     recordingStopSec: Long = 0,
     recordingOffsetMs: Long = 0,
     onPlayheadMs: (Long) -> Unit = {},
+    resumeSel: Int = 1,
+    resumeAnswer: Int = 0,
+    onAskResumeChange: (Boolean) -> Unit = {},
+    onResumeAnswerHandled: () -> Unit = {},
     onOrientationLockChange: (Boolean) -> Unit = {},
     onClose: () -> Unit
 ) {
@@ -1848,6 +1879,15 @@ private fun PlayerUi(
     // media nacitana
     var askResume by remember { mutableStateOf(resumeMs > 0) }
     var pendingResumeMs by remember { mutableStateOf(0L) }
+    // Most na D-pad obsluhu dialogu v Activity: nahlas viditelnost a reaguj na odpoved
+    LaunchedEffect(askResume) { onAskResumeChange(askResume) }
+    LaunchedEffect(resumeAnswer) {
+        if (resumeAnswer != 0 && askResume) {
+            if (resumeAnswer == 1) pendingResumeMs = resumeMs
+            askResume = false
+            onResumeAnswerHandled()
+        }
+    }
 
     // Aktualizuj poziciu kazdu sekundu (len ked je seekable a netiahneme)
     if (seekable) {
@@ -3227,10 +3267,12 @@ private fun PlayerUi(
                         Modifier.align(Alignment.End),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        TextChip(androidx.compose.ui.res.stringResource(R.string.no)) {
+                        TextChip(androidx.compose.ui.res.stringResource(R.string.no),
+                            selected = resumeSel == 0) {
                             askResume = false
                         }
-                        TextChip(androidx.compose.ui.res.stringResource(R.string.yes)) {
+                        TextChip(androidx.compose.ui.res.stringResource(R.string.yes),
+                            selected = resumeSel == 1) {
                             pendingResumeMs = resumeMs
                             askResume = false
                         }
