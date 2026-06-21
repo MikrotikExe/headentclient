@@ -89,6 +89,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Kresli pod systemove pruhy (edge-to-edge), aby pozadie appky vyplnilo celu obrazovku
+        // vratane oblasti navigacneho pruhu / okolo klavesnice (inak tam vznikal cierny pruh).
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         if (intent?.getBooleanExtra("open_epg", false) == true) {
             TabController.openEpgGrid(fromPlayer = true, returnUuid = intent.getStringExtra("epg_return_uuid"))
         }
