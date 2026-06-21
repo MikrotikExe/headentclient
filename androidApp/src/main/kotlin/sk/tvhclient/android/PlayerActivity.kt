@@ -587,8 +587,11 @@ class PlayerActivity : ComponentActivity() {
     // DVR scrub focus: nahlad pozicie pri vybere casu sipkami (potvrdenie OK)
     private val scrubFractionState = androidx.compose.runtime.mutableStateOf(0f)
     private fun initScrub() {
-        scrubFractionState.value = if (::mediaPlayer.isInitialized)
-            mediaPlayer.position.coerceIn(0f, 1f) else 0f
+        // zlomok v ramci DOSIAHNUTELNEHO rozsahu baru (rovnaka skala ako seekbar) z
+        // playheadu prehravacich hodin - nie z player.position (na rastucom TS nespolahliva).
+        val bar = if (dvrRecording) (dvrDurationMs - 45_000L).coerceAtLeast(1L) else dvrDurationMs
+        scrubFractionState.value = if (bar > 0)
+            (dvrPlayheadMsState.value.toFloat() / bar).coerceIn(0f, 1f) else 0f
     }
 
     private fun requestPin(onOk: () -> Unit, onCancel: () -> Unit) {
@@ -929,12 +932,18 @@ class PlayerActivity : ComponentActivity() {
                         }
                         android.view.KeyEvent.KEYCODE_DPAD_LEFT -> if (down) {
                             if (onSeek) scrubFractionState.value = (scrubFractionState.value - stepFrac).coerceIn(0f, 1f)
-                            else seekRelative(-15_000)
+                            else {
+                                controlNavState.value = (controlNavState.value - 1 + n) % n
+                                if (order.getOrNull(controlNavState.value) == "seek") initScrub()
+                            }
                             pokeControls(); return true
                         }
                         android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> if (down) {
                             if (onSeek) scrubFractionState.value = (scrubFractionState.value + stepFrac).coerceIn(0f, 1f)
-                            else seekRelative(+30_000)
+                            else {
+                                controlNavState.value = (controlNavState.value + 1) % n
+                                if (order.getOrNull(controlNavState.value) == "seek") initScrub()
+                            }
                             pokeControls(); return true
                         }
                         android.view.KeyEvent.KEYCODE_DPAD_CENTER,
@@ -943,9 +952,16 @@ class PlayerActivity : ComponentActivity() {
                             if (down && event.repeatCount == 0) {
                                 if (onSeek) {
                                     if (::mediaPlayer.isInitialized) {
-                                        val maxF = if (dvrRecording && dvrDurationMs > 45_000L)
-                                            (dvrDurationMs - 45_000L).toFloat() / dvrDurationMs else 1f
-                                        mediaPlayer.position = scrubFractionState.value.coerceAtMost(maxF)
+                                        // scrubFrac je zlomok dosiahnutelneho rozsahu baru;
+                                        // prepocet na poziciu v subore (offset + cas relacie)
+                                        val bar = if (dvrRecording) (dvrDurationMs - 45_000L).coerceAtLeast(1L) else dvrDurationMs
+                                        val progMs = (scrubFractionState.value.coerceIn(0f, 1f) * bar).toLong()
+                                        val offMs = if (dvrProgStartSec > 0 && dvrRealStartSec in 1 until dvrProgStartSec)
+                                            (dvrProgStartSec - dvrRealStartSec) * 1000 else 0L
+                                        val fileFrac = if (dvrDurationMs > 0)
+                                            ((offMs + progMs).toFloat() / (offMs + dvrDurationMs)).coerceIn(0f, 1f)
+                                        else scrubFractionState.value.coerceIn(0f, 1f)
+                                        mediaPlayer.position = fileFrac
                                     }
                                     pokeControls()
                                 } else activateControl(order.getOrNull(controlNavState.value))
