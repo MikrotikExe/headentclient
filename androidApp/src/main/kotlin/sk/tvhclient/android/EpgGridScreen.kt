@@ -450,14 +450,17 @@ fun EpgGridScreen(
     }
     // Auto-skrol na vybrany riadok / bunku
     LaunchedEffect(selRow) { runCatching { listState.animateScrollToItem(selRow) } }
+    // Centrovanie horizontalneho skrolu (TV): do stredu obrazovky daj STRED vybranej
+    // relacie - pri otvoreni je to prave beziaca relacia, takze "co ide live" je v strede
+    // (polovica vlavo, polovica vpravo). Pocas navigacie kurzorom centruje vybranu bunku.
     LaunchedEffect(selStart) {
         val s = selStart ?: return@LaunchedEffect
-        val startMin = (((s - dayStart) / 60).toInt()).coerceIn(0, DAY_MIN)
-        // vycentruj vybranu bunku do stredu viditelnej casovej osi (sirka obrazovky bez
-        // stlpca s logom), nie k lavemu okraju - takze "teraz" je pri otvoreni aj prepnuti
-        // dna v strede
+        val cell = navCells(selRow).firstOrNull { it.start == s }
+        val midSec = if (cell != null) (cell.start + cell.stop) / 2 else s
+        val midMin = (((midSec - dayStart) / 60).toInt()).coerceIn(0, DAY_MIN)
+        // do stredu viditelnej casovej osi (sirka obrazovky bez stlpca s logom)
         val halfVisPx = with(density) { ((configuration.screenWidthDp - PICON_COL) / 2).dp.toPx() }
-        val target = with(density) { (startMin * PX_PER_MIN).dp.toPx() } - halfVisPx
+        val target = with(density) { (midMin * PX_PER_MIN).dp.toPx() } - halfVisPx
         runCatching { hScroll.animateScrollTo(target.toInt().coerceAtLeast(0)) }
     }
 
