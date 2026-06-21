@@ -391,8 +391,10 @@ class PlayerActivity : ComponentActivity() {
         if (!::mediaPlayer.isInitialized || !seekablePlayback) return
         val dur = if (dvrDurationMs > 0) dvrDurationMs else mediaPlayer.length
         if (dur <= 0) return
+        // Pri prebiehajucej nahravke nechaj rezervu ~10 s od zivej hrany (inak TS zamrzne)
+        val maxMs = if (dvrRecording) (dur - 10_000L).coerceAtLeast(0L) else dur
         val curMs = (mediaPlayer.position.coerceIn(0f, 1f) * dur).toLong()
-        val targetMs = (curMs + deltaMs).coerceIn(0, dur)
+        val targetMs = (curMs + deltaMs).coerceIn(0, maxMs)
         mediaPlayer.position = (targetMs.toFloat() / dur).coerceIn(0f, 1f)
     }
 
@@ -938,7 +940,11 @@ class PlayerActivity : ComponentActivity() {
                         android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
                             if (down && event.repeatCount == 0) {
                                 if (onSeek) {
-                                    if (::mediaPlayer.isInitialized) mediaPlayer.position = scrubFractionState.value
+                                    if (::mediaPlayer.isInitialized) {
+                                        val maxF = if (dvrRecording && dvrDurationMs > 10_000L)
+                                            (dvrDurationMs - 10_000L).toFloat() / dvrDurationMs else 1f
+                                        mediaPlayer.position = scrubFractionState.value.coerceAtMost(maxF)
+                                    }
                                     pokeControls()
                                 } else activateControl(order.getOrNull(controlNavState.value))
                             }
@@ -1335,6 +1341,7 @@ class PlayerActivity : ComponentActivity() {
                 progNextStart = liveNextStartState.value,
                 progNextStop = liveNextStopState.value,
                 zapPoke = zapPokeState.value,
+                recordingLive = dvrRecording,
                 onClose = { if (!enterPipIfPossible()) finish() }
             )
             }
@@ -1641,6 +1648,7 @@ private fun PlayerUi(
     progNextStart: Long = 0,
     progNextStop: Long = 0,
     zapPoke: Int = 0,
+    recordingLive: Boolean = false,
     onOrientationLockChange: (Boolean) -> Unit = {},
     onClose: () -> Unit
 ) {
@@ -1740,6 +1748,11 @@ private fun PlayerUi(
     // Dlzka: primarne z DVR entry, doplnena dlzkou z VLC (max), nech je bar viditelny aj
     // ked DVR entry dlzku nenesie (napr. prebiehajuca nahravka s neuplnymi polami)
     val lengthMs = maxOf(knownDurationMs, player.length).coerceAtLeast(0L)
+    // Pri prebiehajucej nahravke nedovol pretocit uplne na zivu hranu (koniec dostupnych dat),
+    // lebo TS stream tam zamrzne a nezotavi sa. Nechaj rezervu ~10 s.
+    val liveMarginMs = 10_000L
+    val maxSeekFrac = if (recordingLive && lengthMs > liveMarginMs)
+        (lengthMs - liveMarginMs).toFloat() / lengthMs else 1f
 
     // Obnovenie pozicie (len DVR): spytaj sa, a po potvrdeni pretoc ked je
     // media nacitana
@@ -2347,9 +2360,9 @@ private fun PlayerUi(
                             ) {
                                 androidx.compose.material3.Slider(
                                     value = frac.coerceIn(0f, 1f),
-                                    onValueChange = { dragging = true; dragValue = it },
+                                    onValueChange = { dragging = true; dragValue = it.coerceAtMost(maxSeekFrac) },
                                     onValueChangeFinished = {
-                                        player.position = dragValue
+                                        player.position = dragValue.coerceAtMost(maxSeekFrac)
                                         posFraction = dragValue
                                         dragging = false
                                     },
