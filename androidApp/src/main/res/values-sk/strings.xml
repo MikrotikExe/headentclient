@@ -262,7 +262,7 @@
     <string name="welcome_tagline">Aplikácia – klient pre Tvheadend</string>
     <string name="login_in_progress">Prihlásenie prebieha…</string>
     <string name="auto_pip_title">Automatický režim PiP</string>
-    <string name="archive_choice_title">Pýtať sa: naživo alebo od začiatku</string>
+    <string name="archive_choice_title">Upozornenie pri archivovanom kanáli</string>
     <string name="archive_choice_note">Pri výbere kanála, ktorý sa archivuje, ponúknuť voľbu prehrať naživo alebo od začiatku. Keď je vypnuté, prepne rovno naživo.</string>
     <string name="ts_enable_title">Timeshift (pauza / pretáčanie živej TV)</string>
     <string name="ts_enable_note">Pozastavenie a pretáčanie živého vysielania. Funguje len ak server podporuje timeshift cez HTSP; inak ostáva vypnutý a prehrávanie to neovplyvní.</string>

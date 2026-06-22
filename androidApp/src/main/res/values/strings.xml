@@ -262,7 +262,7 @@
     <string name="welcome_tagline">Tvheadend client app</string>
     <string name="login_in_progress">Logging in…</string>
     <string name="auto_pip_title">Automatic picture-in-picture</string>
-    <string name="archive_choice_title">Ask: live or from start</string>
+    <string name="archive_choice_title">Prompt on archived channel</string>
     <string name="archive_choice_note">When selecting a channel that is being archived, ask whether to play live or from the start. When off, it switches to live directly.</string>
     <string name="ts_enable_title">Timeshift (pause / rewind live TV)</string>
     <string name="ts_enable_note">Pause and rewind live TV. Works only if the server supports timeshift over HTSP; otherwise it stays off and playback is unaffected.</string>

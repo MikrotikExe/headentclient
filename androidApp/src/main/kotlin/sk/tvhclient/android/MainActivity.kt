@@ -345,20 +345,11 @@ fun BackupControls(compact: Boolean = false, onImported: () -> Unit = {}) {
 
 @Composable
 private fun TabLabel(dot: Color, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            Modifier
-                .size(7.dp)
-                .clip(androidx.compose.foundation.shape.CircleShape)
-                .background(dot)
-        )
-        Spacer(Modifier.width(4.dp))
-        AutoSizeText(
-            text,
-            maxLines = 1,
-            style = androidx.compose.material3.MaterialTheme.typography.labelMedium
-        )
-    }
+    AutoSizeText(
+        text,
+        maxLines = 1,
+        style = androidx.compose.material3.MaterialTheme.typography.labelMedium
+    )
 }
 
 @Composable

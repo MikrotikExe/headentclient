@@ -279,27 +279,29 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         }
     }
 
-    // Vyber pri archivovanom kanali v prehravaci (nazivo / od zaciatku)
-    Spacer(Modifier.height(16.dp))
-    var archiveChoice by remember { mutableStateOf(ArchiveChoicePref.get(ctx)) }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Switch(
-            checked = archiveChoice,
-            onCheckedChange = { on ->
-                archiveChoice = on
-                ArchiveChoicePref.set(ctx, on)
-                TabController.settingsDirty.value = true
-            }
+    // Vyber pri archivovanom kanali v prehravaci (nazivo / od zaciatku) — len TV/box
+    if (isTvDev) {
+        Spacer(Modifier.height(16.dp))
+        var archiveChoice by remember { mutableStateOf(ArchiveChoicePref.get(ctx)) }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(
+                checked = archiveChoice,
+                onCheckedChange = { on ->
+                    archiveChoice = on
+                    ArchiveChoicePref.set(ctx, on)
+                    TabController.settingsDirty.value = true
+                }
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.archive_choice_title))
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            stringResource(R.string.archive_choice_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(Modifier.width(8.dp))
-        Text(stringResource(R.string.archive_choice_title))
     }
-    Spacer(Modifier.height(8.dp))
-    Text(
-        stringResource(R.string.archive_choice_note),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
 
     // Timeshift (pauza/pretacanie zivej TV) — len pri HTSP pripojeni (9982); pri HTTP nema zmysel
     val htspMode = remember { sk.tvhclient.shared.Tvh.store.active()?.connectionMode == "htsp" }
