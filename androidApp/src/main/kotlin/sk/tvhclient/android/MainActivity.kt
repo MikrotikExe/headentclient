@@ -176,49 +176,119 @@ fun App() {
     if (isTv) TvHomeHost() else AppMain()
 }
 
-/** TV/box: uvodny launcher + vstup do jednotlivych sekcii (taby) so spat na launcher. */
+/** TV/box: uvodny launcher + samostatne sekcie (bez spodneho baru). Spat = launcher.
+ *  Kanaly/Radia idu rovno do prehravaca (zoznam sa prednacita a naplni LivePlaylist,
+ *  aby fungoval prepinaci zoznam v prehravaci). */
 @Composable
 private fun TvHomeHost() {
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    var atHome by remember { mutableStateOf(true) }
-    var startTab by remember { mutableStateOf(0) }
-    if (atHome) {
-        TvHomeScreen(
-            onChannels = {
-                // rovno do prehravaca na posledny kanal; ak este ziadny nie je, otvor zoznam
+    val chVm: ChannelsViewModel = viewModel()
+    val raVm: RadioViewModel = viewModel()
+    val chState by chVm.state.collectAsState()
+    val epgMap by chVm.epgMap.collectAsState()
+    val raState by raVm.state.collectAsState()
+    LaunchedEffect(Unit) { chVm.loadIfNeeded() }   // prednacitaj kanaly (pre Kanaly aj TV program)
+
+    // sekcia: "", "epg", "archive", "settings"; play: "", "tv", "radio"
+    var section by remember { mutableStateOf("") }
+    var play by remember { mutableStateOf("") }
+
+    fun playUuid(uuid: String, title: String) {
+        runCatching {
+            ctx.startActivity(Intent(ctx, PlayerActivity::class.java).apply {
+                putExtra(PlayerActivity.EXTRA_UUID, uuid)
+                putExtra(PlayerActivity.EXTRA_TITLE, title)
+            })
+        }
+    }
+
+    // Kanaly: po nacitani naplni LivePlaylist a pusti posledny/prvy kanal
+    LaunchedEffect(play, chState) {
+        if (play == "tv") {
+            val st = chState
+            if (st is ChannelsState.Loaded) {
                 val sid = sk.tvhclient.shared.Tvh.store.active()?.id
-                val uuid = LastChannel.get(ctx, sid)
-                if (uuid != null) {
-                    LivePlaylist.setIndexForUuid(uuid)
-                    val title = LivePlaylist.channels.firstOrNull { it.uuid == uuid }?.name ?: ""
-                    runCatching {
-                        ctx.startActivity(Intent(ctx, PlayerActivity::class.java).apply {
-                            putExtra(PlayerActivity.EXTRA_UUID, uuid)
-                            putExtra(PlayerActivity.EXTRA_TITLE, title)
-                        })
-                    }
-                } else { startTab = 0; atHome = false }
-            },
-            onRadio = {
+                val hidden = HiddenChannels.all(ctx, sid)
+                LivePlaylist.channels = st.allRows.filter { it.channel.uuid !in hidden }.map { r ->
+                    LivePlaylist.LiveChannel(
+                        uuid = r.channel.uuid, name = r.channel.name,
+                        number = r.channel.number ?: 0, piconUrl = r.piconUrl,
+                        nowTitle = r.nowTitle ?: "", nowStart = r.nowStart, nowStop = r.nowStop
+                    )
+                }
+                val target = LastChannel.get(ctx, sid)
+                    ?.takeIf { u -> LivePlaylist.channels.any { it.uuid == u } }
+                    ?: LivePlaylist.channels.firstOrNull()?.uuid
+                play = ""
+                if (target != null) {
+                    LivePlaylist.setIndexForUuid(target)
+                    playUuid(target, LivePlaylist.channels.firstOrNull { it.uuid == target }?.name ?: "")
+                }
+            } else if (st is ChannelsState.Error || st is ChannelsState.NoServer) {
+                play = ""
+            }
+        }
+    }
+    // Radia: po nacitani naplni LivePlaylist a pusti poslednu/prvu stanicu
+    LaunchedEffect(play, raState) {
+        if (play == "radio") {
+            val st = raState
+            if (st is RadioState.Loaded) {
                 val sid = sk.tvhclient.shared.Tvh.store.active()?.id
-                val uuid = LastRadio.get(ctx, sid)
-                if (uuid != null) {
-                    LivePlaylist.setIndexForUuid(uuid)
-                    val title = LivePlaylist.channels.firstOrNull { it.uuid == uuid }?.name ?: ""
-                    runCatching {
-                        ctx.startActivity(Intent(ctx, PlayerActivity::class.java).apply {
-                            putExtra(PlayerActivity.EXTRA_UUID, uuid)
-                            putExtra(PlayerActivity.EXTRA_TITLE, title)
-                        })
-                    }
-                } else { startTab = 1; atHome = false }
-            },
-            onTvProgram = { startTab = 0; atHome = false; TabController.openEpgGrid() },
-            onArchive = { startTab = 2; atHome = false },
-            onSettings = { startTab = 3; atHome = false },
+                LivePlaylist.channels = st.rows.map { r ->
+                    LivePlaylist.LiveChannel(
+                        uuid = r.channel.uuid, name = r.channel.name,
+                        number = r.channel.number ?: 0, piconUrl = r.piconUrl,
+                        nowTitle = r.nowTitle ?: "", nowStart = r.nowStart, nowStop = r.nowStop
+                    )
+                }
+                val target = LastRadio.get(ctx, sid)
+                    ?.takeIf { u -> LivePlaylist.channels.any { it.uuid == u } }
+                    ?: LivePlaylist.channels.firstOrNull()?.uuid
+                play = ""
+                if (target != null) {
+                    LivePlaylist.setIndexForUuid(target)
+                    playUuid(target, LivePlaylist.channels.firstOrNull { it.uuid == target }?.name ?: "")
+                }
+            } else if (st is RadioState.Error || st is RadioState.NoServer) {
+                play = ""
+            }
+        }
+    }
+
+    when {
+        section == "epg" -> {
+            androidx.activity.compose.BackHandler { section = "" }
+            val st = chState
+            if (st is ChannelsState.Loaded) {
+                EpgGridScreen(rows = st.allRows, seed = epgMap, onBack = { section = "" })
+            } else {
+                CenterLoading()
+            }
+        }
+        section == "archive" -> {
+            androidx.activity.compose.BackHandler { section = "" }
+            DvrScreen()
+        }
+        section == "settings" -> {
+            androidx.activity.compose.BackHandler { section = "" }
+            ServersTab()
+        }
+        play.isNotEmpty() -> CenterLoading()   // nacitavame zoznam, hned nato prehravac
+        else -> TvHomeScreen(
+            onChannels = { play = "tv" },
+            onRadio = { raVm.load(); play = "radio" },
+            onTvProgram = { section = "epg" },
+            onArchive = { section = "archive" },
+            onSettings = { section = "settings" },
         )
-    } else {
-        AppMain(initialTab = startTab, onExitToHome = { atHome = true })
+    }
+}
+
+@Composable
+private fun CenterLoading() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        androidx.compose.material3.CircularProgressIndicator()
     }
 }
 

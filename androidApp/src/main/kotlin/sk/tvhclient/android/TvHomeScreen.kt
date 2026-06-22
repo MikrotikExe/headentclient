@@ -1,6 +1,7 @@
 package sk.tvhclient.android
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -105,6 +106,12 @@ fun TvHomeScreen(
             Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Image(
+                painter = androidx.compose.ui.res.painterResource(R.mipmap.ic_launcher),
+                contentDescription = null,
+                modifier = Modifier.size(72.dp).clip(RoundedCornerShape(16.dp))
+            )
+            Spacer(Modifier.height(12.dp))
             Text(
                 "Headent Client",
                 color = MaterialTheme.colorScheme.primary,
