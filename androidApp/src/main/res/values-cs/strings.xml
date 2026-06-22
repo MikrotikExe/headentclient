@@ -56,6 +56,7 @@
     <string name="cat_documentary">Dokumenty</string>
     <string name="cat_hobby">Hobby</string>
     <string name="cat_other">Nezařazené</string>
+    <string name="dvr_all">Vše</string>
     <string name="dvr_archive">Archiv</string>
     <string name="dvr_by_channel">Podle kanálů</string>
     <string name="dvr_by_genre">Podle žánru</string>

@@ -56,6 +56,7 @@
     <string name="cat_documentary">Documentaries</string>
     <string name="cat_hobby">Hobby</string>
     <string name="cat_other">Uncategorized</string>
+    <string name="dvr_all">All</string>
     <string name="dvr_archive">Archive</string>
     <string name="dvr_by_channel">By channel</string>
     <string name="dvr_by_genre">By genre</string>

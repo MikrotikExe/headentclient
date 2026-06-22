@@ -9,9 +9,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -171,7 +174,8 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
                 modifier = Modifier.weight(1f)
             )
             androidx.compose.material3.IconButton(onClick = { vm.refresh() }) {
-                androidx.compose.material3.Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.retry))
+                androidx.compose.material3.Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.retry),
+                    tint = MaterialTheme.colorScheme.onSurface)
             }
             Box {
                 androidx.compose.material3.IconButton(onClick = { viewMenu = true }) {
@@ -181,7 +185,8 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
                             ChannelViewMode.GRID -> Icons.Default.GridView
                             ChannelViewMode.TILES -> Icons.Default.ViewModule
                         },
-                        contentDescription = stringResource(R.string.view_mode)
+                        contentDescription = stringResource(R.string.view_mode),
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 androidx.compose.material3.DropdownMenu(expanded = viewMenu, onDismissRequest = { viewMenu = false }) {
@@ -687,7 +692,8 @@ private fun Header(text: String) {
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.Bold
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
     )
 }
 
@@ -727,7 +733,8 @@ private fun ChannelFolderRow(
             }
         }
         Spacer(Modifier.width(12.dp))
-        Text(name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+        Text(name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.width(8.dp))
         Text(sub, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -746,7 +753,8 @@ private fun FolderRow(label: String, sub: String, onClick: () -> Unit) {
             .padding(horizontal = 12.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface)
         Spacer(Modifier.width(8.dp))
         Text(sub, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -867,8 +875,149 @@ private fun subLabel(key: String): String {
 }
 
 @Composable
-private fun catLabel(key: String): String {
-    val resId = when (key) {
+/** TV/box Archiv: lavy panel kategorii + mriezka relacii (picon kanala) + popis zameranej relacie. */
+@Composable
+fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
+    BackHandler { onBack() }
+    val context = LocalContext.current
+    val state by vm.state.collectAsState()
+    val server = remember { Tvh.store.active() }
+    val loader = remember(server?.id) { PiconImageLoader.get(context, server) }
+    LaunchedEffect(Unit) { vm.loadIfNeeded() }
+    LaunchedEffect(Unit) {
+        if (!DvrClassifier.hasCorpus())
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { loadCorpusFromAssets(context) }
+    }
+
+    val loaded = state as? DvrState.Loaded
+    if (loaded == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            androidx.compose.material3.CircularProgressIndicator()
+        }
+        return
+    }
+    val entries = loaded.entries
+    val byCat = remember(entries) { entries.groupBy { DvrClassifier.classify(it) } }
+    val cats = remember(byCat) { listOf("all") + DvrClassifier.order.filter { byCat.containsKey(it) } }
+    var selCat by remember { mutableStateOf("all") }
+    val shown = remember(selCat, entries) {
+        (if (selCat == "all") entries else (byCat[selCat] ?: emptyList()))
+            .sortedByDescending { it.start }
+    }
+    var focused by remember { mutableStateOf<DvrEntry?>(null) }
+    LaunchedEffect(shown) { if (focused == null || focused !in shown) focused = shown.firstOrNull() }
+
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        Text(
+            stringResource(R.string.dvr_archive).uppercase(),
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+        )
+        Row(Modifier.fillMaxSize()) {
+            // Lavy panel kategorii
+            LazyColumn(
+                Modifier.fillMaxHeight().weight(0.26f)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
+                    .padding(vertical = 8.dp)
+            ) {
+                items(cats, key = { it }) { c ->
+                    val sel = c == selCat
+                    val label = if (c == "all") stringResource(R.string.dvr_all) else catLabel(c)
+                    val cnt = if (c == "all") entries.size else (byCat[c]?.size ?: 0)
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .dpadFocusable(RoundedCornerShape(8.dp))
+                            .clickable { selCat = c }
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            label, Modifier.weight(1f),
+                            color = if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text("$cnt", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+            // Vpravo: mriezka relacii + popis zameranej
+            Column(Modifier.weight(0.74f).fillMaxHeight()) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(4),
+                    modifier = Modifier.fillMaxWidth().weight(1f).padding(8.dp)
+                ) {
+                    gridItems(shown, key = { it.uuid }) { e ->
+                        Column(
+                            Modifier.padding(6.dp)
+                                .onFocusChanged { if (it.isFocused) focused = e }
+                                .dpadFocusable(RoundedCornerShape(10.dp))
+                                .clickable { playDvr(context, e) }
+                                .padding(6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                Modifier.fillMaxWidth().aspectRatio(16f / 9f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val picon = loaded.channelPicons[e.channelName]
+                                if (picon != null) {
+                                    coil.compose.AsyncImage(
+                                        model = coil.request.ImageRequest.Builder(context).data(picon).build(),
+                                        contentDescription = null, imageLoader = loader,
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                                        modifier = Modifier.fillMaxSize().padding(8.dp)
+                                    )
+                                } else {
+                                    Text(e.channelName.take(3).uppercase(),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        style = MaterialTheme.typography.titleMedium)
+                                }
+                            }
+                            Spacer(Modifier.height(6.dp))
+                            Text(e.title, color = MaterialTheme.colorScheme.onSurface,
+                                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                                maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            Text(formatDateFull(e.start), color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                        }
+                    }
+                }
+                // Popis zameranej relacie
+                focused?.let { f ->
+                    Column(
+                        Modifier.fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                            .padding(horizontal = 20.dp, vertical = 12.dp)
+                    ) {
+                        Text(f.title, color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            f.channelName + "  ·  " + formatDateFull(f.start),
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        val desc = f.dispDescription.ifBlank { f.dispSubtitle }
+                        if (desc.isNotBlank()) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(desc, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun catLabel(key: String): String {    val resId = when (key) {
         DvrClassifier.FILM -> R.string.cat_film
         DvrClassifier.SERIAL -> R.string.cat_serial
         DvrClassifier.SPORT -> R.string.cat_sport

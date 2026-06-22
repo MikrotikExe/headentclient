@@ -273,12 +273,14 @@ private fun TvHomeHost() {
             }
         }
         section == "archive" -> {
-            androidx.activity.compose.BackHandler { section = "" }
-            DvrScreen()
+            TvArchiveScreen(onBack = { section = "" })
         }
         section == "settings" -> {
             androidx.activity.compose.BackHandler { section = "" }
-            ServersTab()
+            androidx.compose.material3.Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = androidx.compose.material3.MaterialTheme.colorScheme.background
+            ) { ServersTab() }
         }
         else -> {
             androidx.activity.compose.BackHandler(enabled = !showExit) { showExit = true }
