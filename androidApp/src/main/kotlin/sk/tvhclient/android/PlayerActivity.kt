@@ -519,6 +519,20 @@ class PlayerActivity : ComponentActivity() {
         playRecordingFromStart(rec, ch.nowStart, ch.nowStop)
     }
 
+    /** Zatvorenie prehravaca: ak bol spusteny cez "od zaciatku" zo zivej TV, vrat sa na povodny kanal. */
+    private fun closePlayer() {
+        val ru = returnLiveUuid
+        if (ru != null) {
+            returnLiveUuid = null
+            val i = android.content.Intent(this, PlayerActivity::class.java).apply {
+                putExtra(EXTRA_UUID, ru)
+                putExtra(EXTRA_TITLE, returnLiveTitle ?: "")
+            }
+            runCatching { startActivity(i) }
+            finish()
+        } else if (!enterPipIfPossible()) finish()
+    }
+
     /** Spusti prebiehajucu nahravku od zaciatku (novy PlayerActivity v DVR rezime). */
     private fun playRecordingFromStart(rec: sk.tvhclient.shared.model.DvrEntry, progStart: Long, progStop: Long) {
         val srv = liveServer ?: return
@@ -536,6 +550,9 @@ class PlayerActivity : ComponentActivity() {
             putExtra(EXTRA_DVR_PROG_START_SEC, pStart)
             putExtra(EXTRA_DVR_PROG_STOP_SEC, pStop)
             putExtra(EXTRA_DVR_REAL_START_SEC, rec.realStartSec)
+            // odkial sme prisli (zivy kanal) -> navrat sem po Spat
+            liveUuids.getOrNull(liveIndex)?.let { putExtra(EXTRA_RETURN_UUID, it) }
+            putExtra(EXTRA_RETURN_TITLE, liveNames.getOrElse(liveIndex) { "" })
         }
         runCatching { startActivity(i) }
     }
@@ -651,6 +668,9 @@ class PlayerActivity : ComponentActivity() {
     private val archiveChoiceIdxState = androidx.compose.runtime.mutableStateOf(-1) // index kanala cakajuci na vyber, -1 = ziadny
     private val archiveChoiceSelState = androidx.compose.runtime.mutableStateOf(0)   // 0=nazivo, 1=od zaciatku (D-pad)
     private val recInProgressByName = androidx.compose.runtime.mutableStateOf<Map<String, sk.tvhclient.shared.model.DvrEntry>>(emptyMap())
+    // Navrat na povodny zivy kanal po zatvoreni DVR prehravaca spusteneho cez "od zaciatku"
+    private var returnLiveUuid: String? = null
+    private var returnLiveTitle: String? = null
     private var pinOnCancel: (() -> Unit)? = null
 
     // DVR scrub focus: nahlad pozicie pri vybere casu sipkami (potvrdenie OK)
@@ -759,7 +779,7 @@ class PlayerActivity : ComponentActivity() {
     // --- Aktivacia zvyrazneneho prvku ovladacieho panela ---
     private fun activateControl(id: String?) {
         when (id) {
-            "close" -> { if (!enterPipIfPossible()) finish() }
+            "close" -> closePlayer()
             "list" -> openChannelList()
             "prev" -> { switchLive(-1); pokeControls() }
             "play" -> { togglePlayPause(); pokeControls() }
@@ -1168,6 +1188,9 @@ class PlayerActivity : ComponentActivity() {
         // nech pri prepnuti kanala nezostane stara PiP visiet. Nova sa otvori na celu obrazovku.
         liveInstance?.get()?.let { old -> if (old !== this) runCatching { old.finish() } }
         liveInstance = java.lang.ref.WeakReference(this)
+        // Navrat na povodny zivy kanal po zatvoreni (pri "Prehrat od zaciatku" z prehravaca)
+        returnLiveUuid = intent.getStringExtra(EXTRA_RETURN_UUID)
+        returnLiveTitle = intent.getStringExtra(EXTRA_RETURN_TITLE)
         // predvolene otacanie obrazovky podla nastavenia (auto = fullUser ako v manifeste)
         runCatching {
             requestedOrientation = when (OrientationPref.get(this)) {
@@ -1487,7 +1510,8 @@ class PlayerActivity : ComponentActivity() {
                     if (it) { resumeSelState.value = 1; resumeAnswerState.value = 0 }
                 },
                 onResumeAnswerHandled = { resumeAnswerState.value = 0 },
-                onClose = { if (!enterPipIfPossible()) finish() }
+                onClose = { closePlayer() },
+                returnLiveOnBack = returnLiveUuid != null
             )
             // Vyber pri archivovanom kanali (nazivo / od zaciatku) — overlay v style prehravaca
             if (archiveChoiceIdxState.value >= 0) {
@@ -1788,6 +1812,8 @@ class PlayerActivity : ComponentActivity() {
     companion object {
         const val EXTRA_UUID = "channel_uuid"
         const val EXTRA_TITLE = "channel_title"
+        const val EXTRA_RETURN_UUID = "return_live_uuid"
+        const val EXTRA_RETURN_TITLE = "return_live_title"
         const val EXTRA_URL = "stream_url"
         const val EXTRA_DURATION_MS = "duration_ms"
         const val EXTRA_PROG_START = "prog_start"
@@ -1898,6 +1924,7 @@ private fun PlayerUi(
     onAskResumeChange: (Boolean) -> Unit = {},
     onResumeAnswerHandled: () -> Unit = {},
     onOrientationLockChange: (Boolean) -> Unit = {},
+    returnLiveOnBack: Boolean = false,
     onClose: () -> Unit
 ) {
     var controlsVisible by remember { mutableStateOf(false) }
@@ -2196,7 +2223,7 @@ private fun PlayerUi(
 
     LaunchedEffect(controlsVisible, menu, controlsPoke, dragging) {
         if (controlsVisible && menu == null && !dragging) {
-            kotlinx.coroutines.delay(4000)
+            kotlinx.coroutines.delay(3000)
             controlsVisible = false
         }
     }
@@ -2213,6 +2240,10 @@ private fun PlayerUi(
     androidx.activity.compose.BackHandler(
         enabled = controlsVisible && menu == null && !showChannelList && !showOptions
     ) { controlsVisible = false }
+    // "Prehrat od zaciatku" zo zivej TV: Spat (ked nie je nic otvorene) vrati na povodny zivy kanal
+    androidx.activity.compose.BackHandler(
+        enabled = returnLiveOnBack && !controlsVisible && menu == null && !showChannelList && !showOptions
+    ) { onClose() }
 
     // Kym je zoznam kanalov otvoreny, obnovuj EPG (now/next) aby relacie
     // postupne prechadzali na dalsie

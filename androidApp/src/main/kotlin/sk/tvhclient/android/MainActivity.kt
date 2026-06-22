@@ -10,12 +10,17 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -192,6 +197,7 @@ private fun TvHomeHost() {
     // sekcia: "", "epg", "archive", "settings"; play: "", "tv", "radio"
     var section by remember { mutableStateOf("") }
     var play by remember { mutableStateOf("") }
+    var showExit by remember { mutableStateOf(false) }
 
     fun playUuid(uuid: String, title: String) {
         runCatching {
@@ -274,13 +280,25 @@ private fun TvHomeHost() {
             androidx.activity.compose.BackHandler { section = "" }
             ServersTab()
         }
-        else -> TvHomeScreen(   // pocas pending (play) zostava viditelny launcher, kym naskoci prehravac
-            onChannels = { if (play.isEmpty()) play = "tv" },
-            onRadio = { if (play.isEmpty()) play = "radio" },
-            onTvProgram = { section = "epg" },
-            onArchive = { section = "archive" },
-            onSettings = { section = "settings" },
-        )
+        else -> {
+            androidx.activity.compose.BackHandler(enabled = !showExit) { showExit = true }
+            Box(Modifier.fillMaxSize()) {
+                TvHomeScreen(   // pocas pending (play) zostava viditelny launcher, kym naskoci prehravac
+                    onChannels = { if (play.isEmpty()) play = "tv" },
+                    onRadio = { if (play.isEmpty()) play = "radio" },
+                    onTvProgram = { section = "epg" },
+                    onArchive = { section = "archive" },
+                    onSettings = { section = "settings" },
+                )
+                if (showExit) {
+                    androidx.activity.compose.BackHandler { showExit = false }
+                    TvExitDialog(
+                        onConfirm = { (ctx as? android.app.Activity)?.finish() },
+                        onCancel = { showExit = false }
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -288,6 +306,55 @@ private fun TvHomeHost() {
 private fun CenterLoading() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         androidx.compose.material3.CircularProgressIndicator()
+    }
+}
+
+/** Potvrdenie ukoncenia aplikacie na uvodnom launcheri (TV/box, D-pad). */
+@Composable
+private fun TvExitDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
+    val cancelFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { cancelFocus.requestFocus() } }
+    Box(
+        Modifier.fillMaxSize().background(Color(0xCC0B1220)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            Modifier.fillMaxWidth(0.6f)
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color(0xFF1B2433))
+                .padding(horizontal = 28.dp, vertical = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                stringResource(R.string.exit_title), color = Color.White,
+                style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                stringResource(R.string.exit_msg), color = Color(0xFFB9C2D0),
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(Modifier.height(24.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Box(
+                    Modifier.focusRequester(cancelFocus)
+                        .dpadFocusable(RoundedCornerShape(12.dp))
+                        .clickable { onCancel() }
+                        .padding(horizontal = 22.dp, vertical = 12.dp)
+                ) {
+                    Text(stringResource(R.string.exit_no), color = Color.White,
+                        fontWeight = FontWeight.SemiBold)
+                }
+                Box(
+                    Modifier.dpadFocusable(RoundedCornerShape(12.dp))
+                        .clickable { onConfirm() }
+                        .padding(horizontal = 22.dp, vertical = 12.dp)
+                ) {
+                    Text(stringResource(R.string.exit_yes), color = Color(0xFFFF6B6B),
+                        fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
     }
 }
 
