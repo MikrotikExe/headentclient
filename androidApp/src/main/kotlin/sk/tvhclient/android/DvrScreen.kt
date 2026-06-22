@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -1165,17 +1166,33 @@ private fun ArcPicon(picon: String?, fallback: String, loader: coil.ImageLoader,
     }
 }
 
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun ArcRecCard(e: DvrEntry, picon: String?, loader: coil.ImageLoader, context: Context, progressTick: Int,
                        onFocus: () -> Unit, onClick: () -> Unit, onLong: () -> Unit) {
     val server = remember { Tvh.store.active() }
     val info = remember(e.uuid, progressTick) { server?.let { WatchProgress.get(context, it.id, e.uuid) } }
     val seen = info?.completed == true
+    var longFired by remember { mutableStateOf(false) }
     Column(
         Modifier.padding(6.dp).onFocusChanged { if (it.isFocused) onFocus() }
             .dpadFocusable(RoundedCornerShape(10.dp))
-            .combinedClickable(onClick = { onClick() }, onLongClick = { onLong() }).padding(6.dp),
+            .onKeyEvent { ev ->
+                val k = ev.nativeKeyEvent
+                val ok = k.keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
+                    k.keyCode == android.view.KeyEvent.KEYCODE_ENTER ||
+                    k.keyCode == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
+                if (!ok) return@onKeyEvent false
+                when (k.action) {
+                    android.view.KeyEvent.ACTION_DOWN -> {
+                        if (k.repeatCount == 0) longFired = false
+                        else if (k.repeatCount == 1) { longFired = true; onLong() }
+                        true
+                    }
+                    android.view.KeyEvent.ACTION_UP -> { if (!longFired) onClick(); longFired = false; true }
+                    else -> false
+                }
+            }
+            .clickable { onClick() }.padding(6.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(Modifier.fillMaxWidth()) {
