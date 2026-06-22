@@ -187,7 +187,7 @@ private fun TvHomeHost() {
     val chState by chVm.state.collectAsState()
     val epgMap by chVm.epgMap.collectAsState()
     val raState by raVm.state.collectAsState()
-    LaunchedEffect(Unit) { chVm.loadIfNeeded() }   // prednacitaj kanaly (pre Kanaly aj TV program)
+    LaunchedEffect(Unit) { chVm.loadIfNeeded(); raVm.load() }   // prednacitaj kanaly aj radia
 
     // sekcia: "", "epg", "archive", "settings"; play: "", "tv", "radio"
     var section by remember { mutableStateOf("") }
@@ -274,10 +274,9 @@ private fun TvHomeHost() {
             androidx.activity.compose.BackHandler { section = "" }
             ServersTab()
         }
-        play.isNotEmpty() -> CenterLoading()   // nacitavame zoznam, hned nato prehravac
-        else -> TvHomeScreen(
-            onChannels = { play = "tv" },
-            onRadio = { raVm.load(); play = "radio" },
+        else -> TvHomeScreen(   // pocas pending (play) zostava viditelny launcher, kym naskoci prehravac
+            onChannels = { if (play.isEmpty()) play = "tv" },
+            onRadio = { if (play.isEmpty()) play = "radio" },
             onTvProgram = { section = "epg" },
             onArchive = { section = "archive" },
             onSettings = { section = "settings" },
