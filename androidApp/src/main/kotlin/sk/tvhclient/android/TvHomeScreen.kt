@@ -54,6 +54,7 @@ import java.util.Locale
  */
 @Composable
 fun TvHomeScreen(
+    focusKey: String = "channels",
     onChannels: () -> Unit,
     onRadio: () -> Unit,
     onTvProgram: () -> Unit,
@@ -80,7 +81,7 @@ fun TvHomeScreen(
     val timeStr = remember(now) { SimpleDateFormat("HH:mm", locale).format(Date(now)) }
 
     val firstFocus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
+    LaunchedEffect(focusKey) { runCatching { firstFocus.requestFocus() } }
 
     Box(
         Modifier
@@ -119,16 +120,16 @@ fun TvHomeScreen(
                 fontSize = 26.sp, fontWeight = FontWeight.Bold
             )
             Spacer(Modifier.height(28.dp))
+            fun fr(key: String): Modifier = if (focusKey == key) Modifier.focusRequester(firstFocus) else Modifier
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                HomeTile(stringResource(R.string.tab_channels), Icons.Default.LiveTv, fg,
-                    Modifier.focusRequester(firstFocus), onChannels)
-                HomeTile(stringResource(R.string.tab_radio), Icons.Default.Radio, fg, onClick = onRadio)
-                HomeTile(stringResource(R.string.home_tv_program), Icons.Default.DateRange, fg, onClick = onTvProgram)
+                HomeTile(stringResource(R.string.tab_channels), Icons.Default.LiveTv, fg, fr("channels"), onChannels)
+                HomeTile(stringResource(R.string.tab_radio), Icons.Default.Radio, fg, fr("radio"), onRadio)
+                HomeTile(stringResource(R.string.home_tv_program), Icons.Default.DateRange, fg, fr("epg"), onTvProgram)
             }
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                HomeTile(stringResource(R.string.tab_dvr), Icons.AutoMirrored.Filled.Dvr, fg, onClick = onArchive)
-                HomeTile(stringResource(R.string.tab_settings), Icons.Default.Settings, fg, onClick = onSettings)
+                HomeTile(stringResource(R.string.tab_dvr), Icons.AutoMirrored.Filled.Dvr, fg, fr("archive"), onArchive)
+                HomeTile(stringResource(R.string.tab_settings), Icons.Default.Settings, fg, fr("settings"), onSettings)
             }
         }
     }

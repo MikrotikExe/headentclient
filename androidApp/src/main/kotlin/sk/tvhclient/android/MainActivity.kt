@@ -196,6 +196,7 @@ private fun TvHomeHost() {
 
     // sekcia: "", "epg", "archive", "settings"; play: "", "tv", "radio"
     var section by remember { mutableStateOf("") }
+    var lastTile by remember { mutableStateOf("channels") }
     var play by remember { mutableStateOf("") }
     var showExit by remember { mutableStateOf(false) }
 
@@ -286,11 +287,12 @@ private fun TvHomeHost() {
             androidx.activity.compose.BackHandler(enabled = !showExit) { showExit = true }
             Box(Modifier.fillMaxSize()) {
                 TvHomeScreen(   // pocas pending (play) zostava viditelny launcher, kym naskoci prehravac
-                    onChannels = { if (play.isEmpty()) play = "tv" },
-                    onRadio = { if (play.isEmpty()) play = "radio" },
-                    onTvProgram = { section = "epg" },
-                    onArchive = { section = "archive" },
-                    onSettings = { section = "settings" },
+                    focusKey = lastTile,
+                    onChannels = { lastTile = "channels"; if (play.isEmpty()) play = "tv" },
+                    onRadio = { lastTile = "radio"; if (play.isEmpty()) play = "radio" },
+                    onTvProgram = { lastTile = "epg"; section = "epg" },
+                    onArchive = { lastTile = "archive"; section = "archive" },
+                    onSettings = { lastTile = "settings"; section = "settings" },
                 )
                 if (showExit) {
                     androidx.activity.compose.BackHandler { showExit = false }
