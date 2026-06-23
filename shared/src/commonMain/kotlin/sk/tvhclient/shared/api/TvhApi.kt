@@ -1,18 +1,9 @@
 package sk.tvhclient.shared.api
 
-import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.plugins.auth.Auth
-import io.ktor.client.plugins.auth.providers.BasicAuthCredentials
-import io.ktor.client.plugins.auth.providers.DigestAuthCredentials
-import io.ktor.client.plugins.auth.providers.basic
-import io.ktor.client.plugins.auth.providers.digest
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.HttpResponse
-import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -45,31 +36,7 @@ class TvhApi(private val server: TvhServer) {
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    private val client = HttpClient {
-        expectSuccess = false
-        install(io.ktor.client.plugins.UserAgent) { agent = "HeadentClient/1.0.0" }
-        install(ContentNegotiation) { json(json) }
-        install(HttpTimeout) {
-            connectTimeoutMillis = 5_000
-            requestTimeoutMillis = 20_000
-            socketTimeoutMillis = 20_000
-        }
-        if (server.username.isNotEmpty() && server.authMode != "none") {
-            install(Auth) {
-                if (server.authMode == "auto" || server.authMode == "basic") {
-                    basic {
-                        credentials { BasicAuthCredentials(server.username, server.password) }
-                        realm = null
-                    }
-                }
-                if (server.authMode == "auto" || server.authMode == "digest") {
-                    digest {
-                        credentials { DigestAuthCredentials(server.username, server.password) }
-                    }
-                }
-            }
-        }
-    }
+    private val client = sk.tvhclient.shared.net.tvhHttpClient(server, json)
 
     // ---- retry vzor z pluginu (FIX 0.48) ----
     private val retryAttempts = 3

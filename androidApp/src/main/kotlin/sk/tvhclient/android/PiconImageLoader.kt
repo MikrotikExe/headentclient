@@ -8,6 +8,7 @@ import coil.memory.MemoryCache
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import sk.tvhclient.shared.model.TvhServer
+import sk.tvhclient.shared.net.DigestAuthenticator
 
 /**
  * Coil ImageLoader pre picony. Auth: Basic preemptivne (rychla cesta pre

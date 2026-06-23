@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import sk.tvhclient.shared.model.TvhServer
+import sk.tvhclient.shared.net.DigestAuthenticator
 import java.io.FileDescriptor
 import java.io.OutputStream
 

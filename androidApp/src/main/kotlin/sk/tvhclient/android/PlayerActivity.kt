@@ -219,6 +219,46 @@ class PlayerActivity : ComponentActivity() {
         return m
     }
 
+    /** M255 — live cez HTTP na digest-only serveri: stiahnut cez feeder (rovnako
+     *  ako DVR), lebo libVLC digest cez URL nezvlada. Pre live netreba seek. */
+    private fun playLiveViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String) {
+        htspFeeder?.stop(); htspFeeder = null
+        httpFeeder?.stop()
+        htspStream = false
+        htspLive = false
+        htspLiveState.value = false
+        resetTimeshift()
+        currentStreamUrl = url
+        val feeder = HttpTsFeeder(server, stripCreds(url), 0L)
+        httpFeeder = feeder
+        val fd = feeder.start(lifecycleScope)
+        val media = Media(libVlc, fd)
+        media.setHWDecoderEnabled(true, false)
+        media.addOption(":demux=ts")
+        media.addOption(":file-caching=1500")
+        mediaPlayer.media = media
+        media.release()
+        mediaPlayer.play()
+    }
+
+    /** Cache: vyzaduje live HTTP na tomto serveri feeder (digest-only)? */
+    private var liveNeedsFeeder: Boolean? = null
+
+    /** Live HTTP s auto-detekciou auth: digest-only -> feeder, inak priama cesta. */
+    private fun playLiveAuto(server: sk.tvhclient.shared.model.TvhServer, url: String) {
+        if (server.username.isEmpty()) { playHttp(url); return }
+        val cached = liveNeedsFeeder
+        if (cached != null) {
+            if (cached) playLiveViaFeeder(server, url) else playHttp(url)
+            return
+        }
+        lifecycleScope.launch {
+            val nf = withContext(Dispatchers.IO) { DvrAuthProbe.needsFeeder(server, stripCreds(url)) }
+            liveNeedsFeeder = nf
+            if (nf) playLiveViaFeeder(server, url) else playHttp(url)
+        }
+    }
+
     /** Bezne HTTP prehravanie (zastavi pripadny HTSP feed). */
     private fun playHttp(url: String) {
         htspFeeder?.stop(); htspFeeder = null
@@ -647,7 +687,7 @@ class PlayerActivity : ComponentActivity() {
             if (poke) pokeControls()
             return
         }
-        playHttp(url)
+        playLiveAuto(srv, url)
         if (poke) pokeControls()
     }
 
@@ -1462,7 +1502,7 @@ class PlayerActivity : ComponentActivity() {
                                     htspStream = false
                                     htspLive = false
                                     htspLiveState.value = false
-                                    playHttp(streamUrl)
+                                    playLiveAuto(server, streamUrl)
                                 }
                                 pokeControls()
                             }
@@ -1482,7 +1522,7 @@ class PlayerActivity : ComponentActivity() {
                                 }
                             } else {
                                 dvrViaFeeder = false
-                                playHttp(streamUrl)
+                                playLiveAuto(server, streamUrl)
                                 pokeControls()
                             }
                         }
@@ -1779,10 +1819,15 @@ class PlayerActivity : ComponentActivity() {
         reconnectHandler.postDelayed({
             if (!::mediaPlayer.isInitialized) return@postDelayed
             runCatching {
-                val m = buildMedia(url)
-                mediaPlayer.media = m
-                m.release()
-                mediaPlayer.play()
+                if (liveNeedsFeeder == true) {
+                    val srv = liveServer ?: return@runCatching
+                    playLiveViaFeeder(srv, url)
+                } else {
+                    val m = buildMedia(url)
+                    mediaPlayer.media = m
+                    m.release()
+                    mediaPlayer.play()
+                }
             }
         }, delay)
     }
