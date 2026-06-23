@@ -200,6 +200,17 @@ class PlayerActivity : ComponentActivity() {
         return "HeadentClient/$v"
     }
 
+    /** Odstrani user:pass@ z URL (pre feeder/probe — auth riesi OkHttp hlavickou). */
+    private fun stripCreds(url: String): String {
+        val i = url.indexOf("://")
+        if (i < 0) return url
+        val rest = url.substring(i + 3)
+        val at = rest.indexOf('@')
+        val slash = rest.indexOf('/')
+        if (at < 0 || (slash in 0 until at)) return url
+        return url.substring(0, i + 3) + rest.substring(at + 1)
+    }
+
     private fun buildMedia(url: String): Media {
         val m = Media(libVlc, Uri.parse(url))
         m.setHWDecoderEnabled(true, false)
@@ -237,7 +248,7 @@ class PlayerActivity : ComponentActivity() {
         htspLiveState.value = false
         resetTimeshift()
         currentStreamUrl = url
-        val feeder = HttpTsFeeder(server, url, startByte)
+        val feeder = HttpTsFeeder(server, stripCreds(url), startByte)
         httpFeeder = feeder
         val fd = feeder.start(lifecycleScope)
         val media = Media(libVlc, fd)
@@ -1456,17 +1467,24 @@ class PlayerActivity : ComponentActivity() {
                                 pokeControls()
                             }
                         } else {
-                            if (directUrl != null && server.username.isNotEmpty() && server.authMode == "digest") {
-                                // DVR/archiv na digest-only serveri: libVLC nezvladne creds v URL,
-                                // tak stiahneme cez feeder s digest auth (M253). Basic/auto/none
-                                // ostavaju na priamej (seekovatelnej) HTTP ceste.
-                                dvrViaFeeder = true
-                                playDvrViaFeeder(server, streamUrl)
+                            if (directUrl != null && server.username.isNotEmpty()) {
+                                // M254: auto-detekcia auth. Digest-only server -> feeder
+                                // (libVLC digest cez URL nevie); basic/ziadna -> priama
+                                // seekovatelna cesta.
+                                lifecycleScope.launch {
+                                    val useFeeder = withContext(Dispatchers.IO) {
+                                        DvrAuthProbe.needsFeeder(server, stripCreds(streamUrl))
+                                    }
+                                    dvrViaFeeder = useFeeder
+                                    if (useFeeder) playDvrViaFeeder(server, streamUrl)
+                                    else playHttp(streamUrl)
+                                    pokeControls()
+                                }
                             } else {
                                 dvrViaFeeder = false
                                 playHttp(streamUrl)
+                                pokeControls()
                             }
-                            pokeControls()
                         }
                     }
                     if (requirePin && ParentalLock.needsPin(this) && ParentalLock.protectChannels(this)) {
