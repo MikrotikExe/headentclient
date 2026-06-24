@@ -30,7 +30,11 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install Android NDK (pre natívne debug symboly libVLC)
-        run: sdkmanager "ndk;27.0.12077973"
+        run: |
+          sdkmanager "ndk;27.0.12077973"
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
+          echo "--- NDK obsah ---"; ls -la "$ANDROID_HOME/ndk" || true
 
       - name: Set up signing (z GitHub secrets)
         if: ${{ env.KEYSTORE_BASE64 != '' }}
@@ -65,3 +69,35 @@ jobs:
         with:
           name: HeadentClient-aab
           path: androidApp/build/outputs/bundle/release/*.aab
+
+      - name: Overiť symboly v AAB
+        if: always()
+        run: |
+          AAB=$(ls androidApp/build/outputs/bundle/release/*.aab 2>/dev/null | head -1)
+          echo "AAB: $AAB"
+          if [ -n "$AAB" ] && unzip -l "$AAB" | grep -qi "debugsymbols"; then
+            echo "OK: debug symboly SU v AAB:"
+            unzip -l "$AAB" | grep -i debugsymbols
+          else
+            echo "POZOR: v AAB NIE SU debug symboly."
+            echo "Pouzi vygenerovany artefakt HeadentClient-native-symbols a nahraj ho v Play Console rucne."
+          fi
+
+      - name: Vygenerovať native-debug-symbols.zip (záloha, vždy)
+        if: always()
+        run: |
+          OUT=$(find androidApp/build/intermediates -type d -path '*merged_native_libs/release*/out/lib' | head -1)
+          if [ -z "$OUT" ]; then OUT=$(find androidApp/build/intermediates -type d -path '*stripped_native_libs/release*/out/lib' | head -1); fi
+          echo "lib dir: $OUT"
+          if [ -n "$OUT" ]; then
+            ( cd "$OUT" && zip -r "$GITHUB_WORKSPACE/native-debug-symbols.zip" . -i '*.so' )
+            echo "--- obsah zipu ---"; unzip -l "$GITHUB_WORKSPACE/native-debug-symbols.zip"
+          else
+            echo "Nenasiel som adresar s nativnymi kniznicami."
+          fi
+      - name: Upload native-debug-symbols
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: HeadentClient-native-symbols
+          path: native-debug-symbols.zip
