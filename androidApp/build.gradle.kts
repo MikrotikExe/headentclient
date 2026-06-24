@@ -40,7 +40,7 @@ android {
         applicationId = "sk.tvhclient"
         minSdk = 23
         targetSdk = 35
-        versionCode = 21
+        versionCode = 22
         versionName = "1.0.0"
         buildConfigField(
             "String",
@@ -82,10 +82,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Natívne debug symboly (libVLC) v App Bundle -> Play vie čitateľne
-            // zobraziť pády/ANR v natívnom kóde a nehlási chýbajúce symboly.
+            // Natívne debug symboly libVLC do App Bundle. libVLC .so su
+            // prebuildene a strippnute (bez DWARF), takze FULL by nemal co
+            // vytiahnut -> pouzivame SYMBOL_TABLE (tabulka symbolov), co Play
+            // staci na zrusenie upozornenia o chybajucich symboloch.
             ndk {
-                debugSymbolLevel = "FULL"
+                debugSymbolLevel = "SYMBOL_TABLE"
             }
             // Play: vlastny kluc ak je keystore.properties; inak (CI test) debug
             // podpis, nech je release APK instalovatelny na otestovanie R8.
