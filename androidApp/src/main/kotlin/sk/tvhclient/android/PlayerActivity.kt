@@ -23,7 +23,9 @@ import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.border
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -50,6 +52,7 @@ import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.ClosedCaption
@@ -777,7 +780,10 @@ class PlayerActivity : ComponentActivity() {
             (dvrPlayheadMsState.value.toFloat() / bar).coerceIn(0f, 1f) else 0f
     }
 
-    private fun requestPin(onOk: () -> Unit, onCancel: () -> Unit) {
+    private var pinMarkUnlock = true
+    private fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, markUnlock: Boolean = true) {
+        okLongFired = false   // PIN vyzva preberá vstup; OK gesto je tým ukoncene
+        pinMarkUnlock = markUnlock
         pinOnSuccess = onOk; pinOnCancel = onCancel
         pinEntryState.value = ""; pinErrorState.value = false
         pinPromptState.value = true
@@ -785,6 +791,7 @@ class PlayerActivity : ComponentActivity() {
     private fun closePin() {
         pinPromptState.value = false; pinEntryState.value = ""; pinErrorState.value = false
         pinOnSuccess = null; pinOnCancel = null
+        pinMarkUnlock = true
     }
     private fun pinDigit(d: Int) {
         if (pinEntryState.value.length >= 4) return
@@ -792,7 +799,7 @@ class PlayerActivity : ComponentActivity() {
         pinErrorState.value = false
         if (pinEntryState.value.length == 4) {
             if (ParentalLock.checkPin(this, pinEntryState.value)) {
-                ParentalLock.markUnlocked(this)
+                if (pinMarkUnlock) ParentalLock.markUnlocked(this)
                 val ok = pinOnSuccess
                 closePin(); ok?.invoke()
             } else { pinErrorState.value = true; pinEntryState.value = "" }
@@ -801,6 +808,62 @@ class PlayerActivity : ComponentActivity() {
     private fun cancelPin() {
         val c = pinOnCancel
         closePin(); c?.invoke()
+    }
+
+    // Pocitadlo na obnovu ikon zamku v in-player zozname po zmene zamku.
+    private val lockTickState = androidx.compose.runtime.mutableStateOf(0)
+
+    /** Zamkne/odomkne kanal v zozname prehravaca (ako dlhy klik na telefone). Chrani PINom. */
+    private fun toggleLockAt(idx: Int) {
+        val srv = liveServer ?: return
+        val uuid = liveUuids.getOrNull(idx) ?: return
+        val doToggle: () -> Unit = {
+            val now = ParentalLock.isChannelLocked(this, srv.id, uuid)
+            ParentalLock.setChannelLocked(this, srv.id, uuid, !now)
+            lockTickState.value = lockTickState.value + 1
+        }
+        // ako na telefone: ak je zamok aktivny a sme mimo okna, najprv over PIN
+        // (bez otvorenia grace okna, nech zamykanie ostane "stickove")
+        if (ParentalLock.needsPin(this)) requestPin(onOk = doToggle, onCancel = { }, markUnlock = false)
+        else doToggle()
+    }
+
+    // --- Kontextove menu kanala v prehravaci (long-press OK / dlhy klik) ---
+    private val ctxMenuIdxState = androidx.compose.runtime.mutableStateOf(-1)  // index kanala, -1 = zatvorene
+    private val ctxMenuSelState = androidx.compose.runtime.mutableStateOf(0)    // zvyraznena polozka
+
+    /** Polozky menu pre dany kanal (v poradi). "lock" len ak je zamok zapnuty,
+     *  "fromstart" len ak sa relacia prave nahrava (da sa prehrat od zaciatku). */
+    private fun ctxMenuKeys(idx: Int): List<String> {
+        val ch = liveChannelsState.value.getOrNull(idx) ?: return emptyList()
+        val keys = mutableListOf("info")
+        if (recInProgressByName.value[ch.name] != null) keys.add("fromstart")
+        if (ParentalLock.isEnabled(this)) keys.add("lock")
+        return keys
+    }
+
+    private fun openChannelContextMenu(idx: Int) {
+        if (idx < 0 || idx >= liveChannelsState.value.size) return
+        if (ctxMenuKeys(idx).isEmpty()) return
+        ctxMenuSelState.value = 0
+        ctxMenuIdxState.value = idx
+    }
+    private fun closeChannelContextMenu() { ctxMenuIdxState.value = -1 }
+
+    private fun activateCtxMenu(key: String) {
+        val idx = ctxMenuIdxState.value
+        val ch = liveChannelsState.value.getOrNull(idx)
+        closeChannelContextMenu()
+        if (ch == null) return
+        when (key) {
+            "info" -> openEpgInApp()                              // TV program (guide); BACK vrati do prehravaca
+            "fromstart" -> {
+                val rec = recInProgressByName.value[ch.name]
+                if (rec != null) playRecordingFromStart(rec, ch.nowStart, ch.nowStop)
+                else if (idx != liveIndex) switchToIndex(idx)     // ak kanal este nehra a nie je archiv -> aspon prepni nazivo
+            }
+            "lock" -> toggleLockAt(idx)                           // uz riesi PIN + grace okno
+        }
     }
 
     private fun openChannelList() {
@@ -981,6 +1044,32 @@ class PlayerActivity : ComponentActivity() {
             kc == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
         if (okKey && !down && okLongFired) { okLongFired = false; return true }
 
+        // 0c) Kontextove menu kanala (long-press v zozname) -> hore/dole + OK (na uvolnenie) + BACK
+        if (ctxMenuIdxState.value >= 0) {
+            val keys = ctxMenuKeys(ctxMenuIdxState.value)
+            val cnt = keys.size
+            val isOkC = kc == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
+                kc == android.view.KeyEvent.KEYCODE_ENTER ||
+                kc == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
+            if (isOkC) {
+                if (okLongFired) return true                 // prehltni up z otvaracieho long-pressu
+                if (!down && cnt > 0) activateCtxMenu(keys.getOrElse(ctxMenuSelState.value) { keys.first() })
+                return true                                   // OK aktivuje az na uvolnenie
+            }
+            if (down && cnt > 0) {
+                when (kc) {
+                    android.view.KeyEvent.KEYCODE_DPAD_UP ->
+                        { ctxMenuSelState.value = (ctxMenuSelState.value - 1 + cnt) % cnt; return true }
+                    android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
+                        { ctxMenuSelState.value = (ctxMenuSelState.value + 1) % cnt; return true }
+                    android.view.KeyEvent.KEYCODE_BACK,
+                    android.view.KeyEvent.KEYCODE_DPAD_LEFT ->
+                        { closeChannelContextMenu(); return true }
+                }
+            }
+            return true
+        }
+
         // 0b) EPG kláves -> TV program; INFO kláves -> okno s relaciou (vzdy)
         if (down) {
             when (kc) {
@@ -1007,9 +1096,17 @@ class PlayerActivity : ComponentActivity() {
             if (isOk) {
                 // pocas drzania otvaracieho OK (a jeho opakovani) nereaguj
                 if (okLongFired) return true
-                if (down && event.repeatCount == 0 && n > 0) {
-                    if (navChannelIndexState.value == liveIndexState.value) { closeChannelList(); showControlsFocused() }  // uz hra vybrany -> cela obrazovka + lista s fokusom na play
-                    else selectChannelOrArchive(navChannelIndexState.value, poke = false)      // prepni kanal (alebo ponukni vyber pri archive)
+                if (down) {
+                    // podrzanie OK v zozname = kontextove menu kanala (Info / od zaciatku / zamok)
+                    if (event.isLongPress && n > 0) {
+                        okLongFired = true               // OK-up sa potom prehltne (nevyberie kanal)
+                        openChannelContextMenu(navChannelIndexState.value)
+                    }
+                    return true                          // na DOWN nevyberaj (cakame na uvolnenie)
+                } else if (n > 0) {
+                    // uvolnenie OK (kratky klik) = vyber/prepnutie kanala
+                    if (navChannelIndexState.value == liveIndexState.value) { closeChannelList(); showControlsFocused() }
+                    else selectChannelOrArchive(navChannelIndexState.value, poke = false)
                 }
                 return true
             }
@@ -1597,6 +1694,8 @@ class PlayerActivity : ComponentActivity() {
                 liveChannels = if (canZap) liveChannelsState.value else emptyList(),
                 liveCurrentIndex = liveIndexState.value,
                 onSelectChannel = { idx -> selectChannelOrArchive(idx) },
+                onChannelLongPress = { idx -> openChannelContextMenu(idx) },
+                lockTick = lockTickState.value,
                 onRefreshEpg = {
                     lifecycleScope.launch { refreshOverlayEpg() }
                 },
@@ -1682,6 +1781,62 @@ class PlayerActivity : ComponentActivity() {
                                 ) {
                                     Text(androidx.compose.ui.res.stringResource(R.string.play_from_start),
                                         color = if (aSel == 1) Color.White else Color(0xFFB9C2D0),
+                                        fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // Kontextove menu kanala (long-press) — overlay v style prehravaca
+            if (ctxMenuIdxState.value >= 0) {
+                val cIdx = ctxMenuIdxState.value
+                val cCh = liveChannelsState.value.getOrNull(cIdx)
+                val cKeys = ctxMenuKeys(cIdx)
+                if (cCh != null && cKeys.isNotEmpty()) {
+                    val cSel = ctxMenuSelState.value.coerceIn(0, cKeys.size - 1)
+                    val cLocked = remember(lockTickState.value, cCh.uuid) {
+                        ParentalLock.isChannelLocked(this@PlayerActivity, liveServer?.id, cCh.uuid)
+                    }
+                    Box(
+                        Modifier.fillMaxSize().background(Color(0xCC0B1220)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            Modifier.fillMaxWidth(0.7f)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color(0xFF1B2433))
+                                .padding(horizontal = 20.dp, vertical = 22.dp)
+                        ) {
+                            Text(cCh.name, color = Color.White,
+                                style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            if (cCh.nowTitle.isNotBlank()) {
+                                Spacer(Modifier.height(4.dp))
+                                Text(cCh.nowTitle, color = Color(0xFFB9C2D0),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                            Spacer(Modifier.height(18.dp))
+                            cKeys.forEachIndexed { i, key ->
+                                val label = when (key) {
+                                    "info" -> androidx.compose.ui.res.stringResource(R.string.menu_program)
+                                    "fromstart" -> androidx.compose.ui.res.stringResource(R.string.play_from_start)
+                                    "lock" -> if (cLocked) androidx.compose.ui.res.stringResource(R.string.plock_unlock)
+                                              else androidx.compose.ui.res.stringResource(R.string.plock_lock)
+                                    else -> key
+                                }
+                                val rowSel = i == cSel
+                                Box(
+                                    Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (rowSel) Color(0x553B82F6) else Color.Transparent)
+                                        .border(1.dp, if (rowSel) Color(0xFF3B82F6) else Color(0x33FFFFFF), RoundedCornerShape(12.dp))
+                                        .clickable { ctxMenuSelState.value = i; activateCtxMenu(key) }
+                                        .padding(horizontal = 18.dp, vertical = 13.dp)
+                                ) {
+                                    Text(label,
+                                        color = if (rowSel) Color.White else Color(0xFFB9C2D0),
                                         fontWeight = FontWeight.SemiBold)
                                 }
                             }
@@ -1970,6 +2125,7 @@ private fun MediaPlayer.audioTrackItems(): List<TrackItem> =
 private fun MediaPlayer.spuTrackItems(): List<TrackItem> =
     spuTracks?.map { TrackItem(it.id, it.name ?: "Titulky ${it.id}") } ?: emptyList()
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PlayerUi(
     title: String,
@@ -2002,6 +2158,8 @@ private fun PlayerUi(
     liveChannels: List<LivePlaylist.LiveChannel> = emptyList(),
     liveCurrentIndex: Int = -1,
     onSelectChannel: (Int) -> Unit = {},
+    onChannelLongPress: (Int) -> Unit = {},
+    lockTick: Int = 0,
     onRefreshEpg: () -> Unit = {},
     numberEntry: String = "",
     timeshiftOffsetMs: Long = 0L,
@@ -3244,11 +3402,17 @@ private fun PlayerUi(
                     ) {
                         itemsIndexed(liveChannels) { idx, ch ->
                             val selected = idx == sel
+                            val locked = remember(lockTick, ch.uuid, serverId) {
+                                ParentalLock.isChannelLocked(ctx, serverId, ch.uuid)
+                            }
                             Row(
                                 Modifier
                                     .fillMaxWidth()
                                     .background(if (selected) Color(0x553B82F6) else Color.Transparent)
-                                    .clickable { onSelectChannel(idx); showChannelList = false }
+                                    .combinedClickable(
+                                        onClick = { onSelectChannel(idx); showChannelList = false },
+                                        onLongClick = { onChannelLongPress(idx) }
+                                    )
                                     .padding(horizontal = 12.dp, vertical = 10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -3313,6 +3477,15 @@ private fun PlayerUi(
                                             )
                                         }
                                     }
+                                }
+                                if (locked) {
+                                    Spacer(Modifier.width(8.dp))
+                                    androidx.compose.material3.Icon(
+                                        imageVector = androidx.compose.material.icons.Icons.Filled.Lock,
+                                        contentDescription = null,
+                                        tint = playerFgDim(),
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                 }
                             }
                         }
@@ -3385,6 +3558,9 @@ private fun PlayerUi(
                         pageItemsT.forEachIndexed { localIdx, ch ->
                             val idx = pageStartT + localIdx
                             val selRow = idx == selT
+                            val lockedRow = remember(lockTick, ch.uuid, serverId) {
+                                ParentalLock.isChannelLocked(ctx, serverId, ch.uuid)
+                            }
                             Row(
                                 Modifier
                                     .fillMaxWidth()
@@ -3426,6 +3602,15 @@ private fun PlayerUi(
                                             maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                                 Spacer(Modifier.width(8.dp))
+                                if (lockedRow) {
+                                    androidx.compose.material3.Icon(
+                                        imageVector = androidx.compose.material.icons.Icons.Filled.Lock,
+                                        contentDescription = null,
+                                        tint = playerFgDim(),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                }
                                 Text(if (ch.number > 0) ch.number.toString() else "", color = accentC,
                                     fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                             }
