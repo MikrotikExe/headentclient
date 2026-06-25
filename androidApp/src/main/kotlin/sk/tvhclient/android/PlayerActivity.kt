@@ -2137,7 +2137,20 @@ class PlayerActivity : ComponentActivity() {
         // navrat z pozadia: znova pripoj video na surface a obnov prehravanie
         if (::mediaPlayer.isInitialized) {
             videoLayout?.let { runCatching { mediaPlayer.attachViews(it, null, false, false) } }
-            if (wasPlaying) { runCatching { mediaPlayer.play() } }
+            // rodicovsky zamok: ak sa vraciame z pozadia na zamknuty ZIVY kanal,
+            // vyziadaj PIN znova (kazdy navrat do prehravaca = PIN, ako pri starte).
+            val curUuid = liveUuids.getOrNull(liveIndex)
+            if (wasPlaying && !seekablePlayback && !pinPromptState.value &&
+                ParentalLock.channelLockedProtected(this, liveServer?.id ?: Tvh.store.active()?.id, curUuid)
+            ) {
+                runCatching { if (mediaPlayer.isPlaying) mediaPlayer.pause() }
+                requestPin(
+                    onOk = { runCatching { mediaPlayer.play() } },
+                    onCancel = { finish() }
+                )
+            } else if (wasPlaying) {
+                runCatching { mediaPlayer.play() }
+            }
         }
     }
 
