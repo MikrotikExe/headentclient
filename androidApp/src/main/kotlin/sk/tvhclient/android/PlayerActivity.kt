@@ -1504,8 +1504,6 @@ class PlayerActivity : ComponentActivity() {
                 }
             }
         }
-        val requirePin = intent.getBooleanExtra(EXTRA_REQUIRE_PIN, false)
-
         val server = Tvh.store.active()
         if (server == null || (channelUuid == null && directUrl == null)) {
             finish()
@@ -1685,7 +1683,10 @@ class PlayerActivity : ComponentActivity() {
                             }
                         }
                     }
-                    if (requirePin && ParentalLock.needsPin(this) && ParentalLock.protectChannels(this)) {
+                    // rodicovsky zamok: ak je pociatocny kanal zamknuty a sme mimo grace okna,
+                    // vypytaj PIN. Plati pre KAZDE otvorenie vratane re-openu posledneho kanala
+                    // (nezavisle na tom, ci volajuci poslal EXTRA_REQUIRE_PIN).
+                    if (ParentalLock.channelNeedsPin(this, server.id, channelUuid)) {
                         requestPin(onOk = doPlay, onCancel = { finish() })
                     } else doPlay()
                 },

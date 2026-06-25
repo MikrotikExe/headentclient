@@ -10,7 +10,9 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Arrangement
@@ -58,6 +60,9 @@ import androidx.compose.runtime.SideEffect
 import androidx.core.view.WindowCompat
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -312,11 +317,14 @@ private fun CenterLoading() {
     }
 }
 
-/** Potvrdenie ukoncenia aplikacie na uvodnom launcheri (TV/box, D-pad). */
+/** Potvrdenie ukoncenia aplikacie na uvodnom launcheri (TV/box, D-pad).
+ *  Vyber riadime sami (sipky vlavo/vpravo + OK), lebo Compose focus na lacnych
+ *  boxoch nie je spolahlivy (prvy stlac sa "prehltol" na nadviazanie fokusu). */
 @Composable
 private fun TvExitDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
-    val cancelFocus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { cancelFocus.requestFocus() } }
+    var sel by remember { mutableStateOf(0) }   // 0 = Zrusit (predvolba), 1 = Ukoncit
+    val fr = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { fr.requestFocus() } }
     Box(
         Modifier.fillMaxSize().background(Color(0xCC0B1220)),
         contentAlignment = Alignment.Center
@@ -325,7 +333,21 @@ private fun TvExitDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
             Modifier.fillMaxWidth(0.6f)
                 .clip(RoundedCornerShape(20.dp))
                 .background(Color(0xFF1B2433))
-                .padding(horizontal = 28.dp, vertical = 28.dp),
+                .padding(horizontal = 28.dp, vertical = 28.dp)
+                .focusRequester(fr)
+                .focusable()
+                .onPreviewKeyEvent { e ->
+                    if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                    when (e.nativeKeyEvent.keyCode) {
+                        android.view.KeyEvent.KEYCODE_DPAD_LEFT -> { sel = 0; true }
+                        android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> { sel = 1; true }
+                        android.view.KeyEvent.KEYCODE_DPAD_CENTER,
+                        android.view.KeyEvent.KEYCODE_ENTER,
+                        android.view.KeyEvent.KEYCODE_NUMPAD_ENTER ->
+                            { if (sel == 1) onConfirm() else onCancel(); true }
+                        else -> false   // BACK necha zavriet cez BackHandler
+                    }
+                },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -340,16 +362,20 @@ private fun TvExitDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
             Spacer(Modifier.height(24.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Box(
-                    Modifier.focusRequester(cancelFocus)
-                        .dpadFocusable(RoundedCornerShape(12.dp))
+                    Modifier.clip(RoundedCornerShape(12.dp))
+                        .background(if (sel == 0) Color(0x553B82F6) else Color.Transparent)
+                        .border(1.dp, if (sel == 0) Color(0xFF3B82F6) else Color(0x33FFFFFF), RoundedCornerShape(12.dp))
                         .clickable { onCancel() }
                         .padding(horizontal = 22.dp, vertical = 12.dp)
                 ) {
-                    Text(stringResource(R.string.exit_no), color = Color.White,
+                    Text(stringResource(R.string.exit_no),
+                        color = if (sel == 0) Color.White else Color(0xFFB9C2D0),
                         fontWeight = FontWeight.SemiBold)
                 }
                 Box(
-                    Modifier.dpadFocusable(RoundedCornerShape(12.dp))
+                    Modifier.clip(RoundedCornerShape(12.dp))
+                        .background(if (sel == 1) Color(0x55FF6B6B) else Color.Transparent)
+                        .border(1.dp, if (sel == 1) Color(0xFFFF6B6B) else Color(0x33FFFFFF), RoundedCornerShape(12.dp))
                         .clickable { onConfirm() }
                         .padding(horizontal = 22.dp, vertical = 12.dp)
                 ) {

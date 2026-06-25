@@ -33,7 +33,11 @@ object ParentalLock {
 
     // Okno po odomknuti (v minutach). 0 = vzdy vyzadovat PIN.
     fun graceMinutes(c: Context): Int = p(c).getInt(KEY_GRACE_MIN, DEFAULT_GRACE_MIN)
-    fun setGraceMinutes(c: Context, min: Int) = p(c).edit().putInt(KEY_GRACE_MIN, min).apply()
+    fun setGraceMinutes(c: Context, min: Int) {
+        // zmena pravidla -> zavri aktivne odomknute okno, nech nove nastavenie plati hned
+        // (napr. prepnutie na "vzdy vyziadat" musi zacat platit okamzite)
+        p(c).edit().putInt(KEY_GRACE_MIN, min).putLong(KEY_UNTIL, 0L).apply()
+    }
 
     // Co PIN chrani (predvolene oboje).
     fun protectChannels(c: Context) = p(c).getBoolean(KEY_PROTECT_CHANNELS, true)
