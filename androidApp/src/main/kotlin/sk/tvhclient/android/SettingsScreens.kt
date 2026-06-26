@@ -335,6 +335,7 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         val srv = sk.tvhclient.shared.Tvh.store.active()
         LivePlaylist.clearEpg()
         LivePlaylist.channels = emptyList()
+        if (srv != null) EpgCache.clearLive(ctx, srv.id)
         PiconImageLoader.clearCache(ctx, srv)
         TabController.dataReload.value++
         android.widget.Toast.makeText(ctx, reloadDone, android.widget.Toast.LENGTH_SHORT).show()

@@ -584,6 +584,7 @@ class PlayerActivity : ComponentActivity() {
             // M271: zapis do procesovej cache, nech reopen prehravaca nesťahuje znova
             LivePlaylist.epgLastOkMs = epgLastOkMs
             LivePlaylist.epgUpcoming = epgUpcomingState.value
+            persistEpg(epgUpcomingState.value)   // M275: na disk, nech prezije restart boxu
         } catch (e: Exception) {
         }
     }
@@ -612,6 +613,61 @@ class PlayerActivity : ComponentActivity() {
             spinJob.cancel()
             epgLoadingState.value = false
         }
+    }
+
+    /** M274: ulozenie per-kanaloveho EPG do cache (a do procesovej cache LivePlaylist),
+     *  aby opatovne zobrazenie toho kanala — aj po zatvoreni/otvoreni prehravaca — bolo
+     *  okamzite z cache, nie zo siete. Funguje aj v HTTP rezime, kde bulk mapa chyba. */
+    private fun cacheChannelEpg(uuid: String, list: List<sk.tvhclient.shared.model.EpgEvent>) {
+        if (list.isEmpty()) return
+        val m = epgUpcomingState.value.toMutableMap()
+        m[uuid] = list
+        epgUpcomingState.value = m
+        LivePlaylist.epgUpcoming = m
+        if (epgLastOkMs == 0L) {
+            epgLastOkMs = System.currentTimeMillis()
+            LivePlaylist.epgLastOkMs = epgLastOkMs
+        }
+        persistEpg(m)   // M275: zapis na disk, nech prezije restart boxu
+    }
+
+    /** M275: nacitanie EPG z disku do procesovej cache pri starte (ak je process cache
+     *  prazdna — napr. po restarte boxu/appky). Zobrazi now/next okamzite; cerstvost
+     *  riesi epgIsStale (>3h -> refresh na pozadi). */
+    private fun hydrateEpgFromDisk(srv: sk.tvhclient.shared.model.TvhServer) {
+        if (LivePlaylist.epgUpcoming.isNotEmpty()) return
+        try {
+            val nowSec = System.currentTimeMillis() / 1000
+            val daysBack = EpgRangePref.daysBack(this)
+            val disk = EpgCache.loadLive(this, srv.id, nowSec, daysBack)
+            if (disk.isNotEmpty()) {
+                epgUpcomingState.value = disk
+                LivePlaylist.epgUpcoming = disk
+                val ts = EpgCache.lastSavedLive(this, srv.id)
+                epgLastOkMs = ts
+                LivePlaylist.epgLastOkMs = ts
+            }
+        } catch (e: Exception) {
+        }
+    }
+
+    /** M275: asynchronny zapis EPG cache na disk (per server). */
+    private fun persistEpg(map: Map<String, List<sk.tvhclient.shared.model.EpgEvent>>) {
+        val srv = liveServer ?: return
+        if (map.isEmpty()) return
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                val nowSec = System.currentTimeMillis() / 1000
+                EpgCache.saveLive(this@PlayerActivity, srv.id, map, nowSec, EpgRangePref.daysBack(this@PlayerActivity))
+            }
+        }
+    }
+
+    /** M274: prefetch EPG na pozadi LEN ak je cache prazdna/zastarana (prvy start, >3h).
+     *  Pri reopene s cerstvou cache sa nerobi zbytocny refresh (ziadny lag/churn). */
+    private fun prefetchEpgIfStale() {
+        if (!epgIsStale()) return
+        lifecycleScope.launch { refreshOverlayEpg() }
     }
 
     /** TV/box (Android TV) — na detekciu kde sa ma archivny vyber zobrazovat. */
@@ -1016,6 +1072,7 @@ class PlayerActivity : ComponentActivity() {
                         Tvh.fetchEpgForChannel(srv, Tvh.apiFor(srv), ch.uuid)
                     }
                 }.getOrDefault(emptyList())
+                cacheChannelEpg(ch.uuid, list)   // M274: memoizuj pre dalsie zobrazenia/reopen
                 if (infoVisibleState.value) pick(list)?.let { applyInfo(it) }
             }
         }
@@ -1727,6 +1784,7 @@ class PlayerActivity : ComponentActivity() {
                 ?: liveUuids.indexOf(channelUuid)
             liveServer = server
             saveLastLive(server.id, channelUuid)
+            hydrateEpgFromDisk(server)   // M275: nacitaj EPG z disku (prezije restart boxu)
         }
         liveChannelsState.value = LivePlaylist.channels
         liveIndexState.value = liveIndex
@@ -1882,6 +1940,7 @@ class PlayerActivity : ComponentActivity() {
                                     Tvh.fetchEpgForChannel(server, Tvh.apiFor(server), uuid)
                                 }
                             }.getOrDefault(emptyList())
+                            cacheChannelEpg(uuid, list)   // M274: memoizuj pre dalsie zobrazenia/reopen
                             cb(list)
                         }
                     }
@@ -1896,6 +1955,7 @@ class PlayerActivity : ComponentActivity() {
                     lifecycleScope.launch { refreshOverlayEpg() }
                 },
                 onRefreshEpgInitial = { refreshOverlayEpgInitial() },
+                onPrefetchEpg = { prefetchEpgIfStale() },
                 epgLoading = epgLoadingState.value,
                 numberEntry = numEntryState.value,
                 timeshiftOffsetMs = timeshiftOffsetState.value,
@@ -2420,6 +2480,7 @@ private fun PlayerUi(
     lockTick: Int = 0,
     onRefreshEpg: () -> Unit = {},
     onRefreshEpgInitial: () -> Unit = {},
+    onPrefetchEpg: () -> Unit = {},
     epgLoading: Boolean = false,
     numberEntry: String = "",
     timeshiftOffsetMs: Long = 0L,
@@ -2801,7 +2862,7 @@ private fun PlayerUi(
     // cakania. Bezi na IO (refreshOverlayEpg), stream nabehne prvy a UI sa neblokuje.
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(1200)
-        onRefreshEpg()
+        onPrefetchEpg()   // M274: refresh len ak je cache prazdna/zastarana
         // M269: po EPG predtiahni aj picony vsetkych kanalov na disk, nech prvy
         // otvoreny zoznam a scrollovanie idu z cache, nie zo siete.
         runCatching {
