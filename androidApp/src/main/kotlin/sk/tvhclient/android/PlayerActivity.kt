@@ -1753,6 +1753,9 @@ class PlayerActivity : ComponentActivity() {
                     // vypytaj PIN (bez ohladu na grace okno). Grace ("nepytat X min") plati len
                     // pri prepinani v ramci otvoreneho prehravaca (zoznam / pozadie / cislice).
                     if (ParentalLock.channelLockedProtected(this, server.id, channelUuid)) {
+                        // M263: zrus stare grace okno, nech zamknuty kanal v tomto sedeni
+                        // naozaj vyzaduje PIN (aj keby sa pouzivatel cez vyzvu prepol prec a vratil sa).
+                        ParentalLock.clearGrace(this)
                         requestPin(onOk = doPlay, onCancel = { finish() }, channelIndex = liveIndex)
                     } else doPlay()
                 },
@@ -2206,9 +2209,11 @@ class PlayerActivity : ComponentActivity() {
                 ParentalLock.channelLockedProtected(this, liveServer?.id ?: Tvh.store.active()?.id, curUuid)
             ) {
                 runCatching { if (mediaPlayer.isPlaying) mediaPlayer.pause() }
+                ParentalLock.clearGrace(this)   // M263: rovnako ako pri starte
                 requestPin(
                     onOk = { runCatching { mediaPlayer.play() } },
-                    onCancel = { finish() }
+                    onCancel = { finish() },
+                    channelIndex = liveIndex
                 )
             } else if (wasPlaying) {
                 runCatching { mediaPlayer.play() }

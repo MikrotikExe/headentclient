@@ -76,6 +76,13 @@ object ParentalLock {
         p(c).edit().putLong(KEY_UNTIL, until).apply()
     }
 
+    /**
+     * M263 — zatvor aktivne grace okno. Pouzite pri otvoreni/navrate prehravaca na
+     * zamknuty kanal: stare (aj cezsesiove) odomknutie nesmie umoznit pozeranie
+     * zamknuteho kanala bez zadania PINu (napr. po prepnuti prec a spat bez PINu).
+     */
+    fun clearGrace(c: Context) = p(c).edit().putLong(KEY_UNTIL, 0L).apply()
+
 
     /** Treba teraz vypytat PIN? (zamok zapnuty, PIN nastaveny a nie sme v okne) */
     fun needsPin(c: Context): Boolean = isEnabled(c) && hasPin(c) && !isUnlocked(c)
