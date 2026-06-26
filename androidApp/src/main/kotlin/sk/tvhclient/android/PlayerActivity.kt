@@ -4119,79 +4119,87 @@ private fun PlayerUi(
         // Rodicovsky zamok: zadanie PIN (cislice z dialkoveho riesi Activity)
         if (pinPrompt) {
             Box(
-                Modifier.fillMaxSize().background(Color(0xCC0B1220))
+                Modifier.fillMaxSize().background(Color(0x990B1220))
                     .pointerInput(Unit) { detectTapGestures { } },   // blokuj vstup do pozadia
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        androidx.compose.ui.res.stringResource(R.string.plock_enter),
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    Spacer(Modifier.height(20.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        repeat(4) { i ->
-                            Box(
-                                Modifier.size(20.dp).clip(CircleShape).background(
-                                    if (i < pinLen) Color(0xFF3B82F6) else Color(0x44FFFFFF)
-                                )
-                            )
-                        }
-                    }
-                    if (pinError) {
-                        Spacer(Modifier.height(14.dp))
+                // M273: kompaktny panel ako pri vytvarani PINu (PinDialogGrid), nie cela obrazovka.
+                androidx.compose.material3.Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFF1B2433),
+                    contentColor = Color.White,
+                    tonalElevation = 6.dp
+                ) {
+                    Column(
+                        Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Text(
-                            androidx.compose.ui.res.stringResource(R.string.plock_wrong),
-                            color = Color(0xFFFF6B6B)
+                            androidx.compose.ui.res.stringResource(R.string.plock_enter),
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium
                         )
-                    }
-                    Spacer(Modifier.height(14.dp))
-                    Text(
-                        androidx.compose.ui.res.stringResource(R.string.plock_hint),
-                        color = Color(0xFFB9C2D0),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    // Ciselna mriezka: na telefone dotykova, na TV ovladana D-padom
-                    // (zvyraznenie vybraneho klavesu) — pre ovladace bez ciselnych klaves.
-                    Spacer(Modifier.height(20.dp))
-                    val padKeys = listOf(
-                        listOf("1", "2", "3"),
-                        listOf("4", "5", "6"),
-                        listOf("7", "8", "9"),
-                        listOf("del", "0", "list")
-                    )
-                    padKeys.forEachIndexed { r, rowKeys ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            rowKeys.forEachIndexed { c, label ->
-                                val selected = isTvGest && r == pinGridRow && c == pinGridCol
+                        Spacer(Modifier.height(20.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                            repeat(4) { i ->
                                 Box(
-                                    Modifier.size(width = 70.dp, height = 52.dp)
-                                        .clip(RoundedCornerShape(26.dp))
-                                        .background(if (selected) Color(0xFF3B82F6) else Color(0x22FFFFFF))
-                                        .border(
-                                            if (selected) 2.dp else 1.dp,
-                                            if (selected) Color.White else Color(0x55FFFFFF),
-                                            RoundedCornerShape(26.dp)
-                                        )
-                                        .clickable {
-                                            when (label) {
-                                                "del" -> onPinBack()
-                                                "list" -> onPinOpenList()
-                                                else -> onPinDigit(label.toInt())
-                                            }
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        when (label) { "del" -> "\u232B"; "list" -> "\u2630"; else -> label },
-                                        color = Color.White,
-                                        style = MaterialTheme.typography.titleLarge
+                                    Modifier.size(18.dp).clip(CircleShape).background(
+                                        if (i < pinLen) MaterialTheme.colorScheme.primary else Color(0x44FFFFFF)
                                     )
-                                }
+                                )
                             }
                         }
-                        Spacer(Modifier.height(10.dp))
+                        if (pinError) {
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                androidx.compose.ui.res.stringResource(R.string.plock_wrong),
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        // Ciselna mriezka: na telefone dotykova, na TV ovladana D-padom
+                        // (zvyraznenie vybraneho klavesu) — pre ovladace bez ciselnych klaves.
+                        val padKeys = listOf(
+                            listOf("1", "2", "3"),
+                            listOf("4", "5", "6"),
+                            listOf("7", "8", "9"),
+                            listOf("del", "0", "list")
+                        )
+                        padKeys.forEachIndexed { r, rowKeys ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                rowKeys.forEachIndexed { c, label ->
+                                    val selected = isTvGest && r == pinGridRow && c == pinGridCol
+                                    Box(
+                                        Modifier.size(width = 64.dp, height = 44.dp)
+                                            .clip(RoundedCornerShape(22.dp))
+                                            .background(
+                                                if (selected) MaterialTheme.colorScheme.primary
+                                                else Color(0x22FFFFFF)
+                                            )
+                                            .border(
+                                                2.dp,
+                                                if (selected) Color.White else Color(0x55FFFFFF),
+                                                RoundedCornerShape(22.dp)
+                                            )
+                                            .clickable {
+                                                when (label) {
+                                                    "del" -> onPinBack()
+                                                    "list" -> onPinOpenList()
+                                                    else -> onPinDigit(label.toInt())
+                                                }
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            when (label) { "del" -> "\u232B"; "list" -> "\u2630"; else -> label },
+                                            color = if (selected) MaterialTheme.colorScheme.onPrimary else Color.White,
+                                            style = MaterialTheme.typography.titleMedium
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(8.dp))
+                        }
                     }
                 }
             }
