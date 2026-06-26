@@ -1998,7 +1998,7 @@ class PlayerActivity : ComponentActivity() {
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
-                            Modifier.fillMaxWidth(0.8f)
+                            Modifier.fillMaxWidth(0.8f).widthIn(max = 460.dp)
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(Color(0xFF1B2433))
                                 .padding(horizontal = 24.dp, vertical = 28.dp),
@@ -2068,7 +2068,7 @@ class PlayerActivity : ComponentActivity() {
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
-                            Modifier.fillMaxWidth(0.7f)
+                            Modifier.fillMaxWidth(0.7f).widthIn(max = 440.dp)
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(Color(0xFF1B2433))
                                 .padding(horizontal = 20.dp, vertical = 22.dp)
@@ -2117,7 +2117,7 @@ class PlayerActivity : ComponentActivity() {
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
-                        Modifier.fillMaxWidth(0.78f)
+                        Modifier.fillMaxWidth(0.78f).widthIn(max = 560.dp)
                             .clip(RoundedCornerShape(20.dp))
                             .background(Color(0xFF1B2433))
                             .padding(horizontal = 24.dp, vertical = 24.dp)
@@ -3553,7 +3553,7 @@ private fun PlayerUi(
                 androidx.compose.material3.Surface(
                     color = playerScrim(),
                     shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth(0.72f)
+                    modifier = Modifier.fillMaxWidth(0.72f).widthIn(max = 560.dp)
                 ) {
                     Column(
                         Modifier
