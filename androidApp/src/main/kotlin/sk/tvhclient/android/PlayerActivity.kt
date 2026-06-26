@@ -2745,6 +2745,14 @@ private fun PlayerUi(
         enabled = returnLiveOnBack && !controlsVisible && menu == null && !showChannelList && !showOptions
     ) { onClose() }
 
+    // M266: predbezne nacitanie EPG (now/next) na pozadi kratko po starte prehravaca,
+    // aby prvy otvoreny zoznam kanalov mal data uz z cache (epgUpcomingState) bez sietoveho
+    // cakania. Bezi na IO (refreshOverlayEpg), stream nabehne prvy a UI sa neblokuje.
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(1200)
+        onRefreshEpg()
+    }
+
     // Kym je zoznam kanalov otvoreny, obnovuj EPG (now/next) aby relacie
     // postupne prechadzali na dalsie
     LaunchedEffect(showChannelList) {
@@ -3755,7 +3763,13 @@ private fun PlayerUi(
             Column(
                 Modifier
                     .fillMaxSize()
-                    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                    // M266: offscreen buffer je drahy a treba ho LEN pre BlendMode.Clear
+                    // (vyrez nahladu). Bez nahladu ho nealokujeme -> svizne prve otvorenie.
+                    .then(
+                        if (inPreview)
+                            Modifier.graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                        else Modifier
+                    )
                     .drawBehind {
                         drawRect(scrimC)
                         val r = previewRect
