@@ -130,6 +130,10 @@ class PlayerActivity : ComponentActivity() {
     private var dvrViaFeeder = false
     private var htspLive = false
     private var htspStream = false
+    // M262: ci uz prebehlo urcenie HTSP rezimu pre toto sedenie. doPlay (startovacie
+    // prehratie) ho nastavi; ak vsak pouzivatel prepne kanal este pred doPlay (napr.
+    // odchod z PIN vyzvy zamknuteho kanala), inicializuje HTSP switchToIndex.
+    private var htspInitDone = false
     private val htspLiveState = androidx.compose.runtime.mutableStateOf(false)
     private val timeshiftOffsetState = androidx.compose.runtime.mutableStateOf(0L)
     // timeshift "zapnuty" (po prvej pauze) -> az vtedy davaju zmysel RW/FF a dvojklik
@@ -662,7 +666,7 @@ class PlayerActivity : ComponentActivity() {
         val uuid = liveUuids[i]
         // rodicovsky zamok: zamknuty kanal mimo 5-min okna -> vypytaj PIN
         if (ParentalLock.channelNeedsPin(this, srv.id, uuid)) {
-            requestPin(onOk = { switchToIndex(i, poke) }, onCancel = { })
+            requestPin(onOk = { switchToIndex(i, poke) }, onCancel = { }, channelIndex = i)
             return
         }
         liveIndex = i
@@ -687,6 +691,27 @@ class PlayerActivity : ComponentActivity() {
         cancelReconnect()  // nove pripojenie -> zrus stare pokusy
         hasVideoState.value = true  // predpokladaj video; kontrola po Playing to opravi
         val cid = uuid.toLongOrNull()
+        // M262: ak HTSP rezim este nebol urceny (prepnutie pred doPlay, napr. odchod
+        // z PIN vyzvy zamknuteho startovacieho kanala), urci ho tu rovnako ako doPlay,
+        // aby aj prvy prepnuty kanal mal HTSP/timeshift a nie len HTTP.
+        if (srv.connectionMode == "htsp" && cid != null && !htspInitDone) {
+            htspInitDone = true
+            lifecycleScope.launch {
+                val ts = TimeshiftPref.get(this@PlayerActivity) && withContext(Dispatchers.IO) {
+                    runCatching {
+                        HtspData.timeshiftAvailable(srv, System.currentTimeMillis() / 1000)
+                    }.getOrDefault(false)
+                }
+                if (playHtspLive(srv, cid, ts)) {
+                    htspStream = true; htspLive = ts; htspLiveState.value = ts
+                } else {
+                    htspStream = false; htspLive = false; htspLiveState.value = false
+                    playLiveAuto(srv, url)
+                }
+                if (poke) pokeControls()
+            }
+            return
+        }
         if (htspStream && cid != null && playHtspLive(srv, cid, htspLive)) {
             if (poke) pokeControls()
             return
@@ -700,6 +725,16 @@ class PlayerActivity : ComponentActivity() {
         if (liveUuids.size < 2 || liveIndex < 0) return
         val n = liveUuids.size
         switchToIndex(((liveIndex + delta) % n + n) % n)
+    }
+
+    /** M262 — prepnutie pocas zobrazenej PIN vyzvy: zrusi vyzvu zamknuteho kanala
+     *  (bez ukoncenia prehravaca) a prepne na susedny relativne k blokovanemu kanalu.
+     *  switchToIndex znova vyhodnoti zamok: volny kanal -> hra, dalsi zamknuty -> opat PIN. */
+    private fun switchFromPin(fromIndex: Int, delta: Int) {
+        val n = liveUuids.size
+        if (n < 2) return
+        closePin()
+        switchToIndex(((fromIndex + delta) % n + n) % n)
     }
 
     /** Zadanie cisla kanala z dialkoveho: nazbieraj cislice, po 1,5 s sa prepne. */
@@ -782,9 +817,13 @@ class PlayerActivity : ComponentActivity() {
     }
 
     private var pinMarkUnlock = true
-    private fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, markUnlock: Boolean = true) {
+    // M262: index kanala, ktoreho prehravanie PIN vyzva blokuje (null = ine pouzitie,
+    // napr. zamykanie z menu). Umoznuje pocas vyzvy prepnut na susedny kanal.
+    private var pinChannelIndex: Int? = null
+    private fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, markUnlock: Boolean = true, channelIndex: Int? = null) {
         okLongFired = false   // PIN vyzva preberá vstup; OK gesto je tým ukoncene
         pinMarkUnlock = markUnlock
+        pinChannelIndex = channelIndex
         pinOnSuccess = onOk; pinOnCancel = onCancel
         pinEntryState.value = ""; pinErrorState.value = false
         pinPromptState.value = true
@@ -793,6 +832,7 @@ class PlayerActivity : ComponentActivity() {
         pinPromptState.value = false; pinEntryState.value = ""; pinErrorState.value = false
         pinOnSuccess = null; pinOnCancel = null
         pinMarkUnlock = true
+        pinChannelIndex = null
     }
     private fun pinDigit(d: Int) {
         if (pinEntryState.value.length >= 4) return
@@ -1053,6 +1093,18 @@ class PlayerActivity : ComponentActivity() {
                         { if (pinEntryState.value.isNotEmpty()) pinEntryState.value = pinEntryState.value.dropLast(1); return true }
                     kc == android.view.KeyEvent.KEYCODE_BACK ||
                         kc == android.view.KeyEvent.KEYCODE_DPAD_LEFT -> { cancelPin(); return true }
+                }
+                // M262: pocas PIN vyzvy zamknuteho kanala sa da prepnut na iny kanal
+                // (zamok plati len pre dany kanal, nie pre prechod inam). Volny kanal
+                // sa zacne hrat a vyzva zmizne; dalsi zamknuty si znova vypyta PIN.
+                val pci = pinChannelIndex
+                if (pci != null && liveUuids.size > 1 && event.repeatCount == 0) {
+                    when (kc) {
+                        android.view.KeyEvent.KEYCODE_CHANNEL_UP,
+                        android.view.KeyEvent.KEYCODE_DPAD_UP -> { switchFromPin(pci, +1); return true }
+                        android.view.KeyEvent.KEYCODE_CHANNEL_DOWN,
+                        android.view.KeyEvent.KEYCODE_DPAD_DOWN -> { switchFromPin(pci, -1); return true }
+                    }
                 }
             }
             return true
@@ -1664,6 +1716,7 @@ class PlayerActivity : ComponentActivity() {
                                     htspLiveState.value = false
                                     playLiveAuto(server, streamUrl)
                                 }
+                                htspInitDone = true
                                 pokeControls()
                             }
                         } else {
@@ -1691,7 +1744,7 @@ class PlayerActivity : ComponentActivity() {
                     // vypytaj PIN (bez ohladu na grace okno). Grace ("nepytat X min") plati len
                     // pri prepinani v ramci otvoreneho prehravaca (zoznam / pozadie / cislice).
                     if (ParentalLock.channelLockedProtected(this, server.id, channelUuid)) {
-                        requestPin(onOk = doPlay, onCancel = { finish() })
+                        requestPin(onOk = doPlay, onCancel = { finish() }, channelIndex = liveIndex)
                     } else doPlay()
                 },
                 controlsPoke = controlsPokeState.value,

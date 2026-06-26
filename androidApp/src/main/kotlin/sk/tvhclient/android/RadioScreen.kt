@@ -252,6 +252,7 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
             isFav = isFav,
             isLocked = isLocked,
             isHidden = isHidden,
+            lockEnabled = ParentalLock.isEnabled(context),
             onProgram = { epgFor = cr; contextRow = null },
             onToggleFav = {
                 Favorites.toggle(context, serverId, cr.channel.uuid); favTick++; contextRow = null
