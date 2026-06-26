@@ -816,6 +816,25 @@ class PlayerActivity : ComponentActivity() {
             (dvrPlayheadMsState.value.toFloat() / bar).coerceIn(0f, 1f) else 0f
     }
 
+    // M265: vyber v PIN mriezke (in-player vyzva, D-pad). Mriezka 1-9 / del 0 x.
+    private val pinGridRowState = androidx.compose.runtime.mutableStateOf(0)
+    private val pinGridColState = androidx.compose.runtime.mutableStateOf(0)
+    private fun activatePinGridKey() {
+        val grid = listOf(
+            listOf("1", "2", "3"),
+            listOf("4", "5", "6"),
+            listOf("7", "8", "9"),
+            listOf("del", "0", "x")
+        )
+        val r = pinGridRowState.value.coerceIn(0, 3)
+        val c = pinGridColState.value.coerceIn(0, 2)
+        when (val label = grid[r][c]) {
+            "del" -> pinDel()
+            "x" -> cancelPin()
+            else -> pinDigit(label.toInt())
+        }
+    }
+
     private var pinMarkUnlock = true
     // M262: index kanala, ktoreho prehravanie PIN vyzva blokuje (null = ine pouzitie,
     // napr. zamykanie z menu). Umoznuje pocas vyzvy prepnut na susedny kanal.
@@ -826,6 +845,7 @@ class PlayerActivity : ComponentActivity() {
         pinChannelIndex = channelIndex
         pinOnSuccess = onOk; pinOnCancel = onCancel
         pinEntryState.value = ""; pinErrorState.value = false
+        pinGridRowState.value = 0; pinGridColState.value = 0
         pinPromptState.value = true
     }
     private fun closePin() {
@@ -1077,7 +1097,7 @@ class PlayerActivity : ComponentActivity() {
             ).show()
         }
 
-        // 0) PIN rodicovskeho zamku -> cislice zadavame my
+        // 0) PIN rodicovskeho zamku -> cislice zadavame my; na TV aj D-pad mriezka
         if (pinPromptState.value) {
             if (down) {
                 val digit = when (kc) {
@@ -1087,32 +1107,32 @@ class PlayerActivity : ComponentActivity() {
                         kc - android.view.KeyEvent.KEYCODE_NUMPAD_0
                     else -> -1
                 }
-                when {
-                    digit >= 0 -> { pinDigit(digit); return true }
-                    kc == android.view.KeyEvent.KEYCODE_DEL ->
-                        { if (pinEntryState.value.isNotEmpty()) pinEntryState.value = pinEntryState.value.dropLast(1); return true }
-                    kc == android.view.KeyEvent.KEYCODE_BACK ||
-                        kc == android.view.KeyEvent.KEYCODE_DPAD_LEFT -> { cancelPin(); return true }
+                // priame cislice z dialkoveho (ak ich ovladac ma)
+                if (digit >= 0) { pinDigit(digit); return true }
+                when (kc) {
+                    android.view.KeyEvent.KEYCODE_DEL -> { pinDel(); return true }
+                    android.view.KeyEvent.KEYCODE_BACK -> { cancelPin(); return true }
                 }
-                // M262: pocas PIN vyzvy zamknuteho kanala sa da prepnut na iny kanal
-                // (zamok plati len pre dany kanal, nie pre prechod inam). Volny kanal
-                // sa zacne hrat a vyzva zmizne; dalsi zamknuty si znova vypyta PIN.
+                // M262: pocas vyzvy sa da prepnut na iny kanal — len hardverove CHANNEL +/-
+                // (D-pad teraz ovlada PIN mriezku). Volny kanal sa zacne hrat, dalsi zamknuty
+                // si opat vypyta PIN.
                 val pci = pinChannelIndex
                 if (pci != null && liveUuids.size > 1 && event.repeatCount == 0) {
                     when (kc) {
-                        android.view.KeyEvent.KEYCODE_CHANNEL_UP,
-                        android.view.KeyEvent.KEYCODE_DPAD_UP -> { switchFromPin(pci, +1); return true }
-                        android.view.KeyEvent.KEYCODE_CHANNEL_DOWN,
-                        android.view.KeyEvent.KEYCODE_DPAD_DOWN -> { switchFromPin(pci, -1); return true }
-                        // OK = otvor zoznam kanalov (vyber volny kanal priamo); zamknuty si znova vypyta PIN
+                        android.view.KeyEvent.KEYCODE_CHANNEL_UP -> { switchFromPin(pci, +1); return true }
+                        android.view.KeyEvent.KEYCODE_CHANNEL_DOWN -> { switchFromPin(pci, -1); return true }
+                    }
+                }
+                // M265: D-pad mriezka na zadanie PIN — pre ovladace bez ciselnych klaves.
+                if (isTvDevice()) {
+                    when (kc) {
+                        android.view.KeyEvent.KEYCODE_DPAD_LEFT -> { pinGridColState.value = (pinGridColState.value - 1 + 3) % 3; return true }
+                        android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> { pinGridColState.value = (pinGridColState.value + 1) % 3; return true }
+                        android.view.KeyEvent.KEYCODE_DPAD_UP -> { pinGridRowState.value = (pinGridRowState.value - 1 + 4) % 4; return true }
+                        android.view.KeyEvent.KEYCODE_DPAD_DOWN -> { pinGridRowState.value = (pinGridRowState.value + 1) % 4; return true }
                         android.view.KeyEvent.KEYCODE_DPAD_CENTER,
                         android.view.KeyEvent.KEYCODE_ENTER,
-                        android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                            okLongFired = true   // nasledne OK-up sa prehltne (nevyberie hned kanal)
-                            closePin()
-                            openChannelList()
-                            return true
-                        }
+                        android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> { activatePinGridKey(); return true }
                     }
                 }
             }
@@ -1838,6 +1858,8 @@ class PlayerActivity : ComponentActivity() {
                 onPinDigit = { d -> pinDigit(d) },
                 onPinBack = { pinDel() },
                 onPinCancel = { cancelPin() },
+                pinGridRow = pinGridRowState.value,
+                pinGridCol = pinGridColState.value,
                 scrubFrac = scrubFractionState.value,
                 progNextTitle = liveNextTitleState.value,
                 progNextStart = liveNextStartState.value,
@@ -2386,6 +2408,8 @@ private fun PlayerUi(
     onPinDigit: (Int) -> Unit = {},
     onPinBack: () -> Unit = {},
     onPinCancel: () -> Unit = {},
+    pinGridRow: Int = 0,
+    pinGridCol: Int = 0,
     scrubFrac: Float = 0f,
     progNextTitle: String = "",
     progNextStart: Long = 0,
@@ -2825,7 +2849,10 @@ private fun PlayerUi(
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
                 onAttach(layout)
-                onStart()
+                // M264: branu (rodicovsky zamok pri otvoreni) spusti az po pripojeni surface
+                // na cistom looper tiku. Zapis pinPromptState priamo v Compose layout faze
+                // sa pri studenom starte (prve otvorenie) niekedy stratil -> PIN sa nevypytal.
+                layout.post { onStart() }
                 layout
             }
         )
@@ -4038,42 +4065,46 @@ private fun PlayerUi(
                         color = Color(0xFFB9C2D0),
                         style = MaterialTheme.typography.bodySmall
                     )
-                    // Dotykova ciselna mriezka — len na telefone/tablete (na TV sa zadava dialkovym)
-                    if (!isTvGest) {
-                        Spacer(Modifier.height(20.dp))
-                        val padKeys = listOf(
-                            listOf("1", "2", "3"),
-                            listOf("4", "5", "6"),
-                            listOf("7", "8", "9"),
-                            listOf("del", "0", "x")
-                        )
-                        padKeys.forEach { rowKeys ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                rowKeys.forEach { label ->
-                                    Box(
-                                        Modifier.size(width = 70.dp, height = 52.dp)
-                                            .clip(RoundedCornerShape(26.dp))
-                                            .background(Color(0x22FFFFFF))
-                                            .border(1.dp, Color(0x55FFFFFF), RoundedCornerShape(26.dp))
-                                            .clickable {
-                                                when (label) {
-                                                    "del" -> onPinBack()
-                                                    "x" -> onPinCancel()
-                                                    else -> onPinDigit(label.toInt())
-                                                }
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            when (label) { "del" -> "\u232B"; "x" -> "\u2715"; else -> label },
-                                            color = Color.White,
-                                            style = MaterialTheme.typography.titleLarge
+                    // Ciselna mriezka: na telefone dotykova, na TV ovladana D-padom
+                    // (zvyraznenie vybraneho klavesu) — pre ovladace bez ciselnych klaves.
+                    Spacer(Modifier.height(20.dp))
+                    val padKeys = listOf(
+                        listOf("1", "2", "3"),
+                        listOf("4", "5", "6"),
+                        listOf("7", "8", "9"),
+                        listOf("del", "0", "x")
+                    )
+                    padKeys.forEachIndexed { r, rowKeys ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            rowKeys.forEachIndexed { c, label ->
+                                val selected = isTvGest && r == pinGridRow && c == pinGridCol
+                                Box(
+                                    Modifier.size(width = 70.dp, height = 52.dp)
+                                        .clip(RoundedCornerShape(26.dp))
+                                        .background(if (selected) Color(0xFF3B82F6) else Color(0x22FFFFFF))
+                                        .border(
+                                            if (selected) 2.dp else 1.dp,
+                                            if (selected) Color.White else Color(0x55FFFFFF),
+                                            RoundedCornerShape(26.dp)
                                         )
-                                    }
+                                        .clickable {
+                                            when (label) {
+                                                "del" -> onPinBack()
+                                                "x" -> onPinCancel()
+                                                else -> onPinDigit(label.toInt())
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        when (label) { "del" -> "\u232B"; "x" -> "\u2715"; else -> label },
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.titleLarge
+                                    )
                                 }
                             }
-                            Spacer(Modifier.height(10.dp))
                         }
+                        Spacer(Modifier.height(10.dp))
                     }
                 }
             }
