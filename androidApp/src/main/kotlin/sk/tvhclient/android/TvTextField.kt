@@ -2,7 +2,9 @@ package sk.tvhclient.android
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -68,9 +71,14 @@ fun TvTextField(
 
     if (editing) {
         val imeFocus = remember { FocusRequester() }
+        // M282: pole je riadene LOKALNYM textom, ktory zacina hodnotou + znakmi napisanymi
+        // v box rezime (pending) v spravnom poradi. Tym odpada asynchronne "dobiehanie" cez
+        // onValueChange, ktore pri rychlej USB klavesnici prehadzovalo prve znaky (admintest
+        // -> damintest). Kazdy stlak meni lokalny text synchronne a sucasne sa propaguje hore.
+        var text by remember { mutableStateOf(value + pending) }
         OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
+            value = text,
+            onValueChange = { text = it; onValueChange(it) },
             label = { Text(label) },
             singleLine = true,
             visualTransformation =
@@ -108,7 +116,9 @@ fun TvTextField(
                 }
         )
         LaunchedEffect(Unit) {
-            if (pending.isNotEmpty()) { onValueChange(value + pending); pending = "" }
+            // pending je uz zahrnuty v 'text' -> propaguj raz hore a vycisti buffer
+            if (pending.isNotEmpty()) onValueChange(text)
+            pending = ""
             starting = false
             runCatching { imeFocus.requestFocus() }
         }
@@ -118,44 +128,71 @@ fun TvTextField(
             if (!editing) { starting = false; pending = "" }
             if (everEdited) runCatching { boxFocus.requestFocus() }
         }
-        Column(
-            modifier = modifier
-                .heightIn(min = 56.dp)
-                .focusRequester(boxFocus)
-                .dpadFocusable()
-                .onPreviewKeyEvent { e ->
-                    // Pripojena klavesnica: znaky napisane skor, nez sa stihne otvorit IME pole,
-                    // sa zhromazdia do bufra (v spravnom poradi) a aplikuju sa naraz pri aktivacii.
-                    if (e.type == KeyEventType.KeyDown) {
-                        val ch = e.nativeKeyEvent.unicodeChar
-                        if (ch != 0 && !Character.isISOControl(ch)) {
-                            pending += ch.toChar()
-                            everEdited = true
-                            if (!starting) { starting = true; editing = true }
-                            true
+        val fieldColumn: @Composable (Modifier) -> Unit = { colMod ->
+            Column(
+                modifier = colMod
+                    .heightIn(min = 56.dp)
+                    .focusRequester(boxFocus)
+                    .dpadFocusable()
+                    .onPreviewKeyEvent { e ->
+                        // Pripojena klavesnica: znaky napisane skor, nez sa stihne otvorit IME pole,
+                        // sa zhromazdia do bufra (v spravnom poradi) a aplikuju sa naraz pri aktivacii.
+                        if (e.type == KeyEventType.KeyDown) {
+                            val ch = e.nativeKeyEvent.unicodeChar
+                            if (ch != 0 && !Character.isISOControl(ch)) {
+                                pending += ch.toChar()
+                                everEdited = true
+                                if (!starting) { starting = true; editing = true }
+                                true
+                            } else false
                         } else false
-                    } else false
+                    }
+                    .clickable { editing = true; everEdited = true }
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                val shown = when {
+                    value.isBlank() -> "\u2014"
+                    password && !revealed -> "\u2022".repeat(value.length)
+                    else -> value
                 }
-                .clickable { editing = true; everEdited = true }
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Text(
-                label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            val shown = when {
-                value.isBlank() -> "\u2014"
-                password && !revealed -> "\u2022".repeat(value.length)
-                else -> value
+                Text(
+                    shown,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (value.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.onSurface
+                )
             }
-            Text(
-                shown,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (value.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.onSurface
-            )
+        }
+        if (password) {
+            // M282: na TV sa oko v IME poli neda zamerit dialkovym; preto je tu zvlast
+            // fokusovatelne (D-pad) tlacidlo oka vedla pola — OK prepne viditelnost hesla.
+            Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+                fieldColumn(Modifier.weight(1f))
+                Box(
+                    Modifier
+                        .padding(start = 8.dp)
+                        .dpadFocusable()
+                        .clickable { revealed = !revealed }
+                        .padding(10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        if (revealed) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                        contentDescription = stringResource(
+                            if (revealed) R.string.hide_password else R.string.show_password
+                        ),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            fieldColumn(modifier)
         }
     }
 }
