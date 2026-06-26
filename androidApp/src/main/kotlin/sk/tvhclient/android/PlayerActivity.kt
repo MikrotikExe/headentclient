@@ -604,7 +604,12 @@ class PlayerActivity : ComponentActivity() {
         lifecycleScope.launch {
             // M271: ak mame cerstve EPG (cache z nedavneho otvorenia), nesťahuj znova —
             // odpadne otravne nacitavanie pri kazdom reopene. Fetch len ked je stale.
-            if (!epgIsStale()) return@launch
+            if (!epgIsStale()) {
+                // M281: EPG je cerstve (now/next uz mame z cache), ale nahravaci priznak
+                // (cervena bodka) sa meni casto — osvez len ten malym DVR dotazom, bez EPG.
+                refreshRecordingOnly()
+                return@launch
+            }
             val spinJob = launch {
                 kotlinx.coroutines.delay(350)
                 epgLoadingState.value = true
@@ -612,6 +617,30 @@ class PlayerActivity : ComponentActivity() {
             refreshOverlayEpg()
             spinJob.cancel()
             epgLoadingState.value = false
+        }
+    }
+
+    /** M281: rychle osvezenie len nahravacich priznakov (cervena bodka) bez EPG fetchu.
+     *  Pouzite pri reopene s cerstvym EPG — now/next uz mame z cache, ale prebiehajuce
+     *  nahravky sa medzicasom mohli zmenit. Jeden maly DVR dotaz, ziadny EPG churn. */
+    private fun refreshRecordingOnly() {
+        val srv = liveServer ?: return
+        lifecycleScope.launch {
+            val recList: List<sk.tvhclient.shared.model.DvrEntry> =
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    val api = Tvh.apiFor(srv)
+                    try { Tvh.fetchDvrInProgress(srv, api) }
+                    catch (e: Exception) { emptyList() }
+                    finally { api.close() }
+                }
+            val recMap = recList.associateBy { it.channelName }
+            recInProgressByName.value = recMap
+            val cur = liveChannelsState.value
+            if (cur.isNotEmpty()) {
+                val updated = cur.map { it.copy(recording = it.name in recMap) }
+                liveChannelsState.value = updated
+                LivePlaylist.channels = updated
+            }
         }
     }
 
@@ -635,7 +664,13 @@ class PlayerActivity : ComponentActivity() {
      *  prazdna — napr. po restarte boxu/appky). Zobrazi now/next okamzite; cerstvost
      *  riesi epgIsStale (>3h -> refresh na pozadi). */
     private fun hydrateEpgFromDisk(srv: sk.tvhclient.shared.model.TvhServer) {
-        if (LivePlaylist.epgUpcoming.isNotEmpty()) return
+        if (LivePlaylist.epgUpcoming.isNotEmpty()) {
+            // M281: proces cache prezila (Activity recreate) — synchronizuj Activity stav,
+            // aby applyCachedEpgToChannels() vedel hned naplnit zoznam.
+            if (epgUpcomingState.value.isEmpty()) epgUpcomingState.value = LivePlaylist.epgUpcoming
+            if (epgLastOkMs == 0L) epgLastOkMs = LivePlaylist.epgLastOkMs
+            return
+        }
         try {
             val nowSec = System.currentTimeMillis() / 1000
             val daysBack = EpgRangePref.daysBack(this)
@@ -649,6 +684,26 @@ class PlayerActivity : ComponentActivity() {
             }
         } catch (e: Exception) {
         }
+    }
+
+    /** M281: aplikuj nacachovane now/next (z disku/procesu cez epgUpcomingState) na viditelny
+     *  zoznam kanalov, aby sa nazvy relacii pod kanalmi zobrazili OKAMZITE aj po restarte/reopene
+     *  — bez cakania na sietovy refreshOverlayEpg. Nahravaci priznak (cervena bodka) sa doplni
+     *  az ked dobehne fetchDvrInProgress (recInProgressByName); tu sa neprepisuje, ak je prazdny. */
+    private fun applyCachedEpgToChannels() {
+        val map = epgUpcomingState.value
+        if (map.isEmpty()) return
+        val cur = liveChannelsState.value
+        if (cur.isEmpty()) return
+        val nowS = System.currentTimeMillis() / 1000
+        val recMap = recInProgressByName.value
+        val updated = cur.map { ch ->
+            val ev = map[ch.uuid]?.firstOrNull { it.start <= nowS && nowS < it.stop }
+            val b = if (ev != null) ch.copy(nowTitle = ev.title, nowStart = ev.start, nowStop = ev.stop) else ch
+            if (recMap.isEmpty()) b else b.copy(recording = b.name in recMap)
+        }
+        liveChannelsState.value = updated
+        LivePlaylist.channels = updated
     }
 
     /** M275: asynchronny zapis EPG cache na disk (per server). */
@@ -1810,6 +1865,9 @@ class PlayerActivity : ComponentActivity() {
             hydrateEpgFromDisk(server)   // M275: nacitaj EPG z disku (prezije restart boxu)
         }
         liveChannelsState.value = LivePlaylist.channels
+        // M281: hned dopln now/next z cache (disk/proces) na viditelny zoznam, nech sa nazvy
+        // relacii pod kanalmi ukazu okamzite aj po restarte (predtym cakali na sietovy refresh).
+        applyCachedEpgToChannels()
         liveIndexState.value = liveIndex
         liveTitleState.value = channelTitle
         liveUuidState.value = channelUuid
