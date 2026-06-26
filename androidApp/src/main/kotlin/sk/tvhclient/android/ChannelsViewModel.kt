@@ -1,6 +1,7 @@
 package sk.tvhclient.android
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,7 +25,10 @@ sealed class ChannelsState {
 
 enum class ChannelViewMode { LIST, GRID, TILES }
 
-class ChannelsViewModel : ViewModel() {
+class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
+
+    private val appCtx = app.applicationContext
+    private fun sid(): String = Tvh.store.active()?.id ?: "default"
 
     private val _state = MutableStateFlow<ChannelsState>(ChannelsState.Loading)
     val state: StateFlow<ChannelsState> = _state
@@ -32,8 +36,17 @@ class ChannelsViewModel : ViewModel() {
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query
 
-    // HTSP: kanal -> zoznam nadchadzajucich relacii (na auto-prechod na zozname)
-    private val _epgMap = MutableStateFlow<Map<String, List<sk.tvhclient.shared.model.EpgEvent>>>(emptyMap())
+    // HTSP: kanal -> zoznam nadchadzajucich relacii (na auto-prechod na zozname).
+    // M278: seed z diskovej „live" cache (rovnaka ako prehravac) — now/next naskoci hned
+    // aj po restarte/obnove obrazovky, kym sa na pozadi dotiahnu cerstve data.
+    private val _epgMap = MutableStateFlow<Map<String, List<sk.tvhclient.shared.model.EpgEvent>>>(
+        EpgCache.loadLive(
+            app.applicationContext,
+            Tvh.store.active()?.id ?: "default",
+            System.currentTimeMillis() / 1000,
+            EpgRangePref.daysBack(app.applicationContext)
+        )
+    )
     val epgMap: StateFlow<Map<String, List<sk.tvhclient.shared.model.EpgEvent>>> = _epgMap
 
     private val _viewMode = MutableStateFlow(ChannelViewMode.LIST)
@@ -94,7 +107,15 @@ class ChannelsViewModel : ViewModel() {
             val map = try {
                 withContext(Dispatchers.IO) { Tvh.fetchEpgUpcoming(server) }
             } catch (e: Exception) { emptyMap() }
-            if (map.isNotEmpty()) _epgMap.value = map
+            if (map.isNotEmpty()) {
+                _epgMap.value = map
+                // M278: ulozit na disk (live cache), nech now/next prezije restart/obnovu
+                viewModelScope.launch(Dispatchers.IO) {
+                    runCatching {
+                        EpgCache.saveLive(appCtx, sid(), map, System.currentTimeMillis() / 1000, EpgRangePref.daysBack(appCtx))
+                    }
+                }
+            }
         }
     }
 
