@@ -1836,6 +1836,7 @@ class PlayerActivity : ComponentActivity() {
             "--no-stats",
             "--http-user-agent=" + userAgent()
         )
+        startLogDrain()  // odcerpavaj log, nech sa libVLC nezasekne na zaplnenom buffri
         libVlc = LibVLC(this, options)
         mediaPlayer = MediaPlayer(libVlc)
 
@@ -2572,6 +2573,36 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    // --- Odcerpavanie log bufferu ---
+    // libVLC pri TS/HTSP streame zaplavi Android log. Ak ho nikto necita, natívne vlakno
+    // libVLC sa zablokuje na zapise do logu -> prestanu dobiehat stopy (DVB titulky /
+    // audio jazyky), kym sa log nezacne citat (preto sa stopy objavili az po spusteni
+    // `logcat`). Tento daemon priebezne odoberá vlastny log appky, takze sa buffer
+    // nezaplni a libVLC bezi plynulo. LibVLC binding nema ziadne API na stlmenie logov.
+    @Volatile private var logDrainProc: Process? = null
+    private var logDrainThread: Thread? = null
+    private fun startLogDrain() {
+        if (logDrainThread != null) return
+        logDrainThread = Thread {
+            try {
+                val proc = Runtime.getRuntime().exec(arrayOf("logcat", "-v", "brief"))
+                logDrainProc = proc
+                val r = proc.inputStream.bufferedReader()
+                val buf = CharArray(8192)
+                while (!Thread.currentThread().isInterrupted) {
+                    if (r.read(buf) < 0) break  // citaj a zahadzuj
+                }
+            } catch (_: Throwable) {
+            }
+        }.apply { isDaemon = true; name = "vlc-log-drain"; start() }
+    }
+    private fun stopLogDrain() {
+        logDrainThread?.interrupt()
+        logDrainThread = null
+        runCatching { logDrainProc?.destroy() }
+        logDrainProc = null
+    }
+
     override fun onDestroy() {
         saveDvrProgress()
         super.onDestroy()
@@ -2593,6 +2624,7 @@ class PlayerActivity : ComponentActivity() {
         httpFeeder = null
         stopTimeshiftTicker()
         skipFlushJob?.cancel()
+        stopLogDrain()
         if (::libVlc.isInitialized) {
             libVlc.release()
         }
