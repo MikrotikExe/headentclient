@@ -101,6 +101,15 @@ android {
 }
 
 dependencies {
+    // Vynuti modernu verziu androidx.fragment. Stara 1.0.0 sa tahá tranzitivne (cez ine
+    // kniznice) a Play ju hlasi ako zastaralu ("Technicka kvalita"). Appka fragmenty priamo
+    // nepouziva (je cela v Compose), takze toto len povysi verziu a uspokoji hlasenie, bez
+    // dosahu na kod. Constraint nepridava zavislost, len obmedzuje verziu ak je tahaná.
+    constraints {
+        implementation("androidx.fragment:fragment:1.8.6") {
+            because("Stara tranzitivna 1.0.0 je zastarala; vynutit verziu kompatibilnu so SDK 35")
+        }
+    }
     implementation(project(":shared"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
