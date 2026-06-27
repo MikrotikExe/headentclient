@@ -4,6 +4,8 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.compose.foundation.focusGroup
 import androidx.activity.ComponentActivity
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.BackHandler
@@ -107,7 +109,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Kresli pod systemove pruhy (edge-to-edge), aby pozadie appky vyplnilo celu obrazovku
         // vratane oblasti navigacneho pruhu / okolo klavesnice (inak tam vznikal cierny pruh).
-        WindowCompat.setDecorFitsSystemWindows(window, false)
+        // Pruhy su priehladne -> presviti cez ne pozadie okna (surface), takze vyzeraju vo farbe povrchu.
+        // enableEdgeToEdge je moderna nahrada za setDecorFitsSystemWindows + window.statusBarColor
+        // (tie su od Androidu 15 / SDK 35 zastarale a ignorovane).
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(
+                android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT
+            ),
+            navigationBarStyle = SystemBarStyle.auto(
+                android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT
+            )
+        )
         if (intent?.getBooleanExtra("open_epg", false) == true) {
             TabController.openEpgGrid(fromPlayer = true, returnUuid = intent.getStringExtra("epg_return_uuid"))
         }
@@ -124,10 +136,10 @@ class MainActivity : ComponentActivity() {
                 if (!view.isInEditMode) {
                     SideEffect {
                         val window = (view.context as android.app.Activity).window
-                        window.statusBarColor = barColor.toArgb()
-                        window.navigationBarColor = barColor.toArgb()
                         // Pozadie okna na farbu povrchu, aby nepokryta plocha (napr. pri vyskoceni
-                        // klavesnice, ked sa okno zmensi) neukazovala cierny pruh.
+                        // klavesnice, ked sa okno zmensi) neukazovala cierny pruh. Priehladne
+                        // systemove pruhy potom presvitaju touto farbou (nahrada za zastarale
+                        // window.statusBarColor / navigationBarColor, ktore SDK 35 ignoruje).
                         window.setBackgroundDrawable(
                             android.graphics.drawable.ColorDrawable(barColor.toArgb())
                         )
