@@ -834,6 +834,8 @@ class PlayerActivity : ComponentActivity() {
         val url = Tvh.liveUrl(srv, uuid, name, prof)
         currentStreamUrl = url
         cancelReconnect()  // nove pripojenie -> zrus stare pokusy
+        trackReparseDone = false  // novy kanal -> povol jednorazovy re-parse stop
+        trackReparseHandler.removeCallbacksAndMessages(null)
         hasVideoState.value = true  // predpokladaj video; kontrola po Playing to opravi
         val cid = uuid.toLongOrNull()
         // M262: ak HTSP rezim este nebol urceny (prepnutie pred doPlay, napr. odchod
@@ -1864,6 +1866,7 @@ class PlayerActivity : ComponentActivity() {
                     }, 1500)
                     // doplnenie audio jazykov / DVB titulkov, ktore libVLC doparsuje az po starte
                     scheduleTrackRefresh()
+                    maybeReparseForTracks()
                 }
                 MediaPlayer.Event.Buffering -> {
                     if (event.buffering >= 100f) { seekSpinnerJob?.cancel(); seekingState.value = false }
@@ -2591,6 +2594,39 @@ class PlayerActivity : ComponentActivity() {
         trackRefreshHandler.removeCallbacksAndMessages(null)
     }
 
+    // Jednorazove znovu-napojenie streamu kvoli stopam. Ak po starte ziadna audio stopa
+    // nema jazyk, libVLC vytvoril ES skor nez doparsoval PMT s jazykovymi deskriptormi
+    // (caste na multi-audio TS). Tieto ES uz jazyk nedostanu a DVB titulky sa neobjavia —
+    // pomoze len cerstve napojenie streamu (rovnaky efekt ako navrat z pozadia). Spravime
+    // ho RAZ na kanal a LEN ked jazyky naozaj chybaju (inak ziadny zbytocny blik).
+    private var trackReparseDone = false
+    private val trackReparseHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private fun maybeReparseForTracks() {
+        if (trackReparseDone || seekablePlayback) return
+        trackReparseHandler.removeCallbacksAndMessages(null)
+        trackReparseHandler.postDelayed({
+            if (trackReparseDone || seekablePlayback || !::mediaPlayer.isInitialized) return@postDelayed
+            val langs = runCatching { mediaPlayer.trackLanguages() }.getOrDefault(emptyMap())
+            val anyLang = langs.values.any { !it.isNullOrBlank() && !it.equals("und", true) }
+            trackReparseDone = true  // tak ci tak skus len raz
+            if (!anyLang) reopenCurrentLive()
+        }, 2200)
+    }
+
+    /** Ticho znovu napoji aktualny zivy stream (cerstvy parse PMT -> jazyky + DVB titulky). */
+    private fun reopenCurrentLive() {
+        if (seekablePlayback || !::mediaPlayer.isInitialized) return
+        val srv = liveServer ?: return
+        val uuid = liveUuids.getOrNull(liveIndex) ?: return
+        val cid = uuid.toLongOrNull()
+        reconnectingState.value = true  // kratky spinner pocas re-napojenia
+        runCatching {
+            if (htspStream && cid != null && playHtspLive(srv, cid, htspLive)) return
+            val url = currentStreamUrl ?: return
+            playLiveAuto(srv, url)
+        }
+    }
+
     override fun onDestroy() {
         saveDvrProgress()
         super.onDestroy()
@@ -2613,6 +2649,7 @@ class PlayerActivity : ComponentActivity() {
         stopTimeshiftTicker()
         skipFlushJob?.cancel()
         cancelTrackRefresh()
+        trackReparseHandler.removeCallbacksAndMessages(null)
         if (::libVlc.isInitialized) {
             libVlc.release()
         }
