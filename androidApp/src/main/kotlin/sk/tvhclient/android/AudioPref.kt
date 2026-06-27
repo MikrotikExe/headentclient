@@ -32,9 +32,26 @@ object AudioPref {
         "sk" to "Slovenčina",
         "cs" to "Čeština",
         "en" to "English",
-        "pl" to "Polski",
         "de" to "Deutsch",
-        "hu" to "Magyar"
+        "es" to "Español",
+        "fr" to "Français",
+        "it" to "Italiano",
+        "pl" to "Polski",
+        "hu" to "Magyar",
+        "nl" to "Nederlands",
+        "pt" to "Português",
+        "ro" to "Română",
+        "uk" to "Українська",
+        "ru" to "Русский",
+        "tr" to "Türkçe",
+        "vi" to "Tiếng Việt",
+        "id" to "Bahasa Indonesia",
+        "ar" to "العربية",
+        "hi" to "हिन्दी",
+        "bn" to "বাংলা",
+        "zh" to "中文",
+        "ja" to "日本語",
+        "ko" to "한국어"
     )
 
     private fun stripAccents(s: String): String {
@@ -61,6 +78,23 @@ object AudioPref {
         "pl" -> listOf("polish", "polsk", "pol")
         "de" -> listOf("german", "deutsch", "nemeck", "ger", "deu")
         "hu" -> listOf("hungar", "magyar", "madar", "hun")
+        "es" -> listOf("spanish", "espan", "spa")
+        "fr" -> listOf("french", "francais", "franc", "fra", "fre")
+        "it" -> listOf("italian", "italiano", "ita")
+        "nl" -> listOf("dutch", "neder", "holland", "nld", "dut")
+        "pt" -> listOf("portug", "por")
+        "ro" -> listOf("romanian", "roman", "ron", "rum")
+        "uk" -> listOf("ukrain", "ukr")
+        "ru" -> listOf("russian", "russk", "rus")
+        "tr" -> listOf("turkish", "turk", "tur")
+        "vi" -> listOf("vietnam", "vie")
+        "id" -> listOf("indones", "bahasa", "ind")
+        "ar" -> listOf("arabic", "arab", "ara")
+        "hi" -> listOf("hindi", "hin")
+        "bn" -> listOf("bengali", "bangla", "ben")
+        "zh" -> listOf("chinese", "mandarin", "zho", "chi")
+        "ja" -> listOf("japanese", "japan", "jpn")
+        "ko" -> listOf("korean", "korea", "kor")
         else -> emptyList()
     }
 
