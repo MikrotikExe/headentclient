@@ -22,13 +22,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.SettingsRemote
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.automirrored.filled.Dvr
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Radio
@@ -688,22 +695,46 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
         return
     }
 
-    val title = legalDoc?.title ?: when (section) {
-        "general" -> stringResource(R.string.set_cat_general)
-        "playback" -> stringResource(R.string.set_cat_playback)
-        "plock" -> stringResource(R.string.plock_title)
-        "servers" -> stringResource(R.string.set_cat_servers)
-        "remote" -> stringResource(R.string.set_cat_remote)
-        "info" -> stringResource(R.string.set_cat_info)
-        else -> stringResource(R.string.tab_settings)
+    val wide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 600
+    val effective = section ?: "general"
+
+    // spolocny obsah sekcie (pouzity v sidebar aj drill-down rezime)
+    val renderContent: @Composable (String) -> Unit = { sec ->
+        when (sec) {
+            "general" -> GeneralSettings(ctx)
+            "playback" -> PlaybackSettings(ctx)
+            "plock" -> ParentalSettings(ctx)
+            "servers" -> ServersSettings(vm, servers, activeId,
+                onAdd = { editing = null; lastEditedId = null; showForm = true },
+                onEdit = { editing = it; lastEditedId = it.id; showForm = true },
+                restoreEditId = lastEditedId,
+                restoreEditFocus = editRestoreFocus,
+                addFocus = addRestoreFocus)
+            "remote" -> RemoteSettings(ctx, servers, activeId)
+            "info" -> InfoSettings(ctx, servers, activeId) { legalDoc = it }
+            else -> {}
+        }
     }
+
+    val title = if (legalDoc != null) legalDoc!!.title
+        else if (wide) stringResource(R.string.tab_settings)
+        else when (section) {
+            "general" -> stringResource(R.string.set_cat_general)
+            "playback" -> stringResource(R.string.set_cat_playback)
+            "plock" -> stringResource(R.string.plock_title)
+            "servers" -> stringResource(R.string.set_cat_servers)
+            "remote" -> stringResource(R.string.set_cat_remote)
+            "info" -> stringResource(R.string.set_cat_info)
+            else -> stringResource(R.string.tab_settings)
+        }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(title) },
                 navigationIcon = {
-                    if (legalDoc != null || section != null) {
+                    // sipka spat: pri pravnom dokumente vzdy; na uzkej obrazovke aj v sekcii
+                    if (legalDoc != null || (!wide && section != null)) {
                         androidx.compose.material3.IconButton(onClick = {
                             if (legalDoc != null) legalDoc = null
                             else { section = null; TabController.settingsDirty.value = false }
@@ -718,7 +749,48 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
         val legal = legalDoc
         if (legal != null) {
             LegalScreen(legal, Modifier.padding(padding)) { legalDoc = null }
+        } else if (wide) {
+            // TV / sirsia obrazovka: bocny panel s kategoriami (ikony) + obsah vpravo
+            Row(
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                Column(
+                    Modifier
+                        .width(300.dp)
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState())
+                        .focusGroup()
+                        .padding(horizontal = 12.dp, vertical = 12.dp)
+                ) {
+                    SettingsNavItem(Icons.Filled.Tune, stringResource(R.string.set_cat_general), effective == "general", catFocus["general"]) { lastSection = "general"; section = "general" }
+                    SettingsNavItem(Icons.Filled.PlayArrow, stringResource(R.string.set_cat_playback), effective == "playback", catFocus["playback"]) { lastSection = "playback"; section = "playback" }
+                    SettingsNavItem(Icons.Filled.Lock, stringResource(R.string.plock_title), effective == "plock", catFocus["plock"]) { lastSection = "plock"; section = "plock" }
+                    SettingsNavItem(Icons.Filled.Dns, stringResource(R.string.set_cat_servers), effective == "servers", catFocus["servers"]) { lastSection = "servers"; section = "servers" }
+                    SettingsNavItem(Icons.Filled.SettingsRemote, stringResource(R.string.set_cat_remote), effective == "remote", catFocus["remote"]) { lastSection = "remote"; section = "remote" }
+                    SettingsNavItem(Icons.Filled.Info, stringResource(R.string.set_cat_info), effective == "info", catFocus["info"]) { lastSection = "info"; section = "info" }
+                }
+                Box(
+                    Modifier
+                        .width(1.dp)
+                        .fillMaxHeight()
+                        .background(MaterialTheme.colorScheme.outlineVariant)
+                )
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState())
+                        .focusRequester(sectionFocus)
+                        .focusGroup()
+                        .padding(horizontal = 24.dp, vertical = 16.dp)
+                ) {
+                    renderContent(effective)
+                }
+            }
         } else {
+            // Telefon: povodny drill-down (zoznam kategorii -> detail)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -726,35 +798,62 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
                     .padding(16.dp)
                     .verticalScroll(rememberScrollState())
                     .focusRequester(sectionFocus)
-                    .focusGroup(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .focusGroup()
             ) {
-              Column(modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
-                when (section) {
-                    null -> {
-                        SettingsCategory(stringResource(R.string.set_cat_general), catFocus["general"]) { lastSection = "general"; section = "general" }
-                        SettingsCategory(stringResource(R.string.set_cat_playback), catFocus["playback"]) { lastSection = "playback"; section = "playback" }
-                        SettingsCategory(stringResource(R.string.plock_title), catFocus["plock"]) { lastSection = "plock"; section = "plock" }
-                        SettingsCategory(stringResource(R.string.set_cat_servers), catFocus["servers"]) { lastSection = "servers"; section = "servers" }
-                        SettingsCategory(stringResource(R.string.set_cat_remote), catFocus["remote"]) { lastSection = "remote"; section = "remote" }
-                        SettingsCategory(stringResource(R.string.set_cat_info), catFocus["info"]) { lastSection = "info"; section = "info" }
-                    }
-                    "general" -> GeneralSettings(ctx)
-                    "playback" -> PlaybackSettings(ctx)
-                    "plock" -> ParentalSettings(ctx)
-                    "servers" -> ServersSettings(vm, servers, activeId,
-                        onAdd = { editing = null; lastEditedId = null; showForm = true },
-                        onEdit = { editing = it; lastEditedId = it.id; showForm = true },
-                        restoreEditId = lastEditedId,
-                        restoreEditFocus = editRestoreFocus,
-                        addFocus = addRestoreFocus)
-                    "remote" -> RemoteSettings(ctx, servers, activeId)
-                    "info" -> InfoSettings(ctx, servers, activeId) { legalDoc = it }
+                if (section == null) {
+                    SettingsCategory(stringResource(R.string.set_cat_general), catFocus["general"]) { lastSection = "general"; section = "general" }
+                    SettingsCategory(stringResource(R.string.set_cat_playback), catFocus["playback"]) { lastSection = "playback"; section = "playback" }
+                    SettingsCategory(stringResource(R.string.plock_title), catFocus["plock"]) { lastSection = "plock"; section = "plock" }
+                    SettingsCategory(stringResource(R.string.set_cat_servers), catFocus["servers"]) { lastSection = "servers"; section = "servers" }
+                    SettingsCategory(stringResource(R.string.set_cat_remote), catFocus["remote"]) { lastSection = "remote"; section = "remote" }
+                    SettingsCategory(stringResource(R.string.set_cat_info), catFocus["info"]) { lastSection = "info"; section = "info" }
+                } else {
+                    renderContent(section!!)
                 }
-              }
             }
         }
     }
 }
 
 
+
+// Polozka bocneho panela nastaveni (ikona + nazov) pre TV/sirsie obrazovky.
+@Composable
+private fun SettingsNavItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    selected: Boolean,
+    focusRequester: androidx.compose.ui.focus.FocusRequester?,
+    onClick: () -> Unit
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(
+                if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.20f)
+                else androidx.compose.ui.graphics.Color.Transparent
+            )
+            .dpadFocusable()
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+            .clickable { onClick() }
+            .padding(horizontal = 14.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        androidx.compose.material3.Icon(
+            icon,
+            contentDescription = null,
+            tint = if (selected) MaterialTheme.colorScheme.primary
+                   else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(Modifier.width(14.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.titleSmall,
+            color = if (selected) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
+    }
+}
