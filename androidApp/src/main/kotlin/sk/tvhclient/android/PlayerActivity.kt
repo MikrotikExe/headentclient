@@ -2584,15 +2584,29 @@ class PlayerActivity : ComponentActivity() {
     private fun startLogDrain() {
         if (logDrainThread != null) return
         logDrainThread = Thread {
-            try {
-                val proc = Runtime.getRuntime().exec(arrayOf("logcat", "-v", "brief"))
-                logDrainProc = proc
-                val r = proc.inputStream.bufferedReader()
-                val buf = CharArray(8192)
-                while (!Thread.currentThread().isInterrupted) {
-                    if (r.read(buf) < 0) break  // citaj a zahadzuj
+            // Skus najprv root (su -c logcat) — odcerpa cely systemovy buffer rovnako ako
+            // rucne spusteny `logcat` v Termuxe. Bez rootu fallback na vlastne logy appky.
+            val cmds = listOf(
+                arrayOf("su", "-c", "logcat -v brief"),
+                arrayOf("logcat", "-v", "brief")
+            )
+            for (cmd in cmds) {
+                if (Thread.currentThread().isInterrupted) break
+                try {
+                    val proc = Runtime.getRuntime().exec(cmd)
+                    logDrainProc = proc
+                    val r = proc.inputStream.bufferedReader()
+                    val buf = CharArray(8192)
+                    var read = false
+                    while (!Thread.currentThread().isInterrupted) {
+                        val n = r.read(buf)
+                        if (n < 0) break  // proc skoncil (napr. su nedostupne) -> skus fallback
+                        read = true       // citaj a zahadzuj
+                    }
+                    if (read) break        // tento prikaz fungoval, fallback netreba
+                } catch (_: Throwable) {
+                    // prikaz zlyhal (napr. su neexistuje) -> skus dalsi
                 }
-            } catch (_: Throwable) {
             }
         }.apply { isDaemon = true; name = "vlc-log-drain"; start() }
     }
