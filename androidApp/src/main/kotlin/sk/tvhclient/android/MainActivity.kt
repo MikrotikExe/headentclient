@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -725,8 +726,10 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
                     .padding(16.dp)
                     .verticalScroll(rememberScrollState())
                     .focusRequester(sectionFocus)
-                    .focusGroup()
+                    .focusGroup(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+              Column(modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth()) {
                 when (section) {
                     null -> {
                         SettingsCategory(stringResource(R.string.set_cat_general), catFocus["general"]) { lastSection = "general"; section = "general" }
@@ -748,6 +751,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
                     "remote" -> RemoteSettings(ctx, servers, activeId)
                     "info" -> InfoSettings(ctx, servers, activeId) { legalDoc = it }
                 }
+              }
             }
         }
     }
