@@ -11,12 +11,27 @@ object AudioPref {
     private const val PREFS = "app_prefs"
     private const val KEY = "audio_langs"
 
-    /** Default: Slovenčina, Čeština, English. Vracia kody v poradi (moze
+    /** Default: ak nie je nic ulozene, odvod sa od jazyka appky/systemu
+     *  (1. slot = ten jazyk, zvysne prazdne). Vracia kody v poradi (moze
      *  obsahovat prazdne sloty — prehravac ich ignoruje). */
     fun get(context: Context): List<String> {
         val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY, "sk,cs,en") ?: "sk,cs,en"
-        return raw.split(",").map { it.trim() }
+            .getString(KEY, null)
+        if (raw != null) return raw.split(",").map { it.trim() }
+        return defaultFromLocale(context)
+    }
+
+    /** Predvolba podla jazyka: jazyk appky (ak je zvoleny v Nastaveniach),
+     *  inak jazyk systemu, na 1. slot; ostatne sloty prazdne. Ak jazyk
+     *  nepozname v ponuke, nechaj vsetko prazdne (= automaticky). */
+    fun defaultFromLocale(context: Context): List<String> {
+        val appLang = LocaleHelper.getLang(context)
+        val raw = if (appLang.isNotBlank()) appLang
+                  else (java.util.Locale.getDefault().language ?: "")
+        // historicke kody Androidu -> kody pouzite v ponuke audia
+        val code = when (raw) { "in" -> "id"; "iw" -> "he"; "ji" -> "yi"; else -> raw }
+        val supported = code.isNotBlank() && options.any { it.first == code }
+        return if (supported) listOf(code, "", "") else listOf("", "", "")
     }
 
     fun set(context: Context, langs: List<String>) {
