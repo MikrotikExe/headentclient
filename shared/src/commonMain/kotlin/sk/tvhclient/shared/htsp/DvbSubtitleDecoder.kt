@@ -334,6 +334,7 @@ class DvbSubtitleDecoder {
                 }
             }
         }
+        gb.getBits(6)   // FFmpeg parity: dočítaj koncový/zarovnávaci kód reťazca, nech kurzor sedí
         return Pair(pixels, gb.bytesConsumed())
     }
 
@@ -377,6 +378,7 @@ class DvbSubtitleDecoder {
                 }
             }
         }
+        gb.getBits(8)   // FFmpeg parity: dočítaj koncový/zarovnávaci kód 4-bit reťazca
         return Pair(pixels, gb.bytesConsumed())
     }
 
@@ -405,6 +407,7 @@ class DvbSubtitleDecoder {
                 while (run-- > 0 && pixels < dbufLen) { if (v >= 0) dest[d] = v.toByte(); d++; pixels++ }
             }
         }
+        if (i < end) i++   // FFmpeg parity: dočítaj koncový bajt 8-bit reťazca
         return Pair(pixels, i - srcOff)
     }
 
