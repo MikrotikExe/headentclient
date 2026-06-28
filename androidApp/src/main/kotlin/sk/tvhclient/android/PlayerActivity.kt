@@ -176,6 +176,10 @@ class PlayerActivity : ComponentActivity() {
     // YouTube-style dvojklik pretacanie: nazbierane sekundy (+/-), 0 = skryte
     private val seekHintState = androidx.compose.runtime.mutableStateOf(0)
     private var seekHintJob: kotlinx.coroutines.Job? = null
+    // Akumulovany dvojklik (DVR): vychodzi playhead serie klikov + odlozeny commit, aby
+    // viac klikov za sebou pretocilo RAZ (kazdy klik = plny feeder restart, nedaju sa tlct).
+    private var seekAccumBaseMs: Long = -1L
+    private var seekCommitJob: kotlinx.coroutines.Job? = null
     private var reconnectAttempts = 0
     private val maxReconnectAttempts = 8
     private var pipReceiver: android.content.BroadcastReceiver? = null
@@ -578,19 +582,35 @@ class PlayerActivity : ComponentActivity() {
     private fun doubleTapSeek(forward: Boolean) {
         val step = if (forward) 10 else -10
         when {
-            seekablePlayback -> seekRelative(step * 1000L)
+            seekablePlayback -> {
+                // zafixuj vychodzi playhead na zaciatku serie klikov (dalsie kliky len pridavaju)
+                if (seekAccumBaseMs < 0L) seekAccumBaseMs = dvrPlayheadMsState.value
+            }
             htspLive -> {
                 if (maxRewindMs() <= 0L) return   // timeshift sa zapne az pauzou, dovtedy niet co pretacat
-                timeshiftSkip(step)
+                timeshiftSkip(step)               // live timeshift: lacne, pretoc hned
             }
             else -> return   // ziadne pretacanie (zive bez timeshiftu) -> ignoruj
         }
         val cur = seekHintState.value
-        seekHintState.value = if (cur != 0 && (cur > 0) == forward) cur + step else step
+        val acc = if (cur != 0 && (cur > 0) == forward) cur + step else step
+        seekHintState.value = acc
         seekHintJob?.cancel()
         seekHintJob = lifecycleScope.launch {
             kotlinx.coroutines.delay(800)
             seekHintState.value = 0
+        }
+        // DVR: pretoc az ~0,5 s po poslednom kliku na akumulovany sucet (1 restart namiesto N)
+        if (seekablePlayback) {
+            seekCommitJob?.cancel()
+            seekCommitJob = lifecycleScope.launch {
+                kotlinx.coroutines.delay(450)
+                val target = seekAccumBaseMs + acc * 1000L
+                seekAccumBaseMs = -1L
+                seekHintJob?.cancel()
+                seekHintState.value = 0
+                seekDvrAbsolute(target)
+            }
         }
     }
 
