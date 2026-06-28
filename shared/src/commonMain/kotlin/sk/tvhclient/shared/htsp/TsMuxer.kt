@@ -55,6 +55,16 @@ class TsMuxer(streams: List<Stream>) {
     private var pmtVersion = 0
     private var selectedSubEs = -1   // do libVLC tecie len tato titulkova stopa (-1 = ziadna)
 
+    // Potlacenie zbytocneho "clear" setu tesne pred "content": broadcast posiela dvojicu
+    // (prazdny clear + obsah ~120 ms za nim). V hustom dialogu to zdvojnasobuje pocet
+    // titulkovych udalosti a libVLC zacne zahadzovat. Clear podrzime: ak hned pride content,
+    // zahodime ho (content aj tak prekresli celu stranku); ak nie (reálna pauza), posleme ho.
+    private var heldClearPayload: ByteArray? = null
+    private var heldClearTrack: Track? = null
+    private var heldClearPts: Long? = null
+    private var heldClearDts: Long? = null
+    private val subClearHold = 27000L   // ~300 ms okno na pripadny nasledujuci content
+
     // Prepis casovych znaciek na spojitu vystupnu os — aby libVLC nevidel spatny/dopredny
     // skok pri subscriptionSkip (RW/FF). Pri beznom zivom je offset konstantny (= pass-through).
     private var hasOffset = false
@@ -143,16 +153,44 @@ class TsMuxer(streams: List<Stream>) {
         } else if (t.isSubtitle && esIndex != selectedSubEs) {
             return ByteArray(0)   // titulkova stopa uz nie je vybrana -> nemuxuj
         }
-        // DVB titulky: Tvheadend posiela holé segmenty bez PES data-field obalu, treba
-        // ho rekonstruovat (data_identifier 0x20 + subtitle_stream_id 0x00 + ... + 0xff).
-        // AAC: Tvheadend posiela raw access-unit rámce, pred kazdy treba ADTS hlavicku.
-        // Casovanie titulku NEsmie prepisat spolocnu os (remapSub), inak by skakalo video.
-        val es = when {
-            t.isSubtitle -> wrapDvbSub(payload)
-            t.isAac -> adtsWrap(t, payload)
-            else -> payload
+
+        // Titulky: holé segmenty z HTSP treba obalit do PES data-field; casovanie cez
+        // remapSub (nesmie prepisat spolocnu os). Zbytocny clear pred content potlacime.
+        if (t.isSubtitle) {
+            if (isSubtitleClear(payload)) {
+                // podrz clear; ak uz nieco drzime, najprv to posli
+                var pre = ByteArray(0)
+                val hp = heldClearPayload; val ht = heldClearTrack
+                if (hp != null && ht != null) {
+                    val (op, od) = remapSub(heldClearPts, heldClearDts)
+                    pre = emitPes(ht, wrapDvbSub(hp), op, od, false)
+                }
+                heldClearPayload = payload; heldClearTrack = t
+                heldClearPts = pts; heldClearDts = dts
+                return activated + pre
+            } else {
+                heldClearPayload = null; heldClearTrack = null   // content -> clear netreba
+                val (op, od) = remapSub(pts, dts)
+                return activated + emitPes(t, wrapDvbSub(payload), op, od, false)
+            }
         }
-        val (outPts, outDts) = if (t.isSubtitle) remapSub(pts, dts) else remap(pts, dts)
+
+        // Video/audio: ak drzime clear a ubehla pauza (ziadny content neprisiel), posli ho
+        // pri aktualnom case, nech nevisi v minulosti. AAC: pred kazdy ramec ADTS hlavicku.
+        var flushed = ByteArray(0)
+        val hp = heldClearPayload; val ht = heldClearTrack; val hpts = heldClearPts
+        if (hp != null && ht != null && pts != null && hpts != null && pts - hpts >= subClearHold) {
+            val (op, od) = remapSub(pts, dts)
+            flushed = emitPes(ht, wrapDvbSub(hp), op, od, false)
+            heldClearPayload = null; heldClearTrack = null
+        }
+        val es = if (t.isAac) adtsWrap(t, payload) else payload
+        val (op, od) = remap(pts, dts)
+        return flushed + activated + emitPes(t, es, op, od, randomAccess)
+    }
+
+    /** Postavi PES jednej stopy do TS paketov (+ periodicke PAT/PMT). */
+    private fun emitPes(t: Track, es: ByteArray, outPts: Long?, outDts: Long?, rap: Boolean): ByteArray {
         val packets = ArrayList<ByteArray>()
         psiCounter -= 1
         if (psiCounter <= 0) {
@@ -160,8 +198,21 @@ class TsMuxer(streams: List<Stream>) {
         }
         val pes = buildPes(t, es, outPts, outDts)
         val pcr = if (t.pid == pcrPid) (outDts ?: outPts) else null
-        writePackets(t, pes, pcr, randomAccess, packets)
-        return activated + flatten(packets)
+        writePackets(t, pes, pcr, rap, packets)
+        return flatten(packets)
+    }
+
+    /** DVB titulkovy display-set bez regionu (0x11) a objektu (0x13) = prazdny "clear". */
+    private fun isSubtitleClear(p: ByteArray): Boolean {
+        var i = 0
+        while (i + 6 <= p.size) {
+            if ((p[i].toInt() and 0xFF) != 0x0F) break
+            val type = p[i + 1].toInt() and 0xFF
+            if (type == 0x11 || type == 0x13) return false   // ma region/objekt -> obsah
+            val segLen = ((p[i + 4].toInt() and 0xFF) shl 8) or (p[i + 5].toInt() and 0xFF)
+            i += 6 + segLen
+        }
+        return true   // ziadny region/objekt -> prazdny set (clear)
     }
 
     /** Obali holý DVB titulkový payload z HTSP späť do PES data-field formátu. */

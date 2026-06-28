@@ -1842,10 +1842,10 @@ class PlayerActivity : ComponentActivity() {
             "--network-caching=1500",
             "--no-drop-late-frames",
             "--no-skip-frames",
-            // --quiet/--no-stats len tlmia spam libVLC do logu (kozmeticke, nesuvisia
-            // s doplnanim stop — to riesi poll po Event.Playing, vid scheduleTrackRefresh()).
-            "--quiet",
-            "--no-stats",
+            // DOCASNA DIAGNOSTIKA titulkov: zapnuty verbose log libVLC, nech vidno preco
+            // jeho dvbsub/spu dekodér zahadzuje sety (hlada sa "late"/"dvbsub"/"spu").
+            // Po diagnoze vratit spat na "--quiet","--no-stats".
+            "--verbose=2",
             "--http-user-agent=" + userAgent()
         )
         libVlc = LibVLC(this, options)
