@@ -35,6 +35,10 @@ class HtspClient(
     private var seq = 0
     private val writeMutex = Mutex()
     private var streamSubId: Int = -1
+    private var liveMuxer: TsMuxer? = null   // aktivny muxer streamu (pre vyber titulkov)
+
+    /** Nastav titulkovu stopu, ktora ma reálne tiect do libVLC (esIndex; -1 = ziadna). */
+    fun selectSubtitle(esIndex: Int) { liveMuxer?.selectSubtitle(esIndex) }
 
     var serverName: String? = null
         private set
@@ -270,6 +274,7 @@ class HtspClient(
                         if (existing == null) {
                             val mx = TsMuxer(streams)
                             muxer = mx
+                            liveMuxer = mx
                             onSubtitles(mx.subtitleStreams())
                             if (mx.hasTracks()) onTs(mx.start())
                         } else {

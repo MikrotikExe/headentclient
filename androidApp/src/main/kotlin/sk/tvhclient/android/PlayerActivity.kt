@@ -1216,6 +1216,8 @@ class PlayerActivity : ComponentActivity() {
      *  este nie je (jazyk nehovoril), aplikuje sa pri ESAdded. id < 0 = Vypnute. */
     private fun onPickHtspSpu(esIndex: Int) {
         selectedSubEsState.value = esIndex
+        // posielaj do libVLC len tuto jednu titulkovu stopu (viac naraz dekodér mieša)
+        htspFeeder?.selectSubtitle(esIndex)
         if (esIndex < 0) {
             desiredSubName = null
             if (::mediaPlayer.isInitialized) mediaPlayer.spuTrack = -1

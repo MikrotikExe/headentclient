@@ -69,6 +69,11 @@ class HtspTsFeeder(
         return read.fileDescriptor
     }
 
+    /** Vyber titulkovej stopy posielanej do libVLC (esIndex; -1 = ziadna). */
+    fun selectSubtitle(esIndex: Int) {
+        client?.selectSubtitle(esIndex)
+    }
+
     /** Pauza zivého prehravania (server drzi buffer). */
     fun pause() {
         val c = client ?: return

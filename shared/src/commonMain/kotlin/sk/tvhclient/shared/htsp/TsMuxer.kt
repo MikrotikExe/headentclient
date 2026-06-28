@@ -53,6 +53,7 @@ class TsMuxer(streams: List<Stream>) {
     private var pmtCc = 0
     private var psiCounter = 0
     private var pmtVersion = 0
+    private var selectedSubEs = -1   // do libVLC tecie len tato titulkova stopa (-1 = ziadna)
 
     // Prepis casovych znaciek na spojitu vystupnu os — aby libVLC nevidel spatny/dopredny
     // skok pri subscriptionSkip (RW/FF). Pri beznom zivom je offset konstantny (= pass-through).
@@ -101,6 +102,10 @@ class TsMuxer(streams: List<Stream>) {
         return subs
     }
 
+    /** Vyber titulkovej stopy, ktora sa ma reálne posielat do libVLC (esIndex; -1 = ziadne).
+     *  Posiela sa vzdy len jedna — viac DVB titulkov naraz dekodér mieša. */
+    fun selectSubtitle(esIndex: Int) { selectedSubEs = esIndex }
+
     /** stream_type, PES stream_id, isVideo. null = nepodporovany typ (preskoc). */
     private fun mapType(t: String): Triple<Int, Int, Boolean>? = when (t) {
         "MPEG2VIDEO" -> Triple(0x02, 0xE0, true)
@@ -124,8 +129,10 @@ class TsMuxer(streams: List<Stream>) {
         var t = trackByEs[esIndex]
         var activated = ByteArray(0)
         if (t == null) {
-            // aktivuj LEN tuto jednu stopu (po jednej = bez slucky) a posli nove PAT/PMT
             val pend = pendingSubs.firstOrNull { it.esIndex == esIndex } ?: return ByteArray(0)
+            // Titulky: do libVLC pchame LEN vybranu jednu stopu. Viac DVB titulkovych
+            // streamov naraz dekodér mieša a kazdy druhy set zahadzuje. Nevybrane ignoruj.
+            if (esIndex != selectedSubEs) return ByteArray(0)
             pendingSubs.remove(pend)
             tracks.add(pend)
             trackByEs = tracks.associateBy { it.esIndex }
@@ -133,11 +140,8 @@ class TsMuxer(streams: List<Stream>) {
             t = pend
             activated = flatten(listOf(pat(), pmt()))
             psiCounter = siInterval
-        }
-        // DIAGNOSTIKA titulkov (docasne): vypis kazdy titulkovy paket do logu, nech vidno
-        // preco kazdy druhy set vypadava. Zachytit: logcat | grep TVHSUB
-        if (t.isSubtitle) {
-            println("TVHSUB es=$esIndex pts=$pts dts=$dts size=${payload.size} ${subDebug(payload)}")
+        } else if (t.isSubtitle && esIndex != selectedSubEs) {
+            return ByteArray(0)   // titulkova stopa uz nie je vybrana -> nemuxuj
         }
         // DVB titulky: Tvheadend posiela holé segmenty bez PES data-field obalu, treba
         // ho rekonstruovat (data_identifier 0x20 + subtitle_stream_id 0x00 + ... + 0xff).
@@ -158,27 +162,6 @@ class TsMuxer(streams: List<Stream>) {
         val pcr = if (t.pid == pcrPid) (outDts ?: outPts) else null
         writePackets(t, pes, pcr, randomAccess, packets)
         return activated + flatten(packets)
-    }
-
-    /** DIAGNOSTIKA (docasne): zhrnie titulkovy display-set — page_state, page_version a
-     *  typy segmentov — aby sa dalo z logu vidiet, preco kazdy druhy set vypadava. */
-    private fun subDebug(p: ByteArray): String {
-        val segs = ArrayList<String>()
-        var state = -1
-        var ver = -1
-        var i = 0
-        while (i + 6 <= p.size) {
-            if ((p[i].toInt() and 0xFF) != 0x0F) break
-            val type = p[i + 1].toInt() and 0xFF
-            val segLen = ((p[i + 4].toInt() and 0xFF) shl 8) or (p[i + 5].toInt() and 0xFF)
-            segs.add("0x" + type.toString(16))
-            if (type == 0x10 && i + 7 < p.size) {
-                ver = (p[i + 7].toInt() ushr 4) and 0x0F
-                state = (p[i + 7].toInt() ushr 2) and 0x03
-            }
-            i += 6 + segLen
-        }
-        return "state=$state ver=$ver segs=$segs"
     }
 
     /** Obali holý DVB titulkový payload z HTSP späť do PES data-field formátu. */
