@@ -1983,7 +1983,10 @@ class PlayerActivity : ComponentActivity() {
                     mediaPlayer.attachViews(layout, null, false, false)
                     // vlastny titulkovy overlay nad videom (DVB titulky dekódujeme sami,
                     // do libVLC nejdu) — synchronizovany na cas prehravaca
-                    subOverlay?.stopTicker()
+                    subOverlay?.let { old ->
+                        old.stopTicker()
+                        (old.parent as? ViewGroup)?.removeView(old)   // nenechaj zamrznuty stary overlay (dvojity text)
+                    }
                     val ov = SubtitleOverlayView(layout.context)
                     ov.layoutParams = FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -1991,7 +1994,17 @@ class PlayerActivity : ComponentActivity() {
                     )
                     layout.addView(ov)
                     subOverlay = ov
-                    ov.start { if (::mediaPlayer.isInitialized) mediaPlayer.time else 0L }
+                    ov.start(
+                        clockSource = { if (::mediaPlayer.isInitialized) mediaPlayer.time else 0L },
+                        aspectSource = {
+                            val vt = if (::mediaPlayer.isInitialized) runCatching { mediaPlayer.currentVideoTrack }.getOrNull() else null
+                            if (vt != null && vt.width > 0 && vt.height > 0) {
+                                val sn = if (vt.sarNum > 0) vt.sarNum else 1
+                                val sd = if (vt.sarDen > 0) vt.sarDen else 1
+                                (vt.width.toFloat() * sn) / (vt.height.toFloat() * sd)
+                            } else 16f / 9f
+                        }
+                    )
                 },
                 onStart = {
                     val doPlay: () -> Unit = {
