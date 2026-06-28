@@ -32,6 +32,11 @@ class HtspTsFeeder(
     @Volatile var shiftTicks: Long = 0L
         private set
 
+    /** Kompletny zoznam DVB titulkovych stop kanala zo subscriptionStart (esIndex + jazyk).
+     *  Nezavisi od libVLC, takze je rovnaky na kazdom zariadeni. Nastavi sa po subscriptionStart. */
+    @Volatile var subtitleStreams: List<sk.tvhclient.shared.htsp.TsMuxer.SubtitleInfo> = emptyList()
+        private set
+
     /** Spusti feed pre kanal a vrati read FileDescriptor pre libVLC. */
     fun start(channelId: Long, scope: CoroutineScope): FileDescriptor {
         this.scope = scope
@@ -51,7 +56,8 @@ class HtspTsFeeder(
                     channelId = channelId,
                     timeshiftPeriodSec = timeshiftPeriodSec,
                     onTs = { bytes -> os.write(bytes) },
-                    onStatus = { shift, _ -> shiftTicks = shift }
+                    onStatus = { shift, _ -> shiftTicks = shift },
+                    onSubtitles = { subs -> subtitleStreams = subs }
                 )
             } catch (_: Throwable) {
                 // zrusenie / zlomeny pipe / chyba spojenia

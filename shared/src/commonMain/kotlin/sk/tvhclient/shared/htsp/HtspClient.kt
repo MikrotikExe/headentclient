@@ -230,7 +230,8 @@ class HtspClient(
         profile: String? = null,
         onTs: suspend (ByteArray) -> Unit,
         onStatus: (shiftUs: Long, full: Boolean) -> Unit = { _, _ -> },
-        onStop: (String?) -> Unit = {}
+        onStop: (String?) -> Unit = {},
+        onSubtitles: (List<TsMuxer.SubtitleInfo>) -> Unit = {}
     ) {
         seq += 1
         val subId = seq
@@ -269,6 +270,7 @@ class HtspClient(
                         if (existing == null) {
                             val mx = TsMuxer(streams)
                             muxer = mx
+                            onSubtitles(mx.subtitleStreams())
                             if (mx.hasTracks()) onTs(mx.start())
                         } else {
                             // dalsi subscriptionStart (napr. po skoku) — zachovaj spojitu

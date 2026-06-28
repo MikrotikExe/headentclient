@@ -128,7 +128,15 @@ class PlayerActivity : ComponentActivity() {
     private var httpFeeder: HttpTsFeeder? = null
     private var dvrViaFeeder = false
     private var htspLive = false
-    private var htspStream = false
+    private val htspStreamState = androidx.compose.runtime.mutableStateOf(false)
+    private var htspStream: Boolean
+        get() = htspStreamState.value
+        set(v) { htspStreamState.value = v }
+    // HTSP titulky: kompletny zoznam jazykov berieme z metadat (feeder.subtitleStreams),
+    // nie z libVLC (to ma len jazyky, ktore uz "prehovorili"). Vyber mapujeme na realnu
+    // libVLC stopu podla anglickeho nazvu jazyka (libVLC DVB titulky netaguje kodom).
+    private val selectedSubEsState = androidx.compose.runtime.mutableStateOf(-1)  // -1 = Vypnute
+    private var desiredSubName: String? = null   // anglicky nazov zvoleneho jazyka (null = vypnute)
     // M262: ci uz prebehlo urcenie HTSP rezimu pre toto sedenie. doPlay (startovacie
     // prehratie) ho nastavi; ak vsak pouzivatel prepne kanal este pred doPlay (napr.
     // odchod z PIN vyzvy zamknuteho kanala), inicializuje HTSP switchToIndex.
@@ -322,6 +330,9 @@ class PlayerActivity : ComponentActivity() {
             httpFeeder?.stop(); httpFeeder = null
             val feeder = HtspTsFeeder(server, if (timeshift) 3600 else 0)
             htspFeeder = feeder
+            // novy kanal = novy zoznam titulkov, vynuluj zvoleny jazyk
+            selectedSubEsState.value = -1
+            desiredSubName = null
             resetTimeshift()
             val fd = feeder.start(channelId, lifecycleScope)
             val media = Media(libVlc, fd)
@@ -1189,8 +1200,41 @@ class PlayerActivity : ComponentActivity() {
         return if (trackMenuKind == "audio") {
             mediaPlayer.audioTrackItems().map { it.id }
         } else {
-            listOf(-1) + mediaPlayer.spuTrackItems().map { it.id }  // -1 = Vypnute
+            val spu = if (htspStream) htspSpuItemsList() else mediaPlayer.spuTrackItems()
+            listOf(-1) + spu.map { it.id }  // -1 = Vypnute
         }
+    }
+
+    /** HTSP: kompletny zoznam titulkovych jazykov z metadat (rovnaky na kazdom zariadeni,
+     *  nezavisle od toho ci jazyk uz "prehovoril"). id = HTSP stream index. */
+    private fun htspSpuItemsList(): List<TrackItem> {
+        val subs = htspFeeder?.subtitleStreams ?: return emptyList()
+        return subs.map { TrackItem(it.esIndex, langDisplay(it.language) ?: "DVB titulky") }
+    }
+
+    /** HTSP vyber titulku: zapamataj zelany jazyk a skus ho hned nastavit v libVLC; ak stopa
+     *  este nie je (jazyk nehovoril), aplikuje sa pri ESAdded. id < 0 = Vypnute. */
+    private fun onPickHtspSpu(esIndex: Int) {
+        selectedSubEsState.value = esIndex
+        if (esIndex < 0) {
+            desiredSubName = null
+            if (::mediaPlayer.isInitialized) mediaPlayer.spuTrack = -1
+            return
+        }
+        val code = htspFeeder?.subtitleStreams?.firstOrNull { it.esIndex == esIndex }?.language
+        desiredSubName = englishLang(code)
+        applyDesiredSpu()
+    }
+
+    /** Nastavi libVLC titulkovu stopu podla zelaneho (anglickeho) nazvu jazyka, ak uz existuje. */
+    private fun applyDesiredSpu() {
+        if (!::mediaPlayer.isInitialized) return
+        val want = desiredSubName ?: return
+        val tracks = mediaPlayer.spuTracks ?: return
+        val m = tracks.firstOrNull {
+            it.id >= 0 && (it.name?.contains(want, ignoreCase = true) == true)
+        } ?: return
+        if (mediaPlayer.spuTrack != m.id) mediaPlayer.spuTrack = m.id
     }
     private fun openAudioMenu() {
         trackMenuKind = "audio"; trackNavState.value = 0
@@ -1205,7 +1249,11 @@ class PlayerActivity : ComponentActivity() {
         if (!::mediaPlayer.isInitialized) return
         val ids = trackMenuIds()
         val id = ids.getOrNull(trackNavState.value) ?: return
-        if (trackMenuKind == "audio") mediaPlayer.audioTrack = id else mediaPlayer.spuTrack = id
+        when {
+            trackMenuKind == "audio" -> mediaPlayer.audioTrack = id
+            htspStream -> onPickHtspSpu(id)
+            else -> mediaPlayer.spuTrack = id
+        }
         closeTrackMenu()
     }
 
@@ -1842,6 +1890,9 @@ class PlayerActivity : ComponentActivity() {
                     // libVLC priebezne registruje stopy (DVB titulky / audio jazyky sa
                     // objavia az par sekund po starte) -> obnov otvorene track menu
                     trackListVersionState.value = trackListVersionState.value + 1
+                    // ak pouzivatel zvolil titulkovy jazyk, ktory este nebol k dispozicii,
+                    // nastav ho hned ako jeho stopa pribudne (mimo libVLC callbacku)
+                    if (htspStream) lifecycleScope.launch { applyDesiredSpu() }
                 }
                 MediaPlayer.Event.EndReached -> {
                     isPlayingState.value = false
@@ -1924,6 +1975,12 @@ class PlayerActivity : ComponentActivity() {
                 resumeMs = resumeMs,
                 dvrUuid = dvrUuid,
                 serverId = server.id,
+                htspSpuItems = if (htspStreamState.value) {
+                    @Suppress("UNUSED_EXPRESSION") trackListVersionState.value  // refresh ked pribudne stopa
+                    htspSpuItemsList()
+                } else null,
+                htspSpuCurrentId = selectedSubEsState.value,
+                onPickHtspSpu = if (htspStreamState.value) ({ id -> onPickHtspSpu(id) }) else null,
                 onAttach = { layout -> videoLayout = layout; mediaPlayer.attachViews(layout, null, false, false) },
                 onStart = {
                     val doPlay: () -> Unit = {
@@ -2648,22 +2705,25 @@ class PlayerActivity : ComponentActivity() {
 /** Jedna stopa (audio alebo titulky) z libVLC. */
 internal data class TrackItem(val id: Int, val name: String)
 
+/** ISO-639-2 (3-pismenove, B aj T varianty) -> ISO-639-1 pre caste jazyky. */
+private val ISO639_2to1 = mapOf(
+    "slo" to "sk", "slk" to "sk", "cze" to "cs", "ces" to "cs",
+    "eng" to "en", "ger" to "de", "deu" to "de", "hun" to "hu",
+    "pol" to "pl", "rus" to "ru", "fre" to "fr", "fra" to "fr",
+    "spa" to "es", "ita" to "it", "dut" to "nl", "nld" to "nl",
+    "por" to "pt", "rum" to "ro", "ron" to "ro", "ukr" to "uk",
+    "gre" to "el", "ell" to "el", "hrv" to "hr", "srp" to "sr",
+    "tur" to "tr", "ara" to "ar", "jpn" to "ja", "kor" to "ko",
+    "zho" to "zh", "chi" to "zh", "mkd" to "mk", "mac" to "mk",
+    "slv" to "sl", "bul" to "bg", "scc" to "sr", "scr" to "hr"
+)
+
 /** ISO-639 kod jazyka (napr. "slo","eng") -> citatelny nazov v jazyku zariadenia.
  *  Vracia null ak je kod prazdny / neznamy ("und"), aby sa pouzil fallback. */
 private fun langDisplay(code: String?): String? {
     val c = code?.lowercase()?.trim() ?: return null
     if (c.isEmpty() || c == "und" || c == "unknown" || c == "qaa") return null
-    // ISO-639-2 (3-pismenove, B aj T varianty) -> ISO-639-1 pre caste jazyky.
-    val iso2 = mapOf(
-        "slo" to "sk", "slk" to "sk", "cze" to "cs", "ces" to "cs",
-        "eng" to "en", "ger" to "de", "deu" to "de", "hun" to "hu",
-        "pol" to "pl", "rus" to "ru", "fre" to "fr", "fra" to "fr",
-        "spa" to "es", "ita" to "it", "dut" to "nl", "nld" to "nl",
-        "por" to "pt", "rum" to "ro", "ron" to "ro", "ukr" to "uk",
-        "gre" to "el", "ell" to "el", "hrv" to "hr", "srp" to "sr",
-        "tur" to "tr", "ara" to "ar", "jpn" to "ja", "kor" to "ko",
-        "zho" to "zh", "chi" to "zh"
-    )[c] ?: if (c.length == 2) c else null
+    val iso2 = ISO639_2to1[c] ?: if (c.length == 2) c else null
     return try {
         if (iso2 != null) {
             val n = java.util.Locale(iso2).displayLanguage
@@ -2672,6 +2732,20 @@ private fun langDisplay(code: String?): String? {
             else c.uppercase()
         } else c.uppercase()
     } catch (_: Throwable) { c.uppercase() }
+}
+
+/** ISO-639 kod -> ANGLICKY nazov jazyka. libVLC pomenuva DVB titulky anglicky
+ *  ("DVB subtitles - [Czech]") a netaguje ich kodom, takze vyber z metadat parujeme
+ *  na realnu libVLC stopu cez tento anglicky nazov. null ak sa neda urcit. */
+private fun englishLang(code: String?): String? {
+    val c = code?.lowercase()?.trim() ?: return null
+    if (c.isEmpty() || c == "und") return null
+    val iso2 = ISO639_2to1[c] ?: if (c.length == 2) c else return null
+    return try {
+        java.util.Locale(iso2).getDisplayLanguage(java.util.Locale.ENGLISH)
+            .takeIf { it.isNotBlank() && !it.equals(iso2, ignoreCase = true) }
+            ?.replaceFirstChar { it.uppercase() }
+    } catch (_: Throwable) { null }
 }
 
 /** Mapa ES id -> jazyk z metadat aktualneho media (audio aj titulky maju language). */
@@ -2742,6 +2816,9 @@ private fun PlayerUi(
     resumeMs: Long = 0,
     dvrUuid: String? = null,
     serverId: String? = null,
+    htspSpuItems: List<TrackItem>? = null,   // != null => HTSP: kompletny zoznam titulkov z metadat
+    htspSpuCurrentId: Int = -1,
+    onPickHtspSpu: ((Int) -> Unit)? = null,
     onAttach: (VLCVideoLayout) -> Unit,
     onStart: () -> Unit,
     onPrevChannel: (() -> Unit)? = null,
@@ -4395,8 +4472,17 @@ private fun PlayerUi(
             // trackListVersion: cita sa zamerne, nech sa zoznam prerenderuje, ked
             // libVLC prida stopu (DVB titulky / audio jazyky sa objavia az po starte).
             @Suppress("UNUSED_EXPRESSION") trackListVersion
-            val items = if (menu == "audio") player.audioTrackItems() else player.spuTrackItems()
-            val currentId = if (menu == "audio") player.audioTrack else player.spuTrack
+            val htspSpu = menu == "spu" && onPickHtspSpu != null
+            val items = when {
+                menu == "audio" -> player.audioTrackItems()
+                htspSpu -> htspSpuItems ?: emptyList()
+                else -> player.spuTrackItems()
+            }
+            val currentId = when {
+                menu == "audio" -> player.audioTrack
+                htspSpu -> htspSpuCurrentId
+                else -> player.spuTrack
+            }
             TrackMenu(
                 header = if (menu == "audio") stringResource(R.string.track_audio) else stringResource(R.string.track_subtitles),
                 items = items,
@@ -4413,6 +4499,8 @@ private fun PlayerUi(
                                 ChannelPrefs.setLastAudio(ctx, serverId, liveChannelUuid, name)
                             }
                         }
+                    } else if (htspSpu) {
+                        onPickHtspSpu!!(id)
                     } else {
                         player.spuTrack = id
                     }

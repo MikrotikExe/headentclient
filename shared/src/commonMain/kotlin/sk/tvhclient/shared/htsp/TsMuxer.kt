@@ -54,15 +54,6 @@ class TsMuxer(streams: List<Stream>) {
     private var psiCounter = 0
     private var pmtVersion = 0
 
-    // Postupna ("drip") aktivacia cakajucich titulkov: kazdu pridame samostatne (single add je
-    // bezpecne; davka zhadzuje libVLC) s odstupom, aby ich libVLC stihol prijat. Vysledok je
-    // kompletny a rovnaky zoznam titulkov na kazdom zariadeni, nezavisle od toho ci/kedy daný
-    // jazyk realne "prehovori". Casovanie podla pts (90 kHz).
-    private var dripAnchorTick = -1L           // pts pri zaciatku odpoctu
-    private var lastDripTick = 0L
-    private val subDripDelay = 180000L         // 2 s stabilneho nabehu pred prvym dripom
-    private val subDripInterval = 90000L       // ~1 s medzi jednotlivymi aktivaciami
-
     // Prepis casovych znaciek na spojitu vystupnu os — aby libVLC nevidel spatny/dopredny
     // skok pri subscriptionSkip (RW/FF). Pri beznom zivom je offset konstantny (= pass-through).
     private var hasOffset = false
@@ -96,6 +87,20 @@ class TsMuxer(streams: List<Stream>) {
 
     fun hasTracks(): Boolean = tracks.isNotEmpty()
 
+    /** Identifikacia titulkovej stopy zo subscriptionStart (kompletny zoznam, nezavisle
+     *  od toho ci uz "prehovorila" a je v libVLC). esIndex = HTSP stream index. */
+    data class SubtitleInfo(val esIndex: Int, val language: String)
+
+    /** Vsetky DVB titulkove stopy kanala (aktivne aj cakajuce), v poradi stream indexu.
+     *  Pouziva sa na zostavenie kompletneho a na vsetkych zariadeniach rovnakeho menu. */
+    fun subtitleStreams(): List<SubtitleInfo> {
+        val subs = ArrayList<SubtitleInfo>()
+        for (t in tracks) if (t.isSubtitle) subs.add(SubtitleInfo(t.esIndex, t.language))
+        for (t in pendingSubs) subs.add(SubtitleInfo(t.esIndex, t.language))
+        subs.sortBy { it.esIndex }
+        return subs
+    }
+
     /** stream_type, PES stream_id, isVideo. null = nepodporovany typ (preskoc). */
     private fun mapType(t: String): Triple<Int, Int, Boolean>? = when (t) {
         "MPEG2VIDEO" -> Triple(0x02, 0xE0, true)
@@ -117,9 +122,6 @@ class TsMuxer(streams: List<Stream>) {
     /** Jeden muxpkt → TS bajty. Prazdne ak je stopa nepodporovana. */
     fun mux(esIndex: Int, payload: ByteArray, pts: Long?, dts: Long?, randomAccess: Boolean): ByteArray {
         var t = trackByEs[esIndex]
-        // postupna aktivacia cakajucich titulkov (len mimo aktivacneho paketu, aby v jednom
-        // volani nikdy nevznikli dve pridania naraz)
-        val drip = if (t != null) dripActivateIfDue(pts) else ByteArray(0)
         var activated = ByteArray(0)
         if (t == null) {
             // Prvy paket cakajuceho titulku -> aktivuj LEN tuto jednu stopu a posli nove
@@ -152,7 +154,7 @@ class TsMuxer(streams: List<Stream>) {
         val pes = buildPes(t, es, outPts, outDts)
         val pcr = if (t.pid == pcrPid) (outDts ?: outPts) else null
         writePackets(t, pes, pcr, randomAccess, packets)
-        return drip + activated + flatten(packets)
+        return activated + flatten(packets)
     }
 
     /** Obali holý DVB titulkový payload z HTSP späť do PES data-field formátu. */
@@ -163,42 +165,6 @@ class TsMuxer(streams: List<Stream>) {
         payload.copyInto(out, 2)
         out[out.size - 1] = 0xFF.toByte()   // end_of_PES_data_field_marker
         return out
-    }
-
-    /** Minimalna platna DVB titulkova sekvencia, ktora nic nevykresli: page composition
-     *  segment s prazdnym zoznamom regionov (clear) + end of display set. Sluzi na
-     *  "rozhovorenie" prave aktivovanej stopy, aby nebola mlciaca a libVLC ju prijal. */
-    private fun clearSubSegments(t: Track): ByteArray {
-        val pageId = if ((t.compositionId and 0xFFFF) != 0) (t.compositionId and 0xFFFF) else 1
-        val hi = (pageId shr 8) and 0xFF
-        val lo = pageId and 0xFF
-        val seg = intArrayOf(
-            0x0F, 0x10, hi, lo, 0x00, 0x02, 0x00, 0x0B,   // PCS: prazdna stranka (mode change, 0 regionov)
-            0x0F, 0x80, hi, lo, 0x00, 0x00                // end of display set
-        )
-        return ByteArray(seg.size) { seg[it].toByte() }
-    }
-
-    /** Ak je cas, aktivuj JEDNU cakajucu titulkovu stopu (single add + syntheticky clear
-     *  paket, aby nebola mlciaca) a vrat prislusne TS bajty. Spaceovane podla pts, takze
-     *  sa pridavaju po jednej s odstupom — nikdy nie davka (tá zhadzuje libVLC). */
-    private fun dripActivateIfDue(pts: Long?): ByteArray {
-        if (pendingSubs.isEmpty() || pts == null) return ByteArray(0)
-        if (dripAnchorTick < 0L) { dripAnchorTick = pts; lastDripTick = pts; return ByteArray(0) }
-        if (pts - dripAnchorTick < subDripDelay) return ByteArray(0)
-        if (pts - lastDripTick < subDripInterval) return ByteArray(0)
-        lastDripTick = pts
-        val sub = pendingSubs.removeAt(0)
-        tracks.add(sub)
-        trackByEs = tracks.associateBy { it.esIndex }
-        pmtVersion = (pmtVersion + 1) and 0x1F
-        val out = ArrayList<ByteArray>()
-        out.add(pat()); out.add(pmt())
-        val (sPts, sDts) = remapSub(pts, null)
-        val pes = buildPes(sub, wrapDvbSub(clearSubSegments(sub)), sPts, sDts)
-        writePackets(sub, pes, null, false, out)
-        psiCounter = siInterval
-        return flatten(out)
     }
 
     /** Pred raw AAC rámec (TVH ho posiela bez ADTS) doplni 7-bajtovu ADTS hlavicku.
