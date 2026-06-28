@@ -61,7 +61,6 @@ class TsMuxer(streams: List<Stream>) {
     private var lastOut = 0L
     private val discontTicks = 90000L * 4   // 4 s = diskontinuita -> re-base
     private val frameGapTicks = 3000L        // ~33 ms medzera po skoku
-    private val subLeadTicks = 81000L        // ~900 ms predstih titulkov (anti-drop v rychlom slede)
 
     init {
         var nextPid = 0x1001
@@ -125,10 +124,12 @@ class TsMuxer(streams: List<Stream>) {
         var t = trackByEs[esIndex]
         var activated = ByteArray(0)
         if (t == null) {
-            // Prvy paket cakajuceho titulku -> aktivuj LEN tuto jednu stopu a posli nove
-            // PAT/PMT. Overene: pridat za behu viac titulkovych stop naraz (aj s datami)
-            // zhadzuje libVLC do reconnect slucky; bezpecne je len pridanie po jednej.
             val pend = pendingSubs.firstOrNull { it.esIndex == esIndex } ?: return ByteArray(0)
+            // Aktivuj az na zaciatku epochy (page_state = acquisition/mode change), nie na
+            // inkrementalnom sete. Inak dvbsub dekodér naskoci uprostred bez zakladnych
+            // definicii (regiony/farby) a inkrementalne sety v rychlom slede zahadzuje, kym
+            // nepride plny set (typicky po pauze). Pridavanie ostava po jednej (bez slucky).
+            if (!isSubtitleEpochStart(payload)) return ByteArray(0)
             pendingSubs.remove(pend)
             tracks.add(pend)
             trackByEs = tracks.associateBy { it.esIndex }
@@ -156,6 +157,26 @@ class TsMuxer(streams: List<Stream>) {
         val pcr = if (t.pid == pcrPid) (outDts ?: outPts) else null
         writePackets(t, pes, pcr, randomAccess, packets)
         return activated + flatten(packets)
+    }
+
+    /** Je tento HTSP titulkovy payload (holé segmenty) zaciatkom epochy? Najde page
+     *  composition segment (0x10) a precita page_state: 00 = inkrementalny (cakaj),
+     *  01 = acquisition point, 10 = mode change (oba = plne definicie, dobry start).
+     *  Pri neistote/neparsovatelnej strukture vracia true (fail-open, radsej aktivuj). */
+    private fun isSubtitleEpochStart(p: ByteArray): Boolean {
+        var i = 0
+        while (i + 6 <= p.size) {
+            if ((p[i].toInt() and 0xFF) != 0x0F) return true       // neznama struktura
+            val type = p[i + 1].toInt() and 0xFF
+            val segLen = ((p[i + 4].toInt() and 0xFF) shl 8) or (p[i + 5].toInt() and 0xFF)
+            if (type == 0x10) {                                     // page composition segment
+                if (i + 7 >= p.size) return true                    // neuplny
+                val pageState = (p[i + 7].toInt() ushr 2) and 0x03  // data[1] = i+7
+                return pageState != 0x00                             // 00 = inkrementalny -> cakaj
+            }
+            i += 6 + segLen
+        }
+        return true
     }
 
     /** Obali holý DVB titulkový payload z HTSP späť do PES data-field formátu. */
@@ -190,11 +211,8 @@ class TsMuxer(streams: List<Stream>) {
     /** Premap titulkoveho casu pomocou existujuceho offsetu, bez re-base a bez vplyvu na os. */
     private fun remapSub(pts: Long?, dts: Long?): Pair<Long?, Long?> {
         if (!hasOffset) return Pair(pts, dts)
-        // maly predstih (~400 ms): tesne za sebou iduce display-sety dekodér casto zahodi,
-        // ak ich nestihne zobrazit pred prichodom dalsieho; predstih mu da margin. Drzime sa
-        // hlboko vnutri file-caching bufra (1500 ms), aby titulok neskoncil "v minulosti".
-        val outPts = pts?.let { (it - tsOffset - subLeadTicks).coerceAtLeast(0L) }
-        val outDts = dts?.let { (it - tsOffset - subLeadTicks).coerceAtLeast(0L) }
+        val outPts = pts?.let { (it - tsOffset).coerceAtLeast(0L) }
+        val outDts = dts?.let { (it - tsOffset).coerceAtLeast(0L) }
         return Pair(outPts, outDts)
     }
 

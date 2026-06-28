@@ -338,7 +338,7 @@ class PlayerActivity : ComponentActivity() {
             val media = Media(libVlc, fd)
             media.setHWDecoderEnabled(true, false)
             media.addOption(":demux=ts")
-            media.addOption(":file-caching=2500")  // vacsi buffer -> bezpecny vacsi predstih titulkov
+            media.addOption(":file-caching=1500")
             mediaPlayer.media = media
             media.release()
             mediaPlayer.play()
