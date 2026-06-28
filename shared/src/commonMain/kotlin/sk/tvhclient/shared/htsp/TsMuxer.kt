@@ -124,12 +124,8 @@ class TsMuxer(streams: List<Stream>) {
         var t = trackByEs[esIndex]
         var activated = ByteArray(0)
         if (t == null) {
+            // aktivuj LEN tuto jednu stopu (po jednej = bez slucky) a posli nove PAT/PMT
             val pend = pendingSubs.firstOrNull { it.esIndex == esIndex } ?: return ByteArray(0)
-            // Aktivuj az na zaciatku epochy (page_state = acquisition/mode change), nie na
-            // inkrementalnom sete. Inak dvbsub dekodér naskoci uprostred bez zakladnych
-            // definicii (regiony/farby) a inkrementalne sety v rychlom slede zahadzuje, kym
-            // nepride plny set (typicky po pauze). Pridavanie ostava po jednej (bez slucky).
-            if (!isSubtitleEpochStart(payload)) return ByteArray(0)
             pendingSubs.remove(pend)
             tracks.add(pend)
             trackByEs = tracks.associateBy { it.esIndex }
@@ -137,6 +133,11 @@ class TsMuxer(streams: List<Stream>) {
             t = pend
             activated = flatten(listOf(pat(), pmt()))
             psiCounter = siInterval
+        }
+        // DIAGNOSTIKA titulkov (docasne): vypis kazdy titulkovy paket do logu, nech vidno
+        // preco kazdy druhy set vypadava. Zachytit: logcat | grep TVHSUB
+        if (t.isSubtitle) {
+            println("TVHSUB es=$esIndex pts=$pts dts=$dts size=${payload.size} ${subDebug(payload)}")
         }
         // DVB titulky: Tvheadend posiela holé segmenty bez PES data-field obalu, treba
         // ho rekonstruovat (data_identifier 0x20 + subtitle_stream_id 0x00 + ... + 0xff).
@@ -159,24 +160,25 @@ class TsMuxer(streams: List<Stream>) {
         return activated + flatten(packets)
     }
 
-    /** Je tento HTSP titulkovy payload (holé segmenty) zaciatkom epochy? Najde page
-     *  composition segment (0x10) a precita page_state: 00 = inkrementalny (cakaj),
-     *  01 = acquisition point, 10 = mode change (oba = plne definicie, dobry start).
-     *  Pri neistote/neparsovatelnej strukture vracia true (fail-open, radsej aktivuj). */
-    private fun isSubtitleEpochStart(p: ByteArray): Boolean {
+    /** DIAGNOSTIKA (docasne): zhrnie titulkovy display-set — page_state, page_version a
+     *  typy segmentov — aby sa dalo z logu vidiet, preco kazdy druhy set vypadava. */
+    private fun subDebug(p: ByteArray): String {
+        val segs = ArrayList<String>()
+        var state = -1
+        var ver = -1
         var i = 0
         while (i + 6 <= p.size) {
-            if ((p[i].toInt() and 0xFF) != 0x0F) return true       // neznama struktura
+            if ((p[i].toInt() and 0xFF) != 0x0F) break
             val type = p[i + 1].toInt() and 0xFF
             val segLen = ((p[i + 4].toInt() and 0xFF) shl 8) or (p[i + 5].toInt() and 0xFF)
-            if (type == 0x10) {                                     // page composition segment
-                if (i + 7 >= p.size) return true                    // neuplny
-                val pageState = (p[i + 7].toInt() ushr 2) and 0x03  // data[1] = i+7
-                return pageState != 0x00                             // 00 = inkrementalny -> cakaj
+            segs.add("0x" + type.toString(16))
+            if (type == 0x10 && i + 7 < p.size) {
+                ver = (p[i + 7].toInt() ushr 4) and 0x0F
+                state = (p[i + 7].toInt() ushr 2) and 0x03
             }
             i += 6 + segLen
         }
-        return true
+        return "state=$state ver=$ver segs=$segs"
     }
 
     /** Obali holý DVB titulkový payload z HTSP späť do PES data-field formátu. */
