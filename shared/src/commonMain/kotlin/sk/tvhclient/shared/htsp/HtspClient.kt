@@ -35,10 +35,16 @@ class HtspClient(
     private var seq = 0
     private val writeMutex = Mutex()
     private var streamSubId: Int = -1
-    private var liveMuxer: TsMuxer? = null   // aktivny muxer streamu (pre vyber titulkov)
+    private var liveMuxer: TsMuxer? = null   // aktivny muxer streamu (pre pôvod časovej osi)
+    private val subDecoder = DvbSubtitleDecoder()
+    private var subDecodeEs = -1             // ktory ES sa dekóduje na titulky (-1 = ziadny)
 
-    /** Nastav titulkovu stopu, ktora ma reálne tiect do libVLC (esIndex; -1 = ziadna). */
-    fun selectSubtitle(esIndex: Int) { liveMuxer?.selectSubtitle(esIndex) }
+    /** Nastav titulkovu stopu, ktora sa ma dekódovať a vykresľovať (esIndex; -1 = ziadna).
+     *  Titulky sa do libVLC NEposielaju — dekódujeme a renderujeme ich sami. */
+    fun selectSubtitle(esIndex: Int) {
+        subDecodeEs = esIndex
+        subDecoder.reset()
+    }
 
     var serverName: String? = null
         private set
@@ -235,7 +241,8 @@ class HtspClient(
         onTs: suspend (ByteArray) -> Unit,
         onStatus: (shiftUs: Long, full: Boolean) -> Unit = { _, _ -> },
         onStop: (String?) -> Unit = {},
-        onSubtitles: (List<TsMuxer.SubtitleInfo>) -> Unit = {}
+        onSubtitles: (List<TsMuxer.SubtitleInfo>) -> Unit = {},
+        onSubtitlePage: (DvbSubtitleDecoder.DecodedPage, Long) -> Unit = { _, _ -> }
     ) {
         seq += 1
         val subId = seq
@@ -289,6 +296,16 @@ class HtspClient(
                         val streamIdx = (m["stream"] as? Long)?.toInt() ?: continue
                         val pts = m["pts"] as? Long
                         val dts = m["dts"] as? Long
+                        if (streamIdx == subDecodeEs) {
+                            // vybrana titulkova stopa: dekóduj a renderuj sami (do libVLC nejde)
+                            val page = if (pts != null) subDecoder.decode(pts, es) else null
+                            if (page != null) {
+                                val origin = mx.timelineOriginPts()
+                                val targetMs = if (origin != null) (page.pts - origin) / 90L else page.pts / 90L
+                                onSubtitlePage(page, targetMs)
+                            }
+                            continue
+                        }
                         val rap = ((m["frametype"] as? Long)?.toInt() ?: 0) == 'I'.code
                         val ts = mx.mux(streamIdx, es, pts, dts, rap)
                         if (ts.isNotEmpty()) onTs(ts)

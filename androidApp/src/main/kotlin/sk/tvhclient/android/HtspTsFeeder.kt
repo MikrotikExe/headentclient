@@ -37,6 +37,9 @@ class HtspTsFeeder(
     @Volatile var subtitleStreams: List<sk.tvhclient.shared.htsp.TsMuxer.SubtitleInfo> = emptyList()
         private set
 
+    /** Callback pre hotovú titulkovú stránku (vlastný renderer). page + cieľový čas v ms. */
+    @Volatile var onSubtitlePage: ((sk.tvhclient.shared.htsp.DvbSubtitleDecoder.DecodedPage, Long) -> Unit)? = null
+
     /** Spusti feed pre kanal a vrati read FileDescriptor pre libVLC. */
     fun start(channelId: Long, scope: CoroutineScope): FileDescriptor {
         this.scope = scope
@@ -57,7 +60,8 @@ class HtspTsFeeder(
                     timeshiftPeriodSec = timeshiftPeriodSec,
                     onTs = { bytes -> os.write(bytes) },
                     onStatus = { shift, _ -> shiftTicks = shift },
-                    onSubtitles = { subs -> subtitleStreams = subs }
+                    onSubtitles = { subs -> subtitleStreams = subs },
+                    onSubtitlePage = { page, targetMs -> onSubtitlePage?.invoke(page, targetMs) }
                 )
             } catch (_: Throwable) {
                 // zrusenie / zlomeny pipe / chyba spojenia

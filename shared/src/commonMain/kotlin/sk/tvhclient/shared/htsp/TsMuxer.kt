@@ -98,6 +98,9 @@ class TsMuxer(streams: List<Stream>) {
 
     fun hasTracks(): Boolean = tracks.isNotEmpty()
 
+    /** Pôvod časovej osi (prvé pts), na ktorý sa zarovnáva mediaPlayer.time. null = ešte neznámy. */
+    fun timelineOriginPts(): Long? = if (hasOffset) tsOffset else null
+
     /** Identifikacia titulkovej stopy zo subscriptionStart (kompletny zoznam, nezavisle
      *  od toho ci uz "prehovorila" a je v libVLC). esIndex = HTSP stream index. */
     data class SubtitleInfo(val esIndex: Int, val language: String)

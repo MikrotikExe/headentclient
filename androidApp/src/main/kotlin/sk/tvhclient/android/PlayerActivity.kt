@@ -160,6 +160,7 @@ class PlayerActivity : ComponentActivity() {
     private var playKind: String = "tv"
     // pre opatovne pripojenie videa po navrate z pozadia
     private var videoLayout: VLCVideoLayout? = null
+    private var subOverlay: SubtitleOverlayView? = null
     private var wasPlaying: Boolean = false
     // Picture-in-Picture (obraz v obraze)
     private val inPipState = androidx.compose.runtime.mutableStateOf(false)
@@ -330,6 +331,9 @@ class PlayerActivity : ComponentActivity() {
             httpFeeder?.stop(); httpFeeder = null
             val feeder = HtspTsFeeder(server, if (timeshift) 3600 else 0)
             htspFeeder = feeder
+            // vlastne titulky: dekódovanu stranku posli do overlay-u (synchronizuje sa na cas)
+            feeder.onSubtitlePage = { page, ms -> subOverlay?.onPage(page, ms) }
+            subOverlay?.reset()
             // novy kanal = novy zoznam titulkov, vynuluj zvoleny jazyk
             selectedSubEsState.value = -1
             desiredSubName = null
@@ -1216,16 +1220,9 @@ class PlayerActivity : ComponentActivity() {
      *  este nie je (jazyk nehovoril), aplikuje sa pri ESAdded. id < 0 = Vypnute. */
     private fun onPickHtspSpu(esIndex: Int) {
         selectedSubEsState.value = esIndex
-        // posielaj do libVLC len tuto jednu titulkovu stopu (viac naraz dekodér mieša)
+        // DVB titulky dekódujeme a renderujeme sami; do libVLC nejdu. Vyber = ktory ES dekódovat.
+        subOverlay?.reset()
         htspFeeder?.selectSubtitle(esIndex)
-        if (esIndex < 0) {
-            desiredSubName = null
-            if (::mediaPlayer.isInitialized) mediaPlayer.spuTrack = -1
-            return
-        }
-        val code = htspFeeder?.subtitleStreams?.firstOrNull { it.esIndex == esIndex }?.language
-        desiredSubName = englishLang(code)
-        applyDesiredSpu()
     }
 
     /** Nastavi libVLC titulkovu stopu podla zelaneho (anglickeho) nazvu jazyka, ak uz existuje. */
@@ -1842,10 +1839,8 @@ class PlayerActivity : ComponentActivity() {
             "--network-caching=1500",
             "--no-drop-late-frames",
             "--no-skip-frames",
-            // DOCASNA DIAGNOSTIKA titulkov: zapnuty verbose log libVLC, nech vidno preco
-            // jeho dvbsub/spu dekodér zahadzuje sety (hlada sa "late"/"dvbsub"/"spu").
-            // Po diagnoze vratit spat na "--quiet","--no-stats".
-            "--verbose=2",
+            "--quiet",
+            "--no-stats",
             "--http-user-agent=" + userAgent()
         )
         libVlc = LibVLC(this, options)
@@ -1983,7 +1978,21 @@ class PlayerActivity : ComponentActivity() {
                 } else null,
                 htspSpuCurrentId = selectedSubEsState.value,
                 onPickHtspSpu = if (htspStreamState.value) ({ id -> onPickHtspSpu(id) }) else null,
-                onAttach = { layout -> videoLayout = layout; mediaPlayer.attachViews(layout, null, false, false) },
+                onAttach = { layout ->
+                    videoLayout = layout
+                    mediaPlayer.attachViews(layout, null, false, false)
+                    // vlastny titulkovy overlay nad videom (DVB titulky dekódujeme sami,
+                    // do libVLC nejdu) — synchronizovany na cas prehravaca
+                    subOverlay?.stopTicker()
+                    val ov = SubtitleOverlayView(layout.context)
+                    ov.layoutParams = FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                    layout.addView(ov)
+                    subOverlay = ov
+                    ov.start { if (::mediaPlayer.isInitialized) mediaPlayer.time else 0L }
+                },
                 onStart = {
                     val doPlay: () -> Unit = {
                         val cid = channelUuid?.toLongOrNull()
