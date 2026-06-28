@@ -505,9 +505,49 @@ class PlayerActivity : ComponentActivity() {
         // Pri prebiehajucej nahravke nechaj rezervu ~45 s od zivej hrany (zapisane data
         // zaostavaju za EPG casom; mensia rezerva = EOF a zamrznutie TS).
         val maxMs = if (dvrRecording) (dur - 45_000L).coerceAtLeast(0L) else dur
-        val curMs = (mediaPlayer.position.coerceIn(0f, 1f) * dur).toLong()
-        val targetMs = (curMs + deltaMs).coerceIn(0, maxMs)
-        mediaPlayer.position = (targetMs.toFloat() / dur).coerceIn(0f, 1f)
+        // Aktualna pozicia = nas playhead (spolahlivy pre obe cesty; player.position je
+        // pre rastuci TS aj pre pipe nestabilna).
+        val curMs = dvrPlayheadMsState.value.coerceIn(0L, dur)
+        val targetMs = (curMs + deltaMs).coerceIn(0L, maxMs)
+        if (kotlin.math.abs(targetMs - curMs) < 1000L) return
+        seekDvrTo(targetMs, curMs, dur)
+    }
+
+    /** Pretoc DVR nahravku na cielovy program-relativny cas PREBUDOVANIM streamu.
+     *  Priame URL -> nova Media s :start-time (libVLC seekuje cez HTTP Range).
+     *  Feeder/pipe -> restart HTTP feedu na odhadnutom byte-offsete (pipe sa neseekuje).
+     *  V oboch pripadoch naseeduje playhead hodiny na cielovy cas. */
+    private fun seekDvrTo(targetMs: Long, fromMs: Long, dur: Long) {
+        val url = currentStreamUrl ?: return
+        if (!::mediaPlayer.isInitialized) return
+        val offsetMs = if (dvrProgStartSec > 0 && dvrRealStartSec in 1 until dvrProgStartSec)
+            (dvrProgStartSec - dvrRealStartSec) * 1000 else 0L
+        val fileMs = (offsetMs + targetMs).coerceAtLeast(0L)   // cas v subore (0 = realny zaciatok nahravky)
+        reconnectHandler.removeCallbacksAndMessages(null)
+        dvrReopenAttempts = 0
+        reconnectingState.value = true
+        runCatching {
+            if (dvrViaFeeder) {
+                val srv = liveServer ?: return
+                // odhad priemerneho bitrate z doteraz pretecenych dat (bytesWritten = absolutna
+                // pozicia v subore: startByte + pretecene). byte/ms = bytes / (cas v subore).
+                val bytes = httpFeeder?.bytesWritten ?: 0L
+                val fromFileMs = (offsetMs + fromMs).coerceAtLeast(1L)
+                val bytesPerMs = if (bytes > 0) bytes.toDouble() / fromFileMs else 0.0
+                val targetByte = if (bytesPerMs > 0) (bytesPerMs * fileMs).toLong().coerceAtLeast(0L) else 0L
+                playDvrViaFeeder(srv, url, targetByte)
+            } else {
+                val m = buildMedia(url)
+                m.addOption(":start-time=${fileMs / 1000}")
+                mediaPlayer.media = m
+                m.release()
+                mediaPlayer.play()
+            }
+        }
+        // playhead hned na cielovu poziciu + seed pre hodiny (po restarte je player.position
+        // neplatna, hodiny ju nesmu citat - prevezmu seed a tikaju dalej z neho)
+        dvrPlayheadMsState.value = targetMs
+        dvrSeekSeedState.value = targetMs
     }
 
     /** Dvojklik na lavu/pravu stranu (YouTube-style): skok o 10 s.
@@ -1725,6 +1765,10 @@ class PlayerActivity : ComponentActivity() {
     // Playhead v case relacie (ms) zrkadleny z wall-clock prehravacich hodin v PlayerUi -
     // spolahlivy zdroj pre znovu-otvorenie streamu (player.time je pre rastuci TS nestabilny).
     private val dvrPlayheadMsState = mutableStateOf(0L)
+    // Po pretoceni DVR: cielovy (program-relativny) cas, ktory maju playhead hodiny prevziat.
+    // -1 = ziadny cakajuci seek. Pri feeder/pipe je player.position po restarte neplatna,
+    // takze hodiny sa nemozu resync-nut z pozicie - seed im da spravny vychodzi bod.
+    private val dvrSeekSeedState = mutableStateOf(-1L)
     private var dvrReopenAttempts = 0
 
     private fun saveDvrProgress() {
@@ -2160,6 +2204,8 @@ class PlayerActivity : ComponentActivity() {
                 recordingOffsetMs = if (dvrProgStartSec > 0 && dvrRealStartSec in 1 until dvrProgStartSec)
                     (dvrProgStartSec - dvrRealStartSec) * 1000 else 0L,
                 onPlayheadMs = { dvrPlayheadMsState.value = it },
+                seekSeedMs = dvrSeekSeedState.value,
+                onSeekSeedHandled = { dvrSeekSeedState.value = -1L },
                 resumeSel = resumeSelState.value,
                 resumeAnswer = resumeAnswerState.value,
                 onAskResumeChange = {
@@ -2915,6 +2961,8 @@ private fun PlayerUi(
     recordingStopSec: Long = 0,
     recordingOffsetMs: Long = 0,
     onPlayheadMs: (Long) -> Unit = {},
+    seekSeedMs: Long = -1L,
+    onSeekSeedHandled: () -> Unit = {},
     resumeSel: Int = 1,
     resumeAnswer: Int = 0,
     onAskResumeChange: (Boolean) -> Unit = {},
@@ -3070,6 +3118,17 @@ private fun PlayerUi(
                 val curOff = offsetMsLive.value
                 // dosiahnutelny rozsah (bez rezervy) - playhead ani znovu-otvorenie nejde do nej
                 val curBar = if (recordingLive) (curLen - liveMarginMs).coerceAtLeast(1L) else curLen
+                // Po pretoceni (seekDvrTo): prevezmi cielovy cas ako playhead. Pri feeder/pipe
+                // je player.position po restarte neplatna, tak ju nasledny resync nesmie citat -
+                // seed da hodinam spravny bod a tikaju dalej z neho (initialSeekDone=true zaroven
+                // umlci jednorazovy skok na zaciatok relacie).
+                if (seekSeedMs >= 0L) {
+                    posTimeMs = seekSeedMs.coerceIn(0L, curBar)
+                    val denom = (curOff + curLen).coerceAtLeast(1L)
+                    posFraction = ((curOff + posTimeMs).toFloat() / denom).coerceIn(0f, 1f)
+                    initialSeekDone = true
+                    onSeekSeedHandled()
+                }
                 // obnovenie po potvrdeni (ma prednost pred skokom na zaciatok relacie)
                 if (pendingResumeMs > 0 && curLen > 0 && player.isSeekable) {
                     val f = (pendingResumeMs.toFloat() / curLen).coerceIn(0f, 1f)
@@ -3100,7 +3159,7 @@ private fun PlayerUi(
                         // plynulo (<<5%), takze sa to nespusti a hodiny tikaju z wall-clocku.
                         // p > 0.02: ignoruj falosne nulove citanie pozicie (caste na rastucom TS
                         // aj tesne po znovu-otvoreni), nech hodiny neskocia na 0.
-                        if (initialSeekDone && curLen > 0 && p > 0.02f &&
+                        if (initialSeekDone && curLen > 0 && p > 0.02f && player.isSeekable &&
                             kotlin.math.abs(p - posFraction) > 0.05f) {
                             posTimeMs = (p * (curOff + curLen) - curOff).toLong()
                                 .coerceIn(0L, curBar)
