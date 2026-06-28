@@ -2484,13 +2484,14 @@ class PlayerActivity : ComponentActivity() {
                     mediaPlayer.play()
                 }
             }
-            // watchdog: ak sa do 8 s neobjavi prehravanie (spinner ostal), skus znova;
-            // po vycerpani pokusov scheduleReconnect ohlasi chybu -> ziadne trvale zaseknutie
+            // watchdog: ak sa do 12 s neobjavi prehravanie (spinner ostal), skus znova;
+            // po vycerpani pokusov scheduleReconnect ohlasi chybu -> ziadne trvale zaseknutie.
+            // 12 s nechava HTSP subscription cas nabehnut a nabufrovat (kratsie sa dvojilo)
             reconnectHandler.postDelayed({
                 if (::mediaPlayer.isInitialized && reconnectingState.value && !mediaPlayer.isPlaying) {
                     scheduleReconnect()
                 }
-            }, 8000)
+            }, 12000)
         }, delay)
     }
 
@@ -3365,12 +3366,17 @@ private fun PlayerUi(
         // indikator opätovného pripájania (vypadok siete pri zivom vysielani)
         if (reconnecting) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    androidx.compose.material3.CircularProgressIndicator(color = playerFg())
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .background(Color(0xCC000000), RoundedCornerShape(14.dp))
+                        .padding(horizontal = 28.dp, vertical = 22.dp)
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator(color = Color.White)
                     Spacer(Modifier.height(12.dp))
                     Text(
                         stringResource(R.string.reconnecting),
-                        color = playerFg(),
+                        color = Color.White,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
