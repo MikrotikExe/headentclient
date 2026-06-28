@@ -309,7 +309,9 @@ class TsMuxer(streams: List<Stream>) {
 
     private fun buildPes(t: Track, es: ByteArray, pts: Long?, dts: Long?): ByteArray {
         val hasPts = pts != null
-        val hasDts = dts != null && dts != pts
+        // DVB titulky musia mat len PTS (DTS je pre ne nevalidne a niektore stream zdroje
+        // ho posielaju nekonzistentne -> raz sa titulok zobrazi, raz nie). Vynutime PTS-only.
+        val hasDts = dts != null && dts != pts && !t.isSubtitle
         val ptsDtsFlags = if (hasPts && hasDts) 0xC0 else if (hasPts) 0x80 else 0x00
         val headerDataLen = if (hasPts && hasDts) 10 else if (hasPts) 5 else 0
         val out = ArrayList<Byte>(es.size + 14)
@@ -319,7 +321,9 @@ class TsMuxer(streams: List<Stream>) {
         val lenField = if (t.isVideo) 0 else if (pesPayloadLen <= 0xFFFF) pesPayloadLen else 0
         out.add(((lenField ushr 8) and 0xFF).toByte())
         out.add((lenField and 0xFF).toByte())
-        out.add(0x80.toByte())                          // '10' marker
+        // '10' marker; pre titulky aj data_alignment_indicator (0x04), aby libVLC spravne
+        // ohranicil kazdy titulkovy display-set
+        out.add((if (t.isSubtitle) 0x84 else 0x80).toByte())
         out.add((ptsDtsFlags and 0xC0).toByte())
         out.add((headerDataLen and 0xFF).toByte())
         if (hasPts && hasDts) {
