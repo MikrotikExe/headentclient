@@ -498,6 +498,23 @@ class PlayerActivity : ComponentActivity() {
 
     /** Pretacanie pre DVR (live TS sa pretacat neda). TS subor nenese dlzku,
      *  preto pouzivame dlzku z DVR entry a poziciu ako zlomok (na TS spolahlive). */
+    /** Absolutny seek na program-relativny cas (spodna lista / D-pad). Cez seekDvrTo,
+     *  takze funguje aj pre feeder/pipe (player.position tam nic nerobi). */
+    private fun seekDvrAbsolute(targetMs: Long) {
+        if (!::mediaPlayer.isInitialized || !seekablePlayback) {
+            android.util.Log.i("TVHSEEK", "seekDvrAbsolute IGNORED init=${::mediaPlayer.isInitialized} seekable=$seekablePlayback target=$targetMs")
+            return
+        }
+        val dur = if (dvrDurationMs > 0) dvrDurationMs else mediaPlayer.length
+        if (dur <= 0) return
+        val maxMs = if (dvrRecording) (dur - 45_000L).coerceAtLeast(0L) else dur
+        val curMs = dvrPlayheadMsState.value.coerceIn(0L, dur)
+        val tgt = targetMs.coerceIn(0L, maxMs)
+        android.util.Log.i("TVHSEEK", "seekDvrAbsolute target=$targetMs tgt=$tgt cur=$curMs dur=$dur feeder=$dvrViaFeeder")
+        if (kotlin.math.abs(tgt - curMs) < 1000L) { android.util.Log.i("TVHSEEK", "seekDvrAbsolute SKIP (diff<1s)"); return }
+        seekDvrTo(tgt, curMs, dur)
+    }
+
     private fun seekRelative(deltaMs: Long) {
         if (!::mediaPlayer.isInitialized || !seekablePlayback) {
             android.util.Log.i("TVHSEEK", "seekRelative IGNORED init=${::mediaPlayer.isInitialized} seekable=$seekablePlayback delta=$deltaMs")
@@ -1692,15 +1709,10 @@ class PlayerActivity : ComponentActivity() {
                                 if (onSeek) {
                                     if (::mediaPlayer.isInitialized) {
                                         // scrubFrac je zlomok dosiahnutelneho rozsahu baru;
-                                        // prepocet na poziciu v subore (offset + cas relacie)
+                                        // seek cez seekDvrTo (funguje aj pre feeder/pipe)
                                         val bar = if (dvrRecording) (dvrDurationMs - 45_000L).coerceAtLeast(1L) else dvrDurationMs
                                         val progMs = (scrubFractionState.value.coerceIn(0f, 1f) * bar).toLong()
-                                        val offMs = if (dvrProgStartSec > 0 && dvrRealStartSec in 1 until dvrProgStartSec)
-                                            (dvrProgStartSec - dvrRealStartSec) * 1000 else 0L
-                                        val fileFrac = if (dvrDurationMs > 0)
-                                            ((offMs + progMs).toFloat() / (offMs + dvrDurationMs)).coerceIn(0f, 1f)
-                                        else scrubFractionState.value.coerceIn(0f, 1f)
-                                        mediaPlayer.position = fileFrac
+                                        seekDvrAbsolute(progMs)
                                     }
                                     pokeControls()
                                 } else activateControl(order.getOrNull(controlNavState.value))
@@ -2216,6 +2228,7 @@ class PlayerActivity : ComponentActivity() {
                 onPlayheadMs = { dvrPlayheadMsState.value = it },
                 seekSeedMs = dvrSeekSeedState.value,
                 onSeekSeedHandled = { dvrSeekSeedState.value = -1L },
+                onSeekToMs = { ms -> seekDvrAbsolute(ms) },
                 resumeSel = resumeSelState.value,
                 resumeAnswer = resumeAnswerState.value,
                 onAskResumeChange = {
@@ -2973,6 +2986,7 @@ private fun PlayerUi(
     onPlayheadMs: (Long) -> Unit = {},
     seekSeedMs: Long = -1L,
     onSeekSeedHandled: () -> Unit = {},
+    onSeekToMs: (Long) -> Unit = {},
     resumeSel: Int = 1,
     resumeAnswer: Int = 0,
     onAskResumeChange: (Boolean) -> Unit = {},
@@ -3816,16 +3830,16 @@ private fun PlayerUi(
                                     onValueChangeFinished = {
                                         // ciel v case relacie (v ramci dosiahnutelneho rozsahu)
                                         val progMs = (dragValue.coerceIn(0f, 1f) * barLengthMs).toLong()
-                                        posTimeMs = progMs.coerceIn(0L, barLengthMs)
-                                        // skutocny seek: prepocet na poziciu v subore (offset + cas relacie).
-                                        // Cielom dosiahnutelneho rozsahu je stale ~45 s pred zivou hranou.
-                                        val fileFrac = if (lengthMs > 0)
+                                            .coerceIn(0L, barLengthMs)
+                                        posTimeMs = progMs               // okamzita odozva UI
+                                        posFraction = if (lengthMs > 0)
                                             ((recordingOffsetMs + progMs).toFloat() /
                                                 (recordingOffsetMs + lengthMs)).coerceIn(0f, 1f)
                                         else 0f
-                                        player.position = fileFrac
-                                        posFraction = fileFrac
                                         dragging = false
+                                        // skutocny seek prebudovanim streamu (feeder byte-restart /
+                                        // direct :start-time) - player.position na pipe nefunguje
+                                        onSeekToMs(progMs)
                                     },
                                     modifier = Modifier.fillMaxWidth()
                                 )
