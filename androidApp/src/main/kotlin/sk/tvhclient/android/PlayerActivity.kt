@@ -1928,6 +1928,8 @@ class PlayerActivity : ComponentActivity() {
             "--network-caching=1500",
             "--no-drop-late-frames",
             "--no-skip-frames",
+            "--no-audio-time-stretch",   // VLC defaultne natahuje audio kvoli hodinam -> na niektorych
+                                         // zariadeniach to praska v reproduktore; vypnutie = nativna rychlost
             "--quiet",
             "--no-stats",
             "--http-user-agent=" + userAgent()
