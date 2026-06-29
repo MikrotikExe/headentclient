@@ -289,6 +289,32 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         }
     )
 
+    // Deinterlacing — odstranuje hrebenove pasy (combing) pri prekladanom DVB
+    // videu na rychlych zaberoch. AUTO deinterlacuje len ked treba.
+    Spacer(Modifier.height(16.dp))
+    var deint by remember { mutableStateOf(DeinterlacePref.get(ctx)) }
+    val deintLabel: @Composable (String) -> String = { v ->
+        when (v) {
+            DeinterlacePref.OFF -> stringResource(R.string.track_off)
+            DeinterlacePref.BOB -> "Bob"
+            DeinterlacePref.YADIF -> "Yadif"
+            DeinterlacePref.YADIF2X -> "Yadif (2x)"
+            DeinterlacePref.X -> "X"
+            else -> stringResource(R.string.orient_auto)
+        }
+    }
+    DropdownField(
+        label = stringResource(R.string.deint_title),
+        value = deint,
+        options = DeinterlacePref.options,
+        optionLabel = deintLabel,
+        onSelect = { v ->
+            deint = v
+            DeinterlacePref.set(ctx, v)
+            TabController.settingsDirty.value = true
+        }
+    )
+
     // Automaticky PiP rezim (len zariadenia s podporou PiP - telefony/tablety)
     if (ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
         Spacer(Modifier.height(16.dp))

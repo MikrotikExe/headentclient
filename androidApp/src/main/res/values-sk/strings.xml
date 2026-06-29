@@ -255,6 +255,7 @@
     <string name="theme_light">Svetlá</string>
     <string name="theme_dark">Tmavá</string>
     <string name="player_theme_title">Téma prehrávača</string>
+    <string name="deint_title">Deinterlacing (prekladané video)</string>
     <string name="epg_days_back_title">EPG – koľko dní dozadu</string>
     <string name="epg_days_forward_title">EPG – koľko dní dopredu</string>
     <string name="orient_title">Predvolené otáčanie obrazovky</string>

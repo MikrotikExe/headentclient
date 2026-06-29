@@ -255,6 +255,7 @@
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="player_theme_title">Player theme</string>
+    <string name="deint_title">Deinterlacing</string>
     <string name="epg_days_back_title">EPG – days kept (past)</string>
     <string name="epg_days_forward_title">EPG – days loaded (future)</string>
     <string name="orient_title">Default screen rotation</string>

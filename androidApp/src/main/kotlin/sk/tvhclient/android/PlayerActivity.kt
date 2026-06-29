@@ -240,7 +240,27 @@ class PlayerActivity : ComponentActivity() {
         m.setHWDecoderEnabled(true, false)
         // User-Agent: nech server vidi, ze sa pripaja HeadentClient
         m.addOption(":http-user-agent=" + userAgent())
+        applyDeinterlace(m)
         return m
+    }
+
+    /** Rezim deinterlacingu z nastaveni -> (hodnota --deinterlace, mod alebo null).
+     *  -1 = automaticky (deinterlacuje len prekladany zdroj), 0 = vypnute, 1 = zapnute. */
+    private fun deinterlaceSpec(): Pair<String, String?> = when (DeinterlacePref.get(this)) {
+        DeinterlacePref.OFF -> "0" to null
+        DeinterlacePref.BOB -> "1" to "bob"
+        DeinterlacePref.YADIF -> "1" to "yadif"
+        DeinterlacePref.YADIF2X -> "1" to "yadif2x"
+        DeinterlacePref.X -> "1" to "x"
+        else -> "-1" to "yadif"   // AUTO
+    }
+
+    /** Aplikuje deinterlacing na dane medium (riesi hrebenove pasy / combing pri
+     *  prekladanom DVB videu na rychlych zaberoch). */
+    private fun applyDeinterlace(m: Media) {
+        val (en, mode) = deinterlaceSpec()
+        m.addOption(":deinterlace=$en")
+        if (mode != null) m.addOption(":deinterlace-mode=$mode")
     }
 
     /** M255 — live cez HTTP na digest-only serveri: stiahnut cez feeder (rovnako
@@ -260,6 +280,7 @@ class PlayerActivity : ComponentActivity() {
         media.setHWDecoderEnabled(true, false)
         media.addOption(":demux=ts")
         media.addOption(":file-caching=1500")
+        applyDeinterlace(media)
         mediaPlayer.media = media
         media.release()
         mediaPlayer.play()
@@ -319,6 +340,7 @@ class PlayerActivity : ComponentActivity() {
         media.setHWDecoderEnabled(true, false)
         media.addOption(":demux=ts")
         media.addOption(":file-caching=1500")
+        applyDeinterlace(media)
         mediaPlayer.media = media
         media.release()
         mediaPlayer.play()
@@ -347,6 +369,7 @@ class PlayerActivity : ComponentActivity() {
             media.setHWDecoderEnabled(true, false)
             media.addOption(":demux=ts")
             media.addOption(":file-caching=1500")
+            applyDeinterlace(media)
             mediaPlayer.media = media
             media.release()
             mediaPlayer.play()
@@ -1932,6 +1955,11 @@ class PlayerActivity : ComponentActivity() {
             "--no-stats",
             "--http-user-agent=" + userAgent()
         )
+        // Deinterlacing (globalne, nech plati uz na prvom otvoreni; per-medium
+        // sa nastavi znova pri kazdom prepnuti kanala)
+        val (dEn, dMode) = deinterlaceSpec()
+        options.add("--deinterlace=$dEn")
+        if (dMode != null) options.add("--deinterlace-mode=$dMode")
         libVlc = LibVLC(this, options)
         mediaPlayer = MediaPlayer(libVlc)
 
