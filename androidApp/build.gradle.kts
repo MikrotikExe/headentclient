@@ -40,7 +40,7 @@ android {
         applicationId = "sk.tvhclient"
         minSdk = 23
         targetSdk = 35
-        versionCode = 27
+        versionCode = 28
         versionName = "1.0.0"
         buildConfigField(
             "String",
