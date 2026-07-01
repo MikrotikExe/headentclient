@@ -192,7 +192,6 @@
     <string name="plock_lock">Kanalı kilitle (PIN)</string>
     <string name="plock_unlock">Kanal kilidini aç (PIN)</string>
     <string name="plock_unlock_settings">Ayarları açmak için PIN gir</string>
-    <string name="plock_hint">4 haneli (0000–9999)</string>
     <string name="tab_settings">Ayarlar</string>
     <string name="exit_title">Çıkış</string>
     <string name="exit_msg">Headent Client gerçekten kapatılsın mı?</string>

@@ -192,7 +192,6 @@
     <string name="plock_lock">Zender vergrendelen (pincode)</string>
     <string name="plock_unlock">Zender ontgrendelen (pincode)</string>
     <string name="plock_unlock_settings">Voer pincode in om instellingen te openen</string>
-    <string name="plock_hint">4 cijfers (0000–9999)</string>
     <string name="tab_settings">Instellingen</string>
     <string name="exit_title">Afsluiten</string>
     <string name="exit_msg">Headent Client echt afsluiten?</string>

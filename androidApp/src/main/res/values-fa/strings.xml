@@ -192,7 +192,6 @@
     <string name="plock_lock">قفل کردن کانال (PIN)</string>
     <string name="plock_unlock">باز کردن قفل کانال (PIN)</string>
     <string name="plock_unlock_settings">برای باز کردن تنظیمات PIN را وارد کنید</string>
-    <string name="plock_hint">۴ رقم (0000–9999)</string>
     <string name="tab_settings">تنظیمات</string>
     <string name="exit_title">خروج</string>
     <string name="exit_msg">واقعاً از Headent Client خارج می‌شوید؟</string>

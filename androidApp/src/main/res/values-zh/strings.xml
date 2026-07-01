@@ -192,7 +192,6 @@
     <string name="plock_lock">锁定频道 (PIN)</string>
     <string name="plock_unlock">解锁频道 (PIN)</string>
     <string name="plock_unlock_settings">输入 PIN 以打开设置</string>
-    <string name="plock_hint">4 位数字 (0000–9999)</string>
     <string name="tab_settings">设置</string>
     <string name="exit_title">退出</string>
     <string name="exit_msg">确定退出 Headent Client 吗？</string>

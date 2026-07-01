@@ -192,7 +192,6 @@
     <string name="plock_lock">قفل القناة (PIN)</string>
     <string name="plock_unlock">فتح القناة (PIN)</string>
     <string name="plock_unlock_settings">أدخل رمز PIN لفتح الإعدادات</string>
-    <string name="plock_hint">4 أرقام (0000–9999)</string>
     <string name="tab_settings">الإعدادات</string>
     <string name="exit_title">خروج</string>
     <string name="exit_msg">هل تريد فعلاً الخروج من Headent Client؟</string>

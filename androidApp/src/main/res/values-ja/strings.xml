@@ -192,7 +192,6 @@
     <string name="plock_lock">チャンネルをロック (PIN)</string>
     <string name="plock_unlock">チャンネルのロックを解除 (PIN)</string>
     <string name="plock_unlock_settings">設定を開くには PIN を入力</string>
-    <string name="plock_hint">4 桁 (0000–9999)</string>
     <string name="tab_settings">設定</string>
     <string name="exit_title">終了</string>
     <string name="exit_msg">Headent Client を終了しますか？</string>

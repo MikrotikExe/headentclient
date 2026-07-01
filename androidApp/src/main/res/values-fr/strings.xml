@@ -192,7 +192,6 @@
     <string name="plock_lock">Verrouiller la chaîne (PIN)</string>
     <string name="plock_unlock">Déverrouiller la chaîne (PIN)</string>
     <string name="plock_unlock_settings">Saisissez le PIN pour ouvrir les réglages</string>
-    <string name="plock_hint">4 chiffres (0000–9999)</string>
     <string name="tab_settings">Réglages</string>
     <string name="exit_title">Quitter</string>
     <string name="exit_msg">Vraiment quitter Headent Client ?</string>

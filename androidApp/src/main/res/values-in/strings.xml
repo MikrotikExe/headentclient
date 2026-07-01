@@ -192,7 +192,6 @@
     <string name="plock_lock">Kunci saluran (PIN)</string>
     <string name="plock_unlock">Buka kunci saluran (PIN)</string>
     <string name="plock_unlock_settings">Masukkan PIN untuk membuka pengaturan</string>
-    <string name="plock_hint">4 digit (0000–9999)</string>
     <string name="tab_settings">Pengaturan</string>
     <string name="exit_title">Keluar</string>
     <string name="exit_msg">Yakin ingin keluar dari Headent Client?</string>

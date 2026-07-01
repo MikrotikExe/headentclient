@@ -192,7 +192,6 @@
     <string name="plock_lock">চ্যানেল লক করুন (PIN)</string>
     <string name="plock_unlock">চ্যানেল আনলক করুন (PIN)</string>
     <string name="plock_unlock_settings">সেটিংস খুলতে PIN লিখুন</string>
-    <string name="plock_hint">৪ অঙ্ক (0000–9999)</string>
     <string name="tab_settings">সেটিংস</string>
     <string name="exit_title">প্রস্থান</string>
     <string name="exit_msg">সত্যিই Headent Client থেকে প্রস্থান করবেন?</string>

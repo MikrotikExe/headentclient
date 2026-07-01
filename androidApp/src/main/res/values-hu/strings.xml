@@ -192,7 +192,6 @@
     <string name="plock_lock">Csatorna zárolása (PIN)</string>
     <string name="plock_unlock">Csatorna feloldása (PIN)</string>
     <string name="plock_unlock_settings">Add meg a PIN-t a beállítások megnyitásához</string>
-    <string name="plock_hint">4 számjegy (0000–9999)</string>
     <string name="tab_settings">Beállítások</string>
     <string name="exit_title">Kilépés</string>
     <string name="exit_msg">Biztosan kilépsz a Headent Clientből?</string>

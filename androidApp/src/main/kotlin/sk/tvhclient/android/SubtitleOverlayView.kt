@@ -54,7 +54,6 @@ class SubtitleOverlayView(context: Context) : View(context) {
 
     /** Nova dekódovana stranka s cielovym casom (ms v osi prehravaca). */
     fun onPage(page: DvbSubtitleDecoder.DecodedPage, targetMs: Long) {
-        println("TVHSUBX rx tgt=$targetMs empty=${page.isEmpty}")
         val t = Timed(
             targetMs,
             if (page.timeoutMs in 1..30000) page.timeoutMs else 12000,
@@ -85,10 +84,6 @@ class SubtitleOverlayView(context: Context) : View(context) {
             for (k in queue.indices) { if (queue[k].targetMs <= now) idx = k else break }
             if (idx >= 0) {
                 chosen = queue[idx]
-                for (k in 0 until idx) {
-                    val e = queue[k]
-                    if (!e.empty) println("TVHSUBX SKIP tgt=${e.targetMs} now=$now (nezobrazena, presla pred tikom)")
-                }
                 repeat(idx) { queue.removeAt(0) }   // zahod uz minule stranky (chosen ostane na zaciatku)
             }
         }
@@ -99,7 +94,6 @@ class SubtitleOverlayView(context: Context) : View(context) {
             return
         }
         current = c
-        println("TVHSUBX show tgt=${c.targetMs} now=$now empty=${c.empty} expired=$expired")
         bitmap = if (c.empty || c.pixels == null || expired) {
             null
         } else {

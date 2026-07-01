@@ -192,7 +192,6 @@
     <string name="plock_lock">Заблокувати канал (PIN)</string>
     <string name="plock_unlock">Розблокувати канал (PIN)</string>
     <string name="plock_unlock_settings">Введіть PIN, щоб відкрити налаштування</string>
-    <string name="plock_hint">4 цифри (0000–9999)</string>
     <string name="tab_settings">Налаштування</string>
     <string name="exit_title">Вихід</string>
     <string name="exit_msg">Справді вийти з Headent Client?</string>

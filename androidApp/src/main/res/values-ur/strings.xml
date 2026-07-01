@@ -192,7 +192,6 @@
     <string name="plock_lock">چینل مقفل کریں (PIN)</string>
     <string name="plock_unlock">چینل کا قفل کھولیں (PIN)</string>
     <string name="plock_unlock_settings">ترتیبات کھولنے کے لیے PIN درج کریں</string>
-    <string name="plock_hint">4 ہندسے (0000–9999)</string>
     <string name="tab_settings">ترتیبات</string>
     <string name="exit_title">باہر نکلیں</string>
     <string name="exit_msg">کیا واقعی Headent Client سے باہر نکلیں؟</string>

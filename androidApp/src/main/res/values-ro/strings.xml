@@ -192,7 +192,6 @@
     <string name="plock_lock">Blochează canalul (PIN)</string>
     <string name="plock_unlock">Deblochează canalul (PIN)</string>
     <string name="plock_unlock_settings">Introdu PIN-ul pentru a deschide setările</string>
-    <string name="plock_hint">4 cifre (0000–9999)</string>
     <string name="tab_settings">Setări</string>
     <string name="exit_title">Ieșire</string>
     <string name="exit_msg">Ieși din Headent Client?</string>

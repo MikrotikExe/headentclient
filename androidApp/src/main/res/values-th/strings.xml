@@ -192,7 +192,6 @@
     <string name="plock_lock">ล็อกช่อง (PIN)</string>
     <string name="plock_unlock">ปลดล็อกช่อง (PIN)</string>
     <string name="plock_unlock_settings">ป้อน PIN เพื่อเปิดการตั้งค่า</string>
-    <string name="plock_hint">4 หลัก (0000–9999)</string>
     <string name="tab_settings">การตั้งค่า</string>
     <string name="exit_title">ออก</string>
     <string name="exit_msg">ต้องการออกจาก Headent Client จริงหรือไม่?</string>

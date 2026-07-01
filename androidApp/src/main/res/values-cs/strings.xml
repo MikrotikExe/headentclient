@@ -192,7 +192,6 @@
     <string name="plock_lock">Zamknout kanál (PIN)</string>
     <string name="plock_unlock">Odemknout kanál (PIN)</string>
     <string name="plock_unlock_settings">Zadejte PIN pro vstup do nastavení</string>
-    <string name="plock_hint">4 číslice (0000-9999)</string>
     <string name="tab_settings">Nastavení</string>
     <string name="exit_title">Ukončit</string>
     <string name="exit_msg">Opravdu chcete ukončit Headent Client?</string>

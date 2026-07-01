@@ -192,7 +192,6 @@
     <string name="plock_lock">Zakleni kanal (PIN)</string>
     <string name="plock_unlock">Odkleni kanal (PIN)</string>
     <string name="plock_unlock_settings">Vnesite PIN za odpiranje nastavitev</string>
-    <string name="plock_hint">4 števke (0000–9999)</string>
     <string name="tab_settings">Nastavitve</string>
     <string name="exit_title">Izhod</string>
     <string name="exit_msg">Res zapustiti Headent Client?</string>

@@ -192,7 +192,6 @@
     <string name="plock_lock">चैनल लॉक करें (PIN)</string>
     <string name="plock_unlock">चैनल अनलॉक करें (PIN)</string>
     <string name="plock_unlock_settings">सेटिंग्स खोलने के लिए PIN दर्ज करें</string>
-    <string name="plock_hint">4 अंक (0000–9999)</string>
     <string name="tab_settings">सेटिंग्स</string>
     <string name="exit_title">बाहर निकलें</string>
     <string name="exit_msg">क्या वाकई Headent Client से बाहर निकलें?</string>

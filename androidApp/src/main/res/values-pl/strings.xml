@@ -192,7 +192,6 @@
     <string name="plock_lock">Zablokuj kanał (PIN)</string>
     <string name="plock_unlock">Odblokuj kanał (PIN)</string>
     <string name="plock_unlock_settings">Wprowadź PIN, aby otworzyć ustawienia</string>
-    <string name="plock_hint">4 cyfry (0000–9999)</string>
     <string name="tab_settings">Ustawienia</string>
     <string name="exit_title">Zamknij</string>
     <string name="exit_msg">Na pewno zamknąć Headent Client?</string>

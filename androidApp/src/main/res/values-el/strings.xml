@@ -192,7 +192,6 @@
     <string name="plock_lock">Κλείδωμα καναλιού (PIN)</string>
     <string name="plock_unlock">Ξεκλείδωμα καναλιού (PIN)</string>
     <string name="plock_unlock_settings">Εισήγαγε PIN για άνοιγμα των ρυθμίσεων</string>
-    <string name="plock_hint">4 ψηφία (0000–9999)</string>
     <string name="tab_settings">Ρυθμίσεις</string>
     <string name="exit_title">Έξοδος</string>
     <string name="exit_msg">Έξοδος από το Headent Client;</string>

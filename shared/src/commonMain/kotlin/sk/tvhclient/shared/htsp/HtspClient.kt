@@ -302,7 +302,6 @@ class HtspClient(
                             if (page != null) {
                                 val origin = mx.timelineOriginPts()
                                 val targetMs = if (origin != null) (page.pts - origin) / 90L else page.pts / 90L
-                                println("TVHSUBX dec pts=${page.pts} tgt=$targetMs empty=${page.isEmpty} ${page.width}x${page.height}")
                                 onSubtitlePage(page, targetMs)
                             }
                             continue

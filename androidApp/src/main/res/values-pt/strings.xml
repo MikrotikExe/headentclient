@@ -192,7 +192,6 @@
     <string name="plock_lock">Bloquear canal (PIN)</string>
     <string name="plock_unlock">Desbloquear canal (PIN)</string>
     <string name="plock_unlock_settings">Introduz o PIN para abrir as definições</string>
-    <string name="plock_hint">4 dígitos (0000–9999)</string>
     <string name="tab_settings">Definições</string>
     <string name="exit_title">Sair</string>
     <string name="exit_msg">Sair mesmo do Headent Client?</string>

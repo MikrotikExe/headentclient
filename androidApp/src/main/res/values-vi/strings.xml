@@ -192,7 +192,6 @@
     <string name="plock_lock">Khóa kênh (PIN)</string>
     <string name="plock_unlock">Mở khóa kênh (PIN)</string>
     <string name="plock_unlock_settings">Nhập PIN để mở cài đặt</string>
-    <string name="plock_hint">4 chữ số (0000–9999)</string>
     <string name="tab_settings">Cài đặt</string>
     <string name="exit_title">Thoát</string>
     <string name="exit_msg">Thực sự thoát Headent Client?</string>

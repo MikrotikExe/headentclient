@@ -192,7 +192,6 @@
     <string name="plock_lock">Sender sperren (PIN)</string>
     <string name="plock_unlock">Sender entsperren (PIN)</string>
     <string name="plock_unlock_settings">PIN eingeben, um die Einstellungen zu öffnen</string>
-    <string name="plock_hint">4 Ziffern (0000–9999)</string>
     <string name="tab_settings">Einstellungen</string>
     <string name="exit_title">Beenden</string>
     <string name="exit_msg">Headent Client wirklich beenden?</string>

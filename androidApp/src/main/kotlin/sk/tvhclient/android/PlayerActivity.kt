@@ -2896,17 +2896,6 @@ private fun langDisplay(code: String?): String? {
 /** ISO-639 kod -> ANGLICKY nazov jazyka. libVLC pomenuva DVB titulky anglicky
  *  ("DVB subtitles - [Czech]") a netaguje ich kodom, takze vyber z metadat parujeme
  *  na realnu libVLC stopu cez tento anglicky nazov. null ak sa neda urcit. */
-private fun englishLang(code: String?): String? {
-    val c = code?.lowercase()?.trim() ?: return null
-    if (c.isEmpty() || c == "und") return null
-    val iso2 = ISO639_2to1[c] ?: if (c.length == 2) c else return null
-    return try {
-        java.util.Locale(iso2).getDisplayLanguage(java.util.Locale.ENGLISH)
-            .takeIf { it.isNotBlank() && !it.equals(iso2, ignoreCase = true) }
-            ?.replaceFirstChar { it.uppercase() }
-    } catch (_: Throwable) { null }
-}
-
 /** Mapa ES id -> jazyk z metadat aktualneho media (audio aj titulky maju language). */
 private fun MediaPlayer.trackLanguages(): Map<Int, String?> {
     val out = HashMap<Int, String?>()

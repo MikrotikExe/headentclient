@@ -192,7 +192,6 @@
     <string name="plock_lock">채널 잠금 (PIN)</string>
     <string name="plock_unlock">채널 잠금 해제 (PIN)</string>
     <string name="plock_unlock_settings">설정을 열려면 PIN을 입력하세요</string>
-    <string name="plock_hint">4자리 (0000–9999)</string>
     <string name="tab_settings">설정</string>
     <string name="exit_title">종료</string>
     <string name="exit_msg">Headent Client를 종료할까요?</string>
