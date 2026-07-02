@@ -2558,10 +2558,14 @@ class PlayerActivity : ComponentActivity() {
         return false
     }
 
-    /** Spusti PiP a minimalizuje appku (okno plava nad plochou / inou appkou). */
+    /** Spusti PiP a minimalizuje appku (okno plava nad plochou / inou appkou).
+     *  Volanie je odlozene o snimok — enterPictureInPictureMode zavolany synchronne
+     *  z Compose kliku niektore zariadenia ignoruju (este bezi spracovanie dotyku). */
     private fun enterPipAndMinimize() {
-        if (enterPipIfPossible()) {
-            runCatching { moveTaskToBack(true) }
+        window.decorView.post {
+            if (enterPipIfPossible()) {
+                runCatching { moveTaskToBack(true) }
+            }
         }
     }
 
@@ -3114,7 +3118,7 @@ private fun PlayerUi(
     // v PiP rezime skry vsetky ovladacie prvky (okno je male)
     LaunchedEffect(inPip) {
         if (inPip) {
-            controlsVisible = false; showInfo = false
+            controlsVisible = false; showInfo = false; showMoreSheet = false
             showChannelList = false; menu = null; showOptions = false
         }
     }
@@ -4011,7 +4015,7 @@ private fun PlayerUi(
                             hasList = has("list") && liveChannels.isNotEmpty(),
                             hasEpg = has("epg"),
                             onClose = onClose,
-                            onPip = onEnterPip,
+                            onPip = { controlsVisible = false; onEnterPip() },
                             onList = { showChannelList = true; controlsVisible = false },
                             onEpg = onOpenEpg,
                             onTogglePlay = onTogglePlay,
