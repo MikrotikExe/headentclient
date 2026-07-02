@@ -89,6 +89,8 @@ fun ModernTvHomeScreen(
 
     val rows: List<ChannelRow> = (chState as? ChannelsState.Loaded)?.allRows ?: emptyList()
     val sid = remember { Tvh.store.active()?.id ?: "default" }
+    val server = remember { Tvh.store.active() }
+    val piconLoader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
     val favUuids = remember(rows) { Favorites.all(ctx, sid) }
     val lastUuid = remember(rows) { LastChannel.get(ctx, sid) }
 
@@ -167,6 +169,7 @@ fun ModernTvHomeScreen(
                             AsyncImage(
                                 model = ImageRequest.Builder(ctx).data(hero.piconUrl).build(),
                                 contentDescription = null,
+                                imageLoader = piconLoader,
                                 modifier = Modifier.size(26.dp)
                             )
                             Spacer(Modifier.width(8.dp))
@@ -269,6 +272,7 @@ fun ModernTvHomeScreen(
                                 AsyncImage(
                                     model = ImageRequest.Builder(ctx).data(r.piconUrl).build(),
                                     contentDescription = null,
+                                    imageLoader = piconLoader,
                                     modifier = Modifier.size(30.dp)
                                 )
                             } else {

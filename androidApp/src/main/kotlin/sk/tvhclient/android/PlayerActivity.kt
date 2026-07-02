@@ -2085,7 +2085,8 @@ class PlayerActivity : ComponentActivity() {
                 else -> isSystemInDarkTheme()
             }
             MaterialTheme(
-                colorScheme = if (pDark) darkColorScheme() else lightColorScheme()
+                colorScheme = if (UiModePref.get(this) == UiModePref.MODERN) modernColorScheme()
+                    else if (pDark) darkColorScheme() else lightColorScheme()
             ) {
             PlayerUi(
                 title = liveTitleState.value,

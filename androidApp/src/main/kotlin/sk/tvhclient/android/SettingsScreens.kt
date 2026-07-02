@@ -135,33 +135,27 @@ internal fun GeneralSettings(ctx: android.content.Context) {
     )
     Spacer(Modifier.height(16.dp))
 
-    // Rezim rozhrania na TV: klasicky launcher / moderny (hero + rady kariet).
-    // Len TV — telefon ma vlastnu navigaciu, rezim sa ho netyka.
-    val isTvUi = remember {
-        val um = ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
-        um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
-    }
-    if (isTvUi) {
-        var uiMode by remember { mutableStateOf(UiModePref.get(ctx)) }
-        val uiModeLabel: @Composable (String) -> String = { v ->
-            when (v) {
-                UiModePref.MODERN -> stringResource(R.string.ui_mode_modern)
-                else -> stringResource(R.string.ui_mode_classic)
-            }
+    // Rezim rozhrania: klasicky / moderny (navy-teal paleta; na TV navyse
+    // moderna domovska obrazovka). Dostupne na TV aj telefone.
+    var uiMode by remember { mutableStateOf(UiModePref.get(ctx)) }
+    val uiModeLabel: @Composable (String) -> String = { v ->
+        when (v) {
+            UiModePref.MODERN -> stringResource(R.string.ui_mode_modern)
+            else -> stringResource(R.string.ui_mode_classic)
         }
-        DropdownField(
-            label = stringResource(R.string.ui_mode_title),
-            value = uiMode,
-            options = UiModePref.options,
-            optionLabel = uiModeLabel,
-            onSelect = { v ->
-                uiMode = v
-                UiModePref.set(ctx, v)
-                TabController.settingsDirty.value = true
-            }
-        )
-        Spacer(Modifier.height(16.dp))
     }
+    DropdownField(
+        label = stringResource(R.string.ui_mode_title),
+        value = uiMode,
+        options = UiModePref.options,
+        optionLabel = uiModeLabel,
+        onSelect = { v ->
+            uiMode = v
+            UiModePref.set(ctx, v)
+            TabController.settingsDirty.value = true
+        }
+    )
+    Spacer(Modifier.height(16.dp))
 
     // EPG: kolko dni dozadu si appka pamata (lokalny cache) a kolko dopredu nacita
     var epgBack by remember { mutableStateOf(EpgRangePref.daysBack(ctx)) }

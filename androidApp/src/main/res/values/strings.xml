@@ -250,7 +250,7 @@
     <string name="track_off">Off</string>
     <string name="track_none">No tracks</string>
     <string name="theme_title">Theme</string>
-    <string name="ui_mode_title">Interface mode (TV)</string>
+    <string name="ui_mode_title">Interface mode</string>
     <string name="ui_mode_classic">Classic</string>
     <string name="ui_mode_modern">Modern</string>
     <string name="mh_live">LIVE</string>

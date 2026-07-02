@@ -130,7 +130,9 @@ class MainActivity : ComponentActivity() {
                 ThemePref.LIGHT -> false
                 else -> isSystemInDarkTheme()
             }
-            MaterialTheme(colorScheme = if (dark) darkColorScheme() else lightColorScheme()) {
+            // Moderny rezim ma vlastnu navy/teal paletu (vzdy tmavu); inak svetla/tmava tema
+            val modernUi = UiModePref.stateOf(this).value == UiModePref.MODERN
+            MaterialTheme(colorScheme = if (modernUi) modernColorScheme() else if (dark) darkColorScheme() else lightColorScheme()) {
                 val view = LocalView.current
                 val barColor = MaterialTheme.colorScheme.surface
                 if (!view.isInEditMode) {
