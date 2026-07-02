@@ -3642,7 +3642,7 @@ private fun PlayerUi(
                     androidx.compose.material3.LinearProgressIndicator(
                         progress = { pct / 100f },
                         modifier = Modifier.width(170.dp).padding(top = 10.dp),
-                        color = Color(0xFF1E88E5),
+                        color = playerAccent(),
                         trackColor = Color(0x55FFFFFF)
                     )
                 }

@@ -126,7 +126,7 @@ internal fun TextChip(label: String, selected: Boolean = false, scale: Float = 1
     Box(
         Modifier
             .clip(shape)
-            .background(if (selected) Color(0xCC1E88E5) else Color(0x88000000))
+            .background(if (selected) playerAccent().copy(alpha = 0.8f) else Color(0x88000000))
             .then(if (selected) Modifier.border(3.dp, Color.White, shape) else Modifier)
             .clickable { onClick() }
             .padding(horizontal = (16.dp * scale), vertical = (10.dp * scale))
@@ -144,7 +144,7 @@ internal fun PlayPauseButton(isPlaying: Boolean, selected: Boolean, scale: Float
             .size(76.dp * scale)
             .clip(CircleShape)
             // play/pauza = primarna akcia -> vzdy modra (odlisena); biely ramik len pri D-pad fokuse (TV)
-            .background(Color(0xCC1E88E5))
+            .background(playerAccent().copy(alpha = 0.8f))
             .then(if (selected) Modifier.border(3.dp, Color.White, CircleShape) else Modifier)
             .clickable { onClick() },
         contentAlignment = Alignment.Center
@@ -199,7 +199,7 @@ internal fun CircleButton(
             .clip(CircleShape)
             .background(
                 when {
-                    selected -> Color(0xCC1E88E5)
+                    selected -> playerAccent().copy(alpha = 0.8f)
                     active -> Color(0x9943A047)
                     else -> if (isLightTheme()) Color(0x88000000) else Color(0xCC4D4D4D)
                 }
