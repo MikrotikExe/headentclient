@@ -15,6 +15,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.CalendarViewDay
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.automirrored.filled.ViewList
@@ -398,6 +401,8 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
             isLocked = isLocked,
             isHidden = isHidden,
             lockEnabled = ParentalLock.isEnabled(ctx),
+            piconUrl = cr.piconUrl,
+            piconLoader = loader,
             onProgram = { epgFor = cr; contextRow = null },
             onToggleFav = {
                 Favorites.toggle(ctx, serverId, cr.channel.uuid); favTick++; contextRow = null
@@ -462,8 +467,69 @@ fun ChannelActionDialog(
     onProfile: () -> Unit,
     onToggleLock: () -> Unit,
     onToggleHide: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    piconUrl: String? = null,
+    piconLoader: coil.ImageLoader? = null,
 ) {
+    if (isModernUi()) {
+        // moderny variant: hlavicka s piconom + riadky s ikonami v kruzkoch
+        // (rovnaky jazyk ako "Viac" panel v prehravaci); klasik nizsie nedotknuty
+        val cs = MaterialTheme.colorScheme
+        androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+            androidx.compose.material3.Surface(
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+                color = if (isLightTheme()) cs.surfaceContainerLowest else cs.surfaceContainer,
+                tonalElevation = 6.dp
+            ) {
+                Column(Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Box(
+                            Modifier.size(52.dp, 42.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(piconBackground()),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (piconUrl != null && piconLoader != null) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current).data(piconUrl).size(140).build(),
+                                    contentDescription = null,
+                                    imageLoader = piconLoader,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.fillMaxSize().padding(3.dp)
+                                )
+                            } else {
+                                Text(channelName.take(3).uppercase(),
+                                    style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Text(channelName, style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    ModernActionRow(Icons.Default.CalendarViewDay,
+                        stringResource(R.string.menu_program), onProgram)
+                    ModernActionRow(Icons.Default.Star,
+                        if (isFav) stringResource(R.string.fav_remove) else stringResource(R.string.fav_add),
+                        onToggleFav)
+                    ModernActionRow(Icons.Default.Tune,
+                        stringResource(R.string.ch_profile), onProfile)
+                    if (lockEnabled) {
+                        ModernActionRow(Icons.Filled.Lock,
+                            if (isLocked) stringResource(R.string.plock_unlock) else stringResource(R.string.plock_lock),
+                            onToggleLock)
+                    }
+                    ModernActionRow(Icons.Default.VisibilityOff,
+                        if (isHidden) stringResource(R.string.ch_unhide) else stringResource(R.string.ch_hide),
+                        onToggleHide)
+                }
+            }
+        }
+        return
+    }
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
         androidx.compose.material3.Surface(
             shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
@@ -493,6 +559,33 @@ fun ChannelActionDialog(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ModernActionRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .dpadFocusable(RoundedCornerShape(14.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 10.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier.size(36.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                .background(cs.primaryContainer.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center
+        ) {
+            androidx.compose.material3.Icon(icon, contentDescription = null,
+                tint = cs.onSurface, modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        Text("\u203A", color = cs.onSurfaceVariant, style = MaterialTheme.typography.titleMedium)
     }
 }
 

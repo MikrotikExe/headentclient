@@ -61,10 +61,12 @@ internal fun ModernChannelTabRow(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
+    highlighted: Boolean = false,
 ) {
     val cs = MaterialTheme.colorScheme
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val cardBg = if (isLightTheme()) cs.surfaceContainerLowest else cs.surfaceContainer
+    val baseBg = if (isLightTheme()) cs.surfaceContainerLowest else cs.surfaceContainer
+    val cardBg = if (highlighted) cs.primaryContainer.copy(alpha = if (isLightTheme()) 0.5f else 0.4f) else baseBg
     Row(
         modifier
             .fillMaxWidth()

@@ -62,9 +62,19 @@ import sk.tvhclient.shared.api.ChannelRow
 fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNav: () -> Unit = {}) {
     val state by vm.state.collectAsState()
     val query by vm.query.collectAsState()
+    // Moderny rezim: "co prave hra" — EPG zdielame s ChannelsViewModel
+    // (radia su v TVH tiez kanaly); ak pre stanicu EPG nie je, riadok
+    // zobrazi len nazov. Klasik tieto data nepouziva.
+    val chVm: ChannelsViewModel = viewModel()
+    val radioEpg by chVm.epgMap.collectAsState()
+    var nowTick by remember { mutableStateOf(System.currentTimeMillis() / 1000) }
+    LaunchedEffect(Unit) {
+        while (true) { kotlinx.coroutines.delay(60_000); nowTick = System.currentTimeMillis() / 1000 }
+    }
     val context = LocalContext.current
     val server = remember { Tvh.store.active() }
     val serverId = server?.id ?: ""
+    val lastRadioUuid = remember(state) { LastRadio.get(context, server?.id) }
     val loader = remember(server?.id) { PiconImageLoader.get(context, server) }
 
     var contextRow by remember { mutableStateOf<ChannelRow?>(null) }
@@ -210,7 +220,10 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                                     RadioRow(
                                         row, rows, loader, context,
                                         modifier = keyMod,
-                                        onContext = { contextRow = it }
+                                        onContext = { contextRow = it },
+                                        epgList = radioEpg[row.channel.uuid],
+                                        nowSec = nowTick,
+                                        highlighted = row.channel.uuid == lastRadioUuid,
                                     )
                                 }
                             }
@@ -253,6 +266,8 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
             isLocked = isLocked,
             isHidden = isHidden,
             lockEnabled = ParentalLock.isEnabled(context),
+            piconUrl = cr.piconUrl,
+            piconLoader = loader,
             onProgram = { epgFor = cr; contextRow = null },
             onToggleFav = {
                 Favorites.toggle(context, serverId, cr.channel.uuid); favTick++; contextRow = null
@@ -293,8 +308,41 @@ private fun RadioRow(
     loader: coil.ImageLoader,
     context: android.content.Context,
     modifier: Modifier = Modifier,
-    onContext: (ChannelRow) -> Unit
+    onContext: (ChannelRow) -> Unit,
+    epgList: List<sk.tvhclient.shared.model.EpgEvent>? = null,
+    nowSec: Long = 0L,
+    highlighted: Boolean = false,
 ) {
+    if (isModernUi()) {
+        // moderny riadok: karta s "co prave hra", progresom a minutami;
+        // posledne pocuvana stanica ma teal zvyraznenie. Klasik nizsie nedotknuty.
+        val ev = epgList?.firstOrNull { nowSec in it.start until it.stop }
+        val nt = ev?.title?.takeIf { it.isNotBlank() } ?: row.nowTitle
+        val ns = ev?.start ?: row.nowStart
+        val ne = ev?.stop ?: row.nowStop
+        val next = epgList?.firstOrNull {
+            it.start >= (if (ne > 0) ne else nowSec) && it.title.isNotBlank()
+        }?.title
+        ModernChannelTabRow(
+            name = row.channel.name,
+            number = row.channel.number,
+            piconUrl = row.piconUrl,
+            nowTitle = nt,
+            nowStart = ns,
+            nowStop = ne,
+            nextTitle = next,
+            nowSec = nowSec,
+            recording = false,
+            locked = false,
+            hidden = false,
+            loader = loader,
+            onClick = { playRadio(context, allRows, row) },
+            onLongClick = { onContext(row) },
+            modifier = modifier,
+            highlighted = highlighted,
+        )
+        return
+    }
     Row(
         modifier
             .fillMaxWidth()
