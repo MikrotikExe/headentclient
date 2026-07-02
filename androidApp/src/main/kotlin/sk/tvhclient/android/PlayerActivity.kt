@@ -4333,25 +4333,22 @@ private fun PlayerUi(
                             val locked = remember(lockTick, ch.uuid, serverId) {
                                 ParentalLock.isChannelLocked(ctx, serverId, ch.uuid)
                             }
-                            // moderny rezim: riadky ako karty, teal vyber; klasik nezmeneny
-                            val modernRow = isModernUi()
+                            if (isModernUi()) {
+                                // moderny riadok: ina stavba (picon velky, "Dalej:", minuty) — zdielany komponent
+                                ModernPlayerChannelRow(
+                                    ch = ch,
+                                    selected = selected,
+                                    locked = locked,
+                                    nowSec = liveNowSec,
+                                    imageLoader = loader,
+                                    onClick = { onSelectChannel(idx); showChannelList = false },
+                                    onLongClick = { onChannelLongPress(idx) },
+                                )
+                            } else {
                             Row(
                                 Modifier
                                     .fillMaxWidth()
-                                    .then(
-                                        if (modernRow) Modifier
-                                            .padding(horizontal = 10.dp, vertical = 3.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                        else Modifier
-                                    )
-                                    .background(
-                                        when {
-                                            selected && modernRow -> playerSelTint()
-                                            selected -> Color(0x553B82F6)
-                                            modernRow -> playerCard()
-                                            else -> Color.Transparent
-                                        }
-                                    )
+                                    .background(if (selected) Color(0x553B82F6) else Color.Transparent)
                                     .combinedClickable(
                                         onClick = { onSelectChannel(idx); showChannelList = false },
                                         onLongClick = { onChannelLongPress(idx) }
@@ -4361,8 +4358,7 @@ private fun PlayerUi(
                             ) {
                                 Text(
                                     if (ch.number > 0) ch.number.toString() else "",
-                                    color = if (selected) playerFg()
-                                        else if (modernRow) playerAccent() else Color(0xFF6699FF),
+                                    color = if (selected) playerFg() else Color(0xFF6699FF),
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.width(34.dp)
                                 )
@@ -4442,6 +4438,7 @@ private fun PlayerUi(
                                         }
                                     }
                                 }
+                            }
                             }
                         }
                     }

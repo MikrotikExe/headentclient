@@ -1,7 +1,9 @@
 package sk.tvhclient.android
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +35,7 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -42,8 +45,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.ImageLoader
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 
 /**
  * Moderny ovladaci panel prehravaca pre TELEFON (UiModePref.MODERN):
@@ -254,5 +262,103 @@ private fun ModernSheetRow(icon: ImageVector, label: String, onClick: () -> Unit
             Spacer(Modifier.width(8.dp))
         }
         Text("\u203A", color = playerFgFaint(), fontSize = 18.sp)
+    }
+}
+
+
+/**
+ * Moderny riadok zoznamu kanalov v prehravaci — ina stavba nez klasik:
+ * obsah na prvom mieste (velky picon, nazov kanala drobne NAD tucnym nazvom
+ * prave beziacej relacie, "Dalej:" ktore klasik neukazuje), vpravo zostavajuce
+ * minuty a decentne cislo kanala. Klasicky riadok ostava nezmeneny.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+internal fun ModernPlayerChannelRow(
+    ch: LivePlaylist.LiveChannel,
+    selected: Boolean,
+    locked: Boolean,
+    nowSec: Long,
+    imageLoader: ImageLoader,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 3.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (selected) playerSelTint() else playerCard())
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // velky picon
+        Box(
+            Modifier.size(52.dp, 42.dp).clip(RoundedCornerShape(10.dp)).background(piconBackground()),
+            contentAlignment = Alignment.Center
+        ) {
+            if (ch.piconUrl != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(ctx).data(ch.piconUrl).size(140).build(),
+                    contentDescription = null,
+                    imageLoader = imageLoader,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize().padding(3.dp)
+                )
+            } else {
+                Text(ch.name.take(3).uppercase(), color = playerFg(), fontSize = 11.sp)
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(ch.name, color = playerFgDim(), fontSize = 11.sp,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false))
+                if (ch.recording) {
+                    Spacer(Modifier.width(6.dp))
+                    Box(Modifier.size(7.dp).clip(CircleShape).background(Color(0xFFE53935)))
+                }
+                if (locked) {
+                    Spacer(Modifier.width(6.dp))
+                    Icon(androidx.compose.material.icons.Icons.Filled.Lock, contentDescription = null,
+                        tint = playerFgDim(), modifier = Modifier.size(13.dp))
+                }
+            }
+            Text(
+                ch.nowTitle.ifBlank { ch.name },
+                color = playerFg(), fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
+            if (ch.nextTitle.isNotBlank()) {
+                Text(
+                    stringResource(R.string.mh_next) + " " + ch.nextTitle,
+                    color = playerFgFaint(), fontSize = 11.sp,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (ch.nowStop > ch.nowStart) {
+                val total = (ch.nowStop - ch.nowStart).coerceAtLeast(1)
+                val frac = (nowSec - ch.nowStart).coerceIn(0, total).toFloat() / total
+                LinearProgressIndicator(
+                    progress = { frac },
+                    modifier = Modifier.fillMaxWidth().height(3.dp).padding(top = 3.dp),
+                    color = playerAccent(), trackColor = playerTrack()
+                )
+            }
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(horizontalAlignment = Alignment.End) {
+            if (ch.number > 0) {
+                Text(ch.number.toString(), color = playerAccent(),
+                    fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            }
+            val left = if (ch.nowStop > nowSec && ch.nowStart > 0) ((ch.nowStop - nowSec) / 60).toInt() else null
+            if (left != null) {
+                Text("$left min", color = playerFgDim(), fontSize = 11.sp)
+            }
+        }
     }
 }
