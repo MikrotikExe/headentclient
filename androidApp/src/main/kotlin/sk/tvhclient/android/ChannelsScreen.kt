@@ -844,6 +844,36 @@ private fun ChannelItem(
     val hidden = remember(hiddenTick, row.channel.uuid) {
         HiddenChannels.isHidden(context, Tvh.store.active()?.id, row.channel.uuid)
     }
+    if (isModernUi()) {
+        // moderny riadok: karta s "Dalej:" a minutami — zdielany komponent;
+        // klasicky riadok nizsie ostava nedotknuty
+        val next = remember(epgList, curStop, nowSec) {
+            epgList?.firstOrNull {
+                it.start >= (if (curStop > 0) curStop else nowSec) && it.title.isNotBlank()
+            }?.title
+        }
+        ModernChannelTabRow(
+            name = row.channel.name,
+            number = row.channel.number,
+            piconUrl = row.piconUrl,
+            nowTitle = curTitle,
+            nowStart = curStart,
+            nowStop = curStop,
+            nextTitle = next,
+            nowSec = nowSec,
+            recording = recording != null,
+            locked = locked,
+            hidden = hidden,
+            loader = loader,
+            onClick = {
+                if (recording != null) onRecordingTap(row, recording)
+                else playChannel(context, row, curTitle, curStart, curStop)
+            },
+            onLongClick = { onShowEpg(row) },
+            modifier = itemModifier,
+        )
+        return
+    }
     Row(
         modifier = itemModifier
             .fillMaxWidth()
