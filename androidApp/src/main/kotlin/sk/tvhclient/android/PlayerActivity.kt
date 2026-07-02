@@ -2558,14 +2558,10 @@ class PlayerActivity : ComponentActivity() {
         return false
     }
 
-    /** Spusti PiP a minimalizuje appku (okno plava nad plochou / inou appkou).
-     *  Volanie je odlozene o snimok — enterPictureInPictureMode zavolany synchronne
-     *  z Compose kliku niektore zariadenia ignoruju (este bezi spracovanie dotyku). */
+    /** Spusti PiP a minimalizuje appku (okno plava nad plochou / inou appkou). */
     private fun enterPipAndMinimize() {
-        window.decorView.post {
-            if (enterPipIfPossible()) {
-                runCatching { moveTaskToBack(true) }
-            }
+        if (enterPipIfPossible()) {
+            runCatching { moveTaskToBack(true) }
         }
     }
 
@@ -4011,11 +4007,10 @@ private fun PlayerUi(
                             timeshiftEngaged = timeshiftEngaged,
                             hasPrev = has("prev") && onPrevChannel != null,
                             hasNext = has("next") && onNextChannel != null,
-                            hasPip = has("pip"),
                             hasList = has("list") && liveChannels.isNotEmpty(),
                             hasEpg = has("epg"),
                             onClose = onClose,
-                            onPip = { controlsVisible = false; onEnterPip() },
+                            onAudio = { menu = "audio" },
                             onList = { showChannelList = true; controlsVisible = false },
                             onEpg = onOpenEpg,
                             onTogglePlay = onTogglePlay,
@@ -4109,7 +4104,6 @@ private fun PlayerUi(
             ModernMoreSheet(
                 lockVisible = lockVis,
                 orientationLocked = orientationLocked,
-                onAudio = { showMoreSheet = false; menu = "audio" },
                 onSubs = { showMoreSheet = false; menu = "spu" },
                 onSleep = { showMoreSheet = false; onOpenSleep() },
                 onLockToggle = {

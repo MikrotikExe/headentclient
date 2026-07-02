@@ -259,6 +259,7 @@
     <string name="mh_home">Home</string>
     <string name="mh_all_channels">All channels</string>
     <string name="pm_more">More</string>
+    <string name="pm_audio">Audio</string>
     <string name="pm_close">Close</string>
     <string name="pm_back">Back</string>
     <string name="pm_lock">Rotation lock</string>

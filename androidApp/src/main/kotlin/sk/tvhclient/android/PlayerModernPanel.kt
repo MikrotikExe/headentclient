@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay30
 import androidx.compose.material.icons.filled.SkipNext
@@ -60,11 +59,10 @@ internal fun ModernPhoneControls(
     timeshiftEngaged: Boolean,
     hasPrev: Boolean,
     hasNext: Boolean,
-    hasPip: Boolean,
     hasList: Boolean,
     hasEpg: Boolean,
     onClose: () -> Unit,
-    onPip: () -> Unit,
+    onAudio: () -> Unit,
     onList: () -> Unit,
     onEpg: () -> Unit,
     onTogglePlay: () -> Unit,
@@ -112,7 +110,7 @@ internal fun ModernPhoneControls(
             modifier = Modifier.fillMaxWidth()
         ) {
             ModernLabeled(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.pm_back), onClose)
-            if (hasPip) ModernLabeled(Icons.Default.PictureInPictureAlt, "PiP", onPip)
+            ModernLabeled(Icons.Default.MusicNote, stringResource(R.string.pm_audio), onAudio)
             if (hasList) ModernLabeled(Icons.AutoMirrored.Filled.List, stringResource(R.string.tab_channels), onList)
             if (hasEpg) ModernLabeled(Icons.Default.GridView, stringResource(R.string.home_tv_program), onEpg)
             ModernLabeled(Icons.Default.MoreHoriz, stringResource(R.string.pm_more), onMore)
@@ -168,7 +166,6 @@ private fun ModernLabeled(icon: ImageVector, label: String, onClick: () -> Unit)
 internal fun ModernMoreSheet(
     lockVisible: Boolean,
     orientationLocked: Boolean,
-    onAudio: () -> Unit,
     onSubs: () -> Unit,
     onSleep: () -> Unit,
     onLockToggle: () -> Unit,
@@ -203,7 +200,6 @@ internal fun ModernMoreSheet(
                 fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(10.dp))
 
-            ModernSheetRow(Icons.Default.MusicNote, stringResource(R.string.track_audio), onAudio)
             ModernSheetRow(Icons.Default.ClosedCaption, stringResource(R.string.track_subtitles), onSubs)
             ModernSheetRow(Icons.Default.Timer, stringResource(R.string.sleep_timer), onSleep)
             if (lockVisible) {
