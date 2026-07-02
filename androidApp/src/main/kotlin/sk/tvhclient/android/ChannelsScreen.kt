@@ -388,6 +388,8 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     // Kontextove menu kanala (dlhy klik): Program / Oblubene / Profil / Zamok
     val cr = contextRow
     if (cr != null && serverId != null) {
+        val dlgServer = remember { Tvh.store.active() }
+        val loader = remember(dlgServer?.id) { PiconImageLoader.get(ctx, dlgServer) }
         val isFav = remember(favTick) { Favorites.isFav(ctx, serverId, cr.channel.uuid) }
         val isLocked = remember(lockTick) {
             ParentalLock.isChannelLocked(ctx, serverId, cr.channel.uuid)
