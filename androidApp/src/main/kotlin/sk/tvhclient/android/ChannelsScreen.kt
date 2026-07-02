@@ -88,10 +88,11 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     // prehravaca (epgFromPlayer, signal uz zvyseny v onCreate) sa otvori
     var epgDismissedGen by remember {
         mutableStateOf(
-            if (TabController.epgFromPlayer) TabController.epgGrid.value - 1
+            if (TabController.epgFromPlayer || TabController.epgColdOpen) TabController.epgGrid.value - 1
             else TabController.epgGrid.value
         )
     }
+    androidx.compose.runtime.SideEffect { TabController.epgColdOpen = false }
     val showGrid = epgSignal > epgDismissedGen
     // pri navrate do prehravaca nechame mriezku zobrazenu (nech neblikne zoznam)
     // a skryjeme ju az ked sa MainActivity vrati na popredie (po zatvoreni prehravaca)

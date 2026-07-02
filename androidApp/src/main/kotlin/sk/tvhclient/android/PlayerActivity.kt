@@ -3057,6 +3057,8 @@ private fun PlayerUi(
 ) {
     var controlsVisible by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
+    // Moderny rezim (telefon): vysuvaci panel "Viac" (zvuk/titulky/casovac/zamok/info)
+    var showMoreSheet by remember { mutableStateOf(false) }
     // odpocet casovaca uspatia (aktualizuje sa kym je casovac aktivny)
     var sleepNow by remember { mutableStateOf(System.currentTimeMillis()) }
     LaunchedEffect(sleepDeadline) {
@@ -3997,7 +3999,29 @@ private fun PlayerUi(
                         }
                     }
                     val gap = Arrangement.spacedBy((8 * k).dp)
-                    if (portrait) {
+                    if (isModernUi() && !isTvDevice) {
+                        // Moderny rezim (telefon): 3 hlavne tlacidla + pas s popiskami;
+                        // zvysne funkcie su vo vysuvacom paneli "Viac" (showMoreSheet).
+                        ModernPhoneControls(
+                            isPlaying = isPlaying,
+                            timeshiftEngaged = timeshiftEngaged,
+                            hasPrev = has("prev") && onPrevChannel != null,
+                            hasNext = has("next") && onNextChannel != null,
+                            hasPip = has("pip"),
+                            hasList = has("list") && liveChannels.isNotEmpty(),
+                            hasEpg = has("epg"),
+                            onClose = onClose,
+                            onPip = onEnterPip,
+                            onList = { showChannelList = true; controlsVisible = false },
+                            onEpg = onOpenEpg,
+                            onTogglePlay = onTogglePlay,
+                            onPrev = onPrevChannel,
+                            onNext = onNextChannel,
+                            onSkipBack = onSkipBack,
+                            onSkipFwd = onSkipFwd,
+                            onMore = { showMoreSheet = true },
+                        )
+                    } else if (portrait) {
                         // PORTRET: tlacidla vo viacerych radoch a vacsie (jeden rad bol nepouzitelne maly).
                         // Rad 1: navigacia/okno, Rad 2: prehravanie (play v strede), Rad 3: zvuk/extra.
                         val rowGap = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
@@ -4072,6 +4096,25 @@ private fun PlayerUi(
                 }
                 }
             }
+        }
+
+        // "Viac" panel moderneho rezimu (telefon)
+        if (showMoreSheet) {
+            androidx.activity.compose.BackHandler { showMoreSheet = false }
+            val lockVis = pipSupported && OrientationPref.get(ctx) == OrientationPref.AUTO
+            ModernMoreSheet(
+                lockVisible = lockVis,
+                orientationLocked = orientationLocked,
+                onAudio = { showMoreSheet = false; menu = "audio" },
+                onSubs = { showMoreSheet = false; menu = "spu" },
+                onSleep = { showMoreSheet = false; onOpenSleep() },
+                onLockToggle = {
+                    orientationLocked = !orientationLocked
+                    onOrientationLockChange(orientationLocked)
+                },
+                onInfo = { showMoreSheet = false; showInfo = true },
+                onDismiss = { showMoreSheet = false },
+            )
         }
 
         // Info okno: detail prave beziacej relacie (INFO kláves / tlacidlo)

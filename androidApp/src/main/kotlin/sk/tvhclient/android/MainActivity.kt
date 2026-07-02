@@ -87,6 +87,9 @@ object TabController {
     val epgGrid = mutableStateOf(0)
     var epgFromPlayer = false
     var epgReturnUuid: String? = null
+    // Otvorenie mriezky aj pri cerstvom mounte Kanalov (napr. z modernej Domov
+    // obrazovky) — bez tohto by baseline signal zhltol a otvoril sa len zoznam.
+    var epgColdOpen = false
     fun openEpgGrid(fromPlayer: Boolean = false, returnUuid: String? = null) {
         epgFromPlayer = fromPlayer
         epgReturnUuid = returnUuid
@@ -624,7 +627,7 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
             when (tab) {
                 0 -> if (modernPhone) ModernPhoneHomeScreen(
                     onOpenChannels = { resetCh++; tab = chIdx },
-                    onOpenEpg = { TabController.openEpgGrid() },
+                    onOpenEpg = { TabController.epgColdOpen = true; TabController.openEpgGrid() },
                 ) else ChannelsScreen(
                     resetSignal = resetCh,
                     onGoToNav = { runCatching { navFocus.requestFocus() } }
