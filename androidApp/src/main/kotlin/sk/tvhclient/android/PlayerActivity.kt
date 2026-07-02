@@ -2358,6 +2358,16 @@ class PlayerActivity : ComponentActivity() {
                 onNextChannel = if (canZap) ({ switchLive(+1) }) else null,
                 onTogglePlay = { togglePlayPause() },
                 timeshiftEngaged = timeshiftEngagedState.value,
+                modernOvVisible = modernOvState.value,
+                modernOvRow = modernOvRow.value,
+                modernOvCard = modernOvCard.value,
+                modernOvStrip = modernOvStrip.value,
+                modernOvPoke = modernOvPoke.value,
+                modernOvExec = modernOvExec.value,
+                modernOvExecId = modernOvExecId.value,
+                modernStripIds = modernStripIds(),
+                tsMaxMs = maxRewindMs(),
+                onModernOvDismiss = { closeModernOverlay() },
                 onSkipBack = { timeshiftSkip(-30) },
                 onSkipFwd = { timeshiftSkip(+30) },
                 onDoubleTapSeek = { fwd -> doubleTapSeek(fwd) },
@@ -3093,6 +3103,16 @@ private fun PlayerUi(
     onNextChannel: (() -> Unit)? = null,
     onTogglePlay: () -> Unit = {},
     timeshiftEngaged: Boolean = false,
+    modernOvVisible: Boolean = false,
+    modernOvRow: Int = 0,
+    modernOvCard: Int = 0,
+    modernOvStrip: Int = 0,
+    modernOvPoke: Int = 0,
+    modernOvExec: Int = 0,
+    modernOvExecId: String = "",
+    modernStripIds: List<String> = emptyList(),
+    tsMaxMs: Long = 0L,
+    onModernOvDismiss: () -> Unit = {},
     onSkipBack: () -> Unit = {},
     onSkipFwd: () -> Unit = {},
     onDoubleTapSeek: (Boolean) -> Unit = {},
@@ -4232,21 +4252,21 @@ private fun PlayerUi(
 
         // Moderny TV overlay (karty kanalov + ovladacia lista) — exkluzivita,
         // auto-hide a vykonanie akcii z listy (signal z Activity key handlera)
-        if (modernOvState.value) {
+        if (modernOvVisible) {
             LaunchedEffect(Unit) {
                 controlsVisible = false; menu = null; showChannelList = false
                 showInfo = false; showOptions = false
             }
         }
-        LaunchedEffect(modernOvState.value, modernOvPoke.value) {
-            if (modernOvState.value) {
+        LaunchedEffect(modernOvVisible, modernOvPoke) {
+            if (modernOvVisible) {
                 kotlinx.coroutines.delay(6000)
-                modernOvState.value = false
+                onModernOvDismiss()
             }
         }
-        LaunchedEffect(modernOvExec.value) {
-            if (modernOvExec.value > 0) when (modernOvExecId.value) {
-                "card" -> onSelectChannel(modernOvCard.value)
+        LaunchedEffect(modernOvExec) {
+            if (modernOvExec > 0) when (modernOvExecId) {
+                "card" -> onSelectChannel(modernOvCard)
                 "audio" -> menu = "audio"
                 "subs" -> menu = "spu"
                 "sleep" -> onOpenSleep()
@@ -4254,20 +4274,20 @@ private fun PlayerUi(
                 "info" -> showInfo = true
             }
         }
-        if (modernOvState.value && isTvGest) {
+        if (modernOvVisible && isTvGest) {
             val ovSrv = remember { sk.tvhclient.shared.Tvh.store.active() }
             val ovLoader = remember(ovSrv?.id) { PiconImageLoader.get(ctx, ovSrv) }
             ModernTvOverlay(
                 channels = liveChannels,
-                currentIndex = liveIndexState.value,
-                cardIndex = modernOvCard.value,
-                focusRow = modernOvRow.value,
-                stripIndex = modernOvStrip.value,
-                stripIds = modernStripIds(),
+                currentIndex = liveCurrentIndex,
+                cardIndex = modernOvCard,
+                focusRow = modernOvRow,
+                stripIndex = modernOvStrip,
+                stripIds = modernStripIds,
                 isPlaying = isPlaying,
-                tsEngaged = timeshiftEngagedState.value,
-                tsOffsetMs = timeshiftOffsetState.value,
-                tsMaxMs = maxRewindMs(),
+                tsEngaged = timeshiftEngaged,
+                tsOffsetMs = timeshiftOffsetMs,
+                tsMaxMs = tsMaxMs,
                 imageLoader = ovLoader,
             )
         }
