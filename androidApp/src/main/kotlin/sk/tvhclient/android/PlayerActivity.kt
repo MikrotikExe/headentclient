@@ -145,6 +145,62 @@ class PlayerActivity : ComponentActivity() {
     private val timeshiftOffsetState = androidx.compose.runtime.mutableStateOf(0L)
     // timeshift "zapnuty" (po prvej pauze) -> az vtedy davaju zmysel RW/FF a dvojklik
     private val timeshiftEngagedState = androidx.compose.runtime.mutableStateOf(false)
+
+    // ===== Moderny TV overlay (karty kanalov + ovladacia lista) =====
+    private val modernOvState = androidx.compose.runtime.mutableStateOf(false)
+    private val modernOvRow = androidx.compose.runtime.mutableStateOf(0)      // 0 = karty, 1 = lista
+    private val modernOvCard = androidx.compose.runtime.mutableStateOf(0)
+    private val modernOvStrip = androidx.compose.runtime.mutableStateOf(0)
+    private val modernOvPoke = androidx.compose.runtime.mutableStateOf(0)
+    private val modernOvExec = androidx.compose.runtime.mutableStateOf(0)     // signal pre composable
+    private val modernOvExecId = androidx.compose.runtime.mutableStateOf("")
+    private var modernOkLong = false
+
+    private val isTvBox by lazy {
+        (getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager)
+            ?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
+    }
+
+    /** Moderny overlay ma zmysel len na TV, v modernom rezime, pri zivom so zoznamom. */
+    private fun modernTvActive(): Boolean =
+        isTvBox && UiModePref.get(this) == UiModePref.MODERN &&
+            !seekablePlayback && liveUuids.size > 1
+
+    /** Polozky ovladacej listy overlayu (transport v strede; pretacanie len pri timeshiftu). */
+    private fun modernStripIds(): List<String> = buildList {
+        add("sleep"); add("epg"); add("audio")
+        if (timeshiftEngagedState.value) add("tsrew")
+        add("play")
+        if (timeshiftEngagedState.value) add("tsff")
+        add("subs"); add("info")
+    }
+
+    private fun openModernOverlay() {
+        modernOvCard.value = liveIndexState.value.coerceAtLeast(0)
+        modernOvStrip.value = modernStripIds().indexOf("play").coerceAtLeast(0)
+        modernOvRow.value = 0
+        modernOvPoke.value++
+        modernOvState.value = true
+    }
+
+    private fun closeModernOverlay() { modernOvState.value = false }
+
+    /** OK v overlayi: karta -> prepni kanal; lista -> vykonaj akciu. */
+    private fun modernOvActivate() {
+        if (modernOvRow.value == 0) {
+            modernOvExecId.value = "card"; modernOvExec.value++
+            closeModernOverlay()
+        } else when (modernStripIds().getOrNull(modernOvStrip.value)) {
+            "play" -> { togglePlayPause(); modernOvPoke.value++ }
+            "tsrew" -> { timeshiftSkip(-30); modernOvPoke.value++ }
+            "tsff" -> { timeshiftSkip(+30); modernOvPoke.value++ }
+            null -> {}
+            else -> {
+                modernOvExecId.value = modernStripIds()[modernOvStrip.value]; modernOvExec.value++
+                closeModernOverlay()
+            }
+        }
+    }
     private var tsAccumMs = 0L
     private var tsPauseStartedAt = 0L
     private var htspStartedAt = 0L
@@ -1680,6 +1736,65 @@ class PlayerActivity : ComponentActivity() {
             return true
         }
 
+        // 3b) Moderny TV overlay (karty kanalov + ovladacia lista) -> navigujeme my
+        if (modernOvState.value) {
+            val ids = modernStripIds()
+            if (down) {
+                when (kc) {
+                    android.view.KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        if (modernOvRow.value == 0)
+                            modernOvCard.value = (modernOvCard.value - 1).coerceAtLeast(0)
+                        else modernOvStrip.value = (modernOvStrip.value - 1 + ids.size) % ids.size
+                        modernOvPoke.value++; return true
+                    }
+                    android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        if (modernOvRow.value == 0)
+                            modernOvCard.value = (modernOvCard.value + 1).coerceAtMost(liveUuids.size - 1)
+                        else modernOvStrip.value = (modernOvStrip.value + 1) % ids.size
+                        modernOvPoke.value++; return true
+                    }
+                    android.view.KeyEvent.KEYCODE_DPAD_DOWN -> {
+                        if (modernOvRow.value == 0) {
+                            modernOvRow.value = 1
+                            modernOvStrip.value = ids.indexOf("play").coerceAtLeast(0)
+                        }
+                        modernOvPoke.value++; return true
+                    }
+                    android.view.KeyEvent.KEYCODE_DPAD_UP -> {
+                        if (modernOvRow.value == 1) modernOvRow.value = 0
+                        modernOvPoke.value++; return true
+                    }
+                    android.view.KeyEvent.KEYCODE_DPAD_CENTER,
+                    android.view.KeyEvent.KEYCODE_ENTER,
+                    android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                        if (event.repeatCount == 1) {   // podrzanie OK -> plny zoznam
+                            modernOkLong = true
+                            closeModernOverlay(); openChannelList()
+                        }
+                        return true
+                    }
+                    android.view.KeyEvent.KEYCODE_BACK -> { closeModernOverlay(); return true }
+                }
+            } else {
+                when (kc) {
+                    android.view.KeyEvent.KEYCODE_DPAD_CENTER,
+                    android.view.KeyEvent.KEYCODE_ENTER,
+                    android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                        if (!modernOkLong) modernOvActivate()
+                        modernOkLong = false
+                        return true
+                    }
+                    android.view.KeyEvent.KEYCODE_BACK -> return true
+                }
+            }
+            when (kc) {
+                android.view.KeyEvent.KEYCODE_VOLUME_UP,
+                android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
+                android.view.KeyEvent.KEYCODE_VOLUME_MUTE -> return super.dispatchKeyEvent(event)
+            }
+            return true
+        }
+
         // 4) Bezne prehravanie
         if (::mediaPlayer.isInitialized) {
             val canZap = !seekablePlayback && liveUuids.size > 1
@@ -1798,16 +1913,16 @@ class PlayerActivity : ComponentActivity() {
                 android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> if (down && event.repeatCount == 0) {
                     // OK pri zivom = zoznam kanalov; pri DVR (bez zoznamu) = play/pause
                     if (seekablePlayback) { togglePlayPause(); showControlsFocused() }
-                    else { okLongFired = true; openChannelList() }  // okLongFired prehltne nasledne OK-up
+                    else { okLongFired = true; if (modernTvActive()) openModernOverlay() else openChannelList() }  // okLongFired prehltne nasledne OK-up
                     return true
                 } else if (down) return true
                 android.view.KeyEvent.KEYCODE_DPAD_LEFT -> if (down) {
                     if (seekablePlayback) { seekRelative(-15_000); pokeControls(); return true }
-                    showControlsFocused(); return true
+                    if (modernTvActive()) openModernOverlay() else showControlsFocused(); return true
                 }
                 android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> if (down) {
                     if (seekablePlayback) { seekRelative(+30_000); pokeControls(); return true }
-                    showControlsFocused(); return true
+                    if (modernTvActive()) openModernOverlay() else showControlsFocused(); return true
                 }
                 // hore/dole sem prides len ak sa neda zapovat (napr. DVR) -> otvor panel
                 android.view.KeyEvent.KEYCODE_DPAD_UP,
@@ -4112,6 +4227,48 @@ private fun PlayerUi(
                 },
                 onInfo = { showMoreSheet = false; showInfo = true },
                 onDismiss = { showMoreSheet = false },
+            )
+        }
+
+        // Moderny TV overlay (karty kanalov + ovladacia lista) — exkluzivita,
+        // auto-hide a vykonanie akcii z listy (signal z Activity key handlera)
+        if (modernOvState.value) {
+            LaunchedEffect(Unit) {
+                controlsVisible = false; menu = null; showChannelList = false
+                showInfo = false; showOptions = false
+            }
+        }
+        LaunchedEffect(modernOvState.value, modernOvPoke.value) {
+            if (modernOvState.value) {
+                kotlinx.coroutines.delay(6000)
+                modernOvState.value = false
+            }
+        }
+        LaunchedEffect(modernOvExec.value) {
+            if (modernOvExec.value > 0) when (modernOvExecId.value) {
+                "card" -> onSelectChannel(modernOvCard.value)
+                "audio" -> menu = "audio"
+                "subs" -> menu = "spu"
+                "sleep" -> onOpenSleep()
+                "epg" -> onOpenEpg()
+                "info" -> showInfo = true
+            }
+        }
+        if (modernOvState.value && isTvGest) {
+            val ovSrv = remember { sk.tvhclient.shared.Tvh.store.active() }
+            val ovLoader = remember(ovSrv?.id) { PiconImageLoader.get(ctx, ovSrv) }
+            ModernTvOverlay(
+                channels = liveChannels,
+                currentIndex = liveIndexState.value,
+                cardIndex = modernOvCard.value,
+                focusRow = modernOvRow.value,
+                stripIndex = modernOvStrip.value,
+                stripIds = modernStripIds(),
+                isPlaying = isPlaying,
+                tsEngaged = timeshiftEngagedState.value,
+                tsOffsetMs = timeshiftOffsetState.value,
+                tsMaxMs = maxRewindMs(),
+                imageLoader = ovLoader,
             )
         }
 

@@ -264,6 +264,10 @@
     <string name="pm_back">Späť</string>
     <string name="pm_lock">Zámok otočenia</string>
     <string name="pm_info">Informácie o relácii</string>
+    <string name="mtv_hint_all">Podržanie OK &#183; Všetky kanály</string>
+    <string name="mtv_hint_nav">&#9664;&#9654; Listovať &#183; OK Prepnúť &#183; &#9660; Ovládanie</string>
+    <string name="mtv_live">živé</string>
+    <string name="mtv_ts_warn">Prepnutím ukončíš posun v čase</string>
     <string name="mh_fav_now">Obľúbené kanály · Teraz</string>
     <string name="theme_auto">Automaticky (systém)</string>
     <string name="theme_light">Svetlá</string>
