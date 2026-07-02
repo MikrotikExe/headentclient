@@ -1,3 +1,14 @@
+<p align="center">
+  <img src="banner.png" alt="Headent Client" width="100%">
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-Android%20%7C%20Android%20TV-3ddc84" alt="Platform">
+  <img src="https://img.shields.io/badge/built%20with-Kotlin%20%C2%B7%20Compose%20%C2%B7%20libVLC-7f52ff" alt="Built with">
+  <img src="https://img.shields.io/badge/languages-31-1d9e75" alt="Languages">
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="License">
+</p>
+
 # Headent Client
 
 Android client for [Tvheadend](https://tvheadend.org/) — live TV, EPG, recordings (DVR)
@@ -12,21 +23,41 @@ Jetpack Compose and libVLC.
 ## Features
 
 - Live TV from your Tvheadend server (HTTP and HTSP)
-- EPG grid (TV guide) with fast scrolling
-- Recordings (DVR): playback, resume, archive
+- EPG grid (TV guide) with fast scrolling and instant now/next from cache
+- Recordings (DVR): playback, resume, and a categorized archive
+- Seeking inside recordings and the archive — drag the bar or skip ±10 s (accumulating taps)
+- Audio tracks labeled by language (not generic "Track 1 / 2 / 3")
+- DVB subtitle support with a dedicated renderer
+- Compact, scrollable audio/subtitle picker (tuned for TV remotes)
 - Radio channels
 - Picons (channel logos)
 - Channel switching by number, channel list, zapping
 - Optional parental lock with PIN (configurable grace period, scope: channels / settings)
+- Deinterlacing (automatic or manual: Bob, Yadif, Yadif 2x, X)
+- Audio output options: passthrough to TV/AVR on Android TV, OpenSL ES mode on phones
+- Optional modern UI mode (home screen, player and navy/teal theme) — classic look remains the default
 - Multiple servers, backup & restore of settings
 - Optimized for Android TV / set-top boxes (D-pad remote) and phones
-- Localization: Slovak, Czech, English
+- Localized into 31 languages (see below)
 - No ads, no tracking, no telemetry
 
 ## Requirements
 
 - A running [Tvheadend](https://tvheadend.org/) server you have access to
 - Android 6.0 (API 23) or newer; Android TV or phone
+
+## Localization
+
+The app and the [project website](https://headentclient.com/) are localized into
+**31 languages**:
+
+Arabic, Bengali, Bulgarian, Chinese (Simplified), Croatian, Czech, Dutch, English,
+French, German, Greek, Hindi, Hungarian, Indonesian, Italian, Japanese, Korean,
+Persian, Polish, Portuguese, Romanian, Russian, Serbian, Slovak, Slovenian, Spanish,
+Thai, Turkish, Ukrainian, Urdu, Vietnamese.
+
+Translations are community-assisted; corrections and improvements are welcome via issues
+or pull requests.
 
 ## Project structure
 
