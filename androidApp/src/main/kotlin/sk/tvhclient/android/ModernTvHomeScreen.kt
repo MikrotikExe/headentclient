@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -69,13 +70,14 @@ fun ModernTvHomeScreen(
     onSettings: () -> Unit,
 ) {
     val ctx = LocalContext.current
-    val bg = Brush.verticalGradient(listOf(Color(0xFF0A1124), Color(0xFF0C1A36)))
-    val accent = Color(0xFF1D9E75)
-    val accent2 = Color(0xFF2BB6D6)
-    val cardBg = Color(0xFF0F1E3D)
-    val cardBorder = Color(0xFF1E3A6E)
-    val fg = Color.White
-    val fgDim = Color(0xFF9FB4D8)
+    val cs = MaterialTheme.colorScheme
+    val bg = Brush.verticalGradient(listOf(cs.background, cs.surfaceContainerLow))
+    val accent = cs.primary
+    val accent2 = cs.secondary
+    val cardBg = cs.surfaceContainer
+    val cardBorder = cs.outlineVariant
+    val fg = cs.onBackground
+    val fgDim = cs.onSurfaceVariant
 
     // hodiny (pol minuty staci na progres bary aj cas v rohu)
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -138,7 +140,7 @@ fun ModernTvHomeScreen(
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(18.dp))
-                .background(Brush.linearGradient(listOf(Color(0xFF173D63), Color(0xFF0D2140), Color(0xFF0A1124))))
+                .background(Brush.linearGradient(listOf(cs.surfaceContainerHighest, cs.surfaceContainerLow, cs.background)))
                 .padding(22.dp)
         ) {
             Column {
@@ -194,7 +196,7 @@ fun ModernTvHomeScreen(
                         LinearProgressIndicator(
                             progress = { frac },
                             modifier = Modifier.width(360.dp).height(5.dp).clip(RoundedCornerShape(3.dp)),
-                            color = accent, trackColor = Color(0xFF1B2C52)
+                            color = accent, trackColor = cs.outlineVariant
                         )
                         Spacer(Modifier.height(16.dp))
                     }
@@ -208,7 +210,7 @@ fun ModernTvHomeScreen(
                                 .clickable { onPlayChannel(hero.channel.uuid, hero.channel.name) }
                                 .padding(horizontal = 26.dp, vertical = 10.dp)
                         ) {
-                            Text("▶  " + stringResource(R.string.mh_watch), color = Color(0xFF04120C),
+                            Text("▶  " + stringResource(R.string.mh_watch), color = cs.onPrimary,
                                 fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                         }
                         Spacer(Modifier.width(12.dp))
@@ -216,11 +218,11 @@ fun ModernTvHomeScreen(
                             Modifier
                                 .dpadFocusable(RoundedCornerShape(999.dp))
                                 .clip(RoundedCornerShape(999.dp))
-                                .background(Color(0xFF13234A))
+                                .background(cs.surfaceContainerHigh)
                                 .clickable { onTvProgram() }
                                 .padding(horizontal = 22.dp, vertical = 10.dp)
                         ) {
-                            Text(stringResource(R.string.home_tv_program), color = Color(0xFFCFE0F5), fontSize = 16.sp)
+                            Text(stringResource(R.string.home_tv_program), color = cs.onSurface, fontSize = 16.sp)
                         }
                     }
                 } else {
@@ -296,8 +298,8 @@ fun ModernTvHomeScreen(
                         LinearProgressIndicator(
                             progress = { frac },
                             modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
-                            color = if (frac > 0f) accent2 else Color(0xFF1B2C52),
-                            trackColor = Color(0xFF1B2C52)
+                            color = if (frac > 0f) accent2 else cs.outlineVariant,
+                            trackColor = cs.outlineVariant
                         )
                     }
                 }
@@ -308,14 +310,15 @@ fun ModernTvHomeScreen(
 
 @Composable
 private fun ModernNavPill(label: String, onClick: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
     Box(
         Modifier
             .dpadFocusable(RoundedCornerShape(999.dp))
             .clip(RoundedCornerShape(999.dp))
-            .background(Color(0xFF13234A))
+            .background(cs.surfaceContainerHigh)
             .clickable { onClick() }
             .padding(horizontal = 20.dp, vertical = 9.dp)
     ) {
-        Text(label, color = Color(0xFFCFE0F5), fontSize = 14.sp)
+        Text(label, color = cs.onSurface, fontSize = 14.sp)
     }
 }
