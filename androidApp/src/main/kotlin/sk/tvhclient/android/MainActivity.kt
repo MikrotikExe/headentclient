@@ -624,10 +624,7 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
             when (tab) {
                 0 -> if (modernPhone) ModernPhoneHomeScreen(
                     onOpenChannels = { resetCh++; tab = chIdx },
-                    onOpenRadio = { resetRadio++; tab = radioIdx },
                     onOpenEpg = { TabController.openEpgGrid() },
-                    onOpenArchive = { resetDvr++; tab = dvrIdx },
-                    onOpenSettings = { tab = setIdx },
                 ) else ChannelsScreen(
                     resetSignal = resetCh,
                     onGoToNav = { runCatching { navFocus.requestFocus() } }

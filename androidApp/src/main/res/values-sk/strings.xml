@@ -257,6 +257,7 @@
     <string name="mh_next">Ďalej:</string>
     <string name="mh_watch">Sledovať</string>
     <string name="mh_home">Domov</string>
+    <string name="mh_all_channels">Všetky kanály</string>
     <string name="mh_fav_now">Obľúbené kanály · Teraz</string>
     <string name="theme_auto">Automaticky (systém)</string>
     <string name="theme_light">Svetlá</string>

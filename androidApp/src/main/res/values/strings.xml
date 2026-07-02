@@ -257,6 +257,7 @@
     <string name="mh_next">Next:</string>
     <string name="mh_watch">Watch</string>
     <string name="mh_home">Home</string>
+    <string name="mh_all_channels">All channels</string>
     <string name="mh_fav_now">Favorite channels · Now</string>
     <string name="theme_auto">Automatic (system)</string>
     <string name="theme_light">Light</string>
