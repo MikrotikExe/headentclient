@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.SettingsRemote
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.automirrored.filled.Dvr
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -522,10 +523,16 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
     val navFocus = remember { FocusRequester() }
     val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
     var showExit by remember { mutableStateOf(false) }
+    // Moderny rezim na telefone: extra tab "Domov" na zaciatku (klasik bez zmeny).
+    // Indexy tabov sa posunu o off; klasik ma off=0, cize povodne spravanie.
+    val homeCtx = androidx.compose.ui.platform.LocalContext.current
+    val modernPhone = UiModePref.stateOf(homeCtx).value == UiModePref.MODERN
+    val off = if (modernPhone) 1 else 0
+    val chIdx = off; val radioIdx = 1 + off; val dvrIdx = 2 + off; val setIdx = 3 + off
     // odchod z nastaveni s neulozenymi/vykonanymi zmenami -> potvrdenie
     var leaveConfirm by remember { mutableStateOf<(() -> Unit)?>(null) }
     fun guardLeave(action: () -> Unit) {
-        if (tab == 3 && TabController.settingsDirty.value) leaveConfirm = action else action()
+        if (tab == setIdx && TabController.settingsDirty.value) leaveConfirm = action else action()
     }
 
     // Farebne tlacidla na dialkovom (cez TabController) prepnu tab
@@ -533,10 +540,10 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
     LaunchedEffect(reqTab) {
         if (reqTab in 0..3) {
             when (reqTab) {
-                0 -> { resetCh++; tab = 0 }
-                1 -> { resetRadio++; tab = 1 }
-                2 -> { resetDvr++; tab = 2 }
-                3 -> { resetSet++; tab = 3 }
+                0 -> { resetCh++; tab = chIdx }
+                1 -> { resetRadio++; tab = radioIdx }
+                2 -> { resetDvr++; tab = dvrIdx }
+                3 -> { resetSet++; tab = setIdx }
                 else -> tab = reqTab
             }
             TabController.requested.value = -1
@@ -545,7 +552,7 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
 
     // EPG kláves -> prepni na Kanaly (bez resetu, nech zostane mriezka otvorena)
     val epgSig by TabController.epgGrid
-    LaunchedEffect(epgSig) { if (epgSig > 0) tab = 0 }
+    LaunchedEffect(epgSig) { if (epgSig > 0) tab = chIdx }
 
     // Spat: z ineho tabu spat na Kanaly; na Kanaloch -> potvrdenie ukoncenia.
     // (Vnutorne obrazovky maju vlastny BackHandler, ten ma prednost.)
@@ -563,33 +570,42 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
     Scaffold(
         bottomBar = {
             NavigationBar {
+                if (modernPhone) {
+                    NavigationBarItem(
+                        selected = tab == 0,
+                        onClick = { guardLeave { tab = 0 } },
+                        icon = { androidx.compose.material3.Icon(
+                            Icons.Default.Home, contentDescription = null) },
+                        label = { TabLabel(Color(0xFF1D9E75), stringResource(R.string.mh_home)) }
+                    )
+                }
                 NavigationBarItem(
-                    selected = tab == 0,
-                    onClick = { guardLeave { resetCh++; tab = 0 } },
+                    selected = tab == chIdx,
+                    onClick = { guardLeave { resetCh++; tab = chIdx } },
                     icon = { androidx.compose.material3.Icon(
                         Icons.Default.LiveTv, contentDescription = null) },
                     label = { TabLabel(red, stringResource(R.string.tab_channels)) },
                     modifier = Modifier.focusRequester(navFocus)
                 )
                 NavigationBarItem(
-                    selected = tab == 1,
-                    onClick = { guardLeave { resetRadio++; tab = 1 } },
+                    selected = tab == radioIdx,
+                    onClick = { guardLeave { resetRadio++; tab = radioIdx } },
                     icon = { androidx.compose.material3.Icon(
                         Icons.Default.Radio, contentDescription = null) },
                     label = { TabLabel(green, stringResource(R.string.tab_radio)) }
                 )
                 NavigationBarItem(
-                    selected = tab == 2,
-                    onClick = { guardLeave { resetDvr++; tab = 2 } },
+                    selected = tab == dvrIdx,
+                    onClick = { guardLeave { resetDvr++; tab = dvrIdx } },
                     icon = { androidx.compose.material3.Icon(
                         Icons.AutoMirrored.Filled.Dvr, contentDescription = null) },
                     label = { TabLabel(yellow, stringResource(R.string.tab_dvr)) }
                 )
                 NavigationBarItem(
-                    selected = tab == 3,
+                    selected = tab == setIdx,
                     onClick = {
-                        if (tab == 3) guardLeave { resetSet++ }   // re-tap: spat na koren nastaveni
-                        else tab = 3
+                        if (tab == setIdx) guardLeave { resetSet++ }   // re-tap: spat na koren nastaveni
+                        else tab = setIdx
                     },
                     icon = { androidx.compose.material3.Icon(
                         Icons.Default.Dns, contentDescription = null) },
@@ -600,15 +616,25 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
     ) { padding ->
         Box(Modifier.padding(padding)) {
             when (tab) {
-                0 -> ChannelsScreen(
+                0 -> if (modernPhone) ModernPhoneHomeScreen(
+                    onOpenChannels = { resetCh++; tab = chIdx },
+                    onOpenRadio = { resetRadio++; tab = radioIdx },
+                    onOpenEpg = { TabController.openEpgGrid() },
+                    onOpenArchive = { resetDvr++; tab = dvrIdx },
+                    onOpenSettings = { tab = setIdx },
+                ) else ChannelsScreen(
                     resetSignal = resetCh,
                     onGoToNav = { runCatching { navFocus.requestFocus() } }
                 )
-                1 -> RadioScreen(
+                chIdx -> ChannelsScreen(
+                    resetSignal = resetCh,
+                    onGoToNav = { runCatching { navFocus.requestFocus() } }
+                )
+                radioIdx -> RadioScreen(
                     resetSignal = resetRadio,
                     onGoToNav = { runCatching { navFocus.requestFocus() } }
                 )
-                2 -> DvrScreen(resetSignal = resetDvr)
+                dvrIdx -> DvrScreen(resetSignal = resetDvr)
                 else -> {
                     val ctx = androidx.compose.ui.platform.LocalContext.current
                     var unlocked by remember { mutableStateOf(!ParentalLock.settingsNeedsPin(ctx)) }

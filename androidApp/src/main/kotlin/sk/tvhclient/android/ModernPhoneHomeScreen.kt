@@ -1,0 +1,318 @@
+package sk.tvhclient.android
+
+import android.content.Intent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import sk.tvhclient.shared.Tvh
+import sk.tvhclient.shared.api.ChannelRow
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+/**
+ * Moderna domovska obrazovka pre TELEFON (UiModePref.MODERN): hero karta
+ * s aktualnym programom naposledy sledovaneho kanala, rad oblubenych kanalov
+ * a skratky na sekcie. Zdiela ChannelsViewModel (activity scope) s obrazovkou
+ * kanalov, takze nic nenacitava navyse. Prehratie plni LivePlaylist rovnako
+ * ako klasicky tok, aby v prehravaci fungovalo prepinanie kanalov.
+ */
+@Composable
+fun ModernPhoneHomeScreen(
+    onOpenChannels: () -> Unit,
+    onOpenRadio: () -> Unit,
+    onOpenEpg: () -> Unit,
+    onOpenArchive: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    val ctx = LocalContext.current
+    val chVm: ChannelsViewModel = viewModel()
+    val chState by chVm.state.collectAsState()
+    val epgMap by chVm.epgMap.collectAsState()
+    LaunchedEffect(Unit) { chVm.loadIfNeeded() }
+
+    val accent = Color(0xFF1D9E75)
+    val accent2 = Color(0xFF2BB6D6)
+    val cardBg = Color(0xFF0F1E3D)
+    val cardBorder = Color(0xFF1E3A6E)
+    val fg = Color.White
+    val fgDim = Color(0xFF9FB4D8)
+
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) { now = System.currentTimeMillis(); kotlinx.coroutines.delay(30_000) }
+    }
+    val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
+    val hhmm = remember(locale) { SimpleDateFormat("HH:mm", locale) }
+    val dateStr = remember(now) { SimpleDateFormat("EEEE d. MMMM", locale).format(Date(now)) }
+
+    val rows: List<ChannelRow> = (chState as? ChannelsState.Loaded)?.allRows ?: emptyList()
+    val sid = remember { Tvh.store.active()?.id ?: "default" }
+    val server = remember { Tvh.store.active() }
+    val piconLoader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
+    val favUuids = remember(rows) { Favorites.all(ctx, sid) }
+    val lastUuid = remember(rows) { LastChannel.get(ctx, sid) }
+
+    val hero: ChannelRow? = remember(rows, lastUuid) {
+        rows.firstOrNull { it.channel.uuid == lastUuid }
+            ?: rows.firstOrNull { it.channel.uuid in favUuids }
+            ?: rows.firstOrNull()
+    }
+    val railRows: List<ChannelRow> = remember(rows, favUuids) {
+        val favs = rows.filter { it.channel.uuid in favUuids }
+        if (favs.isNotEmpty()) favs.take(12) else rows.take(8)
+    }
+
+    fun play(uuid: String, title: String) {
+        (chState as? ChannelsState.Loaded)?.let { st ->
+            val hidden = HiddenChannels.all(ctx, Tvh.store.active()?.id)
+            LivePlaylist.channels = st.allRows.filter { it.channel.uuid !in hidden }.map { r ->
+                LivePlaylist.LiveChannel(
+                    uuid = r.channel.uuid, name = r.channel.name,
+                    number = r.channel.number ?: 0, piconUrl = r.piconUrl,
+                    nowTitle = r.nowTitle ?: "", nowStart = r.nowStart, nowStop = r.nowStop
+                )
+            }
+        }
+        LivePlaylist.setIndexForUuid(uuid)
+        runCatching {
+            ctx.startActivity(Intent(ctx, PlayerActivity::class.java).apply {
+                putExtra(PlayerActivity.EXTRA_UUID, uuid)
+                putExtra(PlayerActivity.EXTRA_TITLE, title)
+                putExtra(PlayerActivity.EXTRA_KIND, "tv")
+            })
+        }
+    }
+
+    val nextLabel = stringResource(R.string.mh_next)
+    val nowSec = now / 1000
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(Color(0xFF0A1124), Color(0xFF0C1A36))))
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
+        Text(dateStr.replaceFirstChar { it.uppercase() }, color = fgDim, fontSize = 13.sp)
+        Spacer(Modifier.height(10.dp))
+
+        // ===== HERO =====
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(Brush.linearGradient(listOf(Color(0xFF173D63), Color(0xFF0D2140), Color(0xFF0A1124))))
+                .padding(16.dp)
+        ) {
+            Column {
+                if (hero != null) {
+                    val ev = epgMap[hero.channel.uuid]?.firstOrNull { nowSec in it.start until it.stop }
+                    val title = ev?.title?.takeIf { it.isNotBlank() } ?: hero.nowTitle ?: hero.channel.name
+                    val startSec = ev?.start ?: hero.nowStart
+                    val stopSec = ev?.stop ?: hero.nowStop
+                    val range = if (startSec > 0 && stopSec > 0)
+                        hhmm.format(Date(startSec * 1000)) + " – " + hhmm.format(Date(stopSec * 1000)) else ""
+                    val next = if (stopSec > 0)
+                        epgMap[hero.channel.uuid]?.firstOrNull { it.start >= stopSec && it.title.isNotBlank() }?.title
+                        else null
+                    val frac = if (startSec in 1 until stopSec)
+                        ((nowSec - startSec).toFloat() / (stopSec - startSec)).coerceIn(0f, 1f) else 0f
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier.clip(RoundedCornerShape(999.dp)).background(Color(0xFFE5484D))
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text(stringResource(R.string.mh_live), color = Color.White,
+                                fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        if (hero.piconUrl != null) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(ctx).data(hero.piconUrl).build(),
+                                contentDescription = null,
+                                imageLoader = piconLoader,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                        }
+                        val num = hero.channel.number?.takeIf { it > 0 }?.toString()
+                        Text(listOfNotNull(num, hero.channel.name).joinToString(" · "),
+                            color = fgDim, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(title, color = fg, fontSize = 22.sp, fontWeight = FontWeight.SemiBold,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        listOfNotNull(
+                            range.takeIf { it.isNotBlank() },
+                            next?.let { "$nextLabel $it" }
+                        ).joinToString(" · "),
+                        color = fgDim, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    if (frac > 0f) {
+                        LinearProgressIndicator(
+                            progress = { frac },
+                            modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
+                            color = accent, trackColor = Color(0xFF1B2C52)
+                        )
+                        Spacer(Modifier.height(12.dp))
+                    }
+                    Row {
+                        Box(
+                            Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(accent)
+                                .clickable { play(hero.channel.uuid, hero.channel.name) }
+                                .padding(horizontal = 20.dp, vertical = 9.dp)
+                        ) {
+                            Text("▶  " + stringResource(R.string.mh_watch), color = Color(0xFF04120C),
+                                fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Box(
+                            Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color(0xFF13234A))
+                                .clickable { onOpenEpg() }
+                                .padding(horizontal = 16.dp, vertical = 9.dp)
+                        ) {
+                            Text(stringResource(R.string.home_tv_program), color = Color(0xFFCFE0F5), fontSize = 14.sp)
+                        }
+                    }
+                } else {
+                    Text("Headent Client", color = fg, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(4.dp))
+                    Text(dateStr, color = fgDim, fontSize = 13.sp)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // ===== skratky =====
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            itemsIndexed(
+                listOf(
+                    R.string.tab_channels to onOpenChannels,
+                    R.string.tab_radio to onOpenRadio,
+                    R.string.tab_dvr to onOpenArchive,
+                    R.string.tab_settings to onOpenSettings,
+                )
+            ) { _, (res, act) ->
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color(0xFF13234A))
+                        .clickable { act() }
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(stringResource(res), color = Color(0xFFCFE0F5), fontSize = 13.sp)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(18.dp))
+
+        // ===== oblubene · teraz =====
+        if (railRows.isNotEmpty()) {
+            Text(stringResource(R.string.mh_fav_now), color = fg, fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(8.dp))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                itemsIndexed(railRows, key = { _, r -> r.channel.uuid }) { _, r ->
+                    val ev = epgMap[r.channel.uuid]?.firstOrNull { nowSec in it.start until it.stop }
+                    val t = ev?.title?.takeIf { it.isNotBlank() } ?: r.nowTitle ?: ""
+                    val s = ev?.start ?: r.nowStart
+                    val e = ev?.stop ?: r.nowStop
+                    val frac = if (s in 1 until e) ((nowSec - s).toFloat() / (e - s)).coerceIn(0f, 1f) else 0f
+                    Column(
+                        Modifier
+                            .width(180.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(cardBg)
+                            .clickable { play(r.channel.uuid, r.channel.name) }
+                            .padding(10.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (r.piconUrl != null) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(ctx).data(r.piconUrl).build(),
+                                    contentDescription = null,
+                                    imageLoader = piconLoader,
+                                    modifier = Modifier.size(26.dp)
+                                )
+                            } else {
+                                Box(
+                                    Modifier.size(26.dp).clip(CircleShape).background(cardBorder),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(r.channel.name.take(2).uppercase(), color = fg, fontSize = 10.sp)
+                                }
+                            }
+                            Spacer(Modifier.width(7.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(r.channel.name, color = fgDim, fontSize = 10.sp,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(t.ifBlank { "–" }, color = fg, fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                        Spacer(Modifier.height(7.dp))
+                        LinearProgressIndicator(
+                            progress = { frac },
+                            modifier = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)),
+                            color = if (frac > 0f) accent2 else Color(0xFF1B2C52),
+                            trackColor = Color(0xFF1B2C52)
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+    }
+}
