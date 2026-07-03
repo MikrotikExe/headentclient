@@ -921,7 +921,10 @@ private fun EpgGridRow(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
-                    Modifier.fillMaxWidth().weight(1f),
+                    Modifier.fillMaxWidth().weight(1f)
+                        .padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 2.dp)
+                        .clip(RoundedCornerShape(9.dp))
+                        .background(piconBackground()),
                     contentAlignment = Alignment.Center
                 ) {
                     if (row.piconUrl != null) {
@@ -930,7 +933,7 @@ private fun EpgGridRow(
                             contentDescription = row.channel.name,
                             imageLoader = loader,
                             contentScale = ContentScale.Fit,
-                            modifier = Modifier.fillMaxSize().padding(5.dp)
+                            modifier = Modifier.fillMaxSize().padding(3.dp)
                         )
                     } else {
                         Text(
