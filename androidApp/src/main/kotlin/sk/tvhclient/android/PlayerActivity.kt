@@ -1792,15 +1792,17 @@ class PlayerActivity : ComponentActivity() {
             if (down) {
                 when (kc) {
                     android.view.KeyEvent.KEYCODE_DPAD_LEFT -> {
-                        if (modernOvRow.value == 0)
-                            modernOvCard.value = (modernOvCard.value - 1).coerceAtLeast(0)
-                        else modernOvStrip.value = (modernOvStrip.value - 1 + ids.size) % ids.size
+                        if (modernOvRow.value == 0) {
+                            val n = liveUuids.size
+                            if (n > 0) modernOvCard.value = (modernOvCard.value - 1 + n) % n
+                        } else modernOvStrip.value = (modernOvStrip.value - 1 + ids.size) % ids.size
                         modernOvPoke.value++; return true
                     }
                     android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                        if (modernOvRow.value == 0)
-                            modernOvCard.value = (modernOvCard.value + 1).coerceAtMost(liveUuids.size - 1)
-                        else modernOvStrip.value = (modernOvStrip.value + 1) % ids.size
+                        if (modernOvRow.value == 0) {
+                            val n = liveUuids.size
+                            if (n > 0) modernOvCard.value = (modernOvCard.value + 1) % n
+                        } else modernOvStrip.value = (modernOvStrip.value + 1) % ids.size
                         modernOvPoke.value++; return true
                     }
                     android.view.KeyEvent.KEYCODE_DPAD_DOWN -> {
