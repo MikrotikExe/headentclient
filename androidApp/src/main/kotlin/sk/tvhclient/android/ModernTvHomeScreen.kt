@@ -213,17 +213,6 @@ fun ModernTvHomeScreen(
                             Text("▶  " + stringResource(R.string.mh_watch), color = cs.onPrimary,
                                 fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                         }
-                        Spacer(Modifier.width(12.dp))
-                        Box(
-                            Modifier
-                                .dpadFocusable(RoundedCornerShape(999.dp))
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(cs.surfaceContainerHigh)
-                                .clickable { onTvProgram() }
-                                .padding(horizontal = 22.dp, vertical = 10.dp)
-                        ) {
-                            Text(stringResource(R.string.home_tv_program), color = cs.onSurface, fontSize = 16.sp)
-                        }
                     }
                 } else {
                     // este sa nacitava / bez servera: znacka + nazov, navigacia nizsie funguje

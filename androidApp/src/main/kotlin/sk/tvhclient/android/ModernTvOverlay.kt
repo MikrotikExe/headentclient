@@ -27,6 +27,8 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay30
+import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -165,6 +167,8 @@ internal fun ModernTvOverlay(
                         "play" -> ModernStripPlay(isPlaying, focused)
                         "tsrew" -> ModernStripCircle(Icons.Default.Replay30, focused)
                         "tsff" -> ModernStripCircle(Icons.Default.Forward30, focused)
+                        "chprev" -> ModernStripCircle(Icons.Default.SkipPrevious, focused)
+                        "chnext" -> ModernStripCircle(Icons.Default.SkipNext, focused)
                         else -> ModernStripPill(
                             icon = when (id) {
                                 "sleep" -> Icons.Default.Timer

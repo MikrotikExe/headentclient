@@ -231,6 +231,9 @@ private fun TvHomeHost() {
 
     // sekcia: "", "epg", "archive", "settings"; play: "", "tv", "radio"
     var section by remember { mutableStateOf("") }
+    // Prehravac ziada TV program (open_epg intent) -> otvor mriezku aj v TV launcheri (M323)
+    val epgSigTv by TabController.epgGrid
+    LaunchedEffect(epgSigTv) { if (epgSigTv > 0) section = "epg" }
     var lastTile by remember { mutableStateOf("channels") }
     var play by remember { mutableStateOf("") }
     var showExit by remember { mutableStateOf(false) }

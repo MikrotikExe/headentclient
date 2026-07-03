@@ -168,10 +168,14 @@ class PlayerActivity : ComponentActivity() {
 
     /** Polozky ovladacej listy overlayu (transport v strede; pretacanie len pri timeshiftu). */
     private fun modernStripIds(): List<String> = buildList {
-        add("sleep"); add("epg"); add("audio")
+        add("audio")
+        // prepinanie kanalov priamo z listy (M323) — len pri live s viac kanalmi
+        val zap = !seekablePlayback && liveUuids.size > 1
+        if (zap) add("chprev")
         if (timeshiftEngagedState.value) add("tsrew")
         add("play")
         if (timeshiftEngagedState.value) add("tsff")
+        if (zap) add("chnext")
         add("subs"); add("info")
     }
 
@@ -194,6 +198,8 @@ class PlayerActivity : ComponentActivity() {
             "play" -> { togglePlayPause(); modernOvPoke.value++ }
             "tsrew" -> { timeshiftSkip(-30); modernOvPoke.value++ }
             "tsff" -> { timeshiftSkip(+30); modernOvPoke.value++ }
+            "chprev" -> { switchLive(-1); modernOvCard.value = liveIndexState.value.coerceAtLeast(0); modernOvPoke.value++ }
+            "chnext" -> { switchLive(+1); modernOvCard.value = liveIndexState.value.coerceAtLeast(0); modernOvPoke.value++ }
             null -> {}
             else -> {
                 modernOvExecId.value = modernStripIds()[modernOvStrip.value]; modernOvExec.value++
