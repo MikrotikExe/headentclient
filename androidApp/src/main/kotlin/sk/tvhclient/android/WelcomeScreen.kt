@@ -109,29 +109,19 @@ fun WelcomeScreen(vm: ServersViewModel) {
     // Branding (logo + nazov + popis) - zdielane pre oba layouty
     val modernUi = isModernUi()
     val branding: @Composable () -> Unit = {
-        Box(contentAlignment = Alignment.Center) {
-            if (modernUi) {
-                // jemna teal ziara za logom (moderny rezim)
-                Box(
-                    Modifier.size(logoSize * 1.35f)
-                        .clip(androidx.compose.foundation.shape.CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .size(logoSize)
-                    .clip(RoundedCornerShape(if (modernUi) 28.dp else 24.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
-                contentAlignment = Alignment.Center
-            ) {
-                androidx.compose.material3.Icon(
-                    Icons.Default.LiveTv,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(logoIcon)
-                )
-            }
+        Box(
+            modifier = Modifier
+                .size(logoSize)
+                .clip(RoundedCornerShape(if (modernUi) 28.dp else 24.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
+            contentAlignment = Alignment.Center
+        ) {
+            androidx.compose.material3.Icon(
+                Icons.Default.LiveTv,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(logoIcon)
+            )
         }
         Spacer(Modifier.height(gapLogo))
         Text(
@@ -395,17 +385,16 @@ fun WelcomeScreen(vm: ServersViewModel) {
                 formFields()
                 Spacer(Modifier.height(28.dp))
                 UiModePicker(ctx)
-                Spacer(Modifier.height(56.dp))
+                // Verzia je sucastou skrolovacieho obsahu — neprekryva volbu vzhladu
+                Spacer(Modifier.height(24.dp))
+                Text(
+                    versionLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.navigationBarsPadding())
             }
-            Text(
-                versionLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(bottom = 12.dp)
-            )
         }
     }
 }
