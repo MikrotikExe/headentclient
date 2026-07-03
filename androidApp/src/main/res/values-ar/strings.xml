@@ -271,4 +271,18 @@
     <string name="reload_data_title">إعادة تحميل القنوات وEPG والـ picons</string>
     <string name="reload_data_note">يمسح ذاكرة التخزين المؤقت ويعيد تنزيل قائمة القنوات وEPG والـ picons. استخدمه إذا بدا شيء قديمًا.</string>
     <string name="reload_data_done">جارٍ إعادة التحميل…</string>
+    <string name="epg_recorded_badge">مسجّل</string>
+    <string name="set_sub_general">اللغة، السمة، نمط الواجهة</string>
+    <string name="set_sub_playback">وحدة فك الترميز، إزالة التشابك، الصوت، الترجمات</string>
+    <string name="set_sub_plock">رمز PIN والقنوات المقفلة والأرشيف</string>
+    <string name="set_sub_servers">اتصالات Tvheadend، الخادم النشط</string>
+    <string name="set_sub_remote">التحكم في تطبيق التلفاز من الهاتف</string>
+    <string name="set_sub_info">الإصدار والتراخيص والمستندات القانونية</string>
+    <string name="set_grp_appearance">المظهر</string>
+    <string name="set_grp_autostart">تشغيل تلقائي</string>
+    <string name="set_grp_video">الفيديو</string>
+    <string name="set_grp_sound">الصوت</string>
+    <string name="set_grp_behavior">السلوك</string>
+    <string name="set_grp_maintenance">الصيانة</string>
+    <string name="set_grp_docs">المستندات</string>
 </resources>

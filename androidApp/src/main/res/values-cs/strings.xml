@@ -272,4 +272,17 @@
     <string name="reload_data_note">Vymaže cache a znovu stáhne seznam kanálů, EPG a picony. Použij, pokud něco vypadá zastarale.</string>
     <string name="reload_data_done">Obnovuji…</string>
     <string name="epg_recorded_badge">Nahráno</string>
+    <string name="set_sub_general">Jazyk, motiv, vzhled rozhraní</string>
+    <string name="set_sub_playback">Dekodér, deinterlacing, zvuk, titulky</string>
+    <string name="set_sub_plock">PIN, zamčené kanály a archiv</string>
+    <string name="set_sub_servers">Tvheadend připojení, aktivní server</string>
+    <string name="set_sub_remote">Ovládání TV aplikace z telefonu</string>
+    <string name="set_sub_info">Verze, licence, právní dokumenty</string>
+    <string name="set_grp_appearance">Vzhled</string>
+    <string name="set_grp_autostart">Autostart</string>
+    <string name="set_grp_video">Video</string>
+    <string name="set_grp_sound">Zvuk</string>
+    <string name="set_grp_behavior">Chování</string>
+    <string name="set_grp_maintenance">Údržba</string>
+    <string name="set_grp_docs">Dokumenty</string>
 </resources>

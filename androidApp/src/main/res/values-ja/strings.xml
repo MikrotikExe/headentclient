@@ -271,4 +271,18 @@
     <string name="reload_data_title">チャンネル、EPG、picon を再読み込み</string>
     <string name="reload_data_note">キャッシュを消去し、チャンネル一覧、EPG、picon を再ダウンロードします。内容が古いと感じたら使用してください。</string>
     <string name="reload_data_done">再読み込み中…</string>
+    <string name="epg_recorded_badge">録画済み</string>
+    <string name="set_sub_general">言語、テーマ、インターフェースのスタイル</string>
+    <string name="set_sub_playback">デコーダー、デインターレース、音声、字幕</string>
+    <string name="set_sub_plock">PIN、ロックされたチャンネルとアーカイブ</string>
+    <string name="set_sub_servers">Tvheadend接続、アクティブなサーバー</string>
+    <string name="set_sub_remote">スマートフォンからTVアプリを操作</string>
+    <string name="set_sub_info">バージョン、ライセンス、法的文書</string>
+    <string name="set_grp_appearance">外観</string>
+    <string name="set_grp_autostart">自動起動</string>
+    <string name="set_grp_video">動画</string>
+    <string name="set_grp_sound">音声</string>
+    <string name="set_grp_behavior">動作</string>
+    <string name="set_grp_maintenance">メンテナンス</string>
+    <string name="set_grp_docs">ドキュメント</string>
 </resources>

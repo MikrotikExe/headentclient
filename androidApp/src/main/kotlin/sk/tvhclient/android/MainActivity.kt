@@ -880,12 +880,32 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
                     .focusGroup()
             ) {
                 if (section == null) {
-                    SettingsCategory(stringResource(R.string.set_cat_general), catFocus["general"]) { lastSection = "general"; section = "general" }
-                    SettingsCategory(stringResource(R.string.set_cat_playback), catFocus["playback"]) { lastSection = "playback"; section = "playback" }
-                    SettingsCategory(stringResource(R.string.plock_title), catFocus["plock"]) { lastSection = "plock"; section = "plock" }
-                    SettingsCategory(stringResource(R.string.set_cat_servers), catFocus["servers"]) { lastSection = "servers"; section = "servers" }
-                    SettingsCategory(stringResource(R.string.set_cat_remote), catFocus["remote"]) { lastSection = "remote"; section = "remote" }
-                    SettingsCategory(stringResource(R.string.set_cat_info), catFocus["info"]) { lastSection = "info"; section = "info" }
+                    SettingsCategory(stringResource(R.string.set_cat_general), catFocus["general"],
+                        icon = Icons.Filled.Tune, subtitle = stringResource(R.string.set_sub_general),
+                        chipBgL = 0xFFE0F2EF, chipFgL = 0xFF0F8A63, chipBgD = 0xFF0F2E22, chipFgD = 0xFF7FE3BF
+                    ) { lastSection = "general"; section = "general" }
+                    SettingsCategory(stringResource(R.string.set_cat_playback), catFocus["playback"],
+                        icon = Icons.Filled.PlayArrow, subtitle = stringResource(R.string.set_sub_playback),
+                        chipBgL = 0xFFD8F0FB, chipFgL = 0xFF1877A8, chipBgD = 0xFF12283A, chipFgD = 0xFF7CC4E8
+                    ) { lastSection = "playback"; section = "playback" }
+                    SettingsCategory(stringResource(R.string.plock_title), catFocus["plock"],
+                        icon = Icons.Filled.Lock, subtitle = stringResource(R.string.set_sub_plock),
+                        chipBgL = 0xFFFFE1E1, chipFgL = 0xFFD64545, chipBgD = 0xFF3A1D20, chipFgD = 0xFFEF8A88
+                    ) { lastSection = "plock"; section = "plock" }
+                    SettingsCategory(stringResource(R.string.set_cat_servers), catFocus["servers"],
+                        icon = Icons.Filled.Dns, subtitle = stringResource(R.string.set_sub_servers),
+                        badge = servers.size.takeIf { it > 0 }?.toString(),
+                        chipBgL = 0xFFE3E0FB, chipFgL = 0xFF6A5AD8, chipBgD = 0xFF241F45, chipFgD = 0xFFA99BF5
+                    ) { lastSection = "servers"; section = "servers" }
+                    SettingsCategory(stringResource(R.string.set_cat_remote), catFocus["remote"],
+                        icon = Icons.Filled.SettingsRemote, subtitle = stringResource(R.string.set_sub_remote),
+                        chipBgL = 0xFFFFECCC, chipFgL = 0xFFC07A17, chipBgD = 0xFF3A2B12, chipFgD = 0xFFE8B96A
+                    ) { lastSection = "remote"; section = "remote" }
+                    SettingsCategory(stringResource(R.string.set_cat_info), catFocus["info"],
+                        icon = Icons.Filled.Info, subtitle = stringResource(R.string.set_sub_info),
+                        badge = BuildConfig.VERSION_NAME,
+                        chipBgL = 0xFFE0F2EF, chipFgL = 0xFF0F8A63, chipBgD = 0xFF0F2E22, chipFgD = 0xFF7FE3BF
+                    ) { lastSection = "info"; section = "info" }
                 } else {
                     renderContent(section!!)
                 }

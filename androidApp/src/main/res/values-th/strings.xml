@@ -271,4 +271,18 @@
     <string name="reload_data_title">โหลดช่อง, EPG และ picon ใหม่</string>
     <string name="reload_data_note">ล้างแคชและดาวน์โหลดรายการช่อง, EPG และ picon ใหม่ ใช้เมื่อมีบางอย่างดูเก่า</string>
     <string name="reload_data_done">กำลังโหลดใหม่…</string>
+    <string name="epg_recorded_badge">บันทึกแล้ว</string>
+    <string name="set_sub_general">ภาษา ธีม สไตล์อินเทอร์เฟซ</string>
+    <string name="set_sub_playback">ตัวถอดรหัส ดีอินเตอร์เลซ เสียง คำบรรยาย</string>
+    <string name="set_sub_plock">PIN ช่องที่ล็อกและคลังบันทึก</string>
+    <string name="set_sub_servers">การเชื่อมต่อ Tvheadend เซิร์ฟเวอร์ที่ใช้งาน</string>
+    <string name="set_sub_remote">ควบคุมแอปทีวีจากโทรศัพท์</string>
+    <string name="set_sub_info">เวอร์ชัน ใบอนุญาต เอกสารทางกฎหมาย</string>
+    <string name="set_grp_appearance">ลักษณะ</string>
+    <string name="set_grp_autostart">เริ่มอัตโนมัติ</string>
+    <string name="set_grp_video">วิดีโอ</string>
+    <string name="set_grp_sound">เสียง</string>
+    <string name="set_grp_behavior">พฤติกรรม</string>
+    <string name="set_grp_maintenance">การบำรุงรักษา</string>
+    <string name="set_grp_docs">เอกสาร</string>
 </resources>

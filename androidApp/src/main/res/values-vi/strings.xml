@@ -271,4 +271,18 @@
     <string name="reload_data_title">Tải lại kênh, EPG và picon</string>
     <string name="reload_data_note">Xóa bộ nhớ đệm và tải lại danh sách kênh, EPG và picon. Dùng khi có nội dung trông đã cũ.</string>
     <string name="reload_data_done">Đang tải lại…</string>
+    <string name="epg_recorded_badge">Đã ghi</string>
+    <string name="set_sub_general">Ngôn ngữ, chủ đề, kiểu giao diện</string>
+    <string name="set_sub_playback">Bộ giải mã, khử xen kẽ, âm thanh, phụ đề</string>
+    <string name="set_sub_plock">Mã PIN, kênh bị khóa và kho lưu trữ</string>
+    <string name="set_sub_servers">Kết nối Tvheadend, máy chủ đang hoạt động</string>
+    <string name="set_sub_remote">Điều khiển ứng dụng TV từ điện thoại</string>
+    <string name="set_sub_info">Phiên bản, giấy phép, tài liệu pháp lý</string>
+    <string name="set_grp_appearance">Giao diện</string>
+    <string name="set_grp_autostart">Tự khởi động</string>
+    <string name="set_grp_video">Video</string>
+    <string name="set_grp_sound">Âm thanh</string>
+    <string name="set_grp_behavior">Hành vi</string>
+    <string name="set_grp_maintenance">Bảo trì</string>
+    <string name="set_grp_docs">Tài liệu</string>
 </resources>

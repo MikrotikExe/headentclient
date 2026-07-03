@@ -271,4 +271,18 @@
     <string name="reload_data_title">চ্যানেল, EPG ও picon পুনরায় লোড করুন</string>
     <string name="reload_data_note">ক্যাশ মুছে চ্যানেল তালিকা, EPG ও picon আবার ডাউনলোড করে। কিছু পুরোনো মনে হলে এটি ব্যবহার করুন।</string>
     <string name="reload_data_done">পুনরায় লোড হচ্ছে…</string>
+    <string name="epg_recorded_badge">রেকর্ড করা</string>
+    <string name="set_sub_general">ভাষা, থিম, ইন্টারফেস শৈলী</string>
+    <string name="set_sub_playback">ডিকোডার, ডি-ইন্টারলেসিং, অডিও, সাবটাইটেল</string>
+    <string name="set_sub_plock">PIN, লক করা চ্যানেল ও আর্কাইভ</string>
+    <string name="set_sub_servers">Tvheadend সংযোগ, সক্রিয় সার্ভার</string>
+    <string name="set_sub_remote">ফোন থেকে TV অ্যাপ নিয়ন্ত্রণ করুন</string>
+    <string name="set_sub_info">সংস্করণ, লাইসেন্স, আইনি নথি</string>
+    <string name="set_grp_appearance">চেহারা</string>
+    <string name="set_grp_autostart">অটোস্টার্ট</string>
+    <string name="set_grp_video">ভিডিও</string>
+    <string name="set_grp_sound">অডিও</string>
+    <string name="set_grp_behavior">আচরণ</string>
+    <string name="set_grp_maintenance">রক্ষণাবেক্ষণ</string>
+    <string name="set_grp_docs">নথি</string>
 </resources>

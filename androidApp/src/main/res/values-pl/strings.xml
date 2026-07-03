@@ -271,4 +271,18 @@
     <string name="reload_data_title">Przeładuj kanały, EPG i picony</string>
     <string name="reload_data_note">Czyści pamięć podręczną i ponownie pobiera listę kanałów, EPG i picony. Użyj, jeśli coś wygląda na nieaktualne.</string>
     <string name="reload_data_done">Przeładowywanie…</string>
+    <string name="epg_recorded_badge">Nagrane</string>
+    <string name="set_sub_general">Język, motyw, styl interfejsu</string>
+    <string name="set_sub_playback">Dekoder, usuwanie przeplotu, dźwięk, napisy</string>
+    <string name="set_sub_plock">PIN, zablokowane kanały i archiwum</string>
+    <string name="set_sub_servers">Połączenia Tvheadend, aktywny serwer</string>
+    <string name="set_sub_remote">Sterowanie aplikacją TV z telefonu</string>
+    <string name="set_sub_info">Wersja, licencje, dokumenty prawne</string>
+    <string name="set_grp_appearance">Wygląd</string>
+    <string name="set_grp_autostart">Autostart</string>
+    <string name="set_grp_video">Wideo</string>
+    <string name="set_grp_sound">Dźwięk</string>
+    <string name="set_grp_behavior">Zachowanie</string>
+    <string name="set_grp_maintenance">Konserwacja</string>
+    <string name="set_grp_docs">Dokumenty</string>
 </resources>

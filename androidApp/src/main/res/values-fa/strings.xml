@@ -271,4 +271,18 @@
     <string name="reload_data_title">بارگذاری مجدد کانال‌ها، EPG و picon‌ها</string>
     <string name="reload_data_note">حافظه پنهان را پاک می‌کند و فهرست کانال‌ها، EPG و picon‌ها را دوباره دانلود می‌کند. اگر چیزی قدیمی به نظر می‌رسد از آن استفاده کنید.</string>
     <string name="reload_data_done">در حال بارگذاری مجدد…</string>
+    <string name="epg_recorded_badge">ضبط‌شده</string>
+    <string name="set_sub_general">زبان، پوسته، سبک رابط</string>
+    <string name="set_sub_playback">رمزگشا، رفع درهم‌بافی، صدا، زیرنویس</string>
+    <string name="set_sub_plock">پین، کانال‌های قفل‌شده و آرشیو</string>
+    <string name="set_sub_servers">اتصال‌های Tvheadend، سرور فعال</string>
+    <string name="set_sub_remote">کنترل برنامه تلویزیون از گوشی</string>
+    <string name="set_sub_info">نسخه، مجوزها، اسناد حقوقی</string>
+    <string name="set_grp_appearance">ظاهر</string>
+    <string name="set_grp_autostart">شروع خودکار</string>
+    <string name="set_grp_video">ویدئو</string>
+    <string name="set_grp_sound">صدا</string>
+    <string name="set_grp_behavior">رفتار</string>
+    <string name="set_grp_maintenance">نگهداری</string>
+    <string name="set_grp_docs">اسناد</string>
 </resources>

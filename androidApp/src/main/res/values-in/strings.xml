@@ -271,4 +271,18 @@
     <string name="reload_data_title">Muat ulang saluran, EPG, dan picon</string>
     <string name="reload_data_note">Menghapus cache dan mengunduh ulang daftar saluran, EPG, dan picon. Gunakan jika ada yang terlihat usang.</string>
     <string name="reload_data_done">Memuat ulang…</string>
+    <string name="epg_recorded_badge">Direkam</string>
+    <string name="set_sub_general">Bahasa, tema, gaya antarmuka</string>
+    <string name="set_sub_playback">Dekoder, deinterlacing, audio, subtitel</string>
+    <string name="set_sub_plock">PIN, saluran terkunci, dan arsip</string>
+    <string name="set_sub_servers">Koneksi Tvheadend, server aktif</string>
+    <string name="set_sub_remote">Kendalikan aplikasi TV dari ponsel</string>
+    <string name="set_sub_info">Versi, lisensi, dokumen hukum</string>
+    <string name="set_grp_appearance">Tampilan</string>
+    <string name="set_grp_autostart">Mulai otomatis</string>
+    <string name="set_grp_video">Video</string>
+    <string name="set_grp_sound">Audio</string>
+    <string name="set_grp_behavior">Perilaku</string>
+    <string name="set_grp_maintenance">Pemeliharaan</string>
+    <string name="set_grp_docs">Dokumen</string>
 </resources>

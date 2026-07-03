@@ -271,4 +271,18 @@
     <string name="reload_data_title">Znova naloži kanale, EPG in picone</string>
     <string name="reload_data_note">Počisti predpomnilnik in znova prenese seznam kanalov, EPG in picone. Uporabite, če je videti kaj zastarelo.</string>
     <string name="reload_data_done">Ponovno nalaganje…</string>
+    <string name="epg_recorded_badge">Posneto</string>
+    <string name="set_sub_general">Jezik, tema, slog vmesnika</string>
+    <string name="set_sub_playback">Dekoder, razpletanje, zvok, podnapisi</string>
+    <string name="set_sub_plock">PIN, zaklenjeni kanali in arhiv</string>
+    <string name="set_sub_servers">Povezave Tvheadend, aktivni strežnik</string>
+    <string name="set_sub_remote">Upravljanje TV-aplikacije s telefonom</string>
+    <string name="set_sub_info">Različica, licence, pravni dokumenti</string>
+    <string name="set_grp_appearance">Videz</string>
+    <string name="set_grp_autostart">Samodejni zagon</string>
+    <string name="set_grp_video">Video</string>
+    <string name="set_grp_sound">Zvok</string>
+    <string name="set_grp_behavior">Vedenje</string>
+    <string name="set_grp_maintenance">Vzdrževanje</string>
+    <string name="set_grp_docs">Dokumenti</string>
 </resources>

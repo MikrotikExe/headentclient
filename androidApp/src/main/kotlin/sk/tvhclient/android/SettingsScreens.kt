@@ -28,6 +28,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.api.ConnectionResult
 import sk.tvhclient.shared.model.TvhServer
@@ -40,8 +48,85 @@ import kotlinx.coroutines.withContext
 internal fun SettingsCategory(
     label: String,
     focusRequester: androidx.compose.ui.focus.FocusRequester? = null,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    subtitle: String? = null,
+    badge: String? = null,
+    chipBgL: Long = 0xFFE0F2EF, chipFgL: Long = 0xFF0F8A63,
+    chipBgD: Long = 0xFF0F2E22, chipFgD: Long = 0xFF7FE3BF,
     onClick: () -> Unit
 ) {
+    if (isModernUi() && icon != null) {
+        // Moderny rezim: karta s farebnym ikonovym cipom, podtitulkom a badge
+        val cs = MaterialTheme.colorScheme
+        val light = isLightTheme()
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 5.dp)
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
+                .background(if (light) cs.surfaceContainerLowest else cs.surfaceContainer)
+                .border(1.dp, cs.outlineVariant, androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
+                .dpadFocusable(androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
+                .then(
+                    if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier
+                )
+                .clickable { onClick() }
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier.size(46.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(13.dp))
+                    .background(Color(if (light) chipBgL else chipBgD)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.Icon(
+                    icon, contentDescription = null,
+                    tint = Color(if (light) chipFgL else chipFgD),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = cs.onSurface,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
+                if (subtitle != null) {
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = cs.onSurfaceVariant,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            if (badge != null) {
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(13.dp))
+                        .background(if (light) cs.surfaceContainer else cs.surfaceContainerHigh)
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        badge,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = cs.onSurfaceVariant, maxLines = 1
+                    )
+                }
+            }
+            Text(
+                "  \u203A",
+                style = MaterialTheme.typography.titleMedium,
+                color = cs.onSurfaceVariant.copy(alpha = 0.6f)
+            )
+        }
+        return
+    }
     Box(
         Modifier
             .fillMaxWidth()
@@ -59,9 +144,120 @@ internal fun SettingsCategory(
     }
 }
 
+/**
+ * Skupina nastaveni moderneho rezimu: teal kapitalkovy nadpis + karta,
+ * v ktorej su riadky oddelene jemnou linkou (pouzije M318 v podkategoriach).
+ * V klasiku vykresli len obsah bez ramca (fallback pre spolocne pouzitie).
+ */
+@Composable
+internal fun SettingsGroup(
+    title: String? = null,
+    classicTitle: Boolean = false,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit
+) {
+    if (!isModernUi()) {
+        // Klasik: bez ramca; nadpis len tam, kde bol povodne (classicTitle);
+        // rozostup 16dp za skupinou drzi povodny rytmus zoznamu
+        if (classicTitle && title != null) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Spacer(Modifier.height(8.dp))
+        }
+        Column(content = content)
+        Spacer(Modifier.height(16.dp))
+        return
+    }
+    val cs = MaterialTheme.colorScheme
+    val light = isLightTheme()
+    if (title != null) {
+        Text(
+            title.uppercase(),
+            Modifier.padding(start = 4.dp, top = 14.dp, bottom = 6.dp),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.2.sp,
+            color = cs.primary
+        )
+    }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(bottom = 10.dp)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
+            .background(if (light) cs.surfaceContainerLowest else cs.surfaceContainer)
+            .border(1.dp, cs.outlineVariant, androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        content = content
+    )
+}
+
+/** Oddelenie riadkov v SettingsGroup: moderny rezim jemna linka, klasik povodny 16dp rozostup. */
+@Composable
+internal fun SettingsGroupDivider() {
+    if (!isModernUi()) {
+        Spacer(Modifier.height(16.dp))
+        return
+    }
+    Box(
+        Modifier.fillMaxWidth().height(1.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+    )
+}
+
+/**
+ * Riadok s prepinacom: moderny rezim nazov (+ volitelny popis) vlavo a Switch
+ * vpravo; klasik povodne rozlozenie Switch + text (a popis pod tym).
+ */
+@Composable
+internal fun SettingsSwitchRow(
+    label: String,
+    note: String? = null,
+    checked: Boolean,
+    onChange: (Boolean) -> Unit
+) {
+    if (isModernUi()) {
+        Row(
+            Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (note != null) {
+                    Text(
+                        note,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Spacer(Modifier.width(10.dp))
+            Switch(checked = checked, onCheckedChange = onChange)
+        }
+        return
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Switch(checked = checked, onCheckedChange = onChange)
+        Spacer(Modifier.width(8.dp))
+        Text(label)
+    }
+    if (note != null) {
+        Spacer(Modifier.height(8.dp))
+        Text(
+            note,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
 // --- Vseobecne: jazyk + autostart ---
 @Composable
 internal fun GeneralSettings(ctx: android.content.Context) {
+    SettingsGroup(stringResource(R.string.set_grp_appearance)) {
     var lang by remember { mutableStateOf(LocaleHelper.getLang(ctx)) }
     DropdownField(
         label = stringResource(R.string.language),
@@ -111,7 +307,7 @@ internal fun GeneralSettings(ctx: android.content.Context) {
             }
         }
     )
-    Spacer(Modifier.height(16.dp))
+    SettingsGroupDivider()
 
     // Tema aplikacie: automaticky (system) / svetla / tmava
     var theme by remember { mutableStateOf(ThemePref.get(ctx)) }
@@ -133,7 +329,7 @@ internal fun GeneralSettings(ctx: android.content.Context) {
             TabController.settingsDirty.value = true
         }
     )
-    Spacer(Modifier.height(16.dp))
+    SettingsGroupDivider()
 
     // Rezim rozhrania: klasicky / moderny (navy-teal paleta; na TV navyse
     // moderna domovska obrazovka). Dostupne na TV aj telefone.
@@ -155,7 +351,8 @@ internal fun GeneralSettings(ctx: android.content.Context) {
             TabController.settingsDirty.value = true
         }
     )
-    Spacer(Modifier.height(16.dp))
+    }
+    SettingsGroup("EPG") {
 
     // EPG: kolko dni dozadu si appka pamata (lokalny cache) a kolko dopredu nacita
     var epgBack by remember { mutableStateOf(EpgRangePref.daysBack(ctx)) }
@@ -171,7 +368,7 @@ internal fun GeneralSettings(ctx: android.content.Context) {
             TabController.settingsDirty.value = true
         }
     )
-    Spacer(Modifier.height(16.dp))
+    SettingsGroupDivider()
 
     var epgFwd by remember { mutableStateOf(EpgRangePref.daysForward(ctx)) }
     DropdownField(
@@ -186,9 +383,8 @@ internal fun GeneralSettings(ctx: android.content.Context) {
             TabController.settingsDirty.value = true
         }
     )
-    Spacer(Modifier.height(16.dp))
+    }
 
-    Spacer(Modifier.height(4.dp))
     fun requestOverlay() {
         if (android.os.Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(ctx)) {
             val i = Intent(
@@ -205,44 +401,39 @@ internal fun GeneralSettings(ctx: android.content.Context) {
             }
         }
     }
+    SettingsGroup(stringResource(R.string.set_grp_autostart)) {
     var autostart by remember { mutableStateOf(AutostartPref.isEnabled(ctx)) }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Switch(
-            checked = autostart,
-            onCheckedChange = { on ->
-                autostart = on; AutostartPref.setEnabled(ctx, on)
-                TabController.settingsDirty.value = true
-                if (on) requestOverlay()
-            }
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(stringResource(R.string.autostart_enable))
-    }
+    SettingsSwitchRow(
+        label = stringResource(R.string.autostart_enable),
+        checked = autostart,
+        onChange = { on ->
+            autostart = on; AutostartPref.setEnabled(ctx, on)
+            TabController.settingsDirty.value = true
+            if (on) requestOverlay()
+        }
+    )
     var autostartWake by remember { mutableStateOf(AutostartPref.isWakeEnabled(ctx)) }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Switch(
-            checked = autostartWake,
-            onCheckedChange = { on ->
-                autostartWake = on; AutostartPref.setWakeEnabled(ctx, on)
-                TabController.settingsDirty.value = true
-                if (on) requestOverlay()
-            }
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(stringResource(R.string.autostart_wake))
-    }
+    SettingsSwitchRow(
+        label = stringResource(R.string.autostart_wake),
+        checked = autostartWake,
+        onChange = { on ->
+            autostartWake = on; AutostartPref.setWakeEnabled(ctx, on)
+            TabController.settingsDirty.value = true
+            if (on) requestOverlay()
+        }
+    )
     Text(
         stringResource(R.string.autostart_note),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
+    }
 }
 
 // --- Prehravanie: predvolene audio stopy ---
 @Composable
 internal fun PlaybackSettings(ctx: android.content.Context) {
-    Text(stringResource(R.string.audio_pref_title), style = MaterialTheme.typography.titleSmall)
-    Spacer(Modifier.height(8.dp))
+    SettingsGroup(stringResource(R.string.audio_pref_title), classicTitle = true) {
     var audio by remember {
         mutableStateOf(AudioPref.get(ctx).let { l -> List(3) { l.getOrNull(it) ?: "" } })
     }
@@ -258,16 +449,19 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
     }
     val audioOptions = AudioPref.options.map { it.first }
     DropdownField(stringResource(R.string.audio_pref_1), audio[0], audioOptions, audioLabels) { setSlot(0, it) }
+    SettingsGroupDivider()
     DropdownField(stringResource(R.string.audio_pref_2), audio[1], audioOptions, audioLabels) { setSlot(1, it) }
+    SettingsGroupDivider()
     DropdownField(stringResource(R.string.audio_pref_3), audio[2], audioOptions, audioLabels) { setSlot(2, it) }
+    }
 
     // Predvolene otacanie obrazovky v prehravaci — na TV/STB nema zmysel, skry
     val isTvDev = remember {
         val um = ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
         um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
     }
+    SettingsGroup(stringResource(R.string.set_grp_video)) {
     if (!isTvDev) {
-        Spacer(Modifier.height(16.dp))
         var orient by remember { mutableStateOf(OrientationPref.get(ctx)) }
         val orientLabel: @Composable (String) -> String = { v ->
             when (v) {
@@ -287,10 +481,10 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
                 TabController.settingsDirty.value = true
             }
         )
+        SettingsGroupDivider()
     }
 
     // Tema overlay-u prehravaca (samostatne od temy aplikacie)
-    Spacer(Modifier.height(16.dp))
     var playerTheme by remember { mutableStateOf(PlayerThemePref.get(ctx)) }
     val playerThemeLabel: @Composable (String) -> String = { v ->
         when (v) {
@@ -311,9 +505,9 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         }
     )
 
+    SettingsGroupDivider()
     // Deinterlacing — odstranuje hrebenove pasy (combing) pri prekladanom DVB
     // videu na rychlych zaberoch. AUTO deinterlacuje len ked treba.
-    Spacer(Modifier.height(16.dp))
     var deint by remember { mutableStateOf(DeinterlacePref.get(ctx)) }
     val deintLabel: @Composable (String) -> String = { v ->
         when (v) {
@@ -340,8 +534,9 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
     // Zvukovy vystup — riesi rozchadzajuci sa / oneskoreny zvuk. PASSTHROUGH
     // (priamy prenos) posiela zvuk priamo do TV/AVR (zarovna sync na niektorych boxoch).
     // Len na TV/boxoch — na telefone nema zmysel (zvuk ide do reproduktora).
+    }
+    SettingsGroup(stringResource(R.string.set_grp_sound)) {
     if (isTvDev) {
-        Spacer(Modifier.height(16.dp))
         var aout by remember { mutableStateOf(AudioOutputPref.get(ctx)) }
         val aoutLabel: @Composable (String) -> String = { v ->
             when (v) {
@@ -367,7 +562,6 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
     // Zvukovy vystup (telefon) — pri rozchadzajucom sa / oneskorenom zvuku, ktory
     // narasta v case, skus prepnut na OpenSL ES (ina sprava latencie).
     if (!isTvDev) {
-        Spacer(Modifier.height(16.dp))
         var amod by remember { mutableStateOf(AudioModulePref.get(ctx)) }
         val amodLabel: @Composable (String) -> String = { v ->
             when (v) {
@@ -388,75 +582,58 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         )
     }
 
+    }
+    SettingsGroup(stringResource(R.string.set_grp_behavior)) {
     // Automaticky PiP rezim (len zariadenia s podporou PiP - telefony/tablety)
     if (ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
-        Spacer(Modifier.height(16.dp))
         var autoPip by remember { mutableStateOf(AutoPipPref.get(ctx)) }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(
-                checked = autoPip,
-                onCheckedChange = { on ->
-                    autoPip = on
-                    AutoPipPref.set(ctx, on)
-                    TabController.settingsDirty.value = true
-                }
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.auto_pip_title))
-        }
+        SettingsSwitchRow(
+            label = stringResource(R.string.auto_pip_title),
+            checked = autoPip,
+            onChange = { on ->
+                autoPip = on
+                AutoPipPref.set(ctx, on)
+                TabController.settingsDirty.value = true
+            }
+        )
     }
 
     // Vyber pri archivovanom kanali v prehravaci (nazivo / od zaciatku) — len TV/box
     if (isTvDev) {
-        Spacer(Modifier.height(16.dp))
+        SettingsGroupDivider()
         var archiveChoice by remember { mutableStateOf(ArchiveChoicePref.get(ctx)) }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(
-                checked = archiveChoice,
-                onCheckedChange = { on ->
-                    archiveChoice = on
-                    ArchiveChoicePref.set(ctx, on)
-                    TabController.settingsDirty.value = true
-                }
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.archive_choice_title))
-        }
-        Spacer(Modifier.height(8.dp))
-        Text(
-            stringResource(R.string.archive_choice_note),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        SettingsSwitchRow(
+            label = stringResource(R.string.archive_choice_title),
+            note = stringResource(R.string.archive_choice_note),
+            checked = archiveChoice,
+            onChange = { on ->
+                archiveChoice = on
+                ArchiveChoicePref.set(ctx, on)
+                TabController.settingsDirty.value = true
+            }
         )
     }
 
     // Timeshift (pauza/pretacanie zivej TV) — len pri HTSP pripojeni (9982); pri HTTP nema zmysel
     val htspMode = remember { sk.tvhclient.shared.Tvh.store.active()?.connectionMode == "htsp" }
     if (htspMode) {
-        Spacer(Modifier.height(16.dp))
+        SettingsGroupDivider()
         var timeshift by remember { mutableStateOf(TimeshiftPref.get(ctx)) }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Switch(
-                checked = timeshift,
-                onCheckedChange = { on ->
-                    timeshift = on
-                    TimeshiftPref.set(ctx, on)
-                    TabController.settingsDirty.value = true
-                }
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.ts_enable_title))
-        }
-        Spacer(Modifier.height(8.dp))
-        Text(
-            stringResource(R.string.ts_enable_note),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        SettingsSwitchRow(
+            label = stringResource(R.string.ts_enable_title),
+            note = stringResource(R.string.ts_enable_note),
+            checked = timeshift,
+            onChange = { on ->
+                timeshift = on
+                TimeshiftPref.set(ctx, on)
+                TabController.settingsDirty.value = true
+            }
         )
     }
 
+    }
+    SettingsGroup(stringResource(R.string.set_grp_maintenance)) {
     // M272: rucne obnovenie zoznamu kanalov, EPG a piconov — vymaze cache a stiahne nanovo.
-    Spacer(Modifier.height(16.dp))
     val reloadDone = stringResource(R.string.reload_data_done)
     OutlinedButton(onClick = {
         val srv = sk.tvhclient.shared.Tvh.store.active()
@@ -475,6 +652,7 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
+    }
 }
 
 // --- Playlist: rodicovsky zamok (PIN) ---
@@ -483,23 +661,21 @@ internal fun ParentalSettings(ctx: android.content.Context) {
     var lockEnabled by remember { mutableStateOf(ParentalLock.isEnabled(ctx)) }
     var pinStage by remember { mutableStateOf(0) }
     var firstPin by remember { mutableStateOf("") }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Switch(
-            checked = lockEnabled,
-            onCheckedChange = { on ->
-                TabController.settingsDirty.value = true
-                if (on) {
-                    if (ParentalLock.hasPin(ctx)) {
-                        ParentalLock.setEnabled(ctx, true); lockEnabled = true
-                    } else pinStage = 1
-                } else {
-                    ParentalLock.setEnabled(ctx, false); lockEnabled = false
-                }
+    SettingsGroup("PIN") {
+    SettingsSwitchRow(
+        label = stringResource(R.string.plock_enable),
+        checked = lockEnabled,
+        onChange = { on ->
+            TabController.settingsDirty.value = true
+            if (on) {
+                if (ParentalLock.hasPin(ctx)) {
+                    ParentalLock.setEnabled(ctx, true); lockEnabled = true
+                } else pinStage = 1
+            } else {
+                ParentalLock.setEnabled(ctx, false); lockEnabled = false
             }
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(stringResource(R.string.plock_enable))
-    }
+        }
+    )
     OutlinedButton(
         onClick = { firstPin = ""; pinStage = 1 },
         modifier = Modifier.padding(top = 4.dp)
@@ -511,7 +687,7 @@ internal fun ParentalSettings(ctx: android.content.Context) {
     }
 
     // Sposob zadavania PIN
-    Spacer(Modifier.height(16.dp))
+    SettingsGroupDivider()
     var pinInput by remember { mutableStateOf(ParentalLock.pinInput(ctx)) }
     DropdownField(
         label = stringResource(R.string.plock_pin_input_title),
@@ -529,7 +705,7 @@ internal fun ParentalSettings(ctx: android.content.Context) {
     )
 
     // Okno po odomknuti (kym sa PIN znovu nepyta)
-    Spacer(Modifier.height(16.dp))
+    SettingsGroupDivider()
     val graceOpts = listOf("0", "5", "10", "30", "60", "120")
     var grace by remember { mutableStateOf(ParentalLock.graceMinutes(ctx).toString()) }
     val graceLabel: @Composable (String) -> String = { v ->
@@ -552,26 +728,21 @@ internal fun ParentalSettings(ctx: android.content.Context) {
         }
     )
 
-    // Co PIN chrani
-    Spacer(Modifier.height(16.dp))
-    Text(stringResource(R.string.plock_scope_title), style = MaterialTheme.typography.titleSmall)
-    var protCh by remember { mutableStateOf(ParentalLock.protectChannels(ctx)) }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Switch(
-            checked = protCh,
-            onCheckedChange = { protCh = it; ParentalLock.setProtectChannels(ctx, it); TabController.settingsDirty.value = true }
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(stringResource(R.string.plock_scope_channels))
     }
+    // Co PIN chrani
+    SettingsGroup(stringResource(R.string.plock_scope_title), classicTitle = true) {
+    var protCh by remember { mutableStateOf(ParentalLock.protectChannels(ctx)) }
+    SettingsSwitchRow(
+        label = stringResource(R.string.plock_scope_channels),
+        checked = protCh,
+        onChange = { protCh = it; ParentalLock.setProtectChannels(ctx, it); TabController.settingsDirty.value = true }
+    )
     var protSet by remember { mutableStateOf(ParentalLock.protectSettings(ctx)) }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Switch(
-            checked = protSet,
-            onCheckedChange = { protSet = it; ParentalLock.setProtectSettings(ctx, it); TabController.settingsDirty.value = true }
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(stringResource(R.string.plock_scope_settings))
+    SettingsSwitchRow(
+        label = stringResource(R.string.plock_scope_settings),
+        checked = protSet,
+        onChange = { protSet = it; ParentalLock.setProtectSettings(ctx, it); TabController.settingsDirty.value = true }
+    )
     }
 
     if (pinStage == 1) {
@@ -632,9 +803,9 @@ internal fun ServersSettings(
         Text(stringResource(R.string.add_server))
     }
     Spacer(Modifier.height(24.dp))
-    Text(stringResource(R.string.backup_section), style = MaterialTheme.typography.titleSmall)
-    Spacer(Modifier.height(8.dp))
+    SettingsGroup(stringResource(R.string.backup_section), classicTitle = true) {
     BackupControls(onImported = { vm.refresh() })
+    }
 }
 
 // --- Informacie: verzia appky + aktivny server ---
@@ -644,23 +815,15 @@ internal fun RemoteSettings(
     servers: List<TvhServer>,
     activeId: String?
 ) {
-    Text(stringResource(R.string.remote_debug_title), style = MaterialTheme.typography.titleSmall)
-    Spacer(Modifier.height(4.dp))
+    SettingsGroup(stringResource(R.string.remote_debug_title), classicTitle = true) {
     var on by remember { mutableStateOf(RemoteDebugPref.isEnabled(ctx)) }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Switch(
-            checked = on,
-            onCheckedChange = { v -> on = v; RemoteDebugPref.setEnabled(ctx, v) }
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(stringResource(R.string.remote_debug_enable))
-    }
-    Spacer(Modifier.height(8.dp))
-    Text(
-        stringResource(R.string.remote_debug_note),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
+    SettingsSwitchRow(
+        label = stringResource(R.string.remote_debug_enable),
+        note = stringResource(R.string.remote_debug_note),
+        checked = on,
+        onChange = { v -> on = v; RemoteDebugPref.setEnabled(ctx, v) }
     )
+    }
 }
 
 @Composable
@@ -676,6 +839,7 @@ internal fun InfoSettings(
             ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName
         }.getOrNull() ?: "?"
     }
+    SettingsGroup(null) {
     Text(
         stringResource(R.string.info_app_version) + ": " + version +
             " (" + BuildConfig.VERSION_CODE + ") \u2022 " + BuildConfig.BUILD_DATE,
@@ -716,10 +880,12 @@ internal fun InfoSettings(
         Text(stringResource(R.string.no_servers))
     }
 
-    Spacer(Modifier.height(20.dp))
+    }
+    SettingsGroup(stringResource(R.string.set_grp_docs)) {
     InfoLinkRow(stringResource(R.string.privacy_policy)) { onOpenDoc(LegalText.privacy(lang)) }
     Spacer(Modifier.height(8.dp))
     InfoLinkRow(stringResource(R.string.terms_of_use)) { onOpenDoc(LegalText.terms(lang)) }
+    }
 }
 
 @Composable

@@ -271,4 +271,18 @@
     <string name="reload_data_title">Csatornák, EPG és piconok újratöltése</string>
     <string name="reload_data_note">Törli a gyorsítótárat, és újra letölti a csatornalistát, az EPG-t és a piconokat. Használd, ha valami elavultnak tűnik.</string>
     <string name="reload_data_done">Újratöltés…</string>
+    <string name="epg_recorded_badge">Felvéve</string>
+    <string name="set_sub_general">Nyelv, téma, felület stílusa</string>
+    <string name="set_sub_playback">Dekóder, váltottsoros bontás, hang, feliratok</string>
+    <string name="set_sub_plock">PIN, zárolt csatornák és archívum</string>
+    <string name="set_sub_servers">Tvheadend kapcsolatok, aktív szerver</string>
+    <string name="set_sub_remote">A TV-alkalmazás vezérlése telefonról</string>
+    <string name="set_sub_info">Verzió, licencek, jogi dokumentumok</string>
+    <string name="set_grp_appearance">Megjelenés</string>
+    <string name="set_grp_autostart">Automatikus indítás</string>
+    <string name="set_grp_video">Videó</string>
+    <string name="set_grp_sound">Hang</string>
+    <string name="set_grp_behavior">Viselkedés</string>
+    <string name="set_grp_maintenance">Karbantartás</string>
+    <string name="set_grp_docs">Dokumentumok</string>
 </resources>

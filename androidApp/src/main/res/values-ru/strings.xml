@@ -271,4 +271,18 @@
     <string name="reload_data_title">Перезагрузить каналы, EPG и пиконы</string>
     <string name="reload_data_note">Очищает кэш и заново загружает список каналов, EPG и пиконы. Используйте, если что-то выглядит устаревшим.</string>
     <string name="reload_data_done">Перезагрузка…</string>
+    <string name="epg_recorded_badge">Записано</string>
+    <string name="set_sub_general">Язык, тема, стиль интерфейса</string>
+    <string name="set_sub_playback">Декодер, деинтерлейсинг, звук, субтитры</string>
+    <string name="set_sub_plock">PIN, заблокированные каналы и архив</string>
+    <string name="set_sub_servers">Подключения Tvheadend, активный сервер</string>
+    <string name="set_sub_remote">Управление ТВ-приложением с телефона</string>
+    <string name="set_sub_info">Версия, лицензии, правовые документы</string>
+    <string name="set_grp_appearance">Внешний вид</string>
+    <string name="set_grp_autostart">Автозапуск</string>
+    <string name="set_grp_video">Видео</string>
+    <string name="set_grp_sound">Звук</string>
+    <string name="set_grp_behavior">Поведение</string>
+    <string name="set_grp_maintenance">Обслуживание</string>
+    <string name="set_grp_docs">Документы</string>
 </resources>

@@ -271,4 +271,18 @@
     <string name="reload_data_title">Презареждане на канали, EPG и picon-и</string>
     <string name="reload_data_note">Изчиства кеша и изтегля отново списъка с канали, EPG и picon-ите. Използвайте, ако нещо изглежда остаряло.</string>
     <string name="reload_data_done">Презареждане…</string>
+    <string name="epg_recorded_badge">Записано</string>
+    <string name="set_sub_general">Език, тема, стил на интерфейса</string>
+    <string name="set_sub_playback">Декодер, деинтерлейсинг, звук, субтитри</string>
+    <string name="set_sub_plock">PIN, заключени канали и архив</string>
+    <string name="set_sub_servers">Tvheadend връзки, активен сървър</string>
+    <string name="set_sub_remote">Управление на TV приложението от телефона</string>
+    <string name="set_sub_info">Версия, лицензи, правни документи</string>
+    <string name="set_grp_appearance">Външен вид</string>
+    <string name="set_grp_autostart">Автостарт</string>
+    <string name="set_grp_video">Видео</string>
+    <string name="set_grp_sound">Звук</string>
+    <string name="set_grp_behavior">Поведение</string>
+    <string name="set_grp_maintenance">Поддръжка</string>
+    <string name="set_grp_docs">Документи</string>
 </resources>

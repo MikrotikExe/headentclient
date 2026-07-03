@@ -271,4 +271,18 @@
     <string name="reload_data_title">Ponovno učitaj kanale, EPG i picone</string>
     <string name="reload_data_note">Briše predmemoriju i ponovno preuzima popis kanala, EPG i picone. Upotrijebite ako nešto izgleda zastarjelo.</string>
     <string name="reload_data_done">Ponovno učitavanje…</string>
+    <string name="epg_recorded_badge">Snimljeno</string>
+    <string name="set_sub_general">Jezik, tema, izgled sučelja</string>
+    <string name="set_sub_playback">Dekoder, deinterlacing, zvuk, titlovi</string>
+    <string name="set_sub_plock">PIN, zaključani kanali i arhiva</string>
+    <string name="set_sub_servers">Tvheadend veze, aktivni poslužitelj</string>
+    <string name="set_sub_remote">Upravljanje TV aplikacijom s telefona</string>
+    <string name="set_sub_info">Verzija, licence, pravni dokumenti</string>
+    <string name="set_grp_appearance">Izgled</string>
+    <string name="set_grp_autostart">Automatsko pokretanje</string>
+    <string name="set_grp_video">Video</string>
+    <string name="set_grp_sound">Zvuk</string>
+    <string name="set_grp_behavior">Ponašanje</string>
+    <string name="set_grp_maintenance">Održavanje</string>
+    <string name="set_grp_docs">Dokumenti</string>
 </resources>

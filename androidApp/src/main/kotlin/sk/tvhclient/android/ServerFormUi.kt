@@ -311,6 +311,42 @@ fun DropdownField(
     onSelect: (String) -> Unit
 ) {
     var open by remember { mutableStateOf(false) }
+    if (isModernUi()) {
+        // Moderny rezim: riadok — nazov vlavo, hodnota ako pilulka s sipkou vpravo
+        val cs = MaterialTheme.colorScheme
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .dpadFocusable(RoundedCornerShape(10.dp))
+                .clickable { open = true }
+                .padding(vertical = 12.dp, horizontal = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                label,
+                Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                color = cs.onSurface,
+                maxLines = 2
+            )
+            Spacer(Modifier.width(10.dp))
+            Box(
+                Modifier.clip(RoundedCornerShape(16.dp))
+                    .background(if (isLightTheme()) cs.surfaceContainer else cs.surfaceContainerHigh)
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    optionLabel(value) + "  \u25BE",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    color = cs.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+        }
+    } else {
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(
             label,
@@ -333,6 +369,7 @@ fun DropdownField(
                 color = MaterialTheme.colorScheme.onSurface
             )
         }
+    }
     }
     if (open) {
         TvSelectDialog(label, options, value, optionLabel, { open = false }) {

@@ -294,4 +294,17 @@
     <string name="reload_data_note">Clears the cache and downloads the channel list, EPG and picons again. Use it if something looks outdated.</string>
     <string name="reload_data_done">Reloading…</string>
     <string name="epg_recorded_badge">Recorded</string>
+    <string name="set_sub_general">Language, theme, interface style</string>
+    <string name="set_sub_playback">Decoder, deinterlacing, audio, subtitles</string>
+    <string name="set_sub_plock">PIN, locked channels and archive</string>
+    <string name="set_sub_servers">Tvheadend connections, active server</string>
+    <string name="set_sub_remote">Control the TV app from your phone</string>
+    <string name="set_sub_info">Version, licenses, legal documents</string>
+    <string name="set_grp_appearance">Appearance</string>
+    <string name="set_grp_autostart">Autostart</string>
+    <string name="set_grp_video">Video</string>
+    <string name="set_grp_sound">Audio</string>
+    <string name="set_grp_behavior">Behavior</string>
+    <string name="set_grp_maintenance">Maintenance</string>
+    <string name="set_grp_docs">Documents</string>
 </resources>

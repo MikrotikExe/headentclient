@@ -271,4 +271,18 @@
     <string name="reload_data_title">Reîncarcă canale, EPG și picon-uri</string>
     <string name="reload_data_note">Golește cache-ul și descarcă din nou lista de canale, EPG-ul și picon-urile. Folosește-l dacă ceva pare învechit.</string>
     <string name="reload_data_done">Se reîncarcă…</string>
+    <string name="epg_recorded_badge">Înregistrat</string>
+    <string name="set_sub_general">Limbă, temă, stil interfață</string>
+    <string name="set_sub_playback">Decodor, deîntrețesere, audio, subtitrări</string>
+    <string name="set_sub_plock">PIN, canale blocate și arhivă</string>
+    <string name="set_sub_servers">Conexiuni Tvheadend, server activ</string>
+    <string name="set_sub_remote">Controlează aplicația TV de pe telefon</string>
+    <string name="set_sub_info">Versiune, licențe, documente legale</string>
+    <string name="set_grp_appearance">Aspect</string>
+    <string name="set_grp_autostart">Pornire automată</string>
+    <string name="set_grp_video">Video</string>
+    <string name="set_grp_sound">Audio</string>
+    <string name="set_grp_behavior">Comportament</string>
+    <string name="set_grp_maintenance">Întreținere</string>
+    <string name="set_grp_docs">Documente</string>
 </resources>

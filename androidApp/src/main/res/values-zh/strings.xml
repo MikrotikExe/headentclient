@@ -271,4 +271,18 @@
     <string name="reload_data_title">重新加载频道、EPG 和 picon</string>
     <string name="reload_data_note">清除缓存并重新下载频道列表、EPG 和 picon。如果有内容看起来过时，可使用此项。</string>
     <string name="reload_data_done">正在重新加载…</string>
+    <string name="epg_recorded_badge">已录制</string>
+    <string name="set_sub_general">语言、主题、界面风格</string>
+    <string name="set_sub_playback">解码器、去隔行、音频、字幕</string>
+    <string name="set_sub_plock">PIN、锁定的频道和存档</string>
+    <string name="set_sub_servers">Tvheadend 连接、当前服务器</string>
+    <string name="set_sub_remote">用手机控制电视应用</string>
+    <string name="set_sub_info">版本、许可证、法律文件</string>
+    <string name="set_grp_appearance">外观</string>
+    <string name="set_grp_autostart">自动启动</string>
+    <string name="set_grp_video">视频</string>
+    <string name="set_grp_sound">音频</string>
+    <string name="set_grp_behavior">行为</string>
+    <string name="set_grp_maintenance">维护</string>
+    <string name="set_grp_docs">文件</string>
 </resources>

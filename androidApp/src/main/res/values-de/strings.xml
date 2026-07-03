@@ -271,4 +271,18 @@
     <string name="reload_data_title">Sender, EPG und Picons neu laden</string>
     <string name="reload_data_note">Leert den Cache und lädt Senderliste, EPG und Picons erneut. Verwende es, wenn etwas veraltet wirkt.</string>
     <string name="reload_data_done">Wird neu geladen…</string>
+    <string name="epg_recorded_badge">Aufgenommen</string>
+    <string name="set_sub_general">Sprache, Design, Oberflächenstil</string>
+    <string name="set_sub_playback">Decoder, Deinterlacing, Ton, Untertitel</string>
+    <string name="set_sub_plock">PIN, gesperrte Kanäle und Archiv</string>
+    <string name="set_sub_servers">Tvheadend-Verbindungen, aktiver Server</string>
+    <string name="set_sub_remote">TV-App vom Handy aus steuern</string>
+    <string name="set_sub_info">Version, Lizenzen, rechtliche Dokumente</string>
+    <string name="set_grp_appearance">Darstellung</string>
+    <string name="set_grp_autostart">Autostart</string>
+    <string name="set_grp_video">Video</string>
+    <string name="set_grp_sound">Ton</string>
+    <string name="set_grp_behavior">Verhalten</string>
+    <string name="set_grp_maintenance">Wartung</string>
+    <string name="set_grp_docs">Dokumente</string>
 </resources>

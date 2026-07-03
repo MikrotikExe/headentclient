@@ -271,4 +271,18 @@
     <string name="reload_data_title">Επαναφόρτωση καναλιών, EPG και picons</string>
     <string name="reload_data_note">Καθαρίζει την κρυφή μνήμη και κατεβάζει ξανά τη λίστα καναλιών, το EPG και τα picons. Χρησιμοποίησέ το αν κάτι φαίνεται παλιό.</string>
     <string name="reload_data_done">Επαναφόρτωση…</string>
+    <string name="epg_recorded_badge">Εγγεγραμμένο</string>
+    <string name="set_sub_general">Γλώσσα, θέμα, στυλ διεπαφής</string>
+    <string name="set_sub_playback">Αποκωδικοποιητής, απόπλεξη, ήχος, υπότιτλοι</string>
+    <string name="set_sub_plock">PIN, κλειδωμένα κανάλια και αρχείο</string>
+    <string name="set_sub_servers">Συνδέσεις Tvheadend, ενεργός διακομιστής</string>
+    <string name="set_sub_remote">Έλεγχος της εφαρμογής TV από το τηλέφωνο</string>
+    <string name="set_sub_info">Έκδοση, άδειες, νομικά έγγραφα</string>
+    <string name="set_grp_appearance">Εμφάνιση</string>
+    <string name="set_grp_autostart">Αυτόματη εκκίνηση</string>
+    <string name="set_grp_video">Βίντεο</string>
+    <string name="set_grp_sound">Ήχος</string>
+    <string name="set_grp_behavior">Συμπεριφορά</string>
+    <string name="set_grp_maintenance">Συντήρηση</string>
+    <string name="set_grp_docs">Έγγραφα</string>
 </resources>

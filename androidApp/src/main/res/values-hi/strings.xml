@@ -271,4 +271,18 @@
     <string name="reload_data_title">चैनल, EPG और picon फिर से लोड करें</string>
     <string name="reload_data_note">कैश साफ़ करता है और चैनल सूची, EPG और picon फिर से डाउनलोड करता है। यदि कुछ पुराना लगे तो इसका उपयोग करें।</string>
     <string name="reload_data_done">फिर से लोड हो रहा है…</string>
+    <string name="epg_recorded_badge">रिकॉर्ड किया गया</string>
+    <string name="set_sub_general">भाषा, थीम, इंटरफ़ेस शैली</string>
+    <string name="set_sub_playback">डिकोडर, डी-इंटरलेसिंग, ऑडियो, उपशीर्षक</string>
+    <string name="set_sub_plock">PIN, लॉक किए गए चैनल और संग्रह</string>
+    <string name="set_sub_servers">Tvheadend कनेक्शन, सक्रिय सर्वर</string>
+    <string name="set_sub_remote">फ़ोन से TV ऐप नियंत्रित करें</string>
+    <string name="set_sub_info">संस्करण, लाइसेंस, कानूनी दस्तावेज़</string>
+    <string name="set_grp_appearance">दिखावट</string>
+    <string name="set_grp_autostart">ऑटोस्टार्ट</string>
+    <string name="set_grp_video">वीडियो</string>
+    <string name="set_grp_sound">ऑडियो</string>
+    <string name="set_grp_behavior">व्यवहार</string>
+    <string name="set_grp_maintenance">रखरखाव</string>
+    <string name="set_grp_docs">दस्तावेज़</string>
 </resources>

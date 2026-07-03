@@ -271,4 +271,18 @@
     <string name="reload_data_title">Kanalları, EPG ve picon\'ları yeniden yükle</string>
     <string name="reload_data_note">Önbelleği temizler ve kanal listesini, EPG ve picon\'ları yeniden indirir. Bir şey eski görünüyorsa kullan.</string>
     <string name="reload_data_done">Yeniden yükleniyor…</string>
+    <string name="epg_recorded_badge">Kaydedildi</string>
+    <string name="set_sub_general">Dil, tema, arayüz stili</string>
+    <string name="set_sub_playback">Kod çözücü, taramasızlaştırma, ses, altyazılar</string>
+    <string name="set_sub_plock">PIN, kilitli kanallar ve arşiv</string>
+    <string name="set_sub_servers">Tvheadend bağlantıları, etkin sunucu</string>
+    <string name="set_sub_remote">TV uygulamasını telefondan kontrol edin</string>
+    <string name="set_sub_info">Sürüm, lisanslar, yasal belgeler</string>
+    <string name="set_grp_appearance">Görünüm</string>
+    <string name="set_grp_autostart">Otomatik başlatma</string>
+    <string name="set_grp_video">Video</string>
+    <string name="set_grp_sound">Ses</string>
+    <string name="set_grp_behavior">Davranış</string>
+    <string name="set_grp_maintenance">Bakım</string>
+    <string name="set_grp_docs">Belgeler</string>
 </resources>

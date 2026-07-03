@@ -271,4 +271,18 @@
     <string name="reload_data_title">Ricarica canali, EPG e picon</string>
     <string name="reload_data_note">Svuota la cache e riscarica l\'elenco dei canali, l\'EPG e i picon. Usalo se qualcosa sembra obsoleto.</string>
     <string name="reload_data_done">Ricaricamento…</string>
+    <string name="epg_recorded_badge">Registrato</string>
+    <string name="set_sub_general">Lingua, tema, stile dell\'interfaccia</string>
+    <string name="set_sub_playback">Decoder, deinterlacciamento, audio, sottotitoli</string>
+    <string name="set_sub_plock">PIN, canali bloccati e archivio</string>
+    <string name="set_sub_servers">Connessioni Tvheadend, server attivo</string>
+    <string name="set_sub_remote">Controlla l\'app TV dal telefono</string>
+    <string name="set_sub_info">Versione, licenze, documenti legali</string>
+    <string name="set_grp_appearance">Aspetto</string>
+    <string name="set_grp_autostart">Avvio automatico</string>
+    <string name="set_grp_video">Video</string>
+    <string name="set_grp_sound">Audio</string>
+    <string name="set_grp_behavior">Comportamento</string>
+    <string name="set_grp_maintenance">Manutenzione</string>
+    <string name="set_grp_docs">Documenti</string>
 </resources>

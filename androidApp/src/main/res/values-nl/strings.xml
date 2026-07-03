@@ -271,4 +271,18 @@
     <string name="reload_data_title">Zenders, EPG en picons opnieuw laden</string>
     <string name="reload_data_note">Wist de cache en downloadt de zenderlijst, EPG en picons opnieuw. Gebruik dit als iets verouderd lijkt.</string>
     <string name="reload_data_done">Opnieuw laden…</string>
+    <string name="epg_recorded_badge">Opgenomen</string>
+    <string name="set_sub_general">Taal, thema, interfacestijl</string>
+    <string name="set_sub_playback">Decoder, deinterlacing, audio, ondertitels</string>
+    <string name="set_sub_plock">PIN, vergrendelde kanalen en archief</string>
+    <string name="set_sub_servers">Tvheadend-verbindingen, actieve server</string>
+    <string name="set_sub_remote">Bedien de tv-app vanaf je telefoon</string>
+    <string name="set_sub_info">Versie, licenties, juridische documenten</string>
+    <string name="set_grp_appearance">Weergave</string>
+    <string name="set_grp_autostart">Automatisch starten</string>
+    <string name="set_grp_video">Video</string>
+    <string name="set_grp_sound">Geluid</string>
+    <string name="set_grp_behavior">Gedrag</string>
+    <string name="set_grp_maintenance">Onderhoud</string>
+    <string name="set_grp_docs">Documenten</string>
 </resources>

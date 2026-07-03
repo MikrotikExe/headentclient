@@ -271,4 +271,18 @@
     <string name="reload_data_title">چینلز، EPG اور picon دوبارہ لوڈ کریں</string>
     <string name="reload_data_note">کیش صاف کرتا ہے اور چینل فہرست، EPG اور picon دوبارہ ڈاؤن لوڈ کرتا ہے۔ اگر کچھ پرانا لگے تو اسے استعمال کریں۔</string>
     <string name="reload_data_done">دوبارہ لوڈ ہو رہا ہے…</string>
+    <string name="epg_recorded_badge">ریکارڈ شدہ</string>
+    <string name="set_sub_general">زبان، تھیم، انٹرفیس کا انداز</string>
+    <string name="set_sub_playback">ڈی کوڈر، ڈی انٹرلیسنگ، آڈیو، سب ٹائٹلز</string>
+    <string name="set_sub_plock">PIN، مقفل چینلز اور آرکائیو</string>
+    <string name="set_sub_servers">Tvheadend کنکشنز، فعال سرور</string>
+    <string name="set_sub_remote">فون سے TV ایپ کو کنٹرول کریں</string>
+    <string name="set_sub_info">ورژن، لائسنسز، قانونی دستاویزات</string>
+    <string name="set_grp_appearance">ظاہری شکل</string>
+    <string name="set_grp_autostart">خودکار آغاز</string>
+    <string name="set_grp_video">ویڈیو</string>
+    <string name="set_grp_sound">آڈیو</string>
+    <string name="set_grp_behavior">رویہ</string>
+    <string name="set_grp_maintenance">دیکھ بھال</string>
+    <string name="set_grp_docs">دستاویزات</string>
 </resources>

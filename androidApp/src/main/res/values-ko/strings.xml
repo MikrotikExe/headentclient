@@ -271,4 +271,18 @@
     <string name="reload_data_title">채널, EPG, picon 다시 로드</string>
     <string name="reload_data_note">캐시를 지우고 채널 목록, EPG, picon을 다시 다운로드합니다. 무언가 오래된 것처럼 보이면 사용하세요.</string>
     <string name="reload_data_done">다시 로드하는 중…</string>
+    <string name="epg_recorded_badge">녹화됨</string>
+    <string name="set_sub_general">언어, 테마, 인터페이스 스타일</string>
+    <string name="set_sub_playback">디코더, 디인터레이싱, 오디오, 자막</string>
+    <string name="set_sub_plock">PIN, 잠긴 채널 및 보관함</string>
+    <string name="set_sub_servers">Tvheadend 연결, 활성 서버</string>
+    <string name="set_sub_remote">휴대폰으로 TV 앱 제어</string>
+    <string name="set_sub_info">버전, 라이선스, 법적 문서</string>
+    <string name="set_grp_appearance">모양</string>
+    <string name="set_grp_autostart">자동 시작</string>
+    <string name="set_grp_video">비디오</string>
+    <string name="set_grp_sound">오디오</string>
+    <string name="set_grp_behavior">동작</string>
+    <string name="set_grp_maintenance">유지 관리</string>
+    <string name="set_grp_docs">문서</string>
 </resources>
