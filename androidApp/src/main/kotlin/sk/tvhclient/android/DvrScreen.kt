@@ -53,6 +53,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.GridView
@@ -772,6 +773,8 @@ private val mgPalette = listOf(
 
 private fun mgChipFor(key: String): MgChipColors = when (key) {
     "recent" -> mgPalette[6]
+    "search" -> mgPalette[5]
+    "all" -> mgPalette[7]
     "channels" -> mgPalette[5]
     "dates" -> mgPalette[6]
     "series" -> mgPalette[1]
@@ -791,6 +794,8 @@ private fun mgChipFor(key: String): MgChipColors = when (key) {
 
 private fun mgIconFor(rawKey: String): androidx.compose.ui.graphics.vector.ImageVector { val key = rawKey.substringBefore('|'); return when {
     key == "recent" -> Icons.Filled.PlayArrow
+    key == "search" -> Icons.Filled.Search
+    key == "all" -> Icons.Filled.VideoLibrary
     key == "channels" -> Icons.Filled.LiveTv
     key == "dates" -> Icons.Filled.CalendarMonth
     key == "series" -> Icons.Filled.VideoLibrary
@@ -1159,14 +1164,19 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
         Row(Modifier.fillMaxSize()) {
             LazyColumn(
                 Modifier.fillMaxHeight().weight(0.26f)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
+                    .background(
+                        if (isModernUi()) {
+                            if (isLightTheme()) MaterialTheme.colorScheme.surfaceContainerLow
+                            else MaterialTheme.colorScheme.surfaceContainerLowest
+                        } else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+                    )
                     .padding(vertical = 8.dp)
             ) {
-                item("_recent") { ArcRailItem(stringResource(R.string.dvr_recent), recent.size, selKey == "_recent") { openSection("_recent") } }
-                item("_search") { ArcRailItem(stringResource(R.string.dvr_search), null, selKey == "_search") { openSection("_search") } }
-                item("_channels") { ArcRailItem(stringResource(R.string.dvr_by_channel), null, selKey == "_channels") { openSection("_channels") } }
-                item("all") { ArcRailItem(stringResource(R.string.dvr_all), entries.size, selKey == "all") { openSection("all") } }
-                items(cats, key = { it }) { c -> ArcRailItem(catLabel(c), byCat[c]?.size ?: 0, selKey == c) { openSection(c) } }
+                item("_recent") { ArcRailItem(stringResource(R.string.dvr_recent), recent.size, selKey == "_recent", iconKey = "recent") { openSection("_recent") } }
+                item("_search") { ArcRailItem(stringResource(R.string.dvr_search), null, selKey == "_search", iconKey = "search") { openSection("_search") } }
+                item("_channels") { ArcRailItem(stringResource(R.string.dvr_by_channel), null, selKey == "_channels", iconKey = "channels") { openSection("_channels") } }
+                item("all") { ArcRailItem(stringResource(R.string.dvr_all), entries.size, selKey == "all", iconKey = "all") { openSection("all") } }
+                items(cats, key = { it }) { c -> ArcRailItem(catLabel(c), byCat[c]?.size ?: 0, selKey == c, iconKey = c) { openSection(c) } }
             }
             Column(Modifier.weight(0.74f).fillMaxHeight()) {
                 when {
@@ -1192,7 +1202,7 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                         val byDate = chEnt.groupBy { dateKey(it.start) }
                         val dks = byDate.keys.sortedDescending()
                         ArcFolderHeader(selChannel ?: "")
-                        ArcFolderGrid(dks.map { dk -> Triple(dk, byDate[dk]?.firstOrNull()?.let { formatDateFull(it.start) } ?: dk, byDate[dk]?.size ?: 0) }) { selChannelDate = it }
+                        ArcFolderGrid(dks.map { dk -> Triple(dk, byDate[dk]?.firstOrNull()?.let { formatDateFull(it.start) } ?: dk, byDate[dk]?.size ?: 0) }, iconKeyFor = { "dates" }) { selChannelDate = it }
                     }
                     selKey == "_channels" -> {
                         val list = entries.filter { it.channelName == selChannel && dateKey(it.start) == selChannelDate }
@@ -1213,7 +1223,7 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                                 val bySub = inCat.groupBy { DvrClassifier.subgenreOf(it, cat, consensus) }
                                 val order = DvrClassifier.subOrderFor(cat).filter { bySub.containsKey(it) }
                                 ArcFolderHeader(catLabel(cat))
-                                ArcFolderGrid(order.map { sb -> Triple(sb, subLabel(sb), bySub[sb]?.size ?: 0) }) { selSub = it }
+                                ArcFolderGrid(order.map { sb -> Triple(sb, subLabel(sb), bySub[sb]?.size ?: 0) }, iconKeyFor = { sb -> cat + "|" + sb }) { selSub = it }
                             }
                             else -> {
                                 val scope = if (hasSub) inCat.filter { DvrClassifier.subgenreOf(it, cat, consensus) == selSub } else inCat
@@ -1221,7 +1231,7 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                                     val bySeries = scope.groupBy { DvrClassifier.seriesCanonicalTitle(it.title) }
                                     val titles = bySeries.keys.sortedBy { it.lowercase() }
                                     ArcFolderHeader(if (hasSub) subLabel(selSub ?: "") else catLabel(cat))
-                                    ArcFolderGrid(titles.map { t -> Triple(t, t, bySeries[t]?.size ?: 0) }, glyph = "\uD83D\uDCFA") { selSeries = it }
+                                    ArcFolderGrid(titles.map { t -> Triple(t, t, bySeries[t]?.size ?: 0) }, glyph = "\uD83D\uDCFA", iconKeyFor = { "series" }) { selSeries = it }
                                 } else if (seriesLike) {
                                     val eps = scope.filter { DvrClassifier.seriesCanonicalTitle(it.title) == selSeries }
                                         .sortedByDescending { it.start }
@@ -1263,22 +1273,73 @@ private fun ColumnScope.ArcChannelGrid(channels: List<String>, entries: List<Dvr
 }
 
 @Composable
-private fun ColumnScope.ArcFolderGrid(items: List<Triple<String, String, Int>>, glyph: String = "\uD83D\uDCC1", onClick: (String) -> Unit) {
+private fun ColumnScope.ArcFolderGrid(
+    items: List<Triple<String, String, Int>>,
+    glyph: String = "\uD83D\uDCC1",
+    iconKeyFor: ((String) -> String)? = null,
+    onClick: (String) -> Unit
+) {
     LazyVerticalGrid(GridCells.Fixed(4), Modifier.fillMaxWidth().weight(1f).padding(8.dp)) {
         gridItems(items, key = { it.first }) { tr ->
-            ArcFolderCard(glyph, tr.second, tr.third) { onClick(tr.first) }
+            ArcFolderCard(glyph, tr.second, tr.third, iconKey = iconKeyFor?.invoke(tr.first)) { onClick(tr.first) }
         }
     }
 }
 
 @Composable
 private fun ArcFolderHeader(text: String) {
+    if (isModernUi()) {
+        Text(text, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp))
+        return
+    }
     Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.titleSmall,
         fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp))
 }
 
 @Composable
-private fun ArcFolderCard(glyph: String, label: String, count: Int, onClick: () -> Unit) {
+private fun ArcFolderCard(glyph: String, label: String, count: Int, iconKey: String? = null, onClick: () -> Unit) {
+    if (isModernUi() && iconKey != null) {
+        // Moderna dlazdica (M321): cip vlavo hore, tucny nazov, badge pocet
+        val cs = MaterialTheme.colorScheme
+        val light = isLightTheme()
+        val chip = mgChipFor(iconKey)
+        Column(
+            Modifier.padding(6.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(if (light) cs.surfaceContainerLowest else cs.surfaceContainer)
+                .border(1.dp, cs.outlineVariant, RoundedCornerShape(16.dp))
+                .dpadFocusable(RoundedCornerShape(16.dp))
+                .clickable { onClick() }
+                .padding(12.dp).fillMaxWidth(),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Box(
+                Modifier.size(40.dp).clip(RoundedCornerShape(11.dp))
+                    .background(androidx.compose.ui.graphics.Color(if (light) chip.bgL else chip.bgD)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.Icon(
+                    mgIconFor(iconKey), contentDescription = null,
+                    tint = androidx.compose.ui.graphics.Color(if (light) chip.fgL else chip.fgD),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Spacer(Modifier.height(10.dp))
+            Text(label, color = cs.onSurface, style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.height(6.dp))
+            Box(
+                Modifier.clip(RoundedCornerShape(10.dp))
+                    .background(if (light) cs.surfaceContainer else cs.surfaceContainerHigh)
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+            ) {
+                Text("$count", color = cs.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelSmall)
+            }
+        }
+        return
+    }
     Column(
         Modifier.padding(6.dp).dpadFocusable(RoundedCornerShape(10.dp)).clickable { onClick() }
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
@@ -1341,7 +1402,61 @@ private fun ArcInfoDialog(e: DvrEntry, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun ArcRailItem(label: String, count: Int?, selected: Boolean, onClick: () -> Unit) {
+private fun ArcRailItem(label: String, count: Int?, selected: Boolean, iconKey: String? = null, onClick: () -> Unit) {
+    if (isModernUi() && iconKey != null) {
+        // Moderny rail (M321): karta s farebnym ikonovym cipom a badge poctom
+        val cs = MaterialTheme.colorScheme
+        val light = isLightTheme()
+        val chip = mgChipFor(iconKey)
+        Row(
+            Modifier.fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(13.dp))
+                .background(
+                    if (selected) cs.primaryContainer.copy(alpha = if (light) 0.45f else 0.5f)
+                    else if (light) cs.surfaceContainerLowest else cs.surfaceContainer
+                )
+                .border(
+                    if (selected) 1.5.dp else 1.dp,
+                    if (selected) cs.primary else cs.outlineVariant,
+                    RoundedCornerShape(13.dp)
+                )
+                .dpadFocusable(RoundedCornerShape(13.dp))
+                .clickable { onClick() }
+                .padding(horizontal = 8.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier.size(32.dp).clip(RoundedCornerShape(9.dp))
+                    .background(androidx.compose.ui.graphics.Color(if (light) chip.bgL else chip.bgD)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.Icon(
+                    mgIconFor(iconKey), contentDescription = null,
+                    tint = androidx.compose.ui.graphics.Color(if (light) chip.fgL else chip.fgD),
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Spacer(Modifier.width(10.dp))
+            Text(label, Modifier.weight(1f),
+                color = if (selected) cs.primary else cs.onSurface,
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (count != null) {
+                Spacer(Modifier.width(6.dp))
+                Box(
+                    Modifier.clip(RoundedCornerShape(11.dp))
+                        .background(if (light) cs.surfaceContainer else cs.surfaceContainerHigh)
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text("$count", color = cs.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                }
+            }
+        }
+        return
+    }
     Row(
         Modifier.fillMaxWidth().dpadFocusable(RoundedCornerShape(8.dp)).clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 12.dp),
