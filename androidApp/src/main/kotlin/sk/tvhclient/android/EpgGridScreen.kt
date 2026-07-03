@@ -907,17 +907,21 @@ private fun EpgGridRow(
     val modern = isModernUi()
     val rowH = if (modern) ROW_H_M else ROW_H
     Row(Modifier.height(rowH.dp)) {
-        // Picon stlpec (fixny); moderny rezim: zaoblena karta + cislo kanala pod piconom
+        // Picon stlpec (fixny); moderny rezim: jedna zaoblena karta ako program —
+        // picon hore, cislo kanala drobne dole VNUTRI karty (podla mockupu)
         if (modern) {
             val cs = MaterialTheme.colorScheme
             Column(
-                Modifier.width(PICON_COL.dp).height(rowH.dp).padding(4.dp),
+                Modifier.width(PICON_COL.dp).height(rowH.dp)
+                    .padding(horizontal = 4.dp, vertical = 3.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (isLightTheme()) cs.surfaceContainerLowest else cs.surfaceContainer)
+                    .border(1.dp, cs.outlineVariant, RoundedCornerShape(12.dp))
+                    .padding(bottom = 3.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
-                    Modifier.fillMaxWidth().weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(piconBackground()),
+                    Modifier.fillMaxWidth().weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     if (row.piconUrl != null) {
@@ -926,7 +930,7 @@ private fun EpgGridRow(
                             contentDescription = row.channel.name,
                             imageLoader = loader,
                             contentScale = ContentScale.Fit,
-                            modifier = Modifier.fillMaxSize().padding(3.dp)
+                            modifier = Modifier.fillMaxSize().padding(5.dp)
                         )
                     } else {
                         Text(
@@ -941,8 +945,7 @@ private fun EpgGridRow(
                     Text(
                         num.toString(),
                         style = MaterialTheme.typography.labelSmall,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-                        color = cs.primary,
+                        color = cs.onSurfaceVariant,
                         maxLines = 1
                     )
                 }
