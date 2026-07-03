@@ -364,6 +364,8 @@ fun WelcomeScreen(vm: ServersViewModel) {
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
+                    Spacer(Modifier.height(24.dp))
+                    UiModePicker(ctx)
                 }
                 Spacer(Modifier.width(32.dp))
                 Column(
@@ -373,8 +375,6 @@ fun WelcomeScreen(vm: ServersViewModel) {
                     ThemeSwitch(ctx)
                     Spacer(Modifier.height(12.dp))
                     formFields()
-                    Spacer(Modifier.height(20.dp))
-                    UiModePicker(ctx)
                 }
             }
         } else {
