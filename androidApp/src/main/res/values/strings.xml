@@ -293,4 +293,5 @@
     <string name="reload_data_title">Reload channels, EPG and picons</string>
     <string name="reload_data_note">Clears the cache and downloads the channel list, EPG and picons again. Use it if something looks outdated.</string>
     <string name="reload_data_done">Reloading…</string>
+    <string name="epg_recorded_badge">Recorded</string>
 </resources>

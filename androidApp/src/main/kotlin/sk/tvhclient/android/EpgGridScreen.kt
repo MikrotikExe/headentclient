@@ -14,6 +14,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -76,6 +77,8 @@ private const val HOUR_W = 60 * PX_PER_MIN // 240 dp
 private const val DAY_MIN = 24 * 60
 private const val PICON_COL = 64           // sirka stlpca s piconom
 private const val ROW_H = 64
+// Moderny rezim: vyssi riadok — karta nesie cas NAD nazvom + progres pasik + cislo kanala pod piconom
+private const val ROW_H_M = 84
 private const val DAY_SWITCH_DP = 64       // prah pretiahnutia za okraj na prepnutie dna
 private const val NOW_TICK_MS = 30_000L    // ako casto prekreslit live ciaru/priebeh
 private const val DVR_REFRESH_MS = 150_000L // tichy refresh DVR (nove/dokoncene nahravky)
@@ -199,6 +202,7 @@ fun EpgGridScreen(
 ) {
     BackHandler { onBack() }
     val context = LocalContext.current
+    val modernUi = isModernUi()
     val server = remember { Tvh.store.active() }
     // Zoznam kanalov pre zapping a zoznam v prehravaci (CH+/CH-, overlay)
     LaunchedEffect(rows) {
@@ -518,26 +522,90 @@ fun EpgGridScreen(
                 items(offsets) { off ->
                     val label = if (off == 0) "Dnes" else formatDayLabel(dayStartSec(off))
                     Box(Modifier.padding(end = 8.dp)) {
-                        FilterChip(
-                            selected = off == dayOffset,
-                            onClick = { pendingJump = null; dayOffset = off },
-                            label = { Text(label) }
-                        )
+                        if (modernUi) {
+                            // Moderny rezim: dvojriadkova pilulka — den tucne + datum drobne
+                            val cs = MaterialTheme.colorScheme
+                            val sel = off == dayOffset
+                            val dayName = if (off == 0) "Dnes" else label.substringBeforeLast(" ")
+                            val dayDate = if (off == 0)
+                                java.text.SimpleDateFormat("d.M.", java.util.Locale.getDefault())
+                                    .format(java.util.Date(dayStartSec(0) * 1000))
+                            else label.substringAfterLast(" ")
+                            Column(
+                                Modifier
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(
+                                        if (sel) cs.primary
+                                        else if (isLightTheme()) cs.surfaceContainerLowest
+                                        else cs.surfaceContainer
+                                    )
+                                    .then(
+                                        if (sel) Modifier
+                                        else Modifier.border(1.dp, cs.outlineVariant, RoundedCornerShape(24.dp))
+                                    )
+                                    .clickable { pendingJump = null; dayOffset = off }
+                                    .padding(horizontal = 18.dp, vertical = 7.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    dayName,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                                    color = if (sel) cs.onPrimary else cs.onSurface,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    dayDate,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (sel) cs.onPrimary.copy(alpha = 0.8f) else cs.onSurfaceVariant,
+                                    maxLines = 1
+                                )
+                            }
+                        } else {
+                            FilterChip(
+                                selected = off == dayOffset,
+                                onClick = { pendingJump = null; dayOffset = off },
+                                label = { Text(label) }
+                            )
+                        }
                     }
                 }
             }
 
-            // Casova os (hlavicka) — skroluje horizontalne spolu s riadkami
+            // Casova os (hlavicka) — skroluje horizontalne spolu s riadkami;
+            // moderny rezim: navyse teal bublina s aktualnym casom nad teraz-ciarou
             Row {
                 Spacer(Modifier.width(PICON_COL.dp))
-                Row(Modifier.horizontalScroll(hScroll)) {
-                    for (h in 0 until 24) {
-                        Text(
-                            "%02d:00".format(h),
-                            modifier = Modifier.width(HOUR_W.dp).padding(start = 4.dp, bottom = 4.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                Box(Modifier.horizontalScroll(hScroll)) {
+                    Row {
+                        for (h in 0 until 24) {
+                            Text(
+                                "%02d:00".format(h),
+                                modifier = Modifier.width(HOUR_W.dp).padding(start = 4.dp, bottom = 4.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    if (modernUi && dayOffset == 0) {
+                        val nowMin = ((now - dayStart) / 60).toInt()
+                        if (nowMin in 0..DAY_MIN) {
+                            Box(
+                                Modifier
+                                    .offset(x = (nowMin * PX_PER_MIN - 26).dp)
+                                    .clip(RoundedCornerShape(11.dp))
+                                    .background(MaterialTheme.colorScheme.primary)
+                                    .padding(horizontal = 9.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    formatTimeHm(now),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    maxLines = 1
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -836,10 +904,52 @@ private fun EpgGridRow(
     onFocusDetail: (GridDetail) -> Unit = {}
 ) {
     val context = LocalContext.current
-    Row(Modifier.height(ROW_H.dp)) {
-        // Picon stlpec (fixny)
+    val modern = isModernUi()
+    val rowH = if (modern) ROW_H_M else ROW_H
+    Row(Modifier.height(rowH.dp)) {
+        // Picon stlpec (fixny); moderny rezim: zaoblena karta + cislo kanala pod piconom
+        if (modern) {
+            val cs = MaterialTheme.colorScheme
+            Column(
+                Modifier.width(PICON_COL.dp).height(rowH.dp).padding(4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    Modifier.fillMaxWidth().weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(piconBackground()),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (row.piconUrl != null) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context).data(row.piconUrl).build(),
+                            contentDescription = row.channel.name,
+                            imageLoader = loader,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize().padding(3.dp)
+                        )
+                    } else {
+                        Text(
+                            row.channel.name.take(3).uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1
+                        )
+                    }
+                }
+                val num = row.channel.number
+                if (num != null && num > 0) {
+                    Text(
+                        num.toString(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                        color = cs.primary,
+                        maxLines = 1
+                    )
+                }
+            }
+        } else {
         Box(
-            Modifier.width(PICON_COL.dp).height(ROW_H.dp).padding(4.dp)
+            Modifier.width(PICON_COL.dp).height(rowH.dp).padding(4.dp)
                 .clip(RoundedCornerShape(4.dp))
                 .background(piconBackground()),
             contentAlignment = Alignment.Center
@@ -860,13 +970,14 @@ private fun EpgGridRow(
                 )
             }
         }
+        }
         // Programova plocha (skroluje horizontalne)
         Box(
             Modifier
                 .horizontalScroll(hScroll)
-                .height(ROW_H.dp)
+                .height(rowH.dp)
         ) {
-            Box(Modifier.width((DAY_MIN * PX_PER_MIN).dp).height(ROW_H.dp)) {
+            Box(Modifier.width((DAY_MIN * PX_PER_MIN).dp).height(rowH.dp)) {
                 // Nahravky (dokoncene zelene + prebiehajuce cervene) zlucene do jednej
                 // sady blokov — bez prekryvov a duplicit (aj pri "(ST)" variantach nazvu);
                 // vykreslime iba bloky vo viditeľnom okne (cullovanie)
@@ -895,7 +1006,17 @@ private fun EpgGridRow(
                     val endMin = (((vStop - dayStart) / 60).toInt()).coerceAtMost(DAY_MIN)
                     if (endMin <= visStartMin || startMin >= visEndMin || startMin >= endMin) return@forEachIndexed
                     if (rb.inProgress) {
-                        GridBlock(
+                        if (modern) ModernGridBlock(
+                            startMin = startMin,
+                            endMin = endMin,
+                            rowH = rowH,
+                            title = rb.title,
+                            timeLabel = formatTimeHm(rb.start) + " - " + formatTimeHm(rb.stop),
+                            kind = MgKind.REC,
+                            progressFrac = ((now - vStart).toFloat() / (vStop - vStart).coerceAtLeast(1)).coerceIn(0f, 1f),
+                            selected = selectedStart == rb.start,
+                            onClick = { onInProgress(rb.entry) }
+                        ) else GridBlock(
                             startMin = startMin,
                             endMin = endMin,
                             title = rb.title,
@@ -910,7 +1031,16 @@ private fun EpgGridRow(
                             onFocused = { onFocusDetail(GridDetail.InProgress(row, rb.entry)) }
                         )
                     } else {
-                        GridBlock(
+                        if (modern) ModernGridBlock(
+                            startMin = startMin,
+                            endMin = endMin,
+                            rowH = rowH,
+                            title = rb.title,
+                            timeLabel = formatTimeHm(rb.start) + " - " + formatTimeHm(rb.stop),
+                            kind = MgKind.RECORDED,
+                            selected = selectedStart == rb.start,
+                            onClick = { onDvr(rb.entry) }
+                        ) else GridBlock(
                             startMin = startMin,
                             endMin = endMin,
                             title = rb.title,
@@ -933,7 +1063,19 @@ private fun EpgGridRow(
                     if (endMin <= visStartMin || startMin >= visEndMin) return@forEach
                     val isNow = ev.start <= now && now < ev.stop
                     val isPast = ev.stop <= now
-                    GridBlock(
+                    if (modern) ModernGridBlock(
+                        startMin = startMin,
+                        endMin = endMin,
+                        rowH = rowH,
+                        title = ev.title.ifBlank { "—" },
+                        timeLabel = formatTimeHm(ev.start) + " - " + formatTimeHm(ev.stop),
+                        kind = when { isNow -> MgKind.NOW; isPast -> MgKind.PAST; else -> MgKind.FUTURE },
+                        progressFrac = if (isNow)
+                            ((now - ev.start).toFloat() / (ev.stop - ev.start).coerceAtLeast(1)).coerceIn(0f, 1f)
+                        else 0f,
+                        selected = selectedStart == ev.start,
+                        onClick = { onClick(ev) }
+                    ) else GridBlock(
                         startMin = startMin,
                         endMin = endMin,
                         title = ev.title.ifBlank { "—" },
@@ -961,16 +1103,21 @@ private fun EpgGridRow(
                         onFocused = { onFocusDetail(GridDetail.Epg(row, ev)) }
                     )
                 }
-                // Zvisla live ciara aktualneho casu (jemna, ladi s farbou)
+                // Zvisla live ciara aktualneho casu (jemna, ladi s farbou);
+                // moderny rezim: vyraznejsia teal ciara nadvazujuca na bublinu v osi
                 if (showNow) {
                     val nowMin = ((now - dayStart) / 60).toInt()
                     if (nowMin in 0..DAY_MIN) {
                         Box(
                             Modifier
                                 .offset(x = (nowMin * PX_PER_MIN).dp)
-                                .width(1.5.dp)
-                                .height(ROW_H.dp)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
+                                .width(if (modern) 2.5.dp else 1.5.dp)
+                                .height(rowH.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(
+                                        alpha = if (modern) 0.85f else 0.7f
+                                    )
+                                )
                         )
                     }
                 }
@@ -1079,3 +1226,161 @@ private fun dayStartSec(offset: Int): Long {
 @Composable
 private fun stringResourceTvGuide(): String =
     androidx.compose.ui.res.stringResource(R.string.tv_guide)
+
+/** Druh karty modernej mriezky. */
+private enum class MgKind { NOW, PAST, FUTURE, REC, RECORDED }
+
+/**
+ * Karta relacie v modernom rezime mriezky: cas drobne NAD tucnym nazvom,
+ * medzery medzi kartami, nahravky maju farebnu hranu vlavo + badge namiesto
+ * celoplosnej vyplne, priebeh je tenky pasik na spodku karty.
+ */
+@Composable
+private fun ModernGridBlock(
+    startMin: Int,
+    endMin: Int,
+    rowH: Int,
+    title: String,
+    timeLabel: String,
+    kind: MgKind,
+    progressFrac: Float = 0f,
+    selected: Boolean = false,
+    onClick: () -> Unit
+) {
+    val cs = MaterialTheme.colorScheme
+    val light = isLightTheme()
+    val wMin = endMin - startMin
+    if (wMin <= 0) return
+    val bg = when (kind) {
+        MgKind.NOW -> lerp(
+            if (light) cs.surfaceContainerLowest else cs.surfaceContainer,
+            cs.primaryContainer, 0.6f
+        )
+        MgKind.PAST -> if (light) cs.surfaceContainer else cs.surfaceContainerLowest
+        else -> if (light) cs.surfaceContainerLowest else cs.surfaceContainer
+    }
+    val stripColor = when (kind) {
+        MgKind.REC -> Color(0xFFE53935)
+        MgKind.RECORDED -> if (light) Color(0xFF43A047) else Color(0xFF66BB6A)
+        else -> null
+    }
+    val titleColor = when {
+        kind == MgKind.PAST -> cs.onSurfaceVariant
+        kind == MgKind.NOW -> cs.onPrimaryContainer
+        else -> cs.onSurface
+    }
+    val timeColor = when (kind) {
+        MgKind.PAST -> cs.onSurfaceVariant.copy(alpha = 0.7f)
+        MgKind.NOW -> cs.onPrimaryContainer.copy(alpha = 0.8f)
+        else -> cs.onSurfaceVariant
+    }
+    Box(
+        Modifier
+            .offset(x = (startMin * PX_PER_MIN).dp)
+            .width((wMin * PX_PER_MIN).dp)
+            .height(rowH.dp)
+            .padding(horizontal = 2.dp, vertical = 3.dp)
+    ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(12.dp))
+                .background(bg)
+                .then(
+                    when {
+                        selected -> Modifier.border(2.5.dp, cs.primary, RoundedCornerShape(12.dp))
+                        kind == MgKind.NOW -> Modifier.border(1.5.dp, cs.primary, RoundedCornerShape(12.dp))
+                        else -> Modifier.border(1.dp, cs.outlineVariant, RoundedCornerShape(12.dp))
+                    }
+                )
+                .pointerInput(Unit) { detectTapGestures { onClick() } }
+        ) {
+            if (stripColor != null) {
+                Box(
+                    Modifier.width(4.dp).fillMaxHeight().background(stripColor)
+                )
+            }
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .padding(
+                        start = if (stripColor != null) 10.dp else 8.dp,
+                        end = 6.dp, top = 5.dp, bottom = 5.dp
+                    )
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        timeLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = timeColor,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (kind == MgKind.REC || kind == MgKind.RECORDED) {
+                        Spacer(Modifier.width(6.dp))
+                        val badgeBg = if (kind == MgKind.REC) {
+                            if (light) Color(0xFFFDECEA) else Color(0xFF3A1D20)
+                        } else {
+                            if (light) Color(0xFFE6F3E7) else Color(0xFF1C3122)
+                        }
+                        val badgeFg = if (kind == MgKind.REC) {
+                            if (light) Color(0xFFC62828) else Color(0xFFEF8A88)
+                        } else {
+                            if (light) Color(0xFF2E7D32) else Color(0xFFA5D6A7)
+                        }
+                        Row(
+                            Modifier.clip(RoundedCornerShape(9.dp)).background(badgeBg)
+                                .padding(horizontal = 6.dp, vertical = 1.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (kind == MgKind.REC) {
+                                Box(
+                                    Modifier.size(6.dp)
+                                        .clip(androidx.compose.foundation.shape.CircleShape)
+                                        .background(Color(0xFFE53935))
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    "REC",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                    color = badgeFg, maxLines = 1
+                                )
+                            } else {
+                                Text(
+                                    "\u2713 " + stringResource(R.string.epg_recorded_badge),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                    color = badgeFg, maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                }
+                Text(
+                    title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    color = titleColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.weight(1f))
+                if ((kind == MgKind.NOW || kind == MgKind.REC) && progressFrac > 0f) {
+                    val fill = if (kind == MgKind.REC) Color(0xFFE53935) else cs.primary
+                    val track = if (kind == MgKind.REC) fill.copy(alpha = 0.25f) else cs.outlineVariant
+                    Box(
+                        Modifier.fillMaxWidth().height(4.dp)
+                            .clip(RoundedCornerShape(2.dp)).background(track)
+                    ) {
+                        Box(
+                            Modifier.fillMaxWidth(progressFrac).fillMaxHeight()
+                                .clip(RoundedCornerShape(2.dp)).background(fill)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

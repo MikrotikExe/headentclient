@@ -271,4 +271,5 @@
     <string name="reload_data_title">Obnovit kanály, EPG a picony</string>
     <string name="reload_data_note">Vymaže cache a znovu stáhne seznam kanálů, EPG a picony. Použij, pokud něco vypadá zastarale.</string>
     <string name="reload_data_done">Obnovuji…</string>
+    <string name="epg_recorded_badge">Nahráno</string>
 </resources>
