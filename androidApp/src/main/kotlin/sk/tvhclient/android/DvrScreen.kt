@@ -92,6 +92,14 @@ import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Forest
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Yard
+import androidx.compose.material.icons.filled.Chair
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.FlightTakeoff
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.GridView
@@ -884,6 +892,15 @@ private fun mgSubIcon(k: String): androidx.compose.ui.graphics.vector.ImageVecto
     sk.tvhclient.shared.model.DvrClassifier.DC_HISTORIA -> Icons.Filled.AccountBalance
     sk.tvhclient.shared.model.DvrClassifier.DC_VEDA -> Icons.Filled.Science
     sk.tvhclient.shared.model.DvrClassifier.DC_CESTOPIS -> Icons.Filled.Public
+    sk.tvhclient.shared.model.DvrClassifier.DC_OSOBNOSTI -> Icons.Filled.Person
+    sk.tvhclient.shared.model.DvrClassifier.DC_SPOLOCNOST -> Icons.Filled.Groups
+    sk.tvhclient.shared.model.DvrClassifier.HB_ZAHRADA -> Icons.Filled.Yard
+    sk.tvhclient.shared.model.DvrClassifier.HB_BYVANIE -> Icons.Filled.Chair
+    sk.tvhclient.shared.model.DvrClassifier.HB_VARENIE -> Icons.Filled.Restaurant
+    sk.tvhclient.shared.model.DvrClassifier.HB_AUTO -> Icons.Filled.DirectionsCar
+    sk.tvhclient.shared.model.DvrClassifier.HB_CESTOVANIE -> Icons.Filled.FlightTakeoff
+    sk.tvhclient.shared.model.DvrClassifier.HB_ZDRAVIE -> Icons.Filled.FitnessCenter
+    sk.tvhclient.shared.model.DvrClassifier.HB_DIY -> Icons.Filled.Build
     else -> null
 }
 
