@@ -285,4 +285,26 @@
     <string name="set_grp_behavior">Zachowanie</string>
     <string name="set_grp_maintenance">Konserwacja</string>
     <string name="set_grp_docs">Dokumenty</string>
+    <string name="audio_out_passthrough">Passthrough</string>
+    <string name="audio_out_title">Wyjście audio</string>
+    <string name="deint_title">Usuwanie przeplotu</string>
+    <string name="mh_all_channels">Wszystkie kanały</string>
+    <string name="mh_fav_now">Ulubione kanały · Teraz</string>
+    <string name="mh_home">Start</string>
+    <string name="mh_live">NA ŻYWO</string>
+    <string name="mh_next">Następnie:</string>
+    <string name="mh_watch">Oglądaj</string>
+    <string name="mtv_hint_all">Przytrzymaj OK · Wszystkie kanały</string>
+    <string name="mtv_hint_nav">◀▶ Przeglądaj · OK Przełącz · ▼ Sterowanie</string>
+    <string name="mtv_live">na żywo</string>
+    <string name="mtv_ts_warn">Przełączenie kończy timeshift</string>
+    <string name="pm_audio">Dźwięk</string>
+    <string name="pm_back">Wstecz</string>
+    <string name="pm_close">Zamknij</string>
+    <string name="pm_info">Informacje o programie</string>
+    <string name="pm_lock">Blokada obrotu</string>
+    <string name="pm_more">Więcej</string>
+    <string name="ui_mode_classic">Klasyczny</string>
+    <string name="ui_mode_modern">Nowoczesny</string>
+    <string name="ui_mode_title">Tryb interfejsu</string>
 </resources>

@@ -285,4 +285,26 @@
     <string name="set_grp_behavior">السلوك</string>
     <string name="set_grp_maintenance">الصيانة</string>
     <string name="set_grp_docs">المستندات</string>
+    <string name="audio_out_passthrough">Passthrough</string>
+    <string name="audio_out_title">خرج الصوت</string>
+    <string name="deint_title">إزالة التشابك</string>
+    <string name="mh_all_channels">جميع القنوات</string>
+    <string name="mh_fav_now">القنوات المفضلة · الآن</string>
+    <string name="mh_home">الرئيسية</string>
+    <string name="mh_live">مباشر</string>
+    <string name="mh_next">التالي:</string>
+    <string name="mh_watch">مشاهدة</string>
+    <string name="mtv_hint_all">اضغط مطولاً على OK · جميع القنوات</string>
+    <string name="mtv_hint_nav">◀▶ تصفح · OK تبديل · ▼ عناصر التحكم</string>
+    <string name="mtv_live">مباشر</string>
+    <string name="mtv_ts_warn">التبديل ينهي الإزاحة الزمنية</string>
+    <string name="pm_audio">الصوت</string>
+    <string name="pm_back">رجوع</string>
+    <string name="pm_close">إغلاق</string>
+    <string name="pm_info">معلومات البرنامج</string>
+    <string name="pm_lock">قفل التدوير</string>
+    <string name="pm_more">المزيد</string>
+    <string name="ui_mode_classic">كلاسيكي</string>
+    <string name="ui_mode_modern">حديث</string>
+    <string name="ui_mode_title">وضع الواجهة</string>
 </resources>

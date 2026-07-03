@@ -285,4 +285,26 @@
     <string name="set_grp_behavior">動作</string>
     <string name="set_grp_maintenance">メンテナンス</string>
     <string name="set_grp_docs">ドキュメント</string>
+    <string name="audio_out_passthrough">パススルー</string>
+    <string name="audio_out_title">音声出力</string>
+    <string name="deint_title">デインターレース</string>
+    <string name="mh_all_channels">すべてのチャンネル</string>
+    <string name="mh_fav_now">お気に入りチャンネル · 現在</string>
+    <string name="mh_home">ホーム</string>
+    <string name="mh_live">ライブ</string>
+    <string name="mh_next">次:</string>
+    <string name="mh_watch">視聴</string>
+    <string name="mtv_hint_all">OK長押し · すべてのチャンネル</string>
+    <string name="mtv_hint_nav">◀▶ 選択 · OK 切替 · ▼ 操作</string>
+    <string name="mtv_live">ライブ</string>
+    <string name="mtv_ts_warn">切り替えるとタイムシフトが終了します</string>
+    <string name="pm_audio">音声</string>
+    <string name="pm_back">戻る</string>
+    <string name="pm_close">閉じる</string>
+    <string name="pm_info">番組情報</string>
+    <string name="pm_lock">回転ロック</string>
+    <string name="pm_more">その他</string>
+    <string name="ui_mode_classic">クラシック</string>
+    <string name="ui_mode_modern">モダン</string>
+    <string name="ui_mode_title">インターフェースモード</string>
 </resources>

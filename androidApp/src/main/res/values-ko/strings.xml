@@ -285,4 +285,26 @@
     <string name="set_grp_behavior">동작</string>
     <string name="set_grp_maintenance">유지 관리</string>
     <string name="set_grp_docs">문서</string>
+    <string name="audio_out_passthrough">패스스루</string>
+    <string name="audio_out_title">오디오 출력</string>
+    <string name="deint_title">디인터레이싱</string>
+    <string name="mh_all_channels">전체 채널</string>
+    <string name="mh_fav_now">즐겨찾는 채널 · 지금</string>
+    <string name="mh_home">홈</string>
+    <string name="mh_live">라이브</string>
+    <string name="mh_next">다음:</string>
+    <string name="mh_watch">시청</string>
+    <string name="mtv_hint_all">OK 길게 누르기 · 전체 채널</string>
+    <string name="mtv_hint_nav">◀▶ 탐색 · OK 전환 · ▼ 컨트롤</string>
+    <string name="mtv_live">라이브</string>
+    <string name="mtv_ts_warn">전환하면 타임시프트가 종료됩니다</string>
+    <string name="pm_audio">오디오</string>
+    <string name="pm_back">뒤로</string>
+    <string name="pm_close">닫기</string>
+    <string name="pm_info">프로그램 정보</string>
+    <string name="pm_lock">회전 잠금</string>
+    <string name="pm_more">더보기</string>
+    <string name="ui_mode_classic">클래식</string>
+    <string name="ui_mode_modern">모던</string>
+    <string name="ui_mode_title">인터페이스 모드</string>
 </resources>

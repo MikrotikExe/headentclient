@@ -285,4 +285,26 @@
     <string name="set_grp_behavior">行为</string>
     <string name="set_grp_maintenance">维护</string>
     <string name="set_grp_docs">文件</string>
+    <string name="audio_out_passthrough">直通</string>
+    <string name="audio_out_title">音频输出</string>
+    <string name="deint_title">去隔行</string>
+    <string name="mh_all_channels">全部频道</string>
+    <string name="mh_fav_now">收藏频道 · 正在播出</string>
+    <string name="mh_home">主页</string>
+    <string name="mh_live">直播</string>
+    <string name="mh_next">接下来：</string>
+    <string name="mh_watch">观看</string>
+    <string name="mtv_hint_all">长按 OK · 全部频道</string>
+    <string name="mtv_hint_nav">◀▶ 浏览 · OK 切换 · ▼ 控制</string>
+    <string name="mtv_live">直播</string>
+    <string name="mtv_ts_warn">切换将结束时移</string>
+    <string name="pm_audio">音频</string>
+    <string name="pm_back">返回</string>
+    <string name="pm_close">关闭</string>
+    <string name="pm_info">节目信息</string>
+    <string name="pm_lock">旋转锁定</string>
+    <string name="pm_more">更多</string>
+    <string name="ui_mode_classic">经典</string>
+    <string name="ui_mode_modern">现代</string>
+    <string name="ui_mode_title">界面模式</string>
 </resources>

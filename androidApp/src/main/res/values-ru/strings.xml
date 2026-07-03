@@ -285,4 +285,26 @@
     <string name="set_grp_behavior">Поведение</string>
     <string name="set_grp_maintenance">Обслуживание</string>
     <string name="set_grp_docs">Документы</string>
+    <string name="audio_out_passthrough">Сквозной вывод</string>
+    <string name="audio_out_title">Аудиовыход</string>
+    <string name="deint_title">Деинтерлейсинг</string>
+    <string name="mh_all_channels">Все каналы</string>
+    <string name="mh_fav_now">Избранные каналы · Сейчас</string>
+    <string name="mh_home">Главная</string>
+    <string name="mh_live">В ЭФИРЕ</string>
+    <string name="mh_next">Далее:</string>
+    <string name="mh_watch">Смотреть</string>
+    <string name="mtv_hint_all">Удерживайте OK · Все каналы</string>
+    <string name="mtv_hint_nav">◀▶ Обзор · OK Переключить · ▼ Управление</string>
+    <string name="mtv_live">в эфире</string>
+    <string name="mtv_ts_warn">Переключение завершит таймшифт</string>
+    <string name="pm_audio">Звук</string>
+    <string name="pm_back">Назад</string>
+    <string name="pm_close">Закрыть</string>
+    <string name="pm_info">О программе</string>
+    <string name="pm_lock">Блокировка поворота</string>
+    <string name="pm_more">Ещё</string>
+    <string name="ui_mode_classic">Классический</string>
+    <string name="ui_mode_modern">Современный</string>
+    <string name="ui_mode_title">Режим интерфейса</string>
 </resources>

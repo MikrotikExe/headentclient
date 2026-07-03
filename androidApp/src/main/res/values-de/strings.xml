@@ -285,4 +285,26 @@
     <string name="set_grp_behavior">Verhalten</string>
     <string name="set_grp_maintenance">Wartung</string>
     <string name="set_grp_docs">Dokumente</string>
+    <string name="audio_out_passthrough">Passthrough</string>
+    <string name="audio_out_title">Audioausgabe</string>
+    <string name="deint_title">Deinterlacing</string>
+    <string name="mh_all_channels">Alle Kanäle</string>
+    <string name="mh_fav_now">Lieblingskanäle · Jetzt</string>
+    <string name="mh_home">Start</string>
+    <string name="mh_live">LIVE</string>
+    <string name="mh_next">Danach:</string>
+    <string name="mh_watch">Ansehen</string>
+    <string name="mtv_hint_all">OK halten · Alle Kanäle</string>
+    <string name="mtv_hint_nav">◀▶ Blättern · OK Umschalten · ▼ Steuerung</string>
+    <string name="mtv_live">live</string>
+    <string name="mtv_ts_warn">Umschalten beendet Timeshift</string>
+    <string name="pm_audio">Ton</string>
+    <string name="pm_back">Zurück</string>
+    <string name="pm_close">Schließen</string>
+    <string name="pm_info">Sendungsinfo</string>
+    <string name="pm_lock">Rotationssperre</string>
+    <string name="pm_more">Mehr</string>
+    <string name="ui_mode_classic">Klassisch</string>
+    <string name="ui_mode_modern">Modern</string>
+    <string name="ui_mode_title">Oberflächenmodus</string>
 </resources>
