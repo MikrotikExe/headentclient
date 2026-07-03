@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Replay30
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.SkipNext
@@ -172,6 +173,7 @@ internal fun ModernTvOverlay(
                         "chnext" -> ModernStripCircle(Icons.Default.SkipNext, focused)
                         else -> ModernStripPill(
                             icon = when (id) {
+                                "more" -> Icons.Default.MoreHoriz
                                 "list" -> Icons.AutoMirrored.Filled.List
                                 "sleep" -> Icons.Default.Timer
                                 "epg" -> Icons.Default.GridView
@@ -180,6 +182,7 @@ internal fun ModernTvOverlay(
                                 else -> Icons.Default.Info
                             },
                             label = when (id) {
+                                "more" -> stringResource(R.string.pm_more)
                                 "list" -> stringResource(R.string.tab_channels)
                                 "sleep" -> stringResource(R.string.sleep_timer)
                                 "epg" -> stringResource(R.string.home_tv_program)

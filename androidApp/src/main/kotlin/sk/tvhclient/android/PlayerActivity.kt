@@ -168,7 +168,7 @@ class PlayerActivity : ComponentActivity() {
 
     /** Polozky ovladacej listy overlayu (transport v strede; pretacanie len pri timeshiftu). */
     private fun modernStripIds(): List<String> = buildList {
-        add("list"); add("epg"); add("audio")
+        add("epg"); add("audio")
         // prepinanie kanalov priamo z listy (M323) — len pri live s viac kanalmi
         val zap = !seekablePlayback && liveUuids.size > 1
         if (zap) add("chprev")
@@ -176,7 +176,21 @@ class PlayerActivity : ComponentActivity() {
         add("play")
         if (timeshiftEngagedState.value) add("tsff")
         if (zap) add("chnext")
-        add("subs"); add("sleep"); add("info")
+        add("subs"); add("more")
+    }
+
+    // "Viac" menu listy (M327): menej pouzivane polozky — rezerva pre dlhsie preklady
+    private val modernMoreState = androidx.compose.runtime.mutableStateOf(false)
+    private val modernMoreIdx = androidx.compose.runtime.mutableStateOf(0)
+    private val modernMoreIds = listOf("list", "sleep", "info")
+    private fun modernMoreActivate() {
+        val id = modernMoreIds.getOrNull(modernMoreIdx.value) ?: return
+        modernMoreState.value = false
+        when (id) {
+            "list" -> { closeModernOverlay(); openChannelList() }
+            "sleep" -> { closeModernOverlay(); openSleepMenu() }
+            "info" -> { closeModernOverlay(); toggleInfo() }
+        }
     }
 
     private fun openModernOverlay() {
@@ -198,7 +212,7 @@ class PlayerActivity : ComponentActivity() {
             "play" -> { togglePlayPause(); modernOvPoke.value++ }
             "tsrew" -> { timeshiftSkip(-30); modernOvPoke.value++ }
             "tsff" -> { timeshiftSkip(+30); modernOvPoke.value++ }
-            "list" -> { closeModernOverlay(); openChannelList() }
+            "more" -> { modernMoreIdx.value = 0; modernMoreState.value = true }
             "chprev" -> { switchLive(-1); modernOvCard.value = liveIndexState.value.coerceAtLeast(0); modernOvPoke.value++ }
             "chnext" -> { switchLive(+1); modernOvCard.value = liveIndexState.value.coerceAtLeast(0); modernOvPoke.value++ }
             null -> {}
@@ -444,7 +458,11 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    private fun pokeControls() { controlsPokeState.value = controlsPokeState.value + 1 }
+    private fun pokeControls() {
+        // Moderny rezim na TV pri live: stary ovladaci panel sa nezobrazuje (M325/M327)
+        if (modernTvActive()) return
+        controlsPokeState.value = controlsPokeState.value + 1
+    }
     // INFO kláves / tlacidlo -> okno s detailom aktualnej relacie
     private val infoPokeState = androidx.compose.runtime.mutableStateOf(0)
     private fun toggleInfo() { infoPokeState.value = infoPokeState.value + 1 }
@@ -1746,6 +1764,28 @@ class PlayerActivity : ComponentActivity() {
             return true
         }
 
+        // 3b0) "Viac" menu nad modernym overlayom (M327)
+        if (modernMoreState.value) {
+            if (down) when (kc) {
+                android.view.KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    modernMoreIdx.value = (modernMoreIdx.value + 1) % modernMoreIds.size; return true
+                }
+                android.view.KeyEvent.KEYCODE_DPAD_UP -> {
+                    modernMoreIdx.value = (modernMoreIdx.value - 1 + modernMoreIds.size) % modernMoreIds.size; return true
+                }
+                android.view.KeyEvent.KEYCODE_DPAD_CENTER,
+                android.view.KeyEvent.KEYCODE_ENTER,
+                android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                    if (event.repeatCount == 0) modernMoreActivate(); return true
+                }
+                android.view.KeyEvent.KEYCODE_BACK -> { modernMoreState.value = false; return true }
+            }
+            if (!down && (kc == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
+                    kc == android.view.KeyEvent.KEYCODE_ENTER ||
+                    kc == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER ||
+                    kc == android.view.KeyEvent.KEYCODE_BACK)) return true
+            return true
+        }
         // 3b) Moderny TV overlay (karty kanalov + ovladacia lista) -> navigujeme my
         if (modernOvState.value) {
             val ids = modernStripIds()
@@ -2384,6 +2424,10 @@ class PlayerActivity : ComponentActivity() {
                 modernOvExec = modernOvExec.value,
                 modernOvExecId = modernOvExecId.value,
                 modernStripIds = modernStripIds(),
+                modernMoreVisible = modernMoreState.value,
+                modernMoreIndex = modernMoreIdx.value,
+                onMorePick = { i -> modernMoreIdx.value = i; modernMoreActivate() },
+                onMoreDismiss = { modernMoreState.value = false },
                 tsMaxMs = maxRewindMs(),
                 onModernOvDismiss = { closeModernOverlay() },
                 onSkipBack = { timeshiftSkip(-30) },
@@ -3129,6 +3173,10 @@ private fun PlayerUi(
     modernOvExec: Int = 0,
     modernOvExecId: String = "",
     modernStripIds: List<String> = emptyList(),
+    modernMoreVisible: Boolean = false,
+    modernMoreIndex: Int = 0,
+    onMorePick: (Int) -> Unit = {},
+    onMoreDismiss: () -> Unit = {},
     tsMaxMs: Long = 0L,
     onModernOvDismiss: () -> Unit = {},
     onSkipBack: () -> Unit = {},
@@ -4830,6 +4878,54 @@ private fun PlayerUi(
                                         maxLines = 1, modifier = Modifier.weight(1f).basicMarquee(iterations = Int.MAX_VALUE))
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        // "Viac" menu modernej listy (M327): Kanaly / Casovac uspatia / Informacie
+        if (modernMoreVisible) {
+            val moreLabels = listOf(
+                stringResource(R.string.tab_channels),
+                stringResource(R.string.sleep_timer),
+                stringResource(R.string.pm_info)
+            )
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(playerScrimSoft())
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onMoreDismiss() },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    Modifier
+                        .widthIn(min = 300.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(playerScrim())
+                        .padding(8.dp)
+                ) {
+                    Text(
+                        stringResource(R.string.pm_more),
+                        color = playerFg(),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                    moreLabels.forEachIndexed { idx, label ->
+                        val sel = idx == modernMoreIndex
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (sel) Color(0x553B82F6) else Color.Transparent)
+                                .clickable { onMorePick(idx) }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(label, color = playerFg())
                         }
                     }
                 }

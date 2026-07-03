@@ -12,6 +12,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.Radio
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.automirrored.filled.Dvr
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -213,6 +218,17 @@ fun ModernTvHomeScreen(
                             Text("▶  " + stringResource(R.string.mh_watch), color = cs.onPrimary,
                                 fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                         }
+                        Spacer(Modifier.width(12.dp))
+                        Box(
+                            Modifier
+                                .dpadFocusable(RoundedCornerShape(999.dp))
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(cs.surfaceContainerHigh)
+                                .clickable { onTvProgram() }
+                                .padding(horizontal = 22.dp, vertical = 10.dp)
+                        ) {
+                            Text(stringResource(R.string.home_tv_program), color = cs.onSurface, fontSize = 16.sp)
+                        }
                     }
                 } else {
                     // este sa nacitava / bez servera: znacka + nazov, navigacia nizsie funguje
@@ -227,11 +243,10 @@ fun ModernTvHomeScreen(
 
         // ===== navigacne dlazdice =====
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ModernNavPill(stringResource(R.string.tab_channels), onChannels)
-            ModernNavPill(stringResource(R.string.tab_radio), onRadio)
-            ModernNavPill(stringResource(R.string.home_tv_program), onTvProgram)
-            ModernNavPill(stringResource(R.string.tab_dvr), onArchive)
-            ModernNavPill(stringResource(R.string.tab_settings), onSettings)
+            ModernNavPill(stringResource(R.string.tab_channels), Icons.Default.LiveTv, onChannels)
+            ModernNavPill(stringResource(R.string.tab_radio), Icons.Default.Radio, onRadio)
+            ModernNavPill(stringResource(R.string.tab_dvr), Icons.AutoMirrored.Filled.Dvr, onArchive)
+            ModernNavPill(stringResource(R.string.tab_settings), Icons.Default.Settings, onSettings)
         }
 
         Spacer(Modifier.height(20.dp))
@@ -298,16 +313,28 @@ fun ModernTvHomeScreen(
 }
 
 @Composable
-private fun ModernNavPill(label: String, onClick: () -> Unit) {
+private fun ModernNavPill(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    onClick: () -> Unit
+) {
     val cs = MaterialTheme.colorScheme
-    Box(
+    Row(
         Modifier
             .dpadFocusable(RoundedCornerShape(999.dp))
             .clip(RoundedCornerShape(999.dp))
             .background(cs.surfaceContainerHigh)
             .clickable { onClick() }
-            .padding(horizontal = 20.dp, vertical = 9.dp)
+            .padding(horizontal = 18.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        if (icon != null) {
+            androidx.compose.material3.Icon(
+                icon, contentDescription = null,
+                tint = cs.primary, modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+        }
         Text(label, color = cs.onSurface, fontSize = 14.sp)
     }
 }
