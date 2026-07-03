@@ -116,11 +116,26 @@ object DvrClassifier {
                     'ň', 'ñ' -> 'n'
                     'ó', 'ô', 'ö', 'ò', 'õ', 'ø' -> 'o'
                     'ŕ', 'ř' -> 'r'
-                    'š', 'ś' -> 's'
-                    'ť' -> 't'
-                    'ú', 'ů', 'ü', 'ù', 'û' -> 'u'
+                    'š', 'ś', 'ş', 'ș' -> 's'
+                    'ť', 'ţ', 'ț' -> 't'
+                    'ú', 'ů', 'ü', 'ù', 'û', 'ű' -> 'u'
                     'ý', 'ÿ' -> 'y'
                     'ž', 'ź', 'ż' -> 'z'
+                    'ğ' -> 'g'
+                    'ı' -> 'i'
+                    'ő' -> 'o'
+                    'ă', 'ą' -> 'a'
+                    'ę' -> 'e'
+                    // grecky tonos/dialytika (EPG greckych stanic)
+                    'ά' -> 'α'
+                    'έ' -> 'ε'
+                    'ή' -> 'η'
+                    'ί', 'ΐ', 'ϊ' -> 'ι'
+                    'ό' -> 'ο'
+                    'ύ', 'ΰ', 'ϋ' -> 'υ'
+                    'ώ' -> 'ω'
+                    // ruske ё -> е
+                    'ё' -> 'е'
                     else -> c
                 }
             )
@@ -182,6 +197,8 @@ object DvrClassifier {
             for ((pattern, cat) in fallback) {
                 if (pattern.containsMatchIn(text)) return cat
             }
+            // M330: medzinarodne tokeny (31 jazykov) az po domacich regexoch
+            intlMatch(text, intlTopCat)?.let { return it }
         }
 
         if (yearSuffix.containsMatchIn(entry.dispTitle)) return FILM
@@ -458,6 +475,93 @@ object DvrClassifier {
         Regex("""\b(kutil|diy|hand made|vlastnorucn|svojpomocn)""") to HB_DIY
     )
 
+    // =====================================================================
+    // M330: Medzinarodne klucove slova (31 jazykov aplikacie) — substring
+    // parovanie na stripAccentsLower texte. Latinske/cyrilske/grecke tokeny
+    // pisat bez diakritiky a malymi; CJK/thajcina funguje ako substring
+    // priamo (word-boundary \b tam neexistuje). Tokeny su kuratorovane
+    // dlhe/jednoznacne, aby nevznikali falosne zhody medzi jazykmi.
+    // Aplikuje sa AZ PO domacich SK/CS/EN/DE regexoch — nic nemeni na
+    // doterajsom spravani, len rozsiruje pokrytie.
+    // =====================================================================
+    private fun intlMatch(text: String, table: List<Pair<List<String>, String>>): String? {
+        for ((toks, sub) in table) for (t in toks) if (text.contains(t)) return sub
+        return null
+    }
+
+    private val intlMovieSub: List<Pair<List<String>, String>> = listOf(
+        listOf("policier","giallo ","kryminal","kriminalist","nyomozo","politiedrama","misdaad",
+            "policial","poliziesc","polisiye","cinayet","trinh tham","детектив","кримінал","криминал",
+            "αστυνομικ","جريمة","بوليسي","جنایی","کارآگاه","جاسوسی","जासूस","अपराध","গোয়েন্দা",
+            "อาชญากรรม","สืบสวน","수사","형사","범죄","刑事","推理","犯罪","サスペンス","スリラー") to MV_KRIMI,
+        listOf("comedia","commedia","comedie","komedia","komedija","vigjatek","komedi ","komedie",
+            "комедия","комедія","κωμωδ","hai kich","كوميديا","کمدی","کامیڈی","कॉमेडी","কমেডি",
+            "ตลก","코미디","喜剧","喜劇","コメディ") to MV_KOMEDIA,
+        listOf("любовн","романти","ρομαντ","lang man","رومانسي","عاشقانه","रोमांटिक","প্রেমের",
+            "โรแมนติก","로맨스","멜로","爱情","恋愛","ラブストーリー") to MV_ROMANTIKA,
+        listOf("fantascienza","ficcao cientifica","fantastyka","fantastik","bilim kurgu",
+            "khoa hoc vien tuong","фантастик","επιστημονικ","خيال علمي","علمی تخیلی","কল্পবিজ্ঞান",
+            "ไซไฟ","공상과학","科幻","サイエンスフィクション") to MV_SCIFI,
+        listOf("accion ","azione","aksiyon","akcja","akcio","akcijski","actie","боевик","екшън",
+            "бойовик","δρασ","hanh dong","اكشن","حركة","اکشن","एक्शन","액션","动作","アクション") to MV_AKCNY,
+        listOf("ужас","жахи","τρομ","kinh di","korku","رعب","ترسناک","हॉरर","ভৌতিক","สยองขวัญ",
+            "공포","恐怖","ホラー") to MV_HOROR,
+        listOf("guerra","guerre","wojenny","haboru","ratni","vojni","война","війн","πολεμ","savas",
+            "chien tranh","historique","historico","storico","historisch","حرب","جنگی","युद्ध",
+            "যুদ্ধ","สงคราม","전쟁","战争","戦争") to MV_HISTORICKY,
+        listOf("aventura","avventura","aventure","przygodow","kaland","avontuur","pustolov",
+            "приключен","пригод","περιπετει","macera","phieu luu","مغامر","ماجرا","साहसिक",
+            "অ্যাডভেঞ্চার","ผจญภัย","모험","冒险","冒険") to MV_DOBRODR,
+        listOf("dibujos animados","animacion","animazione","dessin anime","animowany","rajzfilm",
+            "animirani","tekenfilm","animatie","мультф","анимацион","анімац","κινουμενα","cizgi film",
+            "hoat hinh","رسوم متحركة","انیمیشن","एनिमेटेड","অ্যানিমেশন","การ์ตูน","애니메이션",
+            "만화","动画","アニメ") to MV_ANIMAK
+    )
+
+    private val intlShowSub: List<Pair<List<String>, String>> = listOf(
+        listOf("cocina","cucina","cuisine","gotowanie","konyha","koken","kuhinja","кулинар",
+            "μαγειρ","yemek","nau an","طبخ","مطبخ","آشپزی","রান্না","ทำอาหาร","요리","烹饪","料理") to SH_KUCHARSKE
+    )
+
+    private val intlNewsSub: List<Pair<List<String>, String>> = listOf(
+        listOf("meteo","pogod","idojaras","vremenska","погод","hava durumu","thoi tiet","الطقس",
+            "آب و هوا","मौसम","আবহাওয়া","날씨","天气","天気") to NW_POCASIE
+    )
+
+    private val intlDocSub: List<Pair<List<String>, String>> = listOf(
+        listOf("naturaleza","przyrod","termeszet","natuur","priroda","природ","doga ","thien nhien",
+            "طبيعة","طبیعت","प्रकृति","প্রকৃতি","ธรรมชาติ","야생","野生") to DC_PRIRODA,
+        listOf("ciencia","scienza","tudomany","wetenschap","znanost","наука","επιστημ","bilim",
+            "khoa hoc","علوم","دانش","विज्ञान","বিজ্ঞান","วิทยาศาสตร์","과학","科学") to DC_VEDA,
+        listOf("geschiedenis","tortenelem","povijest","история","історі","ιστορ","tarih","lich su",
+            "تاريخ","تاریخ","इतिहास","ইতিহাস","ประวัติศาสตร์","역사","历史","歴史") to DC_HISTORIA
+    )
+
+    private val intlTopCat: List<Pair<List<String>, String>> = listOf(
+        listOf("deportes","calcio","futebol","pilka nozna","labdarugas","voetbal","nogomet","футбол",
+            "спорт","ποδοσφαιρ","bong da","كرة القدم","فوتبال","फुटबॉल","ফুটবল","ฟุตบอล","축구",
+            "足球","サッカー","スポーツ") to SPORT,
+        listOf("noticias","notizie","le journal","wiadomosci","hirado","journaal","vijesti","dnevnik",
+            "новости","новини","вести","ειδησεις","haberler","tin tuc","اخبار","أخبار","خبریں",
+            "समाचार","খবর","ข่าว","뉴스","新闻","ニュース") to NEWS,
+        listOf("infantil","per bambini","pour enfants","dla dzieci","gyerek","voor kinderen","za djecu",
+            "детск","дитяч","παιδικ","cocuk","thieu nhi","اطفال","للأطفال","کودک","बच्चों","শিশুদের",
+            "เด็ก","어린이","儿童","子供","こども") to CHILDREN,
+        listOf("musique","muzyka","muziek","glazba","музыка","музик","μουσικ","am nhac","موسيقى",
+            "موسیقی","संगीत","সংগীত","เพลง","음악","音乐","音楽") to MUSIC,
+        listOf("documental","documentario","documentaire","dokumentaln","dokumentumfilm","dokumentarac",
+            "документальн","документал","ντοκιμαντερ","belgesel","tai lieu","وثائقي","مستند",
+            "डॉक्यूमेंट्री","তথ্যচিত্র","สารคดี","다큐멘터리","纪录片","ドキュメンタリー") to DOCUMENTARY
+    )
+
+    private fun intlSubFor(topCat: String): List<Pair<List<String>, String>>? = when (topCat) {
+        FILM, SERIAL -> intlMovieSub
+        SHOW -> intlShowSub
+        NEWS -> intlNewsSub
+        DOCUMENTARY -> intlDocSub
+        else -> null
+    }
+
     // Mapa kategoria -> (poradie sub-zanrov, keyword mapa, "ine" kluc)
     private fun subConfig(topCat: String): Triple<List<String>, List<Pair<Regex, String>>, String>? =
         when (topCat) {
@@ -514,6 +618,8 @@ object DvrClassifier {
         )
         if (text.isNotBlank()) {
             for ((p, sub) in cfg.second) if (p.containsMatchIn(text)) return sub
+            // M330: medzinarodne tokeny (31 jazykov) az po domacich regexoch
+            intlSubFor(topCat)?.let { tbl -> intlMatch(text, tbl)?.let { return it } }
         }
         // film/serial: horor len v nazve
         if (topCat == FILM || topCat == SERIAL) {
