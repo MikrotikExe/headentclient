@@ -341,7 +341,20 @@ fun WelcomeScreen(vm: ServersViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .then(
+                            if (modernUi) Modifier
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(
+                                    if (isLightTheme())
+                                        MaterialTheme.colorScheme.surfaceContainerLowest
+                                    else MaterialTheme.colorScheme.surfaceContainerLow
+                                )
+                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(24.dp))
+                                .padding(vertical = 40.dp, horizontal = 16.dp)
+                            else Modifier
+                        ),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     branding()

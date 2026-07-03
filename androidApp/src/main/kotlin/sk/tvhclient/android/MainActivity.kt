@@ -843,12 +843,32 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
                         .focusGroup()
                         .padding(horizontal = 12.dp, vertical = 12.dp)
                 ) {
-                    SettingsNavItem(Icons.Filled.Tune, stringResource(R.string.set_cat_general), effective == "general", catFocus["general"]) { lastSection = "general"; section = "general" }
-                    SettingsNavItem(Icons.Filled.PlayArrow, stringResource(R.string.set_cat_playback), effective == "playback", catFocus["playback"]) { lastSection = "playback"; section = "playback" }
-                    SettingsNavItem(Icons.Filled.Lock, stringResource(R.string.plock_title), effective == "plock", catFocus["plock"]) { lastSection = "plock"; section = "plock" }
-                    SettingsNavItem(Icons.Filled.Dns, stringResource(R.string.set_cat_servers), effective == "servers", catFocus["servers"]) { lastSection = "servers"; section = "servers" }
-                    SettingsNavItem(Icons.Filled.SettingsRemote, stringResource(R.string.set_cat_remote), effective == "remote", catFocus["remote"]) { lastSection = "remote"; section = "remote" }
-                    SettingsNavItem(Icons.Filled.Info, stringResource(R.string.set_cat_info), effective == "info", catFocus["info"]) { lastSection = "info"; section = "info" }
+                    SettingsNavItem(Icons.Filled.Tune, stringResource(R.string.set_cat_general), effective == "general", catFocus["general"],
+                        subtitle = stringResource(R.string.set_sub_general),
+                        chipBgL = 0xFFE0F2EF, chipFgL = 0xFF0F8A63, chipBgD = 0xFF0F2E22, chipFgD = 0xFF7FE3BF
+                    ) { lastSection = "general"; section = "general" }
+                    SettingsNavItem(Icons.Filled.PlayArrow, stringResource(R.string.set_cat_playback), effective == "playback", catFocus["playback"],
+                        subtitle = stringResource(R.string.set_sub_playback),
+                        chipBgL = 0xFFD8F0FB, chipFgL = 0xFF1877A8, chipBgD = 0xFF12283A, chipFgD = 0xFF7CC4E8
+                    ) { lastSection = "playback"; section = "playback" }
+                    SettingsNavItem(Icons.Filled.Lock, stringResource(R.string.plock_title), effective == "plock", catFocus["plock"],
+                        subtitle = stringResource(R.string.set_sub_plock),
+                        chipBgL = 0xFFFFE1E1, chipFgL = 0xFFD64545, chipBgD = 0xFF3A1D20, chipFgD = 0xFFEF8A88
+                    ) { lastSection = "plock"; section = "plock" }
+                    SettingsNavItem(Icons.Filled.Dns, stringResource(R.string.set_cat_servers), effective == "servers", catFocus["servers"],
+                        subtitle = stringResource(R.string.set_sub_servers),
+                        badge = servers.size.takeIf { it > 0 }?.toString(),
+                        chipBgL = 0xFFE3E0FB, chipFgL = 0xFF6A5AD8, chipBgD = 0xFF241F45, chipFgD = 0xFFA99BF5
+                    ) { lastSection = "servers"; section = "servers" }
+                    SettingsNavItem(Icons.Filled.SettingsRemote, stringResource(R.string.set_cat_remote), effective == "remote", catFocus["remote"],
+                        subtitle = stringResource(R.string.set_sub_remote),
+                        chipBgL = 0xFFFFECCC, chipFgL = 0xFFC07A17, chipBgD = 0xFF3A2B12, chipFgD = 0xFFE8B96A
+                    ) { lastSection = "remote"; section = "remote" }
+                    SettingsNavItem(Icons.Filled.Info, stringResource(R.string.set_cat_info), effective == "info", catFocus["info"],
+                        subtitle = stringResource(R.string.set_sub_info),
+                        badge = BuildConfig.VERSION_NAME,
+                        chipBgL = 0xFFE0F2EF, chipFgL = 0xFF0F8A63, chipBgD = 0xFF0F2E22, chipFgD = 0xFF7FE3BF
+                    ) { lastSection = "info"; section = "info" }
                 }
                 Box(
                     Modifier
@@ -923,8 +943,84 @@ private fun SettingsNavItem(
     label: String,
     selected: Boolean,
     focusRequester: androidx.compose.ui.focus.FocusRequester?,
+    subtitle: String? = null,
+    badge: String? = null,
+    chipBgL: Long = 0xFFE0F2EF, chipFgL: Long = 0xFF0F8A63,
+    chipBgD: Long = 0xFF0F2E22, chipFgD: Long = 0xFF7FE3BF,
     onClick: () -> Unit
 ) {
+    if (isModernUi()) {
+        // Moderny sidebar (M320): karta s farebnym ikonovym cipom, podtitulkom a badge
+        val cs = MaterialTheme.colorScheme
+        val light = isLightTheme()
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(
+                    if (selected) cs.primaryContainer.copy(alpha = if (light) 0.45f else 0.5f)
+                    else if (light) cs.surfaceContainerLowest else cs.surfaceContainer
+                )
+                .border(
+                    if (selected) 1.5.dp else 1.dp,
+                    if (selected) cs.primary else cs.outlineVariant,
+                    RoundedCornerShape(14.dp)
+                )
+                .dpadFocusable(RoundedCornerShape(14.dp))
+                .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+                .clickable { onClick() }
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                Modifier.size(36.dp).clip(RoundedCornerShape(10.dp))
+                    .background(androidx.compose.ui.graphics.Color(if (light) chipBgL else chipBgD)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.Icon(
+                    icon, contentDescription = null,
+                    tint = androidx.compose.ui.graphics.Color(if (light) chipFgL else chipFgD),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    color = if (selected) cs.primary else cs.onSurface,
+                    maxLines = 1
+                )
+                if (subtitle != null) {
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = cs.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
+            }
+            if (badge != null) {
+                Spacer(Modifier.width(6.dp))
+                Box(
+                    Modifier.clip(RoundedCornerShape(11.dp))
+                        .background(if (light) cs.surfaceContainer else cs.surfaceContainerHigh)
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        badge,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        color = cs.onSurfaceVariant, maxLines = 1
+                    )
+                }
+            }
+        }
+        return
+    }
     Row(
         Modifier
             .fillMaxWidth()
