@@ -155,6 +155,8 @@ class PlayerActivity : ComponentActivity() {
     private val modernOvExec = androidx.compose.runtime.mutableStateOf(0)     // signal pre composable
     private val modernOvExecId = androidx.compose.runtime.mutableStateOf("")
     private var modernOkLong = false
+    // OK z prehravania: overlay otvarame az na OK-UP, aby pri podrzani nepreblikol (M328)
+    private var modernOkPending = false
 
     private val isTvBox by lazy {
         (getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager)
@@ -1970,12 +1972,30 @@ class PlayerActivity : ComponentActivity() {
             when (kc) {
                 android.view.KeyEvent.KEYCODE_DPAD_CENTER,
                 android.view.KeyEvent.KEYCODE_ENTER,
-                android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> if (down && event.repeatCount == 0) {
-                    // OK pri zivom = zoznam kanalov; pri DVR (bez zoznamu) = play/pause
-                    if (seekablePlayback) { togglePlayPause(); showControlsFocused() }
-                    else { okLongFired = true; if (modernTvActive()) openModernOverlay() else openChannelList() }  // okLongFired prehltne nasledne OK-up
-                    return true
-                } else if (down) return true
+                android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                    if (seekablePlayback) {
+                        if (down && event.repeatCount == 0) { togglePlayPause(); showControlsFocused() }
+                        return true
+                    }
+                    if (modernTvActive()) {
+                        // Kratke OK -> overlay az na UP; podrzanie -> rovno velky zoznam.
+                        // Overlay sa pri podrzani vobec neotvori, ziadny preblik.
+                        if (down && event.repeatCount == 0) { modernOkPending = true; return true }
+                        if (down && event.repeatCount == 1 && modernOkPending) {
+                            modernOkPending = false
+                            openChannelList()
+                            return true
+                        }
+                        if (down) return true
+                        if (modernOkPending) { modernOkPending = false; openModernOverlay() }
+                        return true
+                    }
+                    if (down && event.repeatCount == 0) {
+                        okLongFired = true; openChannelList()  // okLongFired prehltne nasledne OK-up
+                        return true
+                    }
+                    if (down) return true
+                }
                 android.view.KeyEvent.KEYCODE_DPAD_LEFT -> if (down) {
                     if (seekablePlayback) { seekRelative(-15_000); pokeControls(); return true }
                     if (modernTvActive()) openModernOverlay() else showControlsFocused(); return true

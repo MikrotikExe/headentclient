@@ -54,6 +54,44 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Handyman
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.TheaterComedy
+import androidx.compose.material.icons.filled.LocalPolice
+import androidx.compose.material.icons.filled.Theaters
+import androidx.compose.material.icons.filled.RocketLaunch
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Animation
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.SportsHockey
+import androidx.compose.material.icons.filled.SportsBasketball
+import androidx.compose.material.icons.filled.SportsTennis
+import androidx.compose.material.icons.filled.SportsVolleyball
+import androidx.compose.material.icons.filled.SportsHandball
+import androidx.compose.material.icons.filled.SportsMma
+import androidx.compose.material.icons.filled.DirectionsRun
+import androidx.compose.material.icons.filled.DirectionsBike
+import androidx.compose.material.icons.filled.SportsMotorsports
+import androidx.compose.material.icons.filled.AcUnit
+import androidx.compose.material.icons.filled.Pool
+import androidx.compose.material.icons.filled.Gavel
+import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.RecordVoiceOver
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Celebration
+import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Piano
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Forest
+import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.foundation.border
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.GridView
@@ -792,7 +830,69 @@ private fun mgChipFor(key: String): MgChipColors = when (key) {
     else -> mgPalette[kotlin.math.abs(key.hashCode()) % mgPalette.size]
 }
 
-private fun mgIconFor(rawKey: String): androidx.compose.ui.graphics.vector.ImageVector { val key = rawKey.substringBefore('|'); return when {
+/** Vlastna ikona podzanru (M328); null = pouzije sa ikona rodicovskej kategorie. */
+private fun mgSubIcon(k: String): androidx.compose.ui.graphics.vector.ImageVector? = when (k) {
+    sk.tvhclient.shared.model.DvrClassifier.MV_AKCNY -> Icons.Filled.LocalFireDepartment
+    sk.tvhclient.shared.model.DvrClassifier.MV_KOMEDIA -> Icons.Filled.TheaterComedy
+    sk.tvhclient.shared.model.DvrClassifier.MV_KRIMI -> Icons.Filled.LocalPolice
+    sk.tvhclient.shared.model.DvrClassifier.MV_DRAMA -> Icons.Filled.Theaters
+    sk.tvhclient.shared.model.DvrClassifier.MV_SCIFI -> Icons.Filled.RocketLaunch
+    sk.tvhclient.shared.model.DvrClassifier.MV_ROMANTIKA -> Icons.Filled.Favorite
+    sk.tvhclient.shared.model.DvrClassifier.MV_HOROR -> Icons.Filled.DarkMode
+    sk.tvhclient.shared.model.DvrClassifier.MV_DOBRODR -> Icons.Filled.Explore
+    sk.tvhclient.shared.model.DvrClassifier.MV_ANIMAK -> Icons.Filled.Animation
+    sk.tvhclient.shared.model.DvrClassifier.MV_HISTORICKY -> Icons.Filled.AccountBalance
+    sk.tvhclient.shared.model.DvrClassifier.MV_WESTERN -> Icons.Filled.Landscape
+    sk.tvhclient.shared.model.DvrClassifier.SP_FUTBAL -> Icons.Filled.SportsSoccer
+    sk.tvhclient.shared.model.DvrClassifier.SP_HOKEJ -> Icons.Filled.SportsHockey
+    sk.tvhclient.shared.model.DvrClassifier.SP_BASKETBAL -> Icons.Filled.SportsBasketball
+    sk.tvhclient.shared.model.DvrClassifier.SP_TENIS -> Icons.Filled.SportsTennis
+    sk.tvhclient.shared.model.DvrClassifier.SP_VOLEJBAL -> Icons.Filled.SportsVolleyball
+    sk.tvhclient.shared.model.DvrClassifier.SP_HADZANA -> Icons.Filled.SportsHandball
+    sk.tvhclient.shared.model.DvrClassifier.SP_BOJOVE -> Icons.Filled.SportsMma
+    sk.tvhclient.shared.model.DvrClassifier.SP_ATLETIKA -> Icons.Filled.DirectionsRun
+    sk.tvhclient.shared.model.DvrClassifier.SP_CYKLISTIKA -> Icons.Filled.DirectionsBike
+    sk.tvhclient.shared.model.DvrClassifier.SP_MOTORSPORT -> Icons.Filled.SportsMotorsports
+    sk.tvhclient.shared.model.DvrClassifier.SP_ZIMNE -> Icons.Filled.AcUnit
+    sk.tvhclient.shared.model.DvrClassifier.SP_VODNE -> Icons.Filled.Pool
+    sk.tvhclient.shared.model.DvrClassifier.SP_NEWS -> Icons.Filled.Newspaper
+    sk.tvhclient.shared.model.DvrClassifier.NW_HLAVNE -> Icons.Filled.Newspaper
+    sk.tvhclient.shared.model.DvrClassifier.NW_POLITIKA -> Icons.Filled.Gavel
+    sk.tvhclient.shared.model.DvrClassifier.NW_KRIMI -> Icons.Filled.LocalPolice
+    sk.tvhclient.shared.model.DvrClassifier.NW_MAGAZINY -> Icons.Filled.Article
+    sk.tvhclient.shared.model.DvrClassifier.NW_POCASIE -> Icons.Filled.WbSunny
+    sk.tvhclient.shared.model.DvrClassifier.SH_REALITY -> Icons.Filled.Videocam
+    sk.tvhclient.shared.model.DvrClassifier.SH_TALK -> Icons.Filled.RecordVoiceOver
+    sk.tvhclient.shared.model.DvrClassifier.SH_SUTAZ -> Icons.Filled.EmojiEvents
+    sk.tvhclient.shared.model.DvrClassifier.SH_KUCHARSKE -> Icons.Filled.Restaurant
+    sk.tvhclient.shared.model.DvrClassifier.SH_ZABAVA -> Icons.Filled.Celebration
+    sk.tvhclient.shared.model.DvrClassifier.SH_MAGAZINY -> Icons.Filled.Article
+    sk.tvhclient.shared.model.DvrClassifier.CH_ANIMAK -> Icons.Filled.Animation
+    sk.tvhclient.shared.model.DvrClassifier.CH_ROZPRAVKY -> Icons.Filled.AutoStories
+    sk.tvhclient.shared.model.DvrClassifier.CH_VZDELAVAC -> Icons.Filled.School
+    sk.tvhclient.shared.model.DvrClassifier.CH_FILMY -> Icons.Filled.Movie
+    sk.tvhclient.shared.model.DvrClassifier.MU_KLASIKA -> Icons.Filled.Piano
+    sk.tvhclient.shared.model.DvrClassifier.MU_KONCERT -> Icons.Filled.Mic
+    sk.tvhclient.shared.model.DvrClassifier.MU_HITY -> Icons.Filled.Star
+    sk.tvhclient.shared.model.DvrClassifier.MU_FOLK -> Icons.Filled.MusicNote
+    sk.tvhclient.shared.model.DvrClassifier.MU_MAGAZINY -> Icons.Filled.Article
+    sk.tvhclient.shared.model.DvrClassifier.AR_DIVADLO -> Icons.Filled.TheaterComedy
+    sk.tvhclient.shared.model.DvrClassifier.AR_VYTVARNE -> Icons.Filled.Palette
+    sk.tvhclient.shared.model.DvrClassifier.AR_LITERATURA -> Icons.Filled.MenuBook
+    sk.tvhclient.shared.model.DvrClassifier.AR_FILM -> Icons.Filled.Movie
+    sk.tvhclient.shared.model.DvrClassifier.DC_PRIRODA -> Icons.Filled.Forest
+    sk.tvhclient.shared.model.DvrClassifier.DC_HISTORIA -> Icons.Filled.AccountBalance
+    sk.tvhclient.shared.model.DvrClassifier.DC_VEDA -> Icons.Filled.Science
+    sk.tvhclient.shared.model.DvrClassifier.DC_CESTOPIS -> Icons.Filled.Public
+    else -> null
+}
+
+private fun mgIconFor(rawKey: String): androidx.compose.ui.graphics.vector.ImageVector { 
+    // Podzaner ma prednostne vlastnu ikonu ("kat|sub" aj samotny sub kluc);
+    // *_ine a nezname padaju na ikonu rodicovskej kategorie.
+    mgSubIcon(rawKey.substringAfter('|', ""))?.let { return it }
+    mgSubIcon(rawKey)?.let { return it }
+    val key = rawKey.substringBefore('|'); return when {
     key == "recent" -> Icons.Filled.PlayArrow
     key == "search" -> Icons.Filled.Search
     key == "all" -> Icons.Filled.VideoLibrary
