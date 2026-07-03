@@ -38,6 +38,22 @@ import androidx.compose.foundation.focusGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.VideoLibrary
+import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.SportsSoccer
+import androidx.compose.material.icons.filled.Newspaper
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.ChildCare
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Handyman
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.ViewModule
@@ -61,6 +77,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.dateKey
@@ -297,18 +314,19 @@ private fun DvrContent(
                     item("hdr") { Header(stringResource(R.string.dvr_archive)) }
                     if (recentCount > 0) {
                         item("recent") {
-                            FolderRow("\u25B6  " + stringResource(R.string.dvr_recent), sub = "$recentCount") { onNav(DvrNav.Recent) }
+                            FolderRow("\u25B6  " + stringResource(R.string.dvr_recent), sub = "$recentCount", iconKey = "recent") { onNav(DvrNav.Recent) }
                         }
                     }
                     item("by_channel") {
                         FolderRow(
                             "\uD83D\uDCFA  " + stringResource(R.string.dvr_by_channel),
-                            sub = "$chCount " + stringResource(R.string.dvr_channels_count)
+                            sub = "$chCount " + stringResource(R.string.dvr_channels_count),
+                            iconKey = "channels"
                         ) { onNav(DvrNav.Channels) }
                     }
                     item("cat_hdr") { Header(stringResource(R.string.dvr_by_genre)) }
                     items(cats, key = { it }) { cat ->
-                        FolderRow("\uD83D\uDCC1  " + catLabel(cat), sub = "${byCat[cat]?.size ?: 0}") {
+                        FolderRow("\uD83D\uDCC1  " + catLabel(cat), sub = "${byCat[cat]?.size ?: 0}", iconKey = cat) {
                             onNav(DvrNav.Category(cat))
                         }
                     }
@@ -319,13 +337,14 @@ private fun DvrContent(
                     item(key = "hdr", span = { GridItemSpan(maxLineSpan) }) { Header(stringResource(R.string.dvr_archive)) }
                     if (recentCount > 0) {
                         item(key = "recent", span = { GridItemSpan(maxLineSpan) }) {
-                            FolderRow("\u25B6  " + stringResource(R.string.dvr_recent), sub = "$recentCount") { onNav(DvrNav.Recent) }
+                            FolderRow("\u25B6  " + stringResource(R.string.dvr_recent), sub = "$recentCount", iconKey = "recent") { onNav(DvrNav.Recent) }
                         }
                     }
                     item(key = "by_channel", span = { GridItemSpan(maxLineSpan) }) {
                         FolderRow(
                             "\uD83D\uDCFA  " + stringResource(R.string.dvr_by_channel),
-                            sub = "$chCount " + stringResource(R.string.dvr_channels_count)
+                            sub = "$chCount " + stringResource(R.string.dvr_channels_count),
+                            iconKey = "channels"
                         ) { onNav(DvrNav.Channels) }
                     }
                     item(key = "cat_hdr", span = { GridItemSpan(maxLineSpan) }) { Header(stringResource(R.string.dvr_by_genre)) }
@@ -409,7 +428,7 @@ private fun DvrContent(
                     items(dates, key = { it }) { dk ->
                         val list = byDate[dk] ?: emptyList()
                         val label = list.firstOrNull()?.let { formatDateFull(it.start) } ?: dk
-                        FolderRow("\uD83D\uDCC5  $label", sub = "${list.size}") {
+                        FolderRow("\uD83D\uDCC5  $label", sub = "${list.size}", iconKey = "dates") {
                             onNav(DvrNav.Day(nav.channel, dk))
                         }
                     }
@@ -449,7 +468,7 @@ private fun DvrContent(
                     LazyColumn(Modifier.fillMaxSize()) {
                         item("hdr") { Header(catLabel(nav.catKey)) }
                         items(order.filter { bySub.containsKey(it) }, key = { it }) { sub ->
-                            FolderRow("\uD83D\uDCC1  " + subLabel(sub), sub = "${bySub[sub]?.size ?: 0}") {
+                            FolderRow("\uD83D\uDCC1  " + subLabel(sub), sub = "${bySub[sub]?.size ?: 0}", iconKey = nav.catKey + "|" + sub) {
                                 onNav(DvrNav.Subgenre(nav.catKey, sub))
                             }
                         }
@@ -486,7 +505,7 @@ private fun DvrContent(
                         item("hdr") { Header(subLabel(nav.subKey)) }
                         items(titles, key = { it }) { t ->
                             val grp = bySeries[t] ?: emptyList()
-                            FolderRow("\uD83D\uDCFA  $t", sub = "${grp.size}") {
+                            FolderRow("\uD83D\uDCFA  $t", sub = "${grp.size}", iconKey = "series") {
                                 onNav(DvrNav.Series(nav.catKey, nav.subKey, t))
                             }
                         }
@@ -712,6 +731,17 @@ private fun fmtPos(ms: Long): String {
 
 @Composable
 private fun Header(text: String) {
+    if (isModernUi()) {
+        Text(
+            text.uppercase(),
+            Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 4.dp),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.2.sp,
+            color = MaterialTheme.colorScheme.primary
+        )
+        return
+    }
     Text(
         text,
         Modifier
@@ -724,6 +754,128 @@ private fun Header(text: String) {
     )
 }
 
+// --- Moderny archiv (M316): karty priecinkov s farebnymi ikonovymi cipmi ---
+
+/** Farby cipu ikony: pozadie/popredie pre svetly a tmavy rezim. */
+private class MgChipColors(val bgL: Long, val fgL: Long, val bgD: Long, val fgD: Long)
+
+private val mgPalette = listOf(
+    MgChipColors(0xFFFFE1E1, 0xFFD64545, 0xFF3A1D20, 0xFFEF8A88), // 0 cervena
+    MgChipColors(0xFFE3E0FB, 0xFF6A5AD8, 0xFF241F45, 0xFFA99BF5), // 1 fialova
+    MgChipColors(0xFFDCEFDA, 0xFF3D8B40, 0xFF16301C, 0xFF8ED492), // 2 zelena
+    MgChipColors(0xFFFFECCC, 0xFFC07A17, 0xFF3A2B12, 0xFFE8B96A), // 3 oranzova
+    MgChipColors(0xFFFDE2F1, 0xFFC2408F, 0xFF3A1730, 0xFFE88AC2), // 4 ruzova
+    MgChipColors(0xFFD8F0FB, 0xFF1877A8, 0xFF12283A, 0xFF7CC4E8), // 5 modra
+    MgChipColors(0xFFE0F2EF, 0xFF0F8A63, 0xFF0F2E22, 0xFF7FE3BF), // 6 teal
+    MgChipColors(0xFFF0E9D8, 0xFF9A7B2D, 0xFF332C14, 0xFFD9C27A), // 7 jantarova
+)
+
+private fun mgChipFor(key: String): MgChipColors = when (key) {
+    "recent" -> mgPalette[6]
+    "channels" -> mgPalette[5]
+    "dates" -> mgPalette[6]
+    "series" -> mgPalette[1]
+    sk.tvhclient.shared.model.DvrClassifier.FILM -> mgPalette[0]
+    sk.tvhclient.shared.model.DvrClassifier.SERIAL -> mgPalette[1]
+    sk.tvhclient.shared.model.DvrClassifier.SPORT -> mgPalette[2]
+    sk.tvhclient.shared.model.DvrClassifier.NEWS -> mgPalette[3]
+    sk.tvhclient.shared.model.DvrClassifier.SHOW -> mgPalette[4]
+    sk.tvhclient.shared.model.DvrClassifier.CHILDREN -> mgPalette[5]
+    sk.tvhclient.shared.model.DvrClassifier.MUSIC -> mgPalette[6]
+    sk.tvhclient.shared.model.DvrClassifier.ARTS -> mgPalette[1]
+    sk.tvhclient.shared.model.DvrClassifier.DOCUMENTARY -> mgPalette[7]
+    sk.tvhclient.shared.model.DvrClassifier.HOBBY -> mgPalette[2]
+    sk.tvhclient.shared.model.DvrClassifier.OTHER -> mgPalette[3]
+    else -> mgPalette[kotlin.math.abs(key.hashCode()) % mgPalette.size]
+}
+
+private fun mgIconFor(rawKey: String): androidx.compose.ui.graphics.vector.ImageVector { val key = rawKey.substringBefore('|'); return when {
+    key == "recent" -> Icons.Filled.PlayArrow
+    key == "channels" -> Icons.Filled.LiveTv
+    key == "dates" -> Icons.Filled.CalendarMonth
+    key == "series" -> Icons.Filled.VideoLibrary
+    key == sk.tvhclient.shared.model.DvrClassifier.FILM || key.startsWith("mv_") -> Icons.Filled.Movie
+    key == sk.tvhclient.shared.model.DvrClassifier.SERIAL -> Icons.Filled.Tv
+    key == sk.tvhclient.shared.model.DvrClassifier.SPORT || key.startsWith("sp_") -> Icons.Filled.SportsSoccer
+    key == sk.tvhclient.shared.model.DvrClassifier.NEWS || key.startsWith("nw_") -> Icons.Filled.Newspaper
+    key == sk.tvhclient.shared.model.DvrClassifier.SHOW || key.startsWith("sh_") -> Icons.Filled.Star
+    key == sk.tvhclient.shared.model.DvrClassifier.CHILDREN || key.startsWith("ch_") -> Icons.Filled.ChildCare
+    key == sk.tvhclient.shared.model.DvrClassifier.MUSIC || key.startsWith("mu_") -> Icons.Filled.MusicNote
+    key == sk.tvhclient.shared.model.DvrClassifier.ARTS || key.startsWith("ar_") -> Icons.Filled.Palette
+    key == sk.tvhclient.shared.model.DvrClassifier.DOCUMENTARY || key.startsWith("dc_") -> Icons.Filled.Description
+    key == sk.tvhclient.shared.model.DvrClassifier.HOBBY -> Icons.Filled.Handyman
+    else -> Icons.Filled.Category
+} }
+
+/** Karta priecinka moderneho archivu: farebny ikonovy cip + tucny nazov + badge poctu + sipka. */
+@Composable
+private fun ModernFolderRow(
+    label: String,
+    sub: String,
+    iconKey: String,
+    leading: (@Composable () -> Unit)? = null,
+    onClick: () -> Unit
+) {
+    val cs = MaterialTheme.colorScheme
+    val light = isLightTheme()
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(if (light) cs.surfaceContainerLowest else cs.surfaceContainer)
+            .border(1.dp, cs.outlineVariant, RoundedCornerShape(18.dp))
+            .dpadFocusable(RoundedCornerShape(18.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (leading != null) {
+            leading()
+        } else {
+            val chip = mgChipFor(iconKey)
+            Box(
+                Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
+                    .background(androidx.compose.ui.graphics.Color(if (light) chip.bgL else chip.bgD)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.Icon(
+                    mgIconFor(iconKey), contentDescription = null,
+                    tint = androidx.compose.ui.graphics.Color(if (light) chip.fgL else chip.fgD),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+        Spacer(Modifier.width(14.dp))
+        Text(
+            label, Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = cs.onSurface,
+            maxLines = 1, overflow = TextOverflow.Ellipsis
+        )
+        Spacer(Modifier.width(8.dp))
+        Box(
+            Modifier.clip(RoundedCornerShape(14.dp))
+                .background(if (light) cs.surfaceContainer else cs.surfaceContainerHigh)
+                .padding(horizontal = 10.dp, vertical = 4.dp)
+        ) {
+            Text(
+                sub,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = cs.onSurfaceVariant,
+                maxLines = 1
+            )
+        }
+        Text(
+            "  \u203A",
+            style = MaterialTheme.typography.titleMedium,
+            color = cs.onSurfaceVariant.copy(alpha = 0.6f)
+        )
+    }
+}
+
 @Composable
 private fun ChannelFolderRow(
     name: String,
@@ -733,6 +885,29 @@ private fun ChannelFolderRow(
     sub: String,
     onClick: () -> Unit
 ) {
+    if (isModernUi()) {
+        ModernFolderRow(name, sub, iconKey = "channels", leading = {
+            Box(
+                Modifier.size(width = 56.dp, height = 44.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(piconBackground()),
+                contentAlignment = Alignment.Center
+            ) {
+                if (piconUrl != null) {
+                    coil.compose.AsyncImage(
+                        model = coil.request.ImageRequest.Builder(context).data(piconUrl).build(),
+                        contentDescription = name,
+                        imageLoader = loader,
+                        contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize().padding(3.dp)
+                    )
+                } else {
+                    Text(name.take(2).uppercase(), style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }, onClick = onClick)
+        return
+    }
     Row(
         Modifier
             .fillMaxWidth()
@@ -771,7 +946,13 @@ private fun ChannelFolderRow(
 }
 
 @Composable
-private fun FolderRow(label: String, sub: String, onClick: () -> Unit) {
+private fun FolderRow(label: String, sub: String, iconKey: String = "folder", onClick: () -> Unit) {
+    if (isModernUi()) {
+        // Emoji prefix (📁/📺/▶/📅) v modernom rezime nahradza ikonovy cip
+        val clean = label.trimStart { !it.isLetterOrDigit() }
+        ModernFolderRow(clean, sub, iconKey, onClick = onClick)
+        return
+    }
     Row(
         Modifier
             .fillMaxWidth()
