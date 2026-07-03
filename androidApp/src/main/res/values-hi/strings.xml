@@ -307,4 +307,6 @@
     <string name="ui_mode_classic">क्लासिक</string>
     <string name="ui_mode_modern">आधुनिक</string>
     <string name="ui_mode_title">इंटरफ़ेस मोड</string>
+    <string name="ui_mode_new_badge">नया</string>
+    <string name="ui_mode_hint">सेटिंग्स → सामान्य में कभी भी बदलें</string>
 </resources>

@@ -307,4 +307,6 @@
     <string name="ui_mode_classic">Класични</string>
     <string name="ui_mode_modern">Модерни</string>
     <string name="ui_mode_title">Режим интерфејса</string>
+    <string name="ui_mode_new_badge">НОВО</string>
+    <string name="ui_mode_hint">Можеш променити у Подешавања → Опште</string>
 </resources>

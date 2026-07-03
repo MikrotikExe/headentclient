@@ -26,6 +26,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -100,20 +107,31 @@ fun WelcomeScreen(vm: ServersViewModel) {
     val versionLabel = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) \u2022 ${BuildConfig.BUILD_DATE}"
 
     // Branding (logo + nazov + popis) - zdielane pre oba layouty
+    val modernUi = isModernUi()
     val branding: @Composable () -> Unit = {
-        Box(
-            modifier = Modifier
-                .size(logoSize)
-                .clip(androidx.compose.foundation.shape.RoundedCornerShape(24.dp))
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
-            contentAlignment = Alignment.Center
-        ) {
-            androidx.compose.material3.Icon(
-                Icons.Default.LiveTv,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(logoIcon)
-            )
+        Box(contentAlignment = Alignment.Center) {
+            if (modernUi) {
+                // jemna teal ziara za logom (moderny rezim)
+                Box(
+                    Modifier.size(logoSize * 1.35f)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(logoSize)
+                    .clip(RoundedCornerShape(if (modernUi) 28.dp else 24.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.Icon(
+                    Icons.Default.LiveTv,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(logoIcon)
+                )
+            }
         }
         Spacer(Modifier.height(gapLogo))
         Text(
@@ -134,20 +152,27 @@ fun WelcomeScreen(vm: ServersViewModel) {
 
     // Formular (polia + tlacidlo + viac moznosti + pokrocile) - zdielane; prepinac temy sa prida zvlast
     val formFields: @Composable () -> Unit = {
+        val chipLight = isLightTheme()
         TvTextField(
             label = stringResource(R.string.field_host),
             value = host,
             onValueChange = { host = it; localError = false },
             uri = true,
             focusRequester = hostFocus,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            leadingIcon = Icons.Filled.Dns,
+            chipBg = Color(if (chipLight) 0xFFE0F2EF else 0xFF0F2E22),
+            chipFg = Color(if (chipLight) 0xFF0F8A63 else 0xFF7FE3BF)
         )
         Spacer(Modifier.height(10.dp))
         TvTextField(
             label = stringResource(R.string.field_username),
             value = username,
             onValueChange = { username = it },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            leadingIcon = Icons.Filled.Person,
+            chipBg = Color(if (chipLight) 0xFFD8F0FB else 0xFF12283A),
+            chipFg = Color(if (chipLight) 0xFF1877A8 else 0xFF7CC4E8)
         )
         Spacer(Modifier.height(10.dp))
         TvTextField(
@@ -155,7 +180,10 @@ fun WelcomeScreen(vm: ServersViewModel) {
             value = password,
             onValueChange = { password = it },
             password = true,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            leadingIcon = Icons.Filled.Lock,
+            chipBg = Color(if (chipLight) 0xFFFFE9D6 else 0xFF3A2B12),
+            chipFg = Color(if (chipLight) 0xFFC07A17 else 0xFFE8B96A)
         )
         if (localError) {
             Spacer(Modifier.height(8.dp))
@@ -342,6 +370,8 @@ fun WelcomeScreen(vm: ServersViewModel) {
                     ThemeSwitch(ctx)
                     Spacer(Modifier.height(12.dp))
                     formFields()
+                    Spacer(Modifier.height(20.dp))
+                    UiModePicker(ctx)
                 }
             }
         } else {
@@ -363,6 +393,8 @@ fun WelcomeScreen(vm: ServersViewModel) {
                 branding()
                 Spacer(Modifier.height(gapForm))
                 formFields()
+                Spacer(Modifier.height(28.dp))
+                UiModePicker(ctx)
                 Spacer(Modifier.height(56.dp))
             }
             Text(
@@ -378,6 +410,181 @@ fun WelcomeScreen(vm: ServersViewModel) {
     }
 }
 
+
+/**
+ * Volba vzhladu rozhrania (M319) — na privitacej obrazovke pri prvom spusteni.
+ * Dve karty s mini nahladmi (klasik = ploche riadky, moderny = karty s cipmi);
+ * vyber sa aplikuje okamzite cez UiModePref (zivy stav), takze pouzivatel hned
+ * vidi rozdiel na samotnom prihlaseni. Volba sa da neskor zmenit v nastaveniach.
+ */
+@Composable
+private fun UiModePicker(ctx: android.content.Context) {
+    val mode by UiModePref.stateOf(ctx)
+    val cs = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxWidth()) {
+        Text(
+            stringResource(R.string.ui_mode_title).uppercase(),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.2.sp,
+            color = cs.primary,
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+        )
+        Row(Modifier.fillMaxWidth()) {
+            UiModeCard(
+                label = stringResource(R.string.ui_mode_classic),
+                selected = mode != UiModePref.MODERN,
+                modernPreview = false,
+                badge = null,
+                modifier = Modifier.weight(1f)
+            ) { UiModePref.set(ctx, UiModePref.CLASSIC) }
+            Spacer(Modifier.width(12.dp))
+            UiModeCard(
+                label = stringResource(R.string.ui_mode_modern),
+                selected = mode == UiModePref.MODERN,
+                modernPreview = true,
+                badge = stringResource(R.string.ui_mode_new_badge),
+                modifier = Modifier.weight(1f)
+            ) { UiModePref.set(ctx, UiModePref.MODERN) }
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            stringResource(R.string.ui_mode_hint),
+            style = MaterialTheme.typography.labelSmall,
+            color = cs.onSurfaceVariant.copy(alpha = 0.8f),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+/** Karta jednej volby vzhladu: mini nahlad + radio + nazov (+ badge NOVE). */
+@Composable
+private fun UiModeCard(
+    label: String,
+    selected: Boolean,
+    modernPreview: Boolean,
+    badge: String?,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val cs = MaterialTheme.colorScheme
+    val light = isLightTheme()
+    Box(modifier) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(
+                    if (selected) cs.primaryContainer.copy(alpha = if (light) 0.45f else 0.5f)
+                    else if (light) cs.surfaceContainerLowest else cs.surfaceContainer
+                )
+                .border(
+                    if (selected) 2.dp else 1.dp,
+                    if (selected) cs.primary else cs.outlineVariant,
+                    RoundedCornerShape(18.dp)
+                )
+                .dpadFocusable(RoundedCornerShape(18.dp))
+                .clickable { onClick() }
+                .padding(12.dp)
+        ) {
+            // mini nahlad
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (light) cs.surfaceContainer else cs.surfaceContainerLowest)
+                    .padding(8.dp)
+            ) {
+                if (modernPreview) {
+                    val dots = listOf(cs.primary, cs.secondary, cs.tertiary)
+                    dots.forEachIndexed { i, dot ->
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (light) cs.surfaceContainerLowest else cs.surfaceContainerHigh)
+                                .padding(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(Modifier.size(9.dp).clip(RoundedCornerShape(3.dp)).background(dot))
+                            Spacer(Modifier.width(5.dp))
+                            Box(
+                                Modifier.height(5.dp)
+                                    .fillMaxWidth(fraction = 0.5f + i * 0.15f)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(cs.onSurfaceVariant.copy(alpha = 0.5f))
+                            )
+                        }
+                        if (i < dots.lastIndex) Spacer(Modifier.height(4.dp))
+                    }
+                } else {
+                    val widths = listOf(0.6f, 0.95f, 0.95f, 0.8f)
+                    widths.forEachIndexed { i, w ->
+                        Box(
+                            Modifier.height(6.dp)
+                                .fillMaxWidth(fraction = w)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(
+                                    cs.onSurfaceVariant.copy(alpha = if (i == 0) 0.55f else 0.3f)
+                                )
+                        )
+                        if (i < widths.lastIndex) Spacer(Modifier.height(6.dp))
+                    }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (selected) {
+                    Box(
+                        Modifier.size(18.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .background(cs.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("\u2713", color = cs.onPrimary,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    Box(
+                        Modifier.size(18.dp)
+                            .clip(androidx.compose.foundation.shape.CircleShape)
+                            .border(2.dp, cs.outline, androidx.compose.foundation.shape.CircleShape)
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    label,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (selected) {
+                        if (isLightTheme()) cs.onPrimaryContainer else cs.onSurface
+                    } else cs.onSurface,
+                    maxLines = 1
+                )
+            }
+        }
+        if (badge != null) {
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 0.dp, end = 10.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(cs.primary)
+                    .padding(horizontal = 8.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    badge,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = cs.onPrimary,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
 
 /** Kompaktny prepinac temy (Auto / svetla / tmava) — hore na prihlasovacej obrazovke. */
 @Composable

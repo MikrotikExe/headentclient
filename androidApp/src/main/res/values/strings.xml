@@ -307,4 +307,6 @@
     <string name="set_grp_behavior">Behavior</string>
     <string name="set_grp_maintenance">Maintenance</string>
     <string name="set_grp_docs">Documents</string>
+    <string name="ui_mode_new_badge">NEW</string>
+    <string name="ui_mode_hint">You can change this anytime in Settings → General</string>
 </resources>

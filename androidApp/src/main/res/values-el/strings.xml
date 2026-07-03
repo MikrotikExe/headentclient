@@ -307,4 +307,6 @@
     <string name="ui_mode_classic">Κλασικό</string>
     <string name="ui_mode_modern">Μοντέρνο</string>
     <string name="ui_mode_title">Λειτουργία διεπαφής</string>
+    <string name="ui_mode_new_badge">ΝΕΟ</string>
+    <string name="ui_mode_hint">Αλλάζει στις Ρυθμίσεις → Γενικά</string>
 </resources>

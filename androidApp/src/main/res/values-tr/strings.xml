@@ -307,4 +307,6 @@
     <string name="ui_mode_classic">Klasik</string>
     <string name="ui_mode_modern">Modern</string>
     <string name="ui_mode_title">Arayüz modu</string>
+    <string name="ui_mode_new_badge">YENİ</string>
+    <string name="ui_mode_hint">Ayarlar → Genel bölümünden değiştirilebilir</string>
 </resources>

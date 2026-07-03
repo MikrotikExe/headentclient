@@ -307,4 +307,6 @@
     <string name="ui_mode_classic">Klasyczny</string>
     <string name="ui_mode_modern">Nowoczesny</string>
     <string name="ui_mode_title">Tryb interfejsu</string>
+    <string name="ui_mode_new_badge">NOWE</string>
+    <string name="ui_mode_hint">Zmienisz to w Ustawienia → Ogólne</string>
 </resources>

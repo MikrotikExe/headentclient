@@ -307,4 +307,6 @@
     <string name="ui_mode_classic">Cổ điển</string>
     <string name="ui_mode_modern">Hiện đại</string>
     <string name="ui_mode_title">Chế độ giao diện</string>
+    <string name="ui_mode_new_badge">MỚI</string>
+    <string name="ui_mode_hint">Có thể đổi trong Cài đặt → Chung</string>
 </resources>

@@ -1,6 +1,11 @@
 package sk.tvhclient.android
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,8 +62,33 @@ fun TvTextField(
     numeric: Boolean = false,
     uri: Boolean = false,
     password: Boolean = false,
-    focusRequester: FocusRequester? = null
+    focusRequester: FocusRequester? = null,
+    // Moderny rezim (M319): volitelny farebny ikonovy cip vlavo v poli
+    leadingIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    chipBg: androidx.compose.ui.graphics.Color? = null,
+    chipFg: androidx.compose.ui.graphics.Color? = null
 ) {
+    val modern = isModernUi()
+    val boxShape = RoundedCornerShape(if (modern) 18.dp else 4.dp)
+    val boxBorder = if (modern) MaterialTheme.colorScheme.outlineVariant
+                    else MaterialTheme.colorScheme.outline
+    val boxBg = if (modern) {
+        if (isLightTheme()) MaterialTheme.colorScheme.surfaceContainerLowest
+        else MaterialTheme.colorScheme.surfaceContainer
+    } else androidx.compose.ui.graphics.Color.Transparent
+    // Cip s ikonou (len moderny rezim a len ked je ikona zadana)
+    val chip: (@Composable () -> Unit)? =
+        if (modern && leadingIcon != null && chipBg != null && chipFg != null) {
+            {
+                Box(
+                    Modifier.size(38.dp).clip(RoundedCornerShape(11.dp)).background(chipBg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(leadingIcon, contentDescription = null, tint = chipFg,
+                        modifier = Modifier.size(20.dp))
+                }
+            }
+        } else null
     var editing by remember { mutableStateOf(false) }
     var everEdited by remember { mutableStateOf(false) }
     var revealed by remember { mutableStateOf(false) }
@@ -107,6 +137,7 @@ fun TvTextField(
                 capitalization = KeyboardCapitalization.None
             ),
             keyboardActions = KeyboardActions(onDone = { editing = false }),
+            shape = boxShape,
             modifier = modifier
                 .focusRequester(imeFocus)
                 .onPreviewKeyEvent { e ->
@@ -166,17 +197,23 @@ fun TvTextField(
             Row(
                 modifier = modifier
                     .heightIn(min = 56.dp)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp)),
+                    .clip(boxShape)
+                    .background(boxBg)
+                    .border(1.dp, boxBorder, boxShape),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                if (chip != null) {
+                    Spacer(Modifier.width(12.dp))
+                    chip()
+                }
                 Column(
                     Modifier
                         .weight(1f)
                         .focusRequester(boxFocus)
-                        .dpadFocusable(RoundedCornerShape(4.dp))
+                        .dpadFocusable(boxShape)
                         .then(captureKeys)
                         .clickable { editing = true; everEdited = true }
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = if (chip != null) 12.dp else 16.dp, vertical = 8.dp)
                 ) { labelValue() }
                 Box(
                     Modifier
@@ -196,16 +233,25 @@ fun TvTextField(
                 }
             }
         } else {
-            Column(
+            Row(
                 modifier = modifier
                     .heightIn(min = 56.dp)
+                    .clip(boxShape)
+                    .background(boxBg)
+                    .border(1.dp, boxBorder, boxShape)
                     .focusRequester(boxFocus)
-                    .dpadFocusable()
+                    .dpadFocusable(boxShape)
                     .then(captureKeys)
                     .clickable { editing = true; everEdited = true }
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) { labelValue() }
+                    .padding(horizontal = if (chip != null) 12.dp else 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (chip != null) {
+                    chip()
+                    Spacer(Modifier.width(12.dp))
+                }
+                Column(Modifier.weight(1f)) { labelValue() }
+            }
         }
     }
 }

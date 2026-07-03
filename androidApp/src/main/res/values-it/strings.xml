@@ -307,4 +307,6 @@
     <string name="ui_mode_classic">Classico</string>
     <string name="ui_mode_modern">Moderno</string>
     <string name="ui_mode_title">Modalità interfaccia</string>
+    <string name="ui_mode_new_badge">NUOVO</string>
+    <string name="ui_mode_hint">Modificabile in Impostazioni → Generale</string>
 </resources>

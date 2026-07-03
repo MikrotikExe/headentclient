@@ -307,4 +307,6 @@
     <string name="ui_mode_classic">کلاسک</string>
     <string name="ui_mode_modern">جدید</string>
     <string name="ui_mode_title">انٹرفیس موڈ</string>
+    <string name="ui_mode_new_badge">نیا</string>
+    <string name="ui_mode_hint">ترتیبات → عمومی میں کبھی بھی تبدیل کریں</string>
 </resources>

@@ -307,4 +307,6 @@
     <string name="ui_mode_classic">Класически</string>
     <string name="ui_mode_modern">Модерен</string>
     <string name="ui_mode_title">Режим на интерфейса</string>
+    <string name="ui_mode_new_badge">НОВО</string>
+    <string name="ui_mode_hint">Може да се смени в Настройки → Общи</string>
 </resources>

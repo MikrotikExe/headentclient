@@ -307,4 +307,6 @@
     <string name="ui_mode_classic">클래식</string>
     <string name="ui_mode_modern">모던</string>
     <string name="ui_mode_title">인터페이스 모드</string>
+    <string name="ui_mode_new_badge">신규</string>
+    <string name="ui_mode_hint">설정 → 일반에서 언제든지 변경 가능</string>
 </resources>

@@ -307,4 +307,6 @@
     <string name="set_grp_behavior">Správanie</string>
     <string name="set_grp_maintenance">Údržba</string>
     <string name="set_grp_docs">Dokumenty</string>
+    <string name="ui_mode_new_badge">NOVÉ</string>
+    <string name="ui_mode_hint">Voľbu zmeníš kedykoľvek v Nastavenia → Všeobecné</string>
 </resources>
