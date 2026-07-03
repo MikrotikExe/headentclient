@@ -92,7 +92,15 @@ internal fun ModernTvOverlay(
     val hhmm = remember(locale) { SimpleDateFormat("HH:mm", locale) }
     val listState = rememberLazyListState()
     LaunchedEffect(cardIndex) {
-        runCatching { listState.animateScrollToItem((cardIndex - 1).coerceAtLeast(0)) }
+        // Blizky posun animuj; vzdialeny skok (napr. wrap 1 -> 300 pri chprev)
+        // skoc okamzite — inak sa list "prehrabava" cez vsetky kanaly
+        val target = (cardIndex - 1).coerceAtLeast(0)
+        val visible = listState.layoutInfo.visibleItemsInfo
+        val near = visible.any { kotlin.math.abs(it.index - target) <= 6 }
+        runCatching {
+            if (near) listState.animateScrollToItem(target)
+            else listState.scrollToItem(target)
+        }
     }
 
     Box(Modifier.fillMaxSize()) {
