@@ -1983,6 +1983,7 @@ class PlayerActivity : ComponentActivity() {
                         if (down && event.repeatCount == 0) { modernOkPending = true; return true }
                         if (down && event.repeatCount == 1 && modernOkPending) {
                             modernOkPending = false
+                            okLongFired = true   // prehltne OK-up, inak by up hned potvrdil kanal a zoznam zavrel
                             openChannelList()
                             return true
                         }
