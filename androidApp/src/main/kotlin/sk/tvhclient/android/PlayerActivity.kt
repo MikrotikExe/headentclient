@@ -168,7 +168,7 @@ class PlayerActivity : ComponentActivity() {
 
     /** Polozky ovladacej listy overlayu (transport v strede; pretacanie len pri timeshiftu). */
     private fun modernStripIds(): List<String> = buildList {
-        add("audio")
+        add("list"); add("epg"); add("audio")
         // prepinanie kanalov priamo z listy (M323) — len pri live s viac kanalmi
         val zap = !seekablePlayback && liveUuids.size > 1
         if (zap) add("chprev")
@@ -176,7 +176,7 @@ class PlayerActivity : ComponentActivity() {
         add("play")
         if (timeshiftEngagedState.value) add("tsff")
         if (zap) add("chnext")
-        add("subs"); add("info")
+        add("subs"); add("sleep"); add("info")
     }
 
     private fun openModernOverlay() {
@@ -198,6 +198,7 @@ class PlayerActivity : ComponentActivity() {
             "play" -> { togglePlayPause(); modernOvPoke.value++ }
             "tsrew" -> { timeshiftSkip(-30); modernOvPoke.value++ }
             "tsff" -> { timeshiftSkip(+30); modernOvPoke.value++ }
+            "list" -> { closeModernOverlay(); openChannelList() }
             "chprev" -> { switchLive(-1); modernOvCard.value = liveIndexState.value.coerceAtLeast(0); modernOvPoke.value++ }
             "chnext" -> { switchLive(+1); modernOvCard.value = liveIndexState.value.coerceAtLeast(0); modernOvPoke.value++ }
             null -> {}
@@ -1658,7 +1659,10 @@ class PlayerActivity : ComponentActivity() {
                     return true                          // na DOWN nevyberaj (cakame na uvolnenie)
                 } else if (n > 0) {
                     // uvolnenie OK (kratky klik) = vyber/prepnutie kanala
-                    if (navChannelIndexState.value == liveIndexState.value) { closeChannelList(); showControlsFocused() }
+                    if (navChannelIndexState.value == liveIndexState.value) {
+                        closeChannelList()
+                        if (modernTvActive()) openModernOverlay() else showControlsFocused()
+                    }
                     else selectChannelOrArchive(navChannelIndexState.value, poke = false)
                 }
                 return true
@@ -1809,11 +1813,19 @@ class PlayerActivity : ComponentActivity() {
                 android.view.KeyEvent.KEYCODE_CHANNEL_UP,
                 android.view.KeyEvent.KEYCODE_PAGE_UP,
                 android.view.KeyEvent.KEYCODE_DPAD_UP ->
-                    if (down && canZap && event.repeatCount == 0) { switchLive(+1); showControlsFocused(); return true }
+                    if (down && canZap && event.repeatCount == 0) {
+                        switchLive(+1)
+                        if (modernTvActive()) { modernOvCard.value = liveIndexState.value.coerceAtLeast(0); openModernOverlay() } else showControlsFocused()
+                        return true
+                    }
                 android.view.KeyEvent.KEYCODE_CHANNEL_DOWN,
                 android.view.KeyEvent.KEYCODE_PAGE_DOWN,
                 android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
-                    if (down && canZap && event.repeatCount == 0) { switchLive(-1); showControlsFocused(); return true }
+                    if (down && canZap && event.repeatCount == 0) {
+                        switchLive(-1)
+                        if (modernTvActive()) { modernOvCard.value = liveIndexState.value.coerceAtLeast(0); openModernOverlay() } else showControlsFocused()
+                        return true
+                    }
             }
             // cislice 0-9 (aj numericka klavesnica) = volba kanala cislom
             run {
