@@ -170,29 +170,17 @@ fun TvRadioHomePanel(modifier: Modifier = Modifier) {
 
     Column(
         modifier
-            // Radialna ZIARA namiesto orezaneho gradientu (M344-fix8): svetlo
-            // vychadza z pravej strany a vsetkymi smermi mekko dozneje do
-            // uplneho stratena — ziadny stvorec, ziadne hrany, ziadne pasy.
-            // (Kazdy pravouhly gradient v clipnutom tvare niekde ukaze hranu,
-            // preto drawBehind s radialom kotvenym na pravy okraj panelu.)
-            .drawBehind {
-                // Kruh sa musi CELY zmestit do plochy panelu — inak ho drawRect
-                // na krajoch odsekne rovnou ciarou (ostre hrany namiesto obluku).
-                // Polomer podla mensieho rozmeru, stred prisunuty k pravej strane
-                // tak, aby kruznica vsade koncila svojim prirodzenym oblukom.
-                val r = minOf(size.width, size.height) * 0.48f
-                val cx = (size.width - r).coerceAtLeast(r)
-                val cy = (size.height * 0.45f).coerceIn(r, size.height - r)
-                drawRect(
-                    brush = androidx.compose.ui.graphics.Brush.radialGradient(
-                        0f to cs.surfaceContainerHighest,
-                        0.55f to cs.surfaceContainerLow.copy(alpha = 0.55f),
-                        1f to androidx.compose.ui.graphics.Color.Transparent,
-                        center = androidx.compose.ui.geometry.Offset(cx, cy),
-                        radius = r
-                    )
+            // Variant B (M344-fix12): vpravo plna farba s oblymi rohmi,
+            // dolava sa panel uplne rozpusti — zrkadlo hero karty, ktora sa
+            // rovnako rozpusta doprava; obe sa v strede makko stretnu.
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                androidx.compose.ui.graphics.Brush.horizontalGradient(
+                    0f to androidx.compose.ui.graphics.Color.Transparent,
+                    0.45f to cs.surfaceContainerLow.copy(alpha = 0.6f),
+                    1f to cs.surfaceContainerHighest
                 )
-            }
+            )
             .padding(18.dp)
     ) {
         Text(

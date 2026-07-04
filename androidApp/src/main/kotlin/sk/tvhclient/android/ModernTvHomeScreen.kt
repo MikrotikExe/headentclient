@@ -150,7 +150,15 @@ fun ModernTvHomeScreen(
             Modifier
                 .weight(1f)
                 .clip(RoundedCornerShape(18.dp))
-                .background(Brush.linearGradient(listOf(cs.surfaceContainerHighest, cs.surfaceContainerLow, cs.background)))
+                // Zrkadlo radio panelu (M344-fix12): vlavo plna farba s oblymi
+                // rohmi, doprava sa hero uplne rozpusti do pozadia
+                .background(
+                    Brush.horizontalGradient(
+                        0f to cs.surfaceContainerHighest,
+                        0.55f to cs.surfaceContainerLow.copy(alpha = 0.6f),
+                        1f to androidx.compose.ui.graphics.Color.Transparent
+                    )
+                )
                 .padding(22.dp)
         ) {
             Column {
