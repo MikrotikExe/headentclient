@@ -370,7 +370,12 @@ private fun TvHomeHost() {
                 if (showExit) {
                     androidx.activity.compose.BackHandler { showExit = false }
                     TvExitDialog(
-                        onConfirm = { (ctx as? android.app.Activity)?.finish() },
+                        onConfirm = {
+                            // Ukoncenie appky zastavi aj mini radio (M344-fix5);
+                            // HOME klavesa appku neukoncuje, radio tam hra dalej
+                            RadioPlayerService.stop(ctx)
+                            (ctx as? android.app.Activity)?.finish()
+                        },
                         onCancel = { showExit = false }
                     )
                 }
@@ -713,7 +718,11 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
             title = { Text(stringResource(R.string.exit_title)) },
             text = { Text(stringResource(R.string.exit_msg)) },
             confirmButton = {
-                TextButton(onClick = { showExit = false; activity?.finish() }) {
+                TextButton(onClick = {
+                    showExit = false
+                    activity?.let { RadioPlayerService.stop(it) }
+                    activity?.finish()
+                }) {
                     Text(stringResource(R.string.exit_yes))
                 }
             },

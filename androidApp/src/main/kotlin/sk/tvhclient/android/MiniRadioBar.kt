@@ -175,8 +175,6 @@ fun TvRadioHomePanel(modifier: Modifier = Modifier) {
                     listOf(cs.background, cs.surfaceContainerLow, cs.surfaceContainerHighest)
                 )
             )
-            .dpadFocusable(RoundedCornerShape(18.dp))
-            .clickable { RadioCenter.openFull(ctx) }
             .padding(18.dp)
     ) {
         Text(
@@ -185,7 +183,14 @@ fun TvRadioHomePanel(modifier: Modifier = Modifier) {
             fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp
         )
         Spacer(Modifier.height(12.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .dpadFocusable(RoundedCornerShape(12.dp))
+                .clickable { RadioCenter.openFull(ctx) }
+                .padding(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Box(
                 Modifier.size(46.dp).clip(RoundedCornerShape(12.dp))
                     .background(cs.primaryContainer.copy(alpha = 0.55f)),
