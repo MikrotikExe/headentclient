@@ -1,6 +1,11 @@
 package sk.tvhclient.android
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,6 +42,44 @@ fun StatusMessage(
     onAction: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    if (isModernUi()) {
+        // Moderny rezim (M331): ikona v teal cipe, tucny titulok, akcia ako pilulka
+        val cs = MaterialTheme.colorScheme
+        Box(modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    Modifier.size(64.dp).clip(RoundedCornerShape(18.dp))
+                        .background(cs.primaryContainer.copy(alpha = if (isLightTheme()) 0.55f else 0.5f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, contentDescription = null, tint = cs.primary,
+                        modifier = Modifier.size(30.dp))
+                }
+                Spacer(Modifier.height(14.dp))
+                Text(title, style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+                if (!detail.isNullOrBlank()) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(detail, style = MaterialTheme.typography.bodySmall,
+                        color = cs.onSurfaceVariant, textAlign = TextAlign.Center)
+                }
+                if (actionLabel != null && onAction != null) {
+                    Spacer(Modifier.height(18.dp))
+                    Box(
+                        Modifier.clip(RoundedCornerShape(999.dp)).background(cs.primary)
+                            .dpadFocusable(RoundedCornerShape(999.dp))
+                            .clickable { onAction() }
+                            .padding(horizontal = 26.dp, vertical = 11.dp)
+                    ) {
+                        Text(actionLabel, color = cs.onPrimary,
+                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+            }
+        }
+        return
+    }
     Box(modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(

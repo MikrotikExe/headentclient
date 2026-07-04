@@ -637,24 +637,37 @@ private fun RecordingCard(entry: DvrEntry, context: Context, progressTick: Int) 
     val info = remember(entry.uuid, progressTick) {
         server?.let { WatchProgress.get(context, it.id, entry.uuid) }
     }
+    val modernRec = isModernUi()
+    val cs = MaterialTheme.colorScheme
     Column(
         Modifier
             .fillMaxWidth()
             .padding(6.dp)
-            .dpadFocusable()
-            .clickable { playDvr(context, entry) },
+            .then(
+                if (modernRec) Modifier
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(if (isLightTheme()) cs.surfaceContainerLowest else cs.surfaceContainer)
+                    .border(1.dp, cs.outlineVariant, RoundedCornerShape(14.dp))
+                    .dpadFocusable(RoundedCornerShape(14.dp))
+                else Modifier.dpadFocusable()
+            )
+            .clickable { playDvr(context, entry) }
+            .then(if (modernRec) Modifier.padding(6.dp) else Modifier),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             Modifier.fillMaxWidth().height(96.dp)
-                .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
-                .background(androidx.compose.ui.graphics.Color(0x22FFFFFF)),
+                .clip(RoundedCornerShape(if (modernRec) 10.dp else 8.dp))
+                .background(
+                    if (modernRec) cs.primaryContainer.copy(alpha = if (isLightTheme()) 0.45f else 0.4f)
+                    else androidx.compose.ui.graphics.Color(0x22FFFFFF)
+                ),
             contentAlignment = Alignment.Center
         ) {
             androidx.compose.material3.Icon(
                 Icons.Default.Movie,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint = if (modernRec) cs.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(40.dp)
             )
             if (info?.completed == true) {
@@ -710,18 +723,40 @@ private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int) {
     val info = remember(entry.uuid, progressTick) {
         server?.let { WatchProgress.get(context, it.id, entry.uuid) }
     }
+    val modernRec = isModernUi()
+    val cs = MaterialTheme.colorScheme
     Row(
         Modifier
             .fillMaxWidth()
-            .dpadFocusable()
+            .then(
+                if (modernRec) Modifier
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(if (isLightTheme()) cs.surfaceContainerLowest else cs.surfaceContainer)
+                    .border(1.dp, cs.outlineVariant, RoundedCornerShape(14.dp))
+                    .dpadFocusable(RoundedCornerShape(14.dp))
+                else Modifier.dpadFocusable()
+            )
             .clickable { playDvr(context, entry) }
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Dopozerane = hviezdicka
+        // Dopozerane: moderny = teal fajka v cipe, klasik = hviezdicka
         if (info?.completed == true) {
-            Text("\u2605  ", color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.titleMedium)
+            if (modernRec) {
+                Box(
+                    Modifier.size(22.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(cs.primary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("\u2713", color = cs.onPrimary,
+                        style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.width(10.dp))
+            } else {
+                Text("\u2605  ", color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.titleMedium)
+            }
         }
         Column(Modifier.weight(1f)) {
             Text(entry.title, style = MaterialTheme.typography.titleSmall,

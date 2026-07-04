@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
@@ -27,8 +28,21 @@ import androidx.compose.material3.MaterialTheme
 fun Modifier.dpadFocusable(shape: Shape = RoundedCornerShape(8.dp)): Modifier = composed {
     var focused by remember { mutableStateOf(false) }
     val primary = MaterialTheme.colorScheme.primary
+    // Moderny rezim (M331): fokusovana karta sa jemne zvacsi — z gauca je fokus
+    // citatelnejsi ako len ram. Klasik ostava bez skalovania.
+    val modern = isModernUi()
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (modern && focused) 1.04f else 1f,
+        animationSpec = androidx.compose.animation.core.tween(120),
+        label = "dpadScale"
+    )
     this
         .onFocusChanged { focused = it.isFocused }
+        .then(
+            if (modern) Modifier.graphicsLayer {
+                scaleX = scale; scaleY = scale
+            } else Modifier
+        )
         .border(BorderStroke(2.dp, if (focused) primary else Color.Transparent), shape)
         .then(
             if (focused) Modifier.background(primary.copy(alpha = 0.14f), shape)
