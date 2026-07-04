@@ -309,4 +309,6 @@
     <string name="ui_mode_title">Режим интерфејса</string>
     <string name="ui_mode_new_badge">НОВО</string>
     <string name="ui_mode_hint">Можеш променити у Подешавања → Опште</string>
+    <string name="mh_continue">Настави гледање</string>
+    <string name="mh_left">Преостало %1$d мин</string>
 </resources>

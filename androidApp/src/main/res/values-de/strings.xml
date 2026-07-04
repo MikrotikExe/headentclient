@@ -309,4 +309,6 @@
     <string name="ui_mode_title">Oberflächenmodus</string>
     <string name="ui_mode_new_badge">NEU</string>
     <string name="ui_mode_hint">Jederzeit änderbar unter Einstellungen → Allgemein</string>
+    <string name="mh_continue">Weiterschauen</string>
+    <string name="mh_left">Noch %1$d Min.</string>
 </resources>

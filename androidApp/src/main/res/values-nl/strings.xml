@@ -309,4 +309,6 @@
     <string name="ui_mode_title">Interfacemodus</string>
     <string name="ui_mode_new_badge">NIEUW</string>
     <string name="ui_mode_hint">Altijd te wijzigen via Instellingen → Algemeen</string>
+    <string name="mh_continue">Verder kijken</string>
+    <string name="mh_left">Nog %1$d min</string>
 </resources>

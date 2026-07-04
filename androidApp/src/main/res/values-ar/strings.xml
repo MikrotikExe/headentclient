@@ -309,4 +309,6 @@
     <string name="ui_mode_title">وضع الواجهة</string>
     <string name="ui_mode_new_badge">جديد</string>
     <string name="ui_mode_hint">يمكن تغييره في الإعدادات → عام</string>
+    <string name="mh_continue">متابعة المشاهدة</string>
+    <string name="mh_left">متبقي %1$d دقيقة</string>
 </resources>

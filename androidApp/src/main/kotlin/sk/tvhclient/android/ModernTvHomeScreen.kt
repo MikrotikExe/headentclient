@@ -251,6 +251,10 @@ fun ModernTvHomeScreen(
 
         Spacer(Modifier.height(20.dp))
 
+        // ===== pokracovat v pozerani (M333) =====
+        ContinueWatchingRail(headerFontSize = 18.sp, cardWidth = 230.dp)
+        Spacer(Modifier.height(20.dp))
+
         // ===== rad: oblubene kanaly · teraz =====
         if (railRows.isNotEmpty()) {
             Text(stringResource(R.string.mh_fav_now), color = fg, fontSize = 18.sp,

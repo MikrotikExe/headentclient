@@ -232,6 +232,12 @@ fun ModernPhoneHomeScreen(
             Spacer(Modifier.height(18.dp))
         }
 
+        // ===== pokracovat v pozerani (M333) =====
+        item(key = "cwrail") {
+            ContinueWatchingRail(headerFontSize = 16.sp, cardWidth = 210.dp)
+            Spacer(Modifier.height(18.dp))
+        }
+
         // ===== oblubene · teraz — vertikalne riadky =====
         if (listRows.isNotEmpty()) {
             item(key = "favhdr") {

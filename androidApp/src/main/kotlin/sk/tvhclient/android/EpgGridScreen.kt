@@ -775,34 +775,96 @@ private fun GridDetailContent(
             .verticalScroll(androidx.compose.foundation.rememberScrollState())
     ) {
         // Hlavicka s piconom a tlacidlom spat
+        val detailModern = isModernUi()
+        val dcs = MaterialTheme.colorScheme
         Box(
             Modifier
                 .fillMaxWidth()
                 .height(160.dp)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .background(
+                    if (detailModern) androidx.compose.ui.graphics.Brush.verticalGradient(
+                        listOf(
+                            dcs.primaryContainer.copy(alpha = if (isLightTheme()) 0.55f else 0.45f),
+                            dcs.background
+                        )
+                    ) else androidx.compose.ui.graphics.Brush.verticalGradient(
+                        listOf(dcs.surfaceVariant, dcs.surfaceVariant)
+                    )
+                ),
             contentAlignment = Alignment.Center
         ) {
             if (piconUrl != null) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context).data(piconUrl).build(),
-                    contentDescription = channelName,
-                    imageLoader = loader,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.height(90.dp).padding(8.dp)
-                )
+                if (detailModern) {
+                    // picon na svetlom plate (biele picony na tmavom pozadi)
+                    Box(
+                        Modifier
+                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
+                            .background(if (isLightTheme()) dcs.surfaceContainerLowest else dcs.surfaceContainerHigh)
+                            .border(1.dp, dcs.outlineVariant, androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
+                            .padding(horizontal = 20.dp, vertical = 12.dp)
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context).data(piconUrl).build(),
+                            contentDescription = channelName,
+                            imageLoader = loader,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.height(72.dp)
+                        )
+                    }
+                } else {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context).data(piconUrl).build(),
+                        contentDescription = channelName,
+                        imageLoader = loader,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.height(90.dp).padding(8.dp)
+                    )
+                }
             } else {
                 Text(channelName, style = MaterialTheme.typography.titleLarge)
             }
-            androidx.compose.material3.IconButton(
-                onClick = onBack,
-                modifier = Modifier.align(Alignment.TopStart).padding(4.dp)
-            ) {
-                Text("\u2190", style = MaterialTheme.typography.titleLarge)
+            if (detailModern) {
+                Box(
+                    Modifier.align(Alignment.TopStart).padding(10.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(dcs.surfaceContainerHigh.copy(alpha = 0.9f))
+                        .dpadFocusable(androidx.compose.foundation.shape.CircleShape)
+                        .clickable { onBack() }
+                        .padding(10.dp)
+                ) {
+                    Text("\u2190", style = MaterialTheme.typography.titleMedium, color = dcs.onSurface)
+                }
+            } else {
+                androidx.compose.material3.IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.align(Alignment.TopStart).padding(4.dp)
+                ) {
+                    Text("\u2190", style = MaterialTheme.typography.titleLarge)
+                }
             }
         }
 
         androidx.compose.foundation.layout.Column(Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.headlineSmall)
+            Text(
+                title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = if (detailModern) androidx.compose.ui.text.font.FontWeight.Bold else null
+            )
+            if (detailModern && recorded) {
+                Spacer(Modifier.height(8.dp))
+                Box(
+                    Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                        .background(dcs.primaryContainer.copy(alpha = 0.6f))
+                        .padding(horizontal = 10.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        "\u2713 " + stringResource(R.string.epg_recorded_badge),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        color = dcs.primary
+                    )
+                }
+            }
             if (subtitle.isNotBlank()) {
                 Spacer(Modifier.height(4.dp))
                 Text(subtitle, style = MaterialTheme.typography.titleMedium,
@@ -876,7 +938,18 @@ private fun GridDetailContent(
                 )
             }
 
-            if (desc.isNotBlank()) {
+            if (desc.isNotBlank() && detailModern) {
+                Spacer(Modifier.height(16.dp))
+                Box(
+                    Modifier.fillMaxWidth()
+                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
+                        .background(if (isLightTheme()) dcs.surfaceContainerLowest else dcs.surfaceContainer)
+                        .border(1.dp, dcs.outlineVariant, androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
+                        .padding(14.dp)
+                ) {
+                    Text(desc, style = MaterialTheme.typography.bodyMedium)
+                }
+            } else if (desc.isNotBlank()) {
                 Spacer(Modifier.height(16.dp))
                 Text(desc, style = MaterialTheme.typography.bodyMedium)
             }

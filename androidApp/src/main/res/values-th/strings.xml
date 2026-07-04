@@ -309,4 +309,6 @@
     <string name="ui_mode_title">โหมดอินเทอร์เฟซ</string>
     <string name="ui_mode_new_badge">ใหม่</string>
     <string name="ui_mode_hint">เปลี่ยนได้ที่ การตั้งค่า → ทั่วไป</string>
+    <string name="mh_continue">ดูต่อ</string>
+    <string name="mh_left">เหลืออีก %1$d นาที</string>
 </resources>
