@@ -12,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
@@ -28,24 +27,26 @@ import androidx.compose.material3.MaterialTheme
 fun Modifier.dpadFocusable(shape: Shape = RoundedCornerShape(8.dp)): Modifier = composed {
     var focused by remember { mutableStateOf(false) }
     val primary = MaterialTheme.colorScheme.primary
-    // Moderny rezim (M331): fokusovana karta sa jemne zvacsi — z gauca je fokus
-    // citatelnejsi ako len ram. Klasik ostava bez skalovania.
+    // Moderny rezim (M331-fix): namiesto skalovania (zvacsena karta pretiekla
+    // von zo slotu a LazyRow/LazyColumn ju na hranach orezavali — ramy "uchadzali")
+    // sa fokus zvyrazni animovanym hrubsim ramom a jasnejsim podkladom. Nic
+    // nepretecie, ziadne orezanie, citatelnost z gauca ostava.
     val modern = isModernUi()
-    val scale by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (modern && focused) 1.04f else 1f,
+    val borderW by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (modern && focused) 3.dp else 2.dp,
         animationSpec = androidx.compose.animation.core.tween(120),
-        label = "dpadScale"
+        label = "dpadBorder"
+    )
+    val bgAlpha by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (focused) { if (modern) 0.22f else 0.14f } else 0f,
+        animationSpec = androidx.compose.animation.core.tween(120),
+        label = "dpadBg"
     )
     this
         .onFocusChanged { focused = it.isFocused }
+        .border(BorderStroke(if (focused) borderW else 2.dp, if (focused) primary else Color.Transparent), shape)
         .then(
-            if (modern) Modifier.graphicsLayer {
-                scaleX = scale; scaleY = scale
-            } else Modifier
-        )
-        .border(BorderStroke(2.dp, if (focused) primary else Color.Transparent), shape)
-        .then(
-            if (focused) Modifier.background(primary.copy(alpha = 0.14f), shape)
+            if (bgAlpha > 0f) Modifier.background(primary.copy(alpha = bgAlpha), shape)
             else Modifier
         )
 }
