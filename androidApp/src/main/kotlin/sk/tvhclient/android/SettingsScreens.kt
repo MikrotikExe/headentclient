@@ -477,6 +477,22 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
                 TabController.settingsDirty.value = true
             }
         )
+        if (afr) {
+            var afrDelay by remember { mutableStateOf(AfrDelayPref.get(ctx)) }
+            DropdownField(
+                label = stringResource(R.string.afr_delay_title),
+                value = afrDelay.toString(),
+                options = AfrDelayPref.options.map { it.toString() },
+                optionLabel = { v ->
+                    if (v == "0") stringResource(R.string.sleep_off) else "$v s"
+                },
+                onSelect = { v ->
+                    afrDelay = v.toIntOrNull() ?: 2
+                    AfrDelayPref.set(ctx, afrDelay)
+                    TabController.settingsDirty.value = true
+                }
+            )
+        }
         SettingsGroupDivider()
     }
     if (!isTvDev) {

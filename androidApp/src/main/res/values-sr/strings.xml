@@ -315,4 +315,5 @@
     <string name="pause">Пауза</string>
     <string name="afr_title">Аутоматска стопа освежавања (AFR)</string>
     <string name="afr_note">Пребацује екран према броју кадрова стрима (нпр. 50 Hz за 25 fps) — уклања трзање. Екран накратко потамни при пребацивању.</string>
+    <string name="afr_delay_title">Пауза након промене фреквенције</string>
 </resources>

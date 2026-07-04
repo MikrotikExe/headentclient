@@ -315,4 +315,5 @@
     <string name="pause">বিরতি</string>
     <string name="afr_title">স্বয়ংক্রিয় রিফ্রেশ রেট (AFR)</string>
     <string name="afr_note">স্ট্রিমের ফ্রেম রেট অনুযায়ী ডিসপ্লে পরিবর্তন করে (যেমন ২৫ fps-এর জন্য ৫০ Hz) — ঝাঁকুনি দূর করে। পরিবর্তনের সময় পর্দা ক্ষণিকের জন্য কালো হয়।</string>
+    <string name="afr_delay_title">ফ্রিকোয়েন্সি পরিবর্তনের পর বিরতি</string>
 </resources>

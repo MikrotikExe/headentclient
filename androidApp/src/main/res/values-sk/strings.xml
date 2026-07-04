@@ -315,4 +315,5 @@
     <string name="pause">Pauza</string>
     <string name="afr_title">Automatická obnovovacia frekvencia (AFR)</string>
     <string name="afr_note">Prepne displej podľa snímkovej frekvencie streamu (napr. 50 Hz pre 25 fps vysielanie) — odstráni trhanie obrazu. Pri prepnutí obrazovka na chvíľu stmavne.</string>
+    <string name="afr_delay_title">Pauza po zmene frekvencie</string>
 </resources>

@@ -315,4 +315,5 @@
     <string name="pause">रोकें</string>
     <string name="afr_title">स्वचालित रिफ्रेश दर (AFR)</string>
     <string name="afr_note">डिस्प्ले को स्ट्रीम की फ्रेम दर से मिलाता है (जैसे 25 fps के लिए 50 Hz) — झटके हटाता है। स्विच करते समय स्क्रीन पल भर काली होती है।</string>
+    <string name="afr_delay_title">फ़्रीक्वेंसी बदलने के बाद विराम</string>
 </resources>

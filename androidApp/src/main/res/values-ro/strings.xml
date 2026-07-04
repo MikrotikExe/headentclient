@@ -315,4 +315,5 @@
     <string name="pause">Pauză</string>
     <string name="afr_title">Rată de reîmprospătare automată (AFR)</string>
     <string name="afr_note">Comută afișajul după rata de cadre a streamului (ex. 50 Hz pentru 25 fps) — elimină sacadarea. Ecranul se înnegrește o clipă la comutare.</string>
+    <string name="afr_delay_title">Pauză după schimbarea frecvenței</string>
 </resources>

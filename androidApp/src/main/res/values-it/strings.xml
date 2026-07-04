@@ -315,4 +315,5 @@
     <string name="pause">Pausa</string>
     <string name="afr_title">Frequenza di aggiornamento automatica (AFR)</string>
     <string name="afr_note">Adatta lo schermo al frame rate dello stream (es. 50 Hz per 25 fps) — elimina il judder. Lo schermo diventa nero per un attimo al cambio.</string>
+    <string name="afr_delay_title">Pausa dopo il cambio di frequenza</string>
 </resources>

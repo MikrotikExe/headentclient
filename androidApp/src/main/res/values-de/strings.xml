@@ -315,4 +315,5 @@
     <string name="pause">Pause</string>
     <string name="afr_title">Automatische Bildwiederholrate (AFR)</string>
     <string name="afr_note">Passt das Display an die Bildrate des Streams an (z. B. 50 Hz bei 25 fps) — beseitigt Ruckeln. Beim Umschalten wird der Bildschirm kurz schwarz.</string>
+    <string name="afr_delay_title">Pause nach Frequenzwechsel</string>
 </resources>

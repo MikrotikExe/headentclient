@@ -315,4 +315,5 @@
     <string name="pause">หยุดชั่วคราว</string>
     <string name="afr_title">อัตรารีเฟรชอัตโนมัติ (AFR)</string>
     <string name="afr_note">สลับจอภาพตามเฟรมเรตของสตรีม (เช่น 50 Hz สำหรับ 25 fps) — ขจัดภาพกระตุก หน้าจอจะมืดครู่หนึ่งเมื่อสลับ</string>
+    <string name="afr_delay_title">หยุดชั่วคราวหลังเปลี่ยนความถี่</string>
 </resources>

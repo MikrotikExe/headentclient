@@ -3174,6 +3174,16 @@ class PlayerActivity : ComponentActivity() {
             val lp = window.attributes
             lp.preferredDisplayModeId = best.modeId
             window.attributes = lp
+            // Pauza po zmene rezimu (M347, ako Kodi): pocas HDMI resyncu TV
+            // nic neukazuje ani nehra — pauza zabrani stratenemu zaciatku
+            // a audio desyncu. Po uplynuti sa prehravanie samo obnovi.
+            val delaySec = AfrDelayPref.get(this)
+            if (delaySec > 0 && mediaPlayer.isPlaying) {
+                mediaPlayer.pause()
+                window.decorView.postDelayed({
+                    runCatching { if (::mediaPlayer.isInitialized) mediaPlayer.play() }
+                }, delaySec * 1000L)
+            }
         }
     }
 

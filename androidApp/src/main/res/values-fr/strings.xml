@@ -315,4 +315,5 @@
     <string name="pause">Pause</string>
     <string name="afr_title">Fréquence de rafraîchissement automatique (AFR)</string>
     <string name="afr_note">Adapte l\'écran à la cadence du flux (p. ex. 50 Hz pour 25 fps) — supprime les saccades. L\'écran devient noir un instant lors du changement.</string>
+    <string name="afr_delay_title">Pause après le changement de fréquence</string>
 </resources>
