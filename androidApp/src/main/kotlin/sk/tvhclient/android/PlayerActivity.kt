@@ -1004,7 +1004,7 @@ class PlayerActivity : ComponentActivity() {
             }
             runCatching { startActivity(i) }
             finish()
-        } else if (!enterPipIfPossible()) finish()
+        } else if (!autoPipIfPossible()) finish()   // M343: respektuj vypnute Auto-PiP — BACK = stop, nie PiP
     }
 
     /** Spusti prebiehajucu nahravku od zaciatku (novy PlayerActivity v DVR rezime). */
