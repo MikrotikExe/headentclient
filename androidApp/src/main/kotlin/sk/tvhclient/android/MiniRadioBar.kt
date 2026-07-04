@@ -170,9 +170,13 @@ fun TvRadioHomePanel(modifier: Modifier = Modifier) {
         modifier
             .clip(RoundedCornerShape(18.dp))
             .background(
-                // zrkadlovy fade voci hero: sprava sytejsi, dolava do pozadia
+                // fade splyvajuci s pozadim na OBOCH stranach — panel posobi ako
+                // jemna ziara v ploche, nie karta s hranami (M344-fix6)
                 androidx.compose.ui.graphics.Brush.horizontalGradient(
-                    listOf(cs.background, cs.surfaceContainerLow, cs.surfaceContainerHighest)
+                    0f to cs.background,
+                    0.3f to cs.surfaceContainerLow,
+                    0.7f to cs.surfaceContainerLow,
+                    1f to cs.background
                 )
             )
             .padding(18.dp)
