@@ -169,13 +169,21 @@ fun TvRadioHomePanel(modifier: Modifier = Modifier) {
     Column(
         modifier
             .clip(RoundedCornerShape(18.dp))
+            // Fade ako fix3: sprava syty, dolava do stratena (zrkadlo hero).
+            // Navrch vertikalna maska — horny a dolny okraj splyvaju s pozadim,
+            // takze nikde nevidiet obdlznikovu siluetu panelu (M344-fix7).
             .background(
-                // fade splyvajuci s pozadim na OBOCH stranach — panel posobi ako
-                // jemna ziara v ploche, nie karta s hranami (M344-fix6)
                 androidx.compose.ui.graphics.Brush.horizontalGradient(
                     0f to cs.background,
-                    0.3f to cs.surfaceContainerLow,
-                    0.7f to cs.surfaceContainerLow,
+                    0.45f to cs.surfaceContainerLow,
+                    1f to cs.surfaceContainerHighest
+                )
+            )
+            .background(
+                androidx.compose.ui.graphics.Brush.verticalGradient(
+                    0f to cs.background,
+                    0.18f to androidx.compose.ui.graphics.Color.Transparent,
+                    0.82f to androidx.compose.ui.graphics.Color.Transparent,
                     1f to cs.background
                 )
             )
