@@ -3138,7 +3138,6 @@ class PlayerActivity : ComponentActivity() {
     private var afrRetryPosted = false
 
     private fun maybeApplyAfr() {
-        if (!isTvBox) return
         if (android.os.Build.VERSION.SDK_INT < 23) return
         if (!AfrPref.get(this)) return
         if (!::mediaPlayer.isInitialized) return
@@ -3155,6 +3154,22 @@ class PlayerActivity : ComponentActivity() {
         }
         val fps = num.toFloat() / den
         if (fps < 10f) return
+        // Telefon/tablet (M348): Surface.setFrameRate — system sam rozhodne,
+        // ci panel prepne (LTPO plynulo, bez resyncu); ziadna pauza netreba.
+        // Rovnake API pouziva Netflix/YouTube. TV/box ide display-mode cestou.
+        if (!isTvBox) {
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                findVideoSurface()?.let { surf ->
+                    runCatching {
+                        surf.setFrameRate(
+                            fps,
+                            android.view.Surface.FRAME_RATE_COMPATIBILITY_FIXED_SOURCE
+                        )
+                    }
+                }
+            }
+            return
+        }
         val disp = if (android.os.Build.VERSION.SDK_INT >= 30) display
             else @Suppress("DEPRECATION") windowManager.defaultDisplay
         val cur = disp?.mode ?: return
@@ -3185,6 +3200,21 @@ class PlayerActivity : ComponentActivity() {
                 }, delaySec * 1000L)
             }
         }
+    }
+
+    /** Najde SurfaceView videa vo VLCVideoLayout (rekurzivne) — pre setFrameRate. */
+    private fun findVideoSurface(): android.view.Surface? {
+        fun find(v: android.view.View): android.view.SurfaceView? {
+            if (v is android.view.SurfaceView) return v
+            if (v is android.view.ViewGroup) {
+                for (i in 0 until v.childCount) find(v.getChildAt(i))?.let { return it }
+            }
+            return null
+        }
+        val layout = videoLayout ?: return null
+        val sv = find(layout) ?: return null
+        val surf = sv.holder.surface
+        return if (surf != null && surf.isValid) surf else null
     }
 
     private fun clearAfr() {

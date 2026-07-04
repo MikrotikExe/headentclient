@@ -464,8 +464,9 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
     }
     SettingsGroup(stringResource(R.string.set_grp_video)) {
-    // AFR — automaticka obnovovacia frekvencia (M346, len TV/box)
-    if (isTvDev) {
+    // AFR — automaticka obnovovacia frekvencia (M346; M348 aj telefony
+    // cez Surface.setFrameRate — tam bez pauzy, system prepina plynulo)
+    run {
         var afr by remember { mutableStateOf(AfrPref.get(ctx)) }
         SettingsSwitchRow(
             label = stringResource(R.string.afr_title),
@@ -477,7 +478,7 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
                 TabController.settingsDirty.value = true
             }
         )
-        if (afr) {
+        if (afr && isTvDev) {
             var afrDelay by remember { mutableStateOf(AfrDelayPref.get(ctx)) }
             DropdownField(
                 label = stringResource(R.string.afr_delay_title),
