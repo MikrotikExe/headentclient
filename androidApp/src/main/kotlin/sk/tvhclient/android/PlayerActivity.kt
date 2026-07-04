@@ -2045,11 +2045,19 @@ class PlayerActivity : ComponentActivity() {
             WatchProgress.markCompleted(this, sid, uuid, dur)
             return
         }
-        val pos = mediaPlayer.position
-        // neprepisuj dobru poziciu nulou (napr. ked sa media este nenacitala)
-        if (pos > 0.001f && pos <= 1f) {
-            WatchProgress.save(this, sid, uuid, (pos * dur).toLong(), dur)
+        // Program-relativny cas z playhead hodin je jediny spolahlivy zdroj:
+        // po pretoceni sa stream restartuje (:start-time) a mediaPlayer.position
+        // je relativna k NOVEMU streamu — ukladali sa nezmyselne male pozicie,
+        // rozpozeranost sa stracala a 95% prah "dopozerane" sa nikdy nedosiahol.
+        val playheadMs = dvrPlayheadMsState.value
+        val posMs = if (playheadMs > 0) {
+            playheadMs.coerceAtMost(dur)
+        } else {
+            val pos = mediaPlayer.position
+            // neprepisuj dobru poziciu nulou (napr. ked sa media este nenacitala)
+            if (pos > 0.001f && pos <= 1f) (pos * dur).toLong() else return
         }
+        if (posMs > 0) WatchProgress.save(this, sid, uuid, posMs, dur)
     }
 
     private fun keepScreenOn(on: Boolean) {
