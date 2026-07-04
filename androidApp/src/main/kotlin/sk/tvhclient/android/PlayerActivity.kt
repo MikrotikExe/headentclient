@@ -51,6 +51,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Timer
@@ -2629,15 +2630,26 @@ class PlayerActivity : ComponentActivity() {
                     val cLocked = remember(lockTickState.value, cCh.uuid) {
                         ParentalLock.isChannelLocked(this@PlayerActivity, liveServer?.id, cCh.uuid)
                     }
+                    val ctxModern = isModernUi()
+                    val ctxAccent = playerAccent()
                     Box(
                         Modifier.fillMaxSize().background(Color(0xCC0B1220))
                             .clickable { closeChannelContextMenu() },   // ťuknutie mimo zatvori + blokuje pozadie
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
-                            Modifier.fillMaxWidth(0.7f).widthIn(max = 440.dp)
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(Color(0xFF1B2433))
+                            Modifier
+                                .then(
+                                    if (ctxModern) Modifier.widthIn(min = 300.dp, max = 360.dp)
+                                    else Modifier.fillMaxWidth(0.7f).widthIn(max = 440.dp)
+                                )
+                                .clip(RoundedCornerShape(if (ctxModern) 18.dp else 20.dp))
+                                .background(if (ctxModern) Color(0xFF0F1E3D) else Color(0xFF1B2433))
+                                .then(
+                                    if (ctxModern) Modifier.border(
+                                        1.dp, Color(0xFF27407A), RoundedCornerShape(18.dp)
+                                    ) else Modifier
+                                )
                                 .padding(horizontal = 20.dp, vertical = 22.dp)
                         ) {
                             Text(cCh.name, color = Color.White,
@@ -2659,14 +2671,30 @@ class PlayerActivity : ComponentActivity() {
                                     else -> key
                                 }
                                 val rowSel = i == cSel
-                                Box(
+                                val selBg = if (ctxModern) ctxAccent.copy(alpha = 0.28f) else Color(0x553B82F6)
+                                val selBorder = if (ctxModern) ctxAccent else Color(0xFF3B82F6)
+                                Row(
                                     Modifier.fillMaxWidth().padding(vertical = 4.dp)
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(if (rowSel) Color(0x553B82F6) else Color.Transparent)
-                                        .border(1.dp, if (rowSel) Color(0xFF3B82F6) else Color(0x33FFFFFF), RoundedCornerShape(12.dp))
+                                        .background(if (rowSel) selBg else Color.Transparent)
+                                        .border(1.dp, if (rowSel) selBorder else Color(0x33FFFFFF), RoundedCornerShape(12.dp))
                                         .clickable { ctxMenuSelState.value = i; activateCtxMenu(key) }
-                                        .padding(horizontal = 18.dp, vertical = 13.dp)
+                                        .padding(horizontal = 16.dp, vertical = 13.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    if (ctxModern) {
+                                        androidx.compose.material3.Icon(
+                                            when (key) {
+                                                "info" -> androidx.compose.material.icons.Icons.Default.GridView
+                                                "fromstart" -> androidx.compose.material.icons.Icons.Default.PlayArrow
+                                                else -> androidx.compose.material.icons.Icons.Default.Lock
+                                            },
+                                            contentDescription = null,
+                                            tint = if (rowSel) ctxAccent else Color(0xFFB9C2D0),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(Modifier.width(12.dp))
+                                    }
                                     Text(label,
                                         color = if (rowSel) Color.White else Color(0xFFB9C2D0),
                                         fontWeight = FontWeight.SemiBold)
