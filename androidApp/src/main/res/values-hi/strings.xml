@@ -294,7 +294,7 @@
     <string name="mh_live">लाइव</string>
     <string name="mh_next">आगे:</string>
     <string name="mh_watch">देखें</string>
-    <string name="mtv_hint_all">OK दबाए रखें · सभी चैनल</string>
+    <string name="mtv_hint_all">OK दबाए रखें · चैनल विकल्प</string>
     <string name="mtv_hint_nav">◀▶ ब्राउज़ · OK बदलें · ▼ नियंत्रण</string>
     <string name="mtv_live">लाइव</string>
     <string name="mtv_ts_warn">बदलने से टाइमशिफ्ट समाप्त होगा</string>

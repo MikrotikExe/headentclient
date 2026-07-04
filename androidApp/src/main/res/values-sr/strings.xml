@@ -294,7 +294,7 @@
     <string name="mh_live">УЖИВО</string>
     <string name="mh_next">Следи:</string>
     <string name="mh_watch">Гледај</string>
-    <string name="mtv_hint_all">Држите OK · Сви канали</string>
+    <string name="mtv_hint_all">Држите OK · Опције канала</string>
     <string name="mtv_hint_nav">◀▶ Преглед · OK Промени · ▼ Контроле</string>
     <string name="mtv_live">уживо</string>
     <string name="mtv_ts_warn">Промена прекида timeshift</string>

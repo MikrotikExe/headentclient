@@ -294,7 +294,7 @@
     <string name="mh_live">ライブ</string>
     <string name="mh_next">次:</string>
     <string name="mh_watch">視聴</string>
-    <string name="mtv_hint_all">OK長押し · すべてのチャンネル</string>
+    <string name="mtv_hint_all">OK長押し · チャンネルオプション</string>
     <string name="mtv_hint_nav">◀▶ 選択 · OK 切替 · ▼ 操作</string>
     <string name="mtv_live">ライブ</string>
     <string name="mtv_ts_warn">切り替えるとタイムシフトが終了します</string>

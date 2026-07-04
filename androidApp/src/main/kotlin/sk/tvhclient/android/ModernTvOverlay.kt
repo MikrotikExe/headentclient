@@ -76,6 +76,7 @@ internal fun ModernTvOverlay(
     focusRow: Int,
     stripIndex: Int,
     stripIds: List<String>,
+    recNames: Set<String> = emptySet(),
     isPlaying: Boolean,
     tsEngaged: Boolean,
     tsOffsetMs: Long,
@@ -134,6 +135,7 @@ internal fun ModernTvOverlay(
                     val focused = focusRow == 0 && idx == cardIndex
                     ModernSurfCard(
                         ch = c, focused = focused, playingHere = idx == currentIndex,
+                        recording = c.name in recNames,
                         tsEngaged = tsEngaged, nowSec = nowSec, hhmm = hhmm,
                         imageLoader = imageLoader, ctx = ctx
                     )
@@ -210,6 +212,7 @@ internal fun ModernTvOverlay(
 
 @Composable
 private fun ModernSurfCard(
+    recording: Boolean = false,
     ch: LivePlaylist.LiveChannel,
     focused: Boolean,
     playingHere: Boolean,
@@ -250,6 +253,11 @@ private fun ModernSurfCard(
                 color = playerFgDim(), fontSize = 12.sp,
                 maxLines = 1, overflow = TextOverflow.Ellipsis
             )
+            if (recording) {
+                // kanal sa archivuje (bezi nahravka) — cervena bodka ako vo velkom zozname
+                Spacer(Modifier.width(6.dp))
+                Box(Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFEF5350)))
+            }
             if (playingHere) {
                 Spacer(Modifier.width(6.dp))
                 Box(Modifier.size(6.dp).clip(CircleShape).background(playerAccent()))

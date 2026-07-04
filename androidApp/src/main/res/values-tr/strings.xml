@@ -294,7 +294,7 @@
     <string name="mh_live">CANLI</string>
     <string name="mh_next">Sonraki:</string>
     <string name="mh_watch">İzle</string>
-    <string name="mtv_hint_all">OK tuşunu basılı tutun · Tüm kanallar</string>
+    <string name="mtv_hint_all">OK tuşunu basılı tutun · Kanal seçenekleri</string>
     <string name="mtv_hint_nav">◀▶ Gezin · OK Değiştir · ▼ Kontroller</string>
     <string name="mtv_live">canlı</string>
     <string name="mtv_ts_warn">Kanal değiştirme timeshift’i sonlandırır</string>

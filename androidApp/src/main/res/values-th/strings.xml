@@ -294,7 +294,7 @@
     <string name="mh_live">สด</string>
     <string name="mh_next">ถัดไป:</string>
     <string name="mh_watch">ดู</string>
-    <string name="mtv_hint_all">กด OK ค้าง · ทุกช่อง</string>
+    <string name="mtv_hint_all">กด OK ค้าง · ตัวเลือกช่อง</string>
     <string name="mtv_hint_nav">◀▶ เลือกดู · OK เปลี่ยน · ▼ การควบคุม</string>
     <string name="mtv_live">สด</string>
     <string name="mtv_ts_warn">การเปลี่ยนช่องจะสิ้นสุดไทม์ชิฟต์</string>

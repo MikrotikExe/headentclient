@@ -294,7 +294,7 @@
     <string name="mh_live">NA ŻYWO</string>
     <string name="mh_next">Następnie:</string>
     <string name="mh_watch">Oglądaj</string>
-    <string name="mtv_hint_all">Przytrzymaj OK · Wszystkie kanały</string>
+    <string name="mtv_hint_all">Przytrzymaj OK · Opcje kanału</string>
     <string name="mtv_hint_nav">◀▶ Przeglądaj · OK Przełącz · ▼ Sterowanie</string>
     <string name="mtv_live">na żywo</string>
     <string name="mtv_ts_warn">Przełączenie kończy timeshift</string>

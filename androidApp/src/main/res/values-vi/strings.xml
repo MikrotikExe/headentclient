@@ -294,7 +294,7 @@
     <string name="mh_live">TRỰC TIẾP</string>
     <string name="mh_next">Tiếp theo:</string>
     <string name="mh_watch">Xem</string>
-    <string name="mtv_hint_all">Giữ OK · Tất cả các kênh</string>
+    <string name="mtv_hint_all">Giữ OK · Tùy chọn kênh</string>
     <string name="mtv_hint_nav">◀▶ Duyệt · OK Chuyển · ▼ Điều khiển</string>
     <string name="mtv_live">trực tiếp</string>
     <string name="mtv_ts_warn">Chuyển kênh sẽ kết thúc timeshift</string>

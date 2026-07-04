@@ -1365,9 +1365,14 @@ class PlayerActivity : ComponentActivity() {
     }
     private fun closeChannelInfo() { infoVisibleState.value = false }
 
+    // Kedy sa zoznam otvoril — OK eventy tesne po otvoreni (zvysky otvaracieho
+    // dlheho stlacenia, ghost DOWN/UP pary z IR/CEC ovladacov) sa ignoruju (M330-fix2)
+    private var channelListOpenedAt = 0L
+
     private fun openChannelList() {
         if (liveUuids.size < 2) return
         navChannelIndexState.value = liveIndex.coerceAtLeast(0)
+        channelListOpenedAt = android.os.SystemClock.uptimeMillis()
         openChannelListState.value = openChannelListState.value + 1
     }
     private fun closeChannelList() {
@@ -1682,6 +1687,10 @@ class PlayerActivity : ComponentActivity() {
             if (isOk) {
                 // pocas drzania otvaracieho OK (a jeho opakovani) nereaguj
                 if (okLongFired) return true
+                // debounce po otvoreni: niektore ovladace (IR/CEC) poslu po dlhom
+                // stlaceni este ghost DOWN/UP par — ten by okamzite potvrdil kanal
+                // a zoznam zavrel; vsetko OK do 400 ms od otvorenia sa zahodi
+                if (android.os.SystemClock.uptimeMillis() - channelListOpenedAt < 400L) return true
                 if (down) {
                     // podrzanie OK v zozname = kontextove menu kanala (Info / od zaciatku / zamok)
                     if (event.isLongPress && n > 0) {
@@ -1833,9 +1842,14 @@ class PlayerActivity : ComponentActivity() {
                     android.view.KeyEvent.KEYCODE_DPAD_CENTER,
                     android.view.KeyEvent.KEYCODE_ENTER,
                     android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                        if (event.repeatCount == 1) {   // podrzanie OK -> plny zoznam
-                            modernOkLong = true
-                            closeModernOverlay(); openChannelList()
+                        if (event.repeatCount == 1) {
+                            // Podrzanie OK v overlay = moznosti FOKUSOVANEHO kanala
+                            // (Info / Prehrat od zaciatku / Zamok) — M338. Velky zoznam
+                            // ostava cez Viac -> Kanaly a dlhe OK z cisteho prehravania.
+                            // okLongFired: guard prehltne OK-up (inak by potvrdil polozku menu)
+                            okLongFired = true
+                            modernOkLong = false
+                            openChannelContextMenu(modernOvCard.value)
                         }
                         return true
                     }
@@ -3458,12 +3472,17 @@ private fun PlayerUi(
                     initialSeekDone = true
                     onSeekSeedHandled()
                 }
-                // obnovenie po potvrdeni (ma prednost pred skokom na zaciatok relacie)
-                if (pendingResumeMs > 0 && curLen > 0 && player.isSeekable) {
-                    val f = (pendingResumeMs.toFloat() / curLen).coerceIn(0f, 1f)
-                    player.position = f
-                    posFraction = f
-                    posTimeMs = pendingResumeMs.coerceIn(0L, curBar)
+                // obnovenie po potvrdeni (ma prednost pred skokom na zaciatok relacie).
+                // POZOR: priame player.position pri pipe/feeder DVR nefunguje (a
+                // isSeekable byva false, takze sa skok nikdy nevykonal a nahravka
+                // isla od zaciatku) — pouzi tu istu cestu ako pouzivatelske
+                // pretocenie (onSeekToMs -> seekDvrAbsolute: restart s :start-time,
+                // playhead hodiny prevezmu seed).
+                if (pendingResumeMs > 0 && curLen > 0) {
+                    val tgt = pendingResumeMs.coerceIn(0L, curBar)
+                    onSeekToMs(tgt)
+                    posTimeMs = tgt
+                    posFraction = ((curOff + tgt).toFloat() / (curOff + curLen).coerceAtLeast(1L)).coerceIn(0f, 1f)
                     pendingResumeMs = 0
                     initialSeekDone = true
                 }
@@ -4393,6 +4412,7 @@ private fun PlayerUi(
                 focusRow = modernOvRow,
                 stripIndex = modernOvStrip,
                 stripIds = modernStripIds,
+                recNames = recInProgressByName.value.keys,
                 isPlaying = isPlaying,
                 tsEngaged = timeshiftEngaged,
                 tsOffsetMs = timeshiftOffsetMs,

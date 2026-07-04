@@ -294,7 +294,7 @@
     <string name="mh_live">مباشر</string>
     <string name="mh_next">التالي:</string>
     <string name="mh_watch">مشاهدة</string>
-    <string name="mtv_hint_all">اضغط مطولاً على OK · جميع القنوات</string>
+    <string name="mtv_hint_all">اضغط مطولاً على OK · خيارات القناة</string>
     <string name="mtv_hint_nav">◀▶ تصفح · OK تبديل · ▼ عناصر التحكم</string>
     <string name="mtv_live">مباشر</string>
     <string name="mtv_ts_warn">التبديل ينهي الإزاحة الزمنية</string>

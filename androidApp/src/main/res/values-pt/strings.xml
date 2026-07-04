@@ -294,7 +294,7 @@
     <string name="mh_live">AO VIVO</string>
     <string name="mh_next">A seguir:</string>
     <string name="mh_watch">Ver</string>
-    <string name="mtv_hint_all">Mantenha OK · Todos os canais</string>
+    <string name="mtv_hint_all">Mantenha OK · Opções do canal</string>
     <string name="mtv_hint_nav">◀▶ Navegar · OK Mudar · ▼ Controlos</string>
     <string name="mtv_live">ao vivo</string>
     <string name="mtv_ts_warn">Mudar termina o timeshift</string>

@@ -294,7 +294,7 @@
     <string name="mh_live">ÉLŐ</string>
     <string name="mh_next">Következik:</string>
     <string name="mh_watch">Megnézés</string>
-    <string name="mtv_hint_all">Tartsa nyomva az OK-t · Összes csatorna</string>
+    <string name="mtv_hint_all">Tartsa nyomva az OK-t · Csatornaopciók</string>
     <string name="mtv_hint_nav">◀▶ Böngészés · OK Váltás · ▼ Vezérlők</string>
     <string name="mtv_live">élő</string>
     <string name="mtv_ts_warn">A váltás megszakítja a timeshiftet</string>

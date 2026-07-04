@@ -294,7 +294,7 @@
     <string name="mh_live">زنده</string>
     <string name="mh_next">بعدی:</string>
     <string name="mh_watch">تماشا</string>
-    <string name="mtv_hint_all">OK را نگه دارید · همه کانال‌ها</string>
+    <string name="mtv_hint_all">OK را نگه دارید · گزینه‌های کانال</string>
     <string name="mtv_hint_nav">◀▶ مرور · OK تعویض · ▼ کنترل‌ها</string>
     <string name="mtv_live">زنده</string>
     <string name="mtv_ts_warn">تعویض کانال تایم‌شیفت را پایان می‌دهد</string>

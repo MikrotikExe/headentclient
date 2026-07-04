@@ -294,7 +294,7 @@
     <string name="mh_live">ΖΩΝΤΑΝΑ</string>
     <string name="mh_next">Επόμενο:</string>
     <string name="mh_watch">Παρακολούθηση</string>
-    <string name="mtv_hint_all">Κρατήστε OK · Όλα τα κανάλια</string>
+    <string name="mtv_hint_all">Κρατήστε OK · Επιλογές καναλιού</string>
     <string name="mtv_hint_nav">◀▶ Περιήγηση · OK Αλλαγή · ▼ Χειριστήρια</string>
     <string name="mtv_live">ζωντανά</string>
     <string name="mtv_ts_warn">Η αλλαγή τερματίζει το timeshift</string>

@@ -294,7 +294,7 @@
     <string name="mh_live">DIRECT</string>
     <string name="mh_next">Ensuite :</string>
     <string name="mh_watch">Regarder</string>
-    <string name="mtv_hint_all">Maintenez OK · Toutes les chaînes</string>
+    <string name="mtv_hint_all">Maintenez OK · Options de la chaîne</string>
     <string name="mtv_hint_nav">◀▶ Parcourir · OK Changer · ▼ Commandes</string>
     <string name="mtv_live">direct</string>
     <string name="mtv_ts_warn">Changer met fin au timeshift</string>

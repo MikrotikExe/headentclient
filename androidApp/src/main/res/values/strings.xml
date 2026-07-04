@@ -264,7 +264,7 @@
     <string name="pm_back">Back</string>
     <string name="pm_lock">Rotation lock</string>
     <string name="pm_info">Programme info</string>
-    <string name="mtv_hint_all">Hold OK &#183; All channels</string>
+    <string name="mtv_hint_all">Hold OK · Channel options</string>
     <string name="mtv_hint_nav">&#9664;&#9654; Browse &#183; OK Switch &#183; &#9660; Controls</string>
     <string name="mtv_live">live</string>
     <string name="mtv_ts_warn">Switching ends timeshift</string>

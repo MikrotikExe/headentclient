@@ -294,7 +294,7 @@
     <string name="mh_live">লাইভ</string>
     <string name="mh_next">পরবর্তী:</string>
     <string name="mh_watch">দেখুন</string>
-    <string name="mtv_hint_all">OK চেপে ধরুন · সব চ্যানেল</string>
+    <string name="mtv_hint_all">OK চেপে ধরুন · চ্যানেল অপশন</string>
     <string name="mtv_hint_nav">◀▶ ব্রাউজ · OK পরিবর্তন · ▼ নিয়ন্ত্রণ</string>
     <string name="mtv_live">লাইভ</string>
     <string name="mtv_ts_warn">পরিবর্তন করলে টাইমশিফট শেষ হবে</string>

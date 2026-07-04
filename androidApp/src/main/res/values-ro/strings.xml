@@ -294,7 +294,7 @@
     <string name="mh_live">LIVE</string>
     <string name="mh_next">Urmează:</string>
     <string name="mh_watch">Vizionează</string>
-    <string name="mtv_hint_all">Țineți OK · Toate canalele</string>
+    <string name="mtv_hint_all">Țineți OK · Opțiuni canal</string>
     <string name="mtv_hint_nav">◀▶ Răsfoire · OK Comută · ▼ Comenzi</string>
     <string name="mtv_live">live</string>
     <string name="mtv_ts_warn">Comutarea încheie timeshift-ul</string>

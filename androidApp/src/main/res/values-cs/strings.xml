@@ -294,7 +294,7 @@
     <string name="mh_live">ŽIVĚ</string>
     <string name="mh_next">Další:</string>
     <string name="mh_watch">Sledovat</string>
-    <string name="mtv_hint_all">Podržte OK · Všechny kanály</string>
+    <string name="mtv_hint_all">Podržení OK · Možnosti kanálu</string>
     <string name="mtv_hint_nav">◀▶ Procházení · OK Přepnout · ▼ Ovládání</string>
     <string name="mtv_live">živě</string>
     <string name="mtv_ts_warn">Přepnutí ukončí timeshift</string>

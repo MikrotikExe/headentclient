@@ -294,7 +294,7 @@
     <string name="mh_live">라이브</string>
     <string name="mh_next">다음:</string>
     <string name="mh_watch">시청</string>
-    <string name="mtv_hint_all">OK 길게 누르기 · 전체 채널</string>
+    <string name="mtv_hint_all">OK 길게 누르기 · 채널 옵션</string>
     <string name="mtv_hint_nav">◀▶ 탐색 · OK 전환 · ▼ 컨트롤</string>
     <string name="mtv_live">라이브</string>
     <string name="mtv_ts_warn">전환하면 타임시프트가 종료됩니다</string>

@@ -294,7 +294,7 @@
     <string name="mh_live">LANGSUNG</string>
     <string name="mh_next">Berikutnya:</string>
     <string name="mh_watch">Tonton</string>
-    <string name="mtv_hint_all">Tahan OK · Semua saluran</string>
+    <string name="mtv_hint_all">Tahan OK · Opsi saluran</string>
     <string name="mtv_hint_nav">◀▶ Jelajahi · OK Ganti · ▼ Kontrol</string>
     <string name="mtv_live">langsung</string>
     <string name="mtv_ts_warn">Berpindah mengakhiri timeshift</string>

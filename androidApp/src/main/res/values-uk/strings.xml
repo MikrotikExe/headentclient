@@ -294,7 +294,7 @@
     <string name="mh_live">НАЖИВО</string>
     <string name="mh_next">Далі:</string>
     <string name="mh_watch">Дивитися</string>
-    <string name="mtv_hint_all">Утримуйте OK · Усі канали</string>
+    <string name="mtv_hint_all">Утримуйте OK · Опції каналу</string>
     <string name="mtv_hint_nav">◀▶ Огляд · OK Перемкнути · ▼ Керування</string>
     <string name="mtv_live">наживо</string>
     <string name="mtv_ts_warn">Перемикання завершить таймшифт</string>

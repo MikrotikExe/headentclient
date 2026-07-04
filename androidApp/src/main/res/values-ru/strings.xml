@@ -294,7 +294,7 @@
     <string name="mh_live">В ЭФИРЕ</string>
     <string name="mh_next">Далее:</string>
     <string name="mh_watch">Смотреть</string>
-    <string name="mtv_hint_all">Удерживайте OK · Все каналы</string>
+    <string name="mtv_hint_all">Удерживайте OK · Опции канала</string>
     <string name="mtv_hint_nav">◀▶ Обзор · OK Переключить · ▼ Управление</string>
     <string name="mtv_live">в эфире</string>
     <string name="mtv_ts_warn">Переключение завершит таймшифт</string>

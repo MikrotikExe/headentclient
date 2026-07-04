@@ -294,7 +294,7 @@
     <string name="mh_live">LIVE</string>
     <string name="mh_next">Hierna:</string>
     <string name="mh_watch">Kijken</string>
-    <string name="mtv_hint_all">Houd OK ingedrukt · Alle kanalen</string>
+    <string name="mtv_hint_all">Houd OK ingedrukt · Kanaalopties</string>
     <string name="mtv_hint_nav">◀▶ Bladeren · OK Wisselen · ▼ Bediening</string>
     <string name="mtv_live">live</string>
     <string name="mtv_ts_warn">Wisselen beëindigt timeshift</string>
