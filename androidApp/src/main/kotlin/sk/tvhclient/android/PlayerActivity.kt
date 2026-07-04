@@ -973,6 +973,28 @@ class PlayerActivity : ComponentActivity() {
 
     /** Zatvorenie prehravaca: ak bol spusteny cez "od zaciatku" zo zivej TV, vrat sa na povodny kanal. */
     private fun closePlayer() {
+        // M342: BACK z radia v modernom rezime = handoff do RadioPlayerService —
+        // radio hra dalej na pozadi (mini lista v appke/launcheri), namiesto stopu.
+        // Plati pre telefon aj TV; klasik ostava povodne (zavriet = ticho).
+        if (playKind == "radio" && UiModePref.get(this) == UiModePref.MODERN) {
+            val uuid = liveUuids.getOrNull(liveIndexState.value)
+            val server = liveServer ?: sk.tvhclient.shared.Tvh.store.active()
+            if (uuid != null && server != null &&
+                ::mediaPlayer.isInitialized && mediaPlayer.isPlaying
+            ) {
+                val ch = LivePlaylist.channels.firstOrNull { it.uuid == uuid }
+                RadioCenter.play(
+                    this, server, uuid,
+                    ch?.name ?: "",
+                    picon = ch?.piconUrl,
+                    epgTitle = ch?.nowTitle ?: "",
+                    epgStart = ch?.nowStart ?: 0L,
+                    epgStop = ch?.nowStop ?: 0L
+                )
+                finish()
+                return
+            }
+        }
         val ru = returnLiveUuid
         if (ru != null) {
             returnLiveUuid = null

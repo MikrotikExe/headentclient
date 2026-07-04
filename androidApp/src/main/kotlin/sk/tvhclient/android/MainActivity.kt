@@ -367,6 +367,12 @@ private fun TvHomeHost() {
                     onSettings = { lastTile = "settings"; section = "settings" },
                 )
                 }
+                // Mini radio po handoffe z prehravaca (M342) — nad obsahom, pod dialogmi
+                TvMiniRadioBar(
+                    androidx.compose.ui.Modifier
+                        .align(androidx.compose.ui.Alignment.BottomCenter)
+                        .padding(bottom = 24.dp)
+                )
                 if (showExit) {
                     androidx.activity.compose.BackHandler { showExit = false }
                     TvExitDialog(
