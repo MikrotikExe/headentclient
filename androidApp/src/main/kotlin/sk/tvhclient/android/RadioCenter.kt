@@ -23,6 +23,24 @@ object RadioCenter {
     val nowStart = mutableStateOf(0L)
     val nowStop = mutableStateOf(0L)
 
+    /** Zoznam stanic pre prepinanie z panelu (M344-fix3) — snapshot pri spusteni. */
+    data class RadioStation(
+        val uuid: String, val name: String, val picon: String?,
+        val nowTitle: String, val nowStart: Long, val nowStop: Long
+    )
+    var stations: List<RadioStation> = emptyList()
+
+    /** Prepne na dalsiu/predoslu stanicu zo snapshotu (wrap). */
+    fun switchStation(context: Context, delta: Int) {
+        if (stations.isEmpty()) return
+        val server = Tvh.store.active() ?: return
+        val idx = stations.indexOfFirst { it.uuid == stationUuid.value }
+        val next = stations[((if (idx < 0) 0 else idx) + delta + stations.size) % stations.size]
+        play(context, server, next.uuid, next.name,
+            picon = next.picon, epgTitle = next.nowTitle,
+            epgStart = next.nowStart, epgStop = next.nowStop)
+    }
+
     /** Spusti stanicu v service (telefon, moderny rezim). */
     fun play(
         context: Context, server: TvhServer, uuid: String, name: String,

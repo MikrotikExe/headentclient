@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Radio
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -168,8 +169,12 @@ fun TvRadioHomePanel(modifier: Modifier = Modifier) {
     Column(
         modifier
             .clip(RoundedCornerShape(18.dp))
-            .background(if (isLightTheme()) cs.surfaceContainerLowest else cs.surfaceContainer)
-            .border(1.dp, cs.outlineVariant, RoundedCornerShape(18.dp))
+            .background(
+                // zrkadlovy fade voci hero: sprava sytejsi, dolava do pozadia
+                androidx.compose.ui.graphics.Brush.horizontalGradient(
+                    listOf(cs.background, cs.surfaceContainerLow, cs.surfaceContainerHighest)
+                )
+            )
             .dpadFocusable(RoundedCornerShape(18.dp))
             .clickable { RadioCenter.openFull(ctx) }
             .padding(18.dp)
@@ -213,6 +218,18 @@ fun TvRadioHomePanel(modifier: Modifier = Modifier) {
         Spacer(Modifier.weight(1f, fill = true))
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
+            // ✕ ukoncit (vlavo) · ⏯ stop/play · ⏭ dalsia stanica (vpravo)
+            Box(
+                Modifier.size(40.dp).clip(CircleShape)
+                    .background(cs.surfaceContainerHighest)
+                    .dpadFocusable(CircleShape)
+                    .clickable { RadioCenter.stop(ctx) },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.pm_close),
+                    tint = cs.onSurfaceVariant, modifier = Modifier.size(18.dp))
+            }
+            Spacer(Modifier.width(10.dp))
             Box(
                 Modifier.size(44.dp).clip(CircleShape).background(cs.primary)
                     .dpadFocusable(CircleShape)
@@ -230,11 +247,11 @@ fun TvRadioHomePanel(modifier: Modifier = Modifier) {
                 Modifier.size(40.dp).clip(CircleShape)
                     .background(cs.surfaceContainerHighest)
                     .dpadFocusable(CircleShape)
-                    .clickable { RadioCenter.stop(ctx) },
+                    .clickable { RadioCenter.switchStation(ctx, +1) },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.pm_close),
-                    tint = cs.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                Icon(Icons.Filled.SkipNext, contentDescription = null,
+                    tint = cs.onSurfaceVariant, modifier = Modifier.size(20.dp))
             }
         }
     }

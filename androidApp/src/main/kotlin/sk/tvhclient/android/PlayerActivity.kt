@@ -981,6 +981,9 @@ class PlayerActivity : ComponentActivity() {
         val server = liveServer ?: sk.tvhclient.shared.Tvh.store.active() ?: return false
         if (!::mediaPlayer.isInitialized || !mediaPlayer.isPlaying) return false
         val ch = LivePlaylist.channels.firstOrNull { it.uuid == uuid }
+        RadioCenter.stations = LivePlaylist.channels.map {
+            RadioCenter.RadioStation(it.uuid, it.name, it.piconUrl, it.nowTitle, it.nowStart, it.nowStop)
+        }
         RadioCenter.play(
             this, server, uuid,
             ch?.name ?: "",
