@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -168,25 +170,22 @@ fun TvRadioHomePanel(modifier: Modifier = Modifier) {
 
     Column(
         modifier
-            .clip(RoundedCornerShape(18.dp))
-            // Fade ako fix3: sprava syty, dolava do stratena (zrkadlo hero).
-            // Navrch vertikalna maska — horny a dolny okraj splyvaju s pozadim,
-            // takze nikde nevidiet obdlznikovu siluetu panelu (M344-fix7).
-            .background(
-                androidx.compose.ui.graphics.Brush.horizontalGradient(
-                    0f to cs.background,
-                    0.45f to cs.surfaceContainerLow,
-                    1f to cs.surfaceContainerHighest
+            // Radialna ZIARA namiesto orezaneho gradientu (M344-fix8): svetlo
+            // vychadza z pravej strany a vsetkymi smermi mekko dozneje do
+            // uplneho stratena — ziadny stvorec, ziadne hrany, ziadne pasy.
+            // (Kazdy pravouhly gradient v clipnutom tvare niekde ukaze hranu,
+            // preto drawBehind s radialom kotvenym na pravy okraj panelu.)
+            .drawBehind {
+                drawRect(
+                    brush = androidx.compose.ui.graphics.Brush.radialGradient(
+                        0f to cs.surfaceContainerHighest,
+                        0.55f to cs.surfaceContainerLow.copy(alpha = 0.55f),
+                        1f to androidx.compose.ui.graphics.Color.Transparent,
+                        center = androidx.compose.ui.geometry.Offset(size.width * 0.86f, size.height * 0.45f),
+                        radius = size.width * 0.95f
+                    )
                 )
-            )
-            .background(
-                androidx.compose.ui.graphics.Brush.verticalGradient(
-                    0f to cs.background,
-                    0.18f to androidx.compose.ui.graphics.Color.Transparent,
-                    0.82f to androidx.compose.ui.graphics.Color.Transparent,
-                    1f to cs.background
-                )
-            )
+            }
             .padding(18.dp)
     ) {
         Text(
@@ -245,6 +244,17 @@ fun TvRadioHomePanel(modifier: Modifier = Modifier) {
             ) {
                 Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.pm_close),
                     tint = cs.onSurfaceVariant, modifier = Modifier.size(18.dp))
+            }
+            Spacer(Modifier.width(10.dp))
+            Box(
+                Modifier.size(40.dp).clip(CircleShape)
+                    .background(cs.surfaceContainerHighest)
+                    .dpadFocusable(CircleShape)
+                    .clickable { RadioCenter.switchStation(ctx, -1) },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.SkipPrevious, contentDescription = null,
+                    tint = cs.onSurfaceVariant, modifier = Modifier.size(20.dp))
             }
             Spacer(Modifier.width(10.dp))
             Box(
