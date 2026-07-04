@@ -27,26 +27,13 @@ import androidx.compose.material3.MaterialTheme
 fun Modifier.dpadFocusable(shape: Shape = RoundedCornerShape(8.dp)): Modifier = composed {
     var focused by remember { mutableStateOf(false) }
     val primary = MaterialTheme.colorScheme.primary
-    // Moderny rezim (M331-fix): namiesto skalovania (zvacsena karta pretiekla
-    // von zo slotu a LazyRow/LazyColumn ju na hranach orezavali — ramy "uchadzali")
-    // sa fokus zvyrazni animovanym hrubsim ramom a jasnejsim podkladom. Nic
-    // nepretecie, ziadne orezanie, citatelnost z gauca ostava.
-    val modern = isModernUi()
-    val borderW by androidx.compose.animation.core.animateDpAsState(
-        targetValue = if (modern && focused) 3.dp else 2.dp,
-        animationSpec = androidx.compose.animation.core.tween(120),
-        label = "dpadBorder"
-    )
-    val bgAlpha by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (focused) { if (modern) 0.22f else 0.14f } else 0f,
-        animationSpec = androidx.compose.animation.core.tween(120),
-        label = "dpadBg"
-    )
+    // M339-fix2: fokus ako povodne (2dp ram + jemny podklad) — skalovanie z M331
+    // je prec (zvacsena karta pretiekla zo slotu a Lazy kontajnery orezavali ramy)
     this
         .onFocusChanged { focused = it.isFocused }
-        .border(BorderStroke(if (focused) borderW else 2.dp, if (focused) primary else Color.Transparent), shape)
+        .border(BorderStroke(2.dp, if (focused) primary else Color.Transparent), shape)
         .then(
-            if (bgAlpha > 0f) Modifier.background(primary.copy(alpha = bgAlpha), shape)
+            if (focused) Modifier.background(primary.copy(alpha = 0.14f), shape)
             else Modifier
         )
 }

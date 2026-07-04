@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">설정 → 일반에서 언제든지 변경 가능</string>
     <string name="mh_continue">이어서 보기</string>
     <string name="mh_left">%1$d분 남음</string>
+    <string name="radio_notif_channel">라디오 재생</string>
+    <string name="pause">일시정지</string>
 </resources>

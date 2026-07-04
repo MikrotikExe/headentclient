@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">Puedes cambiarlo en Ajustes → General</string>
     <string name="mh_continue">Seguir viendo</string>
     <string name="mh_left">Quedan %1$d min</string>
+    <string name="radio_notif_channel">Reproducción de radio</string>
+    <string name="pause">Pausa</string>
 </resources>

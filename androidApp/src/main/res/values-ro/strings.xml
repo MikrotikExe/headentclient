@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">Poți schimba oricând în Setări → General</string>
     <string name="mh_continue">Continuă vizionarea</string>
     <string name="mh_left">Au mai rămas %1$d min</string>
+    <string name="radio_notif_channel">Redare radio</string>
+    <string name="pause">Pauză</string>
 </resources>

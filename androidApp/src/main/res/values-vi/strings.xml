@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">Có thể đổi trong Cài đặt → Chung</string>
     <string name="mh_continue">Xem tiếp</string>
     <string name="mh_left">Còn %1$d phút</string>
+    <string name="radio_notif_channel">Phát radio</string>
+    <string name="pause">Tạm dừng</string>
 </resources>

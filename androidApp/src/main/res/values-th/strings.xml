@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">เปลี่ยนได้ที่ การตั้งค่า → ทั่วไป</string>
     <string name="mh_continue">ดูต่อ</string>
     <string name="mh_left">เหลืออีก %1$d นาที</string>
+    <string name="radio_notif_channel">การเล่นวิทยุ</string>
+    <string name="pause">หยุดชั่วคราว</string>
 </resources>

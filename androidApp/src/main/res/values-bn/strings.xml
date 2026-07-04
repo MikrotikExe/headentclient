@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">সেটিংস → সাধারণ-এ যেকোনো সময় বদলান</string>
     <string name="mh_continue">দেখা চালিয়ে যান</string>
     <string name="mh_left">%1$d মিনিট বাকি</string>
+    <string name="radio_notif_channel">রেডিও প্লেব্যাক</string>
+    <string name="pause">বিরতি</string>
 </resources>

@@ -582,6 +582,8 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
 
     Scaffold(
         bottomBar = {
+            androidx.compose.foundation.layout.Column {
+            MiniRadioBar()
             NavigationBar {
                 if (modernPhone) {
                     NavigationBarItem(
@@ -624,6 +626,7 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
                         Icons.Default.Dns, contentDescription = null) },
                     label = { TabLabel(blue, stringResource(R.string.tab_settings)) }
                 )
+            }
             }
         }
     ) { padding ->

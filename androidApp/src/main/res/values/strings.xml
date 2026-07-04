@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">You can change this anytime in Settings → General</string>
     <string name="mh_continue">Continue watching</string>
     <string name="mh_left">%1$d min left</string>
+    <string name="radio_notif_channel">Radio playback</string>
+    <string name="pause">Pause</string>
 </resources>

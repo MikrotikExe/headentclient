@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">ترتیبات → عمومی میں کبھی بھی تبدیل کریں</string>
     <string name="mh_continue">دیکھنا جاری رکھیں</string>
     <string name="mh_left">%1$d منٹ باقی</string>
+    <string name="radio_notif_channel">ریڈیو پلے بیک</string>
+    <string name="pause">روکیں</string>
 </resources>

@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">Dapat diubah di Pengaturan → Umum</string>
     <string name="mh_continue">Lanjutkan menonton</string>
     <string name="mh_left">%1$d mnt tersisa</string>
+    <string name="radio_notif_channel">Pemutaran radio</string>
+    <string name="pause">Jeda</string>
 </resources>

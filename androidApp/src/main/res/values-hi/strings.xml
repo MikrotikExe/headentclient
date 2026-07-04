@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">सेटिंग्स → सामान्य में कभी भी बदलें</string>
     <string name="mh_continue">देखना जारी रखें</string>
     <string name="mh_left">%1$d मिनट शेष</string>
+    <string name="radio_notif_channel">रेडियो प्लेबैक</string>
+    <string name="pause">रोकें</string>
 </resources>

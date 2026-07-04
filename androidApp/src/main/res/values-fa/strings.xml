@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">در تنظیمات → عمومی قابل تغییر است</string>
     <string name="mh_continue">ادامه تماشا</string>
     <string name="mh_left">%1$d دقیقه مانده</string>
+    <string name="radio_notif_channel">پخش رادیو</string>
+    <string name="pause">مکث</string>
 </resources>

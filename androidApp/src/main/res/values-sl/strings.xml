@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">Spremeniš lahko v Nastavitve → Splošno</string>
     <string name="mh_continue">Nadaljuj z ogledom</string>
     <string name="mh_left">Še %1$d min</string>
+    <string name="radio_notif_channel">Predvajanje radia</string>
+    <string name="pause">Premor</string>
 </resources>

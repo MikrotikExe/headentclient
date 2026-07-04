@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">可随时在设置 → 通用中更改</string>
     <string name="mh_continue">继续观看</string>
     <string name="mh_left">剩余 %1$d 分钟</string>
+    <string name="radio_notif_channel">电台播放</string>
+    <string name="pause">暂停</string>
 </resources>

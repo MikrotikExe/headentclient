@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">Можна змінити в Налаштування → Загальні</string>
     <string name="mh_continue">Продовжити перегляд</string>
     <string name="mh_left">Залишилось %1$d хв</string>
+    <string name="radio_notif_channel">Відтворення радіо</string>
+    <string name="pause">Пауза</string>
 </resources>

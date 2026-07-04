@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">Zmienisz to w Ustawienia → Ogólne</string>
     <string name="mh_continue">Oglądaj dalej</string>
     <string name="mh_left">Pozostało %1$d min</string>
+    <string name="radio_notif_channel">Odtwarzanie radia</string>
+    <string name="pause">Pauza</string>
 </resources>

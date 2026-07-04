@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">Voľbu zmeníš kedykoľvek v Nastavenia → Všeobecné</string>
     <string name="mh_continue">Pokračovať v pozeraní</string>
     <string name="mh_left">Zostáva %1$d min</string>
+    <string name="radio_notif_channel">Prehrávanie rádia</string>
+    <string name="pause">Pauza</string>
 </resources>

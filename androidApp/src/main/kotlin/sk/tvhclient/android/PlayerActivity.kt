@@ -2096,6 +2096,8 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Mini radio (M340) nesmie hrat popri plnom prehravaci
+        RadioPlayerService.stop(this)
         // Zavri predoslu instanciu prehravaca (napr. visiacu v PiP so starym kanalom),
         // nech pri prepnuti kanala nezostane stara PiP visiet. Nova sa otvori na celu obrazovku.
         liveInstance?.get()?.let { old -> if (old !== this) runCatching { old.finish() } }

@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">يمكن تغييره في الإعدادات → عام</string>
     <string name="mh_continue">متابعة المشاهدة</string>
     <string name="mh_left">متبقي %1$d دقيقة</string>
+    <string name="radio_notif_channel">تشغيل الراديو</string>
+    <string name="pause">إيقاف مؤقت</string>
 </resources>

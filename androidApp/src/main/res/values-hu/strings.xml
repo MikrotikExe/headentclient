@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">Bármikor módosítható: Beállítások → Általános</string>
     <string name="mh_continue">Megtekintés folytatása</string>
     <string name="mh_left">%1$d perc van hátra</string>
+    <string name="radio_notif_channel">Rádió lejátszása</string>
+    <string name="pause">Szünet</string>
 </resources>

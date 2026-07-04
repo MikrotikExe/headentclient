@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">Αλλάζει στις Ρυθμίσεις → Γενικά</string>
     <string name="mh_continue">Συνέχεια παρακολούθησης</string>
     <string name="mh_left">Απομένουν %1$d λεπτά</string>
+    <string name="radio_notif_channel">Αναπαραγωγή ραδιοφώνου</string>
+    <string name="pause">Παύση</string>
 </resources>

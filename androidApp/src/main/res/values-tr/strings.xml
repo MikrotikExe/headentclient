@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">Ayarlar → Genel bölümünden değiştirilebilir</string>
     <string name="mh_continue">İzlemeye devam et</string>
     <string name="mh_left">%1$d dk kaldı</string>
+    <string name="radio_notif_channel">Radyo oynatma</string>
+    <string name="pause">Duraklat</string>
 </resources>

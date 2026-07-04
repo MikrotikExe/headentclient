@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">Pode alterar em Definições → Geral</string>
     <string name="mh_continue">Continuar a ver</string>
     <string name="mh_left">Faltam %1$d min</string>
+    <string name="radio_notif_channel">Reprodução de rádio</string>
+    <string name="pause">Pausa</string>
 </resources>

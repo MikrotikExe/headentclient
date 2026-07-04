@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">Можеш променити у Подешавања → Опште</string>
     <string name="mh_continue">Настави гледање</string>
     <string name="mh_left">Преостало %1$d мин</string>
+    <string name="radio_notif_channel">Репродукција радија</string>
+    <string name="pause">Пауза</string>
 </resources>

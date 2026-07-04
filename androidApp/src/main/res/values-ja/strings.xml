@@ -311,4 +311,6 @@
     <string name="ui_mode_hint">設定 → 一般でいつでも変更できます</string>
     <string name="mh_continue">続きを見る</string>
     <string name="mh_left">残り%1$d分</string>
+    <string name="radio_notif_channel">ラジオ再生</string>
+    <string name="pause">一時停止</string>
 </resources>
