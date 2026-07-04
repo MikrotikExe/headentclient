@@ -336,7 +336,7 @@ private fun RadioRow(
             locked = false,
             hidden = false,
             loader = loader,
-            onClick = { playRadio(context, allRows, row) },
+            onClick = { playRadio(context, allRows, row, nt ?: "", ns, ne) },
             onLongClick = { onContext(row) },
             modifier = modifier,
             highlighted = highlighted,
@@ -441,7 +441,12 @@ private fun RadioTile(
 private fun playRadio(
     context: android.content.Context,
     allRows: List<ChannelRow>,
-    row: ChannelRow
+    row: ChannelRow,
+    // EPG obohatene pri kliku (surovy row.nowTitle byva prazdny — zoznam
+    // ho plni az pri renderi z epgMap, preto sa v mini liste neukazovalo)
+    epgTitle: String = row.nowTitle ?: "",
+    epgStart: Long = row.nowStart,
+    epgStop: Long = row.nowStop
 ) {
     val server = Tvh.store.active() ?: return
     LivePlaylist.channels = allRows.map {
@@ -467,8 +472,8 @@ private fun playRadio(
         RadioCenter.play(
             context, server, row.channel.uuid, row.channel.name,
             picon = row.piconUrl,
-            epgTitle = row.nowTitle ?: "",
-            epgStart = row.nowStart, epgStop = row.nowStop
+            epgTitle = epgTitle,
+            epgStart = epgStart, epgStop = epgStop
         )
         return
     }
