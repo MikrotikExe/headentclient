@@ -972,29 +972,29 @@ class PlayerActivity : ComponentActivity() {
     }
 
     /** Zatvorenie prehravaca: ak bol spusteny cez "od zaciatku" zo zivej TV, vrat sa na povodny kanal. */
+    /** M342/M344: BACK z hrajuceho radia v modernom = handoff do RadioPlayerService.
+     *  Vrati true, ak handoff prebehol (aktivita sa ukoncila) — radio hra dalej
+     *  na pozadi s mini listou. Plati pre telefon aj TV; klasik povodne. */
+    private fun radioHandoffIfPossible(): Boolean {
+        if (playKind != "radio" || UiModePref.get(this) != UiModePref.MODERN) return false
+        val uuid = liveUuids.getOrNull(liveIndexState.value) ?: return false
+        val server = liveServer ?: sk.tvhclient.shared.Tvh.store.active() ?: return false
+        if (!::mediaPlayer.isInitialized || !mediaPlayer.isPlaying) return false
+        val ch = LivePlaylist.channels.firstOrNull { it.uuid == uuid }
+        RadioCenter.play(
+            this, server, uuid,
+            ch?.name ?: "",
+            picon = ch?.piconUrl,
+            epgTitle = ch?.nowTitle ?: "",
+            epgStart = ch?.nowStart ?: 0L,
+            epgStop = ch?.nowStop ?: 0L
+        )
+        finish()
+        return true
+    }
+
     private fun closePlayer() {
-        // M342: BACK z radia v modernom rezime = handoff do RadioPlayerService —
-        // radio hra dalej na pozadi (mini lista v appke/launcheri), namiesto stopu.
-        // Plati pre telefon aj TV; klasik ostava povodne (zavriet = ticho).
-        if (playKind == "radio" && UiModePref.get(this) == UiModePref.MODERN) {
-            val uuid = liveUuids.getOrNull(liveIndexState.value)
-            val server = liveServer ?: sk.tvhclient.shared.Tvh.store.active()
-            if (uuid != null && server != null &&
-                ::mediaPlayer.isInitialized && mediaPlayer.isPlaying
-            ) {
-                val ch = LivePlaylist.channels.firstOrNull { it.uuid == uuid }
-                RadioCenter.play(
-                    this, server, uuid,
-                    ch?.name ?: "",
-                    picon = ch?.piconUrl,
-                    epgTitle = ch?.nowTitle ?: "",
-                    epgStart = ch?.nowStart ?: 0L,
-                    epgStop = ch?.nowStop ?: 0L
-                )
-                finish()
-                return
-            }
-        }
+        if (radioHandoffIfPossible()) return
         val ru = returnLiveUuid
         if (ru != null) {
             returnLiveUuid = null
@@ -2576,7 +2576,13 @@ class PlayerActivity : ComponentActivity() {
                     if (it) { resumeSelState.value = 1; resumeAnswerState.value = 0 }
                 },
                 onResumeAnswerHandled = { resumeAnswerState.value = 0 },
-                onRequestExit = { exitConfirmSelState.value = 0; exitConfirmState.value = true },
+                onRequestExit = {
+                    // M344: hrajuce radio v modernom nekonci — ide do mini prehravaca,
+                    // takze potvrdzovacia otazka nema zmysel; TV live ju ma dalej
+                    if (!radioHandoffIfPossible()) {
+                        exitConfirmSelState.value = 0; exitConfirmState.value = true
+                    }
+                },
                 onClose = { closePlayer() },
                 returnLiveOnBack = returnLiveUuid != null
             )
