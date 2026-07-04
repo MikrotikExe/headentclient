@@ -30,6 +30,7 @@ class RadioPlayerService : Service() {
     private var player: MediaPlayer? = null
     private var focusRequest: AudioFocusRequest? = null
     private var curName = ""
+    private var curEpg = ""
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -39,6 +40,7 @@ class RadioPlayerService : Service() {
                 val url = intent.getStringExtra(EXTRA_URL) ?: return START_NOT_STICKY
                 val name = intent.getStringExtra(EXTRA_NAME) ?: ""
                 val uuid = intent.getStringExtra(EXTRA_UUID) ?: ""
+                curEpg = intent.getStringExtra(EXTRA_EPG) ?: ""
                 startPlayback(url, name, uuid)
             }
             ACTION_TOGGLE -> togglePlayPause()
@@ -184,7 +186,7 @@ class RadioPlayerService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(curName)
-            .setContentText(getString(R.string.tab_radio))
+            .setContentText(curEpg.ifBlank { getString(R.string.tab_radio) })
             .setContentIntent(openApp)
             .setOngoing(playing)
             .setOnlyAlertOnce(true)
@@ -207,6 +209,12 @@ class RadioPlayerService : Service() {
         runCatching { nm.notify(NOTIF_ID, buildNotification(playing)) }
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        // Appka zmazana z recents -> radio ma stichnut, nie hrat "duchovsky" dalej
+        stopEverything()
+        super.onTaskRemoved(rootIntent)
+    }
+
     override fun onDestroy() {
         releasePlayer()
         abandonFocus()
@@ -220,6 +228,7 @@ class RadioPlayerService : Service() {
         const val EXTRA_URL = "url"
         const val EXTRA_NAME = "name"
         const val EXTRA_UUID = "uuid"
+        const val EXTRA_EPG = "epg"
         private const val CHANNEL_ID = "radio_playback"
         private const val NOTIF_ID = 4210
 

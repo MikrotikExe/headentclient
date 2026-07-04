@@ -17,19 +17,32 @@ object RadioCenter {
     val playing = mutableStateOf(false)
     val stationName = mutableStateOf("")
     val stationUuid = mutableStateOf("")
+    val piconUrl = mutableStateOf<String?>(null)
+    // EPG prave hranej stanice (ak ju stanica ma) — zobrazi sa v liste aj notifikacii
+    val nowTitle = mutableStateOf("")
+    val nowStart = mutableStateOf(0L)
+    val nowStop = mutableStateOf(0L)
 
     /** Spusti stanicu v service (telefon, moderny rezim). */
-    fun play(context: Context, server: TvhServer, uuid: String, name: String) {
+    fun play(
+        context: Context, server: TvhServer, uuid: String, name: String,
+        picon: String? = null, epgTitle: String = "", epgStart: Long = 0L, epgStop: Long = 0L
+    ) {
         val profile = ChannelPrefs.getProfile(context, server.id, uuid)
         val url = Tvh.liveUrl(
             server, uuid, name,
             profile.ifBlank { server.profile.ifBlank { "pass" } }
         )
+        piconUrl.value = picon
+        nowTitle.value = epgTitle
+        nowStart.value = epgStart
+        nowStop.value = epgStop
         val i = Intent(context, RadioPlayerService::class.java).apply {
             action = RadioPlayerService.ACTION_PLAY
             putExtra(RadioPlayerService.EXTRA_URL, url)
             putExtra(RadioPlayerService.EXTRA_NAME, name)
             putExtra(RadioPlayerService.EXTRA_UUID, uuid)
+            putExtra(RadioPlayerService.EXTRA_EPG, epgTitle)
         }
         androidx.core.content.ContextCompat.startForegroundService(context, i)
     }

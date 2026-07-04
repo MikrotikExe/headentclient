@@ -32,6 +32,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.runtime.remember
+import sk.tvhclient.shared.Tvh
 
 /**
  * Mini prehravac radia (M340) — lista nad spodnou navigaciou, kym radio hra
@@ -46,8 +50,17 @@ fun MiniRadioBar() {
     if (!active) return
     val playing by RadioCenter.playing
     val name by RadioCenter.stationName
+    val picon by RadioCenter.piconUrl
+    val epgTitle by RadioCenter.nowTitle
+    val epgStop by RadioCenter.nowStop
     val ctx = LocalContext.current
     val cs = MaterialTheme.colorScheme
+    val server = remember { Tvh.store.active() }
+    val loader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
+    // EPG riadok len kym relacia realne bezi (po konci by bol zavadzajuci)
+    val epgLine = if (epgTitle.isNotBlank() &&
+        (epgStop <= 0L || System.currentTimeMillis() / 1000 < epgStop)
+    ) epgTitle else ""
 
     Row(
         Modifier
@@ -65,16 +78,28 @@ fun MiniRadioBar() {
                 .background(cs.primaryContainer.copy(alpha = 0.6f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Filled.Radio, contentDescription = null,
-                tint = cs.primary, modifier = Modifier.size(18.dp))
+            if (picon != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(ctx).data(picon).build(),
+                    contentDescription = null,
+                    imageLoader = loader,
+                    modifier = Modifier.size(28.dp)
+                )
+            } else {
+                Icon(Icons.Filled.Radio, contentDescription = null,
+                    tint = cs.primary, modifier = Modifier.size(18.dp))
+            }
         }
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
             Text(name, color = cs.onSurface, fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(stringResource(R.string.tab_radio), color = cs.onSurfaceVariant,
-                fontSize = 10.sp, maxLines = 1)
+            Text(
+                epgLine.ifBlank { stringResource(R.string.tab_radio) },
+                color = cs.onSurfaceVariant,
+                fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
         }
         Spacer(Modifier.width(8.dp))
         Box(

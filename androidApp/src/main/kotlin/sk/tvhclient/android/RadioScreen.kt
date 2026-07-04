@@ -464,7 +464,12 @@ private fun playRadio(
     val needsPin = ParentalLock.channelNeedsPin(context, server.id, row.channel.uuid)
     val tvDevice = context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
     if (!tvDevice && !needsPin && UiModePref.get(context) == UiModePref.MODERN) {
-        RadioCenter.play(context, server, row.channel.uuid, row.channel.name)
+        RadioCenter.play(
+            context, server, row.channel.uuid, row.channel.name,
+            picon = row.piconUrl,
+            epgTitle = row.nowTitle ?: "",
+            epgStart = row.nowStart, epgStop = row.nowStop
+        )
         return
     }
     val intent = Intent(context, PlayerActivity::class.java).apply {
