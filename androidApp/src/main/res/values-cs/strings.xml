@@ -313,4 +313,6 @@
     <string name="mh_left">Zbývá %1$d min</string>
     <string name="radio_notif_channel">Přehrávání rádia</string>
     <string name="pause">Pauza</string>
+    <string name="afr_title">Automatická obnovovací frekvence (AFR)</string>
+    <string name="afr_note">Přepne displej podle snímkové frekvence streamu (např. 50 Hz pro 25 fps vysílání) — odstraní trhání obrazu. Při přepnutí obrazovka na chvíli ztmavne.</string>
 </resources>

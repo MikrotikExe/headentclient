@@ -313,4 +313,6 @@
     <string name="mh_left">Il reste %1$d min</string>
     <string name="radio_notif_channel">Lecture de la radio</string>
     <string name="pause">Pause</string>
+    <string name="afr_title">Fréquence de rafraîchissement automatique (AFR)</string>
+    <string name="afr_note">Adapte l\'écran à la cadence du flux (p. ex. 50 Hz pour 25 fps) — supprime les saccades. L\'écran devient noir un instant lors du changement.</string>
 </resources>

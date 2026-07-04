@@ -313,4 +313,6 @@
     <string name="mh_left">%1$d perc van hátra</string>
     <string name="radio_notif_channel">Rádió lejátszása</string>
     <string name="pause">Szünet</string>
+    <string name="afr_title">Automatikus képfrissítés (AFR)</string>
+    <string name="afr_note">A kijelzőt a stream képkockasebességéhez igazítja (pl. 50 Hz 25 fps-hez) — megszünteti az akadozást. Váltáskor a képernyő rövid időre elsötétül.</string>
 </resources>

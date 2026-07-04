@@ -313,4 +313,6 @@
     <string name="mh_left">Nog %1$d min</string>
     <string name="radio_notif_channel">Radioweergave</string>
     <string name="pause">Pauze</string>
+    <string name="afr_title">Automatische verversingssnelheid (AFR)</string>
+    <string name="afr_note">Schakelt het scherm naar de framerate van de stream (bijv. 50 Hz voor 25 fps) — verwijdert judder. Het scherm wordt even zwart bij het schakelen.</string>
 </resources>

@@ -313,4 +313,6 @@
     <string name="mh_left">Noch %1$d Min.</string>
     <string name="radio_notif_channel">Radiowiedergabe</string>
     <string name="pause">Pause</string>
+    <string name="afr_title">Automatische Bildwiederholrate (AFR)</string>
+    <string name="afr_note">Passt das Display an die Bildrate des Streams an (z. B. 50 Hz bei 25 fps) — beseitigt Ruckeln. Beim Umschalten wird der Bildschirm kurz schwarz.</string>
 </resources>

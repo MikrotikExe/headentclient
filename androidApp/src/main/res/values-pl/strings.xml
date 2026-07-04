@@ -313,4 +313,6 @@
     <string name="mh_left">Pozostało %1$d min</string>
     <string name="radio_notif_channel">Odtwarzanie radia</string>
     <string name="pause">Pauza</string>
+    <string name="afr_title">Automatyczna częstotliwość odświeżania (AFR)</string>
+    <string name="afr_note">Przełącza ekran zgodnie z liczbą klatek streamu (np. 50 Hz dla 25 fps) — usuwa szarpanie. Przy przełączaniu ekran na chwilę gaśnie.</string>
 </resources>

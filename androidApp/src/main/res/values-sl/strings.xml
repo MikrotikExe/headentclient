@@ -313,4 +313,6 @@
     <string name="mh_left">Še %1$d min</string>
     <string name="radio_notif_channel">Predvajanje radia</string>
     <string name="pause">Premor</string>
+    <string name="afr_title">Samodejna osveževalna frekvenca (AFR)</string>
+    <string name="afr_note">Preklopi zaslon glede na hitrost sličic pretoka (npr. 50 Hz za 25 fps) — odpravi trzanje. Ob preklopu zaslon za hip potemni.</string>
 </resources>

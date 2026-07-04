@@ -313,4 +313,6 @@
     <string name="mh_left">Залишилось %1$d хв</string>
     <string name="radio_notif_channel">Відтворення радіо</string>
     <string name="pause">Пауза</string>
+    <string name="afr_title">Автоматична частота оновлення (AFR)</string>
+    <string name="afr_note">Перемикає дисплей під частоту кадрів потоку (напр. 50 Гц для 25 fps) — прибирає посмикування. Під час перемикання екран на мить гасне.</string>
 </resources>

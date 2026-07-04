@@ -313,4 +313,6 @@
     <string name="mh_left">残り%1$d分</string>
     <string name="radio_notif_channel">ラジオ再生</string>
     <string name="pause">一時停止</string>
+    <string name="afr_title">自動リフレッシュレート (AFR)</string>
+    <string name="afr_note">ストリームのフレームレートに合わせて画面を切り替えます（例: 25fps → 50Hz）— カクつきを解消。切替時に画面が一瞬暗転します。</string>
 </resources>

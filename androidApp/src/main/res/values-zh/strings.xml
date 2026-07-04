@@ -313,4 +313,6 @@
     <string name="mh_left">剩余 %1$d 分钟</string>
     <string name="radio_notif_channel">电台播放</string>
     <string name="pause">暂停</string>
+    <string name="afr_title">自动刷新率 (AFR)</string>
+    <string name="afr_note">根据流的帧率切换显示器（如 25 fps 广播切换到 50 Hz）——消除画面抖动。切换时屏幕会短暂变黑。</string>
 </resources>

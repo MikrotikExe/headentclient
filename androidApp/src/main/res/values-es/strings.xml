@@ -313,4 +313,6 @@
     <string name="mh_left">Quedan %1$d min</string>
     <string name="radio_notif_channel">Reproducción de radio</string>
     <string name="pause">Pausa</string>
+    <string name="afr_title">Frecuencia de actualización automática (AFR)</string>
+    <string name="afr_note">Ajusta la pantalla a la frecuencia del stream (p. ej. 50 Hz para 25 fps) — elimina el judder. La pantalla se oscurece un momento al cambiar.</string>
 </resources>

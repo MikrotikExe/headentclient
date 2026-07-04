@@ -313,4 +313,6 @@
     <string name="mh_left">Απομένουν %1$d λεπτά</string>
     <string name="radio_notif_channel">Αναπαραγωγή ραδιοφώνου</string>
     <string name="pause">Παύση</string>
+    <string name="afr_title">Αυτόματος ρυθμός ανανέωσης (AFR)</string>
+    <string name="afr_note">Προσαρμόζει την οθόνη στον ρυθμό καρέ της ροής (π.χ. 50 Hz για 25 fps) — εξαλείφει το τρεμόπαιγμα. Η οθόνη μαυρίζει στιγμιαία κατά την αλλαγή.</string>
 </resources>

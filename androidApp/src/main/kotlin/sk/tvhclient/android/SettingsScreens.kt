@@ -464,6 +464,21 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
     }
     SettingsGroup(stringResource(R.string.set_grp_video)) {
+    // AFR — automaticka obnovovacia frekvencia (M346, len TV/box)
+    if (isTvDev) {
+        var afr by remember { mutableStateOf(AfrPref.get(ctx)) }
+        SettingsSwitchRow(
+            label = stringResource(R.string.afr_title),
+            note = stringResource(R.string.afr_note),
+            checked = afr,
+            onChange = { on ->
+                afr = on
+                AfrPref.set(ctx, on)
+                TabController.settingsDirty.value = true
+            }
+        )
+        SettingsGroupDivider()
+    }
     if (!isTvDev) {
         var orient by remember { mutableStateOf(OrientationPref.get(ctx)) }
         val orientLabel: @Composable (String) -> String = { v ->

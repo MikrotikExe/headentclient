@@ -313,4 +313,6 @@
     <string name="mh_left">เหลืออีก %1$d นาที</string>
     <string name="radio_notif_channel">การเล่นวิทยุ</string>
     <string name="pause">หยุดชั่วคราว</string>
+    <string name="afr_title">อัตรารีเฟรชอัตโนมัติ (AFR)</string>
+    <string name="afr_note">สลับจอภาพตามเฟรมเรตของสตรีม (เช่น 50 Hz สำหรับ 25 fps) — ขจัดภาพกระตุก หน้าจอจะมืดครู่หนึ่งเมื่อสลับ</string>
 </resources>

@@ -2257,6 +2257,7 @@ class PlayerActivity : ComponentActivity() {
                 }
                 MediaPlayer.Event.Playing -> {
                     isPlayingState.value = true; refreshPipIfActive()
+                    maybeApplyAfr()  // AFR (M346): prepni Hz displeja podla fps streamu
                     keepScreenOn(true)  // pocas prehravania nedovol setric/ambient na boxoch
                     cancelReconnect()  // uspesne pripojenie -> vynuluj pokusy
                     dvrReopenAttempts = 0  // uspesne pokracovanie -> vynuluj pokusy o znovu-otvorenie
@@ -3126,7 +3127,69 @@ class PlayerActivity : ComponentActivity() {
         }, 1800)
     }
 
+    // =====================================================================
+    // AFR — automaticka obnovovacia frekvencia (M346)
+    // Precita fps z video stopy (libVLC frameRateNum/Den) a vyberie rezim
+    // displeja s rovnakym rozlisenim, ktoreho Hz je celociselnym nasobkom fps
+    // (25 fps -> 50 Hz; 60 Hz sa odmietne, 60/25 = 2.4). Preferuje 2x nasobok,
+    // potom 1x. Predvolene vypnute (AfrPref), len TV/box. Pri odchode sa
+    // preferencia vrati systemu.
+    // =====================================================================
+    private var afrRetryPosted = false
+
+    private fun maybeApplyAfr() {
+        if (!isTvBox) return
+        if (android.os.Build.VERSION.SDK_INT < 23) return
+        if (!AfrPref.get(this)) return
+        if (!::mediaPlayer.isInitialized) return
+        val vt = runCatching { mediaPlayer.currentVideoTrack }.getOrNull()
+        val num = vt?.frameRateNum ?: 0
+        val den = vt?.frameRateDen ?: 0
+        if (num <= 0 || den <= 0) {
+            // stopa este nie je pripravena — jeden odlozeny pokus
+            if (!afrRetryPosted) {
+                afrRetryPosted = true
+                window.decorView.postDelayed({ afrRetryPosted = false; maybeApplyAfr() }, 900L)
+            }
+            return
+        }
+        val fps = num.toFloat() / den
+        if (fps < 10f) return
+        val disp = if (android.os.Build.VERSION.SDK_INT >= 30) display
+            else @Suppress("DEPRECATION") windowManager.defaultDisplay
+        val cur = disp?.mode ?: return
+        val candidates = disp.supportedModes.filter {
+            it.physicalWidth == cur.physicalWidth && it.physicalHeight == cur.physicalHeight
+        }
+        fun score(m: android.view.Display.Mode): Int {
+            val k = m.refreshRate / fps
+            val kr = kotlin.math.round(k)
+            if (kr < 1f || kotlin.math.abs(k - kr) > 0.02f * kr) return Int.MIN_VALUE
+            return when (kr.toInt()) { 2 -> 3; 1 -> 2; else -> 1 }  // 2x (50 Hz pre 25 fps) > 1x > vyssie
+        }
+        val best = candidates.maxByOrNull { score(it) } ?: return
+        if (score(best) == Int.MIN_VALUE) return
+        if (best.modeId == cur.modeId) return
+        runCatching {
+            val lp = window.attributes
+            lp.preferredDisplayModeId = best.modeId
+            window.attributes = lp
+        }
+    }
+
+    private fun clearAfr() {
+        if (android.os.Build.VERSION.SDK_INT < 23) return
+        runCatching {
+            val lp = window.attributes
+            if (lp.preferredDisplayModeId != 0) {
+                lp.preferredDisplayModeId = 0
+                window.attributes = lp
+            }
+        }
+    }
+
     override fun onDestroy() {
+        clearAfr()
         saveDvrProgress()
         super.onDestroy()
         // uvolni odkaz, len ak stale ukazuje na tuto instanciu (nie na novsiu)

@@ -313,4 +313,6 @@
     <string name="mh_left">متبقي %1$d دقيقة</string>
     <string name="radio_notif_channel">تشغيل الراديو</string>
     <string name="pause">إيقاف مؤقت</string>
+    <string name="afr_title">معدل التحديث التلقائي (AFR)</string>
+    <string name="afr_note">يبدّل الشاشة حسب معدل إطارات البث (مثلاً 50 هرتز لبث 25 إطارًا) — يزيل التقطيع. تسودّ الشاشة لحظة عند التبديل.</string>
 </resources>

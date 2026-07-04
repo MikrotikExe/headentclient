@@ -313,4 +313,6 @@
     <string name="mh_left">%1$d mnt tersisa</string>
     <string name="radio_notif_channel">Pemutaran radio</string>
     <string name="pause">Jeda</string>
+    <string name="afr_title">Kecepatan refresh otomatis (AFR)</string>
+    <string name="afr_note">Mengalihkan layar sesuai frame rate stream (mis. 50 Hz untuk 25 fps) — menghilangkan judder. Layar gelap sesaat saat beralih.</string>
 </resources>

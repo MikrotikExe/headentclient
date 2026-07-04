@@ -313,4 +313,6 @@
     <string name="mh_left">%1$d منٹ باقی</string>
     <string name="radio_notif_channel">ریڈیو پلے بیک</string>
     <string name="pause">روکیں</string>
+    <string name="afr_title">خودکار ریفریش ریٹ (AFR)</string>
+    <string name="afr_note">ڈسپلے کو اسٹریم کے فریم ریٹ کے مطابق بدلتا ہے (مثلاً 25 fps کے لیے 50 Hz) — جھٹکے ختم کرتا ہے۔ سوئچ کرتے وقت اسکرین لمحہ بھر سیاہ ہوتی ہے۔</string>
 </resources>

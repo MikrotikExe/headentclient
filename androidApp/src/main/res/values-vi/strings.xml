@@ -313,4 +313,6 @@
     <string name="mh_left">Còn %1$d phút</string>
     <string name="radio_notif_channel">Phát radio</string>
     <string name="pause">Tạm dừng</string>
+    <string name="afr_title">Tần số quét tự động (AFR)</string>
+    <string name="afr_note">Chuyển màn hình theo tốc độ khung hình của luồng (vd. 50 Hz cho 25 fps) — loại bỏ giật hình. Màn hình tối một lát khi chuyển.</string>
 </resources>
