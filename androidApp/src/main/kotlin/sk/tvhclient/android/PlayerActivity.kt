@@ -1690,11 +1690,20 @@ class PlayerActivity : ComponentActivity() {
 
         if (down) {
             when (kc) {
+                // EPG klavesy roznych ovladacov (M345)
                 android.view.KeyEvent.KEYCODE_GUIDE,
-                android.view.KeyEvent.KEYCODE_CAPTIONS,
                 android.view.KeyEvent.KEYCODE_TV_DATA_SERVICE,
                 android.view.KeyEvent.KEYCODE_TV_CONTENTS_MENU,
                 android.view.KeyEvent.KEYCODE_TV_MEDIA_CONTEXT_MENU -> { openEpgInApp(); return true }
+                // Titulkovy klaves -> titulky (predtym omylom otvaral EPG)
+                android.view.KeyEvent.KEYCODE_CAPTIONS -> { openSpuMenu(); return true }
+                // Audio klaves (na mnohych TV/box ovladacoch) -> zvukove stopy
+                android.view.KeyEvent.KEYCODE_MEDIA_AUDIO_TRACK -> { openAudioMenu(); return true }
+                // MENU klaves -> OSD/ovladanie pocas prehravania
+                android.view.KeyEvent.KEYCODE_MENU -> {
+                    if (modernTvActive()) openModernOverlay() else showControlsFocused()
+                    return true
+                }
                 android.view.KeyEvent.KEYCODE_INFO -> { toggleInfo(); return true }
             }
             // media RW/FF -> timeshift skok (ak je HTSP zivy)
