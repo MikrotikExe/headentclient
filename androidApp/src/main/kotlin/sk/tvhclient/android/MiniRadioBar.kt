@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -73,7 +74,7 @@ private fun MiniRadioCore(tv: Boolean, modifier: Modifier = Modifier) {
     Row(
         modifier
             .then(
-                if (tv) Modifier.widthIn(min = 420.dp, max = 620.dp)
+                if (tv) Modifier.widthIn(min = 360.dp, max = 460.dp)
                 else Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp)
             )
             .clip(RoundedCornerShape(16.dp))
@@ -135,6 +136,106 @@ private fun MiniRadioCore(tv: Boolean, modifier: Modifier = Modifier) {
         ) {
             Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.pm_close),
                 tint = cs.onSurfaceVariant, modifier = Modifier.size(16.dp))
+        }
+    }
+}
+
+
+/**
+ * Radio panel na TV domovskej obrazovke (M344-fix2) — sucast layoutu vpravo
+ * vedla hero bloku (nie plavajuci overlay). Moderny jazyk: karta 18dp s
+ * obrysom, teal kapitalkovy nadpis, picon plat, EPG riadok a D-pad
+ * fokusovatelne ovladanie (karta = plny prehravac, ⏯, ✕).
+ */
+@Composable
+fun TvRadioHomePanel(modifier: Modifier = Modifier) {
+    if (!isModernUi()) return
+    val active by RadioCenter.active
+    if (!active) return
+    val playing by RadioCenter.playing
+    val name by RadioCenter.stationName
+    val picon by RadioCenter.piconUrl
+    val epgTitle by RadioCenter.nowTitle
+    val epgStop by RadioCenter.nowStop
+    val ctx = LocalContext.current
+    val cs = MaterialTheme.colorScheme
+    val server = remember { Tvh.store.active() }
+    val loader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
+    val epgLine = if (epgTitle.isNotBlank() &&
+        (epgStop <= 0L || System.currentTimeMillis() / 1000 < epgStop)
+    ) epgTitle else ""
+
+    Column(
+        modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(if (isLightTheme()) cs.surfaceContainerLowest else cs.surfaceContainer)
+            .border(1.dp, cs.outlineVariant, RoundedCornerShape(18.dp))
+            .dpadFocusable(RoundedCornerShape(18.dp))
+            .clickable { RadioCenter.openFull(ctx) }
+            .padding(18.dp)
+    ) {
+        Text(
+            stringResource(R.string.tab_radio).uppercase(),
+            color = cs.primary, fontSize = 11.sp,
+            fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(46.dp).clip(RoundedCornerShape(12.dp))
+                    .background(cs.primaryContainer.copy(alpha = 0.55f)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (picon != null) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(ctx).data(picon).build(),
+                        contentDescription = null,
+                        imageLoader = loader,
+                        modifier = Modifier.size(38.dp)
+                    )
+                } else {
+                    Icon(Icons.Filled.Radio, contentDescription = null,
+                        tint = cs.primary, modifier = Modifier.size(24.dp))
+                }
+            }
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(name, color = cs.onSurface, fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (epgLine.isNotBlank()) {
+                    Spacer(Modifier.height(2.dp))
+                    Text(epgLine, color = cs.onSurfaceVariant, fontSize = 12.sp,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+        Spacer(Modifier.weight(1f, fill = true))
+        Spacer(Modifier.height(12.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(44.dp).clip(CircleShape).background(cs.primary)
+                    .dpadFocusable(CircleShape)
+                    .clickable { RadioCenter.toggle(ctx) },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    contentDescription = stringResource(if (playing) R.string.pause else R.string.play),
+                    tint = cs.onPrimary, modifier = Modifier.size(22.dp)
+                )
+            }
+            Spacer(Modifier.width(10.dp))
+            Box(
+                Modifier.size(40.dp).clip(CircleShape)
+                    .background(cs.surfaceContainerHighest)
+                    .dpadFocusable(CircleShape)
+                    .clickable { RadioCenter.stop(ctx) },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.pm_close),
+                    tint = cs.onSurfaceVariant, modifier = Modifier.size(18.dp))
+            }
         }
     }
 }

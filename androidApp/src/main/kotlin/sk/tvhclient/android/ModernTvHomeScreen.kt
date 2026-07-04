@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -140,10 +141,14 @@ fun ModernTvHomeScreen(
         }
         Spacer(Modifier.height(14.dp))
 
-        // ===== HERO =====
+        // ===== HERO (+ radio panel vpravo, ked hra mini radio — M344-fix2) =====
+        Row(
+            Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min),
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
         Box(
             Modifier
-                .fillMaxWidth()
+                .weight(1f)
                 .clip(RoundedCornerShape(18.dp))
                 .background(Brush.linearGradient(listOf(cs.surfaceContainerHighest, cs.surfaceContainerLow, cs.background)))
                 .padding(22.dp)
@@ -237,6 +242,10 @@ fun ModernTvHomeScreen(
                     Text(dateStr, color = fgDim, fontSize = 15.sp)
                 }
             }
+        }
+        TvRadioHomePanel(
+            Modifier.width(330.dp).fillMaxHeight()
+        )
         }
 
         Spacer(Modifier.height(18.dp))
