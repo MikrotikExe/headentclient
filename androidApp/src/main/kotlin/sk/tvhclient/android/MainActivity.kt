@@ -12,6 +12,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -627,40 +628,58 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
         }
     ) { padding ->
         Box(Modifier.padding(padding)) {
-            when (tab) {
-                0 -> if (modernPhone) ModernPhoneHomeScreen(
-                    onOpenChannels = { resetCh++; tab = chIdx },
-                    onOpenEpg = { TabController.epgColdOpen = true; TabController.openEpgGrid() },
-                ) else ChannelsScreen(
-                    resetSignal = resetCh,
-                    onGoToNav = { runCatching { navFocus.requestFocus() } }
-                )
-                chIdx -> ChannelsScreen(
-                    resetSignal = resetCh,
-                    onGoToNav = { runCatching { navFocus.requestFocus() } }
-                )
-                radioIdx -> RadioScreen(
-                    resetSignal = resetRadio,
-                    onGoToNav = { runCatching { navFocus.requestFocus() } }
-                )
-                dvrIdx -> DvrScreen(resetSignal = resetDvr)
-                else -> {
-                    val ctx = androidx.compose.ui.platform.LocalContext.current
-                    var unlocked by remember { mutableStateOf(!ParentalLock.settingsNeedsPin(ctx)) }
-                    if (unlocked) {
-                        ServersTab(resetSignal = resetSet)
-                    } else {
-                        PinDialog(
-                            title = stringResource(R.string.plock_unlock_settings),
-                            onDismiss = { tab = 0 },
-                            onComplete = { pin ->
-                                if (ParentalLock.checkPin(ctx, pin)) {
-                                    ParentalLock.markUnlocked(ctx); unlocked = true; true
-                                } else false
-                            }
-                        )
+            val tabContent: @Composable (Int) -> Unit = { t ->
+                when (t) {
+                    0 -> if (modernPhone) ModernPhoneHomeScreen(
+                        onOpenChannels = { resetCh++; tab = chIdx },
+                        onOpenEpg = { TabController.epgColdOpen = true; TabController.openEpgGrid() },
+                    ) else ChannelsScreen(
+                        resetSignal = resetCh,
+                        onGoToNav = { runCatching { navFocus.requestFocus() } }
+                    )
+                    chIdx -> ChannelsScreen(
+                        resetSignal = resetCh,
+                        onGoToNav = { runCatching { navFocus.requestFocus() } }
+                    )
+                    radioIdx -> RadioScreen(
+                        resetSignal = resetRadio,
+                        onGoToNav = { runCatching { navFocus.requestFocus() } }
+                    )
+                    dvrIdx -> DvrScreen(resetSignal = resetDvr)
+                    else -> {
+                        val ctx = androidx.compose.ui.platform.LocalContext.current
+                        var unlocked by remember { mutableStateOf(!ParentalLock.settingsNeedsPin(ctx)) }
+                        if (unlocked) {
+                            ServersTab(resetSignal = resetSet)
+                        } else {
+                            PinDialog(
+                                title = stringResource(R.string.plock_unlock_settings),
+                                onDismiss = { tab = 0 },
+                                onComplete = { pin ->
+                                    if (ParentalLock.checkPin(ctx, pin)) {
+                                        ParentalLock.markUnlocked(ctx); unlocked = true; true
+                                    } else false
+                                }
+                            )
+                        }
                     }
                 }
+            }
+            if (isModernUi()) {
+                // M336: jemny fade pri prepnuti tabu (len moderny rezim)
+                androidx.compose.animation.AnimatedContent(
+                    targetState = tab,
+                    transitionSpec = {
+                        androidx.compose.animation.fadeIn(
+                            androidx.compose.animation.core.tween(180)
+                        ) togetherWith androidx.compose.animation.fadeOut(
+                            androidx.compose.animation.core.tween(120)
+                        )
+                    },
+                    label = "tabFade"
+                ) { t -> tabContent(t) }
+            } else {
+                tabContent(tab)
             }
         }
     }

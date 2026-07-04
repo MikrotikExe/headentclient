@@ -30,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.background
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
@@ -185,6 +186,8 @@ internal fun SettingsGroup(
             .clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
             .background(if (light) cs.surfaceContainerLowest else cs.surfaceContainer)
             .border(1.dp, cs.outlineVariant, androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
+            // M336: plynula zmena vysky karty (napr. ked prepinac odhali notu)
+            .animateContentSize(animationSpec = androidx.compose.animation.core.tween(180))
             .padding(horizontal = 14.dp, vertical = 6.dp),
         content = content
     )

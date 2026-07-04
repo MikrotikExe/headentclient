@@ -1078,7 +1078,19 @@ class PlayerActivity : ComponentActivity() {
     }
 
     /** Prepne na susedny live kanal (delta +1 / -1). */
+    /** Kratka haptika pri prepnuti kanala — len telefon/tablet v modernom rezime (M336). */
+    private fun hapticChannelSwitch() {
+        if (isTvBox) return
+        if (UiModePref.get(this) != UiModePref.MODERN) return
+        runCatching {
+            window.decorView.performHapticFeedback(
+                android.view.HapticFeedbackConstants.KEYBOARD_TAP
+            )
+        }
+    }
+
     private fun switchLive(delta: Int) {
+        hapticChannelSwitch()
         if (liveUuids.size < 2 || liveIndex < 0) return
         val n = liveUuids.size
         switchToIndex(((liveIndex + delta) % n + n) % n)

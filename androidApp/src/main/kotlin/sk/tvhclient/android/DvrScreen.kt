@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.animation.animateContentSize
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -673,6 +674,7 @@ private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int) {
                     .clip(RoundedCornerShape(14.dp))
                     .background(if (isLightTheme()) cs.surfaceContainerLowest else cs.surfaceContainer)
                     .border(1.dp, cs.outlineVariant, RoundedCornerShape(14.dp))
+                    .animateContentSize(animationSpec = androidx.compose.animation.core.tween(180))
                     .dpadFocusable(RoundedCornerShape(14.dp))
                 else Modifier.dpadFocusable()
             )
@@ -1181,6 +1183,75 @@ private fun ColumnScope.ArcFolderGrid(
         gridItems(items, key = { it.first }) { tr ->
             ArcFolderCard(glyph, tr.second, tr.third, iconKey = iconKeyFor?.invoke(tr.first)) { onClick(tr.first) }
         }
+    }
+}
+
+/** Karta priecinka moderneho archivu: farebny ikonovy cip + tucny nazov + badge poctu + sipka. */
+@Composable
+private fun ModernFolderRow(
+    label: String,
+    sub: String,
+    iconKey: String,
+    leading: (@Composable () -> Unit)? = null,
+    onClick: () -> Unit
+) {
+    val cs = MaterialTheme.colorScheme
+    val light = isLightTheme()
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(if (light) cs.surfaceContainerLowest else cs.surfaceContainer)
+            .border(1.dp, cs.outlineVariant, RoundedCornerShape(18.dp))
+            .dpadFocusable(RoundedCornerShape(18.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (leading != null) {
+            leading()
+        } else {
+            val chip = mgChipFor(iconKey)
+            Box(
+                Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
+                    .background(androidx.compose.ui.graphics.Color(if (light) chip.bgL else chip.bgD)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.Icon(
+                    mgIconFor(iconKey), contentDescription = null,
+                    tint = androidx.compose.ui.graphics.Color(if (light) chip.fgL else chip.fgD),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+        Spacer(Modifier.width(14.dp))
+        Text(
+            label, Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = cs.onSurface,
+            maxLines = 1, overflow = TextOverflow.Ellipsis
+        )
+        Spacer(Modifier.width(8.dp))
+        Box(
+            Modifier.clip(RoundedCornerShape(14.dp))
+                .background(if (light) cs.surfaceContainer else cs.surfaceContainerHigh)
+                .padding(horizontal = 10.dp, vertical = 4.dp)
+        ) {
+            Text(
+                sub,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = cs.onSurfaceVariant,
+                maxLines = 1
+            )
+        }
+        Text(
+            "  \u203A",
+            style = MaterialTheme.typography.titleMedium,
+            color = cs.onSurfaceVariant.copy(alpha = 0.6f)
+        )
     }
 }
 
