@@ -317,4 +317,5 @@
     <string name="afr_note">Switches the display to match the stream frame rate (e.g. 50 Hz for 25 fps broadcasts) — removes judder. The screen goes black for a moment when switching.</string>
     <string name="afr_delay_title">Pause after refresh rate change</string>
     <string name="audio_delay_title">Audio delay compensation</string>
+    <string name="pm_pip">Picture-in-picture (PiP)</string>
 </resources>

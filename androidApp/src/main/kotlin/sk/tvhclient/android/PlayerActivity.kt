@@ -4588,6 +4588,8 @@ private fun PlayerUi(
             ModernMoreSheet(
                 lockVisible = lockVis,
                 orientationLocked = orientationLocked,
+                pipVisible = pipButton,
+                onPip = { showMoreSheet = false; onEnterPip() },
                 onSubs = { showMoreSheet = false; menu = "spu" },
                 onSleep = { showMoreSheet = false; onOpenSleep() },
                 onLockToggle = {

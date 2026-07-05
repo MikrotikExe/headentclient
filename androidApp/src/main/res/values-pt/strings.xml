@@ -317,4 +317,5 @@
     <string name="afr_note">Ajusta o ecrã à taxa de fotogramas do stream (ex. 50 Hz para 25 fps) — elimina o judder. O ecrã fica preto por um momento ao mudar.</string>
     <string name="afr_delay_title">Pausa após mudança de frequência</string>
     <string name="audio_delay_title">Compensação do atraso de áudio</string>
+    <string name="pm_pip">Imagem na imagem (PiP)</string>
 </resources>

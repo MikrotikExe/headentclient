@@ -317,4 +317,5 @@
     <string name="afr_note">Переключает дисплей под частоту кадров потока (напр. 50 Гц для 25 fps) — убирает дрожание. При переключении экран на мгновение гаснет.</string>
     <string name="afr_delay_title">Пауза после смены частоты</string>
     <string name="audio_delay_title">Компенсация задержки звука</string>
+    <string name="pm_pip">Картинка в картинке (PiP)</string>
 </resources>

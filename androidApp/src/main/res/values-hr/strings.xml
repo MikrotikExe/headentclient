@@ -317,4 +317,5 @@
     <string name="afr_note">Prebacuje zaslon prema broju sličica streama (npr. 50 Hz za 25 fps) — uklanja trzanje. Zaslon nakratko potamni pri prebacivanju.</string>
     <string name="afr_delay_title">Pauza nakon promjene frekvencije</string>
     <string name="audio_delay_title">Kompenzacija kašnjenja zvuka</string>
+    <string name="pm_pip">Slika u slici (PiP)</string>
 </resources>

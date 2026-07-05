@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
@@ -174,6 +175,9 @@ private fun ModernLabeled(icon: ImageVector, label: String, onClick: () -> Unit)
 internal fun ModernMoreSheet(
     lockVisible: Boolean,
     orientationLocked: Boolean,
+    // PiP polozka (M349-fix5): len ked je Auto-PiP vypnuty — rucny vstup do PiP
+    pipVisible: Boolean = false,
+    onPip: () -> Unit = {},
     onSubs: () -> Unit,
     onSleep: () -> Unit,
     onLockToggle: () -> Unit,
@@ -209,6 +213,9 @@ internal fun ModernMoreSheet(
             Spacer(Modifier.height(10.dp))
 
             ModernSheetRow(Icons.Default.ClosedCaption, stringResource(R.string.track_subtitles), onSubs)
+            if (pipVisible) {
+                ModernSheetRow(Icons.Default.PictureInPictureAlt, stringResource(R.string.pm_pip), onPip)
+            }
             ModernSheetRow(Icons.Default.Timer, stringResource(R.string.sleep_timer), onSleep)
             if (lockVisible) {
                 ModernSheetRow(

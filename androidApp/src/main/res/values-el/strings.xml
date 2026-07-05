@@ -317,4 +317,5 @@
     <string name="afr_note">Προσαρμόζει την οθόνη στον ρυθμό καρέ της ροής (π.χ. 50 Hz για 25 fps) — εξαλείφει το τρεμόπαιγμα. Η οθόνη μαυρίζει στιγμιαία κατά την αλλαγή.</string>
     <string name="afr_delay_title">Παύση μετά την αλλαγή συχνότητας</string>
     <string name="audio_delay_title">Αντιστάθμιση καθυστέρησης ήχου</string>
+    <string name="pm_pip">Εικόνα σε εικόνα (PiP)</string>
 </resources>

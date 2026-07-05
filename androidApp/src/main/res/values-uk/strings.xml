@@ -317,4 +317,5 @@
     <string name="afr_note">Перемикає дисплей під частоту кадрів потоку (напр. 50 Гц для 25 fps) — прибирає посмикування. Під час перемикання екран на мить гасне.</string>
     <string name="afr_delay_title">Пауза після зміни частоти</string>
     <string name="audio_delay_title">Компенсація затримки звуку</string>
+    <string name="pm_pip">Картинка в картинці (PiP)</string>
 </resources>

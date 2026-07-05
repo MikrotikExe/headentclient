@@ -317,4 +317,5 @@
     <string name="afr_note">স্ট্রিমের ফ্রেম রেট অনুযায়ী ডিসপ্লে পরিবর্তন করে (যেমন ২৫ fps-এর জন্য ৫০ Hz) — ঝাঁকুনি দূর করে। পরিবর্তনের সময় পর্দা ক্ষণিকের জন্য কালো হয়।</string>
     <string name="afr_delay_title">ফ্রিকোয়েন্সি পরিবর্তনের পর বিরতি</string>
     <string name="audio_delay_title">অডিও বিলম্ব ক্ষতিপূরণ</string>
+    <string name="pm_pip">পিকচার-ইন-পিকচার (PiP)</string>
 </resources>

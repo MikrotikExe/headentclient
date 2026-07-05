@@ -317,4 +317,5 @@
     <string name="afr_note">Пребацује екран према броју кадрова стрима (нпр. 50 Hz за 25 fps) — уклања трзање. Екран накратко потамни при пребацивању.</string>
     <string name="afr_delay_title">Пауза након промене фреквенције</string>
     <string name="audio_delay_title">Компензација кашњења звука</string>
+    <string name="pm_pip">Слика у слици (PiP)</string>
 </resources>

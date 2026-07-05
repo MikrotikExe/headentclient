@@ -317,4 +317,5 @@
     <string name="afr_note">نمایشگر را با نرخ فریم جریان هماهنگ می‌کند (مثلاً ۵۰ هرتز برای ۲۵ فریم) — لرزش تصویر را حذف می‌کند. هنگام تعویض، صفحه لحظه‌ای سیاه می‌شود.</string>
     <string name="afr_delay_title">مکث پس از تغییر فرکانس</string>
     <string name="audio_delay_title">جبران تأخیر صدا</string>
+    <string name="pm_pip">تصویر در تصویر (PiP)</string>
 </resources>

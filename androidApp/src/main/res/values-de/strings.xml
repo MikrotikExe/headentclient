@@ -317,4 +317,5 @@
     <string name="afr_note">Passt das Display an die Bildrate des Streams an (z. B. 50 Hz bei 25 fps) — beseitigt Ruckeln. Beim Umschalten wird der Bildschirm kurz schwarz.</string>
     <string name="afr_delay_title">Pause nach Frequenzwechsel</string>
     <string name="audio_delay_title">Audio-Verzögerungsausgleich</string>
+    <string name="pm_pip">Bild-in-Bild (PiP)</string>
 </resources>

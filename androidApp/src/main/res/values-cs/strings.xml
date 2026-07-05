@@ -317,4 +317,5 @@
     <string name="afr_note">Přepne displej podle snímkové frekvence streamu (např. 50 Hz pro 25 fps vysílání) — odstraní trhání obrazu. Při přepnutí obrazovka na chvíli ztmavne.</string>
     <string name="afr_delay_title">Pauza po změně frekvence</string>
     <string name="audio_delay_title">Kompenzace zpoždění zvuku</string>
+    <string name="pm_pip">Obraz v obraze (PiP)</string>
 </resources>

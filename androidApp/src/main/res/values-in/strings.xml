@@ -317,4 +317,5 @@
     <string name="afr_note">Mengalihkan layar sesuai frame rate stream (mis. 50 Hz untuk 25 fps) — menghilangkan judder. Layar gelap sesaat saat beralih.</string>
     <string name="afr_delay_title">Jeda setelah perubahan frekuensi</string>
     <string name="audio_delay_title">Kompensasi penundaan audio</string>
+    <string name="pm_pip">Gambar dalam gambar (PiP)</string>
 </resources>

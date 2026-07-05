@@ -317,4 +317,5 @@
     <string name="afr_note">डिस्प्ले को स्ट्रीम की फ्रेम दर से मिलाता है (जैसे 25 fps के लिए 50 Hz) — झटके हटाता है। स्विच करते समय स्क्रीन पल भर काली होती है।</string>
     <string name="afr_delay_title">फ़्रीक्वेंसी बदलने के बाद विराम</string>
     <string name="audio_delay_title">ऑडियो विलंब क्षतिपूर्ति</string>
+    <string name="pm_pip">पिक्चर-इन-पिक्चर (PiP)</string>
 </resources>

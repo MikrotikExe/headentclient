@@ -317,4 +317,5 @@
     <string name="afr_note">Preklopi zaslon glede na hitrost sličic pretoka (npr. 50 Hz za 25 fps) — odpravi trzanje. Ob preklopu zaslon za hip potemni.</string>
     <string name="afr_delay_title">Premor po spremembi frekvence</string>
     <string name="audio_delay_title">Izravnava zakasnitve zvoka</string>
+    <string name="pm_pip">Slika v sliki (PiP)</string>
 </resources>

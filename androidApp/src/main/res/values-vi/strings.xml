@@ -317,4 +317,5 @@
     <string name="afr_note">Chuyển màn hình theo tốc độ khung hình của luồng (vd. 50 Hz cho 25 fps) — loại bỏ giật hình. Màn hình tối một lát khi chuyển.</string>
     <string name="afr_delay_title">Tạm dừng sau khi đổi tần số</string>
     <string name="audio_delay_title">Bù trễ âm thanh</string>
+    <string name="pm_pip">Hình trong hình (PiP)</string>
 </resources>
