@@ -44,6 +44,8 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -558,9 +560,13 @@ fun EpgGridScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                         }
+                        // Ohranicenie vysky menu, aby sa zmestilo na obrazovku (na sirku aj vysku,
+                        // aj na TV) a spodne tagy boli dostupne cez rolovanie. DropdownMenu roluje vnutorne.
+                        val maxMenuHeight = (LocalConfiguration.current.screenHeightDp * 0.72f).dp
                         androidx.compose.material3.DropdownMenu(
                             expanded = filterMenu,
-                            onDismissRequest = { filterMenu = false }
+                            onDismissRequest = { filterMenu = false },
+                            modifier = Modifier.heightIn(max = maxMenuHeight)
                         ) {
                             androidx.compose.material3.DropdownMenuItem(
                                 text = { Text(stringResource(R.string.all_channels)) },
