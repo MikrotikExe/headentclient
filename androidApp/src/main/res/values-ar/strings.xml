@@ -316,4 +316,5 @@
     <string name="afr_title">معدل التحديث التلقائي (AFR)</string>
     <string name="afr_note">يبدّل الشاشة حسب معدل إطارات البث (مثلاً 50 هرتز لبث 25 إطارًا) — يزيل التقطيع. تسودّ الشاشة لحظة عند التبديل.</string>
     <string name="afr_delay_title">إيقاف مؤقت بعد تغيير التردد</string>
+    <string name="audio_delay_title">تعويض تأخير الصوت</string>
 </resources>

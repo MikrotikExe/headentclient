@@ -316,4 +316,5 @@
     <string name="afr_title">Automatische verversingssnelheid (AFR)</string>
     <string name="afr_note">Schakelt het scherm naar de framerate van de stream (bijv. 50 Hz voor 25 fps) — verwijdert judder. Het scherm wordt even zwart bij het schakelen.</string>
     <string name="afr_delay_title">Pauze na frequentiewissel</string>
+    <string name="audio_delay_title">Audiovertraging compenseren</string>
 </resources>

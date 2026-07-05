@@ -316,4 +316,5 @@
     <string name="afr_title">자동 주사율 (AFR)</string>
     <string name="afr_note">스트림의 프레임 레이트에 맞춰 디스플레이를 전환합니다 (예: 25fps → 50Hz) — 화면 떨림 제거. 전환 시 화면이 잠시 꺼집니다.</string>
     <string name="afr_delay_title">주사율 변경 후 일시정지</string>
+    <string name="audio_delay_title">오디오 지연 보정</string>
 </resources>

@@ -1117,6 +1117,7 @@ class PlayerActivity : ComponentActivity() {
 
     private fun switchLive(delta: Int) {
         hapticChannelSwitch()
+        postZapResyncKick()
         if (liveUuids.size < 2 || liveIndex < 0) return
         val n = liveUuids.size
         switchToIndex(((liveIndex + delta) % n + n) % n)
@@ -2258,6 +2259,7 @@ class PlayerActivity : ComponentActivity() {
                 MediaPlayer.Event.Playing -> {
                     isPlayingState.value = true; refreshPipIfActive()
                     maybeApplyAfr()  // AFR (M346): prepni Hz displeja podla fps streamu
+                    applyAudioDelay()  // kompenzacia sink latencie (M349, ako Kodi)
                     keepScreenOn(true)  // pocas prehravania nedovol setric/ambient na boxoch
                     cancelReconnect()  // uspesne pripojenie -> vynuluj pokusy
                     dvrReopenAttempts = 0  // uspesne pokracovanie -> vynuluj pokusy o znovu-otvorenie
@@ -3215,6 +3217,31 @@ class PlayerActivity : ComponentActivity() {
         val sv = find(layout) ?: return null
         val surf = sv.holder.surface
         return if (surf != null && surf.isValid) surf else null
+    }
+
+    /** Kompenzacia oneskorenia zvuku (M349) — pri passthrough dekoduje TV/AVR
+     *  a pridava latenciu, ktoru prehravac nevidi; zaporny delay zvuk zarovna. */
+    private fun applyAudioDelay() {
+        if (!::mediaPlayer.isInitialized) return
+        runCatching { mediaPlayer.setAudioDelay(AudioDelayPref.effectiveUs(this)) }
+    }
+
+    /** Resync kick (M349, mechanizmus Kodi c.1): po prepnuti kanala pri
+     *  passthrough sa audio pipeline TV/AVR nestihne zrovnat — kratke
+     *  pause/play po nabehnuti flushne vystup a VLC zrovna hodiny. */
+    private fun postZapResyncKick() {
+        if (seekablePlayback) return
+        if (AudioOutputPref.get(this) != AudioOutputPref.PASSTHROUGH) return
+        window.decorView.postDelayed({
+            runCatching {
+                if (::mediaPlayer.isInitialized && mediaPlayer.isPlaying) {
+                    mediaPlayer.pause()
+                    window.decorView.postDelayed({
+                        runCatching { if (::mediaPlayer.isInitialized) mediaPlayer.play() }
+                    }, 120L)
+                }
+            }
+        }, 1200L)
     }
 
     private fun clearAfr() {

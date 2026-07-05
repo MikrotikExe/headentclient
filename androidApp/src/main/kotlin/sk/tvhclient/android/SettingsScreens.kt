@@ -592,6 +592,21 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
                 TabController.settingsDirty.value = true
             }
         )
+        // Kompenzacia oneskorenia zvuku (M349) — sink latencia TV/AVR
+        var adelay by remember { mutableStateOf(AudioDelayPref.get(ctx)) }
+        DropdownField(
+            label = stringResource(R.string.audio_delay_title),
+            value = adelay,
+            options = AudioDelayPref.options,
+            optionLabel = { v ->
+                if (v == AudioDelayPref.AUTO) stringResource(R.string.orient_auto) else "$v ms"
+            },
+            onSelect = { v ->
+                adelay = v
+                AudioDelayPref.set(ctx, v)
+                TabController.settingsDirty.value = true
+            }
+        )
     }
 
     // Zvukovy vystup (telefon) — pri rozchadzajucom sa / oneskorenom zvuku, ktory

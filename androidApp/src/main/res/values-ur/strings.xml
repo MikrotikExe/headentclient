@@ -316,4 +316,5 @@
     <string name="afr_title">خودکار ریفریش ریٹ (AFR)</string>
     <string name="afr_note">ڈسپلے کو اسٹریم کے فریم ریٹ کے مطابق بدلتا ہے (مثلاً 25 fps کے لیے 50 Hz) — جھٹکے ختم کرتا ہے۔ سوئچ کرتے وقت اسکرین لمحہ بھر سیاہ ہوتی ہے۔</string>
     <string name="afr_delay_title">فریکوئنسی تبدیلی کے بعد وقفہ</string>
+    <string name="audio_delay_title">آڈیو تاخیر کی تلافی</string>
 </resources>

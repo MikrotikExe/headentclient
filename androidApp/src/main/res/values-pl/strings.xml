@@ -316,4 +316,5 @@
     <string name="afr_title">Automatyczna częstotliwość odświeżania (AFR)</string>
     <string name="afr_note">Przełącza ekran zgodnie z liczbą klatek streamu (np. 50 Hz dla 25 fps) — usuwa szarpanie. Przy przełączaniu ekran na chwilę gaśnie.</string>
     <string name="afr_delay_title">Pauza po zmianie częstotliwości</string>
+    <string name="audio_delay_title">Kompensacja opóźnienia dźwięku</string>
 </resources>

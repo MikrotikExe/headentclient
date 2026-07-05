@@ -316,4 +316,5 @@
     <string name="afr_title">自动刷新率 (AFR)</string>
     <string name="afr_note">根据流的帧率切换显示器（如 25 fps 广播切换到 50 Hz）——消除画面抖动。切换时屏幕会短暂变黑。</string>
     <string name="afr_delay_title">切换刷新率后暂停</string>
+    <string name="audio_delay_title">音频延迟补偿</string>
 </resources>
