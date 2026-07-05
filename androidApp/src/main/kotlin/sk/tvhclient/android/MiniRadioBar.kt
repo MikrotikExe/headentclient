@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -49,14 +48,7 @@ import sk.tvhclient.shared.Tvh
  * je service aktivny.
  */
 @Composable
-fun MiniRadioBar() = MiniRadioCore(tv = false)
-
-/** TV variant (M342): sirsia karta v launcheri, D-pad fokusovatelne prvky. */
-@Composable
-fun TvMiniRadioBar(modifier: Modifier = Modifier) = MiniRadioCore(tv = true, modifier = modifier)
-
-@Composable
-private fun MiniRadioCore(tv: Boolean, modifier: Modifier = Modifier) {
+fun MiniRadioBar() {
     if (!isModernUi()) return
     val active by RadioCenter.active
     if (!active) return
@@ -75,17 +67,13 @@ private fun MiniRadioCore(tv: Boolean, modifier: Modifier = Modifier) {
     ) epgTitle else ""
 
     Row(
-        modifier
-            .then(
-                if (tv) Modifier.widthIn(min = 360.dp, max = 460.dp)
-                else Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp)
-            )
+        Modifier
+            .fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(if (isLightTheme()) cs.surfaceContainer else cs.surfaceContainerHigh)
             .border(1.dp, cs.outlineVariant, RoundedCornerShape(16.dp))
-            .then(if (tv) Modifier.dpadFocusable(RoundedCornerShape(16.dp)) else Modifier)
             .clickable { RadioCenter.openFull(ctx) }
-            .padding(horizontal = if (tv) 16.dp else 12.dp, vertical = if (tv) 12.dp else 8.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -118,8 +106,7 @@ private fun MiniRadioCore(tv: Boolean, modifier: Modifier = Modifier) {
         }
         Spacer(Modifier.width(8.dp))
         Box(
-            Modifier.size(if (tv) 42.dp else 36.dp).clip(CircleShape).background(cs.primary)
-                .then(if (tv) Modifier.dpadFocusable(CircleShape) else Modifier)
+            Modifier.size(36.dp).clip(CircleShape).background(cs.primary)
                 .clickable { RadioCenter.toggle(ctx) },
             contentAlignment = Alignment.Center
         ) {
@@ -131,9 +118,8 @@ private fun MiniRadioCore(tv: Boolean, modifier: Modifier = Modifier) {
         }
         Spacer(Modifier.width(8.dp))
         Box(
-            Modifier.size(if (tv) 38.dp else 32.dp).clip(CircleShape)
+            Modifier.size(32.dp).clip(CircleShape)
                 .background(cs.surfaceContainerHighest)
-                .then(if (tv) Modifier.dpadFocusable(CircleShape) else Modifier)
                 .clickable { RadioCenter.stop(ctx) },
             contentAlignment = Alignment.Center
         ) {
