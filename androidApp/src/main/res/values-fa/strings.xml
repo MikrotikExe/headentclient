@@ -318,4 +318,10 @@
     <string name="afr_delay_title">مکث پس از تغییر فرکانس</string>
     <string name="audio_delay_title">جبران تأخیر صدا</string>
     <string name="pm_pip">تصویر در تصویر (PiP)</string>
+    <string name="set_grp_diag">عیب‌یابی</string>
+    <string name="diag_note">اگر برنامه از کار بیفتد یا درست کار نکند، اینجا یک گزارش ذخیره می‌شود. می‌توانید آن را برای ما بفرستید تا مشکل را پیدا کنیم.</string>
+    <string name="diag_send">ارسال گزارش عیب‌یابی</string>
+    <string name="diag_clear">پاک کردن گزارش</string>
+    <string name="diag_empty">هنوز گزارشی نیست — چیزی ثبت نشده است.</string>
+    <string name="diag_email_body">گزارش عیب‌یابی پیوست شد. لطفاً شرح دهید هنگام بروز مشکل چه می‌کردید:</string>
 </resources>

@@ -936,6 +936,44 @@ internal fun InfoSettings(
     Spacer(Modifier.height(8.dp))
     InfoLinkRow(stringResource(R.string.terms_of_use)) { onOpenDoc(LegalText.terms(lang)) }
     }
+
+    // Diagnosticky log (M353) — zobrazit / odoslat / vymazat
+    SettingsGroup(stringResource(R.string.set_grp_diag)) {
+        var logText by remember { mutableStateOf(CrashLogger.readText(ctx)) }
+        val hasLog = logText.isNotBlank()
+        Text(
+            stringResource(R.string.diag_note),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+        )
+        if (hasLog) {
+            InfoLinkRow(stringResource(R.string.diag_send)) { CrashLogReporter.share(ctx) }
+            Spacer(Modifier.height(8.dp))
+            InfoLinkRow(stringResource(R.string.diag_clear)) {
+                CrashLogger.clear(ctx); logText = ""
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                logText.take(4000),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                    .padding(10.dp)
+            )
+        } else {
+            Text(
+                stringResource(R.string.diag_empty),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+            )
+        }
+    }
 }
 
 @Composable

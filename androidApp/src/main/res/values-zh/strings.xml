@@ -318,4 +318,10 @@
     <string name="afr_delay_title">切换刷新率后暂停</string>
     <string name="audio_delay_title">音频延迟补偿</string>
     <string name="pm_pip">画中画 (PiP)</string>
+    <string name="set_grp_diag">诊断</string>
+    <string name="diag_note">如果应用崩溃或异常，日志会保存在此处。你可以发送给我们以帮助查找问题。</string>
+    <string name="diag_send">发送诊断日志</string>
+    <string name="diag_clear">清除日志</string>
+    <string name="diag_empty">暂无日志 —— 尚未记录任何内容。</string>
+    <string name="diag_email_body">已附上诊断日志。请描述问题发生时你正在做什么：</string>
 </resources>

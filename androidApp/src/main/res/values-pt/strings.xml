@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Pausa após mudança de frequência</string>
     <string name="audio_delay_title">Compensação do atraso de áudio</string>
     <string name="pm_pip">Imagem na imagem (PiP)</string>
+    <string name="set_grp_diag">Diagnóstico</string>
+    <string name="diag_note">Se a app falhar ou funcionar mal, é guardado aqui um registo. Podes enviá-lo para ajudar a encontrar o problema.</string>
+    <string name="diag_send">Enviar registo de diagnóstico</string>
+    <string name="diag_clear">Limpar registo</string>
+    <string name="diag_empty">Ainda sem registo — nada foi gravado.</string>
+    <string name="diag_email_body">Registo de diagnóstico anexado. Descreve o que estavas a fazer quando o problema ocorreu:</string>
 </resources>

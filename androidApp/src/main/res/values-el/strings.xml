@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Παύση μετά την αλλαγή συχνότητας</string>
     <string name="audio_delay_title">Αντιστάθμιση καθυστέρησης ήχου</string>
     <string name="pm_pip">Εικόνα σε εικόνα (PiP)</string>
+    <string name="set_grp_diag">Διαγνωστικά</string>
+    <string name="diag_note">Αν η εφαρμογή καταρρεύσει ή δυσλειτουργήσει, εδώ αποθηκεύεται ένα αρχείο καταγραφής. Μπορείτε να μας το στείλετε για να βρούμε το πρόβλημα.</string>
+    <string name="diag_send">Αποστολή διαγνωστικού αρχείου</string>
+    <string name="diag_clear">Εκκαθάριση αρχείου</string>
+    <string name="diag_empty">Κανένα αρχείο ακόμη — δεν καταγράφηκε τίποτα.</string>
+    <string name="diag_email_body">Επισυνάπτεται διαγνωστικό αρχείο. Περιγράψτε τι κάνατε όταν προέκυψε το πρόβλημα:</string>
 </resources>

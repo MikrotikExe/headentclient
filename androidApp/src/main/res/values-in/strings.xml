@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Jeda setelah perubahan frekuensi</string>
     <string name="audio_delay_title">Kompensasi penundaan audio</string>
     <string name="pm_pip">Gambar dalam gambar (PiP)</string>
+    <string name="set_grp_diag">Diagnostik</string>
+    <string name="diag_note">Jika aplikasi macet atau bermasalah, log disimpan di sini. Anda dapat mengirimkannya kepada kami untuk membantu menemukan masalah.</string>
+    <string name="diag_send">Kirim log diagnostik</string>
+    <string name="diag_clear">Hapus log</string>
+    <string name="diag_empty">Belum ada log — belum ada yang direkam.</string>
+    <string name="diag_email_body">Log diagnostik dilampirkan. Jelaskan apa yang Anda lakukan saat masalah terjadi:</string>
 </resources>

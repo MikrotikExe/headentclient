@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Pause after refresh rate change</string>
     <string name="audio_delay_title">Audio delay compensation</string>
     <string name="pm_pip">Picture-in-picture (PiP)</string>
+    <string name="set_grp_diag">Diagnostics</string>
+    <string name="diag_note">If the app crashes or misbehaves, a log is saved here. You can send it to us to help find the problem.</string>
+    <string name="diag_send">Send diagnostic log</string>
+    <string name="diag_clear">Clear log</string>
+    <string name="diag_empty">No log yet — nothing has been recorded.</string>
+    <string name="diag_email_body">Diagnostic log attached. Please describe what you were doing when the problem occurred:</string>
 </resources>

@@ -23,6 +23,7 @@ class TvhApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        CrashLogger.install(this)   // diagnostika pádov (M353)
         initSecureStorage(this)
         // SCREEN_ON sa od Androidu 8 nedá registrovať v manifeste — len za behu.
         val filter = IntentFilter().apply {

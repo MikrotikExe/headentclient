@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Premor po spremembi frekvence</string>
     <string name="audio_delay_title">Izravnava zakasnitve zvoka</string>
     <string name="pm_pip">Slika v sliki (PiP)</string>
+    <string name="set_grp_diag">Diagnostika</string>
+    <string name="diag_note">Če se aplikacija sesuje ali napačno deluje, se sem shrani dnevnik. Pošlješ nam ga lahko, da pomagaš najti težavo.</string>
+    <string name="diag_send">Pošlji diagnostični dnevnik</string>
+    <string name="diag_clear">Počisti dnevnik</string>
+    <string name="diag_empty">Še ni dnevnika — nič ni bilo zabeleženo.</string>
+    <string name="diag_email_body">Priložen diagnostični dnevnik. Opiši, kaj si počel, ko se je težava pojavila:</string>
 </resources>

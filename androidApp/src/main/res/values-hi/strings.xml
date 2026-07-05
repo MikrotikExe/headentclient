@@ -318,4 +318,10 @@
     <string name="afr_delay_title">फ़्रीक्वेंसी बदलने के बाद विराम</string>
     <string name="audio_delay_title">ऑडियो विलंब क्षतिपूर्ति</string>
     <string name="pm_pip">पिक्चर-इन-पिक्चर (PiP)</string>
+    <string name="set_grp_diag">निदान</string>
+    <string name="diag_note">अगर ऐप क्रैश या गलत व्यवहार करे, तो यहाँ एक लॉग सहेजा जाता है। समस्या खोजने में मदद के लिए आप इसे हमें भेज सकते हैं।</string>
+    <string name="diag_send">निदान लॉग भेजें</string>
+    <string name="diag_clear">लॉग साफ़ करें</string>
+    <string name="diag_empty">अभी कोई लॉग नहीं — कुछ रिकॉर्ड नहीं हुआ।</string>
+    <string name="diag_email_body">निदान लॉग संलग्न है। कृपया बताएं कि समस्या होने पर आप क्या कर रहे थे:</string>
 </resources>

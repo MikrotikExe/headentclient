@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Pauza po zmene frekvencie</string>
     <string name="audio_delay_title">Kompenzácia oneskorenia zvuku</string>
     <string name="pm_pip">Obraz v obraze (PiP)</string>
+    <string name="set_grp_diag">Diagnostika</string>
+    <string name="diag_note">Ak appka spadne alebo sa správa chybne, sem sa uloží log. Môžeš nám ho odoslať a pomôcť nájsť problém.</string>
+    <string name="diag_send">Odoslať diagnostický log</string>
+    <string name="diag_clear">Vymazať log</string>
+    <string name="diag_empty">Zatiaľ žiadny log — nič sa nezaznamenalo.</string>
+    <string name="diag_email_body">Priložený diagnostický log. Opíš prosím, čo si robil, keď nastal problém:</string>
 </resources>

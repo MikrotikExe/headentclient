@@ -318,4 +318,10 @@
     <string name="afr_delay_title">หยุดชั่วคราวหลังเปลี่ยนความถี่</string>
     <string name="audio_delay_title">ชดเชยความหน่วงเสียง</string>
     <string name="pm_pip">ภาพซ้อนภาพ (PiP)</string>
+    <string name="set_grp_diag">การวินิจฉัย</string>
+    <string name="diag_note">หากแอปขัดข้องหรือทำงานผิดพลาด บันทึกจะถูกเก็บไว้ที่นี่ คุณสามารถส่งให้เราเพื่อช่วยหาปัญหาได้</string>
+    <string name="diag_send">ส่งบันทึกการวินิจฉัย</string>
+    <string name="diag_clear">ล้างบันทึก</string>
+    <string name="diag_empty">ยังไม่มีบันทึก — ยังไม่มีการบันทึกอะไร</string>
+    <string name="diag_email_body">แนบบันทึกการวินิจฉัยแล้ว โปรดอธิบายว่าคุณกำลังทำอะไรเมื่อเกิดปัญหา:</string>
 </resources>

@@ -318,4 +318,10 @@
     <string name="afr_delay_title">إيقاف مؤقت بعد تغيير التردد</string>
     <string name="audio_delay_title">تعويض تأخير الصوت</string>
     <string name="pm_pip">صورة داخل صورة (PiP)</string>
+    <string name="set_grp_diag">التشخيص</string>
+    <string name="diag_note">إذا تعطّل التطبيق أو أساء التصرّف، يُحفظ هنا سجل. يمكنك إرساله إلينا للمساعدة في إيجاد المشكلة.</string>
+    <string name="diag_send">إرسال سجل التشخيص</string>
+    <string name="diag_clear">مسح السجل</string>
+    <string name="diag_empty">لا يوجد سجل بعد — لم يُسجَّل شيء.</string>
+    <string name="diag_email_body">سجل التشخيص مرفق. صف ما كنت تفعله عند حدوث المشكلة:</string>
 </resources>

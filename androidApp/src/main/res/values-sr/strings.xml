@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Пауза након промене фреквенције</string>
     <string name="audio_delay_title">Компензација кашњења звука</string>
     <string name="pm_pip">Слика у слици (PiP)</string>
+    <string name="set_grp_diag">Дијагностика</string>
+    <string name="diag_note">Ако се апликација сруши или ради погрешно, овде се чува запис. Можете нам га послати да помогнете у проналажењу проблема.</string>
+    <string name="diag_send">Пошаљи дијагностички запис</string>
+    <string name="diag_clear">Обриши запис</string>
+    <string name="diag_empty">Још нема записа — ништа није забележено.</string>
+    <string name="diag_email_body">Приложен дијагностички запис. Опишите шта сте радили када је дошло до проблема:</string>
 </resources>

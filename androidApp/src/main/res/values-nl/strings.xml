@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Pauze na frequentiewissel</string>
     <string name="audio_delay_title">Audiovertraging compenseren</string>
     <string name="pm_pip">Beeld-in-beeld (PiP)</string>
+    <string name="set_grp_diag">Diagnostiek</string>
+    <string name="diag_note">Als de app crasht of niet goed werkt, wordt hier een logbestand opgeslagen. Je kunt het ons sturen om het probleem te vinden.</string>
+    <string name="diag_send">Diagnostisch logboek verzenden</string>
+    <string name="diag_clear">Logboek wissen</string>
+    <string name="diag_empty">Nog geen logboek — er is niets vastgelegd.</string>
+    <string name="diag_email_body">Diagnostisch logboek bijgevoegd. Beschrijf wat je deed toen het probleem optrad:</string>
 </resources>

@@ -318,4 +318,10 @@
     <string name="afr_delay_title">فریکوئنسی تبدیلی کے بعد وقفہ</string>
     <string name="audio_delay_title">آڈیو تاخیر کی تلافی</string>
     <string name="pm_pip">تصویر میں تصویر (PiP)</string>
+    <string name="set_grp_diag">تشخیص</string>
+    <string name="diag_note">اگر ایپ کریش یا خراب ہو تو یہاں ایک لاگ محفوظ ہوتا ہے۔ مسئلہ تلاش کرنے میں مدد کے لیے آپ ہمیں بھیج سکتے ہیں۔</string>
+    <string name="diag_send">تشخیصی لاگ بھیجیں</string>
+    <string name="diag_clear">لاگ صاف کریں</string>
+    <string name="diag_empty">ابھی کوئی لاگ نہیں — کچھ ریکارڈ نہیں ہوا۔</string>
+    <string name="diag_email_body">تشخیصی لاگ منسلک ہے۔ براہ کرم بتائیں کہ مسئلہ پیش آنے پر آپ کیا کر رہے تھے:</string>
 </resources>

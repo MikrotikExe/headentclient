@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Tạm dừng sau khi đổi tần số</string>
     <string name="audio_delay_title">Bù trễ âm thanh</string>
     <string name="pm_pip">Hình trong hình (PiP)</string>
+    <string name="set_grp_diag">Chẩn đoán</string>
+    <string name="diag_note">Nếu ứng dụng bị treo hoặc lỗi, một nhật ký được lưu ở đây. Bạn có thể gửi cho chúng tôi để giúp tìm ra vấn đề.</string>
+    <string name="diag_send">Gửi nhật ký chẩn đoán</string>
+    <string name="diag_clear">Xóa nhật ký</string>
+    <string name="diag_empty">Chưa có nhật ký — chưa ghi lại gì.</string>
+    <string name="diag_email_body">Đã đính kèm nhật ký chẩn đoán. Vui lòng mô tả bạn đang làm gì khi xảy ra sự cố:</string>
 </resources>

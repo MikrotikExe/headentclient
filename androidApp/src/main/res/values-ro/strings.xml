@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Pauză după schimbarea frecvenței</string>
     <string name="audio_delay_title">Compensarea întârzierii audio</string>
     <string name="pm_pip">Imagine în imagine (PiP)</string>
+    <string name="set_grp_diag">Diagnosticare</string>
+    <string name="diag_note">Dacă aplicația se închide sau funcționează greșit, aici se salvează un jurnal. Ni-l poți trimite pentru a ajuta la găsirea problemei.</string>
+    <string name="diag_send">Trimite jurnalul de diagnosticare</string>
+    <string name="diag_clear">Șterge jurnalul</string>
+    <string name="diag_empty">Încă niciun jurnal — nu s-a înregistrat nimic.</string>
+    <string name="diag_email_body">Jurnal de diagnosticare atașat. Descrie ce făceai când a apărut problema:</string>
 </resources>

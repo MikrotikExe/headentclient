@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Pausa dopo il cambio di frequenza</string>
     <string name="audio_delay_title">Compensazione del ritardo audio</string>
     <string name="pm_pip">Picture-in-picture (PiP)</string>
+    <string name="set_grp_diag">Diagnostica</string>
+    <string name="diag_note">Se l\'app si chiude o ha problemi, qui viene salvato un log. Puoi inviarcelo per aiutare a trovare il problema.</string>
+    <string name="diag_send">Invia log diagnostico</string>
+    <string name="diag_clear">Cancella log</string>
+    <string name="diag_empty">Ancora nessun log — non è stato registrato nulla.</string>
+    <string name="diag_email_body">Log diagnostico allegato. Descrivi cosa stavi facendo quando si è verificato il problema:</string>
 </resources>

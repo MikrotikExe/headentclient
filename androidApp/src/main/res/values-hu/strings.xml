@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Szünet frissítésváltás után</string>
     <string name="audio_delay_title">Hangkésleltetés-kompenzáció</string>
     <string name="pm_pip">Kép a képben (PiP)</string>
+    <string name="set_grp_diag">Diagnosztika</string>
+    <string name="diag_note">Ha az alkalmazás összeomlik vagy hibázik, ide mentődik egy napló. Elküldheted nekünk, hogy segíts megtalálni a hibát.</string>
+    <string name="diag_send">Diagnosztikai napló küldése</string>
+    <string name="diag_clear">Napló törlése</string>
+    <string name="diag_empty">Még nincs napló — semmi nem került rögzítésre.</string>
+    <string name="diag_email_body">Csatolt diagnosztikai napló. Írd le, mit csináltál, amikor a hiba történt:</string>
 </resources>

@@ -65,7 +65,8 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
                     try { Tvh.fetchEpgForChannel(server, api, uuid) } finally { api.close() }
                 }
                 _epg.value = EpgCacheCodec.mergeChannel(_epg.value, uuid, evs)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                CrashLogger.report(getApplication(), "EpgGridViewModel", e)
             } finally {
                 inFlight.remove(uuid)
                 if (inFlight.isEmpty()) {
@@ -90,7 +91,8 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
                         _epg.value = EpgCacheCodec.mergeChannel(_epg.value, uuid, evs)
                     }
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                CrashLogger.report(getApplication(), "EpgGridViewModel", e)
             } finally {
                 _loading.value = false
                 persist()

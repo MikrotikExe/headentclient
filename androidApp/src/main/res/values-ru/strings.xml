@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Пауза после смены частоты</string>
     <string name="audio_delay_title">Компенсация задержки звука</string>
     <string name="pm_pip">Картинка в картинке (PiP)</string>
+    <string name="set_grp_diag">Диагностика</string>
+    <string name="diag_note">Если приложение вылетает или работает неправильно, сюда сохраняется журнал. Вы можете отправить его нам, чтобы помочь найти проблему.</string>
+    <string name="diag_send">Отправить журнал диагностики</string>
+    <string name="diag_clear">Очистить журнал</string>
+    <string name="diag_empty">Журнала пока нет — ничего не записано.</string>
+    <string name="diag_email_body">Журнал диагностики вложен. Опишите, что вы делали, когда возникла проблема:</string>
 </resources>

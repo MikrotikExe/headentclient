@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Пауза след смяна на честотата</string>
     <string name="audio_delay_title">Компенсация на аудио закъснение</string>
     <string name="pm_pip">Картина в картина (PiP)</string>
+    <string name="set_grp_diag">Диагностика</string>
+    <string name="diag_note">Ако приложението блокира или работи неправилно, тук се записва дневник. Можете да ни го изпратите, за да намерим проблема.</string>
+    <string name="diag_send">Изпрати диагностичен дневник</string>
+    <string name="diag_clear">Изчисти дневника</string>
+    <string name="diag_empty">Все още няма дневник — нищо не е записано.</string>
+    <string name="diag_email_body">Приложен диагностичен дневник. Опишете какво правехте, когато възникна проблемът:</string>
 </resources>

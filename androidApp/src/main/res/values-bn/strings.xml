@@ -318,4 +318,10 @@
     <string name="afr_delay_title">ফ্রিকোয়েন্সি পরিবর্তনের পর বিরতি</string>
     <string name="audio_delay_title">অডিও বিলম্ব ক্ষতিপূরণ</string>
     <string name="pm_pip">পিকচার-ইন-পিকচার (PiP)</string>
+    <string name="set_grp_diag">ডায়াগনস্টিক</string>
+    <string name="diag_note">অ্যাপ ক্র্যাশ বা ভুল আচরণ করলে এখানে একটি লগ সংরক্ষিত হয়। সমস্যা খুঁজে পেতে সাহায্য করতে আপনি এটি আমাদের পাঠাতে পারেন।</string>
+    <string name="diag_send">ডায়াগনস্টিক লগ পাঠান</string>
+    <string name="diag_clear">লগ মুছুন</string>
+    <string name="diag_empty">এখনও কোনো লগ নেই — কিছু রেকর্ড হয়নি।</string>
+    <string name="diag_email_body">ডায়াগনস্টিক লগ সংযুক্ত। সমস্যা হওয়ার সময় আপনি কী করছিলেন তা বর্ণনা করুন:</string>
 </resources>

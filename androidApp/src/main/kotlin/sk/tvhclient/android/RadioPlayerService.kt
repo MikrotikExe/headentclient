@@ -97,7 +97,7 @@ class RadioPlayerService : Service() {
             player = p
             requestFocus()
             attachMediaAndPlay(vlc, p, url)
-        }.onFailure { stopEverything(); return }
+        }.onFailure { CrashLogger.report(this, "RadioPlayerService.startPlayback", it); stopEverything(); return }
         RadioCenter.active.value = true
         RadioCenter.playing.value = true
         RadioCenter.stationName.value = name

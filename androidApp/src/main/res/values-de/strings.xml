@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Pause nach Frequenzwechsel</string>
     <string name="audio_delay_title">Audio-Verzögerungsausgleich</string>
     <string name="pm_pip">Bild-in-Bild (PiP)</string>
+    <string name="set_grp_diag">Diagnose</string>
+    <string name="diag_note">Wenn die App abstürzt oder Fehler zeigt, wird hier ein Protokoll gespeichert. Du kannst es uns senden, um das Problem zu finden.</string>
+    <string name="diag_send">Diagnoseprotokoll senden</string>
+    <string name="diag_clear">Protokoll löschen</string>
+    <string name="diag_empty">Noch kein Protokoll — nichts aufgezeichnet.</string>
+    <string name="diag_email_body">Diagnoseprotokoll angehängt. Bitte beschreibe, was du getan hast, als das Problem auftrat:</string>
 </resources>

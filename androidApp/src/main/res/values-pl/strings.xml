@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Pauza po zmianie częstotliwości</string>
     <string name="audio_delay_title">Kompensacja opóźnienia dźwięku</string>
     <string name="pm_pip">Obraz w obrazie (PiP)</string>
+    <string name="set_grp_diag">Diagnostyka</string>
+    <string name="diag_note">Jeśli aplikacja ulegnie awarii lub działa źle, tutaj zapisywany jest dziennik. Możesz go nam wysłać, aby pomóc znaleźć problem.</string>
+    <string name="diag_send">Wyślij dziennik diagnostyczny</string>
+    <string name="diag_clear">Wyczyść dziennik</string>
+    <string name="diag_empty">Brak dziennika — nic nie zarejestrowano.</string>
+    <string name="diag_email_body">Załączono dziennik diagnostyczny. Opisz, co robiłeś, gdy wystąpił problem:</string>
 </resources>

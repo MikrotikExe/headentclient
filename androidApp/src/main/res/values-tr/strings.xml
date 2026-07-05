@@ -318,4 +318,10 @@
     <string name="afr_delay_title">Frekans değişiminden sonra duraklat</string>
     <string name="audio_delay_title">Ses gecikmesi telafisi</string>
     <string name="pm_pip">Resim içinde resim (PiP)</string>
+    <string name="set_grp_diag">Tanılama</string>
+    <string name="diag_note">Uygulama çökerse veya hatalı çalışırsa, buraya bir günlük kaydedilir. Sorunu bulmamıza yardımcı olmak için bize gönderebilirsiniz.</string>
+    <string name="diag_send">Tanılama günlüğünü gönder</string>
+    <string name="diag_clear">Günlüğü temizle</string>
+    <string name="diag_empty">Henüz günlük yok — hiçbir şey kaydedilmedi.</string>
+    <string name="diag_email_body">Tanılama günlüğü eklendi. Sorun oluştuğunda ne yaptığınızı açıklayın:</string>
 </resources>
