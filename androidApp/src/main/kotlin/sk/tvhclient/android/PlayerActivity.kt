@@ -2484,7 +2484,13 @@ class PlayerActivity : ComponentActivity() {
                 channelNavIndex = navChannelIndexState.value,
                 openListSignal = openChannelListState.value,
                 closeListSignal = closeChannelListState.value,
-                onTrackMenuChange = { trackMenuOpen = it },
+                onTrackMenuChange = { kind ->
+                    // M349-fix: composable hlasi aj DRUH menu — bez toho ostal
+                    // trackMenuKind "audio" z minula a vyber titulkov cez D-pad
+                    // omylom prepinal zvukovu stopu
+                    trackMenuOpen = kind != null
+                    if (kind != null) { trackMenuKind = kind; trackNavState.value = 0 }
+                },
                 onChannelListChange = {
                     channelListOpen = it
                     if (it) navChannelIndexState.value = liveIndex.coerceAtLeast(0)
@@ -3470,7 +3476,7 @@ private fun PlayerUi(
     channelNavIndex: Int = -1,
     openListSignal: Int = 0,
     closeListSignal: Int = 0,
-    onTrackMenuChange: (Boolean) -> Unit = {},
+    onTrackMenuChange: (String?) -> Unit = {},
     onChannelListChange: (Boolean) -> Unit = {},
     openOptionsSignal: Int = 0,
     closeOptionsSignal: Int = 0,
@@ -3581,7 +3587,7 @@ private fun PlayerUi(
     // oznam Activity ci je ovladanie zobrazene (vtedy D-pad navigaciu riesi Activity)
     LaunchedEffect(controlsVisible) { onControlsVisibleChange(controlsVisible) }
     // oznam Activity stav prekryti (kvoli D-pad smerovaniu)
-    LaunchedEffect(menu) { onTrackMenuChange(menu != null) }
+    LaunchedEffect(menu) { onTrackMenuChange(menu) }
     LaunchedEffect(showChannelList) { onChannelListChange(showChannelList) }
     LaunchedEffect(showOptions) { onOptionsChange(showOptions) }
     // Activity ziada otvorit/zavriet zoznam kanalov (podrzanie OK)
