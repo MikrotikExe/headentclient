@@ -121,7 +121,9 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
         val recs = (dvrState as? DvrState.Loaded)?.recording ?: emptyList()
         val byUuid = recs.filter { it.channelUuid.isNotBlank() }.associateBy { it.channelUuid }
         val byName = recs.filter { it.channelUuid.isBlank() }.associateBy { it.channelName }
-        { row: ChannelRow -> byUuid[row.channel.uuid] ?: byName[row.channel.name] }
+        val resolver: (ChannelRow) -> sk.tvhclient.shared.model.DvrEntry? =
+            { row -> byUuid[row.channel.uuid] ?: byName[row.channel.name] }
+        resolver
     }
     var recChoice by remember { mutableStateOf<Pair<ChannelRow, sk.tvhclient.shared.model.DvrEntry>?>(null) }
     val ctx = LocalContext.current
