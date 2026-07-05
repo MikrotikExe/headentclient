@@ -481,7 +481,7 @@ class PlayerActivity : ComponentActivity() {
         runCatching { startActivity(i) }
     }
     private fun showControlsFocused() {
-        val order = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipSupported, timeshiftEngagedState.value)
+        val order = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value)
         controlNavState.value = order.indexOf("play").coerceAtLeast(0)
         pokeControls()
     }
@@ -497,7 +497,7 @@ class PlayerActivity : ComponentActivity() {
                 timeshiftEngagedState.value = true
                 // zapnutim timeshiftu pribudnu ovladace pretacania (tsrew pred play) a posunu sa
                 // indexy — re-ukotvi fokus na play/pause, nech "neskoci" na pretacanie
-                val ord = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipSupported, true)
+                val ord = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), true)
                 controlNavState.value = ord.indexOf("play").coerceAtLeast(0)
                 tsPauseStartedAt = System.currentTimeMillis()
                 startTimeshiftTicker()
@@ -1161,6 +1161,12 @@ class PlayerActivity : ComponentActivity() {
     // Moznosti (Zvuk / Titulky / SW dekod) — vertikalne overlay, navigujeme z Activity
     private var optionsOpen = false
     private var remoteDebug = false
+    /** PiP tlacidlo v ovladani (M349-fix2): zobrazit len ked je Auto-PiP
+     *  v nastaveniach VYPNUTY — vtedy je jedina cesta do PiP rucna. Pri
+     *  zapnutom Auto-PiP je tlacidlo zbytocne (BACK spravi PiP sam).
+     *  pipSupported zaroven vylucuje TV (nemaju FEATURE_PICTURE_IN_PICTURE). */
+    private fun pipButtonVisible(): Boolean = pipSupported && !AutoPipPref.get(this)
+
     private val pipSupported: Boolean by lazy {
         android.os.Build.VERSION.SDK_INT >= 26 &&
             packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)
@@ -1957,7 +1963,7 @@ class PlayerActivity : ComponentActivity() {
             // ovladanie zobrazene -> vlavo/vpravo naviguju panel, OK aktivuje
             // zvyrazneny prvok (hore/dole prepinaju kanal vyssie)
             if (controlsShown) {
-                val order = playerControlOrder(canZap, seekablePlayback, pipSupported, timeshiftEngagedState.value)
+                val order = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value)
                 val n = order.size
                 if (seekablePlayback) {
                     val onSeek = order.getOrNull(controlNavState.value) == "seek"
@@ -2344,7 +2350,7 @@ class PlayerActivity : ComponentActivity() {
         val canZap = directUrl == null && liveUuids.size > 1
         seekablePlayback = directUrl != null
         // predvolene zvyraznenie ovladacieho panela = play (nie krizik)
-        controlNavState.value = playerControlOrder(canZap, seekablePlayback, pipSupported, timeshiftEngagedState.value).indexOf("play").coerceAtLeast(0)
+        controlNavState.value = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value).indexOf("play").coerceAtLeast(0)
         currentStreamUrl = streamUrl
 
         setContent {
