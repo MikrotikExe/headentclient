@@ -282,8 +282,10 @@ fun EpgGridScreen(
         // nahravky s rovnakym nazvom, ktore sa casovo prekryvaju, a necháme
         // tu s najvacsim suborom (najkompletnejsia kopia na prehratie).
         // Archiv (DvrScreen) zostava nedotknuty — tam vidno vsetky nahravky.
+        // Parujeme na kanal podla UUID (nie nazvu), nazov len fallback — inak by
+        // sa blok objavil na vsetkych rovnomennych kanaloch (napr. regionalne ITV1 HD).
         (dvrState as? DvrState.Loaded)?.entries
-            ?.groupBy { it.channelName }
+            ?.groupBy { it.channelUuid.ifBlank { it.channelName } }
             ?.mapValues { (_, list) -> collapseDvrOverlaps(list) }
             ?: emptyMap()
     }
@@ -295,7 +297,10 @@ fun EpgGridScreen(
         // prave teraz bezat nahravana viackrat s mierne odlisnym casom (padding) /
         // na viacerych tuneroch -> zlucime prekryvajuce sa zaznamy rovnakeho nazvu,
         // nech sa v mriezke neprekryvaju dva cervene bloky.
-        recordingList.groupBy { it.channelName }
+        // Parujeme na kanal podla UUID (nie nazvu) — pri duplicitnych nazvoch/LCN
+        // (napr. regionalne "ITV1 HD" 103) by inak cerveny blok naskocil na vsetkych.
+        // Nazov je len fallback pre stare servery bez UUID v DVR zazname.
+        recordingList.groupBy { it.channelUuid.ifBlank { it.channelName } }
             .mapValues { (_, list) -> collapseDvrOverlaps(list) }
     }
 
@@ -372,8 +377,8 @@ fun EpgGridScreen(
         val r = rows.getOrNull(idx) ?: return emptyList()
         val uuid = r.channel.uuid
         val evs = (epg[uuid] ?: emptyList()).filter { it.stop > dayStart && it.start < dayEnd }
-        val dvr = (dvrByChannel[r.channel.name] ?: emptyList()).filter { it.stop > dayStart && it.start < dayEnd }
-        val inProg = (inProgressByChannel[r.channel.name] ?: emptyList()).filter { it.stop > dayStart && it.start < dayEnd }
+        val dvr = (dvrByChannel[r.channel.uuid] ?: dvrByChannel[r.channel.name] ?: emptyList()).filter { it.stop > dayStart && it.start < dayEnd }
+        val inProg = (inProgressByChannel[r.channel.uuid] ?: inProgressByChannel[r.channel.name] ?: emptyList()).filter { it.stop > dayStart && it.start < dayEnd }
         val recBlocks = mergeRecordings(dvr.filter { it.stop <= now }, inProg)
         val cells = ArrayList<NavCell>()
         recBlocks.forEach { rb ->
@@ -653,9 +658,9 @@ fun EpgGridScreen(
                     EpgGridRow(
                         row = row,
                         events = (epg[uuid] ?: emptyList()).filter { it.stop > dayStart && it.start < dayEnd },
-                        dvr = (dvrByChannel[row.channel.name] ?: emptyList())
+                        dvr = (dvrByChannel[row.channel.uuid] ?: dvrByChannel[row.channel.name] ?: emptyList())
                             .filter { it.stop > dayStart && it.start < dayEnd },
-                        inProgress = (inProgressByChannel[row.channel.name] ?: emptyList())
+                        inProgress = (inProgressByChannel[row.channel.uuid] ?: inProgressByChannel[row.channel.name] ?: emptyList())
                             .filter { it.stop > dayStart && it.start < dayEnd },
                         dayStart = dayStart,
                         now = now,

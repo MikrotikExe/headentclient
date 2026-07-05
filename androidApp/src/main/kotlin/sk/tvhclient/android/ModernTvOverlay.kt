@@ -133,7 +133,7 @@ internal fun ModernTvOverlay(
                     val focused = focusRow == 0 && idx == cardIndex
                     ModernSurfCard(
                         ch = c, focused = focused, playingHere = idx == currentIndex,
-                        recording = c.name in recNames,
+                        recording = (c.uuid in recNames || c.name in recNames),
                         tsEngaged = tsEngaged, nowSec = nowSec, hhmm = hhmm,
                         imageLoader = imageLoader, ctx = ctx
                     )

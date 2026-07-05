@@ -114,8 +114,14 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     // Zdielany DvrViewModel — vieme ktore kanaly sa prave nahravaju
     val dvrVm: DvrViewModel = viewModel()
     val dvrState by dvrVm.state.collectAsState()
-    val recordingByChannel = remember(dvrState) {
-        (dvrState as? DvrState.Loaded)?.recording?.associateBy { it.channelName } ?: emptyMap()
+    // Indikator nahravania parujeme na kanal podla UUID (nie nazvu) — inak by
+    // pri duplicitnych nazvoch/LCN (napr. regionalne "ITV1 HD" 103) svietilo na
+    // vsetkych. Nazov je len fallback pre stare servery bez UUID v DVR zazname.
+    val recordingFor: (ChannelRow) -> sk.tvhclient.shared.model.DvrEntry? = remember(dvrState) {
+        val recs = (dvrState as? DvrState.Loaded)?.recording ?: emptyList()
+        val byUuid = recs.filter { it.channelUuid.isNotBlank() }.associateBy { it.channelUuid }
+        val byName = recs.filter { it.channelUuid.isBlank() }.associateBy { it.channelName }
+        { row: ChannelRow -> byUuid[row.channel.uuid] ?: byName[row.channel.name] }
     }
     var recChoice by remember { mutableStateOf<Pair<ChannelRow, sk.tvhclient.shared.model.DvrEntry>?>(null) }
     val ctx = LocalContext.current
@@ -294,7 +300,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                     // Vyhladavanie: plochy filtrovany zoznam
                     val q = query.trim().lowercase()
                     val results = s.allRows.filter { it.channel.name.lowercase().contains(q) }
-                    ChannelView(viewMode, results, listStateSearch, nowTick, epgMap, recordingByChannel, onRecordingTap = { r, rec -> recChoice = r to rec }, onTopUp = { runCatching { searchFocus.requestFocus() } }, onShowEpg = { contextRow = it }, lockTick = lockTick, hiddenTick = hiddenTick)
+                    ChannelView(viewMode, results, listStateSearch, nowTick, epgMap, recordingFor, onRecordingTap = { r, rec -> recChoice = r to rec }, onTopUp = { runCatching { searchFocus.requestFocus() } }, onShowEpg = { contextRow = it }, lockTick = lockTick, hiddenTick = hiddenTick)
                 } else {
                     // Filtre podla tagov
                     val tags = s.categories.mapNotNull { it.tag }
@@ -336,7 +342,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                         LastChannel.get(ctx, serverId)?.takeIf { u -> rows.any { it.channel.uuid == u } }
                             ?: rows.firstOrNull()?.channel?.uuid
                     }
-                    ChannelView(viewMode, rows, listStateMain, nowTick, epgMap, recordingByChannel, onRecordingTap = { r, rec -> recChoice = r to rec }, focusUuid = focusUuid, onTopUp = { runCatching { searchFocus.requestFocus() } }, onShowEpg = { contextRow = it }, lockTick = lockTick, hiddenTick = hiddenTick)
+                    ChannelView(viewMode, rows, listStateMain, nowTick, epgMap, recordingFor, onRecordingTap = { r, rec -> recChoice = r to rec }, focusUuid = focusUuid, onTopUp = { runCatching { searchFocus.requestFocus() } }, onShowEpg = { contextRow = it }, lockTick = lockTick, hiddenTick = hiddenTick)
                 }
             }
         }
@@ -716,7 +722,7 @@ private fun ChannelView(
     listState: androidx.compose.foundation.lazy.LazyListState,
     nowSec: Long,
     epgMap: Map<String, List<sk.tvhclient.shared.model.EpgEvent>>,
-    recordingByChannel: Map<String, sk.tvhclient.shared.model.DvrEntry>,
+    recordingFor: (ChannelRow) -> sk.tvhclient.shared.model.DvrEntry?,
     onRecordingTap: (ChannelRow, sk.tvhclient.shared.model.DvrEntry) -> Unit,
     focusUuid: String? = null,
     onTopUp: () -> Unit = {},
@@ -725,9 +731,9 @@ private fun ChannelView(
     hiddenTick: Int = 0
 ) {
     when (mode) {
-        ChannelViewMode.LIST -> ChannelList(rows, listState, nowSec, epgMap, recordingByChannel, onRecordingTap, focusUuid, onTopUp, onShowEpg, lockTick, hiddenTick)
-        ChannelViewMode.GRID -> ChannelGrid(rows, nowSec, epgMap, columns = 2, recordingByChannel, onRecordingTap, onShowEpg)
-        ChannelViewMode.TILES -> ChannelGrid(rows, nowSec, epgMap, columns = 4, recordingByChannel, onRecordingTap, onShowEpg)
+        ChannelViewMode.LIST -> ChannelList(rows, listState, nowSec, epgMap, recordingFor, onRecordingTap, focusUuid, onTopUp, onShowEpg, lockTick, hiddenTick)
+        ChannelViewMode.GRID -> ChannelGrid(rows, nowSec, epgMap, columns = 2, recordingFor, onRecordingTap, onShowEpg)
+        ChannelViewMode.TILES -> ChannelGrid(rows, nowSec, epgMap, columns = 4, recordingFor, onRecordingTap, onShowEpg)
     }
 }
 
@@ -738,7 +744,7 @@ private fun ChannelGrid(
     nowSec: Long,
     epgMap: Map<String, List<sk.tvhclient.shared.model.EpgEvent>>,
     columns: Int,
-    recordingByChannel: Map<String, sk.tvhclient.shared.model.DvrEntry>,
+    recordingFor: (ChannelRow) -> sk.tvhclient.shared.model.DvrEntry?,
     onRecordingTap: (ChannelRow, sk.tvhclient.shared.model.DvrEntry) -> Unit,
     onShowEpg: (ChannelRow) -> Unit
 ) {
@@ -757,7 +763,7 @@ private fun ChannelGrid(
     ) {
         gridItems(rows, key = { it.channel.uuid }) { row ->
             val (nowTitle, nowStart, nowStop) = currentNow(row, epgMap[row.channel.uuid], nowSec)
-            val rec = recordingByChannel[row.channel.name]
+            val rec = recordingFor(row)
             Column(
                 Modifier
                     .clip(RoundedCornerShape(8.dp))
@@ -839,7 +845,7 @@ private fun ChannelList(
     listState: androidx.compose.foundation.lazy.LazyListState,
     nowSec: Long,
     epgMap: Map<String, List<sk.tvhclient.shared.model.EpgEvent>>,
-    recordingByChannel: Map<String, sk.tvhclient.shared.model.DvrEntry>,
+    recordingFor: (ChannelRow) -> sk.tvhclient.shared.model.DvrEntry?,
     onRecordingTap: (ChannelRow, sk.tvhclient.shared.model.DvrEntry) -> Unit,
     focusUuid: String? = null,
     onTopUp: () -> Unit = {},
@@ -911,7 +917,7 @@ private fun ChannelList(
                 }
             }
             ChannelItem(row, loader, context, nowSec, epgMap[row.channel.uuid],
-                recordingByChannel[row.channel.name], onRecordingTap, onShowEpg,
+                recordingFor(row), onRecordingTap, onShowEpg,
                 itemModifier = keyMod, lockTick = lockTick, hiddenTick = hiddenTick)
         }
     }

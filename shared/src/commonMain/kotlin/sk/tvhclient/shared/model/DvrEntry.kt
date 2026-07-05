@@ -17,6 +17,10 @@ data class DvrEntry(
     @SerialName("disp_subtitle") val dispSubtitle: String = "",
     @SerialName("disp_description") val dispDescription: String = "",
     @SerialName("channelname") val channelName: String = "",
+    // UUID kanala pre presne parovanie indikatora nahravania na konkretny kanal
+    // (HTTP grid: pole "channel" = hex uuid; HTSP: channelId ako string).
+    // Nutne pri serveroch s duplicitnymi nazvami/LCN (napr. regionalne ITV1 HD).
+    @SerialName("channel") val channelUuid: String = "",
     val start: Long = 0,
     val stop: Long = 0,
     // Skutocne hranice suboru (vratane okraja pred/po). HTTP grid ich dava

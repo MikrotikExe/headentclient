@@ -164,6 +164,8 @@ object HtspData {
             dispSubtitle = strOf(d, "subtitle"),
             dispDescription = strOf(d, "description").ifBlank { strOf(d, "summary") },
             channelName = strOf(d, "channelName"),
+            // HTSP: "channel" = channelId; Channel.uuid je tiez channelId.toString()
+            channelUuid = longOf(d, "channel")?.toString() ?: "",
             start = start,
             stop = stop,
             startExtra = longOf(d, "startExtra") ?: 0,

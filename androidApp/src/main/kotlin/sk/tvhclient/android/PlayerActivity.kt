@@ -753,8 +753,8 @@ class PlayerActivity : ComponentActivity() {
                     catch (e: Exception) { emptyList() }
                     finally { api.close() }
                 }
-            val recMap = recList.associateBy { it.channelName }
-            recInProgressByName.value = recMap
+            val recMap = recList.associateBy { it.channelUuid.ifBlank { it.channelName } }
+            recInProgressByChan.value = recMap
             if (srv.connectionMode == "htsp") {
                 val map = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                     Tvh.fetchEpgUpcoming(srv)
@@ -763,7 +763,7 @@ class PlayerActivity : ComponentActivity() {
                 val updated = cur.map { ch ->
                     val ev = map[ch.uuid]?.firstOrNull { it.start <= nowS && nowS < it.stop }
                     val b = if (ev != null) ch.copy(nowTitle = ev.title, nowStart = ev.start, nowStop = ev.stop) else ch
-                    b.copy(recording = b.name in recMap)
+                    b.copy(recording = (b.uuid in recMap || b.name in recMap))
                 }
                 liveChannelsState.value = updated
                 LivePlaylist.channels = updated
@@ -786,7 +786,7 @@ class PlayerActivity : ComponentActivity() {
                         nowStart = r.nowStart,
                         nowStop = r.nowStop
                     ) else ch
-                    b.copy(recording = b.name in recMap)
+                    b.copy(recording = (b.uuid in recMap || b.name in recMap))
                 }
                 liveChannelsState.value = updated
                 LivePlaylist.channels = updated
@@ -844,11 +844,11 @@ class PlayerActivity : ComponentActivity() {
                     catch (e: Exception) { emptyList() }
                     finally { api.close() }
                 }
-            val recMap = recList.associateBy { it.channelName }
-            recInProgressByName.value = recMap
+            val recMap = recList.associateBy { it.channelUuid.ifBlank { it.channelName } }
+            recInProgressByChan.value = recMap
             val cur = liveChannelsState.value
             if (cur.isNotEmpty()) {
-                val updated = cur.map { it.copy(recording = it.name in recMap) }
+                val updated = cur.map { it.copy(recording = (it.uuid in recMap || it.name in recMap)) }
                 liveChannelsState.value = updated
                 LivePlaylist.channels = updated
             }
@@ -900,18 +900,18 @@ class PlayerActivity : ComponentActivity() {
     /** M281: aplikuj nacachovane now/next (z disku/procesu cez epgUpcomingState) na viditelny
      *  zoznam kanalov, aby sa nazvy relacii pod kanalmi zobrazili OKAMZITE aj po restarte/reopene
      *  — bez cakania na sietovy refreshOverlayEpg. Nahravaci priznak (cervena bodka) sa doplni
-     *  az ked dobehne fetchDvrInProgress (recInProgressByName); tu sa neprepisuje, ak je prazdny. */
+     *  az ked dobehne fetchDvrInProgress (recInProgressByChan); tu sa neprepisuje, ak je prazdny. */
     private fun applyCachedEpgToChannels() {
         val map = epgUpcomingState.value
         if (map.isEmpty()) return
         val cur = liveChannelsState.value
         if (cur.isEmpty()) return
         val nowS = System.currentTimeMillis() / 1000
-        val recMap = recInProgressByName.value
+        val recMap = recInProgressByChan.value
         val updated = cur.map { ch ->
             val ev = map[ch.uuid]?.firstOrNull { it.start <= nowS && nowS < it.stop }
             val b = if (ev != null) ch.copy(nowTitle = ev.title, nowStart = ev.start, nowStop = ev.stop) else ch
-            if (recMap.isEmpty()) b else b.copy(recording = b.name in recMap)
+            if (recMap.isEmpty()) b else b.copy(recording = (b.uuid in recMap || b.name in recMap))
         }
         liveChannelsState.value = updated
         LivePlaylist.channels = updated
@@ -945,7 +945,7 @@ class PlayerActivity : ComponentActivity() {
     /** Vyber kanala zo zoznamu: ak sa archivuje, ponukni nazivo/od zaciatku, inak prepni. */
     private fun selectChannelOrArchive(idx: Int, poke: Boolean = true) {
         val ch = liveChannelsState.value.getOrNull(idx)
-        val rec = ch?.let { recInProgressByName.value[it.name] }
+        val rec = ch?.let { c -> recInProgressByChan.value.let { it[c.uuid] ?: it[c.name] } }
         if (rec != null && isTvDevice() && ArchiveChoicePref.get(this)) {
             archiveChoiceSelState.value = 0
             archiveChoiceIdxState.value = idx
@@ -963,7 +963,7 @@ class PlayerActivity : ComponentActivity() {
             if (idx != liveIndex) switchToIndex(idx) else pokeControls()
             return
         }
-        val rec = recInProgressByName.value[ch.name]
+        val rec = recInProgressByChan.value.let { it[ch.uuid] ?: it[ch.name] }
         if (rec == null) {
             if (idx != liveIndex) switchToIndex(idx)
             return
@@ -1206,7 +1206,7 @@ class PlayerActivity : ComponentActivity() {
     // Vyber pri archivovanom kanali (nazivo / od zaciatku) priamo v prehravaci
     private val archiveChoiceIdxState = androidx.compose.runtime.mutableStateOf(-1) // index kanala cakajuci na vyber, -1 = ziadny
     private val archiveChoiceSelState = androidx.compose.runtime.mutableStateOf(0)   // 0=nazivo, 1=od zaciatku (D-pad)
-    private val recInProgressByName = androidx.compose.runtime.mutableStateOf<Map<String, sk.tvhclient.shared.model.DvrEntry>>(emptyMap())
+    private val recInProgressByChan = androidx.compose.runtime.mutableStateOf<Map<String, sk.tvhclient.shared.model.DvrEntry>>(emptyMap())
     // Navrat na povodny zivy kanal po zatvoreni DVR prehravaca spusteneho cez "od zaciatku"
     private var returnLiveUuid: String? = null
     private var returnLiveTitle: String? = null
@@ -1316,7 +1316,7 @@ class PlayerActivity : ComponentActivity() {
     private fun ctxMenuKeys(idx: Int): List<String> {
         val ch = liveChannelsState.value.getOrNull(idx) ?: return emptyList()
         val keys = mutableListOf("info")
-        if (recInProgressByName.value[ch.name] != null) keys.add("fromstart")
+        if (recInProgressByChan.value.let { it[ch.uuid] ?: it[ch.name] } != null) keys.add("fromstart")
         if (ParentalLock.isEnabled(this)) keys.add("lock")
         return keys
     }
@@ -1337,7 +1337,7 @@ class PlayerActivity : ComponentActivity() {
         when (key) {
             "info" -> showChannelInfo(idx)                       // detail relacie priamo v prehravaci
             "fromstart" -> {
-                val rec = recInProgressByName.value[ch.name]
+                val rec = recInProgressByChan.value.let { it[ch.uuid] ?: it[ch.name] }
                 if (rec != null) playRecordingFromStart(rec, ch.nowStart, ch.nowStop)
                 else if (idx != liveIndex) switchToIndex(idx)     // ak kanal este nehra a nie je archiv -> aspon prepni nazivo
             }
@@ -2533,7 +2533,7 @@ class PlayerActivity : ComponentActivity() {
                 modernOvPoke = modernOvPoke.value,
                 modernOvExec = modernOvExec.value,
                 modernOvExecId = modernOvExecId.value,
-                modernOvRecNames = recInProgressByName.value.keys,
+                modernOvRecNames = recInProgressByChan.value.keys,
                 modernStripIds = modernStripIds(),
                 modernMoreVisible = modernMoreState.value,
                 modernMoreIndex = modernMoreIdx.value,
