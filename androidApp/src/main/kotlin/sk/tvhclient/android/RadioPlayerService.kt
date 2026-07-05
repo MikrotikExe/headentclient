@@ -16,6 +16,15 @@ import androidx.core.app.NotificationCompat
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import sk.tvhclient.shared.Tvh
+import sk.tvhclient.shared.model.TvhServer
 
 /**
  * Foreground service pre prehravanie radia na pozadi (M340). Vlastni vlastnu
@@ -31,6 +40,12 @@ class RadioPlayerService : Service() {
     private var focusRequest: AudioFocusRequest? = null
     private var curName = ""
     private var curEpg = ""
+    // Rovnaka auth cesta ako prehravac (M352): digest-only server sa neda hrat
+    // z holej user:pass@ URL — stream musi tiect cez HttpTsFeeder (OkHttp digest)
+    // do VLC cez file descriptor. Preto service potrebuje vlastny scope a feeder.
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var httpFeeder: HttpTsFeeder? = null
+    private var curServer: TvhServer? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -41,6 +56,7 @@ class RadioPlayerService : Service() {
                 val name = intent.getStringExtra(EXTRA_NAME) ?: ""
                 val uuid = intent.getStringExtra(EXTRA_UUID) ?: ""
                 curEpg = intent.getStringExtra(EXTRA_EPG) ?: ""
+                curServer = Tvh.store.active()
                 startPlayback(url, name, uuid)
             }
             ACTION_TOGGLE -> togglePlayPause()
@@ -78,18 +94,64 @@ class RadioPlayerService : Service() {
                     MediaPlayer.Event.EndReached -> stopEverything()
                 }
             }
-            val m = Media(vlc, Uri.parse(url))
-            m.addOption(":no-video")
-            p.media = m
-            m.release()
             player = p
             requestFocus()
-            p.play()
+            attachMediaAndPlay(vlc, p, url)
         }.onFailure { stopEverything(); return }
         RadioCenter.active.value = true
         RadioCenter.playing.value = true
         RadioCenter.stationName.value = name
         RadioCenter.stationUuid.value = uuid
+    }
+
+    /** Rozhodne rovnako ako prehravac: digest-only -> feeder (FD), inak priama URL. */
+    private fun attachMediaAndPlay(vlc: LibVLC, p: MediaPlayer, url: String) {
+        val server = curServer
+        if (server == null || server.username.isEmpty()) {
+            // bez creds alebo neznamy server -> priama URL
+            setDirectMedia(vlc, p, url); return
+        }
+        scope.launch {
+            val needsFeeder = withContext(Dispatchers.IO) {
+                runCatching { DvrAuthProbe.needsFeeder(server, stripCreds(url)) }.getOrDefault(false)
+            }
+            if (player !== p) return@launch  // medzitym prepnute/zastavene
+            if (needsFeeder) {
+                httpFeeder?.stop()
+                val feeder = HttpTsFeeder(server, stripCreds(url), 0L)
+                httpFeeder = feeder
+                val fd = feeder.start(scope)
+                val m = Media(vlc, fd)
+                m.addOption(":no-video")
+                m.addOption(":demux=ts")
+                m.addOption(":file-caching=1500")
+                p.media = m
+                m.release()
+            } else {
+                setDirectMedia(vlc, p, url)
+                return@launch
+            }
+            p.play()
+        }
+    }
+
+    private fun setDirectMedia(vlc: LibVLC, p: MediaPlayer, url: String) {
+        val m = Media(vlc, Uri.parse(url))
+        m.addOption(":no-video")
+        p.media = m
+        m.release()
+        p.play()
+    }
+
+    /** Odstrani user:pass@ z URL (auth riesi feeder cez OkHttp hlavicku). */
+    private fun stripCreds(url: String): String {
+        val i = url.indexOf("://")
+        if (i < 0) return url
+        val rest = url.substring(i + 3)
+        val at = rest.indexOf('@')
+        val slash = rest.indexOf('/')
+        if (at < 0 || (slash in 0 until at)) return url
+        return url.substring(0, i + 3) + rest.substring(at + 1)
     }
 
     private fun togglePlayPause() {
@@ -107,6 +169,8 @@ class RadioPlayerService : Service() {
     }
 
     private fun releasePlayer() {
+        runCatching { httpFeeder?.stop() }
+        httpFeeder = null
         runCatching {
             player?.setEventListener(null)
             player?.stop()
@@ -218,6 +282,7 @@ class RadioPlayerService : Service() {
     override fun onDestroy() {
         releasePlayer()
         abandonFocus()
+        runCatching { scope.cancel() }
         super.onDestroy()
     }
 

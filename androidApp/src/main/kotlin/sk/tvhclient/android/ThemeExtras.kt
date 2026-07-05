@@ -59,6 +59,42 @@ fun piconBackground(): Color =
     isModernUi() -> Color(0xFF1D9E75)
     else -> Color(0xFF1E88E5)
 }
+// --- Surf overlay (moderny TV live panel, M351): light/dark varianty ---
+/** Vertikalny gradient scrim pod kartami. */
+@Composable fun overlayScrim(): List<Color> = if (isLightTheme())
+    listOf(Color(0x00F0F4FB), Color(0xD9F0F4FB), Color(0xF7F0F4FB))
+    else listOf(Color(0x000A1124), Color(0xD90A1124), Color(0xF70A1124))
+/** Podklad karty/pilulky (nefokus). */
+@Composable fun overlaySurface(): Color =
+    if (isLightTheme()) Color(0xFFEAF0F9) else Color(0xFF13234A)
+/** Podklad karty pri fokuse. */
+@Composable fun overlaySurfaceFocus(): Color =
+    if (isLightTheme()) Color(0xFFE4ECF7) else Color(0xFF12294E)
+/** Podklad nefokus karty s jemnou prieh. (velke karty kanalov). */
+@Composable fun overlayCard(): Color =
+    if (isLightTheme()) Color(0xEAEAF0F9) else Color(0xE60F1E3D)
+/** Obrys nefokus prvkov. */
+@Composable fun overlayOutline(): Color =
+    if (isLightTheme()) Color(0xFFC4D2E8) else Color(0xFF27407A)
+/** Obrys nefokus velkej karty. */
+@Composable fun overlayCardOutline(): Color =
+    if (isLightTheme()) Color(0xFFC4D2E8) else Color(0xFF1E3A6E)
+/** Text hintov a vedlajsich popiskov v overlayi. */
+@Composable fun overlayHint(): Color =
+    if (isLightTheme()) Color(0xFF5A6B85) else Color(0xFF8FA6C8)
+/** Track progres barov v overlayi. */
+@Composable fun overlayTrack(): Color =
+    if (isLightTheme()) Color(0xFFC4D2E8) else Color(0xFF1B2C52)
+/** "Live" zvyraznenie pri timeshift. */
+@Composable fun overlayLive(): Color =
+    if (isLightTheme()) Color(0xFF0F8A63) else Color(0xFF7FE3BF)
+/** Farba ikony vo vnutri play tlacidla (kontrast voci teal). */
+@Composable fun overlayOnAccent(): Color =
+    if (isLightTheme()) Color.White else Color(0xFF04120C)
+/** Obrys play tlacidla pri fokuse. */
+@Composable fun overlayPlayFocusRing(): Color =
+    if (isLightTheme()) Color(0xFF0F8A63) else Color(0xFF7FE3BF)
+
 @Composable fun playerSelTint(): Color = when {
     isModernUi() && isLightTheme() -> Color(0x1F0F8A63)
     isModernUi() -> Color(0x331D9E75)

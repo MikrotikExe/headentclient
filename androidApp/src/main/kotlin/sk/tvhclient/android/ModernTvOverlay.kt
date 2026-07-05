@@ -110,9 +110,7 @@ internal fun ModernTvOverlay(
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
                 .background(
-                    Brush.verticalGradient(
-                        listOf(Color(0x000A1124), Color(0xD90A1124), Color(0xF70A1124))
-                    )
+                    Brush.verticalGradient(overlayScrim())
                 )
                 .padding(bottom = 14.dp)
         ) {
@@ -121,8 +119,8 @@ internal fun ModernTvOverlay(
                 Modifier.fillMaxWidth().padding(horizontal = 28.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(stringResource(R.string.mtv_hint_all), color = Color(0xFF8FA6C8), fontSize = 12.sp)
-                Text(stringResource(R.string.mtv_hint_nav), color = Color(0xFF8FA6C8), fontSize = 12.sp)
+                Text(stringResource(R.string.mtv_hint_all), color = overlayHint(), fontSize = 12.sp)
+                Text(stringResource(R.string.mtv_hint_nav), color = overlayHint(), fontSize = 12.sp)
             }
 
             // ===== karty kanalov =====
@@ -150,18 +148,18 @@ internal fun ModernTvOverlay(
                 ) {
                     val offSec = (tsOffsetMs / 1000).toInt()
                     Text(String.format("\u2212%02d:%02d", offSec / 60, offSec % 60),
-                        color = Color(0xFF8FA6C8), fontSize = 12.sp)
+                        color = overlayHint(), fontSize = 12.sp)
                     Spacer(Modifier.width(10.dp))
                     val frac = if (tsMaxMs > 0)
                         (1f - tsOffsetMs.toFloat() / tsMaxMs).coerceIn(0f, 1f) else 1f
                     LinearProgressIndicator(
                         progress = { frac },
                         modifier = Modifier.weight(1f).height(5.dp).clip(RoundedCornerShape(3.dp)),
-                        color = playerAccent(), trackColor = Color(0xFF1B2C52)
+                        color = playerAccent(), trackColor = overlayTrack()
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(stringResource(R.string.mtv_live) + " \u203A",
-                        color = Color(0xFF7FE3BF), fontSize = 12.sp)
+                        color = overlayLive(), fontSize = 12.sp)
                 }
             } else {
                 Spacer(Modifier.height(8.dp))
@@ -227,10 +225,10 @@ private fun ModernSurfCard(
         Modifier
             .width(w)
             .clip(RoundedCornerShape(14.dp))
-            .background(if (focused) Color(0xFF12294E) else Color(0xE60F1E3D))
+            .background(if (focused) overlaySurfaceFocus() else overlayCard())
             .then(
                 if (focused) Modifier.border(3.dp, playerAccent(), RoundedCornerShape(14.dp))
-                else Modifier.border(1.dp, Color(0xFF1E3A6E), RoundedCornerShape(14.dp))
+                else Modifier.border(1.dp, overlayCardOutline(), RoundedCornerShape(14.dp))
             )
             .padding(12.dp)
     ) {
@@ -294,7 +292,7 @@ private fun ModernSurfCard(
             LinearProgressIndicator(
                 progress = { frac },
                 modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
-                color = playerAccent(), trackColor = Color(0xFF1B2C52)
+                color = playerAccent(), trackColor = overlayTrack()
             )
         }
         if (focused && tsEngaged) {
@@ -310,10 +308,10 @@ private fun ModernStripPill(icon: ImageVector, label: String, focused: Boolean) 
     Row(
         Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(if (focused) playerSelTint() else Color(0xFF13234A))
+            .background(if (focused) playerSelTint() else overlaySurface())
             .then(
                 if (focused) Modifier.border(2.dp, playerAccent(), RoundedCornerShape(999.dp))
-                else Modifier.border(1.dp, Color(0xFF27407A), RoundedCornerShape(999.dp))
+                else Modifier.border(1.dp, overlayOutline(), RoundedCornerShape(999.dp))
             )
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -330,10 +328,10 @@ private fun ModernStripCircle(icon: ImageVector, focused: Boolean) {
         Modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(if (focused) playerSelTint() else Color(0xFF13234A))
+            .background(if (focused) playerSelTint() else overlaySurface())
             .then(
                 if (focused) Modifier.border(2.dp, playerAccent(), CircleShape)
-                else Modifier.border(1.dp, Color(0xFF27407A), CircleShape)
+                else Modifier.border(1.dp, overlayOutline(), CircleShape)
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -348,12 +346,12 @@ private fun ModernStripPlay(isPlaying: Boolean, focused: Boolean) {
             .size(56.dp)
             .clip(CircleShape)
             .background(playerAccent())
-            .then(if (focused) Modifier.border(3.dp, Color(0xFF7FE3BF), CircleShape) else Modifier),
+            .then(if (focused) Modifier.border(3.dp, overlayPlayFocusRing(), CircleShape) else Modifier),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-            contentDescription = null, tint = Color(0xFF04120C), modifier = Modifier.size(30.dp)
+            contentDescription = null, tint = overlayOnAccent(), modifier = Modifier.size(30.dp)
         )
     }
 }
