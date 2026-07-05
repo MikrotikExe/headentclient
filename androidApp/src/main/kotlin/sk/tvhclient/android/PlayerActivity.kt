@@ -2889,11 +2889,13 @@ class PlayerActivity : ComponentActivity() {
         return false
     }
 
-    /** Spusti PiP a minimalizuje appku (okno plava nad plochou / inou appkou). */
+    /** Spusti PiP (okno plava nad plochou / inou appkou). M349-fix4: ziadny
+     *  moveTaskToBack — presun tasku na pozadie hned po vstupe do PiP na
+     *  mnohych zariadeniach cerstve PiP okno zrusil (prehravac sa "len zavrel").
+     *  Vstup do PiP sam zbali aktivitu do plavajuceho okna, nic dalsie netreba —
+     *  auto-PiP cesta to robi rovnako a funguje. */
     private fun enterPipAndMinimize() {
-        if (enterPipIfPossible()) {
-            runCatching { moveTaskToBack(true) }
-        }
+        enterPipIfPossible()
     }
 
     /**
