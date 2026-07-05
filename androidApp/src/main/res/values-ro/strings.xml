@@ -324,4 +324,5 @@
     <string name="diag_clear">Șterge jurnalul</string>
     <string name="diag_empty">Încă niciun jurnal — nu s-a înregistrat nimic.</string>
     <string name="diag_email_body">Jurnal de diagnosticare atașat. Descrie ce făceai când a apărut problema:</string>
+    <string name="epg_today">Azi</string>
 </resources>

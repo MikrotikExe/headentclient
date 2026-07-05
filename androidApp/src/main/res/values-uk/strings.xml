@@ -324,4 +324,5 @@
     <string name="diag_clear">Очистити журнал</string>
     <string name="diag_empty">Журналу ще немає — нічого не записано.</string>
     <string name="diag_email_body">Журнал діагностики додано. Опишіть, що ви робили, коли виникла проблема:</string>
+    <string name="epg_today">Сьогодні</string>
 </resources>

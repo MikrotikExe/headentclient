@@ -324,4 +324,5 @@
     <string name="diag_clear">লগ মুছুন</string>
     <string name="diag_empty">এখনও কোনো লগ নেই — কিছু রেকর্ড হয়নি।</string>
     <string name="diag_email_body">ডায়াগনস্টিক লগ সংযুক্ত। সমস্যা হওয়ার সময় আপনি কী করছিলেন তা বর্ণনা করুন:</string>
+    <string name="epg_today">আজ</string>
 </resources>

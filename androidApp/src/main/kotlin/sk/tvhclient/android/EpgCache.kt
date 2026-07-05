@@ -19,12 +19,47 @@ object EpgCache {
         return File(dir, "epg_${serverId}$suffix.json")
     }
 
+    /**
+     * Prudovy zapis cache po riadkoch: kazdy kanal = jeden riadok "uuid\t<json pola relacii>".
+     * Peak pamat = najvacsi jeden kanal, nie cela mapa (predtym encode() skladal jeden
+     * obrovsky String cez celu mapu -> OutOfMemoryError na velkych serveroch, ~96 MB).
+     * Zapis cez .tmp + rename, aby pri zlyhani neostal poskodeny subor.
+     */
+    private fun writeStreamed(f: File, data: Map<String, List<EpgEvent>>) {
+        val tmp = File(f.parentFile, f.name + ".tmp")
+        tmp.bufferedWriter().use { w ->
+            for ((uuid, evs) in data) {
+                // uuid je hex/ciselny identifikator kanala — bez tab/newline, bezpecne v riadku
+                w.write(uuid)
+                w.write("\t")
+                w.write(EpgCacheCodec.encodeChannel(evs))   // jednoriadkovy JSON
+                w.write("\n")
+            }
+        }
+        f.delete()
+        if (!tmp.renameTo(f)) { tmp.copyTo(f, overwrite = true); tmp.delete() }
+    }
+
+    /** Prudove citanie cache po riadkoch — peak pamat = jeden kanal. */
+    private fun readStreamed(f: File): Map<String, List<EpgEvent>> {
+        val out = LinkedHashMap<String, List<EpgEvent>>()
+        f.bufferedReader().useLines { lines ->
+            for (line in lines) {
+                val t = line.indexOf('\t')
+                if (t <= 0) continue
+                val evs = EpgCacheCodec.decodeChannel(line.substring(t + 1))
+                if (evs.isNotEmpty()) out[line.substring(0, t)] = evs
+            }
+        }
+        return out
+    }
+
     fun load(ctx: Context, serverId: String, nowSec: Long, daysBack: Int): Map<String, List<EpgEvent>> {
         return try {
             val f = file(ctx, serverId)
             if (!f.exists()) emptyMap()
-            else EpgCacheCodec.prune(EpgCacheCodec.decode(f.readText()), nowSec, daysBack)
-        } catch (e: Exception) {
+            else EpgCacheCodec.prune(readStreamed(f), nowSec, daysBack)
+        } catch (e: Throwable) {
             emptyMap()
         }
     }
@@ -32,9 +67,9 @@ object EpgCache {
     fun save(ctx: Context, serverId: String, data: Map<String, List<EpgEvent>>, nowSec: Long, daysBack: Int) {
         try {
             val pruned = EpgCacheCodec.prune(data, nowSec, daysBack)
-            file(ctx, serverId).writeText(EpgCacheCodec.encode(pruned))
-        } catch (e: Exception) {
-            // cache je len optimalizacia — zlyhanie zapisu ignorujeme
+            writeStreamed(file(ctx, serverId), pruned)
+        } catch (e: Throwable) {
+            // cache je len optimalizacia — zlyhanie zapisu (vratane OOM) ignorujeme, nesmie zhodit appku
         }
     }
 
@@ -44,8 +79,8 @@ object EpgCache {
         return try {
             val f = file(ctx, serverId, "live")
             if (!f.exists()) emptyMap()
-            else EpgCacheCodec.prune(EpgCacheCodec.decode(f.readText()), nowSec, daysBack)
-        } catch (e: Exception) {
+            else EpgCacheCodec.prune(readStreamed(f), nowSec, daysBack)
+        } catch (e: Throwable) {
             emptyMap()
         }
     }
@@ -53,8 +88,8 @@ object EpgCache {
     fun saveLive(ctx: Context, serverId: String, data: Map<String, List<EpgEvent>>, nowSec: Long, daysBack: Int) {
         try {
             val pruned = EpgCacheCodec.prune(data, nowSec, daysBack)
-            file(ctx, serverId, "live").writeText(EpgCacheCodec.encode(pruned))
-        } catch (e: Exception) {
+            writeStreamed(file(ctx, serverId, "live"), pruned)
+        } catch (e: Throwable) {
         }
     }
 

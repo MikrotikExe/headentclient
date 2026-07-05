@@ -22,6 +22,23 @@ object EpgCacheCodec {
             emptyMap()
         }
 
+    /**
+     * Serializacia JEDNEHO kanala (pole relacii) — pre prudovy zapis po riadkoch.
+     * Vysledok je jednoriadkovy JSON (retazce maju \n escapnute), takze sa da
+     * bezpecne ulozit ako jeden riadok suboru. Peak pamat = jeden kanal, nie cela
+     * mapa (riesi OOM na velkych serveroch, kde cela mapa bola desiatky MB v jednom
+     * Stringu). encode()/decode() ostavaju pre spatnu kompatibilitu.
+     */
+    fun encodeChannel(events: List<EpgEvent>): String =
+        json.encodeToString(events)
+
+    fun decodeChannel(raw: String): List<EpgEvent> =
+        try {
+            json.decodeFromString(raw)
+        } catch (e: Exception) {
+            emptyList()
+        }
+
     /** Odstrani relacie, ktore skoncili skor ako (nowSec - daysBack), a prazdne kanaly. */
     fun prune(
         data: Map<String, List<EpgEvent>>,

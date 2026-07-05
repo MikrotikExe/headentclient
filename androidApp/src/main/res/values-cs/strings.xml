@@ -324,4 +324,5 @@
     <string name="diag_clear">Vymazat log</string>
     <string name="diag_empty">Zatím žádný log — nic se nezaznamenalo.</string>
     <string name="diag_email_body">Přiložený diagnostický log. Popiš prosím, co jsi dělal, když nastal problém:</string>
+    <string name="epg_today">Dnes</string>
 </resources>

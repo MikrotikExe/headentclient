@@ -324,4 +324,5 @@
     <string name="diag_clear">Günlüğü temizle</string>
     <string name="diag_empty">Henüz günlük yok — hiçbir şey kaydedilmedi.</string>
     <string name="diag_email_body">Tanılama günlüğü eklendi. Sorun oluştuğunda ne yaptığınızı açıklayın:</string>
+    <string name="epg_today">Bugün</string>
 </resources>

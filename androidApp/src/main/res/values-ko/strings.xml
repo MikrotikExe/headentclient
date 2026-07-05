@@ -324,4 +324,5 @@
     <string name="diag_clear">로그 지우기</string>
     <string name="diag_empty">아직 로그가 없습니다 — 기록된 것이 없습니다.</string>
     <string name="diag_email_body">진단 로그가 첨부되었습니다. 문제가 발생했을 때 무엇을 하고 있었는지 설명해 주세요:</string>
+    <string name="epg_today">오늘</string>
 </resources>

@@ -324,4 +324,5 @@
     <string name="diag_clear">लॉग साफ़ करें</string>
     <string name="diag_empty">अभी कोई लॉग नहीं — कुछ रिकॉर्ड नहीं हुआ।</string>
     <string name="diag_email_body">निदान लॉग संलग्न है। कृपया बताएं कि समस्या होने पर आप क्या कर रहे थे:</string>
+    <string name="epg_today">आज</string>
 </resources>

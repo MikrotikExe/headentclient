@@ -324,4 +324,5 @@
     <string name="diag_clear">Εκκαθάριση αρχείου</string>
     <string name="diag_empty">Κανένα αρχείο ακόμη — δεν καταγράφηκε τίποτα.</string>
     <string name="diag_email_body">Επισυνάπτεται διαγνωστικό αρχείο. Περιγράψτε τι κάνατε όταν προέκυψε το πρόβλημα:</string>
+    <string name="epg_today">Σήμερα</string>
 </resources>

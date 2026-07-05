@@ -324,4 +324,5 @@
     <string name="diag_clear">Borrar registro</string>
     <string name="diag_empty">Aún no hay registro — no se ha grabado nada.</string>
     <string name="diag_email_body">Registro de diagnóstico adjunto. Describe qué hacías cuando ocurrió el problema:</string>
+    <string name="epg_today">Hoy</string>
 </resources>

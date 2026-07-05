@@ -324,4 +324,5 @@
     <string name="diag_clear">Effacer le journal</string>
     <string name="diag_empty">Aucun journal pour l\'instant — rien n\'a été enregistré.</string>
     <string name="diag_email_body">Journal de diagnostic joint. Décrivez ce que vous faisiez lorsque le problème est survenu :</string>
+    <string name="epg_today">Aujourd\'hui</string>
 </resources>

@@ -324,4 +324,5 @@
     <string name="diag_clear">لاگ صاف کریں</string>
     <string name="diag_empty">ابھی کوئی لاگ نہیں — کچھ ریکارڈ نہیں ہوا۔</string>
     <string name="diag_email_body">تشخیصی لاگ منسلک ہے۔ براہ کرم بتائیں کہ مسئلہ پیش آنے پر آپ کیا کر رہے تھے:</string>
+    <string name="epg_today">آج</string>
 </resources>

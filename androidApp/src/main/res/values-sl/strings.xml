@@ -324,4 +324,5 @@
     <string name="diag_clear">Počisti dnevnik</string>
     <string name="diag_empty">Še ni dnevnika — nič ni bilo zabeleženo.</string>
     <string name="diag_email_body">Priložen diagnostični dnevnik. Opiši, kaj si počel, ko se je težava pojavila:</string>
+    <string name="epg_today">Danes</string>
 </resources>

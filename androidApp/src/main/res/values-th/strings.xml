@@ -324,4 +324,5 @@
     <string name="diag_clear">ล้างบันทึก</string>
     <string name="diag_empty">ยังไม่มีบันทึก — ยังไม่มีการบันทึกอะไร</string>
     <string name="diag_email_body">แนบบันทึกการวินิจฉัยแล้ว โปรดอธิบายว่าคุณกำลังทำอะไรเมื่อเกิดปัญหา:</string>
+    <string name="epg_today">วันนี้</string>
 </resources>

@@ -525,13 +525,13 @@ fun EpgGridScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 items(offsets) { off ->
-                    val label = if (off == 0) "Dnes" else formatDayLabel(dayStartSec(off))
+                    val label = if (off == 0) stringResource(R.string.epg_today) else formatDayLabel(dayStartSec(off))
                     Box(Modifier.padding(end = 8.dp)) {
                         if (modernUi) {
                             // Moderny rezim: dvojriadkova pilulka — den tucne + datum drobne
                             val cs = MaterialTheme.colorScheme
                             val sel = off == dayOffset
-                            val dayName = if (off == 0) "Dnes" else label.substringBeforeLast(" ")
+                            val dayName = if (off == 0) stringResource(R.string.epg_today) else label.substringBeforeLast(" ")
                             val dayDate = if (off == 0)
                                 java.text.SimpleDateFormat("d.M.", java.util.Locale.getDefault())
                                     .format(java.util.Date(dayStartSec(0) * 1000))
