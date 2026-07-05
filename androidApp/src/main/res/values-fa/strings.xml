@@ -325,4 +325,5 @@
     <string name="diag_empty">هنوز گزارشی نیست — چیزی ثبت نشده است.</string>
     <string name="diag_email_body">گزارش عیب‌یابی پیوست شد. لطفاً شرح دهید هنگام بروز مشکل چه می‌کردید:</string>
     <string name="epg_today">امروز</string>
+    <string name="epg_filter">فیلتر</string>
 </resources>

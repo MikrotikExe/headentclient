@@ -325,4 +325,5 @@
     <string name="diag_empty">لا يوجد سجل بعد — لم يُسجَّل شيء.</string>
     <string name="diag_email_body">سجل التشخيص مرفق. صف ما كنت تفعله عند حدوث المشكلة:</string>
     <string name="epg_today">اليوم</string>
+    <string name="epg_filter">تصفية</string>
 </resources>

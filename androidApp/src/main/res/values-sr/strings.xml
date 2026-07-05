@@ -325,4 +325,5 @@
     <string name="diag_empty">Још нема записа — ништа није забележено.</string>
     <string name="diag_email_body">Приложен дијагностички запис. Опишите шта сте радили када је дошло до проблема:</string>
     <string name="epg_today">Данас</string>
+    <string name="epg_filter">Филтер</string>
 </resources>

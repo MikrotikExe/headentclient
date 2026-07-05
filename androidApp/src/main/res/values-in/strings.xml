@@ -325,4 +325,5 @@
     <string name="diag_empty">Belum ada log — belum ada yang direkam.</string>
     <string name="diag_email_body">Log diagnostik dilampirkan. Jelaskan apa yang Anda lakukan saat masalah terjadi:</string>
     <string name="epg_today">Hari ini</string>
+    <string name="epg_filter">Filter</string>
 </resources>

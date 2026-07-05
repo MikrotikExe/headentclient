@@ -40,6 +40,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -193,10 +197,21 @@ private fun mergeRecordings(
     return out
 }
 
+// Sentinel pre polozku „Obľúbené" vo filtri EPG (odlisi od tag uuid a od null=Vsetky).
+private const val EPG_FILTER_FAV = "\u0000fav"
+
+// Zapamatanie vybranej skupiny EPG per server pocas behu appky (default null = Vsetky).
+private object EpgGroupFilter {
+    private val sel = HashMap<String, String?>()
+    fun get(serverId: String?): String? = if (serverId == null) null else sel[serverId]
+    fun set(serverId: String?, group: String?) { if (serverId != null) sel[serverId] = group }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EpgGridScreen(
-    rows: List<ChannelRow>,
+    allRows: List<ChannelRow>,
+    categories: List<sk.tvhclient.shared.api.ChannelCategory>,
     seed: Map<String, List<EpgEvent>>,
     onBack: () -> Unit
 ) {
@@ -204,6 +219,21 @@ fun EpgGridScreen(
     val context = LocalContext.current
     val modernUi = isModernUi()
     val server = remember { Tvh.store.active() }
+
+    // Filter podla skupiny (tagu). null = Vsetky, EPG_FILTER_FAV = Oblubene, inak tag uuid.
+    // Vyber sa pamata pocas behu appky per server (EpgGroupFilter), default Vsetky.
+    val sid = server?.id
+    var selectedGroup by remember(sid) { mutableStateOf(EpgGroupFilter.get(sid)) }
+    val rows = remember(allRows, categories, selectedGroup) {
+        when (val g = selectedGroup) {
+            null -> allRows
+            EPG_FILTER_FAV -> {
+                val favs = if (sid != null) Favorites.all(context, sid) else emptySet()
+                allRows.filter { it.channel.uuid in favs }
+            }
+            else -> categories.firstOrNull { it.tag?.uuid == g }?.rows ?: allRows
+        }
+    }
     // Zoznam kanalov pre zapping a zoznam v prehravaci (CH+/CH-, overlay)
     LaunchedEffect(rows) {
         val srv = Tvh.store.active()
@@ -491,6 +521,65 @@ fun EpgGridScreen(
                             modifier = Modifier.size(22.dp).padding(end = 4.dp),
                             strokeWidth = 2.dp
                         )
+                    }
+                    // Filter podla skupiny: pilulka (lievik + aktualny filter), otvori zoznam.
+                    // Rovnaky mechanizmus na TV (D-pad + OK) aj telefone (klik). BACK zavrie.
+                    val filterLabel = when (val g = selectedGroup) {
+                        null -> stringResource(R.string.all_channels)
+                        EPG_FILTER_FAV -> stringResource(R.string.favorites)
+                        else -> categories.firstOrNull { it.tag?.uuid == g }?.tag?.name
+                            ?: stringResource(R.string.all_channels)
+                    }
+                    var filterMenu by remember { mutableStateOf(false) }
+                    Box {
+                        Row(
+                            modifier = Modifier
+                                .padding(end = 4.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .clickable { filterMenu = true }
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            androidx.compose.material3.Icon(
+                                Icons.Default.FilterList,
+                                contentDescription = stringResource(R.string.epg_filter),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                filterLabel,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                modifier = Modifier.widthIn(max = 150.dp),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            androidx.compose.material3.Icon(
+                                Icons.Default.ArrowDropDown, contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        androidx.compose.material3.DropdownMenu(
+                            expanded = filterMenu,
+                            onDismissRequest = { filterMenu = false }
+                        ) {
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text(stringResource(R.string.all_channels)) },
+                                trailingIcon = { if (selectedGroup == null) androidx.compose.material3.Icon(Icons.Default.Check, null) },
+                                onClick = { selectedGroup = null; EpgGroupFilter.set(sid, null); filterMenu = false }
+                            )
+                            androidx.compose.material3.DropdownMenuItem(
+                                text = { Text("\u2605 " + stringResource(R.string.favorites)) },
+                                trailingIcon = { if (selectedGroup == EPG_FILTER_FAV) androidx.compose.material3.Icon(Icons.Default.Check, null) },
+                                onClick = { selectedGroup = EPG_FILTER_FAV; EpgGroupFilter.set(sid, EPG_FILTER_FAV); filterMenu = false }
+                            )
+                            categories.mapNotNull { it.tag }.forEach { tag ->
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(tag.name) },
+                                    trailingIcon = { if (selectedGroup == tag.uuid) androidx.compose.material3.Icon(Icons.Default.Check, null) },
+                                    onClick = { selectedGroup = tag.uuid; EpgGroupFilter.set(sid, tag.uuid); filterMenu = false }
+                                )
+                            }
+                        }
                     }
                     androidx.compose.material3.IconButton(onClick = {
                         epgVm.refresh(); dvrVm.refresh()

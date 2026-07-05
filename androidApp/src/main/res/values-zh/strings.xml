@@ -325,4 +325,5 @@
     <string name="diag_empty">暂无日志 —— 尚未记录任何内容。</string>
     <string name="diag_email_body">已附上诊断日志。请描述问题发生时你正在做什么：</string>
     <string name="epg_today">今天</string>
+    <string name="epg_filter">筛选</string>
 </resources>

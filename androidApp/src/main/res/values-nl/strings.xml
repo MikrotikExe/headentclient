@@ -325,4 +325,5 @@
     <string name="diag_empty">Nog geen logboek — er is niets vastgelegd.</string>
     <string name="diag_email_body">Diagnostisch logboek bijgevoegd. Beschrijf wat je deed toen het probleem optrad:</string>
     <string name="epg_today">Vandaag</string>
+    <string name="epg_filter">Filter</string>
 </resources>

@@ -325,4 +325,5 @@
     <string name="diag_empty">Zatiaľ žiadny log — nič sa nezaznamenalo.</string>
     <string name="diag_email_body">Priložený diagnostický log. Opíš prosím, čo si robil, keď nastal problém:</string>
     <string name="epg_today">Dnes</string>
+    <string name="epg_filter">Filter</string>
 </resources>

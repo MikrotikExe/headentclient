@@ -325,4 +325,5 @@
     <string name="diag_empty">Ancora nessun log — non è stato registrato nulla.</string>
     <string name="diag_email_body">Log diagnostico allegato. Descrivi cosa stavi facendo quando si è verificato il problema:</string>
     <string name="epg_today">Oggi</string>
+    <string name="epg_filter">Filtro</string>
 </resources>

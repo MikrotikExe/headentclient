@@ -325,4 +325,5 @@
     <string name="diag_empty">Brak dziennika — nic nie zarejestrowano.</string>
     <string name="diag_email_body">Załączono dziennik diagnostyczny. Opisz, co robiłeś, gdy wystąpił problem:</string>
     <string name="epg_today">Dziś</string>
+    <string name="epg_filter">Filtr</string>
 </resources>

@@ -325,4 +325,5 @@
     <string name="diag_empty">まだログがありません — 何も記録されていません。</string>
     <string name="diag_email_body">診断ログを添付しました。問題が発生したときに何をしていたか説明してください:</string>
     <string name="epg_today">今日</string>
+    <string name="epg_filter">フィルター</string>
 </resources>

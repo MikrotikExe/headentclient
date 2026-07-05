@@ -325,4 +325,5 @@
     <string name="diag_empty">No log yet — nothing has been recorded.</string>
     <string name="diag_email_body">Diagnostic log attached. Please describe what you were doing when the problem occurred:</string>
     <string name="epg_today">Today</string>
+    <string name="epg_filter">Filter</string>
 </resources>

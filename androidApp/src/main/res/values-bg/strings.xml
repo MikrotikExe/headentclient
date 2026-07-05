@@ -325,4 +325,5 @@
     <string name="diag_empty">Все още няма дневник — нищо не е записано.</string>
     <string name="diag_email_body">Приложен диагностичен дневник. Опишете какво правехте, когато възникна проблемът:</string>
     <string name="epg_today">Днес</string>
+    <string name="epg_filter">Филтър</string>
 </resources>

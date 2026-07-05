@@ -325,4 +325,5 @@
     <string name="diag_empty">Noch kein Protokoll — nichts aufgezeichnet.</string>
     <string name="diag_email_body">Diagnoseprotokoll angehängt. Bitte beschreibe, was du getan hast, als das Problem auftrat:</string>
     <string name="epg_today">Heute</string>
+    <string name="epg_filter">Filter</string>
 </resources>

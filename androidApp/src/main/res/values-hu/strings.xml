@@ -325,4 +325,5 @@
     <string name="diag_empty">Még nincs napló — semmi nem került rögzítésre.</string>
     <string name="diag_email_body">Csatolt diagnosztikai napló. Írd le, mit csináltál, amikor a hiba történt:</string>
     <string name="epg_today">Ma</string>
+    <string name="epg_filter">Szűrő</string>
 </resources>

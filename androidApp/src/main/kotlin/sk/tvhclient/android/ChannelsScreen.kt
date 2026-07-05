@@ -201,7 +201,8 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     if (showGrid) {
         if (st0 is ChannelsState.Loaded) {
             EpgGridScreen(
-                rows = st0.allRows,
+                allRows = st0.allRows,
+                categories = st0.categories,
                 seed = epgMap,
                 onBack = {
                     if (TabController.epgFromPlayer) {

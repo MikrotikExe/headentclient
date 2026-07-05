@@ -308,7 +308,7 @@ private fun TvHomeHost() {
             androidx.activity.compose.BackHandler { section = "" }
             val st = chState
             if (st is ChannelsState.Loaded) {
-                EpgGridScreen(rows = st.allRows, seed = epgMap, onBack = { section = "" })
+                EpgGridScreen(allRows = st.allRows, categories = st.categories, seed = epgMap, onBack = { section = "" })
             } else {
                 CenterLoading()
             }
