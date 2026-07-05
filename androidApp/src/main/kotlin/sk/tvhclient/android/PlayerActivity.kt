@@ -2479,6 +2479,7 @@ class PlayerActivity : ComponentActivity() {
                 infoPoke = infoPokeState.value,
                 inPip = inPipState.value,
                 pipSupported = pipSupported,
+                pipButton = pipButtonVisible(),
                 hasVideo = hasVideoState.value,
                 reconnecting = reconnectingState.value,
                 seeking = seekingState.value,
@@ -3471,6 +3472,10 @@ private fun PlayerUi(
     infoPoke: Int = 0,
     inPip: Boolean = false,
     pipSupported: Boolean = false,
+    // PiP tlacidlo v paneli (M349-fix3): oddelene od pipSupported, ktory
+    // gate-uje auto-PiP BackHandler a exit-confirm (tie potrebuju schopnost,
+    // nie viditelnost tlacidla)
+    pipButton: Boolean = false,
     hasVideo: Boolean = true,
     reconnecting: Boolean = false,
     seeking: Boolean = false,
@@ -4173,7 +4178,7 @@ private fun PlayerUi(
             modifier = Modifier.fillMaxSize()
         ) {
             Box(Modifier.fillMaxSize().systemBarsPadding()) {
-                val order = playerControlOrder(onPrevChannel != null, seekable, pipSupported, timeshiftEngaged)
+                val order = playerControlOrder(onPrevChannel != null, seekable, pipButton, timeshiftEngaged)
                 // fokusove zvyraznenie len na TV (D-pad); na telefone (dotyk) ziadne "vybrate" tlacidlo
                 val isTvDevice = remember {
                     val um = ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
