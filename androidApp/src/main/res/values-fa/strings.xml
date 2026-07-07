@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">خوانایی بهتر روی ویدیوی روشن</string>
     <string name="set_cat_appearance">ظاهر</string>
     <string name="set_sub_appearance">پوسته، حالت رابط، رنگ‌ها</string>
+    <string name="picon_bg_title">پس‌زمینهٔ پیکون</string>
+    <string name="picon_bg_desc">پیش‌فرض رنگ فعلی را نگه می‌دارد؛ شفاف لوگو را مستقیم نشان می‌دهد.</string>
+    <string name="picon_bg_default">پیش‌فرض</string>
+    <string name="picon_bg_transparent">شفاف</string>
 </resources>

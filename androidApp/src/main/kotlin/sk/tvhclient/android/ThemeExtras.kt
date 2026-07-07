@@ -37,8 +37,16 @@ fun isModernUi(): Boolean =
  * V tmavom rezime jemne svetle prekrytie ako doteraz.
  */
 @Composable
-fun piconBackground(): Color =
-    if (isLightTheme()) Color(0xFFA2A8B4) else Color(0xFF353B47)
+fun piconBackground(): Color {
+    val ctx = LocalContext.current
+    return when (val v = PiconBgPref.stateOf(ctx).value) {
+        PiconBgPref.DEFAULT ->
+            if (isLightTheme()) Color(0xFFA2A8B4) else Color(0xFF353B47)
+        PiconBgPref.TRANSPARENT -> Color.Transparent
+        else -> runCatching { Color(android.graphics.Color.parseColor(v)) }
+            .getOrElse { if (isLightTheme()) Color(0xFFA2A8B4) else Color(0xFF353B47) }
+    }
+}
 
 // --- Farby overlay-u prehravaca ---
 // V tmavom rezime vracaju presne povodne hodnoty (vizualne nezmenene),

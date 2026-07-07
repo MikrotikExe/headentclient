@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">Melhor legibilidade sobre vídeo claro</string>
     <string name="set_cat_appearance">Aparência</string>
     <string name="set_sub_appearance">Tema, modo de interface, cores</string>
+    <string name="picon_bg_title">Fundo do picon</string>
+    <string name="picon_bg_desc">Predefinido mantém a cor atual; transparente mostra o logótipo diretamente.</string>
+    <string name="picon_bg_default">Predefinido</string>
+    <string name="picon_bg_transparent">Transparente</string>
 </resources>

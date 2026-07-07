@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">Боља читљивост преко светлог видеа</string>
     <string name="set_cat_appearance">Изглед</string>
     <string name="set_sub_appearance">Тема, режим интерфејса, боје</string>
+    <string name="picon_bg_title">Позадина пикона</string>
+    <string name="picon_bg_desc">Подразумевано задржава тренутну боју; провидно приказује лого директно.</string>
+    <string name="picon_bg_default">Подразумевано</string>
+    <string name="picon_bg_transparent">Провидно</string>
 </resources>

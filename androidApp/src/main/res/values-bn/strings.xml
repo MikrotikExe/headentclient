@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">উজ্জ্বল ভিডিওর উপর ভালো পাঠযোগ্যতা</string>
     <string name="set_cat_appearance">চেহারা</string>
     <string name="set_sub_appearance">থিম, ইন্টারফেস মোড, রং</string>
+    <string name="picon_bg_title">পিকন পটভূমি</string>
+    <string name="picon_bg_desc">ডিফল্ট বর্তমান রং রাখে; স্বচ্ছ হলে লোগো সরাসরি দেখায়।</string>
+    <string name="picon_bg_default">ডিফল্ট</string>
+    <string name="picon_bg_transparent">স্বচ্ছ</string>
 </resources>

@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">Bolja čitljivost preko svijetlog videa</string>
     <string name="set_cat_appearance">Izgled</string>
     <string name="set_sub_appearance">Tema, način sučelja, boje</string>
+    <string name="picon_bg_title">Pozadina picona</string>
+    <string name="picon_bg_desc">Zadano zadržava trenutnu boju; prozirno prikazuje logo izravno.</string>
+    <string name="picon_bg_default">Zadano</string>
+    <string name="picon_bg_transparent">Prozirno</string>
 </resources>

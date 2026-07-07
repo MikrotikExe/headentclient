@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">Lepší čitelnost nad světlým videem</string>
     <string name="set_cat_appearance">Vzhled</string>
     <string name="set_sub_appearance">Motiv, režim rozhraní, barvy</string>
+    <string name="picon_bg_title">Pozadí piconu</string>
+    <string name="picon_bg_desc">Výchozí ponechá současnou barvu; průhledné zobrazí logo přímo.</string>
+    <string name="picon_bg_default">Výchozí</string>
+    <string name="picon_bg_transparent">Průhledné</string>
 </resources>

@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">Better readability over bright video</string>
     <string name="set_cat_appearance">Appearance</string>
     <string name="set_sub_appearance">Theme, interface mode, colors</string>
+    <string name="picon_bg_title">Picon background</string>
+    <string name="picon_bg_desc">Default keeps the current color; transparent shows the logo directly.</string>
+    <string name="picon_bg_default">Default</string>
+    <string name="picon_bg_transparent">Transparent</string>
 </resources>

@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">По-добра четливост върху ярко видео</string>
     <string name="set_cat_appearance">Изглед</string>
     <string name="set_sub_appearance">Тема, режим, цветове</string>
+    <string name="picon_bg_title">Фон на пикона</string>
+    <string name="picon_bg_desc">По подразбиране запазва текущия цвят; прозрачно показва логото директно.</string>
+    <string name="picon_bg_default">По подразбиране</string>
+    <string name="picon_bg_transparent">Прозрачно</string>
 </resources>

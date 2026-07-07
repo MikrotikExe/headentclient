@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">चमकीले वीडियो पर बेहतर पठनीयता</string>
     <string name="set_cat_appearance">दिखावट</string>
     <string name="set_sub_appearance">थीम, इंटरफ़ेस मोड, रंग</string>
+    <string name="picon_bg_title">पिकॉन पृष्ठभूमि</string>
+    <string name="picon_bg_desc">डिफ़ॉल्ट मौजूदा रंग रखता है; पारदर्शी लोगो सीधे दिखाता है।</string>
+    <string name="picon_bg_default">डिफ़ॉल्ट</string>
+    <string name="picon_bg_transparent">पारदर्शी</string>
 </resources>

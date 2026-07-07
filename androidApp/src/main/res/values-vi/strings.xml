@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">Dễ đọc hơn trên video sáng</string>
     <string name="set_cat_appearance">Giao diện</string>
     <string name="set_sub_appearance">Chủ đề, chế độ giao diện, màu sắc</string>
+    <string name="picon_bg_title">Nền picon</string>
+    <string name="picon_bg_desc">Mặc định giữ màu hiện tại; trong suốt hiển thị logo trực tiếp.</string>
+    <string name="picon_bg_default">Mặc định</string>
+    <string name="picon_bg_transparent">Trong suốt</string>
 </resources>

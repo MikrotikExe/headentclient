@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">Lizibilitate mai bună peste video luminos</string>
     <string name="set_cat_appearance">Aspect</string>
     <string name="set_sub_appearance">Temă, mod interfață, culori</string>
+    <string name="picon_bg_title">Fundal picon</string>
+    <string name="picon_bg_desc">Implicit păstrează culoarea actuală; transparent arată sigla direct.</string>
+    <string name="picon_bg_default">Implicit</string>
+    <string name="picon_bg_transparent">Transparent</string>
 </resources>

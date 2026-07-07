@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">Лучше читается на ярком видео</string>
     <string name="set_cat_appearance">Оформление</string>
     <string name="set_sub_appearance">Тема, режим интерфейса, цвета</string>
+    <string name="picon_bg_title">Фон пикона</string>
+    <string name="picon_bg_desc">По умолчанию сохраняет текущий цвет; прозрачный показывает логотип напрямую.</string>
+    <string name="picon_bg_default">По умолчанию</string>
+    <string name="picon_bg_transparent">Прозрачный</string>
 </resources>

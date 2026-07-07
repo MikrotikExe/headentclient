@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">Jobb olvashatóság világos videó felett</string>
     <string name="set_cat_appearance">Megjelenés</string>
     <string name="set_sub_appearance">Téma, felület mód, színek</string>
+    <string name="picon_bg_title">Picon háttér</string>
+    <string name="picon_bg_desc">Az alapértelmezett megtartja a jelenlegi színt; az átlátszó közvetlenül mutatja a logót.</string>
+    <string name="picon_bg_default">Alapértelmezett</string>
+    <string name="picon_bg_transparent">Átlátszó</string>
 </resources>

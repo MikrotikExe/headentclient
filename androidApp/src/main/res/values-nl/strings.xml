@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">Beter leesbaar over helder beeld</string>
     <string name="set_cat_appearance">Weergave</string>
     <string name="set_sub_appearance">Thema, interfacemodus, kleuren</string>
+    <string name="picon_bg_title">Picon-achtergrond</string>
+    <string name="picon_bg_desc">Standaard behoudt de huidige kleur; transparant toont het logo direct.</string>
+    <string name="picon_bg_default">Standaard</string>
+    <string name="picon_bg_transparent">Transparant</string>
 </resources>

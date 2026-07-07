@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">روشن ویڈیو پر بہتر پڑھائی</string>
     <string name="set_cat_appearance">ظاہری شکل</string>
     <string name="set_sub_appearance">تھیم، انٹرفیس موڈ، رنگ</string>
+    <string name="picon_bg_title">پیکون پس منظر</string>
+    <string name="picon_bg_desc">ڈیفالٹ موجودہ رنگ رکھتا ہے؛ شفاف لوگو براہِ راست دکھاتا ہے۔</string>
+    <string name="picon_bg_default">ڈیفالٹ</string>
+    <string name="picon_bg_transparent">شفاف</string>
 </resources>

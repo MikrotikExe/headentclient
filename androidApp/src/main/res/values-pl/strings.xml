@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">Lepsza czytelność na jasnym wideo</string>
     <string name="set_cat_appearance">Wygląd</string>
     <string name="set_sub_appearance">Motyw, tryb interfejsu, kolory</string>
+    <string name="picon_bg_title">Tło picona</string>
+    <string name="picon_bg_desc">Domyślne zachowuje bieżący kolor; przezroczyste pokazuje logo bezpośrednio.</string>
+    <string name="picon_bg_default">Domyślne</string>
+    <string name="picon_bg_transparent">Przezroczyste</string>
 </resources>

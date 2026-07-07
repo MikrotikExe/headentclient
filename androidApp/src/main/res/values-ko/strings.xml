@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">밝은 영상 위에서도 잘 보임</string>
     <string name="set_cat_appearance">화면 표시</string>
     <string name="set_sub_appearance">테마, 인터페이스 모드, 색상</string>
+    <string name="picon_bg_title">피콘 배경</string>
+    <string name="picon_bg_desc">기본값은 현재 색상을 유지하고, 투명은 로고를 그대로 표시합니다.</string>
+    <string name="picon_bg_default">기본값</string>
+    <string name="picon_bg_transparent">투명</string>
 </resources>

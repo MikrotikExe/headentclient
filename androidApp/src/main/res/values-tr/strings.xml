@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">Parlak videoda daha iyi okunabilirlik</string>
     <string name="set_cat_appearance">Görünüm</string>
     <string name="set_sub_appearance">Tema, arayüz modu, renkler</string>
+    <string name="picon_bg_title">Picon arka planı</string>
+    <string name="picon_bg_desc">Varsayılan mevcut rengi korur; şeffaf logoyu doğrudan gösterir.</string>
+    <string name="picon_bg_default">Varsayılan</string>
+    <string name="picon_bg_transparent">Şeffaf</string>
 </resources>

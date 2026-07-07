@@ -330,4 +330,8 @@
     <string name="overlay_solid_bg_desc">明るい映像でも見やすくなります</string>
     <string name="set_cat_appearance">外観</string>
     <string name="set_sub_appearance">テーマ、表示モード、色</string>
+    <string name="picon_bg_title">ピコンの背景</string>
+    <string name="picon_bg_desc">「既定」は現在の色を維持、「透明」はロゴをそのまま表示します。</string>
+    <string name="picon_bg_default">既定</string>
+    <string name="picon_bg_transparent">透明</string>
 </resources>

@@ -4,6 +4,9 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.layout.Row
@@ -339,6 +342,70 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
                 TabController.settingsDirty.value = true
             }
         )
+    }
+
+    SettingsGroupDivider()
+    // Pozadie piconu (loga kanala) — Predvolene / Priehladne / farebne swatche.
+    // Ovladatelne D-padom (TV) aj dotykom (telefon), prejavi sa vsade cez piconBackground().
+    val light = isLightTheme()
+    val piconSel = PiconBgPref.stateOf(ctx).value
+    Text(
+        stringResource(R.string.picon_bg_title),
+        style = MaterialTheme.typography.bodyLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurface
+    )
+    Text(
+        stringResource(R.string.picon_bg_desc),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(top = 10.dp)
+    ) {
+        PiconBgPref.options.forEach { v ->
+            val selected = piconSel == v
+            val fill = when (v) {
+                PiconBgPref.DEFAULT -> if (light) Color(0xFFA2A8B4) else Color(0xFF353B47)
+                PiconBgPref.TRANSPARENT -> Color.Transparent
+                else -> runCatching { Color(android.graphics.Color.parseColor(v)) }.getOrDefault(Color.Gray)
+            }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(end = 12.dp)
+            ) {
+                Box(
+                    Modifier
+                        .size(64.dp, 46.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(fill)
+                        .border(
+                            if (selected) 3.dp else 1.dp,
+                            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                            RoundedCornerShape(10.dp)
+                        )
+                        .dpadFocusable(RoundedCornerShape(10.dp))
+                        .clickable {
+                            PiconBgPref.set(ctx, v)
+                            TabController.settingsDirty.value = true
+                        }
+                )
+                if (v == PiconBgPref.DEFAULT || v == PiconBgPref.TRANSPARENT) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        stringResource(
+                            if (v == PiconBgPref.DEFAULT) R.string.picon_bg_default
+                            else R.string.picon_bg_transparent
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
     }
 }
