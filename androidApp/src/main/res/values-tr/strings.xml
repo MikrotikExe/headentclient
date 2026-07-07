@@ -326,4 +326,6 @@
     <string name="diag_email_body">Tanılama günlüğü eklendi. Sorun oluştuğunda ne yaptığınızı açıklayın:</string>
     <string name="epg_today">Bugün</string>
     <string name="epg_filter">Filtre</string>
+    <string name="overlay_solid_bg">Bilgi çubuğu için düz arka plan</string>
+    <string name="overlay_solid_bg_desc">Parlak videoda daha iyi okunabilirlik</string>
 </resources>

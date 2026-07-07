@@ -326,4 +326,6 @@
     <string name="diag_email_body">Csatolt diagnosztikai napló. Írd le, mit csináltál, amikor a hiba történt:</string>
     <string name="epg_today">Ma</string>
     <string name="epg_filter">Szűrő</string>
+    <string name="overlay_solid_bg">Tömör háttér az információsávhoz</string>
+    <string name="overlay_solid_bg_desc">Jobb olvashatóság világos videó felett</string>
 </resources>

@@ -354,6 +354,21 @@ internal fun GeneralSettings(ctx: android.content.Context) {
             TabController.settingsDirty.value = true
         }
     )
+    // Plny podklad informacnej listy prehravaca — len v modernom rezime, default vypnute.
+    if (isModernUi()) {
+        SettingsGroupDivider()
+        var overlaySolid by remember { mutableStateOf(ModernOverlayPref.isSolidBg(ctx)) }
+        SettingsSwitchRow(
+            label = stringResource(R.string.overlay_solid_bg),
+            note = stringResource(R.string.overlay_solid_bg_desc),
+            checked = overlaySolid,
+            onChange = { on ->
+                overlaySolid = on
+                ModernOverlayPref.setSolidBg(ctx, on)
+                TabController.settingsDirty.value = true
+            }
+        )
+    }
     }
     SettingsGroup("EPG") {
 

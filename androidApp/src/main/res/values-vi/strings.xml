@@ -326,4 +326,6 @@
     <string name="diag_email_body">Đã đính kèm nhật ký chẩn đoán. Vui lòng mô tả bạn đang làm gì khi xảy ra sự cố:</string>
     <string name="epg_today">Hôm nay</string>
     <string name="epg_filter">Bộ lọc</string>
+    <string name="overlay_solid_bg">Nền đặc cho thanh thông tin</string>
+    <string name="overlay_solid_bg_desc">Dễ đọc hơn trên video sáng</string>
 </resources>

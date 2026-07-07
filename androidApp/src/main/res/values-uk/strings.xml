@@ -326,4 +326,6 @@
     <string name="diag_email_body">Журнал діагностики додано. Опишіть, що ви робили, коли виникла проблема:</string>
     <string name="epg_today">Сьогодні</string>
     <string name="epg_filter">Фільтр</string>
+    <string name="overlay_solid_bg">Суцільний фон інформаційної панелі</string>
+    <string name="overlay_solid_bg_desc">Краща читабельність на яскравому відео</string>
 </resources>

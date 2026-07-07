@@ -326,4 +326,6 @@
     <string name="diag_email_body">Diagnoseprotokoll angehängt. Bitte beschreibe, was du getan hast, als das Problem auftrat:</string>
     <string name="epg_today">Heute</string>
     <string name="epg_filter">Filter</string>
+    <string name="overlay_solid_bg">Deckender Hintergrund der Infoleiste</string>
+    <string name="overlay_solid_bg_desc">Bessere Lesbarkeit über hellem Video</string>
 </resources>

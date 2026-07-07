@@ -326,4 +326,6 @@
     <string name="diag_email_body">Επισυνάπτεται διαγνωστικό αρχείο. Περιγράψτε τι κάνατε όταν προέκυψε το πρόβλημα:</string>
     <string name="epg_today">Σήμερα</string>
     <string name="epg_filter">Φίλτρο</string>
+    <string name="overlay_solid_bg">Συμπαγές φόντο στη γραμμή πληροφοριών</string>
+    <string name="overlay_solid_bg_desc">Καλύτερη αναγνωσιμότητα πάνω σε φωτεινό βίντεο</string>
 </resources>

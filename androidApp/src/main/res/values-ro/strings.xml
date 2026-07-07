@@ -326,4 +326,6 @@
     <string name="diag_email_body">Jurnal de diagnosticare atașat. Descrie ce făceai când a apărut problema:</string>
     <string name="epg_today">Azi</string>
     <string name="epg_filter">Filtru</string>
+    <string name="overlay_solid_bg">Fundal solid pentru bara de informații</string>
+    <string name="overlay_solid_bg_desc">Lizibilitate mai bună peste video luminos</string>
 </resources>

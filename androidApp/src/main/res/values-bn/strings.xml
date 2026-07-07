@@ -326,4 +326,6 @@
     <string name="diag_email_body">ডায়াগনস্টিক লগ সংযুক্ত। সমস্যা হওয়ার সময় আপনি কী করছিলেন তা বর্ণনা করুন:</string>
     <string name="epg_today">আজ</string>
     <string name="epg_filter">ফিল্টার</string>
+    <string name="overlay_solid_bg">তথ্য বারের জন্য নিরেট পটভূমি</string>
+    <string name="overlay_solid_bg_desc">উজ্জ্বল ভিডিওর উপর ভালো পাঠযোগ্যতা</string>
 </resources>

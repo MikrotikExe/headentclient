@@ -326,4 +326,6 @@
     <string name="diag_email_body">Diagnostic log attached. Please describe what you were doing when the problem occurred:</string>
     <string name="epg_today">Today</string>
     <string name="epg_filter">Filter</string>
+    <string name="overlay_solid_bg">Solid info-bar background</string>
+    <string name="overlay_solid_bg_desc">Better readability over bright video</string>
 </resources>

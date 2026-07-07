@@ -104,13 +104,14 @@ internal fun ModernTvOverlay(
         }
     }
 
+    val solidBg = remember { ModernOverlayPref.isSolidBg(ctx) }
     Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
                 .background(
-                    Brush.verticalGradient(overlayScrim())
+                    Brush.verticalGradient(if (solidBg) overlayScrimSolid() else overlayScrim())
                 )
                 .padding(bottom = 14.dp)
         ) {

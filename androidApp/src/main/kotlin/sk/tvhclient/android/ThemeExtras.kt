@@ -1,10 +1,26 @@
 package sk.tvhclient.android
 
+import android.content.Context
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+
+/**
+ * Volitelny „plny podklad" informacnej listy v modernom rezime. Ked je zapnuty,
+ * overlay ma pod info oblastou plne kryty podklad (jemny fade hore), aby bola
+ * lista citatelna aj nad jasnym videom — vo svetlej aj tmavej teme. Default vypnute.
+ */
+object ModernOverlayPref {
+    private const val PREFS = "app_prefs"
+    private const val KEY = "modern_overlay_solid_bg"
+    fun isSolidBg(c: Context): Boolean =
+        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY, false)
+    fun setSolidBg(c: Context, on: Boolean) {
+        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY, on).apply()
+    }
+}
 
 /** True ak je aktivna svetla schema (podla jasu povrchu) — funguje aj pri manualnom prepnuti. */
 @Composable
@@ -64,6 +80,11 @@ fun piconBackground(): Color =
 @Composable fun overlayScrim(): List<Color> = if (isLightTheme())
     listOf(Color(0x00F0F4FB), Color(0xD9F0F4FB), Color(0xF7F0F4FB))
     else listOf(Color(0x000A1124), Color(0xD90A1124), Color(0xF70A1124))
+
+/** „Plny podklad": jemny fade hore -> plne kryte dole. Pre obe temy. */
+@Composable fun overlayScrimSolid(): List<Color> = if (isLightTheme())
+    listOf(Color(0x00EEF2FA), Color(0xF2EEF2FA), Color(0xFFEEF2FA))
+    else listOf(Color(0x000A1124), Color(0xF20A1124), Color(0xFF0A1124))
 /** Podklad karty/pilulky (nefokus). */
 @Composable fun overlaySurface(): Color =
     if (isLightTheme()) Color(0xFFEAF0F9) else Color(0xFF13234A)

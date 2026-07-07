@@ -326,4 +326,6 @@
     <string name="diag_email_body">Registo de diagnóstico anexado. Descreve o que estavas a fazer quando o problema ocorreu:</string>
     <string name="epg_today">Hoje</string>
     <string name="epg_filter">Filtro</string>
+    <string name="overlay_solid_bg">Fundo sólido da barra de informação</string>
+    <string name="overlay_solid_bg_desc">Melhor legibilidade sobre vídeo claro</string>
 </resources>

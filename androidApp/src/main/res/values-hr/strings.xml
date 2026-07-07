@@ -326,4 +326,6 @@
     <string name="diag_email_body">Priložen dijagnostički zapis. Opiši što si radio kad se problem dogodio:</string>
     <string name="epg_today">Danas</string>
     <string name="epg_filter">Filtar</string>
+    <string name="overlay_solid_bg">Puna pozadina informacijske trake</string>
+    <string name="overlay_solid_bg_desc">Bolja čitljivost preko svijetlog videa</string>
 </resources>

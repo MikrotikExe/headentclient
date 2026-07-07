@@ -326,4 +326,6 @@
     <string name="diag_email_body">Diagnostisch logboek bijgevoegd. Beschrijf wat je deed toen het probleem optrad:</string>
     <string name="epg_today">Vandaag</string>
     <string name="epg_filter">Filter</string>
+    <string name="overlay_solid_bg">Effen achtergrond van de infobalk</string>
+    <string name="overlay_solid_bg_desc">Beter leesbaar over helder beeld</string>
 </resources>

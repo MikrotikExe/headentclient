@@ -326,4 +326,6 @@
     <string name="diag_email_body">진단 로그가 첨부되었습니다. 문제가 발생했을 때 무엇을 하고 있었는지 설명해 주세요:</string>
     <string name="epg_today">오늘</string>
     <string name="epg_filter">필터</string>
+    <string name="overlay_solid_bg">정보 표시줄 배경 불투명</string>
+    <string name="overlay_solid_bg_desc">밝은 영상 위에서도 잘 보임</string>
 </resources>

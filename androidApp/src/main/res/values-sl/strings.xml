@@ -326,4 +326,6 @@
     <string name="diag_email_body">Priložen diagnostični dnevnik. Opiši, kaj si počel, ko se je težava pojavila:</string>
     <string name="epg_today">Danes</string>
     <string name="epg_filter">Filter</string>
+    <string name="overlay_solid_bg">Polno ozadje informacijske vrstice</string>
+    <string name="overlay_solid_bg_desc">Boljša berljivost nad svetlim videom</string>
 </resources>

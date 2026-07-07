@@ -326,4 +326,6 @@
     <string name="diag_email_body">Přiložený diagnostický log. Popiš prosím, co jsi dělal, když nastal problém:</string>
     <string name="epg_today">Dnes</string>
     <string name="epg_filter">Filtr</string>
+    <string name="overlay_solid_bg">Plné pozadí informační lišty</string>
+    <string name="overlay_solid_bg_desc">Lepší čitelnost nad světlým videem</string>
 </resources>

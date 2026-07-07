@@ -326,4 +326,6 @@
     <string name="diag_email_body">แนบบันทึกการวินิจฉัยแล้ว โปรดอธิบายว่าคุณกำลังทำอะไรเมื่อเกิดปัญหา:</string>
     <string name="epg_today">วันนี้</string>
     <string name="epg_filter">ตัวกรอง</string>
+    <string name="overlay_solid_bg">พื้นหลังทึบสำหรับแถบข้อมูล</string>
+    <string name="overlay_solid_bg_desc">อ่านง่ายขึ้นบนวิดีโอที่สว่าง</string>
 </resources>

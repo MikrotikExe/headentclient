@@ -326,4 +326,6 @@
     <string name="diag_email_body">گزارش عیب‌یابی پیوست شد. لطفاً شرح دهید هنگام بروز مشکل چه می‌کردید:</string>
     <string name="epg_today">امروز</string>
     <string name="epg_filter">فیلتر</string>
+    <string name="overlay_solid_bg">پس‌زمینهٔ توپر نوار اطلاعات</string>
+    <string name="overlay_solid_bg_desc">خوانایی بهتر روی ویدیوی روشن</string>
 </resources>
