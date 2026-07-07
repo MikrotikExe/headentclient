@@ -104,24 +104,32 @@ internal fun ModernTvOverlay(
         }
     }
 
-    val solidBg = remember { ModernOverlayPref.isSolidBg(ctx) }
+    val solidBg = ModernOverlayPref.stateOf(ctx).value
+    val hintShadow = androidx.compose.ui.graphics.Shadow(
+        color = Color(0xB3000000),
+        offset = androidx.compose.ui.geometry.Offset(0f, 1f),
+        blurRadius = 3f
+    )
     Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .background(
-                    Brush.verticalGradient(if (solidBg) overlayScrimSolid() else overlayScrim())
+                .then(
+                    if (solidBg) Modifier.background(overlaySolidPanel())
+                    else Modifier.background(Brush.verticalGradient(overlayScrim()))
                 )
                 .padding(bottom = 14.dp)
         ) {
-            // hinty
+            // hinty (tien pre citatelnost nad jasnym videom aj bez plneho podkladu)
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 28.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(stringResource(R.string.mtv_hint_all), color = overlayHint(), fontSize = 12.sp)
-                Text(stringResource(R.string.mtv_hint_nav), color = overlayHint(), fontSize = 12.sp)
+                Text(stringResource(R.string.mtv_hint_all), color = overlayHint(), fontSize = 12.sp,
+                    style = androidx.compose.ui.text.TextStyle(shadow = if (solidBg) null else hintShadow))
+                Text(stringResource(R.string.mtv_hint_nav), color = overlayHint(), fontSize = 12.sp,
+                    style = androidx.compose.ui.text.TextStyle(shadow = if (solidBg) null else hintShadow))
             }
 
             // ===== karty kanalov =====

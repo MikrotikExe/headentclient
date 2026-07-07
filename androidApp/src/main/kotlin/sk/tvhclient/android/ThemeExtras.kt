@@ -15,9 +15,15 @@ import androidx.compose.ui.graphics.luminance
 object ModernOverlayPref {
     private const val PREFS = "app_prefs"
     private const val KEY = "modern_overlay_solid_bg"
-    fun isSolidBg(c: Context): Boolean =
+    private var state: androidx.compose.runtime.MutableState<Boolean>? = null
+    private fun load(c: Context): Boolean =
         c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY, false)
+    /** Zivy stav — citanim .value v @Composable sa overlay prekresli hned po zmene. */
+    fun stateOf(c: Context): androidx.compose.runtime.MutableState<Boolean> =
+        state ?: androidx.compose.runtime.mutableStateOf(load(c)).also { state = it }
+    fun isSolidBg(c: Context): Boolean = stateOf(c).value
     fun setSolidBg(c: Context, on: Boolean) {
+        stateOf(c).value = on
         c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY, on).apply()
     }
 }
@@ -89,10 +95,10 @@ fun piconBackground(): Color {
     listOf(Color(0x00F0F4FB), Color(0xD9F0F4FB), Color(0xF7F0F4FB))
     else listOf(Color(0x000A1124), Color(0xD90A1124), Color(0xF70A1124))
 
-/** „Plny podklad": jemny fade hore -> plne kryte dole. Pre obe temy. */
-@Composable fun overlayScrimSolid(): List<Color> = if (isLightTheme())
-    listOf(Color(0x00EEF2FA), Color(0xF2EEF2FA), Color(0xFFEEF2FA))
-    else listOf(Color(0x000A1124), Color(0xF20A1124), Color(0xFF0A1124))
+/** „Plny podklad": PLNE nepriehladny rovny panel pod celou listou (hint + karty +
+ *  ovladace), aby bolo vsetko citatelne nad akymkolvek videom. Pre obe temy. */
+@Composable fun overlaySolidPanel(): Color =
+    if (isLightTheme()) Color(0xFFEEF2FA) else Color(0xFF0A1124)
 /** Podklad karty/pilulky (nefokus). */
 @Composable fun overlaySurface(): Color =
     if (isLightTheme()) Color(0xFFEAF0F9) else Color(0xFF13234A)
