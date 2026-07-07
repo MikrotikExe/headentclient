@@ -548,6 +548,16 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
     val modernPhone = UiModePref.stateOf(homeCtx).value == UiModePref.MODERN
     val off = if (modernPhone) 1 else 0
     val chIdx = off; val radioIdx = 1 + off; val dvrIdx = 2 + off; val setIdx = 3 + off
+    // Pri prepnuti rezimu (klasik<->moderny) sa meni pritomnost tabu "Domov" a tym
+    // posun indexov. Zachovaj logicky tab (kanaly/radio/archiv/nastavenia), nech
+    // pouzivatela neprehodi na iny tab (napr. zo Settings na Archiv).
+    var prevOff by remember { mutableStateOf(off) }
+    LaunchedEffect(off) {
+        if (off != prevOff) {
+            tab = (tab - prevOff + off).coerceIn(0, 3 + off)
+            prevOff = off
+        }
+    }
     // odchod z nastaveni s neulozenymi/vykonanymi zmenami -> potvrdenie
     var leaveConfirm by remember { mutableStateOf<(() -> Unit)?>(null) }
     fun guardLeave(action: () -> Unit) {

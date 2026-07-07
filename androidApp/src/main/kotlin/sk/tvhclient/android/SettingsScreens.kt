@@ -328,8 +328,10 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
         }
     )
 
-    // Plny podklad informacnej listy prehravaca — len v modernom rezime, default vypnute.
-    if (isModernUi()) {
+    // Plny podklad informacnej listy prehravaca — len na TV v modernom rezime
+    // (na telefone taky overlay nie je, preto sa tam nezobrazuje). Default vypnute.
+    val isTvDevice = ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
+    if (isModernUi() && isTvDevice) {
         SettingsGroupDivider()
         var overlaySolid by remember { mutableStateOf(ModernOverlayPref.isSolidBg(ctx)) }
         SettingsSwitchRow(
