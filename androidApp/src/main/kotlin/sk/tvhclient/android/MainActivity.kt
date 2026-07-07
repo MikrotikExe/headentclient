@@ -533,7 +533,15 @@ private fun TabLabel(dot: Color, text: String) {
 
 @Composable
 fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
-    var tab by remember { mutableStateOf(initialTab) }
+    val homeCtx = androidx.compose.ui.platform.LocalContext.current
+    val modernPhone = UiModePref.stateOf(homeCtx).value == UiModePref.MODERN
+    // Pevne logicke ID tabov (nezavisia od pritomnosti tabu "Domov"). Vdaka tomu
+    // prepnutie rezimu (klasik<->moderny) neposunie indexy ani nesposobi preblik
+    // na iny tab. Tab "Domov" existuje len v modernom rezime (inak sa nezobrazi).
+    val chIdx = 1; val radioIdx = 2; val dvrIdx = 3; val setIdx = 4
+    // Vychodiskovy tab: moderny -> Domov(0), klasik -> Kanaly(1).
+    val homeTab = if (modernPhone) 0 else chIdx
+    var tab by remember { mutableStateOf(if (initialTab != 0) initialTab else homeTab) }
     // Reset signaly: klik na tab (aj uz vybrany) vrati danu obrazovku na zaciatok
     var resetCh by remember { mutableStateOf(0) }
     var resetDvr by remember { mutableStateOf(0) }
@@ -542,22 +550,6 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
     val navFocus = remember { FocusRequester() }
     val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
     var showExit by remember { mutableStateOf(false) }
-    // Moderny rezim na telefone: extra tab "Domov" na zaciatku (klasik bez zmeny).
-    // Indexy tabov sa posunu o off; klasik ma off=0, cize povodne spravanie.
-    val homeCtx = androidx.compose.ui.platform.LocalContext.current
-    val modernPhone = UiModePref.stateOf(homeCtx).value == UiModePref.MODERN
-    val off = if (modernPhone) 1 else 0
-    val chIdx = off; val radioIdx = 1 + off; val dvrIdx = 2 + off; val setIdx = 3 + off
-    // Pri prepnuti rezimu (klasik<->moderny) sa meni pritomnost tabu "Domov" a tym
-    // posun indexov. Zachovaj logicky tab (kanaly/radio/archiv/nastavenia), nech
-    // pouzivatela neprehodi na iny tab (napr. zo Settings na Archiv).
-    var prevOff by remember { mutableStateOf(off) }
-    LaunchedEffect(off) {
-        if (off != prevOff) {
-            tab = (tab - prevOff + off).coerceIn(0, 3 + off)
-            prevOff = off
-        }
-    }
     // odchod z nastaveni s neulozenymi/vykonanymi zmenami -> potvrdenie
     var leaveConfirm by remember { mutableStateOf<(() -> Unit)?>(null) }
     fun guardLeave(action: () -> Unit) {
@@ -586,7 +578,7 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
     // Spat: z ineho tabu spat na Kanaly; na Kanaloch -> potvrdenie ukoncenia.
     // (Vnutorne obrazovky maju vlastny BackHandler, ten ma prednost.)
     androidx.activity.compose.BackHandler(enabled = !showExit) {
-        if (tab != 0) { resetCh++; tab = 0 }
+        if (tab != homeTab) { resetCh++; tab = homeTab }
         else if (onExitToHome != null) onExitToHome()   // TV: spat na launcher
         else showExit = true
     }
@@ -673,7 +665,7 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
                         } else {
                             PinDialog(
                                 title = stringResource(R.string.plock_unlock_settings),
-                                onDismiss = { tab = 0 },
+                                onDismiss = { tab = homeTab },
                                 onComplete = { pin ->
                                     if (ParentalLock.checkPin(ctx, pin)) {
                                         ParentalLock.markUnlocked(ctx); unlocked = true; true
@@ -684,22 +676,26 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
                     }
                 }
             }
-            if (isModernUi()) {
-                // M336: jemny fade pri prepnuti tabu (len moderny rezim)
-                androidx.compose.animation.AnimatedContent(
-                    targetState = tab,
-                    transitionSpec = {
+            // Vzdy rovnaka struktura (AnimatedContent), aby prepnutie rezimu klasik<->moderny
+            // neodmontovalo obsah tabu (inak by sa napr. stratila podstranka v Nastaveniach).
+            // Prechodovy fade len v modernom rezime; klasik = okamzita zmena (bez animacie).
+            val modernNow = isModernUi()
+            androidx.compose.animation.AnimatedContent(
+                targetState = tab,
+                transitionSpec = {
+                    if (modernNow) {
                         androidx.compose.animation.fadeIn(
                             androidx.compose.animation.core.tween(180)
                         ) togetherWith androidx.compose.animation.fadeOut(
                             androidx.compose.animation.core.tween(120)
                         )
-                    },
-                    label = "tabFade"
-                ) { t -> tabContent(t) }
-            } else {
-                tabContent(tab)
-            }
+                    } else {
+                        androidx.compose.animation.EnterTransition.None togetherWith
+                            androidx.compose.animation.ExitTransition.None
+                    }
+                },
+                label = "tabFade"
+            ) { t -> tabContent(t) }
         }
     }
 
