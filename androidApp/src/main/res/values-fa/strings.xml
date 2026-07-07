@@ -328,4 +328,6 @@
     <string name="epg_filter">فیلتر</string>
     <string name="overlay_solid_bg">پس‌زمینهٔ توپر نوار اطلاعات</string>
     <string name="overlay_solid_bg_desc">خوانایی بهتر روی ویدیوی روشن</string>
+    <string name="set_cat_appearance">ظاهر</string>
+    <string name="set_sub_appearance">پوسته، حالت رابط، رنگ‌ها</string>
 </resources>

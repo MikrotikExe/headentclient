@@ -259,8 +259,93 @@ internal fun SettingsSwitchRow(
 
 // --- Vseobecne: jazyk + autostart ---
 @Composable
+internal fun AppearanceSettings(ctx: android.content.Context) {
+    SettingsGroup(null) {
+    // Rezim rozhrania: klasicky / moderny
+    var uiMode by remember { mutableStateOf(UiModePref.get(ctx)) }
+    val uiModeLabel: @Composable (String) -> String = { v ->
+        when (v) {
+            UiModePref.MODERN -> stringResource(R.string.ui_mode_modern)
+            else -> stringResource(R.string.ui_mode_classic)
+        }
+    }
+    DropdownField(
+        label = stringResource(R.string.ui_mode_title),
+        value = uiMode,
+        options = UiModePref.options,
+        optionLabel = uiModeLabel,
+        onSelect = { v ->
+            uiMode = v
+            UiModePref.set(ctx, v)
+            TabController.settingsDirty.value = true
+        }
+    )
+    SettingsGroupDivider()
+
+    // Tema aplikacie: automaticky (system) / svetla / tmava
+    var theme by remember { mutableStateOf(ThemePref.get(ctx)) }
+    val themeLabel: @Composable (String) -> String = { v ->
+        when (v) {
+            ThemePref.LIGHT -> stringResource(R.string.theme_light)
+            ThemePref.DARK -> stringResource(R.string.theme_dark)
+            else -> stringResource(R.string.theme_auto)
+        }
+    }
+    DropdownField(
+        label = stringResource(R.string.theme_title),
+        value = theme,
+        options = ThemePref.options,
+        optionLabel = themeLabel,
+        onSelect = { v ->
+            theme = v
+            ThemePref.set(ctx, v)
+            TabController.settingsDirty.value = true
+        }
+    )
+    SettingsGroupDivider()
+
+    // Tema prehravaca (samostatne od temy aplikacie)
+    var playerTheme by remember { mutableStateOf(PlayerThemePref.get(ctx)) }
+    val playerThemeLabel: @Composable (String) -> String = { v ->
+        when (v) {
+            PlayerThemePref.LIGHT -> stringResource(R.string.theme_light)
+            PlayerThemePref.DARK -> stringResource(R.string.theme_dark)
+            else -> stringResource(R.string.theme_auto)
+        }
+    }
+    DropdownField(
+        label = stringResource(R.string.player_theme_title),
+        value = playerTheme,
+        options = PlayerThemePref.options,
+        optionLabel = playerThemeLabel,
+        onSelect = { v ->
+            playerTheme = v
+            PlayerThemePref.set(ctx, v)
+            TabController.settingsDirty.value = true
+        }
+    )
+
+    // Plny podklad informacnej listy prehravaca — len v modernom rezime, default vypnute.
+    if (isModernUi()) {
+        SettingsGroupDivider()
+        var overlaySolid by remember { mutableStateOf(ModernOverlayPref.isSolidBg(ctx)) }
+        SettingsSwitchRow(
+            label = stringResource(R.string.overlay_solid_bg),
+            note = stringResource(R.string.overlay_solid_bg_desc),
+            checked = overlaySolid,
+            onChange = { on ->
+                overlaySolid = on
+                ModernOverlayPref.setSolidBg(ctx, on)
+                TabController.settingsDirty.value = true
+            }
+        )
+    }
+    }
+}
+
+@Composable
 internal fun GeneralSettings(ctx: android.content.Context) {
-    SettingsGroup(stringResource(R.string.set_grp_appearance)) {
+    SettingsGroup(stringResource(R.string.language)) {
     var lang by remember { mutableStateOf(LocaleHelper.getLang(ctx)) }
     DropdownField(
         label = stringResource(R.string.language),
@@ -310,65 +395,6 @@ internal fun GeneralSettings(ctx: android.content.Context) {
             }
         }
     )
-    SettingsGroupDivider()
-
-    // Tema aplikacie: automaticky (system) / svetla / tmava
-    var theme by remember { mutableStateOf(ThemePref.get(ctx)) }
-    val themeLabel: @Composable (String) -> String = { v ->
-        when (v) {
-            ThemePref.LIGHT -> stringResource(R.string.theme_light)
-            ThemePref.DARK -> stringResource(R.string.theme_dark)
-            else -> stringResource(R.string.theme_auto)
-        }
-    }
-    DropdownField(
-        label = stringResource(R.string.theme_title),
-        value = theme,
-        options = ThemePref.options,
-        optionLabel = themeLabel,
-        onSelect = { v ->
-            theme = v
-            ThemePref.set(ctx, v)
-            TabController.settingsDirty.value = true
-        }
-    )
-    SettingsGroupDivider()
-
-    // Rezim rozhrania: klasicky / moderny (navy-teal paleta; na TV navyse
-    // moderna domovska obrazovka). Dostupne na TV aj telefone.
-    var uiMode by remember { mutableStateOf(UiModePref.get(ctx)) }
-    val uiModeLabel: @Composable (String) -> String = { v ->
-        when (v) {
-            UiModePref.MODERN -> stringResource(R.string.ui_mode_modern)
-            else -> stringResource(R.string.ui_mode_classic)
-        }
-    }
-    DropdownField(
-        label = stringResource(R.string.ui_mode_title),
-        value = uiMode,
-        options = UiModePref.options,
-        optionLabel = uiModeLabel,
-        onSelect = { v ->
-            uiMode = v
-            UiModePref.set(ctx, v)
-            TabController.settingsDirty.value = true
-        }
-    )
-    // Plny podklad informacnej listy prehravaca — len v modernom rezime, default vypnute.
-    if (isModernUi()) {
-        SettingsGroupDivider()
-        var overlaySolid by remember { mutableStateOf(ModernOverlayPref.isSolidBg(ctx)) }
-        SettingsSwitchRow(
-            label = stringResource(R.string.overlay_solid_bg),
-            note = stringResource(R.string.overlay_solid_bg_desc),
-            checked = overlaySolid,
-            onChange = { on ->
-                overlaySolid = on
-                ModernOverlayPref.setSolidBg(ctx, on)
-                TabController.settingsDirty.value = true
-            }
-        )
-    }
     }
     SettingsGroup("EPG") {
 
@@ -534,28 +560,6 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         SettingsGroupDivider()
     }
 
-    // Tema overlay-u prehravaca (samostatne od temy aplikacie)
-    var playerTheme by remember { mutableStateOf(PlayerThemePref.get(ctx)) }
-    val playerThemeLabel: @Composable (String) -> String = { v ->
-        when (v) {
-            PlayerThemePref.LIGHT -> stringResource(R.string.theme_light)
-            PlayerThemePref.DARK -> stringResource(R.string.theme_dark)
-            else -> stringResource(R.string.theme_auto)
-        }
-    }
-    DropdownField(
-        label = stringResource(R.string.player_theme_title),
-        value = playerTheme,
-        options = PlayerThemePref.options,
-        optionLabel = playerThemeLabel,
-        onSelect = { v ->
-            playerTheme = v
-            PlayerThemePref.set(ctx, v)
-            TabController.settingsDirty.value = true
-        }
-    )
-
-    SettingsGroupDivider()
     // Deinterlacing — odstranuje hrebenove pasy (combing) pri prekladanom DVB
     // videu na rychlych zaberoch. AUTO deinterlacuje len ked treba.
     var deint by remember { mutableStateOf(DeinterlacePref.get(ctx)) }

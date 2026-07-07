@@ -328,4 +328,6 @@
     <string name="epg_filter">Filtre</string>
     <string name="overlay_solid_bg">Bilgi çubuğu için düz arka plan</string>
     <string name="overlay_solid_bg_desc">Parlak videoda daha iyi okunabilirlik</string>
+    <string name="set_cat_appearance">Görünüm</string>
+    <string name="set_sub_appearance">Tema, arayüz modu, renkler</string>
 </resources>

@@ -328,4 +328,6 @@
     <string name="epg_filter">Filtro</string>
     <string name="overlay_solid_bg">Sfondo pieno della barra info</string>
     <string name="overlay_solid_bg_desc">Migliore leggibilità su video luminoso</string>
+    <string name="set_cat_appearance">Aspetto</string>
+    <string name="set_sub_appearance">Tema, modalità interfaccia, colori</string>
 </resources>

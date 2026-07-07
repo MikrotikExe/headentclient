@@ -328,4 +328,6 @@
     <string name="epg_filter">Filtru</string>
     <string name="overlay_solid_bg">Fundal solid pentru bara de informații</string>
     <string name="overlay_solid_bg_desc">Lizibilitate mai bună peste video luminos</string>
+    <string name="set_cat_appearance">Aspect</string>
+    <string name="set_sub_appearance">Temă, mod interfață, culori</string>
 </resources>

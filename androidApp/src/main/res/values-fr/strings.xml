@@ -328,4 +328,6 @@
     <string name="epg_filter">Filtre</string>
     <string name="overlay_solid_bg">Fond opaque de la barre d\'infos</string>
     <string name="overlay_solid_bg_desc">Meilleure lisibilité sur une vidéo claire</string>
+    <string name="set_cat_appearance">Apparence</string>
+    <string name="set_sub_appearance">Thème, mode d\'interface, couleurs</string>
 </resources>

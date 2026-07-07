@@ -328,4 +328,6 @@
     <string name="epg_filter">Filtr</string>
     <string name="overlay_solid_bg">Plné pozadí informační lišty</string>
     <string name="overlay_solid_bg_desc">Lepší čitelnost nad světlým videem</string>
+    <string name="set_cat_appearance">Vzhled</string>
+    <string name="set_sub_appearance">Motiv, režim rozhraní, barvy</string>
 </resources>

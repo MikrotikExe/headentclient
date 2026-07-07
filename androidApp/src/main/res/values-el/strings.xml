@@ -328,4 +328,6 @@
     <string name="epg_filter">Φίλτρο</string>
     <string name="overlay_solid_bg">Συμπαγές φόντο στη γραμμή πληροφοριών</string>
     <string name="overlay_solid_bg_desc">Καλύτερη αναγνωσιμότητα πάνω σε φωτεινό βίντεο</string>
+    <string name="set_cat_appearance">Εμφάνιση</string>
+    <string name="set_sub_appearance">Θέμα, λειτουργία, χρώματα</string>
 </resources>

@@ -328,4 +328,6 @@
     <string name="epg_filter">Филтер</string>
     <string name="overlay_solid_bg">Пуна позадина информативне траке</string>
     <string name="overlay_solid_bg_desc">Боља читљивост преко светлог видеа</string>
+    <string name="set_cat_appearance">Изглед</string>
+    <string name="set_sub_appearance">Тема, режим интерфејса, боје</string>
 </resources>

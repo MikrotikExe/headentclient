@@ -328,4 +328,6 @@
     <string name="epg_filter">フィルター</string>
     <string name="overlay_solid_bg">情報バーの背景を不透明にする</string>
     <string name="overlay_solid_bg_desc">明るい映像でも見やすくなります</string>
+    <string name="set_cat_appearance">外観</string>
+    <string name="set_sub_appearance">テーマ、表示モード、色</string>
 </resources>

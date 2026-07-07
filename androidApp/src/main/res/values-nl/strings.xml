@@ -328,4 +328,6 @@
     <string name="epg_filter">Filter</string>
     <string name="overlay_solid_bg">Effen achtergrond van de infobalk</string>
     <string name="overlay_solid_bg_desc">Beter leesbaar over helder beeld</string>
+    <string name="set_cat_appearance">Weergave</string>
+    <string name="set_sub_appearance">Thema, interfacemodus, kleuren</string>
 </resources>

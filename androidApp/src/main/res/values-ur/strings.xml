@@ -328,4 +328,6 @@
     <string name="epg_filter">فلٹر</string>
     <string name="overlay_solid_bg">انفارمیشن بار کے لیے ٹھوس پس منظر</string>
     <string name="overlay_solid_bg_desc">روشن ویڈیو پر بہتر پڑھائی</string>
+    <string name="set_cat_appearance">ظاہری شکل</string>
+    <string name="set_sub_appearance">تھیم، انٹرفیس موڈ، رنگ</string>
 </resources>

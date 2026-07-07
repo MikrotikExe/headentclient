@@ -328,4 +328,6 @@
     <string name="epg_filter">Фільтр</string>
     <string name="overlay_solid_bg">Суцільний фон інформаційної панелі</string>
     <string name="overlay_solid_bg_desc">Краща читабельність на яскравому відео</string>
+    <string name="set_cat_appearance">Вигляд</string>
+    <string name="set_sub_appearance">Тема, режим інтерфейсу, кольори</string>
 </resources>

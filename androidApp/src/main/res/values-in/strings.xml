@@ -328,4 +328,6 @@
     <string name="epg_filter">Filter</string>
     <string name="overlay_solid_bg">Latar solid untuk bilah info</string>
     <string name="overlay_solid_bg_desc">Lebih mudah dibaca di atas video terang</string>
+    <string name="set_cat_appearance">Tampilan</string>
+    <string name="set_sub_appearance">Tema, mode antarmuka, warna</string>
 </resources>

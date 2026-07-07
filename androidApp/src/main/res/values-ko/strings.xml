@@ -328,4 +328,6 @@
     <string name="epg_filter">필터</string>
     <string name="overlay_solid_bg">정보 표시줄 배경 불투명</string>
     <string name="overlay_solid_bg_desc">밝은 영상 위에서도 잘 보임</string>
+    <string name="set_cat_appearance">화면 표시</string>
+    <string name="set_sub_appearance">테마, 인터페이스 모드, 색상</string>
 </resources>

@@ -328,4 +328,6 @@
     <string name="epg_filter">Szűrő</string>
     <string name="overlay_solid_bg">Tömör háttér az információsávhoz</string>
     <string name="overlay_solid_bg_desc">Jobb olvashatóság világos videó felett</string>
+    <string name="set_cat_appearance">Megjelenés</string>
+    <string name="set_sub_appearance">Téma, felület mód, színek</string>
 </resources>

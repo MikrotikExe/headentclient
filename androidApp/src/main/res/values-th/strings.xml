@@ -328,4 +328,6 @@
     <string name="epg_filter">ตัวกรอง</string>
     <string name="overlay_solid_bg">พื้นหลังทึบสำหรับแถบข้อมูล</string>
     <string name="overlay_solid_bg_desc">อ่านง่ายขึ้นบนวิดีโอที่สว่าง</string>
+    <string name="set_cat_appearance">ลักษณะ</string>
+    <string name="set_sub_appearance">ธีม โหมดอินเทอร์เฟซ สี</string>
 </resources>

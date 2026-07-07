@@ -328,4 +328,6 @@
     <string name="epg_filter">Filter</string>
     <string name="overlay_solid_bg">Solid info-bar background</string>
     <string name="overlay_solid_bg_desc">Better readability over bright video</string>
+    <string name="set_cat_appearance">Appearance</string>
+    <string name="set_sub_appearance">Theme, interface mode, colors</string>
 </resources>

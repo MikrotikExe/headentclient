@@ -328,4 +328,6 @@
     <string name="epg_filter">Filter</string>
     <string name="overlay_solid_bg">Deckender Hintergrund der Infoleiste</string>
     <string name="overlay_solid_bg_desc">Bessere Lesbarkeit über hellem Video</string>
+    <string name="set_cat_appearance">Darstellung</string>
+    <string name="set_sub_appearance">Design, Oberflächenmodus, Farben</string>
 </resources>

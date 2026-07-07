@@ -328,4 +328,6 @@
     <string name="epg_filter">फ़िल्टर</string>
     <string name="overlay_solid_bg">सूचना पट्टी के लिए ठोस पृष्ठभूमि</string>
     <string name="overlay_solid_bg_desc">चमकीले वीडियो पर बेहतर पठनीयता</string>
+    <string name="set_cat_appearance">दिखावट</string>
+    <string name="set_sub_appearance">थीम, इंटरफ़ेस मोड, रंग</string>
 </resources>

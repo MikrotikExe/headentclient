@@ -34,6 +34,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Dns
@@ -757,6 +758,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
     val catFocus = remember {
         mapOf(
             "general" to androidx.compose.ui.focus.FocusRequester(),
+            "vzhlad" to androidx.compose.ui.focus.FocusRequester(),
             "playback" to androidx.compose.ui.focus.FocusRequester(),
             "plock" to androidx.compose.ui.focus.FocusRequester(),
             "servers" to androidx.compose.ui.focus.FocusRequester(),
@@ -815,6 +817,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
     val renderContent: @Composable (String) -> Unit = { sec ->
         when (sec) {
             "general" -> GeneralSettings(ctx)
+            "vzhlad" -> AppearanceSettings(ctx)
             "playback" -> PlaybackSettings(ctx)
             "plock" -> ParentalSettings(ctx)
             "servers" -> ServersSettings(vm, servers, activeId,
@@ -833,6 +836,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
         else if (wide) stringResource(R.string.tab_settings)
         else when (section) {
             "general" -> stringResource(R.string.set_cat_general)
+            "vzhlad" -> stringResource(R.string.set_cat_appearance)
             "playback" -> stringResource(R.string.set_cat_playback)
             "plock" -> stringResource(R.string.plock_title)
             "servers" -> stringResource(R.string.set_cat_servers)
@@ -885,6 +889,10 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
                         subtitle = stringResource(R.string.set_sub_playback),
                         chipBgL = 0xFFD8F0FB, chipFgL = 0xFF1877A8, chipBgD = 0xFF12283A, chipFgD = 0xFF7CC4E8
                     ) { lastSection = "playback"; section = "playback" }
+                    SettingsNavItem(Icons.Filled.Palette, stringResource(R.string.set_cat_appearance), effective == "vzhlad", catFocus["vzhlad"],
+                        subtitle = stringResource(R.string.set_sub_appearance),
+                        chipBgL = 0xFFEDE7FE, chipFgL = 0xFF534AB7, chipBgD = 0xFF241F45, chipFgD = 0xFFAFA9EC
+                    ) { lastSection = "vzhlad"; section = "vzhlad" }
                     SettingsNavItem(Icons.Filled.Lock, stringResource(R.string.plock_title), effective == "plock", catFocus["plock"],
                         subtitle = stringResource(R.string.set_sub_plock),
                         chipBgL = 0xFFFFE1E1, chipFgL = 0xFFD64545, chipBgD = 0xFF3A1D20, chipFgD = 0xFFEF8A88
@@ -942,6 +950,10 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
                         icon = Icons.Filled.PlayArrow, subtitle = stringResource(R.string.set_sub_playback),
                         chipBgL = 0xFFD8F0FB, chipFgL = 0xFF1877A8, chipBgD = 0xFF12283A, chipFgD = 0xFF7CC4E8
                     ) { lastSection = "playback"; section = "playback" }
+                    SettingsCategory(stringResource(R.string.set_cat_appearance), catFocus["vzhlad"],
+                        icon = Icons.Filled.Palette, subtitle = stringResource(R.string.set_sub_appearance),
+                        chipBgL = 0xFFEDE7FE, chipFgL = 0xFF534AB7, chipBgD = 0xFF241F45, chipFgD = 0xFFAFA9EC
+                    ) { lastSection = "vzhlad"; section = "vzhlad" }
                     SettingsCategory(stringResource(R.string.plock_title), catFocus["plock"],
                         icon = Icons.Filled.Lock, subtitle = stringResource(R.string.set_sub_plock),
                         chipBgL = 0xFFFFE1E1, chipFgL = 0xFFD64545, chipBgD = 0xFF3A1D20, chipFgD = 0xFFEF8A88

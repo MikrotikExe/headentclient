@@ -328,4 +328,6 @@
     <string name="epg_filter">Filtr</string>
     <string name="overlay_solid_bg">Pełne tło paska informacji</string>
     <string name="overlay_solid_bg_desc">Lepsza czytelność na jasnym wideo</string>
+    <string name="set_cat_appearance">Wygląd</string>
+    <string name="set_sub_appearance">Motyw, tryb interfejsu, kolory</string>
 </resources>

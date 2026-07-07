@@ -328,4 +328,6 @@
     <string name="epg_filter">تصفية</string>
     <string name="overlay_solid_bg">خلفية معتمة لشريط المعلومات</string>
     <string name="overlay_solid_bg_desc">قابلية قراءة أفضل فوق الفيديو الساطع</string>
+    <string name="set_cat_appearance">المظهر</string>
+    <string name="set_sub_appearance">المظهر، وضع الواجهة، الألوان</string>
 </resources>

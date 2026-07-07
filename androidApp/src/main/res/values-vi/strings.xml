@@ -328,4 +328,6 @@
     <string name="epg_filter">Bộ lọc</string>
     <string name="overlay_solid_bg">Nền đặc cho thanh thông tin</string>
     <string name="overlay_solid_bg_desc">Dễ đọc hơn trên video sáng</string>
+    <string name="set_cat_appearance">Giao diện</string>
+    <string name="set_sub_appearance">Chủ đề, chế độ giao diện, màu sắc</string>
 </resources>

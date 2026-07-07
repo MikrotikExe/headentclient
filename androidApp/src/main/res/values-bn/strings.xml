@@ -328,4 +328,6 @@
     <string name="epg_filter">ফিল্টার</string>
     <string name="overlay_solid_bg">তথ্য বারের জন্য নিরেট পটভূমি</string>
     <string name="overlay_solid_bg_desc">উজ্জ্বল ভিডিওর উপর ভালো পাঠযোগ্যতা</string>
+    <string name="set_cat_appearance">চেহারা</string>
+    <string name="set_sub_appearance">থিম, ইন্টারফেস মোড, রং</string>
 </resources>

@@ -328,4 +328,6 @@
     <string name="epg_filter">筛选</string>
     <string name="overlay_solid_bg">信息栏使用纯色背景</string>
     <string name="overlay_solid_bg_desc">在明亮画面上更易读</string>
+    <string name="set_cat_appearance">外观</string>
+    <string name="set_sub_appearance">主题、界面模式、颜色</string>
 </resources>
