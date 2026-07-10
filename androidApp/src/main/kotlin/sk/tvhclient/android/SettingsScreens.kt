@@ -605,17 +605,28 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
             )
             // Prepnutie do HDR: vypnutim sa AFR obmedzi na plynulu zmenu
             // frekvencie (bez HDMI re-syncu), takze box neflipne do HDR.
+            // Cely riadok je dpad-fokusovatelny (OK prepina) — na TV inak
+            // samotny Switch fokus ring nedava.
             var hdrSwitch by remember { mutableStateOf(AfrHdrSwitchPref.get(ctx)) }
-            SettingsSwitchRow(
-                label = stringResource(R.string.afr_hdr_switch),
-                note = stringResource(R.string.afr_hdr_switch_desc),
-                checked = hdrSwitch,
-                onChange = { on ->
-                    hdrSwitch = on
-                    AfrHdrSwitchPref.set(ctx, on)
-                    TabController.settingsDirty.value = true
-                }
-            )
+            val toggleHdr: (Boolean) -> Unit = { on ->
+                hdrSwitch = on
+                AfrHdrSwitchPref.set(ctx, on)
+                TabController.settingsDirty.value = true
+            }
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .dpadFocusable()
+                    .clickable { toggleHdr(!hdrSwitch) }
+            ) {
+                SettingsSwitchRow(
+                    label = stringResource(R.string.afr_hdr_switch),
+                    note = stringResource(R.string.afr_hdr_switch_desc),
+                    checked = hdrSwitch,
+                    onChange = toggleHdr
+                )
+            }
         }
         SettingsGroupDivider()
     }
