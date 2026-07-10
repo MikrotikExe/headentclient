@@ -336,4 +336,9 @@
     <string name="picon_bg_transparent">شفاف</string>
     <string name="decoder_color_fix">ڈی کوڈر رنگ درستگی</string>
     <string name="decoder_color_fix_desc">اگر رنگ غلط لگیں (نیلا/نارنجی) تو آن کریں۔ ڈی کوڈنگ ہارڈویئر ہی رہتی ہے۔</string>
+    <string name="decoder_fix_off">بند</string>
+    <string name="decoder_fix_jni">متبادل ہارڈویئر راستہ (ہموار)</string>
+    <string name="decoder_fix_nodr">کاپی راستہ (قابلِ اعتماد، بھاری)</string>
+    <string name="afr_hdr_switch">HDR سوئچنگ کی اجازت دیں</string>
+    <string name="afr_hdr_switch_desc">بند: ریفریش ریٹ صرف بلا تعطل بدلتا ہے (نہ HDMI ری سنک، نہ HDR)۔</string>
 </resources>

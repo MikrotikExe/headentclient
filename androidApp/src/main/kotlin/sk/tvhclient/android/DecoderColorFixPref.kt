@@ -12,14 +12,22 @@ import android.content.Context
  */
 object DecoderColorFixPref {
     private const val PREFS = "app_prefs"
-    private const val KEY = "decoder_color_fix"
+    private const val KEY = "decoder_color_fix_mode"
 
-    fun get(context: Context): Boolean =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY, false)
+    const val OFF = "off"
+    /** Preferovat JNI cestu mediacodecu (DR ostava; plynule, ak cipset JNI podporuje). */
+    const val JNI = "jni"
+    /** Vypnut direct rendering (kopirovacia cesta; spolahlive farby, narocnejsie). */
+    const val NODR = "nodr"
 
-    fun set(context: Context, on: Boolean) {
+    val options = listOf(OFF, JNI, NODR)
+
+    fun get(context: Context): String =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY, on).apply()
+            .getString(KEY, OFF) ?: OFF
+
+    fun set(context: Context, value: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putString(KEY, value).apply()
     }
 }

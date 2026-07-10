@@ -603,6 +603,19 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
                     TabController.settingsDirty.value = true
                 }
             )
+            // Prepnutie do HDR: vypnutim sa AFR obmedzi na plynulu zmenu
+            // frekvencie (bez HDMI re-syncu), takze box neflipne do HDR.
+            var hdrSwitch by remember { mutableStateOf(AfrHdrSwitchPref.get(ctx)) }
+            SettingsSwitchRow(
+                label = stringResource(R.string.afr_hdr_switch),
+                note = stringResource(R.string.afr_hdr_switch_desc),
+                checked = hdrSwitch,
+                onChange = { on ->
+                    hdrSwitch = on
+                    AfrHdrSwitchPref.set(ctx, on)
+                    TabController.settingsDirty.value = true
+                }
+            )
         }
         SettingsGroupDivider()
     }
@@ -655,17 +668,30 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
     )
     SettingsGroupDivider()
     // Oprava farieb dekodera — pre boxy, kde ma HW dekoder prehodene farby
-    // (modro-oranzovy obraz). Dekodovanie ostava hardverove. Default vypnute.
+    // (modro-oranzovy obraz). Dve varianty, lebo rozne cipsety znesu rozne cesty.
     var colorFix by remember { mutableStateOf(DecoderColorFixPref.get(ctx)) }
-    SettingsSwitchRow(
+    val colorFixLabel: @Composable (String) -> String = { v ->
+        when (v) {
+            DecoderColorFixPref.JNI -> stringResource(R.string.decoder_fix_jni)
+            DecoderColorFixPref.NODR -> stringResource(R.string.decoder_fix_nodr)
+            else -> stringResource(R.string.decoder_fix_off)
+        }
+    }
+    DropdownField(
         label = stringResource(R.string.decoder_color_fix),
-        note = stringResource(R.string.decoder_color_fix_desc),
-        checked = colorFix,
-        onChange = { on ->
-            colorFix = on
-            DecoderColorFixPref.set(ctx, on)
+        value = colorFix,
+        options = DecoderColorFixPref.options,
+        optionLabel = colorFixLabel,
+        onSelect = { v ->
+            colorFix = v
+            DecoderColorFixPref.set(ctx, v)
             TabController.settingsDirty.value = true
         }
+    )
+    Text(
+        stringResource(R.string.decoder_color_fix_desc),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
     )
 
     // Zvukovy vystup — riesi rozchadzajuci sa / oneskoreny zvuk. PASSTHROUGH

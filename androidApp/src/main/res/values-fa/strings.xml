@@ -336,4 +336,9 @@
     <string name="picon_bg_transparent">شفاف</string>
     <string name="decoder_color_fix">اصلاح رنگ رمزگشا</string>
     <string name="decoder_color_fix_desc">اگر رنگ‌ها اشتباه به نظر می‌رسند (آبی/نارنجی) روشن کن. رمزگشایی سخت‌افزاری می‌ماند.</string>
+    <string name="decoder_fix_off">خاموش</string>
+    <string name="decoder_fix_jni">مسیر سخت‌افزاری جایگزین (روان)</string>
+    <string name="decoder_fix_nodr">مسیر کپی (مطمئن، سنگین‌تر)</string>
+    <string name="afr_hdr_switch">اجازهٔ تغییر به HDR</string>
+    <string name="afr_hdr_switch_desc">خاموش: نرخ نوسازی فقط بدون وقفه تغییر می‌کند (بدون همگام‌سازی مجدد HDMI یا HDR).</string>
 </resources>

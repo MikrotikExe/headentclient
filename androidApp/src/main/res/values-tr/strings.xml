@@ -336,4 +336,9 @@
     <string name="picon_bg_transparent">Şeffaf</string>
     <string name="decoder_color_fix">Kod çözücü renk düzeltmesi</string>
     <string name="decoder_color_fix_desc">Renkler yanlış görünüyorsa (mavi/turuncu) aç. Kod çözme donanımsal kalır.</string>
+    <string name="decoder_fix_off">Kapalı</string>
+    <string name="decoder_fix_jni">Alternatif donanım yolu (akıcı)</string>
+    <string name="decoder_fix_nodr">Kopyalama yolu (güvenilir, daha ağır)</string>
+    <string name="afr_hdr_switch">HDR geçişine izin ver</string>
+    <string name="afr_hdr_switch_desc">Kapalı: yenileme hızı yalnızca kesintisiz değişir (HDMI yeniden eşitleme ve HDR geçişi yok).</string>
 </resources>

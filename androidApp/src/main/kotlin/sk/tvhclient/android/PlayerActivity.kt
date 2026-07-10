@@ -341,10 +341,13 @@ class PlayerActivity : ComponentActivity() {
         val (en, mode) = deinterlaceSpec()
         m.addOption(":deinterlace=$en")
         if (mode != null) m.addOption(":deinterlace-mode=$mode")
-        // Oprava farieb dekodera (U/V swap na niektorych boxoch): preferovat
-        // JNI cestu mediacodecu namiesto NDK (ta byva na tychto cipsetoch vadna).
-        // Direct rendering OSTAVA zapnuty -> ziadne kopirovanie, ziadne trhanie.
-        if (DecoderColorFixPref.get(this)) m.addOption(":codec=mediacodec_jni,all")
+        // Oprava farieb dekodera (U/V swap na niektorych boxoch) — podla rezimu:
+        // JNI = ina HW cesta (DR ostava, plynule ak ju cipset podporuje);
+        // NODR = kopirovacia cesta (spolahlive farby, narocnejsia).
+        when (DecoderColorFixPref.get(this)) {
+            DecoderColorFixPref.JNI -> m.addOption(":codec=mediacodec_jni,all")
+            DecoderColorFixPref.NODR -> m.addOption(":no-mediacodec-dr")
+        }
     }
 
     /** M255 — live cez HTTP na digest-only serveri: stiahnut cez feeder (rovnako
@@ -2238,8 +2241,11 @@ class PlayerActivity : ComponentActivity() {
         val (dEn, dMode) = deinterlaceSpec()
         options.add("--deinterlace=$dEn")
         if (dMode != null) options.add("--deinterlace-mode=$dMode")
-        // Oprava farieb dekodera (U/V swap): preferovat JNI cestu mediacodecu
-        if (DecoderColorFixPref.get(this)) options.add("--codec=mediacodec_jni,all")
+        // Oprava farieb dekodera (U/V swap) — globalne od prveho frame
+        when (DecoderColorFixPref.get(this)) {
+            DecoderColorFixPref.JNI -> options.add("--codec=mediacodec_jni,all")
+            DecoderColorFixPref.NODR -> options.add("--no-mediacodec-dr")
+        }
         libVlc = LibVLC(this, options)
         mediaPlayer = MediaPlayer(libVlc)
         // Zvukovy vystup z nastaveni. Modul (telefon: AudioTrack/OpenSL ES) aj
@@ -3208,6 +3214,23 @@ class PlayerActivity : ComponentActivity() {
         val best = candidates.maxByOrNull { score(it) } ?: return
         if (score(best) == Int.MIN_VALUE) return
         if (best.modeId == cur.modeId) return
+        // Prepnutie do HDR vypnute -> ziadne tvrde prepnutie rezimu (to vyvolava
+        // HDMI re-sync a HDR flip firmwaru). Namiesto toho len plynula ziadost
+        // o frekvenciu; system ju splni iba ak to panel zvladne bez re-syncu.
+        if (!AfrHdrSwitchPref.get(this)) {
+            if (android.os.Build.VERSION.SDK_INT >= 31) {
+                findVideoSurface()?.let { surf ->
+                    runCatching {
+                        surf.setFrameRate(
+                            fps,
+                            android.view.Surface.FRAME_RATE_COMPATIBILITY_FIXED_SOURCE,
+                            android.view.Surface.CHANGE_FRAME_RATE_ONLY_IF_SEAMLESS
+                        )
+                    }
+                }
+            }
+            return
+        }
         runCatching {
             val lp = window.attributes
             lp.preferredDisplayModeId = best.modeId

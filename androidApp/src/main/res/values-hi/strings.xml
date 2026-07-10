@@ -336,4 +336,9 @@
     <string name="picon_bg_transparent">पारदर्शी</string>
     <string name="decoder_color_fix">डिकोडर रंग सुधार</string>
     <string name="decoder_color_fix_desc">अगर रंग गलत दिखें (नीला/नारंगी) तो चालू करें। डिकोडिंग हार्डवेयर ही रहती है।</string>
+    <string name="decoder_fix_off">बंद</string>
+    <string name="decoder_fix_jni">वैकल्पिक HW पथ (सहज)</string>
+    <string name="decoder_fix_nodr">कॉपी पथ (विश्वसनीय, भारी)</string>
+    <string name="afr_hdr_switch">HDR स्विचिंग की अनुमति दें</string>
+    <string name="afr_hdr_switch_desc">बंद: रिफ्रेश दर केवल बिना रुकावट बदलती है (कोई HDMI री-सिंक या HDR फ्लिप नहीं)।</string>
 </resources>

@@ -336,4 +336,9 @@
     <string name="picon_bg_transparent">Transparent</string>
     <string name="decoder_color_fix">Correction des couleurs du décodeur</string>
     <string name="decoder_color_fix_desc">À activer si les couleurs semblent fausses (bleu/orange). Le décodage reste matériel.</string>
+    <string name="decoder_fix_off">Désactivé</string>
+    <string name="decoder_fix_jni">Voie matérielle alternative (fluide)</string>
+    <string name="decoder_fix_nodr">Voie par copie (fiable, plus lourde)</string>
+    <string name="afr_hdr_switch">Autoriser le passage en HDR</string>
+    <string name="afr_hdr_switch_desc">Désactivé : la fréquence ne change que sans coupure (pas de re-sync HDMI ni de bascule HDR).</string>
 </resources>

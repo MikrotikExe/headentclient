@@ -336,4 +336,9 @@
     <string name="picon_bg_transparent">Prosojno</string>
     <string name="decoder_color_fix">Popravek barv dekoderja</string>
     <string name="decoder_color_fix_desc">Vklopi, če so barve videti napačne (modro/oranžno). Dekodiranje ostane strojno.</string>
+    <string name="decoder_fix_off">Izklopljeno</string>
+    <string name="decoder_fix_jni">Nadomestna HW pot (gladko)</string>
+    <string name="decoder_fix_nodr">Pot s kopiranjem (zanesljiva, zahtevnejša)</string>
+    <string name="afr_hdr_switch">Dovoli preklop v HDR</string>
+    <string name="afr_hdr_switch_desc">Izklopljeno: frekvenca se spreminja le brez prekinitev (brez HDMI re-synca in HDR).</string>
 </resources>

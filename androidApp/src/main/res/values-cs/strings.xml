@@ -336,4 +336,9 @@
     <string name="picon_bg_transparent">Průhledné</string>
     <string name="decoder_color_fix">Oprava barev dekodéru</string>
     <string name="decoder_color_fix_desc">Zapni, pokud barvy vypadají špatně (modrá/oranžová). Dekódování zůstává hardwarové.</string>
+    <string name="decoder_fix_off">Vypnuto</string>
+    <string name="decoder_fix_jni">Alternativní HW cesta (plynulé)</string>
+    <string name="decoder_fix_nodr">Kopírovací cesta (spolehlivá, náročnější)</string>
+    <string name="afr_hdr_switch">Povolit přepnutí do HDR</string>
+    <string name="afr_hdr_switch_desc">Vypnuto: frekvence se mění jen plynule (bez HDMI re-syncu a přepnutí do HDR).</string>
 </resources>

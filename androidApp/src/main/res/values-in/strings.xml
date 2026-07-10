@@ -336,4 +336,9 @@
     <string name="picon_bg_transparent">Transparan</string>
     <string name="decoder_color_fix">Perbaikan warna dekoder</string>
     <string name="decoder_color_fix_desc">Nyalakan jika warna terlihat salah (biru/oranye). Dekode tetap perangkat keras.</string>
+    <string name="decoder_fix_off">Mati</string>
+    <string name="decoder_fix_jni">Jalur HW alternatif (mulus)</string>
+    <string name="decoder_fix_nodr">Jalur salin (andal, lebih berat)</string>
+    <string name="afr_hdr_switch">Izinkan beralih ke HDR</string>
+    <string name="afr_hdr_switch_desc">Mati: laju penyegaran hanya berubah mulus (tanpa re-sync HDMI atau beralih HDR).</string>
 </resources>

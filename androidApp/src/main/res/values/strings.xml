@@ -336,4 +336,9 @@
     <string name="picon_bg_transparent">Transparent</string>
     <string name="decoder_color_fix">Decoder color fix</string>
     <string name="decoder_color_fix_desc">Turn on if colors look wrong (blue/orange). Decoding stays hardware.</string>
+    <string name="decoder_fix_off">Off</string>
+    <string name="decoder_fix_jni">Alternative HW path (smooth)</string>
+    <string name="decoder_fix_nodr">Copy path (reliable, heavier)</string>
+    <string name="afr_hdr_switch">Allow HDR switching</string>
+    <string name="afr_hdr_switch_desc">Off: refresh rate changes only seamlessly (no HDMI re-sync, no HDR flip).</string>
 </resources>

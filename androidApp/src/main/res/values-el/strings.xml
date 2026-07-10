@@ -336,4 +336,9 @@
     <string name="picon_bg_transparent">Διαφανές</string>
     <string name="decoder_color_fix">Διόρθωση χρωμάτων αποκωδικοποιητή</string>
     <string name="decoder_color_fix_desc">Ενεργοποίησε αν τα χρώματα φαίνονται λάθος (μπλε/πορτοκαλί). Η αποκωδικοποίηση μένει υλική.</string>
+    <string name="decoder_fix_off">Ανενεργό</string>
+    <string name="decoder_fix_jni">Εναλλακτική διαδρομή HW (ομαλή)</string>
+    <string name="decoder_fix_nodr">Διαδρομή αντιγραφής (αξιόπιστη, βαρύτερη)</string>
+    <string name="afr_hdr_switch">Να επιτρέπεται η εναλλαγή σε HDR</string>
+    <string name="afr_hdr_switch_desc">Ανενεργό: ο ρυθμός ανανέωσης αλλάζει μόνο ομαλά (χωρίς HDMI re-sync ή HDR).</string>
 </resources>

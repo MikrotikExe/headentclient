@@ -336,4 +336,9 @@
     <string name="picon_bg_transparent">Trong suốt</string>
     <string name="decoder_color_fix">Sửa màu bộ giải mã</string>
     <string name="decoder_color_fix_desc">Bật nếu màu trông sai (xanh/cam). Giải mã vẫn bằng phần cứng.</string>
+    <string name="decoder_fix_off">Tắt</string>
+    <string name="decoder_fix_jni">Đường HW thay thế (mượt)</string>
+    <string name="decoder_fix_nodr">Đường sao chép (đáng tin, nặng hơn)</string>
+    <string name="afr_hdr_switch">Cho phép chuyển sang HDR</string>
+    <string name="afr_hdr_switch_desc">Tắt: tốc độ làm tươi chỉ đổi liền mạch (không re-sync HDMI, không chuyển HDR).</string>
 </resources>

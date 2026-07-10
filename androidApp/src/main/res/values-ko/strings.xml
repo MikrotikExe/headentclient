@@ -336,4 +336,9 @@
     <string name="picon_bg_transparent">투명</string>
     <string name="decoder_color_fix">디코더 색상 수정</string>
     <string name="decoder_color_fix_desc">색이 이상해 보이면(파랑/주황) 켜세요. 디코딩은 하드웨어로 유지됩니다.</string>
+    <string name="decoder_fix_off">끄기</string>
+    <string name="decoder_fix_jni">대체 HW 경로(부드러움)</string>
+    <string name="decoder_fix_nodr">복사 경로(안정적, 부하 큼)</string>
+    <string name="afr_hdr_switch">HDR 전환 허용</string>
+    <string name="afr_hdr_switch_desc">끄기: 재생률은 끊김 없이 가능한 경우에만 변경(HDMI 재동기화·HDR 전환 없음).</string>
 </resources>
