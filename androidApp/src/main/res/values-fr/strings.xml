@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">Par défaut garde la couleur actuelle ; transparent affiche le logo directement.</string>
     <string name="picon_bg_default">Par défaut</string>
     <string name="picon_bg_transparent">Transparent</string>
+    <string name="decoder_color_fix">Correction des couleurs du décodeur</string>
+    <string name="decoder_color_fix_desc">À activer si les couleurs semblent fausses (bleu/orange). Le décodage reste matériel.</string>
 </resources>

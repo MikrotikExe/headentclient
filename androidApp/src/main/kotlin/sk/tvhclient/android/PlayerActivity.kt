@@ -341,6 +341,9 @@ class PlayerActivity : ComponentActivity() {
         val (en, mode) = deinterlaceSpec()
         m.addOption(":deinterlace=$en")
         if (mode != null) m.addOption(":deinterlace-mode=$mode")
+        // Oprava farieb dekodera (U/V swap na niektorych boxoch): vypnut
+        // direct rendering mediacodecu; dekodovanie ostava hardverove.
+        if (DecoderColorFixPref.get(this)) m.addOption(":no-mediacodec-dr")
     }
 
     /** M255 — live cez HTTP na digest-only serveri: stiahnut cez feeder (rovnako
@@ -2234,6 +2237,8 @@ class PlayerActivity : ComponentActivity() {
         val (dEn, dMode) = deinterlaceSpec()
         options.add("--deinterlace=$dEn")
         if (dMode != null) options.add("--deinterlace-mode=$dMode")
+        // Oprava farieb dekodera (U/V swap): globalne od prveho frame
+        if (DecoderColorFixPref.get(this)) options.add("--no-mediacodec-dr")
         libVlc = LibVLC(this, options)
         mediaPlayer = MediaPlayer(libVlc)
         // Zvukovy vystup z nastaveni. Modul (telefon: AudioTrack/OpenSL ES) aj

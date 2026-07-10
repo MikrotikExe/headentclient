@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">Типово зберігає поточний колір; прозоре показує логотип напряму.</string>
     <string name="picon_bg_default">Типово</string>
     <string name="picon_bg_transparent">Прозоре</string>
+    <string name="decoder_color_fix">Виправлення кольорів декодера</string>
+    <string name="decoder_color_fix_desc">Увімкніть, якщо кольори виглядають неправильно (синьо-помаранчеві). Декодування лишається апаратним.</string>
 </resources>

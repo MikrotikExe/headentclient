@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">ডিফল্ট বর্তমান রং রাখে; স্বচ্ছ হলে লোগো সরাসরি দেখায়।</string>
     <string name="picon_bg_default">ডিফল্ট</string>
     <string name="picon_bg_transparent">স্বচ্ছ</string>
+    <string name="decoder_color_fix">ডিকোডার রঙ সংশোধন</string>
+    <string name="decoder_color_fix_desc">রং ভুল দেখালে (নীল/কমলা) চালু করুন। ডিকোডিং হার্ডওয়্যারেই থাকে।</string>
 </resources>

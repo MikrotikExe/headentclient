@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">Az alapértelmezett megtartja a jelenlegi színt; az átlátszó közvetlenül mutatja a logót.</string>
     <string name="picon_bg_default">Alapértelmezett</string>
     <string name="picon_bg_transparent">Átlátszó</string>
+    <string name="decoder_color_fix">Dekóder színjavítás</string>
+    <string name="decoder_color_fix_desc">Kapcsold be, ha a színek rossznak tűnnek (kék/narancs). A dekódolás hardveres marad.</string>
 </resources>

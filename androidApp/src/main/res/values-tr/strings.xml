@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">Varsayılan mevcut rengi korur; şeffaf logoyu doğrudan gösterir.</string>
     <string name="picon_bg_default">Varsayılan</string>
     <string name="picon_bg_transparent">Şeffaf</string>
+    <string name="decoder_color_fix">Kod çözücü renk düzeltmesi</string>
+    <string name="decoder_color_fix_desc">Renkler yanlış görünüyorsa (mavi/turuncu) aç. Kod çözme donanımsal kalır.</string>
 </resources>

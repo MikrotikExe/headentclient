@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">Predefinito mantiene il colore attuale; trasparente mostra il logo direttamente.</string>
     <string name="picon_bg_default">Predefinito</string>
     <string name="picon_bg_transparent">Trasparente</string>
+    <string name="decoder_color_fix">Correzione colori del decoder</string>
+    <string name="decoder_color_fix_desc">Attiva se i colori sembrano sbagliati (blu/arancio). La decodifica resta hardware.</string>
 </resources>

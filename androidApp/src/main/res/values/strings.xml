@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">Default keeps the current color; transparent shows the logo directly.</string>
     <string name="picon_bg_default">Default</string>
     <string name="picon_bg_transparent">Transparent</string>
+    <string name="decoder_color_fix">Decoder color fix</string>
+    <string name="decoder_color_fix_desc">Turn on if colors look wrong (blue/orange). Decoding stays hardware.</string>
 </resources>

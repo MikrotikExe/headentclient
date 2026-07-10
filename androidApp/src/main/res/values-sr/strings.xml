@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">Подразумевано задржава тренутну боју; провидно приказује лого директно.</string>
     <string name="picon_bg_default">Подразумевано</string>
     <string name="picon_bg_transparent">Провидно</string>
+    <string name="decoder_color_fix">Исправка боја декодера</string>
+    <string name="decoder_color_fix_desc">Укључи ако боје изгледају погрешно (плаво/наранџасто). Декодовање остаје хардверско.</string>
 </resources>

@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">“默认”保留当前颜色；“透明”直接显示台标。</string>
     <string name="picon_bg_default">默认</string>
     <string name="picon_bg_transparent">透明</string>
+    <string name="decoder_color_fix">解码器颜色修正</string>
+    <string name="decoder_color_fix_desc">若颜色异常（偏蓝/偏橙）请开启。解码仍为硬件解码。</string>
 </resources>

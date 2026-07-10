@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">По умолчанию сохраняет текущий цвет; прозрачный показывает логотип напрямую.</string>
     <string name="picon_bg_default">По умолчанию</string>
     <string name="picon_bg_transparent">Прозрачный</string>
+    <string name="decoder_color_fix">Исправление цветов декодера</string>
+    <string name="decoder_color_fix_desc">Включите, если цвета выглядят неправильно (сине-оранжевые). Декодирование остаётся аппаратным.</string>
 </resources>

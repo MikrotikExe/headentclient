@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">Mặc định giữ màu hiện tại; trong suốt hiển thị logo trực tiếp.</string>
     <string name="picon_bg_default">Mặc định</string>
     <string name="picon_bg_transparent">Trong suốt</string>
+    <string name="decoder_color_fix">Sửa màu bộ giải mã</string>
+    <string name="decoder_color_fix_desc">Bật nếu màu trông sai (xanh/cam). Giải mã vẫn bằng phần cứng.</string>
 </resources>

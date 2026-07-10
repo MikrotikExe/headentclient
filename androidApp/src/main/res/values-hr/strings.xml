@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">Zadano zadržava trenutnu boju; prozirno prikazuje logo izravno.</string>
     <string name="picon_bg_default">Zadano</string>
     <string name="picon_bg_transparent">Prozirno</string>
+    <string name="decoder_color_fix">Ispravak boja dekodera</string>
+    <string name="decoder_color_fix_desc">Uključi ako boje izgledaju pogrešno (plavo/narančasto). Dekodiranje ostaje hardversko.</string>
 </resources>

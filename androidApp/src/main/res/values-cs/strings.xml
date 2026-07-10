@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">Výchozí ponechá současnou barvu; průhledné zobrazí logo přímo.</string>
     <string name="picon_bg_default">Výchozí</string>
     <string name="picon_bg_transparent">Průhledné</string>
+    <string name="decoder_color_fix">Oprava barev dekodéru</string>
+    <string name="decoder_color_fix_desc">Zapni, pokud barvy vypadají špatně (modrá/oranžová). Dekódování zůstává hardwarové.</string>
 </resources>

@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">ค่าเริ่มต้นคงสีปัจจุบัน โปร่งใสจะแสดงโลโก้โดยตรง</string>
     <string name="picon_bg_default">ค่าเริ่มต้น</string>
     <string name="picon_bg_transparent">โปร่งใส</string>
+    <string name="decoder_color_fix">แก้สีของตัวถอดรหัส</string>
+    <string name="decoder_color_fix_desc">เปิดหากสีดูผิด (ฟ้า/ส้ม) การถอดรหัสยังคงเป็นฮาร์ดแวร์</string>
 </resources>

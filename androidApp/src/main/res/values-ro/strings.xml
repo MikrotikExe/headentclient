@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">Implicit păstrează culoarea actuală; transparent arată sigla direct.</string>
     <string name="picon_bg_default">Implicit</string>
     <string name="picon_bg_transparent">Transparent</string>
+    <string name="decoder_color_fix">Corecție culori decodor</string>
+    <string name="decoder_color_fix_desc">Activează dacă culorile par greșite (albastru/portocaliu). Decodarea rămâne hardware.</string>
 </resources>

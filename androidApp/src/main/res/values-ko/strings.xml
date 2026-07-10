@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">기본값은 현재 색상을 유지하고, 투명은 로고를 그대로 표시합니다.</string>
     <string name="picon_bg_default">기본값</string>
     <string name="picon_bg_transparent">투명</string>
+    <string name="decoder_color_fix">디코더 색상 수정</string>
+    <string name="decoder_color_fix_desc">색이 이상해 보이면(파랑/주황) 켜세요. 디코딩은 하드웨어로 유지됩니다.</string>
 </resources>

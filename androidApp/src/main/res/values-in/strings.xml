@@ -334,4 +334,6 @@
     <string name="picon_bg_desc">Bawaan mempertahankan warna saat ini; transparan menampilkan logo langsung.</string>
     <string name="picon_bg_default">Bawaan</string>
     <string name="picon_bg_transparent">Transparan</string>
+    <string name="decoder_color_fix">Perbaikan warna dekoder</string>
+    <string name="decoder_color_fix_desc">Nyalakan jika warna terlihat salah (biru/oranye). Dekode tetap perangkat keras.</string>
 </resources>
