@@ -284,10 +284,13 @@ fun WelcomeScreen(vm: ServersViewModel) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                    .dpadFocusable()
                     .clickable { useHttps = !useHttps },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Switch(checked = useHttps, onCheckedChange = { useHttps = it })
+                // Switch len zobrazovaci — fokus/klik ma cely riadok (M367)
+                Switch(checked = useHttps, onCheckedChange = null)
                 Spacer(Modifier.width(8.dp))
                 Text(
                     stringResource(R.string.field_https),

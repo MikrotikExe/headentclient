@@ -220,43 +220,65 @@ internal fun SettingsSwitchRow(
     checked: Boolean,
     onChange: (Boolean) -> Unit
 ) {
+    // M367: jediny fokusovatelny/klikatelny prvok je CELY riadok (dpad ram + OK
+    // prepina, dotyk kdekolvek na riadku). Vnutorny Switch je len zobrazovaci
+    // (onCheckedChange = null -> nefokusovatelny), inak by na TV kradol D-pad
+    // fokus a vonkajsi ram by sa nikdy neukazal.
     if (isModernUi()) {
-        Row(
-            Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .dpadFocusable()
+                .clickable { onChange(!checked) }
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    label,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                if (note != null) {
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
                     Text(
-                        note,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        label,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
+                    if (note != null) {
+                        Text(
+                            note,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
+                Spacer(Modifier.width(10.dp))
+                Switch(checked = checked, onCheckedChange = null)
             }
-            Spacer(Modifier.width(10.dp))
-            Switch(checked = checked, onCheckedChange = onChange)
         }
         return
     }
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Switch(checked = checked, onCheckedChange = onChange)
-        Spacer(Modifier.width(8.dp))
-        Text(label)
-    }
-    if (note != null) {
-        Spacer(Modifier.height(8.dp))
-        Text(
-            note,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .dpadFocusable()
+            .clickable { onChange(!checked) }
+    ) {
+        Column(Modifier.padding(vertical = 4.dp, horizontal = 4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = checked, onCheckedChange = null)
+                Spacer(Modifier.width(8.dp))
+                Text(label)
+            }
+            if (note != null) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    note,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 
@@ -605,44 +627,17 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
             )
             // Prepnutie do HDR: vypnutim sa AFR obmedzi na plynulu zmenu
             // frekvencie (bez HDMI re-syncu), takze box neflipne do HDR.
-            // Cely riadok je dpad-fokusovatelny (OK prepina) — na TV inak
-            // samotny Switch fokus ring nedava.
             var hdrSwitch by remember { mutableStateOf(AfrHdrSwitchPref.get(ctx)) }
-            val toggleHdr: (Boolean) -> Unit = { on ->
-                hdrSwitch = on
-                AfrHdrSwitchPref.set(ctx, on)
-                TabController.settingsDirty.value = true
-            }
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .dpadFocusable()
-                    .clickable { toggleHdr(!hdrSwitch) }
-            ) {
-                // Switch je len zobrazovaci (onCheckedChange = null -> nefokusovatelny),
-                // inak by D-pad fokus kradol vnutorny Switch a vonkajsi ram by sa neukazal.
-                Row(
-                    Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            stringResource(R.string.afr_hdr_switch),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            stringResource(R.string.afr_hdr_switch_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Spacer(Modifier.width(10.dp))
-                    Switch(checked = hdrSwitch, onCheckedChange = null)
+            SettingsSwitchRow(
+                label = stringResource(R.string.afr_hdr_switch),
+                note = stringResource(R.string.afr_hdr_switch_desc),
+                checked = hdrSwitch,
+                onChange = { on ->
+                    hdrSwitch = on
+                    AfrHdrSwitchPref.set(ctx, on)
+                    TabController.settingsDirty.value = true
                 }
-            }
+            )
         }
         SettingsGroupDivider()
     }
