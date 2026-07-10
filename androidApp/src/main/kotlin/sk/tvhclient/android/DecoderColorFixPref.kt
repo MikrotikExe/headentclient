@@ -4,12 +4,11 @@ import android.content.Context
 
 /**
  * Kompatibilna oprava farieb dekodera. Na niektorych TV boxoch/cipsetoch ma
- * hardverovy dekoder (mediacodec) pri priamom vykreslovani (direct rendering)
- * prehodene farebne kanaly (U/V swap) — obraz je modro-oranzovy. Zapnutim sa
- * vypne direct rendering (:no-mediacodec-dr): dekodovanie OSTAVA hardverove
- * (box to utiahne), snimka sa len kopiruje cez medzibuffer, cim sa chybna
- * priama cesta obide. Default vypnute — zdrave zariadenia nechavame na
- * najrychlejsej ceste.
+ * hardverovy dekoder (mediacodec) cez NDK cestu prehodene farebne kanaly
+ * (U/V swap) — obraz je modro-oranzovy. Zapnutim sa preferuje JNI cesta
+ * mediacodecu (:codec=mediacodec_jni,all): dekodovanie OSTAVA hardverove
+ * a direct rendering zapnuty (ziadne kopirovanie, ziadne trhanie), len sa
+ * pouzije ina, na tychto cipsetoch korektna cesta. Default vypnute.
  */
 object DecoderColorFixPref {
     private const val PREFS = "app_prefs"
