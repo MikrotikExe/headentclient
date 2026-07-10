@@ -620,12 +620,28 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
                     .dpadFocusable()
                     .clickable { toggleHdr(!hdrSwitch) }
             ) {
-                SettingsSwitchRow(
-                    label = stringResource(R.string.afr_hdr_switch),
-                    note = stringResource(R.string.afr_hdr_switch_desc),
-                    checked = hdrSwitch,
-                    onChange = toggleHdr
-                )
+                // Switch je len zobrazovaci (onCheckedChange = null -> nefokusovatelny),
+                // inak by D-pad fokus kradol vnutorny Switch a vonkajsi ram by sa neukazal.
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.afr_hdr_switch),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            stringResource(R.string.afr_hdr_switch_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Switch(checked = hdrSwitch, onCheckedChange = null)
+                }
             }
         }
         SettingsGroupDivider()
