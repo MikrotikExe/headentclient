@@ -41,6 +41,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.filled.Search
 import coil.compose.AsyncImage
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Radio
@@ -296,6 +297,12 @@ class PlayerActivity : ComponentActivity() {
     // M369: aktivny filter skupiny v zozname kanalov + priznak, ci je fokus na pilulke skupiny.
     private val activeGroupLabelState = androidx.compose.runtime.mutableStateOf("")
     private val groupPickerState = androidx.compose.runtime.mutableStateOf(false)
+    // M370: hladanie kanala podla nazvu v zozname kanalov (TV: systemova klavesnica).
+    private val searchActiveState = androidx.compose.runtime.mutableStateOf(false)
+    private val searchQueryState = androidx.compose.runtime.mutableStateOf("")
+    private val searchFieldFocusedState = androidx.compose.runtime.mutableStateOf(true)
+    private val searchNavIndexState = androidx.compose.runtime.mutableStateOf(0)
+    private val searchFocusSignalState = androidx.compose.runtime.mutableStateOf(0)
     private var seekablePlayback = false
     private var currentStreamUrl: String? = null
     // Zadavanie kanala cislami z dialkoveho ovladaca
@@ -1186,6 +1193,34 @@ class PlayerActivity : ComponentActivity() {
         applyGroup(keys[next])
     }
 
+    // ===== M370: hladanie kanala podla nazvu (napriec vsetkymi kanalmi) =====
+    fun searchResults(): List<LivePlaylist.LiveChannel> {
+        val q = searchQueryState.value.trim()
+        if (q.isEmpty()) return emptyList()
+        return LivePlaylist.allChannels.filter { it.name.contains(q, ignoreCase = true) }
+    }
+    private fun openSearch() {
+        groupPickerState.value = false
+        searchQueryState.value = ""
+        searchNavIndexState.value = 0
+        searchFieldFocusedState.value = true
+        searchActiveState.value = true
+        searchFocusSignalState.value = searchFocusSignalState.value + 1
+    }
+    private fun closeSearch() {
+        searchActiveState.value = false
+        searchFieldFocusedState.value = true
+        searchQueryState.value = ""
+    }
+    /** Vyber kanala z vysledkov hladania: prepne (aj skupinu ak treba) a pusti. */
+    private fun selectLiveByUuid(uuid: String) {
+        closeSearch()
+        closeChannelList()
+        var i = liveUuids.indexOf(uuid)
+        if (i < 0) { applyGroup(LivePlaylist.GROUP_ALL); i = liveUuids.indexOf(uuid) }
+        if (i >= 0) selectChannelOrArchive(i, poke = false)
+    }
+
     /** M262 — prepnutie pocas zobrazenej PIN vyzvy: zrusi vyzvu zamknuteho kanala
      *  (bez ukoncenia prehravaca) a prepne na susedny relativne k blokovanemu kanalu.
      *  switchToIndex znova vyhodnoti zamok: volny kanal -> hra, dalsi zamknuty -> opat PIN. */
@@ -1489,8 +1524,11 @@ class PlayerActivity : ComponentActivity() {
     private var channelListOpenedAt = 0L
 
     private fun openChannelList() {
-        if (liveUuids.size < 2) return
+        // M371: otvor aj s 1 kanalom, ak su skupiny na prepnutie (napr. Oblubene s 1 kanalom),
+        // inak by sa filtrovany zoznam uz nedal otvorit ani prepnut spat.
+        if (liveUuids.size < 2 && groupKeys().size <= 1) return
         groupPickerState.value = false
+        searchActiveState.value = false
         activeGroupLabelState.value =
             if (groupKeys().size > 1) groupLabelFor(LivePlaylist.activeGroupKey) else ""
         navChannelIndexState.value = liveIndex.coerceAtLeast(0)
@@ -1499,6 +1537,7 @@ class PlayerActivity : ComponentActivity() {
     }
     private fun closeChannelList() {
         groupPickerState.value = false
+        searchActiveState.value = false
         closeChannelListState.value = closeChannelListState.value + 1
     }
     private fun closeOptions() {
@@ -1640,6 +1679,24 @@ class PlayerActivity : ComponentActivity() {
                 "Klávesa: $kc (${android.view.KeyEvent.keyCodeToString(kc)})",
                 Toast.LENGTH_SHORT
             ).show()
+        }
+
+        // M370: aktivne hladanie s fokusom na textovom poli -> text spracuje system/IME;
+        // zachytime len BACK (zavri hladanie) a DOLE (prejdi na vysledky).
+        if (searchActiveState.value && searchFieldFocusedState.value) {
+            if (down) {
+                when (kc) {
+                    android.view.KeyEvent.KEYCODE_BACK -> { closeSearch(); return true }
+                    android.view.KeyEvent.KEYCODE_DPAD_DOWN -> {
+                        if (searchResults().isNotEmpty()) {
+                            searchFieldFocusedState.value = false
+                            searchNavIndexState.value = 0
+                        }
+                        return true
+                    }
+                }
+            }
+            return super.dispatchKeyEvent(event)
         }
 
         // 0) PIN rodicovskeho zamku -> cislice zadavame my; na TV aj D-pad mriezka
@@ -1813,6 +1870,44 @@ class PlayerActivity : ComponentActivity() {
         // 1) Otvoreny zoznam kanalov -> navigujeme my
         if (channelListOpen) {
             val n = liveUuids.size
+            // M370: aktivne hladanie, fokus na vysledkoch (pole riesi skory bypass vyssie)
+            if (searchActiveState.value) {
+                val res = searchResults()
+                val n2 = res.size
+                if (down) {
+                    when (kc) {
+                        android.view.KeyEvent.KEYCODE_DPAD_UP -> {
+                            if (searchNavIndexState.value <= 0) {
+                                searchFieldFocusedState.value = true
+                                searchFocusSignalState.value = searchFocusSignalState.value + 1
+                            } else searchNavIndexState.value = searchNavIndexState.value - 1
+                            return true
+                        }
+                        android.view.KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            if (n2 > 0) searchNavIndexState.value =
+                                (searchNavIndexState.value + 1).coerceAtMost(n2 - 1)
+                            return true
+                        }
+                        android.view.KeyEvent.KEYCODE_DPAD_CENTER,
+                        android.view.KeyEvent.KEYCODE_ENTER,
+                        android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                            res.getOrNull(searchNavIndexState.value)?.let { selectLiveByUuid(it.uuid) }
+                            return true
+                        }
+                        android.view.KeyEvent.KEYCODE_BACK -> {
+                            searchFieldFocusedState.value = true
+                            searchFocusSignalState.value = searchFocusSignalState.value + 1
+                            return true
+                        }
+                    }
+                }
+                when (kc) {
+                    android.view.KeyEvent.KEYCODE_VOLUME_UP,
+                    android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
+                    android.view.KeyEvent.KEYCODE_VOLUME_MUTE -> return super.dispatchKeyEvent(event)
+                }
+                return true
+            }
             val isOk = kc == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
                 kc == android.view.KeyEvent.KEYCODE_ENTER ||
                 kc == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
@@ -1827,7 +1922,7 @@ class PlayerActivity : ComponentActivity() {
                         android.view.KeyEvent.KEYCODE_DPAD_CENTER,
                         android.view.KeyEvent.KEYCODE_ENTER,
                         android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> { groupPickerState.value = false; return true }
-                        android.view.KeyEvent.KEYCODE_DPAD_UP -> return true
+                        android.view.KeyEvent.KEYCODE_DPAD_UP -> { openSearch(); return true }
                         android.view.KeyEvent.KEYCODE_BACK -> { groupPickerState.value = false; return true }
                     }
                 }
@@ -2615,6 +2710,13 @@ class PlayerActivity : ComponentActivity() {
                 channelNavIndex = navChannelIndexState.value,
                 channelGroupLabel = activeGroupLabelState.value,
                 channelGroupPicker = groupPickerState.value,
+                searchActive = searchActiveState.value,
+                searchQuery = searchQueryState.value,
+                onSearchQueryChange = { searchQueryState.value = it; searchNavIndexState.value = 0 },
+                searchFieldFocused = searchFieldFocusedState.value,
+                searchHits = if (searchActiveState.value) searchResults() else emptyList(),
+                searchNavIndex = searchNavIndexState.value,
+                searchFocusSignal = searchFocusSignalState.value,
                 openListSignal = openChannelListState.value,
                 closeListSignal = closeChannelListState.value,
                 onTrackMenuChange = { kind ->
@@ -3641,6 +3743,13 @@ private fun PlayerUi(
     channelNavIndex: Int = -1,
     channelGroupLabel: String = "",
     channelGroupPicker: Boolean = false,
+    searchActive: Boolean = false,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    searchFieldFocused: Boolean = true,
+    searchHits: List<LivePlaylist.LiveChannel> = emptyList(),
+    searchNavIndex: Int = 0,
+    searchFocusSignal: Int = 0,
     openListSignal: Int = 0,
     closeListSignal: Int = 0,
     onTrackMenuChange: (String?) -> Unit = {},
@@ -5158,6 +5267,11 @@ private fun PlayerUi(
             val selTintC = playerSelTint()
 
             val scrimC = playerScrim()
+            // M370: fokus pre textove pole hladania (ziadame pri otvoreni/navrate na pole)
+            val searchFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+            LaunchedEffect(searchFocusSignal, searchFieldFocused, searchActive) {
+                if (searchActive && searchFieldFocused) runCatching { searchFocus.requestFocus() }
+            }
             Column(
                 Modifier
                     .fillMaxSize()
@@ -5186,38 +5300,58 @@ private fun PlayerUi(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(dateStr, color = playerFgDim(), style = MaterialTheme.typography.titleMedium)
-                    // M369b: pilulka filtra skupiny v hornom pruhu (neukrojuje vysku zoznamu)
-                    if (channelGroupLabel.isNotEmpty()) {
+                    if (searchActive) {
+                        // M370: pole hladania (systemova klavesnica na TV)
                         Spacer(Modifier.width(14.dp))
-                        Row(
-                            Modifier
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(if (channelGroupPicker) selTintC else cardC)
-                                .then(
-                                    if (channelGroupPicker)
-                                        Modifier.border(2.dp, accentC, RoundedCornerShape(16.dp))
-                                    else Modifier
+                        androidx.compose.material3.OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = onSearchQueryChange,
+                            singleLine = true,
+                            placeholder = {
+                                Text(androidx.compose.ui.res.stringResource(R.string.search_channels),
+                                    color = playerFgDim())
+                            },
+                            leadingIcon = {
+                                androidx.compose.material3.Icon(
+                                    androidx.compose.material.icons.Icons.Default.Search, null,
+                                    tint = playerFgDim())
+                            },
+                            modifier = Modifier.weight(1f).focusRequester(searchFocus)
+                        )
+                    } else {
+                        // M369b: pilulka filtra skupiny v hornom pruhu (neukrojuje vysku zoznamu)
+                        if (channelGroupLabel.isNotEmpty()) {
+                            Spacer(Modifier.width(14.dp))
+                            Row(
+                                Modifier
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(if (channelGroupPicker) selTintC else cardC)
+                                    .then(
+                                        if (channelGroupPicker)
+                                            Modifier.border(2.dp, accentC, RoundedCornerShape(16.dp))
+                                        else Modifier
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (channelGroupPicker) {
+                                    Text("\u2039", color = accentC, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    Spacer(Modifier.width(8.dp))
+                                }
+                                Text(
+                                    channelGroupLabel,
+                                    color = playerFg(),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
                                 )
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (channelGroupPicker) {
-                                Text("\u2039", color = accentC, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                Spacer(Modifier.width(8.dp))
-                            }
-                            Text(
-                                channelGroupLabel,
-                                color = playerFg(),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            if (channelGroupPicker) {
-                                Spacer(Modifier.width(8.dp))
-                                Text("\u203A", color = accentC, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                if (channelGroupPicker) {
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("\u203A", color = accentC, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
+                        Spacer(Modifier.weight(1f))
                     }
-                    Spacer(Modifier.weight(1f))
                     if (epgLoading) {
                         androidx.compose.material3.CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
@@ -5235,12 +5369,81 @@ private fun PlayerUi(
                         modifier = Modifier.fillMaxHeight().fillMaxWidth(0.46f)
                             .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
+                      if (searchActive) {
+                        // M370: vysledky hladania (napriec vsetkymi kanalmi)
+                        val hits = searchHits
+                        if (hits.isEmpty()) {
+                            Text(
+                                if (searchQuery.isBlank())
+                                    androidx.compose.ui.res.stringResource(R.string.search_channels)
+                                else androidx.compose.ui.res.stringResource(R.string.no_channels),
+                                color = playerFgDim(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        } else {
+                            val lsSearch = rememberLazyListState()
+                            LaunchedEffect(searchNavIndex) {
+                                runCatching { lsSearch.scrollToItem(searchNavIndex.coerceAtLeast(0)) }
+                            }
+                            LazyColumn(state = lsSearch, modifier = Modifier.fillMaxSize()) {
+                                itemsIndexed(hits, key = { _, c -> c.uuid }) { i, ch ->
+                                    val selRow = i == searchNavIndex && !searchFieldFocused
+                                    Row(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(if (selRow) selTintC else cardC)
+                                            .border(1.dp, if (selRow) accentC else borderC, RoundedCornerShape(12.dp))
+                                            .padding(horizontal = 12.dp, vertical = 9.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            Modifier.size(54.dp, 40.dp).clip(RoundedCornerShape(6.dp)).background(piconBackground()),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (ch.piconUrl != null) {
+                                                AsyncImage(
+                                                    model = remember(ch.piconUrl) { ImageRequest.Builder(ctx).data(ch.piconUrl).size(120).build() },
+                                                    contentDescription = null, imageLoader = loaderT,
+                                                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                                                    modifier = Modifier.fillMaxSize().padding(3.dp)
+                                                )
+                                            } else Text(ch.name.take(3).uppercase(), color = playerFg(), style = MaterialTheme.typography.labelMedium)
+                                        }
+                                        Spacer(Modifier.width(12.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(ch.name, color = playerFg(), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                                style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                                            if (ch.nowTitle.isNotBlank())
+                                                Text(ch.nowTitle, color = playerFgDim(), style = MaterialTheme.typography.bodySmall,
+                                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        }
+                                        Spacer(Modifier.width(8.dp))
+                                        if (serverId != null && Favorites.isFav(ctx, serverId, ch.uuid)) {
+                                            androidx.compose.material3.Icon(
+                                                imageVector = androidx.compose.material.icons.Icons.Filled.Star,
+                                                contentDescription = null,
+                                                tint = Color(0xFFF2C14E),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(Modifier.width(6.dp))
+                                        }
+                                        Text(if (ch.number > 0) ch.number.toString() else "", color = accentC,
+                                            fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                                    }
+                                }
+                            }
+                        }
+                      } else {
                         pageItemsT.forEachIndexed { localIdx, ch ->
                             val idx = pageStartT + localIdx
                             val selRow = idx == selT
                             val lockedRow = remember(lockTick, ch.uuid, serverId) {
                                 ParentalLock.isChannelLocked(ctx, serverId, ch.uuid)
                             }
+                            val favRow = serverId != null && Favorites.isFav(ctx, serverId, ch.uuid)
                             Row(
                                 Modifier
                                     .fillMaxWidth()
@@ -5282,6 +5485,15 @@ private fun PlayerUi(
                                             maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                                 Spacer(Modifier.width(8.dp))
+                                if (favRow) {
+                                    androidx.compose.material3.Icon(
+                                        imageVector = androidx.compose.material.icons.Icons.Filled.Star,
+                                        contentDescription = null,
+                                        tint = Color(0xFFF2C14E),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                }
                                 if (lockedRow) {
                                     androidx.compose.material3.Icon(
                                         imageVector = androidx.compose.material.icons.Icons.Filled.Lock,
@@ -5295,6 +5507,7 @@ private fun PlayerUi(
                                     fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                             }
                         }
+                      }
                     }
                     // PRAVA: detail vybraneho + nahlad hraneho + dalsie programy
                     Column(Modifier.fillMaxHeight().weight(1f).padding(horizontal = 22.dp, vertical = 6.dp)) {
