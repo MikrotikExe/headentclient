@@ -1240,6 +1240,7 @@ class PlayerActivity : ComponentActivity() {
     }
     /** Vyber kanala z vysledkov hladania: prepne (aj skupinu ak treba) a pusti. */
     private fun selectLiveByUuid(uuid: String) {
+        okLongFired = true   // prehltne nasledne OK-up, inak by zoznam potvrdil iny kanal (index 0)
         closeSearch()
         closeChannelList()
         var i = liveUuids.indexOf(uuid)
