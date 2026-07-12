@@ -5371,6 +5371,19 @@ private fun PlayerUi(
                                     Text("\u203A", color = accentC, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
+                            // M370-fix2: viditelna lupa vedla pilulky (hladanie sa otvori sipkou HORE)
+                            Spacer(Modifier.width(10.dp))
+                            androidx.compose.material3.Icon(
+                                androidx.compose.material.icons.Icons.Default.Search,
+                                contentDescription = null,
+                                tint = if (channelGroupPicker) accentC else playerFgDim(),
+                                modifier = Modifier.size(22.dp)
+                            )
+                            if (channelGroupPicker) {
+                                Spacer(Modifier.width(6.dp))
+                                Text("\u25B2 " + androidx.compose.ui.res.stringResource(R.string.search_channels),
+                                    color = accentC, style = MaterialTheme.typography.labelMedium)
+                            }
                         }
                         Spacer(Modifier.weight(1f))
                     }
