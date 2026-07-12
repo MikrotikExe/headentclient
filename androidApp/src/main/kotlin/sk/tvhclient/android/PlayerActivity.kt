@@ -1324,7 +1324,10 @@ class PlayerActivity : ComponentActivity() {
         val ch = liveChannelsState.value.getOrNull(idx) ?: return emptyList()
         val keys = mutableListOf("info")
         if (recInProgressByChan.value.let { it[ch.uuid] ?: it[ch.name] } != null) keys.add("fromstart")
+        // M368: oblubene a skrytie kanala aj na TV (predtym len na telefone)
+        keys.add("fav")
         if (ParentalLock.isEnabled(this)) keys.add("lock")
+        keys.add("hide")
         return keys
     }
 
@@ -1349,6 +1352,26 @@ class PlayerActivity : ComponentActivity() {
                 else if (idx != liveIndex) switchToIndex(idx)     // ak kanal este nehra a nie je archiv -> aspon prepni nazivo
             }
             "lock" -> toggleLockAt(idx)                           // uz riesi PIN + grace okno
+            "fav" -> {
+                val sid = (liveServer ?: Tvh.store.active())?.id
+                if (sid != null) Favorites.toggle(this, sid, ch.uuid)
+            }
+            "hide" -> {
+                val sid = (liveServer ?: Tvh.store.active())?.id
+                if (sid != null) {
+                    HiddenChannels.setHidden(this, sid, ch.uuid, true)
+                    // Skryty kanal hned odstranit zo zap zoznamu (ak prave nehra);
+                    // posun liveIndex, aby CH+/- dalej sedeli.
+                    if (idx != liveIndex) {
+                        val cur = liveChannelsState.value.toMutableList()
+                        if (idx in cur.indices) {
+                            cur.removeAt(idx)
+                            liveChannelsState.value = cur
+                            if (idx < liveIndex) liveIndex--
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -2738,6 +2761,13 @@ class PlayerActivity : ComponentActivity() {
                                     "fromstart" -> androidx.compose.ui.res.stringResource(R.string.play_from_start)
                                     "lock" -> if (cLocked) androidx.compose.ui.res.stringResource(R.string.plock_unlock)
                                               else androidx.compose.ui.res.stringResource(R.string.plock_lock)
+                                    "fav" -> {
+                                        val sid = (liveServer ?: Tvh.store.active())?.id
+                                        val isFav = sid != null && Favorites.isFav(this@PlayerActivity, sid, cCh.uuid)
+                                        if (isFav) androidx.compose.ui.res.stringResource(R.string.fav_remove)
+                                        else androidx.compose.ui.res.stringResource(R.string.fav_add)
+                                    }
+                                    "hide" -> androidx.compose.ui.res.stringResource(R.string.ch_hide)
                                     else -> key
                                 }
                                 val rowSel = i == cSel
@@ -2757,6 +2787,8 @@ class PlayerActivity : ComponentActivity() {
                                             when (key) {
                                                 "info" -> androidx.compose.material.icons.Icons.Default.GridView
                                                 "fromstart" -> androidx.compose.material.icons.Icons.Default.PlayArrow
+                                                "fav" -> androidx.compose.material.icons.Icons.Default.Star
+                                                "hide" -> androidx.compose.material.icons.Icons.Default.VisibilityOff
                                                 else -> androidx.compose.material.icons.Icons.Default.Lock
                                             },
                                             contentDescription = null,
