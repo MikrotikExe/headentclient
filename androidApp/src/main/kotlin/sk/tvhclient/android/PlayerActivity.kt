@@ -293,6 +293,9 @@ class PlayerActivity : ComponentActivity() {
     // D-pad navigacia zoznamu kanalov v prehravaci
     private val openChannelListState = androidx.compose.runtime.mutableStateOf(0)
     private val navChannelIndexState = androidx.compose.runtime.mutableStateOf(0)
+    // M369: aktivny filter skupiny v zozname kanalov + priznak, ci je fokus na pilulke skupiny.
+    private val activeGroupLabelState = androidx.compose.runtime.mutableStateOf("")
+    private val groupPickerState = androidx.compose.runtime.mutableStateOf(false)
     private var seekablePlayback = false
     private var currentStreamUrl: String? = null
     // Zadavanie kanala cislami z dialkoveho ovladaca
@@ -1132,6 +1135,57 @@ class PlayerActivity : ComponentActivity() {
         switchToIndex(((liveIndex + delta) % n + n) % n)
     }
 
+    // ===== M369: filter skupin v zozname kanalov (a tym aj CH+/-) =====
+    private fun groupLabelFor(key: String): String = when (key) {
+        LivePlaylist.GROUP_ALL -> getString(R.string.all_channels)
+        LivePlaylist.GROUP_FAV -> getString(R.string.favorites)
+        else -> LivePlaylist.groups.firstOrNull { it.key == key }?.label
+            ?: getString(R.string.all_channels)
+    }
+
+    /** Poradie skupin pre cyklenie: Vsetky, Oblubene (ak su nejake), potom tagy. */
+    private fun groupKeys(): List<String> {
+        val keys = mutableListOf(LivePlaylist.GROUP_ALL)
+        val srvId = (liveServer ?: Tvh.store.active())?.id
+        val hasFav = srvId != null && Favorites.all(this, srvId).isNotEmpty()
+        if (hasFav) keys.add(LivePlaylist.GROUP_FAV)
+        LivePlaylist.groups.forEach { keys.add(it.key) }
+        return keys
+    }
+
+    /** Prestavi live zoznam na zvolenu skupinu; CH+/-, karty aj zoznam potom idu v ramci nej. */
+    private fun applyGroup(key: String) {
+        val all = LivePlaylist.allChannels
+        if (all.isEmpty()) return
+        val srvId = (liveServer ?: Tvh.store.active())?.id
+        val allow: Set<String>? = when (key) {
+            LivePlaylist.GROUP_ALL -> null
+            LivePlaylist.GROUP_FAV -> if (srvId != null) Favorites.all(this, srvId) else emptySet()
+            else -> LivePlaylist.groups.firstOrNull { it.key == key }?.uuids ?: return
+        }
+        val filtered = if (allow == null) all else all.filter { it.uuid in allow }
+        if (filtered.isEmpty()) return   // prazdna skupina -> necham stav
+        LivePlaylist.activeGroupKey = key
+        LivePlaylist.channels = filtered
+        liveChannelsState.value = filtered
+        liveUuids = filtered.map { it.uuid }
+        liveNames = filtered.map { it.name }
+        val ni = liveUuids.indexOf(liveUuidState.value)
+        liveIndex = if (ni >= 0) ni else 0     // ak aktualny kanal nie je v skupine, CH+/- zacne od 0
+        liveIndexState.value = liveIndex
+        navChannelIndexState.value = liveIndex
+        activeGroupLabelState.value = groupLabelFor(key)
+    }
+
+    /** Prepne na susednu skupinu (dir +1 / -1). */
+    private fun cycleGroup(dir: Int) {
+        val keys = groupKeys()
+        if (keys.size < 2) return
+        val cur = keys.indexOf(LivePlaylist.activeGroupKey).coerceAtLeast(0)
+        val next = ((cur + dir) % keys.size + keys.size) % keys.size
+        applyGroup(keys[next])
+    }
+
     /** M262 — prepnutie pocas zobrazenej PIN vyzvy: zrusi vyzvu zamknuteho kanala
      *  (bez ukoncenia prehravaca) a prepne na susedny relativne k blokovanemu kanalu.
      *  switchToIndex znova vyhodnoti zamok: volny kanal -> hra, dalsi zamknuty -> opat PIN. */
@@ -1436,11 +1490,15 @@ class PlayerActivity : ComponentActivity() {
 
     private fun openChannelList() {
         if (liveUuids.size < 2) return
+        groupPickerState.value = false
+        activeGroupLabelState.value =
+            if (groupKeys().size > 1) groupLabelFor(LivePlaylist.activeGroupKey) else ""
         navChannelIndexState.value = liveIndex.coerceAtLeast(0)
         channelListOpenedAt = android.os.SystemClock.uptimeMillis()
         openChannelListState.value = openChannelListState.value + 1
     }
     private fun closeChannelList() {
+        groupPickerState.value = false
         closeChannelListState.value = closeChannelListState.value + 1
     }
     private fun closeOptions() {
@@ -1758,6 +1816,28 @@ class PlayerActivity : ComponentActivity() {
             val isOk = kc == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
                 kc == android.view.KeyEvent.KEYCODE_ENTER ||
                 kc == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
+            // M369: fokus na pilulke skupiny (nad zoznamom) — VLAVO/VPRAVO meni skupinu,
+            // DOLE/OK naspat do zoznamu, HORE nic, BACK zavrie pilulku.
+            if (groupPickerState.value) {
+                if (down) {
+                    when (kc) {
+                        android.view.KeyEvent.KEYCODE_DPAD_LEFT -> { cycleGroup(-1); return true }
+                        android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> { cycleGroup(+1); return true }
+                        android.view.KeyEvent.KEYCODE_DPAD_DOWN,
+                        android.view.KeyEvent.KEYCODE_DPAD_CENTER,
+                        android.view.KeyEvent.KEYCODE_ENTER,
+                        android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> { groupPickerState.value = false; return true }
+                        android.view.KeyEvent.KEYCODE_DPAD_UP -> return true
+                        android.view.KeyEvent.KEYCODE_BACK -> { groupPickerState.value = false; return true }
+                    }
+                }
+                when (kc) {
+                    android.view.KeyEvent.KEYCODE_VOLUME_UP,
+                    android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
+                    android.view.KeyEvent.KEYCODE_VOLUME_MUTE -> return super.dispatchKeyEvent(event)
+                }
+                return true
+            }
             if (isOk) {
                 // pocas drzania otvaracieho OK (a jeho opakovani) nereaguj
                 if (okLongFired) return true
@@ -1784,8 +1864,15 @@ class PlayerActivity : ComponentActivity() {
             }
             if (down && n > 0) {
                 when (kc) {
-                    android.view.KeyEvent.KEYCODE_DPAD_UP ->
-                        { navChannelIndexState.value = (navChannelIndexState.value - 1 + n) % n; return true }
+                    android.view.KeyEvent.KEYCODE_DPAD_UP -> {
+                        // z vrchu zoznamu HORE -> fokus na pilulku skupiny (ak su nejake skupiny)
+                        if (navChannelIndexState.value == 0 && groupKeys().size > 1) {
+                            groupPickerState.value = true
+                        } else {
+                            navChannelIndexState.value = (navChannelIndexState.value - 1 + n) % n
+                        }
+                        return true
+                    }
                     android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
                         { navChannelIndexState.value = (navChannelIndexState.value + 1) % n; return true }
                     android.view.KeyEvent.KEYCODE_DPAD_LEFT ->
@@ -2526,6 +2613,8 @@ class PlayerActivity : ComponentActivity() {
                 onOpenSleep = { openSleepMenu() },
                 playing = isPlayingState.value,
                 channelNavIndex = navChannelIndexState.value,
+                channelGroupLabel = activeGroupLabelState.value,
+                channelGroupPicker = groupPickerState.value,
                 openListSignal = openChannelListState.value,
                 closeListSignal = closeChannelListState.value,
                 onTrackMenuChange = { kind ->
@@ -3550,6 +3639,8 @@ private fun PlayerUi(
     onOpenSleep: () -> Unit = {},
     playing: Boolean = true,
     channelNavIndex: Int = -1,
+    channelGroupLabel: String = "",
+    channelGroupPicker: Boolean = false,
     openListSignal: Int = 0,
     closeListSignal: Int = 0,
     onTrackMenuChange: (String?) -> Unit = {},
@@ -5113,6 +5204,39 @@ private fun PlayerUi(
                         modifier = Modifier.fillMaxHeight().fillMaxWidth(0.46f)
                             .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
+                        // M369: pilulka filtra skupiny (HORE z vrchu zoznamu -> sem, VLAVO/VPRAVO meni skupinu)
+                        if (channelGroupLabel.isNotEmpty()) {
+                            Row(
+                                Modifier
+                                    .padding(bottom = 6.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(if (channelGroupPicker) selTintC else cardC)
+                                    .then(
+                                        if (channelGroupPicker)
+                                            Modifier.border(2.dp, accentC, RoundedCornerShape(16.dp))
+                                        else Modifier
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (channelGroupPicker) {
+                                    Text("\u2039", color = accentC, fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold)
+                                    Spacer(Modifier.width(8.dp))
+                                }
+                                Text(
+                                    channelGroupLabel,
+                                    color = playerFg(),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                if (channelGroupPicker) {
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("\u203A", color = accentC, fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
                         pageItemsT.forEachIndexed { localIdx, ch ->
                             val idx = pageStartT + localIdx
                             val selRow = idx == selT

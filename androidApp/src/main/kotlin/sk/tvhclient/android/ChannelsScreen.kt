@@ -143,7 +143,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
         (state as? ChannelsState.Loaded)?.let { st ->
             val nowS = System.currentTimeMillis() / 1000
             val hidden = HiddenChannels.all(ctx, srv?.id)
-            LivePlaylist.channels = st.allRows.filter { it.channel.uuid !in hidden }.map { r ->
+            val full = st.allRows.filter { it.channel.uuid !in hidden }.map { r ->
                 val (nt, ns, ne) = currentNow(r, epgMap[r.channel.uuid], nowS)
                 val nx = epgMap[r.channel.uuid]?.firstOrNull { it.start >= (if (ne > 0) ne else nowS) }
                 LivePlaylist.LiveChannel(
@@ -159,6 +159,12 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                     nextStop = nx?.stop ?: 0
                 )
             }
+            val grps = st.categories.mapNotNull { cat ->
+                val t = cat.tag ?: return@mapNotNull null
+                val u = cat.rows.map { it.channel.uuid }.filter { it !in hidden }.toSet()
+                if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
+            }
+            LivePlaylist.setChannels(full, grps)
         }
     }
 

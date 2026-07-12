@@ -257,13 +257,19 @@ private fun TvHomeHost() {
             if (st is ChannelsState.Loaded) {
                 val sid = sk.tvhclient.shared.Tvh.store.active()?.id
                 val hidden = HiddenChannels.all(ctx, sid)
-                LivePlaylist.channels = st.allRows.filter { it.channel.uuid !in hidden }.map { r ->
+                val full = st.allRows.filter { it.channel.uuid !in hidden }.map { r ->
                     LivePlaylist.LiveChannel(
                         uuid = r.channel.uuid, name = r.channel.name,
                         number = r.channel.number ?: 0, piconUrl = r.piconUrl,
                         nowTitle = r.nowTitle ?: "", nowStart = r.nowStart, nowStop = r.nowStop
                     )
                 }
+                val grps = st.categories.mapNotNull { cat ->
+                    val t = cat.tag ?: return@mapNotNull null
+                    val u = cat.rows.map { it.channel.uuid }.filter { it !in hidden }.toSet()
+                    if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
+                }
+                LivePlaylist.setChannels(full, grps)
                 val target = LastChannel.get(ctx, sid)
                     ?.takeIf { u -> LivePlaylist.channels.any { it.uuid == u } }
                     ?: LivePlaylist.channels.firstOrNull()?.uuid
@@ -283,13 +289,13 @@ private fun TvHomeHost() {
             val st = raState
             if (st is RadioState.Loaded) {
                 val sid = sk.tvhclient.shared.Tvh.store.active()?.id
-                LivePlaylist.channels = st.rows.map { r ->
+                LivePlaylist.setChannels(st.rows.map { r ->
                     LivePlaylist.LiveChannel(
                         uuid = r.channel.uuid, name = r.channel.name,
                         number = r.channel.number ?: 0, piconUrl = r.piconUrl,
                         nowTitle = r.nowTitle ?: "", nowStart = r.nowStart, nowStop = r.nowStop
                     )
-                }
+                }, emptyList())
                 val target = LastRadio.get(ctx, sid)
                     ?.takeIf { u -> LivePlaylist.channels.any { it.uuid == u } }
                     ?: LivePlaylist.channels.firstOrNull()?.uuid
@@ -341,13 +347,19 @@ private fun TvHomeHost() {
                             (chState as? ChannelsState.Loaded)?.let { st ->
                                 val sid2 = sk.tvhclient.shared.Tvh.store.active()?.id
                                 val hidden = HiddenChannels.all(ctx, sid2)
-                                LivePlaylist.channels = st.allRows.filter { it.channel.uuid !in hidden }.map { r ->
+                                val full = st.allRows.filter { it.channel.uuid !in hidden }.map { r ->
                                     LivePlaylist.LiveChannel(
                                         uuid = r.channel.uuid, name = r.channel.name,
                                         number = r.channel.number ?: 0, piconUrl = r.piconUrl,
                                         nowTitle = r.nowTitle ?: "", nowStart = r.nowStart, nowStop = r.nowStop
                                     )
                                 }
+                                val grps = st.categories.mapNotNull { cat ->
+                                    val t = cat.tag ?: return@mapNotNull null
+                                    val u = cat.rows.map { it.channel.uuid }.filter { it !in hidden }.toSet()
+                                    if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
+                                }
+                                LivePlaylist.setChannels(full, grps)
                             }
                             LivePlaylist.setIndexForUuid(uuid)
                             playUuid(uuid, title)

@@ -22,6 +22,30 @@ object LivePlaylist {
     @Volatile
     var channels: List<LiveChannel> = emptyList()
 
+    // M369: plny (needlefiltrovany podla skupiny) zoznam + skupiny/tagy pre filter.
+    // 'channels' je aktualne zobrazena podmnozina; 'allChannels' je vzdy cely zoznam,
+    // z ktoreho sa pri zmene skupiny prestavuje. Skupiny su len tagy; Vsetky/Oblubene
+    // su implicitne (Oblubene sa citaju dynamicky z Favorites v prehravaci).
+    data class Group(val key: String, val label: String, val uuids: Set<String>)
+
+    const val GROUP_ALL = ""
+    const val GROUP_FAV = "\u0000fav"
+
+    @Volatile
+    var allChannels: List<LiveChannel> = emptyList()
+    @Volatile
+    var groups: List<Group> = emptyList()
+    @Volatile
+    var activeGroupKey: String = GROUP_ALL
+
+    /** Naplni zoznam aj skupiny a resetuje filter na Vsetky. */
+    fun setChannels(full: List<LiveChannel>, grps: List<Group>) {
+        allChannels = full
+        groups = grps
+        activeGroupKey = GROUP_ALL
+        channels = full
+    }
+
     // M271: procesova cache EPG (uuid -> relacie) + cas poslednej uspesnej obnovy.
     // Prezije zatvorenie/otvorenie prehravaca, takze sa nesťahuje znova pri kazdom otvoreni.
     @Volatile
