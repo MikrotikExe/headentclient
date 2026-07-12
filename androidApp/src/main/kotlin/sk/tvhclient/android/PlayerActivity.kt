@@ -780,13 +780,17 @@ class PlayerActivity : ComponentActivity() {
                     Tvh.fetchEpgUpcoming(srv)
                 }
                 if (map.isNotEmpty()) epgUpcomingState.value = map
-                val updated = cur.map { ch ->
+                val enrichHtsp: (LivePlaylist.LiveChannel) -> LivePlaylist.LiveChannel = { ch ->
                     val ev = map[ch.uuid]?.firstOrNull { it.start <= nowS && nowS < it.stop }
                     val b = if (ev != null) ch.copy(nowTitle = ev.title, nowStart = ev.start, nowStop = ev.stop) else ch
                     b.copy(recording = (b.uuid in recMap || b.name in recMap))
                 }
+                val updated = cur.map(enrichHtsp)
                 liveChannelsState.value = updated
                 LivePlaylist.channels = updated
+                // M370-fix3: obohat aj cely zoznam, nech prepnutie tagu nestrati EPG v zozname
+                if (LivePlaylist.allChannels.isNotEmpty())
+                    LivePlaylist.allChannels = LivePlaylist.allChannels.map(enrichHtsp)
             } else {
                 // HTTP: now/next je v dumpe kanalov -> nacitaj nanovo
                 val rows = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
@@ -799,7 +803,7 @@ class PlayerActivity : ComponentActivity() {
                         api.close()
                     }
                 }
-                val updated = cur.map { ch ->
+                val enrichHttp: (LivePlaylist.LiveChannel) -> LivePlaylist.LiveChannel = { ch ->
                     val r = rows[ch.uuid]
                     val b = if (r != null) ch.copy(
                         nowTitle = r.nowTitle ?: "",
@@ -808,8 +812,12 @@ class PlayerActivity : ComponentActivity() {
                     ) else ch
                     b.copy(recording = (b.uuid in recMap || b.name in recMap))
                 }
+                val updated = cur.map(enrichHttp)
                 liveChannelsState.value = updated
                 LivePlaylist.channels = updated
+                // M370-fix3: obohat aj cely zoznam, nech prepnutie tagu nestrati EPG v zozname
+                if (LivePlaylist.allChannels.isNotEmpty())
+                    LivePlaylist.allChannels = LivePlaylist.allChannels.map(enrichHttp)
             }
             epgLastOkMs = System.currentTimeMillis()
             // M271: zapis do procesovej cache, nech reopen prehravaca nesťahuje znova
@@ -871,6 +879,10 @@ class PlayerActivity : ComponentActivity() {
                 val updated = cur.map { it.copy(recording = (it.uuid in recMap || it.name in recMap)) }
                 liveChannelsState.value = updated
                 LivePlaylist.channels = updated
+                if (LivePlaylist.allChannels.isNotEmpty())
+                    LivePlaylist.allChannels = LivePlaylist.allChannels.map {
+                        it.copy(recording = (it.uuid in recMap || it.name in recMap))
+                    }
             }
         }
     }
