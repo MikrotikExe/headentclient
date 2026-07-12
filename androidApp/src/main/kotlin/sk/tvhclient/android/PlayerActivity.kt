@@ -5186,6 +5186,37 @@ private fun PlayerUi(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(dateStr, color = playerFgDim(), style = MaterialTheme.typography.titleMedium)
+                    // M369b: pilulka filtra skupiny v hornom pruhu (neukrojuje vysku zoznamu)
+                    if (channelGroupLabel.isNotEmpty()) {
+                        Spacer(Modifier.width(14.dp))
+                        Row(
+                            Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(if (channelGroupPicker) selTintC else cardC)
+                                .then(
+                                    if (channelGroupPicker)
+                                        Modifier.border(2.dp, accentC, RoundedCornerShape(16.dp))
+                                    else Modifier
+                                )
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (channelGroupPicker) {
+                                Text("\u2039", color = accentC, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.width(8.dp))
+                            }
+                            Text(
+                                channelGroupLabel,
+                                color = playerFg(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            if (channelGroupPicker) {
+                                Spacer(Modifier.width(8.dp))
+                                Text("\u203A", color = accentC, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                     Spacer(Modifier.weight(1f))
                     if (epgLoading) {
                         androidx.compose.material3.CircularProgressIndicator(
@@ -5204,39 +5235,6 @@ private fun PlayerUi(
                         modifier = Modifier.fillMaxHeight().fillMaxWidth(0.46f)
                             .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
-                        // M369: pilulka filtra skupiny (HORE z vrchu zoznamu -> sem, VLAVO/VPRAVO meni skupinu)
-                        if (channelGroupLabel.isNotEmpty()) {
-                            Row(
-                                Modifier
-                                    .padding(bottom = 6.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(if (channelGroupPicker) selTintC else cardC)
-                                    .then(
-                                        if (channelGroupPicker)
-                                            Modifier.border(2.dp, accentC, RoundedCornerShape(16.dp))
-                                        else Modifier
-                                    )
-                                    .padding(horizontal = 12.dp, vertical = 7.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                if (channelGroupPicker) {
-                                    Text("\u2039", color = accentC, fontSize = 18.sp,
-                                        fontWeight = FontWeight.Bold)
-                                    Spacer(Modifier.width(8.dp))
-                                }
-                                Text(
-                                    channelGroupLabel,
-                                    color = playerFg(),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                if (channelGroupPicker) {
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("\u203A", color = accentC, fontSize = 18.sp,
-                                        fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
                         pageItemsT.forEachIndexed { localIdx, ch ->
                             val idx = pageStartT + localIdx
                             val selRow = idx == selT
