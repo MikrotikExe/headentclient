@@ -1183,8 +1183,19 @@ class PlayerActivity : ComponentActivity() {
             LivePlaylist.GROUP_FAV -> if (srvId != null) Favorites.all(this, srvId) else emptySet()
             else -> LivePlaylist.groups.firstOrNull { it.key == key }?.uuids ?: return
         }
-        val filtered = if (allow == null) all else all.filter { it.uuid in allow }
-        if (filtered.isEmpty()) return   // prazdna skupina -> necham stav
+        val filteredRaw = if (allow == null) all else all.filter { it.uuid in allow }
+        if (filteredRaw.isEmpty()) return   // prazdna skupina -> necham stav
+        // Dopln "teraz" z procesovej EPG cache — nech prepnutie tagu nikdy nestrati program,
+        // aj keby allChannels este nebol obohateny.
+        val nowSec = System.currentTimeMillis() / 1000
+        val epg = epgUpcomingState.value
+        val filtered = filteredRaw.map { ch ->
+            if (ch.nowTitle.isNotBlank()) ch
+            else {
+                val ev = epg[ch.uuid]?.firstOrNull { it.start <= nowSec && nowSec < it.stop }
+                if (ev != null) ch.copy(nowTitle = ev.title, nowStart = ev.start, nowStop = ev.stop) else ch
+            }
+        }
         LivePlaylist.activeGroupKey = key
         LivePlaylist.channels = filtered
         liveChannelsState.value = filtered
