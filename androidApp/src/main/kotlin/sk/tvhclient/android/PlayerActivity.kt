@@ -1207,11 +1207,24 @@ class PlayerActivity : ComponentActivity() {
         searchFieldFocusedState.value = true
         searchActiveState.value = true
         searchFocusSignalState.value = searchFocusSignalState.value + 1
+        // Immersive okno prehravaca inak systemovu klavesnicu nepusti — vynutime ju.
+        runCatching {
+            window.setSoftInputMode(
+                android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE or
+                    android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+            )
+            androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
+                .show(androidx.core.view.WindowInsetsCompat.Type.ime())
+        }
     }
     private fun closeSearch() {
         searchActiveState.value = false
         searchFieldFocusedState.value = true
         searchQueryState.value = ""
+        runCatching {
+            androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
+                .hide(androidx.core.view.WindowInsetsCompat.Type.ime())
+        }
     }
     /** Vyber kanala z vysledkov hladania: prepne (aj skupinu ak treba) a pusti. */
     private fun selectLiveByUuid(uuid: String) {
@@ -5249,9 +5262,12 @@ private fun PlayerUi(
             val pageItemsT = liveChannels.drop(pageStartT).take(pageSizeT)
             // pravy panel (EPG, nahlad, relacie) sleduje HRANY kanal — meni sa az po prepnuti (OK)
             val detT = liveCurrentIndex.coerceIn(0, liveChannels.size - 1)
+            val detUuid = liveChannels.getOrNull(detT)?.uuid
             var epgT by remember { mutableStateOf<List<sk.tvhclient.shared.model.EpgEvent>>(emptyList()) }
-            LaunchedEffect(detT) {
-                val uuid = liveChannels.getOrNull(detT)?.uuid ?: return@LaunchedEffect
+            // M370-fix: kluc na UUID (nie index) — pri zmene tagu ostava rovnaky kanal,
+            // takze sa EPG zbytocne nenacitava znova.
+            LaunchedEffect(detUuid) {
+                val uuid = detUuid ?: return@LaunchedEffect
                 epgT = emptyList()
                 onLoadChannelEpg(uuid) { list -> epgT = list }
             }
@@ -5270,8 +5286,13 @@ private fun PlayerUi(
             val scrimC = playerScrim()
             // M370: fokus pre textove pole hladania (ziadame pri otvoreni/navrate na pole)
             val searchFocus = remember { androidx.compose.ui.focus.FocusRequester() }
+            val keyboardCtrl = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
             LaunchedEffect(searchFocusSignal, searchFieldFocused, searchActive) {
-                if (searchActive && searchFieldFocused) runCatching { searchFocus.requestFocus() }
+                if (searchActive && searchFieldFocused) {
+                    runCatching { searchFocus.requestFocus() }
+                    kotlinx.coroutines.delay(60)
+                    runCatching { keyboardCtrl?.show() }
+                }
             }
             Column(
                 Modifier
