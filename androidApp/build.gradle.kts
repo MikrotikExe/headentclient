@@ -13,9 +13,8 @@ android {
     namespace = "sk.tvhclient.android"
     compileSdk = 35
 
-    // NDK je potrebne, aby AGP vedel vytiahnut natívne debug symboly z libVLC
-    // .so (objcopy). Verzia musi byt v CI nainstalovana (viz workflow).
-    ndkVersion = "27.0.12077973"
+    // M374: ndkVersion odstranena — NDK bol potrebny len na extrakciu
+    // natívnych debug symbolov (vypnute nizsie), inak ho build nepotrebuje.
 
     // Podpis pre Play: kluc sa cita z keystore.properties (nie je v gite).
     // Ak subor chyba (napr. CI debug build), release sa proste nepodpise.
@@ -82,13 +81,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Natívne debug symboly libVLC do App Bundle. libVLC .so su
-            // prebuildene a strippnute (bez DWARF), takze FULL by nemal co
-            // vytiahnut -> pouzivame SYMBOL_TABLE (tabulka symbolov), co Play
-            // staci na zrusenie upozornenia o chybajucich symboloch.
-            ndk {
-                debugSymbolLevel = "SYMBOL_TABLE"
-            }
+            // M374: natívne debug symboly vypnuté — na Play sme ich nikdy
+            // nenahravali a extrakcia z ~200MB libVLC .so len zdrzuje CI build.
+            // Play ukaze upozornenie o chybajucich symboloch; funkcnost bez vplyvu.
+            // (Navrat: ndk { debugSymbolLevel = "SYMBOL_TABLE" })
             // Play: vlastny kluc ak je keystore.properties; inak (CI test) debug
             // podpis, nech je release APK instalovatelny na otestovanie R8.
             signingConfig = if (keystorePropsFile.exists()) {
