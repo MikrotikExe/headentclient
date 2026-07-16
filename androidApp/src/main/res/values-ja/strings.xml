@@ -334,11 +334,6 @@
     <string name="picon_bg_desc">「既定」は現在の色を維持、「透明」はロゴをそのまま表示します。</string>
     <string name="picon_bg_default">既定</string>
     <string name="picon_bg_transparent">透明</string>
-    <string name="decoder_color_fix">デコーダーの色補正</string>
-    <string name="decoder_color_fix_desc">色がおかしい場合（青/オレンジ）にオンにします。デコードはハードウェアのままです。</string>
-    <string name="decoder_fix_off">オフ</string>
-    <string name="decoder_fix_jni">別のHW経路（滑らか）</string>
-    <string name="decoder_fix_nodr">コピー経路（確実・高負荷）</string>
     <string name="afr_hdr_switch">HDR切り替えを許可</string>
     <string name="afr_hdr_switch_desc">オフ：リフレッシュレートはシームレスな場合のみ変更（HDMI再同期やHDR切替なし）。</string>
 </resources>

@@ -334,11 +334,6 @@
     <string name="picon_bg_desc">Zadano zadržava trenutnu boju; prozirno prikazuje logo izravno.</string>
     <string name="picon_bg_default">Zadano</string>
     <string name="picon_bg_transparent">Prozirno</string>
-    <string name="decoder_color_fix">Ispravak boja dekodera</string>
-    <string name="decoder_color_fix_desc">Uključi ako boje izgledaju pogrešno (plavo/narančasto). Dekodiranje ostaje hardversko.</string>
-    <string name="decoder_fix_off">Isključeno</string>
-    <string name="decoder_fix_jni">Alternativni HW put (glatko)</string>
-    <string name="decoder_fix_nodr">Put kopiranja (pouzdan, zahtjevniji)</string>
     <string name="afr_hdr_switch">Dopusti prebacivanje u HDR</string>
     <string name="afr_hdr_switch_desc">Isključeno: frekvencija se mijenja samo besprijekorno (bez HDMI re-synca i HDR-a).</string>
 </resources>

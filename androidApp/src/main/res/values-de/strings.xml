@@ -334,11 +334,6 @@
     <string name="picon_bg_desc">Standard behält die aktuelle Farbe; transparent zeigt das Logo direkt.</string>
     <string name="picon_bg_default">Standard</string>
     <string name="picon_bg_transparent">Transparent</string>
-    <string name="decoder_color_fix">Decoder-Farbkorrektur</string>
-    <string name="decoder_color_fix_desc">Einschalten, wenn Farben falsch wirken (blau/orange). Dekodierung bleibt hardwarebasiert.</string>
-    <string name="decoder_fix_off">Aus</string>
-    <string name="decoder_fix_jni">Alternativer HW-Pfad (flüssig)</string>
-    <string name="decoder_fix_nodr">Kopierpfad (zuverlässig, aufwendiger)</string>
     <string name="afr_hdr_switch">HDR-Umschaltung erlauben</string>
     <string name="afr_hdr_switch_desc">Aus: Bildrate ändert sich nur nahtlos (kein HDMI-Re-Sync, kein HDR-Wechsel).</string>
 </resources>

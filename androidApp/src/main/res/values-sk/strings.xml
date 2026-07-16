@@ -334,11 +334,6 @@
     <string name="picon_bg_desc">Predvolené necháva súčasnú farbu; priehľadné zobrazí logo priamo.</string>
     <string name="picon_bg_default">Predvolené</string>
     <string name="picon_bg_transparent">Priehľadné</string>
-    <string name="decoder_color_fix">Oprava farieb dekodéra</string>
-    <string name="decoder_color_fix_desc">Zapni, ak farby vyzerajú zle (modro-oranžové). Dekódovanie ostáva hardvérové.</string>
-    <string name="decoder_fix_off">Vypnuté</string>
-    <string name="decoder_fix_jni">Alternatívna HW cesta (plynulá)</string>
-    <string name="decoder_fix_nodr">Kopírovacia cesta (spoľahlivá, náročnejšia)</string>
     <string name="afr_hdr_switch">Povoliť prepnutie do HDR</string>
     <string name="afr_hdr_switch_desc">Vypnuté: frekvencia sa mení len plynulo (bez HDMI re-syncu a prepnutia do HDR).</string>
 </resources>

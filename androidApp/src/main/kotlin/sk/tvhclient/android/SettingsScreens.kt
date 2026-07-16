@@ -688,33 +688,6 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
             TabController.settingsDirty.value = true
         }
     )
-    SettingsGroupDivider()
-    // Oprava farieb dekodera — pre boxy, kde ma HW dekoder prehodene farby
-    // (modro-oranzovy obraz). Dve varianty, lebo rozne cipsety znesu rozne cesty.
-    var colorFix by remember { mutableStateOf(DecoderColorFixPref.get(ctx)) }
-    val colorFixLabel: @Composable (String) -> String = { v ->
-        when (v) {
-            DecoderColorFixPref.JNI -> stringResource(R.string.decoder_fix_jni)
-            DecoderColorFixPref.NODR -> stringResource(R.string.decoder_fix_nodr)
-            else -> stringResource(R.string.decoder_fix_off)
-        }
-    }
-    DropdownField(
-        label = stringResource(R.string.decoder_color_fix),
-        value = colorFix,
-        options = DecoderColorFixPref.options,
-        optionLabel = colorFixLabel,
-        onSelect = { v ->
-            colorFix = v
-            DecoderColorFixPref.set(ctx, v)
-            TabController.settingsDirty.value = true
-        }
-    )
-    Text(
-        stringResource(R.string.decoder_color_fix_desc),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
 
     // Zvukovy vystup — riesi rozchadzajuci sa / oneskoreny zvuk. PASSTHROUGH
     // (priamy prenos) posiela zvuk priamo do TV/AVR (zarovna sync na niektorych boxoch).

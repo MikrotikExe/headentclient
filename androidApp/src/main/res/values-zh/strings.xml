@@ -334,11 +334,6 @@
     <string name="picon_bg_desc">“默认”保留当前颜色；“透明”直接显示台标。</string>
     <string name="picon_bg_default">默认</string>
     <string name="picon_bg_transparent">透明</string>
-    <string name="decoder_color_fix">解码器颜色修正</string>
-    <string name="decoder_color_fix_desc">若颜色异常（偏蓝/偏橙）请开启。解码仍为硬件解码。</string>
-    <string name="decoder_fix_off">关闭</string>
-    <string name="decoder_fix_jni">备用硬件路径（流畅）</string>
-    <string name="decoder_fix_nodr">复制路径（可靠、负载更高）</string>
     <string name="afr_hdr_switch">允许切换到 HDR</string>
     <string name="afr_hdr_switch_desc">关闭：刷新率仅无缝更改（无 HDMI 重新同步，不切换 HDR）。</string>
 </resources>

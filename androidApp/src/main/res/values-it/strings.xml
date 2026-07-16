@@ -334,11 +334,6 @@
     <string name="picon_bg_desc">Predefinito mantiene il colore attuale; trasparente mostra il logo direttamente.</string>
     <string name="picon_bg_default">Predefinito</string>
     <string name="picon_bg_transparent">Trasparente</string>
-    <string name="decoder_color_fix">Correzione colori del decoder</string>
-    <string name="decoder_color_fix_desc">Attiva se i colori sembrano sbagliati (blu/arancio). La decodifica resta hardware.</string>
-    <string name="decoder_fix_off">Disattivato</string>
-    <string name="decoder_fix_jni">Percorso HW alternativo (fluido)</string>
-    <string name="decoder_fix_nodr">Percorso di copia (affidabile, più pesante)</string>
     <string name="afr_hdr_switch">Consenti passaggio a HDR</string>
     <string name="afr_hdr_switch_desc">Disattivato: la frequenza cambia solo senza interruzioni (niente re-sync HDMI né HDR).</string>
 </resources>

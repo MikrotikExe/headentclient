@@ -334,11 +334,6 @@
     <string name="picon_bg_desc">Domyślne zachowuje bieżący kolor; przezroczyste pokazuje logo bezpośrednio.</string>
     <string name="picon_bg_default">Domyślne</string>
     <string name="picon_bg_transparent">Przezroczyste</string>
-    <string name="decoder_color_fix">Korekta kolorów dekodera</string>
-    <string name="decoder_color_fix_desc">Włącz, jeśli kolory wyglądają źle (niebieski/pomarańczowy). Dekodowanie pozostaje sprzętowe.</string>
-    <string name="decoder_fix_off">Wyłączone</string>
-    <string name="decoder_fix_jni">Alternatywna ścieżka HW (płynna)</string>
-    <string name="decoder_fix_nodr">Ścieżka kopiująca (niezawodna, cięższa)</string>
     <string name="afr_hdr_switch">Zezwól na przełączanie HDR</string>
     <string name="afr_hdr_switch_desc">Wył.: częstotliwość zmienia się tylko płynnie (bez re-synca HDMI i HDR).</string>
 </resources>

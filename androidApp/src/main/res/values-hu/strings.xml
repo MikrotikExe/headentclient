@@ -334,11 +334,6 @@
     <string name="picon_bg_desc">Az alapértelmezett megtartja a jelenlegi színt; az átlátszó közvetlenül mutatja a logót.</string>
     <string name="picon_bg_default">Alapértelmezett</string>
     <string name="picon_bg_transparent">Átlátszó</string>
-    <string name="decoder_color_fix">Dekóder színjavítás</string>
-    <string name="decoder_color_fix_desc">Kapcsold be, ha a színek rossznak tűnnek (kék/narancs). A dekódolás hardveres marad.</string>
-    <string name="decoder_fix_off">Ki</string>
-    <string name="decoder_fix_jni">Alternatív HW útvonal (folyékony)</string>
-    <string name="decoder_fix_nodr">Másolási útvonal (megbízható, nehezebb)</string>
     <string name="afr_hdr_switch">HDR-váltás engedélyezése</string>
     <string name="afr_hdr_switch_desc">Ki: a frissítés csak zökkenőmentesen vált (nincs HDMI újraszinkron és HDR-váltás).</string>
 </resources>

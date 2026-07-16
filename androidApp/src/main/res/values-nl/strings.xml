@@ -334,11 +334,6 @@
     <string name="picon_bg_desc">Standaard behoudt de huidige kleur; transparant toont het logo direct.</string>
     <string name="picon_bg_default">Standaard</string>
     <string name="picon_bg_transparent">Transparant</string>
-    <string name="decoder_color_fix">Kleurcorrectie decoder</string>
-    <string name="decoder_color_fix_desc">Inschakelen als kleuren fout lijken (blauw/oranje). Decodering blijft hardwarematig.</string>
-    <string name="decoder_fix_off">Uit</string>
-    <string name="decoder_fix_jni">Alternatief HW-pad (vloeiend)</string>
-    <string name="decoder_fix_nodr">Kopieerpad (betrouwbaar, zwaarder)</string>
     <string name="afr_hdr_switch">HDR-omschakeling toestaan</string>
     <string name="afr_hdr_switch_desc">Uit: verversing wijzigt alleen naadloos (geen HDMI-re-sync of HDR-wissel).</string>
 </resources>

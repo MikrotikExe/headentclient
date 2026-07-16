@@ -334,11 +334,6 @@
     <string name="picon_bg_desc">По подразбиране запазва текущия цвят; прозрачно показва логото директно.</string>
     <string name="picon_bg_default">По подразбиране</string>
     <string name="picon_bg_transparent">Прозрачно</string>
-    <string name="decoder_color_fix">Поправка на цветовете на декодера</string>
-    <string name="decoder_color_fix_desc">Включи, ако цветовете изглеждат грешни (синьо/оранжево). Декодирането остава хардуерно.</string>
-    <string name="decoder_fix_off">Изключено</string>
-    <string name="decoder_fix_jni">Алтернативен ХВ път (плавно)</string>
-    <string name="decoder_fix_nodr">Копиращ път (надежден, по-тежък)</string>
     <string name="afr_hdr_switch">Разрешаване на превключване към HDR</string>
     <string name="afr_hdr_switch_desc">Изкл.: честотата се сменя само плавно (без HDMI ресинхронизация и HDR).</string>
 </resources>

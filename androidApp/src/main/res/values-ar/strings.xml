@@ -334,11 +334,6 @@
     <string name="picon_bg_desc">الافتراضي يبقي اللون الحالي؛ الشفاف يعرض الشعار مباشرة.</string>
     <string name="picon_bg_default">افتراضي</string>
     <string name="picon_bg_transparent">شفاف</string>
-    <string name="decoder_color_fix">إصلاح ألوان وحدة فك الترميز</string>
-    <string name="decoder_color_fix_desc">شغّله إذا بدت الألوان خاطئة (أزرق/برتقالي). يبقى فك الترميز عتاديًا.</string>
-    <string name="decoder_fix_off">إيقاف</string>
-    <string name="decoder_fix_jni">مسار عتادي بديل (سلس)</string>
-    <string name="decoder_fix_nodr">مسار النسخ (موثوق، أثقل)</string>
     <string name="afr_hdr_switch">السماح بالتبديل إلى HDR</string>
     <string name="afr_hdr_switch_desc">إيقاف: تتغير سرعة التحديث بسلاسة فقط (دون إعادة مزامنة HDMI أو تبديل HDR).</string>
 </resources>
