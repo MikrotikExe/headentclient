@@ -401,7 +401,11 @@ private fun TvSelectDialog(
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit
 ) {
-    var sel by remember { mutableStateOf(options.indexOf(current).coerceAtLeast(0)) }
+    // M380-fix: index vyberu prepocitaj, ked sa zmeni zoznam moznosti — profily
+    // sa tahaju zo servera asynchronne, takze sa mozu vymenit pod otvorenym
+    // dialogom (fallback -> zoznam zo servera). Bez key(options) by kurzor
+    // ostal na starom indexe a ukazoval na iny profil.
+    var sel by remember(options) { mutableStateOf(options.indexOf(current).coerceAtLeast(0)) }
     val fr = remember { FocusRequester() }
     val listState = rememberLazyListState()
     LaunchedEffect(Unit) {
