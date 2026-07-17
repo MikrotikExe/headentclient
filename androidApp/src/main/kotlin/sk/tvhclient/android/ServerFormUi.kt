@@ -143,6 +143,18 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
         )
     }
 
+    // M380: profily sa tahaju zo servera automaticky — ziadne tlacidlo.
+    // Existujuci server (ma ulozene prihlasenie) sa nacita hned po otvoreni;
+    // novy hned ako su vyplnene adresa a prihlasenie. Debounce 800 ms, nech
+    // sa nestriela dotaz pri kazdom pismene. Zlyhanie = ticho, ostane fallback.
+    val serverProfiles by vm.profiles.collectAsState()
+    LaunchedEffect(Unit) { vm.clearProfiles() }
+    LaunchedEffect(host, port, username, password, useHttps, authMode, connMode) {
+        if (connMode == "htsp") return@LaunchedEffect
+        kotlinx.coroutines.delay(800)
+        buildServer()?.let { vm.loadProfiles(it) }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(title = {
@@ -222,10 +234,12 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                 DropdownField(
                     label = stringResource(R.string.field_profile),
                     value = profile,
-                    options = listOf(
-                        "pass", "mpegts", "matroska",
-                        "webtv-h264-aac-matroska", "webtv-h264-aac-mpegts"
-                    ),
+                    // M380: zoznam zo servera (vratane vlastnych transcode
+                    // profilov) tak, ako ho vratil; ak sa nenacital, fallback
+                    // na predvolene profily Tvheadendu (ChannelPrefs, M379).
+                    options = serverProfiles.ifEmpty {
+                        ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
+                    },
                     optionLabel = { it },
                     onSelect = { profile = it }
                 )

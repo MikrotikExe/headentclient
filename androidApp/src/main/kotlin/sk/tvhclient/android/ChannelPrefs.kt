@@ -30,13 +30,23 @@ object ChannelPrefs {
             .edit().putString(audKey(serverId, uuid), trackName).apply()
     }
 
-    /** Ponuka profilov (kod -> popis). "" = predvolený zo servera. */
+    /**
+     * Ponuka profilov (kod -> popis). "" = predvolený zo servera.
+     *
+     * M379: zoznam zodpoveda predvolenym stream profilom cisteho Tvheadend
+     * servera (Configuration -> Stream -> Stream Profiles). Predtym tu bol
+     * vymysleny "mpegts" (na servery neexistuje — MPEG-TS passthrough robi
+     * prave "pass") a chybali htsp, webtv-h264-vorbis-mp4 a webtv-vp8-vorbis-webm.
+     * Predvolba appky je "pass" (najvyssia kvalita, bez transkodovania).
+     */
     val profileOptions: List<Pair<String, String>> = listOf(
         "" to "—",
         "pass" to "pass",
-        "mpegts" to "mpegts",
+        "htsp" to "htsp",
         "matroska" to "matroska",
         "webtv-h264-aac-matroska" to "webtv-h264-aac-matroska",
-        "webtv-h264-aac-mpegts" to "webtv-h264-aac-mpegts"
+        "webtv-h264-aac-mpegts" to "webtv-h264-aac-mpegts",
+        "webtv-h264-vorbis-mp4" to "webtv-h264-vorbis-mp4",
+        "webtv-vp8-vorbis-webm" to "webtv-vp8-vorbis-webm"
     )
 }

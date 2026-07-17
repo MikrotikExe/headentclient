@@ -142,6 +142,23 @@ class TvhApi(private val server: TvhServer) {
             runCatching { decode<Channel>(it) }.getOrNull()
         }
 
+    /**
+     * M380: stream profily servera (api/profile/list). Vracia nazvy profilov
+     * v poradi zo servera — vratane vlastnych transcode profilov, takze appka
+     * uz nehada zoznam natvrdo. Odpoved ma tvar
+     * {"entries":[{"key":"<uuid>","val":"<nazov>"}, ...]}; beriem "val".
+     */
+    suspend fun streamProfiles(): List<String> =
+        (apiGet("api/profile/list")["entries"] as? JsonArray)
+            ?.mapNotNull { e ->
+                (e as? JsonObject)?.get("val")
+                    ?.let { it as? kotlinx.serialization.json.JsonPrimitive }
+                    ?.content
+            }
+            ?.filter { it.isNotBlank() }
+            ?.distinct()
+            ?: emptyList()
+
     suspend fun tags(): List<ChannelTag> =
         apiGetAll("api/channeltag/grid", pageLimit = 200).mapNotNull {
             runCatching { decode<ChannelTag>(it) }.getOrNull()

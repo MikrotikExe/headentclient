@@ -30,6 +30,24 @@ class ServersViewModel : ViewModel() {
     private val _testState = MutableStateFlow<TestState>(TestState.Idle)
     val testState: StateFlow<TestState> = _testState
 
+    /**
+     * M380: stream profily nacitane zo servera pre ponuku v nastaveniach.
+     * Prazdny zoznam = zatial nenacitane / server nedostupny -> formular
+     * pouzije predvoleny zoznam (ChannelPrefs.profileOptions).
+     */
+    private val _profiles = MutableStateFlow<List<String>>(emptyList())
+    val profiles: StateFlow<List<String>> = _profiles
+
+    /** Automaticke nacitanie profilov; chyby sa ignoruju (ostane fallback). */
+    fun loadProfiles(server: TvhServer) {
+        viewModelScope.launch {
+            val list = withContext(Dispatchers.IO) { Tvh.streamProfiles(server) }
+            if (list.isNotEmpty()) _profiles.value = list
+        }
+    }
+
+    fun clearProfiles() { _profiles.value = emptyList() }
+
     fun refresh() {
         _servers.value = store.list()
         _activeId.value = store.activeId

@@ -94,11 +94,20 @@ object Tvh {
     }
 
     /** Kanaly: HTSP alebo HTTP. */
-    suspend fun fetchChannels(server: TvhServer, api: TvhApi): List<sk.tvhclient.shared.model.Channel> =
-        if (server.connectionMode == "htsp")
+    suspend fun fetchChannels(server: TvhServer, api: TvhApi): List<sk.tvhclient.shared.model.Channel> =        if (server.connectionMode == "htsp")
             sk.tvhclient.shared.htsp.HtspData.channels(
                 sk.tvhclient.shared.htsp.HtspData.metadata(server, false, currentTimeSeconds()))
         else api.channels()
+
+    /**
+     * M380: stream profily servera pre ponuku v nastaveniach. Len HTTP API —
+     * v HTSP rezime sa profil nerieši, preto prazdny zoznam. Chyby (server
+     * nedostupny, stare API) nehadzeme vyssie: volajuci pouzije fallback.
+     */
+    suspend fun streamProfiles(server: TvhServer): List<String> {
+        if (server.connectionMode == "htsp") return emptyList()
+        return runCatching { TvhApi(server).streamProfiles() }.getOrDefault(emptyList())
+    }
 
     /** Dokoncene DVR: HTSP alebo HTTP. */
     suspend fun fetchDvrFinished(server: TvhServer, api: TvhApi): List<sk.tvhclient.shared.model.DvrEntry> =
