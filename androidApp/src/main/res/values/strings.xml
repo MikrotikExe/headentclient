@@ -31,6 +31,7 @@
     <string name="no_program">No programme</string>
     <string name="playback_error">Playback failed: %1$s</string>
     <string name="field_profile">Stream profile</string>
+    <string name="profile_note">Not every profile is guaranteed to play — it depends on the container and codecs. If unsure, use pass.</string>
     <string name="genre_film">Movie / Drama</string>
     <string name="genre_news">News</string>
     <string name="genre_show">Show / Entertainment</string>

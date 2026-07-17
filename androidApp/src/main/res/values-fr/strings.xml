@@ -31,6 +31,7 @@
     <string name="no_program">Aucun programme</string>
     <string name="playback_error">Échec de la lecture : %1$s</string>
     <string name="field_profile">Profil de flux</string>
+    <string name="profile_note">Tous les profils ne sont pas forcément lisibles : cela dépend du conteneur et des codecs. En cas de doute, utilisez pass.</string>
     <string name="genre_film">Film / Drame</string>
     <string name="genre_news">Informations</string>
     <string name="genre_show">Divertissement</string>

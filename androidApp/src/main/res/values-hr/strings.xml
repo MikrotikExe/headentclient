@@ -31,6 +31,7 @@
     <string name="no_program">Nema programa</string>
     <string name="playback_error">Reprodukcija nije uspjela: %1$s</string>
     <string name="field_profile">Profil streama</string>
+    <string name="profile_note">Ne može se svaki profil reproducirati — ovisi o spremniku i kodecima. Ako niste sigurni, koristite pass.</string>
     <string name="genre_film">Film / Drama</string>
     <string name="genre_news">Vijesti</string>
     <string name="genre_show">Show / Zabava</string>

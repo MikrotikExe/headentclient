@@ -31,6 +31,7 @@
     <string name="no_program">프로그램 없음</string>
     <string name="playback_error">재생 실패: %1$s</string>
     <string name="field_profile">스트림 프로필</string>
+    <string name="profile_note">모든 프로필이 재생되는 것은 아닙니다. 컨테이너와 코덱에 따라 다릅니다. 잘 모르겠으면 pass를 사용하세요.</string>
     <string name="genre_film">영화 / 드라마</string>
     <string name="genre_news">뉴스</string>
     <string name="genre_show">쇼 / 예능</string>

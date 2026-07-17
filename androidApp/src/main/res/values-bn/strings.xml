@@ -31,6 +31,7 @@
     <string name="no_program">কোনো অনুষ্ঠান নেই</string>
     <string name="playback_error">প্লেব্যাক ব্যর্থ: %1$s</string>
     <string name="field_profile">স্ট্রিম প্রোফাইল</string>
+    <string name="profile_note">সব প্রোফাইল চালানো নাও যেতে পারে — এটি কনটেইনার ও কোডেকের উপর নির্ভর করে। নিশ্চিত না হলে pass ব্যবহার করুন।</string>
     <string name="genre_film">চলচ্চিত্র / নাটক</string>
     <string name="genre_news">সংবাদ</string>
     <string name="genre_show">শো / বিনোদন</string>

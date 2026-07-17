@@ -31,6 +31,7 @@
     <string name="no_program">Δεν υπάρχει πρόγραμμα</string>
     <string name="playback_error">Αποτυχία αναπαραγωγής: %1$s</string>
     <string name="field_profile">Προφίλ ροής</string>
+    <string name="profile_note">Δεν αναπαράγονται όλα τα προφίλ — εξαρτάται από τον περιέκτη και τους κωδικοποιητές. Αν έχετε αμφιβολία, χρησιμοποιήστε pass.</string>
     <string name="genre_film">Ταινία / Δράμα</string>
     <string name="genre_news">Ειδήσεις</string>
     <string name="genre_show">Σόου / Ψυχαγωγία</string>

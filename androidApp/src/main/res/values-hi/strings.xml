@@ -31,6 +31,7 @@
     <string name="no_program">कोई कार्यक्रम नहीं</string>
     <string name="playback_error">प्लेबैक विफल: %1$s</string>
     <string name="field_profile">स्ट्रीम प्रोफ़ाइल</string>
+    <string name="profile_note">हर प्रोफ़ाइल चल पाएगी, यह ज़रूरी नहीं — यह कंटेनर और कोडेक पर निर्भर करता है। संदेह हो तो pass का उपयोग करें।</string>
     <string name="genre_film">फ़िल्म / नाटक</string>
     <string name="genre_news">समाचार</string>
     <string name="genre_show">शो / मनोरंजन</string>

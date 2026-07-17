@@ -31,6 +31,7 @@
     <string name="no_program">Không có chương trình</string>
     <string name="playback_error">Phát thất bại: %1$s</string>
     <string name="field_profile">Hồ sơ luồng</string>
+    <string name="profile_note">Không phải hồ sơ nào cũng phát được — điều này phụ thuộc vào vùng chứa và bộ giải mã. Nếu chưa chắc, hãy dùng pass.</string>
     <string name="genre_film">Phim / Chính kịch</string>
     <string name="genre_news">Tin tức</string>
     <string name="genre_show">Show / Giải trí</string>

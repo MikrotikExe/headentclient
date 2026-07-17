@@ -31,6 +31,7 @@
     <string name="no_program">Brak programu</string>
     <string name="playback_error">Odtwarzanie nie powiodło się: %1$s</string>
     <string name="field_profile">Profil strumienia</string>
+    <string name="profile_note">Nie każdy profil da się odtworzyć — zależy to od kontenera i kodeków. W razie wątpliwości użyj pass.</string>
     <string name="genre_film">Film / Dramat</string>
     <string name="genre_news">Wiadomości</string>
     <string name="genre_show">Show / Rozrywka</string>

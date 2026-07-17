@@ -31,6 +31,7 @@
     <string name="no_program">Sin programa</string>
     <string name="playback_error">Error de reproducción: %1$s</string>
     <string name="field_profile">Perfil de stream</string>
+    <string name="profile_note">No todos los perfiles se pueden reproducir: depende del contenedor y los códecs. Si tiene dudas, use pass.</string>
     <string name="genre_film">Película / Drama</string>
     <string name="genre_news">Noticias</string>
     <string name="genre_show">Espectáculo / Entretenimiento</string>

@@ -31,6 +31,7 @@
     <string name="no_program">Нет программы</string>
     <string name="playback_error">Ошибка воспроизведения: %1$s</string>
     <string name="field_profile">Профиль потока</string>
+    <string name="profile_note">Не каждый профиль воспроизводится — это зависит от контейнера и кодеков. Если сомневаетесь, используйте pass.</string>
     <string name="genre_film">Фильм / Драма</string>
     <string name="genre_news">Новости</string>
     <string name="genre_show">Шоу / Развлечения</string>

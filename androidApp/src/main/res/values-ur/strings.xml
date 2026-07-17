@@ -31,6 +31,7 @@
     <string name="no_program">کوئی پروگرام نہیں</string>
     <string name="playback_error">پلے بیک ناکام: %1$s</string>
     <string name="field_profile">اسٹریم پروفائل</string>
+    <string name="profile_note">ہر پروفائل چل نہیں سکتا — اس کا انحصار کنٹینر اور کوڈیکس پر ہے۔ اگر یقین نہ ہو تو pass استعمال کریں۔</string>
     <string name="genre_film">فلم / ڈرامہ</string>
     <string name="genre_news">خبریں</string>
     <string name="genre_show">شو / تفریح</string>

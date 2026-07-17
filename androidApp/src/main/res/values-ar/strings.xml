@@ -31,6 +31,7 @@
     <string name="no_program">لا يوجد برنامج</string>
     <string name="playback_error">فشل التشغيل: %1$s</string>
     <string name="field_profile">ملف تعريف البث</string>
+    <string name="profile_note">ليست كل ملفات التعريف قابلة للتشغيل — يعتمد ذلك على الحاوية وبرامج الترميز. إذا لم تكن متأكدًا، استخدم pass.</string>
     <string name="genre_film">فيلم / دراما</string>
     <string name="genre_news">أخبار</string>
     <string name="genre_show">برامج / ترفيه</string>

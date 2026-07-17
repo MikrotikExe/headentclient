@@ -31,6 +31,7 @@
     <string name="no_program">番組なし</string>
     <string name="playback_error">再生に失敗しました：%1$s</string>
     <string name="field_profile">ストリームプロファイル</string>
+    <string name="profile_note">すべてのプロファイルが再生できるとは限りません。コンテナーとコーデックに依存します。不明な場合は pass を使用してください。</string>
     <string name="genre_film">映画 / ドラマ</string>
     <string name="genre_news">ニュース</string>
     <string name="genre_show">ショー / エンタメ</string>

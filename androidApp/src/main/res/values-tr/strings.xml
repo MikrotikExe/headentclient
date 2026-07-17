@@ -31,6 +31,7 @@
     <string name="no_program">Program yok</string>
     <string name="playback_error">Oynatma başarısız: %1$s</string>
     <string name="field_profile">Akış profili</string>
+    <string name="profile_note">Her profil oynatılamayabilir — bu, kapsayıcıya ve kodeklere bağlıdır. Emin değilseniz pass kullanın.</string>
     <string name="genre_film">Film / Dram</string>
     <string name="genre_news">Haberler</string>
     <string name="genre_show">Şov / Eğlence</string>

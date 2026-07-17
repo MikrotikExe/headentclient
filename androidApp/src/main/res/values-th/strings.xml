@@ -31,6 +31,7 @@
     <string name="no_program">ไม่มีรายการ</string>
     <string name="playback_error">เล่นไม่สำเร็จ: %1$s</string>
     <string name="field_profile">โปรไฟล์สตรีม</string>
+    <string name="profile_note">ไม่ใช่ทุกโปรไฟล์จะเล่นได้ ขึ้นอยู่กับคอนเทนเนอร์และตัวถอดรหัส หากไม่แน่ใจ ให้ใช้ pass</string>
     <string name="genre_film">ภาพยนตร์ / ดราม่า</string>
     <string name="genre_news">ข่าว</string>
     <string name="genre_show">รายการ / บันเทิง</string>

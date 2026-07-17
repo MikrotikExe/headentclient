@@ -31,6 +31,7 @@
     <string name="no_program">Ni programa</string>
     <string name="playback_error">Predvajanje ni uspelo: %1$s</string>
     <string name="field_profile">Profil pretoka</string>
+    <string name="profile_note">Vsakega profila ni mogoče predvajati – odvisno je od vsebnika in kodekov. Če niste prepričani, uporabite pass.</string>
     <string name="genre_film">Film / Drama</string>
     <string name="genre_news">Novice</string>
     <string name="genre_show">Oddaja / Zabava</string>

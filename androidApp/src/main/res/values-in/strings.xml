@@ -31,6 +31,7 @@
     <string name="no_program">Tidak ada program</string>
     <string name="playback_error">Pemutaran gagal: %1$s</string>
     <string name="field_profile">Profil streaming</string>
+    <string name="profile_note">Tidak semua profil dapat diputar — tergantung kontainer dan kodeknya. Jika ragu, gunakan pass.</string>
     <string name="genre_film">Film / Drama</string>
     <string name="genre_news">Berita</string>
     <string name="genre_show">Acara / Hiburan</string>

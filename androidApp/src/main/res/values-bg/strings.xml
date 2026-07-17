@@ -31,6 +31,7 @@
     <string name="no_program">Няма програма</string>
     <string name="playback_error">Неуспешно възпроизвеждане: %1$s</string>
     <string name="field_profile">Профил на потока</string>
+    <string name="profile_note">Не всеки профил може да се възпроизведе — зависи от контейнера и кодеците. Ако не сте сигурни, използвайте pass.</string>
     <string name="genre_film">Филм / Драма</string>
     <string name="genre_news">Новини</string>
     <string name="genre_show">Шоу / Забавление</string>

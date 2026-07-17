@@ -31,6 +31,7 @@
     <string name="no_program">برنامه‌ای نیست</string>
     <string name="playback_error">پخش ناموفق بود: %1$s</string>
     <string name="field_profile">نمایه پخش جریانی</string>
+    <string name="profile_note">همهٔ نمایه‌ها لزوماً پخش نمی‌شوند — به ظرف و کدک‌ها بستگی دارد. اگر مطمئن نیستید، از pass استفاده کنید.</string>
     <string name="genre_film">فیلم / درام</string>
     <string name="genre_news">اخبار</string>
     <string name="genre_show">برنامه / سرگرمی</string>

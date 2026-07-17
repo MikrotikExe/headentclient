@@ -243,6 +243,15 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                     optionLabel = { it },
                     onSelect = { profile = it }
                 )
+                // M382: nie kazdy profil sa da prehrat (kontajner/kodeky) —
+                // napr. Vorbis v MP4 je neštandardny a zvuk nejde ani v inych
+                // prehravacoch. Odporucany je pass (bez transkodovania).
+                Text(
+                    stringResource(R.string.profile_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                )
             }
             DropdownField(
                 label = stringResource(R.string.field_auth),

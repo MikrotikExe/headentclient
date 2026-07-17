@@ -31,6 +31,7 @@
     <string name="no_program">Niciun program</string>
     <string name="playback_error">Redare eșuată: %1$s</string>
     <string name="field_profile">Profil de flux</string>
+    <string name="profile_note">Nu orice profil poate fi redat — depinde de container și de codecuri. Dacă nu sunteți sigur, folosiți pass.</string>
     <string name="genre_film">Film / Dramă</string>
     <string name="genre_news">Știri</string>
     <string name="genre_show">Show / Divertisment</string>

@@ -31,6 +31,7 @@
     <string name="no_program">Kein Programm</string>
     <string name="playback_error">Wiedergabe fehlgeschlagen: %1$s</string>
     <string name="field_profile">Stream-Profil</string>
+    <string name="profile_note">Nicht jedes Profil lässt sich abspielen – das hängt vom Container und den Codecs ab. Im Zweifel pass verwenden.</string>
     <string name="genre_film">Film / Drama</string>
     <string name="genre_news">Nachrichten</string>
     <string name="genre_show">Show / Unterhaltung</string>

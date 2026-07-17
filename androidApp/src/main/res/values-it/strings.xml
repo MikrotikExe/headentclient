@@ -31,6 +31,7 @@
     <string name="no_program">Nessun programma</string>
     <string name="playback_error">Riproduzione non riuscita: %1$s</string>
     <string name="field_profile">Profilo stream</string>
+    <string name="profile_note">Non tutti i profili sono riproducibili: dipende dal contenitore e dai codec. In caso di dubbio, usa pass.</string>
     <string name="genre_film">Film / Dramma</string>
     <string name="genre_news">Notizie</string>
     <string name="genre_show">Show / Intrattenimento</string>

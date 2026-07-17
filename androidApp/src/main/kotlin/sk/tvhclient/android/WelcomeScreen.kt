@@ -320,6 +320,13 @@ fun WelcomeScreen(vm: ServersViewModel) {
                     options = ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() },
                     optionLabel = { it }
                 ) { profile = it }
+                // M382: rovnaka poznamka ako v Upravit server
+                Text(
+                    stringResource(R.string.profile_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
             }
             Spacer(Modifier.height(8.dp))
             BackupControls(compact = true, onImported = { vm.refresh() })
