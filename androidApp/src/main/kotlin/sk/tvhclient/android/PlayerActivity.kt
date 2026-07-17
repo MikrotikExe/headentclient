@@ -356,6 +356,21 @@ class PlayerActivity : ComponentActivity() {
         if (mode != null) m.addOption(":deinterlace-mode=$mode")
     }
 
+    /**
+     * M381: demuxer pre feeder cestu. Feeder posiela bajty cez fd, takze libVLC
+     * nema nazov suboru ani MIME a kontajner musi uhadnut. Pri MPEG-TS profiloch
+     * (pass, htsp, *-mpegts) mu ho dame natvrdo — TS sa chyta aj uprostred toku
+     * a probing tam byva pomaly. Pri ostatnych (matroska, webm, mp4) natvrdo ts
+     * znamenalo, ze sa stream vobec neotvoril; tam necháme VLC probing (EBML /
+     * ftyp hlavicka je na zaciatku toku, takze sa kontajner urci spolahlivo).
+     */
+    private fun applyFeederDemux(media: Media, url: String) {
+        val prof = Regex("[?&]profile=([^&]*)")
+            .find(url)?.groupValues?.get(1)?.lowercase().orEmpty()
+        val isTs = prof.isEmpty() || prof == "pass" || prof == "htsp" || prof.endsWith("mpegts")
+        if (isTs) media.addOption(":demux=ts")
+    }
+
     /** M255 — live cez HTTP na digest-only serveri: stiahnut cez feeder (rovnako
      *  ako DVR), lebo libVLC digest cez URL nezvlada. Pre live netreba seek. */
     private fun playLiveViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String) {
@@ -371,7 +386,7 @@ class PlayerActivity : ComponentActivity() {
         val fd = feeder.start(lifecycleScope)
         val media = Media(libVlc, fd)
         media.setHWDecoderEnabled(true, false)
-        media.addOption(":demux=ts")
+        applyFeederDemux(media, url)
         media.addOption(":file-caching=1500")
         applyDeinterlace(media)
         mediaPlayer.media = media
