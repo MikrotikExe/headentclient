@@ -16,6 +16,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.ui.zIndex
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -81,7 +84,11 @@ import sk.tvhclient.shared.model.EpgEvent
 private const val PX_PER_MIN = 4          // sirka 1 minuty v dp
 private const val HOUR_W = 60 * PX_PER_MIN // 240 dp
 private const val DAY_MIN = 24 * 60
-private const val PICON_COL = 64           // sirka stlpca s piconom
+private const val PICON_COL = 64           // sirka stlpca s piconom (uzke obrazovky)
+// M377: siroke obrazovky (TV/tablet >=600dp) — stlpec kanala nesie picon + cislo + nazov
+private const val CHAN_COL_WIDE = 188
+private fun chanColFor(screenWidthDp: Int): Int =
+    if (screenWidthDp >= 600) CHAN_COL_WIDE else PICON_COL
 private const val ROW_H = 64
 // Moderny rezim: vyssi riadok — karta nesie cas NAD nazvom + progres pasik + cislo kanala pod piconom
 private const val ROW_H_M = 84
@@ -375,7 +382,7 @@ fun EpgGridScreen(
                     (((currentTimeSeconds() - dayStart) / 60).toInt()) else 0
                 // vycentruj "teraz" do stredu viditelnej casti casovej osi (sirka obrazovky
                 // bez stlpca s logom kanala), nech vidno aj kus minulosti vlavo
-                val halfVisMin = ((configuration.screenWidthDp - PICON_COL) / 2) / PX_PER_MIN
+                val halfVisMin = ((configuration.screenWidthDp - chanColFor(configuration.screenWidthDp)) / 2) / PX_PER_MIN
                 val startMin = (nowMin - halfVisMin).coerceIn(0, DAY_MIN)
                 with(density) { (startMin * PX_PER_MIN).dp.toPx() }.toInt()
                     .coerceAtMost(hScroll.maxValue)
@@ -500,7 +507,7 @@ fun EpgGridScreen(
         val midSec = if (cell != null) (cell.start + cell.stop) / 2 else s
         val midMin = (((midSec - dayStart) / 60).toInt()).coerceIn(0, DAY_MIN)
         // do stredu viditelnej casovej osi (sirka obrazovky bez stlpca s logom)
-        val halfVisPx = with(density) { ((configuration.screenWidthDp - PICON_COL) / 2).dp.toPx() }
+        val halfVisPx = with(density) { ((configuration.screenWidthDp - chanColFor(configuration.screenWidthDp)) / 2).dp.toPx() }
         val target = with(density) { (midMin * PX_PER_MIN).dp.toPx() } - halfVisPx
         runCatching { hScroll.animateScrollTo(target.toInt().coerceAtLeast(0)) }
     }
@@ -675,7 +682,7 @@ fun EpgGridScreen(
             // Casova os (hlavicka) — skroluje horizontalne spolu s riadkami;
             // moderny rezim: navyse teal bublina s aktualnym casom nad teraz-ciarou
             Row {
-                Spacer(Modifier.width(PICON_COL.dp))
+                Spacer(Modifier.width(chanColFor(configuration.screenWidthDp).dp))
                 Box(Modifier.horizontalScroll(hScroll)) {
                     Row {
                         for (h in 0 until 24) {
@@ -1080,9 +1087,70 @@ private fun EpgGridRow(
     val modern = isModernUi()
     val rowH = if (modern) ROW_H_M else ROW_H
     Row(Modifier.height(rowH.dp)) {
-        // Picon stlpec (fixny); moderny rezim: jedna zaoblena karta ako program —
-        // picon hore, cislo kanala drobne dole VNUTRI karty (podla mockupu)
-        if (modern) {
+        // Stlpec kanala (fixny). M377: na sirokych obrazovkach (TV/tablet)
+        // picon → cislo → nazov v riadku (ako Tvheadend web UI) pre oba rezimy;
+        // na uzkych telefonoch povodne kompaktne varianty.
+        val conf = androidx.compose.ui.platform.LocalConfiguration.current
+        val chanW = chanColFor(conf.screenWidthDp)
+        val wide = chanW != PICON_COL
+        if (wide) {
+            val cs = MaterialTheme.colorScheme
+            Row(
+                Modifier.width(chanW.dp).height(rowH.dp)
+                    .padding(horizontal = 4.dp, vertical = 3.dp)
+                    .then(
+                        if (modern) Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isLightTheme()) cs.surfaceContainerLowest else cs.surfaceContainer)
+                            .border(1.dp, cs.outlineVariant, RoundedCornerShape(12.dp))
+                        else Modifier
+                    )
+                    .padding(start = 4.dp, end = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    Modifier.size((rowH - 18).dp.coerceAtMost(52.dp))
+                        .clip(RoundedCornerShape(if (modern) 9.dp else 4.dp))
+                        .background(piconBackground()),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (row.piconUrl != null) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context).data(row.piconUrl).build(),
+                            contentDescription = row.channel.name,
+                            imageLoader = loader,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize().padding(3.dp)
+                        )
+                    } else {
+                        Text(
+                            row.channel.name.take(3).uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1
+                        )
+                    }
+                }
+                val num = row.channel.number
+                if (num != null && num > 0) {
+                    Text(
+                        num.toString(),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        color = cs.primary,
+                        maxLines = 1,
+                        modifier = Modifier.padding(start = 6.dp)
+                    )
+                }
+                Text(
+                    row.channel.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = cs.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = 6.dp).weight(1f)
+                )
+            }
+        } else if (modern) {
             val cs = MaterialTheme.colorScheme
             Column(
                 Modifier.width(PICON_COL.dp).height(rowH.dp)
@@ -1326,43 +1394,102 @@ private fun GridBlock(
     val timeColor = fgDim ?: MaterialTheme.colorScheme.onSurfaceVariant
     val wMin = endMin - startMin
     if (wMin <= 0) return
+    val cellW = wMin * PX_PER_MIN
+    val fullTitle = (prefix ?: if (recorded) "\u25B6 " else "") + title
+    // M377: fokus-rozbalenie — ked je vybrana bunka prilis uzka na cely nazov,
+    // vykreslime nad nou docasnu sirsiu bublinu (overlay so zIndex-om; mriezka
+    // sa nehybe, bublina zmizne s odchodom kurzora). Meriame realnu sirku textu.
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val titleStyle = MaterialTheme.typography.bodySmall
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val needDp = remember(fullTitle, titleStyle) {
+        with(density) {
+            measurer.measure(
+                androidx.compose.ui.text.AnnotatedString(fullTitle),
+                style = titleStyle, maxLines = 1
+            ).size.width.toDp().value
+        }
+    }
+    val expand = selected && needDp > (cellW - 16f)
+    val bubbleW = if (expand) (needDp + 24f).coerceAtMost(320f).coerceAtLeast(cellW.toFloat()) else 0f
+    val shiftDp = if (expand) {
+        val over = (startMin * PX_PER_MIN + bubbleW) - (DAY_MIN * PX_PER_MIN)
+        if (over > 0f) -over else 0f
+    } else 0f
     Box(
         Modifier
             .offset(x = (startMin * PX_PER_MIN).dp)
-            .width((wMin * PX_PER_MIN).dp)
+            .width(cellW.dp)
             .height(ROW_H.dp)
-            .padding(2.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(bg)
-            .then(
-                if (selected) Modifier.border(2.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
-                else Modifier
-            )
-            .pointerInput(Unit) { detectTapGestures { onClick() } }
+            .zIndex(if (expand) 2f else 0f)
     ) {
-        // Priebeh zlava: pri zivej relacii svetlejsia primarna, pri nahravke tmavsia cervena
-        if (progressMin > 0) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .padding(2.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(bg)
+                .then(
+                    if (selected && !expand) Modifier.border(2.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
+                    else Modifier
+                )
+                .pointerInput(Unit) { detectTapGestures { onClick() } }
+        ) {
+            // Priebeh zlava: pri zivej relacii svetlejsia primarna, pri nahravke tmavsia cervena
+            if (progressMin > 0) {
+                Box(
+                    Modifier
+                        .width((progressMin.coerceAtMost(wMin) * PX_PER_MIN).dp)
+                        .height(ROW_H.dp)
+                        .background(progressColor ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
+                )
+            }
+            Column(Modifier.padding(horizontal = 6.dp, vertical = 4.dp)) {
+                Text(
+                    fullTitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = titleColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    timeLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = timeColor,
+                    maxLines = 1
+                )
+            }
+        }
+        if (expand) {
             Box(
                 Modifier
-                    .width((progressMin.coerceAtMost(wMin) * PX_PER_MIN).dp)
+                    .offset(x = shiftDp.dp)
+                    .requiredWidth(bubbleW.dp)
                     .height(ROW_H.dp)
-                    .background(progressColor ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
-            )
-        }
-        Column(Modifier.padding(horizontal = 6.dp, vertical = 4.dp)) {
-            Text(
-                (prefix ?: if (recorded) "\u25B6 " else "") + title,
-                style = MaterialTheme.typography.bodySmall,
-                color = titleColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                timeLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = timeColor,
-                maxLines = 1
-            )
+                    .padding(2.dp)
+                    .shadow(8.dp, RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(2.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(6.dp))
+                    .pointerInput(Unit) { detectTapGestures { onClick() } }
+            ) {
+                Column(Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                    Text(
+                        fullTitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        timeLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
+            }
         }
     }
 }
@@ -1430,6 +1557,26 @@ private fun ModernGridBlock(
     val light = isLightTheme()
     val wMin = endMin - startMin
     if (wMin <= 0) return
+    val cellW = wMin * PX_PER_MIN
+    // M377: fokus-rozbalenie kratkych kariet (rovnaky princip ako klasicky rezim)
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val mTitleStyle = MaterialTheme.typography.bodyMedium
+    val mDensity = androidx.compose.ui.platform.LocalDensity.current
+    val needDp = remember(title, mTitleStyle) {
+        with(mDensity) {
+            measurer.measure(
+                androidx.compose.ui.text.AnnotatedString(title),
+                style = mTitleStyle.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+                maxLines = 1
+            ).size.width.toDp().value
+        }
+    }
+    val expand = selected && needDp > (cellW - 18f)
+    val bubbleW = if (expand) (needDp + 28f).coerceAtMost(340f).coerceAtLeast(cellW.toFloat()) else 0f
+    val shiftDp = if (expand) {
+        val over = (startMin * PX_PER_MIN + bubbleW) - (DAY_MIN * PX_PER_MIN)
+        if (over > 0f) -over else 0f
+    } else 0f
     val bg = when (kind) {
         MgKind.NOW -> lerp(
             if (light) cs.surfaceContainerLowest else cs.surfaceContainer,
@@ -1456,8 +1603,9 @@ private fun ModernGridBlock(
     Box(
         Modifier
             .offset(x = (startMin * PX_PER_MIN).dp)
-            .width((wMin * PX_PER_MIN).dp)
+            .width(cellW.dp)
             .height(rowH.dp)
+            .zIndex(if (expand) 2f else 0f)
             .padding(horizontal = 2.dp, vertical = 3.dp)
     ) {
         Box(
@@ -1467,7 +1615,8 @@ private fun ModernGridBlock(
                 .background(bg)
                 .then(
                     when {
-                        selected -> Modifier.border(2.5.dp, cs.primary, RoundedCornerShape(12.dp))
+                        selected && !expand -> Modifier.border(2.5.dp, cs.primary, RoundedCornerShape(12.dp))
+                        selected -> Modifier
                         kind == MgKind.NOW -> Modifier.border(1.5.dp, cs.primary, RoundedCornerShape(12.dp))
                         else -> Modifier.border(1.dp, cs.outlineVariant, RoundedCornerShape(12.dp))
                     }
@@ -1558,6 +1707,38 @@ private fun ModernGridBlock(
                                 .clip(RoundedCornerShape(2.dp)).background(fill)
                         )
                     }
+                }
+            }
+        }
+        if (expand) {
+            Box(
+                Modifier
+                    .offset(x = shiftDp.dp)
+                    .requiredWidth(bubbleW.dp)
+                    .fillMaxHeight()
+                    .shadow(10.dp, RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (light) cs.surfaceContainerLowest else cs.surfaceContainer)
+                    .border(2.5.dp, cs.primary, RoundedCornerShape(12.dp))
+                    .pointerInput(Unit) { detectTapGestures { onClick() } }
+            ) {
+                Column(
+                    Modifier.fillMaxSize().padding(start = 8.dp, end = 8.dp, top = 5.dp, bottom = 5.dp)
+                ) {
+                    Text(
+                        timeLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = cs.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                        color = cs.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }
