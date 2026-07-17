@@ -134,4 +134,19 @@ object AudioPref {
         val n = stripAccents(trackName)
         return tokens(code).any { n.contains(it) }
     }
+
+    // M378: heuristika pre stopy so zvukovym komentarom pre nevidiacich
+    // (audio description / narrated). Take stopy nikdy nevyberame automaticky —
+    // len ked ich pouzivatel zvoli rucne. Rozpoznavame bezne oznacenia:
+    // "AD" ako samostatne slovo/zatvorka, "audio description", "described",
+    // "narrat...", "komentar" (CZ/SK audiokomentar), "vi"/"vis. impaired".
+    private val adWord = Regex("(^|[^a-z])ad([^a-z]|$)")
+    fun isDescriptive(trackName: String): Boolean {
+        val n = stripAccents(trackName)
+        if (n.contains("audio desc") || n.contains("descri")) return true
+        if (n.contains("narrat")) return true
+        if (n.contains("komentar")) return true
+        if (n.contains("visually impaired") || n.contains("vis. imp")) return true
+        return adWord.containsMatchIn(n)
+    }
 }

@@ -1655,7 +1655,18 @@ class PlayerActivity : ComponentActivity() {
         val ids = trackMenuIds()
         val id = ids.getOrNull(trackNavState.value) ?: return
         when {
-            trackMenuKind == "audio" -> mediaPlayer.audioTrack = id
+            trackMenuKind == "audio" -> {
+                mediaPlayer.audioTrack = id
+                // M378: zapamataj rucny vyber pre kanal aj z TV menu (D-pad);
+                // predtym sa ukladal len z dotykoveho menu, takze na TV sa
+                // volba po prepnuti kanala "zabudla"
+                val sid = sk.tvhclient.shared.Tvh.store.active()?.id
+                val uuid = liveUuidState.value
+                if (sid != null && uuid != null) {
+                    val name = mediaPlayer.audioTrackItems().firstOrNull { it.id == id }?.name
+                    if (!name.isNullOrBlank()) ChannelPrefs.setLastAudio(this, sid, uuid, name)
+                }
+            }
             htspStream -> onPickHtspSpu(id)
             else -> mediaPlayer.spuTrack = id
         }
@@ -4107,8 +4118,11 @@ private fun PlayerUi(
         }
     }
 
-    // Auto-vyber audio stopy po nacitani: 1) zapamatana pre kanal, 2) jazykove priority
-    LaunchedEffect(Unit) {
+    // Auto-vyber audio stopy po nacitani: 1) zapamatana pre kanal, 2) jazykove
+    // priority (AD/narrated stopy preskakujeme), 3) fallback mimo AD stopy.
+    // M378: kluc = liveChannelUuid, nech vyber prebehne aj pri prepnuti kanala
+    // v ramci prehravaca (predtym LaunchedEffect(Unit) bezal len raz).
+    LaunchedEffect(liveChannelUuid) {
         repeat(30) {
             kotlinx.coroutines.delay(500)
             val real = player.audioTracks?.filter { it.id >= 0 } ?: emptyList()
@@ -4124,11 +4138,24 @@ private fun PlayerUi(
                     }
                 }
                 for (code in preferredAudio) {
-                    val m = real.firstOrNull { AudioPref.matches(it.name ?: "", code) }
+                    // M378: v ramci jazyka preferuj beznu stopu pred AD/narrated
+                    // (obe casto nesu rovnaky jazykovy kod, napr. "English" a
+                    // "English AD" — predtym vyhrala ta, co bola v zozname prva)
+                    val cands = real.filter { AudioPref.matches(it.name ?: "", code) }
+                    val m = cands.firstOrNull { !AudioPref.isDescriptive(it.name ?: "") }
+                        ?: cands.firstOrNull()
                     if (m != null) {
                         if (player.audioTrack != m.id) player.audioTrack = m.id
                         return@LaunchedEffect
                     }
+                }
+                // M378: ziadna jazykova zhoda — ak by default (aktualna stopa)
+                // bol AD/narrated, prepni na prvu beznu stopu. Riesi kanaly,
+                // kde je AD stopa prva v poradi a vyhrala by ako default.
+                val curName = real.firstOrNull { it.id == player.audioTrack }?.name ?: ""
+                if (AudioPref.isDescriptive(curName)) {
+                    val plain = real.firstOrNull { !AudioPref.isDescriptive(it.name ?: "") }
+                    if (plain != null && player.audioTrack != plain.id) player.audioTrack = plain.id
                 }
                 return@LaunchedEffect
             }
