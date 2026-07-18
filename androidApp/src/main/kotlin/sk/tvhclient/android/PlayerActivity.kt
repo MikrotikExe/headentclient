@@ -1184,6 +1184,14 @@ class PlayerActivity : ComponentActivity() {
             requestPin(onOk = { switchToIndex(i, poke) }, onCancel = { }, channelIndex = i)
             return
         }
+        // M392-fix3: volba titulkov plati len pre aktualny kanal — pri prepnuti na INY
+        // kanal ju vynuluj na vypnute (ako HTSP: desiredSubName = null). Restart toho
+        // isteho kanala (zmena profilu, applyProfileChange) sem pride s rovnakym uuid
+        // cez liveIndex=-1, preto porovnavame uuid, nie index.
+        if (uuid != liveUuidState.value) {
+            httpSpuWantOff = true
+            httpSpuWantName = null
+        }
         liveIndex = i
         liveIndexState.value = i
         val name = liveNames.getOrElse(i) { "" }
