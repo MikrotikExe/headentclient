@@ -2670,18 +2670,6 @@ class PlayerActivity : ComponentActivity() {
         currentProfileState.value = server.profile.ifBlank { "pass" }
         profileSwitchState.value =
             directUrl == null && channelUuid != null && server.connectionMode != "htsp"
-        // M384 DIAG (docasne, po najdeni priciny odstranit): tlacidlo profilu sa
-        // na zariadeni neukazuje napriek spravnym zdrojom — zobraz vstupy podmienky.
-        // Ak sa toast NEUKAZE vobec, nainstalovany build neobsahuje tento kod.
-        run {
-            val diag = "M384 sw=" + profileSwitchState.value +
-                " dirUrl=" + (directUrl != null) +
-                " uuid=" + (channelUuid != null) +
-                " mode=" + server.connectionMode +
-                " srv=" + server.name
-            android.util.Log.i("HCDiag", diag)
-            Toast.makeText(this, diag, Toast.LENGTH_LONG).show()
-        }
         // M383: prednacitaj zoznam profilov (dotykove tlacidlo otvara menu priamo,
         // bez openProfileMenu) — fallback hned, servrovy zoznam async
         if (server.connectionMode != "htsp" && profileItemsState.value.isEmpty()) {
