@@ -504,15 +504,32 @@ class PlayerActivity : ComponentActivity() {
     private val infoPokeState = androidx.compose.runtime.mutableStateOf(0)
     private fun toggleInfo() { infoPokeState.value = infoPokeState.value + 1 }
     // EPG kláves / tlacidlo -> otvor TV program (mriezku) v hlavnej aplikacii
-    private fun openEpgInApp() {
-        // na telefonoch: vstup do PiP, aby video bezalo v plavajucom okne nad EPG
-        autoPipIfPossible()
+    // M383-fix: EPG sa smie otvorit az PO dokonceni vstupu do PiP — startActivity
+    // vypaleny pocas PiP prechodu system na mnohych zariadeniach spolkne (vidno
+    // len PiP okno, EPG "dobehne" az po zvacseni). Preto: enterPip -> cakaj na
+    // onPictureInPictureModeChanged(true) -> az potom startActivity.
+    private var pendingEpgAfterPip = false
+
+    private fun launchEpgActivity() {
         val i = android.content.Intent(this, MainActivity::class.java).apply {
             putExtra("open_epg", true)
             // zapamataj aktualny zivy kanal, nech BACK z EPG vrati do prehravaca nan
             if (!seekablePlayback) liveUuids.getOrNull(liveIndex)?.let { putExtra("epg_return_uuid", it) }
         }
         runCatching { startActivity(i) }
+    }
+
+    private fun openEpgInApp() {
+        // na telefonoch: vstup do PiP, aby video bezalo v plavajucom okne nad EPG
+        if (autoPipIfPossible()) {
+            pendingEpgAfterPip = true
+            // poistka: keby callback neprisiel (PiP zlyha po ceste), otvor EPG aj tak
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                if (pendingEpgAfterPip) { pendingEpgAfterPip = false; launchEpgActivity() }
+            }, 1200)
+        } else {
+            launchEpgActivity()
+        }
     }
     private fun showControlsFocused() {
         val order = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable())
@@ -1331,6 +1348,10 @@ class PlayerActivity : ComponentActivity() {
     private val openProfileMenuState = androidx.compose.runtime.mutableStateOf(0)
     private val profileItemsState = androidx.compose.runtime.mutableStateOf<List<String>>(emptyList())
     private val currentProfileState = androidx.compose.runtime.mutableStateOf("")
+    // M383-fix: dostupnost MUSI byt compose state — obycajna funkcia sa vyhodnoti
+    // len pri prvej kompozicii (pred spustenim prehravania) a UI by sa o zmene
+    // nikdy nedozvedelo; presne preto tlacidlo nebolo vidno
+    private val profileSwitchState = androidx.compose.runtime.mutableStateOf(false)
     // Casovac uspatia
     private val sleepMinutesState = androidx.compose.runtime.mutableStateOf(0)
     private val sleepDeadlineState = androidx.compose.runtime.mutableStateOf(0L)
@@ -1669,9 +1690,7 @@ class PlayerActivity : ComponentActivity() {
     }
     /** M383: prepinac profilu ma zmysel len pri HTTP live (nie HTSP, nie DVR,
      *  nie externa URL — tam profil neexistuje alebo sa neda menit). */
-    private fun profileSwitchAvailable(): Boolean =
-        !seekablePlayback && !htspStream && liveIndex >= 0 &&
-            (liveServer?.connectionMode ?: "htsp") != "htsp"
+    private fun profileSwitchAvailable(): Boolean = profileSwitchState.value
 
     private fun openProfileMenu() {
         val srv = liveServer ?: return
@@ -2649,6 +2668,8 @@ class PlayerActivity : ComponentActivity() {
         // Live-zapping nizsie zavisi od liveUuids (pri DVR prazdne), nie od liveServer.
         liveServer = server
         currentProfileState.value = server.profile.ifBlank { "pass" }
+        profileSwitchState.value =
+            directUrl == null && channelUuid != null && server.connectionMode != "htsp"
         // M383: prednacitaj zoznam profilov (dotykove tlacidlo otvara menu priamo,
         // bez openProfileMenu) — fallback hned, servrovy zoznam async
         if (server.connectionMode != "htsp" && profileItemsState.value.isEmpty()) {
@@ -3380,6 +3401,11 @@ class PlayerActivity : ComponentActivity() {
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         inPipState.value = isInPictureInPictureMode
+        // M383-fix: odlozene otvorenie EPG — az ked je PiP prechod hotovy
+        if (isInPictureInPictureMode && pendingEpgAfterPip) {
+            pendingEpgAfterPip = false
+            launchEpgActivity()
+        }
         if (isInPictureInPictureMode) {
             if (pipReceiver == null) {
                 pipReceiver = object : android.content.BroadcastReceiver() {
