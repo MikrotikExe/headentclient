@@ -4973,6 +4973,7 @@ private fun PlayerUi(
                             Row(horizontalArrangement = rowGap, verticalAlignment = Alignment.CenterVertically) {
                                 barCtrl("audio")
                                 barCtrl("subs")
+                                if (has("profile")) barCtrl("profile")
                                 barCtrl("sleep")
                                 if (lockVisible) barCtrl("lock")
                             }
@@ -5014,6 +5015,7 @@ private fun PlayerUi(
                             Spacer(Modifier.weight(1f))
                             barCtrl("audio")
                             barCtrl("subs")
+                            if (has("profile")) barCtrl("profile")
                             barCtrl("sleep")
                             barCtrl("info")
                             if (lockVisible) barCtrl("lock")
