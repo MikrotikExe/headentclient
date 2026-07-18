@@ -3397,9 +3397,15 @@ class PlayerActivity : ComponentActivity() {
                     ?: intent.getStringExtra(EXTRA_UUID) ?: "?"
                 val uuidShort = fullUuid.take(8) + "(len" + fullUuid.length + ")"
                 val prof = liveServer?.profile?.ifBlank { "pass" } ?: "?"
+                // M390-fix3: aj endpoint (stream/channel vs stream/channelid), rezim a nazov servera
+                val ep = runCatching {
+                    stripCreds(diagUrl).substringAfter("://").substringAfter('/').substringBefore('?')
+                }.getOrDefault("?")
+                val mode = liveServer?.connectionMode ?: "?"
+                val srvName = liveServer?.name ?: "?"
                 withContext(Dispatchers.Main) {
-                    android.util.Log.i("HCDiag", "M390 diag uuid=" + uuidShort + " prof=" + prof + " " + msg + " url=" + stripCreds(diagUrl))
-                    Toast.makeText(this@PlayerActivity, "M390 diag: uuid=" + uuidShort + " prof=" + prof + " " + msg, Toast.LENGTH_LONG).show()
+                    android.util.Log.i("HCDiag", "M390 diag mode=" + mode + " srv=" + srvName + " ep=" + ep + " uuid=" + uuidShort + " prof=" + prof + " " + msg)
+                    Toast.makeText(this@PlayerActivity, "M390 diag: mode=" + mode + " srv=" + srvName + " ep=" + ep + " prof=" + prof + " " + msg, Toast.LENGTH_LONG).show()
                 }
             }
         }
