@@ -514,8 +514,13 @@ fun EpgGridScreen(
 
     Box(Modifier.fillMaxSize()) {
     Scaffold(
+        // M386: vonkajsi Scaffold (MainActivity) uz odsadzuje obsah o systemove pruhy;
+        // vnutorny Scaffold + TopAppBar nesmu pridat vlastne insets, inak je EPG
+        // posunute nizsie nez ostatne karty (na vysku aj na sirku).
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
+                windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
                 title = { Text(stringResourceTvGuide()) },
                 navigationIcon = {
                     Text(
