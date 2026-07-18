@@ -5808,7 +5808,8 @@ private fun PlayerUi(
                         modifier = Modifier.padding(12.dp)
                     )
                     moreLabels.forEachIndexed { idx, label ->
-                        val sel = idx == modernMoreIndex
+                        // M385-fix: D-pad zvyraznenie len na TV (na telefone svietil vrchny riadok)
+                        val sel = isTvGest && idx == modernMoreIndex
                         Row(
                             Modifier
                                 .fillMaxWidth()
@@ -5855,7 +5856,8 @@ private fun PlayerUi(
                         modifier = Modifier.padding(12.dp)
                     )
                     opts.forEachIndexed { idx, label ->
-                        val sel = idx == optionsNavIndex
+                        // M385-fix: D-pad zvyraznenie len na TV (na telefone svietil vrchny riadok)
+                        val sel = isTvGest && idx == optionsNavIndex
                         Row(
                             Modifier
                                 .fillMaxWidth()

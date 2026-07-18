@@ -46,9 +46,17 @@ internal fun TrackMenu(
     onDismiss: () -> Unit
 ) {
     val listState = rememberLazyListState()
+    // M385: zvyraznenie riadka je D-pad fokus — ma zmysel len na TV. Na telefone
+    // (dotyk) inak trvalo svieti vrchny riadok menu (Zvuk / Titulky / Stream profil).
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val isTvDevice = remember {
+        val um = ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
+        um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
+    }
+    val nav = if (isTvDevice) navIndex else -1
     // TV D-pad: drz zvyrazneny riadok vo vyhlade pri posuvani
-    LaunchedEffect(navIndex) {
-        runCatching { listState.animateScrollToItem(navIndex.coerceAtLeast(0)) }
+    LaunchedEffect(nav) {
+        if (nav >= 0) runCatching { listState.animateScrollToItem(nav) }
     }
     Box(
         Modifier
@@ -89,11 +97,11 @@ internal fun TrackMenu(
                 ) {
                     if (allowOff) {
                         item(key = "off") {
-                            TrackRow(stringResource(R.string.track_off), selected = currentId == -1, highlighted = navIndex == 0) { onPick(-1) }
+                            TrackRow(stringResource(R.string.track_off), selected = currentId == -1, highlighted = nav == 0) { onPick(-1) }
                         }
                     }
                     itemsIndexed(items, key = { _, t -> t.id }) { i, t ->
-                        TrackRow(t.name, selected = t.id == currentId, highlighted = navIndex == i + offset) { onPick(t.id) }
+                        TrackRow(t.name, selected = t.id == currentId, highlighted = nav == i + offset) { onPick(t.id) }
                     }
                 }
             }
