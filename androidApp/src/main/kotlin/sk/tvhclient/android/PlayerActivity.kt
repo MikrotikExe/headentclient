@@ -271,6 +271,8 @@ class PlayerActivity : ComponentActivity() {
     private var seekAccumBaseMs: Long = -1L
     private var seekCommitJob: kotlinx.coroutines.Job? = null
     private var reconnectAttempts = 0
+    // M390-fix2: HTTP kod z diagnostickej sondy (400 => skus URL bez profile parametra)
+    @Volatile private var lastDiagCode = 0
     private val maxReconnectAttempts = 8
     private var pipReceiver: android.content.BroadcastReceiver? = null
     private val PIP_ACTION = "sk.tvhclient.android.PIP_TOGGLE"
@@ -3310,10 +3312,6 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    /** M390-fix DIAG: kratke id kanala z intentu (fallback pre toast). */
-    private fun channelUuidExtraShort(): String =
-        intent.getStringExtra(EXTRA_UUID)?.take(8) ?: "?"
-
     /** Zrusi naplanovane znovupripojenie a skryje indikator. */
     private fun cancelReconnect() {
         reconnectHandler.removeCallbacksAndMessages(null)
@@ -3391,13 +3389,17 @@ class PlayerActivity : ComponentActivity() {
                         }
                         .build()
                     b.build().newCall(req).execute().use { r ->
+                        lastDiagCode = r.code
                         "http=" + r.code + " ct=" + (r.header("Content-Type") ?: "?")
                     }
                 } catch (t: Throwable) { "err=" + (t.message ?: t.javaClass.simpleName) }
-                val uuidShort = liveUuids.getOrNull(liveIndex)?.take(8) ?: channelUuidExtraShort()
+                val fullUuid = liveUuids.getOrNull(liveIndex)
+                    ?: intent.getStringExtra(EXTRA_UUID) ?: "?"
+                val uuidShort = fullUuid.take(8) + "(len" + fullUuid.length + ")"
+                val prof = liveServer?.profile?.ifBlank { "pass" } ?: "?"
                 withContext(Dispatchers.Main) {
-                    android.util.Log.i("HCDiag", "M390 diag uuid=" + uuidShort + " " + msg)
-                    Toast.makeText(this@PlayerActivity, "M390 diag: uuid=" + uuidShort + " " + msg, Toast.LENGTH_LONG).show()
+                    android.util.Log.i("HCDiag", "M390 diag uuid=" + uuidShort + " prof=" + prof + " " + msg + " url=" + stripCreds(diagUrl))
+                    Toast.makeText(this@PlayerActivity, "M390 diag: uuid=" + uuidShort + " prof=" + prof + " " + msg, Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -3416,6 +3418,21 @@ class PlayerActivity : ComponentActivity() {
                 } else if (liveNeedsFeeder == true && srv != null && url != null) {
                     playLiveViaFeeder(srv, url)   // HTTP digest-only -> feeder
                 } else if (url != null) {
+                    // M390-fix2: server vratil 400 (typicky neznamy/nepovoleny stream profil)
+                    // -> skus URL bez parametra profile (server pouzije svoj predvoleny profil).
+                    if (lastDiagCode == 400 && url.contains("profile=")) {
+                        lastDiagCode = 0
+                        val noProf = url
+                            .replace(Regex("[?&]profile=[^&]*"), "")
+                            .let { u ->
+                                if (!u.contains('?') && u.contains('&')) u.replaceFirst('&', '?') else u
+                            }
+                        currentStreamUrl = noProf
+                        val m = buildMedia(noProf)
+                        mediaPlayer.media = m
+                        m.release()
+                        mediaPlayer.play()
+                    } else
                     // M390: priame HTTP live na niektorych boxoch pada v libVLC (auth/transport),
                     // hoci feeder (OkHttp -> pipe) funguje — po 2. neuspesnom pokuse prepni na feeder.
                     if (reconnectAttempts >= 2 && !seekablePlayback && srv != null &&
