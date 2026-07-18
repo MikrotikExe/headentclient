@@ -5,6 +5,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -80,15 +85,21 @@ import sk.tvhclient.shared.currentTimeSeconds
 import sk.tvhclient.shared.formatDayLabel
 import sk.tvhclient.shared.formatTimeHm
 import sk.tvhclient.shared.model.EpgEvent
+import androidx.compose.ui.unit.sp
 
 private const val PX_PER_MIN = 4          // sirka 1 minuty v dp
 private const val HOUR_W = 60 * PX_PER_MIN // 240 dp
 private const val DAY_MIN = 24 * 60
-private const val PICON_COL = 64           // sirka stlpca s piconom (uzke obrazovky)
+private const val PICON_COL = 64           // minimalna sirka stlpca kanala (uzke obrazovky)
 // M377: siroke obrazovky (TV/tablet >=600dp) — stlpec kanala nesie picon + cislo + nazov
 private const val CHAN_COL_WIDE = 188
+// M387: adaptivne — stlpec kanala je percento sirky okna (uzke 19 %, siroke 22 %),
+// pismo a picon na uzkych obrazovkach skalovane faktorom k = sirka / 390 (0,9–1,3)
 private fun chanColFor(screenWidthDp: Int): Int =
-    if (screenWidthDp >= 600) CHAN_COL_WIDE else PICON_COL
+    if (screenWidthDp >= 600) (screenWidthDp * 22 / 100).coerceIn(CHAN_COL_WIDE - 28, 200)
+    else (screenWidthDp * 19 / 100).coerceIn(PICON_COL, 110)
+private fun epgScaleK(screenWidthDp: Int): Float =
+    (screenWidthDp / 390f).coerceIn(0.9f, 1.3f)
 private const val ROW_H = 64
 // Moderny rezim: vyssi riadok — karta nesie cas NAD nazvom + progres pasik + cislo kanala pod piconom
 private const val ROW_H_M = 84
@@ -611,7 +622,11 @@ fun EpgGridScreen(
             )
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        // M387: citatelna zona aj do stran — obsah neschovat pod vyrez displeja (landscape)
+        Column(
+            Modifier.fillMaxSize().padding(padding)
+                .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
+        ) {
             // Vyber dna; rozsah dozadu/dopredu podla nastavenia (EpgRangePref) — daysBack/daysForward su definovane vyssie
             LaunchedEffect(daysBack, daysForward) {
                 if (dayOffset < -daysBack) dayOffset = -daysBack
@@ -1090,14 +1105,19 @@ private fun EpgGridRow(
 ) {
     val context = LocalContext.current
     val modern = isModernUi()
-    val rowH = if (modern) ROW_H_M else ROW_H
+    // M387: adaptivne rozmery podla sirky okna; siroke obrazovky (>=600dp) ostavaju
+    // presne ako po M377 (k = 1, povodne vysky riadkov)
+    val conf = androidx.compose.ui.platform.LocalConfiguration.current
+    val chanW = chanColFor(conf.screenWidthDp)
+    val wide = conf.screenWidthDp >= 600
+    val k = if (wide) 1f else epgScaleK(conf.screenWidthDp)
+    // uzke obrazovky: riadok o nieco vyssi, nech sa pod picon zmesti "cislo · nazov"
+    val rowH = if (wide) { if (modern) ROW_H_M else ROW_H }
+        else (((if (modern) ROW_H_M + 6 else ROW_H + 16)) * k).toInt()
     Row(Modifier.height(rowH.dp)) {
-        // Stlpec kanala (fixny). M377: na sirokych obrazovkach (TV/tablet)
+        // Stlpec kanala. M377: na sirokych obrazovkach (TV/tablet)
         // picon → cislo → nazov v riadku (ako Tvheadend web UI) pre oba rezimy;
-        // na uzkych telefonoch povodne kompaktne varianty.
-        val conf = androidx.compose.ui.platform.LocalConfiguration.current
-        val chanW = chanColFor(conf.screenWidthDp)
-        val wide = chanW != PICON_COL
+        // M387: na uzkych telefonoch picon + "cislo · nazov" pod nim.
         if (wide) {
             val cs = MaterialTheme.colorScheme
             Row(
@@ -1155,21 +1175,29 @@ private fun EpgGridRow(
                     modifier = Modifier.padding(start = 6.dp).weight(1f)
                 )
             }
-        } else if (modern) {
+        } else {
+            // M387: uzke obrazovky (klasika aj moderny) — picon hore, pod nim
+            // jeden riadok "cislo · nazov" (elipsa); bez piconu velke cislo.
             val cs = MaterialTheme.colorScheme
+            val num = row.channel.number
+            val label = if (num != null && num > 0) "$num · ${row.channel.name}" else row.channel.name
             Column(
-                Modifier.width(PICON_COL.dp).height(rowH.dp)
+                Modifier.width(chanW.dp).height(rowH.dp)
                     .padding(horizontal = 4.dp, vertical = 3.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (isLightTheme()) cs.surfaceContainerLowest else cs.surfaceContainer)
-                    .border(1.dp, cs.outlineVariant, RoundedCornerShape(12.dp))
+                    .then(
+                        if (modern) Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isLightTheme()) cs.surfaceContainerLowest else cs.surfaceContainer)
+                            .border(1.dp, cs.outlineVariant, RoundedCornerShape(12.dp))
+                        else Modifier
+                    )
                     .padding(bottom = 3.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
                     Modifier.fillMaxWidth().weight(1f)
                         .padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 2.dp)
-                        .clip(RoundedCornerShape(9.dp))
+                        .clip(RoundedCornerShape(if (modern) 9.dp else 4.dp))
                         .background(piconBackground()),
                     contentAlignment = Alignment.Center
                 ) {
@@ -1181,6 +1209,14 @@ private fun EpgGridRow(
                             contentScale = ContentScale.Fit,
                             modifier = Modifier.fillMaxSize().padding(3.dp)
                         )
+                    } else if (num != null && num > 0) {
+                        Text(
+                            num.toString(),
+                            fontSize = (20 * k).sp,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = cs.primary,
+                            maxLines = 1
+                        )
                     } else {
                         Text(
                             row.channel.name.take(3).uppercase(),
@@ -1189,39 +1225,16 @@ private fun EpgGridRow(
                         )
                     }
                 }
-                val num = row.channel.number
-                if (num != null && num > 0) {
-                    Text(
-                        num.toString(),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = cs.onSurfaceVariant,
-                        maxLines = 1
-                    )
-                }
-            }
-        } else {
-        Box(
-            Modifier.width(PICON_COL.dp).height(rowH.dp).padding(4.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(piconBackground()),
-            contentAlignment = Alignment.Center
-        ) {
-            if (row.piconUrl != null) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context).data(row.piconUrl).build(),
-                    contentDescription = row.channel.name,
-                    imageLoader = loader,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize().padding(3.dp)
-                )
-            } else {
                 Text(
-                    row.channel.name.take(3).uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1
+                    label,
+                    fontSize = (10 * k).sp,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                    color = if (modern) cs.onSurfaceVariant else cs.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 2.dp)
                 )
             }
-        }
         }
         // Programova plocha (skroluje horizontalne)
         Box(
