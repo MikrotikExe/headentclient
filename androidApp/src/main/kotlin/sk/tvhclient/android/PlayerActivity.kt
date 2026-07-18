@@ -143,6 +143,11 @@ class PlayerActivity : ComponentActivity() {
     // libVLC stopu podla anglickeho nazvu jazyka (libVLC DVB titulky netaguje kodom).
     private val selectedSubEsState = androidx.compose.runtime.mutableStateOf(-1)  // -1 = Vypnute
     private var desiredSubName: String? = null   // anglicky nazov zvoleneho jazyka (null = vypnute)
+    // M392: stav titulkov spred restartu streamu pri zmene profilu (HTTP live) —
+    // novy kontajner (napr. matroska) moze mat default titulkovu stopu, ktoru by
+    // libVLC sam zapol; po restarte preto obnovime povodnu volbu pouzivatela.
+    private var pendingSpuOffUntil = 0L   // vynucuj "vypnute" len chvilu po restarte
+    private var pendingSpuName: String? = null
     // M262: ci uz prebehlo urcenie HTSP rezimu pre toto sedenie. doPlay (startovacie
     // prehratie) ho nastavi; ak vsak pouzivatel prepne kanal este pred doPlay (napr.
     // odchod z PIN vyzvy zamknuteho kanala), inicializuje HTSP switchToIndex.
@@ -1750,6 +1755,23 @@ class PlayerActivity : ComponentActivity() {
         } ?: return
         if (mediaPlayer.spuTrack != m.id) mediaPlayer.spuTrack = m.id
     }
+    /** M392: obnov stav titulkov spred restartu streamu (zmena profilu, HTTP live).
+     *  "Vypnute" drzime pocas celej zivotnosti streamu (kazde ESAdded moze stopu
+     *  znovu zapnut, ked pribudne default-flagovana stopa v novom kontajneri). */
+    private fun applyPendingSpuRestore() {
+        if (!::mediaPlayer.isInitialized || htspStream) return
+        if (System.currentTimeMillis() < pendingSpuOffUntil) {
+            if (mediaPlayer.spuTrack != -1) mediaPlayer.spuTrack = -1
+            return
+        }
+        val want = pendingSpuName ?: return
+        val tr = mediaPlayer.spuTracks?.firstOrNull {
+            it.id >= 0 && (it.name?.contains(want, ignoreCase = true) == true)
+        } ?: return
+        if (mediaPlayer.spuTrack != tr.id) mediaPlayer.spuTrack = tr.id
+        pendingSpuName = null
+    }
+
     /** M383: prepinac profilu ma zmysel len pri HTTP live (nie HTSP, nie DVR,
      *  nie externa URL — tam profil neexistuje alebo sa neda menit). */
     private fun profileSwitchAvailable(): Boolean = profileSwitchState.value
@@ -1777,6 +1799,13 @@ class PlayerActivity : ComponentActivity() {
     private fun applyProfileChange(profile: String) {
         val srv = liveServer ?: return
         if (profile.isBlank() || profile == srv.profile) return
+        // M392: zapamataj stav titulkov, nech po restarte s novym profilom ostane
+        if (::mediaPlayer.isInitialized && !htspStream) {
+            val cur = runCatching { mediaPlayer.spuTrack }.getOrDefault(-1)
+            pendingSpuOffUntil = if (cur < 0) System.currentTimeMillis() + 8000L else 0L
+            pendingSpuName = if (cur >= 0)
+                mediaPlayer.spuTrackItems().firstOrNull { it.id == cur }?.name else null
+        }
         val updated = srv.copy(profile = profile)
         sk.tvhclient.shared.Tvh.store.upsert(updated)
         liveServer = updated
@@ -1815,7 +1844,13 @@ class PlayerActivity : ComponentActivity() {
                 }
             }
             htspStream -> onPickHtspSpu(id)
-            else -> mediaPlayer.spuTrack = id
+            else -> {
+                mediaPlayer.spuTrack = id
+                // M392: rucna volba rusi vynucovanie a prepise pamatany stav
+                pendingSpuOffUntil = 0L
+                pendingSpuName = if (id >= 0)
+                    mediaPlayer.spuTrackItems().firstOrNull { it.id == id }?.name else null
+            }
         }
         closeTrackMenu()
     }
@@ -2698,6 +2733,8 @@ class PlayerActivity : ComponentActivity() {
                     // ak pouzivatel zvolil titulkovy jazyk, ktory este nebol k dispozicii,
                     // nastav ho hned ako jeho stopa pribudne (mimo libVLC callbacku)
                     if (htspStream) lifecycleScope.launch { applyDesiredSpu() }
+                    // M392: HTTP live po zmene profilu — obnov povodnu volbu titulkov
+                    if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }
                 }
                 MediaPlayer.Event.EndReached -> {
                     isPlayingState.value = false
