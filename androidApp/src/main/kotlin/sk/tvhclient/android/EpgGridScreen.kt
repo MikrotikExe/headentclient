@@ -98,8 +98,12 @@ private const val CHAN_COL_WIDE = 188
 // M387: adaptivne — stlpec kanala je percento sirky okna (uzke 19 %, siroke 22 %),
 // pismo a picon na uzkych obrazovkach skalovane faktorom k = sirka / 390 (0,9–1,3)
 private fun chanColFor(screenWidthDp: Int, compact: Boolean = false): Int =
-    if (screenWidthDp >= 600) (screenWidthDp * 22 / 100).coerceIn(CHAN_COL_WIDE - 28, 200)
-    else if (compact) (screenWidthDp * 16 / 100).coerceIn(56, 92)
+    if (screenWidthDp >= 600) {
+        // M388-fix: kompakt na telefone plati aj na sirku (uzsi stlpec)
+        if (compact) (screenWidthDp * 16 / 100).coerceIn(140, 180)
+        else (screenWidthDp * 22 / 100).coerceIn(CHAN_COL_WIDE - 28, 200)
+    }
+    else if (compact) (screenWidthDp * 18 / 100).coerceIn(60, 100)
     else (screenWidthDp * 19 / 100).coerceIn(PICON_COL, 110)
 private fun epgScaleK(screenWidthDp: Int): Float =
     (screenWidthDp / 390f).coerceIn(0.9f, 1.3f)
@@ -362,7 +366,8 @@ fun EpgGridScreen(
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     // M388: kompaktna hustota (len telefon <600dp), prepinatelna tlacidlom v hlavicke
     val ctxDen = LocalContext.current
-    val epgCompact = configuration.screenWidthDp < 600 &&
+    // telefon = najmensi rozmer <600dp (kompakt plati aj na sirku); tablet/TV nikdy
+    val epgCompact = configuration.smallestScreenWidthDp < 600 &&
         EpgDensityPref.compactStateOf(ctxDen).value
     val pxMin = if (epgCompact) 3 else PX_PER_MIN
 
@@ -550,7 +555,7 @@ fun EpgGridScreen(
                 },
                 actions = {
                     // M388: prepinac hustoty (kompakt/komfort) — len telefon <600dp
-                    if (configuration.screenWidthDp < 600) {
+                    if (configuration.smallestScreenWidthDp < 600) {
                         androidx.compose.material3.IconButton(onClick = {
                             EpgDensityPref.set(ctxDen, !EpgDensityPref.compactStateOf(ctxDen).value)
                         }) {
@@ -1129,14 +1134,17 @@ private fun EpgGridRow(
     val conf = androidx.compose.ui.platform.LocalConfiguration.current
     // M388: kompaktna hustota na telefone (prepinac v hlavicke EPG)
     val ctxDen = LocalContext.current
-    val epgCompact = conf.screenWidthDp < 600 && EpgDensityPref.compactStateOf(ctxDen).value
+    val epgCompact = conf.smallestScreenWidthDp < 600 && EpgDensityPref.compactStateOf(ctxDen).value
     val pxMin = if (epgCompact) 3 else PX_PER_MIN
     val chanW = chanColFor(conf.screenWidthDp, epgCompact)
     val wide = conf.screenWidthDp >= 600
     val k = if (wide) 1f else epgScaleK(conf.screenWidthDp)
     // uzke obrazovky: riadok o nieco vyssi, nech sa pod picon zmesti "cislo · nazov";
     // kompakt = nizsie riadky (viac kanalov na obrazovke)
-    val rowH = if (wide) { if (modern) ROW_H_M else ROW_H }
+    val rowH = if (wide) {
+        // M388-fix: telefon na sirku moze byt tiez kompaktny (nizsie riadky)
+        if (epgCompact) { if (modern) 58 else 50 } else { if (modern) ROW_H_M else ROW_H }
+    }
         else if (epgCompact) ((if (modern) 62 else 54) * k).toInt()
         else (((if (modern) ROW_H_M + 6 else ROW_H + 16)) * k).toInt()
     Row(Modifier.height(rowH.dp)) {
@@ -1221,7 +1229,12 @@ private fun EpgGridRow(
             ) {
                 Box(
                     Modifier.fillMaxWidth().weight(1f)
-                        .padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 2.dp)
+                        .padding(
+                            start = if (epgCompact) 2.dp else 4.dp,
+                            end = if (epgCompact) 2.dp else 4.dp,
+                            top = if (epgCompact) 2.dp else 4.dp,
+                            bottom = if (epgCompact) 1.dp else 2.dp
+                        )
                         .clip(RoundedCornerShape(if (modern) 9.dp else 4.dp))
                         .background(piconBackground()),
                     contentAlignment = Alignment.Center
@@ -1232,7 +1245,7 @@ private fun EpgGridRow(
                             contentDescription = row.channel.name,
                             imageLoader = loader,
                             contentScale = ContentScale.Fit,
-                            modifier = Modifier.fillMaxSize().padding(3.dp)
+                            modifier = Modifier.fillMaxSize().padding(if (epgCompact) 1.dp else 3.dp)
                         )
                     } else if (num != null && num > 0) {
                         Text(
