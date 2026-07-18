@@ -79,7 +79,6 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
 
     var contextRow by remember { mutableStateOf<ChannelRow?>(null) }
     var epgFor by remember { mutableStateOf<ChannelRow?>(null) }
-    var profileFor by remember { mutableStateOf<ChannelRow?>(null) }
     var favTick by remember { mutableStateOf(0) }
     var lockTick by remember { mutableStateOf(0) }
     var hiddenTick by remember { mutableStateOf(0) }
@@ -272,7 +271,6 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
             onToggleFav = {
                 Favorites.toggle(context, serverId, cr.channel.uuid); favTick++; contextRow = null
             },
-            onProfile = { profileFor = cr; contextRow = null },
             onToggleLock = {
                 val uuid = cr.channel.uuid
                 ParentalLock.setChannelLocked(context, serverId, uuid, !isLocked); lockTick++
@@ -283,19 +281,6 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                 hiddenTick++; contextRow = null
             },
             onDismiss = { contextRow = null }
-        )
-    }
-
-    val pf = profileFor
-    if (pf != null) {
-        val current = remember { ChannelPrefs.getProfile(context, serverId, pf.channel.uuid) }
-        ProfilePickerDialog(
-            channelName = pf.channel.name,
-            current = current,
-            onPick = {
-                ChannelPrefs.setProfile(context, serverId, pf.channel.uuid, it); profileFor = null
-            },
-            onDismiss = { profileFor = null }
         )
     }
 }

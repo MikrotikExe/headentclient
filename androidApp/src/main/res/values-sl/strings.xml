@@ -164,7 +164,6 @@
     <string name="menu_program">Program (EPG)</string>
     <string name="fav_add">Dodaj med priljubljene</string>
     <string name="fav_remove">Odstrani iz priljubljenih</string>
-    <string name="ch_profile">Profil predvajanja</string>
     <string name="ch_hide">Skrij iz predvajalnika</string>
     <string name="ch_unhide">Prikaži v predvajalniku</string>
     <string name="login_connect">Prijava</string>

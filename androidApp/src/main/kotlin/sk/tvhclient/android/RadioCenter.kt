@@ -46,11 +46,8 @@ object RadioCenter {
         context: Context, server: TvhServer, uuid: String, name: String,
         picon: String? = null, epgTitle: String = "", epgStart: Long = 0L, epgStop: Long = 0L
     ) {
-        val profile = ChannelPrefs.getProfile(context, server.id, uuid)
-        val url = Tvh.liveUrl(
-            server, uuid, name,
-            profile.ifBlank { server.profile.ifBlank { "pass" } }
-        )
+        // M383: profil je jednotny pre cely server
+        val url = Tvh.liveUrl(server, uuid, name, server.profile.ifBlank { "pass" })
         piconUrl.value = picon
         nowTitle.value = epgTitle
         nowStart.value = epgStart

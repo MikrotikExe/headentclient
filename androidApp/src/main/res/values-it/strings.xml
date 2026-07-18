@@ -164,7 +164,6 @@
     <string name="menu_program">Programma (EPG)</string>
     <string name="fav_add">Aggiungi ai preferiti</string>
     <string name="fav_remove">Rimuovi dai preferiti</string>
-    <string name="ch_profile">Profilo di riproduzione</string>
     <string name="ch_hide">Nascondi dal lettore</string>
     <string name="ch_unhide">Mostra nel lettore</string>
     <string name="login_connect">Accedi</string>

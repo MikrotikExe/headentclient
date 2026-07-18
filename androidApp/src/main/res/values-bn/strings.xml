@@ -164,7 +164,6 @@
     <string name="menu_program">অনুষ্ঠান (EPG)</string>
     <string name="fav_add">প্রিয়তে যোগ করুন</string>
     <string name="fav_remove">প্রিয় থেকে সরান</string>
-    <string name="ch_profile">প্লেব্যাক প্রোফাইল</string>
     <string name="ch_hide">প্লেয়ার থেকে লুকান</string>
     <string name="ch_unhide">প্লেয়ারে দেখান</string>
     <string name="login_connect">সাইন ইন</string>

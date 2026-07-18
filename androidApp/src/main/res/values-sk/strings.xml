@@ -164,7 +164,6 @@
     <string name="menu_program">Program (EPG)</string>
     <string name="fav_add">Pridať do obľúbených</string>
     <string name="fav_remove">Odobrať z obľúbených</string>
-    <string name="ch_profile">Profil prehrávania</string>
     <string name="ch_hide">Skryť z prehrávača</string>
     <string name="ch_unhide">Zobraziť v prehrávači</string>
     <string name="login_connect">Prihlásiť sa</string>

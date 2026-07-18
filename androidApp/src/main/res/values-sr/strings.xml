@@ -164,7 +164,6 @@
     <string name="menu_program">Програм (EPG)</string>
     <string name="fav_add">Додај у омиљено</string>
     <string name="fav_remove">Уклони из омиљеног</string>
-    <string name="ch_profile">Профил репродукције</string>
     <string name="ch_hide">Сакриј из плејера</string>
     <string name="ch_unhide">Прикажи у плејеру</string>
     <string name="login_connect">Пријава</string>

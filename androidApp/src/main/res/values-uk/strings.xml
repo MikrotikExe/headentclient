@@ -164,7 +164,6 @@
     <string name="menu_program">Програма (EPG)</string>
     <string name="fav_add">Додати в обране</string>
     <string name="fav_remove">Видалити з обраного</string>
-    <string name="ch_profile">Профіль відтворення</string>
     <string name="ch_hide">Сховати з плеєра</string>
     <string name="ch_unhide">Показати в плеєрі</string>
     <string name="login_connect">Увійти</string>

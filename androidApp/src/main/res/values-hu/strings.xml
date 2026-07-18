@@ -164,7 +164,6 @@
     <string name="menu_program">Műsor (EPG)</string>
     <string name="fav_add">Hozzáadás a kedvencekhez</string>
     <string name="fav_remove">Eltávolítás a kedvencekből</string>
-    <string name="ch_profile">Lejátszási profil</string>
     <string name="ch_hide">Elrejtés a lejátszóból</string>
     <string name="ch_unhide">Megjelenítés a lejátszóban</string>
     <string name="login_connect">Bejelentkezés</string>

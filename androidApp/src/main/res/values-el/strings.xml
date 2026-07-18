@@ -164,7 +164,6 @@
     <string name="menu_program">Πρόγραμμα (EPG)</string>
     <string name="fav_add">Προσθήκη στα αγαπημένα</string>
     <string name="fav_remove">Αφαίρεση από τα αγαπημένα</string>
-    <string name="ch_profile">Προφίλ αναπαραγωγής</string>
     <string name="ch_hide">Απόκρυψη από το πρόγραμμα αναπαραγωγής</string>
     <string name="ch_unhide">Εμφάνιση στο πρόγραμμα αναπαραγωγής</string>
     <string name="login_connect">Σύνδεση</string>

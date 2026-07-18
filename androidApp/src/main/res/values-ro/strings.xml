@@ -164,7 +164,6 @@
     <string name="menu_program">Program (EPG)</string>
     <string name="fav_add">Adaugă la favorite</string>
     <string name="fav_remove">Elimină din favorite</string>
-    <string name="ch_profile">Profil de redare</string>
     <string name="ch_hide">Ascunde din player</string>
     <string name="ch_unhide">Arată în player</string>
     <string name="login_connect">Autentificare</string>

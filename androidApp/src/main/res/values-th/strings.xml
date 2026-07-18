@@ -164,7 +164,6 @@
     <string name="menu_program">รายการ (EPG)</string>
     <string name="fav_add">เพิ่มในรายการโปรด</string>
     <string name="fav_remove">นำออกจากรายการโปรด</string>
-    <string name="ch_profile">โปรไฟล์การเล่น</string>
     <string name="ch_hide">ซ่อนจากเครื่องเล่น</string>
     <string name="ch_unhide">แสดงในเครื่องเล่น</string>
     <string name="login_connect">ลงชื่อเข้าใช้</string>

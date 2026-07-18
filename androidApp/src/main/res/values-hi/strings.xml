@@ -164,7 +164,6 @@
     <string name="menu_program">कार्यक्रम (EPG)</string>
     <string name="fav_add">पसंदीदा में जोड़ें</string>
     <string name="fav_remove">पसंदीदा से हटाएँ</string>
-    <string name="ch_profile">प्लेबैक प्रोफ़ाइल</string>
     <string name="ch_hide">प्लेयर से छिपाएँ</string>
     <string name="ch_unhide">प्लेयर में दिखाएँ</string>
     <string name="login_connect">साइन इन करें</string>

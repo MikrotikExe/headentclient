@@ -16,7 +16,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.CalendarViewDay
 import androidx.compose.material.icons.filled.Refresh
@@ -78,7 +77,6 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     var favOnly by remember { mutableStateOf(false) }
     var epgFor by remember { mutableStateOf<ChannelRow?>(null) }
     var contextRow by remember { mutableStateOf<ChannelRow?>(null) }
-    var profileFor by remember { mutableStateOf<ChannelRow?>(null) }
     var favTick by remember { mutableStateOf(0) }
     var lockTick by remember { mutableStateOf(0) }
     var hiddenTick by remember { mutableStateOf(0) }
@@ -179,7 +177,6 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
         selectedTag = null
         favOnly = false
         contextRow = null
-        profileFor = null
         recChoice = null
         vm.setQuery("")
     }
@@ -424,7 +421,6 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
             onToggleFav = {
                 Favorites.toggle(ctx, serverId, cr.channel.uuid); favTick++; contextRow = null
             },
-            onProfile = { profileFor = cr; contextRow = null },
             onToggleLock = {
                 val uuid = cr.channel.uuid
                 val doToggle: () -> Unit = {
@@ -457,19 +453,6 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
         )
     }
 
-    // Vyber profilu prehravania pre kanal
-    val pf = profileFor
-    if (pf != null && serverId != null) {
-        val current = remember { ChannelPrefs.getProfile(ctx, serverId, pf.channel.uuid) }
-        ProfilePickerDialog(
-            channelName = pf.channel.name,
-            current = current,
-            onPick = {
-                ChannelPrefs.setProfile(ctx, serverId, pf.channel.uuid, it); profileFor = null
-            },
-            onDismiss = { profileFor = null }
-        )
-    }
 }
 
 @Composable
@@ -481,7 +464,6 @@ fun ChannelActionDialog(
     lockEnabled: Boolean,
     onProgram: () -> Unit,
     onToggleFav: () -> Unit,
-    onProfile: () -> Unit,
     onToggleLock: () -> Unit,
     onToggleHide: () -> Unit,
     onDismiss: () -> Unit,
@@ -532,8 +514,6 @@ fun ChannelActionDialog(
                     ModernActionRow(Icons.Default.Star,
                         if (isFav) stringResource(R.string.fav_remove) else stringResource(R.string.fav_add),
                         onToggleFav)
-                    ModernActionRow(Icons.Default.Tune,
-                        stringResource(R.string.ch_profile), onProfile)
                     if (lockEnabled) {
                         ModernActionRow(Icons.Filled.Lock,
                             if (isLocked) stringResource(R.string.plock_unlock) else stringResource(R.string.plock_lock),
@@ -563,7 +543,6 @@ fun ChannelActionDialog(
                     if (isFav) stringResource(R.string.fav_remove) else stringResource(R.string.fav_add),
                     onToggleFav
                 )
-                ActionRow(stringResource(R.string.ch_profile), onProfile)
                 if (lockEnabled) {
                     ActionRow(
                         if (isLocked) stringResource(R.string.plock_unlock) else stringResource(R.string.plock_lock),
@@ -617,45 +596,6 @@ fun ActionRow(label: String, onClick: () -> Unit) {
             .padding(horizontal = 20.dp, vertical = 14.dp),
         style = MaterialTheme.typography.bodyLarge
     )
-}
-
-@Composable
-fun ProfilePickerDialog(
-    channelName: String,
-    current: String,
-    onPick: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
-        androidx.compose.material3.Surface(
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-            tonalElevation = 6.dp
-        ) {
-            Column(Modifier.padding(vertical = 8.dp)) {
-                Text(
-                    stringResource(R.string.ch_profile) + " · " + channelName,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-                )
-                ChannelPrefs.profileOptions.forEach { (code, label) ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .dpadFocusable()
-                            .clickable { onPick(code) }
-                            .padding(horizontal = 20.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            if (code == current) "\u2713  " else "     ",
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(label, style = MaterialTheme.typography.bodyLarge)
-                    }
-                }
-            }
-        }
-    }
 }
 
 private fun playChannel(

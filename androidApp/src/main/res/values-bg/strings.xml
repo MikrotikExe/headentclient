@@ -164,7 +164,6 @@
     <string name="menu_program">Програма (EPG)</string>
     <string name="fav_add">Добавяне в любими</string>
     <string name="fav_remove">Премахване от любими</string>
-    <string name="ch_profile">Профил на възпроизвеждане</string>
     <string name="ch_hide">Скриване от плейъра</string>
     <string name="ch_unhide">Показване в плейъра</string>
     <string name="login_connect">Вход</string>

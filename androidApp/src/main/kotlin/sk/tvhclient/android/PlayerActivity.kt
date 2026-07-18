@@ -61,6 +61,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.ClosedCaption
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.Replay30
 import androidx.compose.material.icons.filled.Forward30
@@ -189,14 +190,19 @@ class PlayerActivity : ComponentActivity() {
     // "Viac" menu listy (M327): menej pouzivane polozky — rezerva pre dlhsie preklady
     private val modernMoreState = androidx.compose.runtime.mutableStateOf(false)
     private val modernMoreIdx = androidx.compose.runtime.mutableStateOf(0)
-    private val modernMoreIds = listOf("list", "sleep", "info")
+    // M383: "profile" pribudne len ked je prepinac dostupny (HTTP live)
+    private fun modernMoreIds(): List<String> = buildList {
+        add("list"); add("sleep"); add("info")
+        if (profileSwitchAvailable()) add("profile")
+    }
     private fun modernMoreActivate() {
-        val id = modernMoreIds.getOrNull(modernMoreIdx.value) ?: return
+        val id = modernMoreIds().getOrNull(modernMoreIdx.value) ?: return
         modernMoreState.value = false
         when (id) {
             "list" -> { closeModernOverlay(); openChannelList() }
             "sleep" -> { closeModernOverlay(); openSleepMenu() }
             "info" -> { closeModernOverlay(); toggleInfo() }
+            "profile" -> { closeModernOverlay(); openProfileMenu() }
         }
     }
 
@@ -509,7 +515,7 @@ class PlayerActivity : ComponentActivity() {
         runCatching { startActivity(i) }
     }
     private fun showControlsFocused() {
-        val order = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value)
+        val order = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable())
         controlNavState.value = order.indexOf("play").coerceAtLeast(0)
         pokeControls()
     }
@@ -525,7 +531,7 @@ class PlayerActivity : ComponentActivity() {
                 timeshiftEngagedState.value = true
                 // zapnutim timeshiftu pribudnu ovladace pretacania (tsrew pred play) a posunu sa
                 // indexy — re-ukotvi fokus na play/pause, nech "neskoci" na pretacanie
-                val ord = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), true)
+                val ord = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), true, profileSwitchAvailable())
                 controlNavState.value = ord.indexOf("play").coerceAtLeast(0)
                 tsPauseStartedAt = System.currentTimeMillis()
                 startTimeshiftTicker()
@@ -1105,8 +1111,8 @@ class PlayerActivity : ComponentActivity() {
         liveNextStartState.value = ch?.nextStart ?: 0L
         liveNextStopState.value = ch?.nextStop ?: 0L
         zapPokeState.value = zapPokeState.value + 1
-        val prof = ChannelPrefs.getProfile(this, srv.id, uuid)
-            .ifBlank { srv.profile.ifBlank { "pass" } }
+        // M383: profil je jednotny pre cely server (per-kanal override zruseny)
+        val prof = srv.profile.ifBlank { "pass" }
         val url = Tvh.liveUrl(srv, uuid, name, prof)
         currentStreamUrl = url
         cancelReconnect()  // nove pripojenie -> zrus stare pokusy
@@ -1321,6 +1327,10 @@ class PlayerActivity : ComponentActivity() {
     private val optionsNavState = androidx.compose.runtime.mutableStateOf(0)
     private val openAudioMenuState = androidx.compose.runtime.mutableStateOf(0)
     private val openSpuMenuState = androidx.compose.runtime.mutableStateOf(0)
+    // M383: prepinac stream profilu v prehravaci (len HTTP live)
+    private val openProfileMenuState = androidx.compose.runtime.mutableStateOf(0)
+    private val profileItemsState = androidx.compose.runtime.mutableStateOf<List<String>>(emptyList())
+    private val currentProfileState = androidx.compose.runtime.mutableStateOf("")
     // Casovac uspatia
     private val sleepMinutesState = androidx.compose.runtime.mutableStateOf(0)
     private val sleepDeadlineState = androidx.compose.runtime.mutableStateOf(0L)
@@ -1622,6 +1632,7 @@ class PlayerActivity : ComponentActivity() {
     // --- Track menu (audio/titulky) riadene z Activity ---
     private fun trackMenuIds(): List<Int> {
         if (!::mediaPlayer.isInitialized) return emptyList()
+        if (trackMenuKind == "profile") return profileItemsState.value.indices.toList()
         return if (trackMenuKind == "audio") {
             mediaPlayer.audioTrackItems().map { it.id }
         } else {
@@ -1656,6 +1667,43 @@ class PlayerActivity : ComponentActivity() {
         } ?: return
         if (mediaPlayer.spuTrack != m.id) mediaPlayer.spuTrack = m.id
     }
+    /** M383: prepinac profilu ma zmysel len pri HTTP live (nie HTSP, nie DVR,
+     *  nie externa URL — tam profil neexistuje alebo sa neda menit). */
+    private fun profileSwitchAvailable(): Boolean =
+        !seekablePlayback && !htspStream && liveIndex >= 0 &&
+            (liveServer?.connectionMode ?: "htsp") != "htsp"
+
+    private fun openProfileMenu() {
+        val srv = liveServer ?: return
+        trackMenuKind = "profile"; trackNavState.value = 0
+        // okamzity fallback, server moze zoznam vzapati nahradit vlastnym
+        if (profileItemsState.value.isEmpty()) {
+            profileItemsState.value =
+                ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
+        }
+        lifecycleScope.launch {
+            val list = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                sk.tvhclient.shared.Tvh.streamProfiles(srv)
+            }
+            if (list.isNotEmpty()) profileItemsState.value = list
+        }
+        openProfileMenuState.value = openProfileMenuState.value + 1
+    }
+
+    /** M383: novy profil = nova predvolba SERVERA (plati pre vsetky dalsie kanaly,
+     *  drzi po restarte; ta ista hodnota je v Nastavenia -> server -> Upravit).
+     *  Stream sa restartuje s novou URL. */
+    private fun applyProfileChange(profile: String) {
+        val srv = liveServer ?: return
+        if (profile.isBlank() || profile == srv.profile) return
+        val updated = srv.copy(profile = profile)
+        sk.tvhclient.shared.Tvh.store.upsert(updated)
+        liveServer = updated
+        currentProfileState.value = profile
+        val i = liveIndex
+        if (i >= 0) { liveIndex = -1; switchToIndex(i, poke = false) }
+    }
+
     private fun openAudioMenu() {
         trackMenuKind = "audio"; trackNavState.value = 0
         openAudioMenuState.value = openAudioMenuState.value + 1
@@ -1670,6 +1718,9 @@ class PlayerActivity : ComponentActivity() {
         val ids = trackMenuIds()
         val id = ids.getOrNull(trackNavState.value) ?: return
         when {
+            trackMenuKind == "profile" -> {
+                profileItemsState.value.getOrNull(id)?.let { applyProfileChange(it) }
+            }
             trackMenuKind == "audio" -> {
                 mediaPlayer.audioTrack = id
                 // M378: zapamataj rucny vyber pre kanal aj z TV menu (D-pad);
@@ -1700,6 +1751,7 @@ class PlayerActivity : ComponentActivity() {
             "tsff" -> { timeshiftSkip(+30); pokeControls() }
             "audio" -> openAudioMenu()
             "subs" -> openSpuMenu()
+            "profile" -> openProfileMenu()
             "epg" -> openEpgInApp()
             "pip" -> enterPipAndMinimize()
             "info" -> { toggleInfo(); pokeControls() }
@@ -2104,10 +2156,10 @@ class PlayerActivity : ComponentActivity() {
         if (modernMoreState.value) {
             if (down) when (kc) {
                 android.view.KeyEvent.KEYCODE_DPAD_DOWN -> {
-                    modernMoreIdx.value = (modernMoreIdx.value + 1) % modernMoreIds.size; return true
+                    modernMoreIdx.value = (modernMoreIdx.value + 1) % modernMoreIds().size; return true
                 }
                 android.view.KeyEvent.KEYCODE_DPAD_UP -> {
-                    modernMoreIdx.value = (modernMoreIdx.value - 1 + modernMoreIds.size) % modernMoreIds.size; return true
+                    modernMoreIdx.value = (modernMoreIdx.value - 1 + modernMoreIds().size) % modernMoreIds().size; return true
                 }
                 android.view.KeyEvent.KEYCODE_DPAD_CENTER,
                 android.view.KeyEvent.KEYCODE_ENTER,
@@ -2234,7 +2286,7 @@ class PlayerActivity : ComponentActivity() {
             // ovladanie zobrazene -> vlavo/vpravo naviguju panel, OK aktivuje
             // zvyrazneny prvok (hore/dole prepinaju kanal vyssie)
             if (controlsShown) {
-                val order = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value)
+                val order = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable())
                 val n = order.size
                 if (seekablePlayback) {
                     val onSeek = order.getOrNull(controlNavState.value) == "seek"
@@ -2586,18 +2638,29 @@ class PlayerActivity : ComponentActivity() {
             }
         }
 
-        // DVR: priame dvrfile URL (s creds). Live: zostav z kanala s per-kanal
-        // profilom (ak je nastaveny), inak profil servera.
-        val chProfile = if (channelUuid != null)
-            ChannelPrefs.getProfile(this, server.id, channelUuid) else ""
+        // DVR: priame dvrfile URL (s creds). Live: profil servera (M383 — per-kanal
+        // override zruseny, profil sa da prepnut priamo v prehravaci).
         val streamUrl = directUrl ?: Tvh.liveUrl(
             server, channelUuid!!, channelTitle,
-            chProfile.ifBlank { server.profile.ifBlank { "pass" } }
+            server.profile.ifBlank { "pass" }
         )
 
         // Server je potrebny aj v DVR rezime (seekDvrTo / reopenDvrLive cez feeder).
         // Live-zapping nizsie zavisi od liveUuids (pri DVR prazdne), nie od liveServer.
         liveServer = server
+        currentProfileState.value = server.profile.ifBlank { "pass" }
+        // M383: prednacitaj zoznam profilov (dotykove tlacidlo otvara menu priamo,
+        // bez openProfileMenu) — fallback hned, servrovy zoznam async
+        if (server.connectionMode != "htsp" && profileItemsState.value.isEmpty()) {
+            profileItemsState.value =
+                ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
+            lifecycleScope.launch {
+                val list = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    sk.tvhclient.shared.Tvh.streamProfiles(server)
+                }
+                if (list.isNotEmpty()) profileItemsState.value = list
+            }
+        }
         // Live zapping: priprav zoznam susednych kanalov
         if (directUrl == null && channelUuid != null && LivePlaylist.channels.isNotEmpty()) {
             liveUuids = LivePlaylist.channels.map { it.uuid }
@@ -2621,7 +2684,7 @@ class PlayerActivity : ComponentActivity() {
         val canZap = directUrl == null && liveUuids.size > 1
         seekablePlayback = directUrl != null
         // predvolene zvyraznenie ovladacieho panela = play (nie krizik)
-        controlNavState.value = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value).indexOf("play").coerceAtLeast(0)
+        controlNavState.value = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable()).indexOf("play").coerceAtLeast(0)
         currentStreamUrl = streamUrl
 
         setContent {
@@ -2777,6 +2840,11 @@ class PlayerActivity : ComponentActivity() {
                     // omylom prepinal zvukovu stopu
                     trackMenuOpen = kind != null
                     if (kind != null) { trackMenuKind = kind; trackNavState.value = 0 }
+                    // M383: poistka — profile menu otvorene dotykom bez zoznamu
+                    if (kind == "profile" && profileItemsState.value.isEmpty()) {
+                        profileItemsState.value =
+                            ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
+                    }
                 },
                 onChannelListChange = {
                     channelListOpen = it
@@ -2793,6 +2861,12 @@ class PlayerActivity : ComponentActivity() {
                 closeMenuSignal = closeMenuState.value,
                 openAudioSignal = openAudioMenuState.value,
                 openSpuSignal = openSpuMenuState.value,
+                openProfileSignal = openProfileMenuState.value,
+                profileItems = profileItemsState.value,
+                currentProfile = currentProfileState.value,
+                profileSwitch = profileSwitchAvailable(),
+                onPickProfile = { p -> applyProfileChange(p) },
+                modernMoreIdList = modernMoreIds(),
                 onOptionsChange = { optionsOpen = it },
                 onControlsVisibleChange = { controlsShown = it },
                 onOrientationLockChange = { locked ->
@@ -3817,6 +3891,13 @@ private fun PlayerUi(
     closeMenuSignal: Int = 0,
     openAudioSignal: Int = 0,
     openSpuSignal: Int = 0,
+    // M383: prepinac stream profilu
+    openProfileSignal: Int = 0,
+    profileItems: List<String> = emptyList(),
+    currentProfile: String = "",
+    profileSwitch: Boolean = false,
+    onPickProfile: (String) -> Unit = {},
+    modernMoreIdList: List<String> = listOf("list", "sleep", "info"),
     onOptionsChange: (Boolean) -> Unit = {},
     onControlsVisibleChange: (Boolean) -> Unit = {},
     pinPrompt: Boolean = false,
@@ -3934,6 +4015,7 @@ private fun PlayerUi(
     }
     LaunchedEffect(openAudioSignal) { if (openAudioSignal > 0) { menu = "audio"; controlsVisible = false } }
     LaunchedEffect(openSpuSignal) { if (openSpuSignal > 0) { menu = "spu"; controlsVisible = false } }
+    LaunchedEffect(openProfileSignal) { if (openProfileSignal > 0) { menu = "profile"; controlsVisible = false } }
     LaunchedEffect(closeMenuSignal) { if (closeMenuSignal > 0) menu = null }
     // ikona play/pause podla skutocneho stavu prehravaca
     LaunchedEffect(playing) { isPlaying = playing }
@@ -4511,7 +4593,7 @@ private fun PlayerUi(
             modifier = Modifier.fillMaxSize()
         ) {
             Box(Modifier.fillMaxSize().systemBarsPadding()) {
-                val order = playerControlOrder(onPrevChannel != null, seekable, pipButton, timeshiftEngaged)
+                val order = playerControlOrder(onPrevChannel != null, seekable, pipButton, timeshiftEngaged, profileSwitch)
                 // fokusove zvyraznenie len na TV (D-pad); na telefone (dotyk) ziadne "vybrate" tlacidlo
                 val isTvDevice = remember {
                     val um = ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
@@ -4804,6 +4886,10 @@ private fun PlayerUi(
                                 icon = Icons.Default.ClosedCaption, selected = selCtrl == "subs", scale = bk,
                                 onClick = { menu = if (menu == "spu") null else "spu" }
                             )
+                            "profile" -> CircleButton(
+                                icon = Icons.Default.Tune, selected = selCtrl == "profile", scale = bk,
+                                onClick = { menu = if (menu == "profile") null else "profile" }
+                            )
                             "lock" -> CircleButton(
                                 icon = Icons.Default.Lock, selected = orientationLocked, scale = bk,
                                 onClick = {
@@ -4920,6 +5006,8 @@ private fun PlayerUi(
                 lockVisible = lockVis,
                 orientationLocked = orientationLocked,
                 pipVisible = pipButton,
+                profileVisible = profileSwitch,
+                onProfile = { showMoreSheet = false; menu = "profile" },
                 onPip = { showMoreSheet = false; onEnterPip() },
                 onSubs = { showMoreSheet = false; menu = "spu" },
                 onSleep = { showMoreSheet = false; onOpenSleep() },
@@ -5659,11 +5747,15 @@ private fun PlayerUi(
 
         // "Viac" menu modernej listy (M327): Kanaly / Casovac uspatia / Informacie
         if (modernMoreVisible) {
-            val moreLabels = listOf(
-                stringResource(R.string.tab_channels),
-                stringResource(R.string.sleep_timer),
-                stringResource(R.string.pm_info)
-            )
+            // M383: zoznam idcok prichadza z Activity (moze obsahovat "profile")
+            val moreLabels = modernMoreIdList.map { id ->
+                when (id) {
+                    "list" -> stringResource(R.string.tab_channels)
+                    "sleep" -> stringResource(R.string.sleep_timer)
+                    "profile" -> stringResource(R.string.field_profile)
+                    else -> stringResource(R.string.pm_info)
+                }
+            }
             Box(
                 Modifier
                     .fillMaxSize()
@@ -5759,23 +5851,31 @@ private fun PlayerUi(
             @Suppress("UNUSED_EXPRESSION") trackListVersion
             val htspSpu = menu == "spu" && onPickHtspSpu != null
             val items = when {
+                menu == "profile" -> profileItems.mapIndexed { i, name -> TrackItem(i, name) }
                 menu == "audio" -> player.audioTrackItems()
                 htspSpu -> htspSpuItems ?: emptyList()
                 else -> player.spuTrackItems()
             }
             val currentId = when {
+                menu == "profile" -> profileItems.indexOf(currentProfile)
                 menu == "audio" -> player.audioTrack
                 htspSpu -> htspSpuCurrentId
                 else -> player.spuTrack
             }
             TrackMenu(
-                header = if (menu == "audio") stringResource(R.string.track_audio) else stringResource(R.string.track_subtitles),
+                header = when (menu) {
+                    "profile" -> stringResource(R.string.field_profile)
+                    "audio" -> stringResource(R.string.track_audio)
+                    else -> stringResource(R.string.track_subtitles)
+                },
                 items = items,
                 currentId = currentId,
                 allowOff = (menu == "spu"),  // titulky sa daju vypnut (-1)
                 navIndex = trackNavIndex,
                 onPick = { id ->
-                    if (menu == "audio") {
+                    if (menu == "profile") {
+                        profileItems.getOrNull(id)?.let { onPickProfile(it) }
+                    } else if (menu == "audio") {
                         player.audioTrack = id
                         // zapamataj vyber pre kanal (live)
                         if (liveChannelUuid != null && serverId != null) {

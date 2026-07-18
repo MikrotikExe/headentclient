@@ -164,7 +164,6 @@
     <string name="menu_program">番組 (EPG)</string>
     <string name="fav_add">お気に入りに追加</string>
     <string name="fav_remove">お気に入りから削除</string>
-    <string name="ch_profile">再生プロファイル</string>
     <string name="ch_hide">プレーヤーで非表示</string>
     <string name="ch_unhide">プレーヤーで表示</string>
     <string name="login_connect">サインイン</string>

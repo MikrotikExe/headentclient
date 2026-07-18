@@ -164,7 +164,6 @@
     <string name="menu_program">节目 (EPG)</string>
     <string name="fav_add">添加到收藏</string>
     <string name="fav_remove">从收藏中移除</string>
-    <string name="ch_profile">播放配置</string>
     <string name="ch_hide">在播放器中隐藏</string>
     <string name="ch_unhide">在播放器中显示</string>
     <string name="login_connect">登录</string>

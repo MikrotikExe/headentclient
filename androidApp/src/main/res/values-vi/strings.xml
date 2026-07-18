@@ -164,7 +164,6 @@
     <string name="menu_program">Chương trình (EPG)</string>
     <string name="fav_add">Thêm vào yêu thích</string>
     <string name="fav_remove">Xóa khỏi yêu thích</string>
-    <string name="ch_profile">Hồ sơ phát</string>
     <string name="ch_hide">Ẩn khỏi trình phát</string>
     <string name="ch_unhide">Hiện trong trình phát</string>
     <string name="login_connect">Đăng nhập</string>

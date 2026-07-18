@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.ClosedCaption
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
@@ -178,6 +179,9 @@ internal fun ModernMoreSheet(
     // PiP polozka (M349-fix5): len ked je Auto-PiP vypnuty — rucny vstup do PiP
     pipVisible: Boolean = false,
     onPip: () -> Unit = {},
+    // M383: prepinac stream profilu (len HTTP live)
+    profileVisible: Boolean = false,
+    onProfile: () -> Unit = {},
     onSubs: () -> Unit,
     onSleep: () -> Unit,
     onLockToggle: () -> Unit,
@@ -213,6 +217,9 @@ internal fun ModernMoreSheet(
             Spacer(Modifier.height(10.dp))
 
             ModernSheetRow(Icons.Default.ClosedCaption, stringResource(R.string.track_subtitles), onSubs)
+            if (profileVisible) {
+                ModernSheetRow(Icons.Default.Tune, stringResource(R.string.field_profile), onProfile)
+            }
             if (pipVisible) {
                 ModernSheetRow(Icons.Default.PictureInPictureAlt, stringResource(R.string.pm_pip), onPip)
             }

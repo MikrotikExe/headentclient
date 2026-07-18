@@ -164,7 +164,6 @@
     <string name="menu_program">프로그램 (EPG)</string>
     <string name="fav_add">즐겨찾기에 추가</string>
     <string name="fav_remove">즐겨찾기에서 제거</string>
-    <string name="ch_profile">재생 프로필</string>
     <string name="ch_hide">플레이어에서 숨기기</string>
     <string name="ch_unhide">플레이어에 표시</string>
     <string name="login_connect">로그인</string>
