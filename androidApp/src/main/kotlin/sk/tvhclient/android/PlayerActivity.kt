@@ -146,8 +146,12 @@ class PlayerActivity : ComponentActivity() {
     // M392: stav titulkov spred restartu streamu pri zmene profilu (HTTP live) —
     // novy kontajner (napr. matroska) moze mat default titulkovu stopu, ktoru by
     // libVLC sam zapol; po restarte preto obnovime povodnu volbu pouzivatela.
-    private var pendingSpuOffUntil = 0L   // vynucuj "vypnute" len chvilu po restarte
-    private var pendingSpuName: String? = null
+    // M392-fix: trvala volba pouzivatela pre HTTP live titulky. Default OFF
+    // (zhodne s HTSP, kde null = vypnute). Vynucuje sa pri kazdom ESAdded,
+    // takze ani neskoro registrovana default stopa (matroska na pomalom boxe)
+    // titulky nezapne. Rusi ju len rucne zapnutie v menu (D-pad aj dotyk).
+    private var httpSpuWantOff = true
+    private var httpSpuWantName: String? = null
     // M262: ci uz prebehlo urcenie HTSP rezimu pre toto sedenie. doPlay (startovacie
     // prehratie) ho nastavi; ak vsak pouzivatel prepne kanal este pred doPlay (napr.
     // odchod z PIN vyzvy zamknuteho kanala), inicializuje HTSP switchToIndex.
@@ -1755,21 +1759,27 @@ class PlayerActivity : ComponentActivity() {
         } ?: return
         if (mediaPlayer.spuTrack != m.id) mediaPlayer.spuTrack = m.id
     }
-    /** M392: obnov stav titulkov spred restartu streamu (zmena profilu, HTTP live).
-     *  "Vypnute" drzime pocas celej zivotnosti streamu (kazde ESAdded moze stopu
-     *  znovu zapnut, ked pribudne default-flagovana stopa v novom kontajneri). */
+    /** M392-fix: presad zelanie pouzivatela pre titulky na HTTP live streame.
+     *  Vola sa pri kazdom ESAdded — default-flagovana stopa (matroska) sa moze
+     *  zaregistrovat aj desiatky sekund po starte a libVLC by ju zapol. */
     private fun applyPendingSpuRestore() {
-        if (!::mediaPlayer.isInitialized || htspStream) return
-        if (System.currentTimeMillis() < pendingSpuOffUntil) {
-            if (mediaPlayer.spuTrack != -1) mediaPlayer.spuTrack = -1
+        if (!::mediaPlayer.isInitialized || htspStream || seekablePlayback) return
+        val want = httpSpuWantName
+        if (want != null) {
+            val tr = mediaPlayer.spuTracks?.firstOrNull {
+                it.id >= 0 && (it.name?.contains(want, ignoreCase = true) == true)
+            } ?: return
+            if (mediaPlayer.spuTrack != tr.id) mediaPlayer.spuTrack = tr.id
             return
         }
-        val want = pendingSpuName ?: return
-        val tr = mediaPlayer.spuTracks?.firstOrNull {
-            it.id >= 0 && (it.name?.contains(want, ignoreCase = true) == true)
-        } ?: return
-        if (mediaPlayer.spuTrack != tr.id) mediaPlayer.spuTrack = tr.id
-        pendingSpuName = null
+        if (httpSpuWantOff && mediaPlayer.spuTrack != -1) mediaPlayer.spuTrack = -1
+    }
+
+    /** M392-fix: rucna volba titulkov na HTTP live (D-pad aj dotykove menu). */
+    private fun httpSpuUserPick(id: Int) {
+        httpSpuWantOff = id < 0
+        httpSpuWantName = if (id >= 0 && ::mediaPlayer.isInitialized)
+            mediaPlayer.spuTrackItems().firstOrNull { it.id == id }?.name else null
     }
 
     /** M383: prepinac profilu ma zmysel len pri HTTP live (nie HTSP, nie DVR,
@@ -1799,11 +1809,12 @@ class PlayerActivity : ComponentActivity() {
     private fun applyProfileChange(profile: String) {
         val srv = liveServer ?: return
         if (profile.isBlank() || profile == srv.profile) return
-        // M392: zapamataj stav titulkov, nech po restarte s novym profilom ostane
+        // M392: zosulad zelanie so skutocnym stavom pred restartom (pokryva aj
+        // pripad, ked pouzivatel medzitym prepol titulky dotykovym menu)
         if (::mediaPlayer.isInitialized && !htspStream) {
             val cur = runCatching { mediaPlayer.spuTrack }.getOrDefault(-1)
-            pendingSpuOffUntil = if (cur < 0) System.currentTimeMillis() + 8000L else 0L
-            pendingSpuName = if (cur >= 0)
+            httpSpuWantOff = cur < 0
+            httpSpuWantName = if (cur >= 0)
                 mediaPlayer.spuTrackItems().firstOrNull { it.id == cur }?.name else null
         }
         val updated = srv.copy(profile = profile)
@@ -1846,10 +1857,7 @@ class PlayerActivity : ComponentActivity() {
             htspStream -> onPickHtspSpu(id)
             else -> {
                 mediaPlayer.spuTrack = id
-                // M392: rucna volba rusi vynucovanie a prepise pamatany stav
-                pendingSpuOffUntil = 0L
-                pendingSpuName = if (id >= 0)
-                    mediaPlayer.spuTrackItems().firstOrNull { it.id == id }?.name else null
+                httpSpuUserPick(id)   // M392-fix: prepise trvale zelanie
             }
         }
         closeTrackMenu()
@@ -2844,6 +2852,7 @@ class PlayerActivity : ComponentActivity() {
                 } else null,
                 htspSpuCurrentId = selectedSubEsState.value,
                 onPickHtspSpu = if (htspStreamState.value) ({ id -> onPickHtspSpu(id) }) else null,
+                onPickHttpSpu = { id -> httpSpuUserPick(id) },
                 onAttach = { layout ->
                     videoLayout = layout
                     mediaPlayer.attachViews(layout, null, false, false)
@@ -4003,6 +4012,7 @@ private fun PlayerUi(
     htspSpuItems: List<TrackItem>? = null,   // != null => HTSP: kompletny zoznam titulkov z metadat
     htspSpuCurrentId: Int = -1,
     onPickHtspSpu: ((Int) -> Unit)? = null,
+    onPickHttpSpu: ((Int) -> Unit)? = null,
     onAttach: (VLCVideoLayout) -> Unit,
     onStart: () -> Unit,
     onPrevChannel: (() -> Unit)? = null,
@@ -6083,6 +6093,7 @@ private fun PlayerUi(
                         onPickHtspSpu!!(id)
                     } else {
                         player.spuTrack = id
+                        if (menu == "spu") onPickHttpSpu?.invoke(id)   // M392-fix
                     }
                     menu = null
                 },
