@@ -835,6 +835,13 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
     }
 
     val wide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 600
+    // M393: sekcia Dialkove ovladanie ma zmysel len na TV (zapina prijimac na boxe);
+    // na telefone ju skryvame — telefon je ovladac, nie ovladane zariadenie.
+    val ctxTvChk = androidx.compose.ui.platform.LocalContext.current
+    val isTvSettings = remember {
+        val um = ctxTvChk.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
+        um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
+    }
     val effective = section ?: "general"
 
     // spolocny obsah sekcie (pouzity v sidebar aj drill-down rezime)
@@ -926,7 +933,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
                         badge = servers.size.takeIf { it > 0 }?.toString(),
                         chipBgL = 0xFFE3E0FB, chipFgL = 0xFF6A5AD8, chipBgD = 0xFF241F45, chipFgD = 0xFFA99BF5
                     ) { lastSection = "servers"; section = "servers" }
-                    SettingsNavItem(Icons.Filled.SettingsRemote, stringResource(R.string.set_cat_remote), effective == "remote", catFocus["remote"],
+                    if (isTvSettings) SettingsNavItem(Icons.Filled.SettingsRemote, stringResource(R.string.set_cat_remote), effective == "remote", catFocus["remote"],
                         subtitle = stringResource(R.string.set_sub_remote),
                         chipBgL = 0xFFFFECCC, chipFgL = 0xFFC07A17, chipBgD = 0xFF3A2B12, chipFgD = 0xFFE8B96A
                     ) { lastSection = "remote"; section = "remote" }
@@ -987,7 +994,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
                         badge = servers.size.takeIf { it > 0 }?.toString(),
                         chipBgL = 0xFFE3E0FB, chipFgL = 0xFF6A5AD8, chipBgD = 0xFF241F45, chipFgD = 0xFFA99BF5
                     ) { lastSection = "servers"; section = "servers" }
-                    SettingsCategory(stringResource(R.string.set_cat_remote), catFocus["remote"],
+                    if (isTvSettings) SettingsCategory(stringResource(R.string.set_cat_remote), catFocus["remote"],
                         icon = Icons.Filled.SettingsRemote, subtitle = stringResource(R.string.set_sub_remote),
                         chipBgL = 0xFFFFECCC, chipFgL = 0xFFC07A17, chipBgD = 0xFF3A2B12, chipFgD = 0xFFE8B96A
                     ) { lastSection = "remote"; section = "remote" }
