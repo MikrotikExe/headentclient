@@ -1282,6 +1282,7 @@ private fun EpgGridRow(
                             selected = selectedStart == rb.start,
                             onClick = { onInProgress(rb.entry) }
                         ) else GridBlock(
+                            rowH = rowH,
                             startMin = startMin,
                             endMin = endMin,
                             title = rb.title,
@@ -1306,6 +1307,7 @@ private fun EpgGridRow(
                             selected = selectedStart == rb.start,
                             onClick = { onDvr(rb.entry) }
                         ) else GridBlock(
+                            rowH = rowH,
                             startMin = startMin,
                             endMin = endMin,
                             title = rb.title,
@@ -1341,6 +1343,7 @@ private fun EpgGridRow(
                         selected = selectedStart == ev.start,
                         onClick = { onClick(ev) }
                     ) else GridBlock(
+                        rowH = rowH,
                         startMin = startMin,
                         endMin = endMin,
                         title = ev.title.ifBlank { "—" },
@@ -1398,6 +1401,7 @@ private fun GridBlock(
     title: String,
     timeLabel: String,
     bg: Color,
+    rowH: Int = ROW_H,
     recorded: Boolean,
     progressMin: Int = 0,
     progressColor: Color? = null,
@@ -1438,7 +1442,7 @@ private fun GridBlock(
         Modifier
             .offset(x = (startMin * PX_PER_MIN).dp)
             .width(cellW.dp)
-            .height(ROW_H.dp)
+            .height(rowH.dp)
             .zIndex(if (expand) 2f else 0f)
     ) {
         Box(
@@ -1458,7 +1462,7 @@ private fun GridBlock(
                 Box(
                     Modifier
                         .width((progressMin.coerceAtMost(wMin) * PX_PER_MIN).dp)
-                        .height(ROW_H.dp)
+                        .height(rowH.dp)
                         .background(progressColor ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
                 )
             }
@@ -1483,7 +1487,7 @@ private fun GridBlock(
                 Modifier
                     .offset(x = shiftDp.dp)
                     .requiredWidth(bubbleW.dp)
-                    .height(ROW_H.dp)
+                    .height(rowH.dp)
                     .padding(2.dp)
                     .shadow(8.dp, RoundedCornerShape(6.dp))
                     .clip(RoundedCornerShape(6.dp))
