@@ -420,19 +420,35 @@ class PlayerActivity : ComponentActivity() {
         val wantName = entry?.name ?: liveNames.getOrNull(liveIndex) ?: intent.getStringExtra(EXTRA_TITLE)
         val wantNum = entry?.number ?: 0
         lifecycleScope.launch {
+            var healInfo = ""
             val fixed = withContext(Dispatchers.IO) {
-                runCatching {
+                try {
                     val api = Tvh.apiFor(server)
                     try {
                         val chs = api.channels()
+                        val first = chs.firstOrNull()?.uuid
+                        healInfo = "n=" + chs.size + " rest0=" + (first?.take(8) ?: "-") +
+                            "(len" + (first?.length ?: 0) + ")"
                         (wantName?.let { n -> chs.firstOrNull { it.name.equals(n, ignoreCase = true) } }
                             ?: if (wantNum > 0) chs.firstOrNull { (it.number ?: -1) == wantNum } else null)
                             ?.uuid
                     } finally { api.close() }
-                }.getOrNull()
+                } catch (t: Throwable) {
+                    healInfo = "err=" + (t.message ?: t.javaClass.simpleName)
+                    null
+                }
+            }
+            // M390-fix5 DIAG: vysledok liecenia na obrazovku
+            withContext(Dispatchers.Main) {
+                val res = fixed?.take(8) ?: "nenajdene"
+                android.util.Log.i("HCDiag", "M390 heal " + pathId + " name=" + wantName + " " + healInfo + " -> " + (fixed ?: "null"))
+                Toast.makeText(
+                    this@PlayerActivity,
+                    "M390v5 heal: " + pathId.take(9) + " name=" + (wantName ?: "?") + " " + healInfo + " -> " + res,
+                    Toast.LENGTH_LONG
+                ).show()
             }
             if (fixed != null && looksLikeRestUuid(fixed)) {
-                android.util.Log.i("HCDiag", "M390-fix4 heal " + pathId + " -> " + fixed)
                 LivePlaylist.channels = LivePlaylist.channels.map { if (it.uuid == pathId) it.copy(uuid = fixed) else it }
                 LivePlaylist.allChannels = LivePlaylist.allChannels.map { if (it.uuid == pathId) it.copy(uuid = fixed) else it }
                 liveUuids = liveUuids.map { if (it == pathId) fixed else it }
@@ -3447,7 +3463,7 @@ class PlayerActivity : ComponentActivity() {
                 val srvName = liveServer?.name ?: "?"
                 withContext(Dispatchers.Main) {
                     android.util.Log.i("HCDiag", "M390 diag mode=" + mode + " srv=" + srvName + " ep=" + ep + " uuid=" + uuidShort + " prof=" + prof + " " + msg)
-                    Toast.makeText(this@PlayerActivity, "M390 diag: mode=" + mode + " srv=" + srvName + " ep=" + ep + " prof=" + prof + " " + msg, Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@PlayerActivity, "M390v5 diag: mode=" + mode + " srv=" + srvName + " ep=" + ep + " prof=" + prof + " " + msg, Toast.LENGTH_LONG).show()
                 }
             }
         }
