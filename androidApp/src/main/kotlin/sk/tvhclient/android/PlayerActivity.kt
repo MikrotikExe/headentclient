@@ -2711,6 +2711,7 @@ class PlayerActivity : ComponentActivity() {
                 }
                 MediaPlayer.Event.Playing -> {
                     isPlayingState.value = true; refreshPipIfActive()
+                    if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }  // M392-fix2
                     maybeApplyAfr()  // AFR (M346): prepni Hz displeja podla fps streamu
                     applyAudioDelay()  // kompenzacia sink latencie (M349, ako Kodi)
                     keepScreenOn(true)  // pocas prehravania nedovol setric/ambient na boxoch
@@ -2733,6 +2734,11 @@ class PlayerActivity : ComponentActivity() {
                 MediaPlayer.Event.Paused -> { isPlayingState.value = false; keepScreenOn(false); refreshPipIfActive() }
                 MediaPlayer.Event.Stopped -> { isPlayingState.value = false; keepScreenOn(false); refreshPipIfActive() }
                 MediaPlayer.Event.Vout -> { if (event.voutCount > 0) hasVideoState.value = true }
+                MediaPlayer.Event.ESSelected -> {
+                    // M392-fix2: libVLC si prave sam zvolil stopu (napr. default titulky
+                    // v matroske) — presad zelanie pouzivatela (vypnute / konkretny jazyk)
+                    if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }
+                }
                 MediaPlayer.Event.ESAdded,
                 MediaPlayer.Event.ESDeleted -> {
                     // libVLC priebezne registruje stopy (DVB titulky / audio jazyky sa
