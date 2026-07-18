@@ -104,4 +104,11 @@ object EpgCache {
     fun clearLive(ctx: Context, serverId: String) {
         try { file(ctx, serverId, "live").delete() } catch (e: Exception) {}
     }
+
+    /** M391: kompletne zmazanie EPG cache servera (mriezka aj live) — po zmene
+     *  sposobu pripojenia su identifikatory kanalov neplatne. */
+    fun clearAll(ctx: Context, serverId: String) {
+        try { file(ctx, serverId).delete() } catch (e: Exception) {}
+        clearLive(ctx, serverId)
+    }
 }

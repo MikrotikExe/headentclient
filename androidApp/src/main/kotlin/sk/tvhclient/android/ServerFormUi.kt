@@ -124,6 +124,7 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
     }
 
     val testState by vm.testState.collectAsState()
+    val ctxReset = androidx.compose.ui.platform.LocalContext.current
 
     // M389: neulozene zmeny — porovnanie aktualnych poli s hodnotami pri otvoreni.
     // Pri odchode (BACK / Zrusit / prepnutie tabu cez guardLeave) sa vypyta potvrdenie.
@@ -313,7 +314,16 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                 ) {
                     Text(stringResource(R.string.test_connection))
                 }
-                Button(onClick = { buildServer()?.let { vm.save(it); onClose() } }) {
+                Button(onClick = {
+                    buildServer()?.let {
+                        // M391: zmena sposobu pripojenia = novy priestor identifikatorov
+                        // -> zahod EPG cache, posledny kanal/stanicu a playlist v pamati
+                        val modeChanged = existing != null && existing.connectionMode != it.connectionMode
+                        vm.save(it)
+                        if (modeChanged) ServerDataReset.onConnectionModeChanged(ctxReset, it.id)
+                        onClose()
+                    }
+                }) {
                     Text(stringResource(R.string.save))
                 }
                 TextButton(onClick = { requestClose() }) {

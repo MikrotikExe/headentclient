@@ -17,6 +17,13 @@ object LastRadio {
             .getString(KEY + serverId, null)
     }
 
+    /** M391: zabudni poslednu stanicu (zmena sposobu pripojenia). */
+    fun clear(context: Context, serverId: String?) {
+        if (serverId == null) return
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().remove(KEY + serverId).apply()
+    }
+
     fun set(context: Context, serverId: String?, uuid: String?) {
         if (serverId == null || uuid == null) return
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

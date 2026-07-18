@@ -405,8 +405,50 @@ class PlayerActivity : ComponentActivity() {
     /** Cache: vyzaduje live HTTP na tomto serveri feeder (digest-only)? */
     private var liveNeedsFeeder: Boolean? = null
 
+    /** M390-fix4: vyzera identifikator ako REST uuid Tvheadendu (32 hex znakov)? */
+    private fun looksLikeRestUuid(u: String): Boolean =
+        u.length == 32 && u.all { c -> c in '0'..'9' || c in 'a'..'f' || c in 'A'..'F' }
+
+    /** M390-fix4: v HTTP rezime prisla stara (HTSP ciselna) identita kanala —
+     *  server ju odmieta (HTTP 400). Najdi cez REST spravne uuid podla nazvu
+     *  alebo cisla kanala, oprav playlist a prehraj s opravenym uuid.
+     *  Vracia true, ak sa o url postara sama (spustila asynchronne riesenie). */
+    private fun healStaleLiveId(server: sk.tvhclient.shared.model.TvhServer, url: String): Boolean {
+        val pathId = stripCreds(url).substringAfter("/stream/channel/", "").substringBefore('?')
+        if (pathId.isBlank() || looksLikeRestUuid(pathId)) return false
+        val entry = LivePlaylist.channels.firstOrNull { it.uuid == pathId }
+        val wantName = entry?.name ?: liveNames.getOrNull(liveIndex) ?: intent.getStringExtra(EXTRA_TITLE)
+        val wantNum = entry?.number ?: 0
+        lifecycleScope.launch {
+            val fixed = withContext(Dispatchers.IO) {
+                runCatching {
+                    val api = Tvh.apiFor(server)
+                    try {
+                        val chs = api.channels()
+                        (wantName?.let { n -> chs.firstOrNull { it.name.equals(n, ignoreCase = true) } }
+                            ?: if (wantNum > 0) chs.firstOrNull { (it.number ?: -1) == wantNum } else null)
+                            ?.uuid
+                    } finally { api.close() }
+                }.getOrNull()
+            }
+            if (fixed != null && looksLikeRestUuid(fixed)) {
+                android.util.Log.i("HCDiag", "M390-fix4 heal " + pathId + " -> " + fixed)
+                LivePlaylist.channels = LivePlaylist.channels.map { if (it.uuid == pathId) it.copy(uuid = fixed) else it }
+                LivePlaylist.allChannels = LivePlaylist.allChannels.map { if (it.uuid == pathId) it.copy(uuid = fixed) else it }
+                liveUuids = liveUuids.map { if (it == pathId) fixed else it }
+                val newUrl = Tvh.liveUrl(server, fixed, wantName, server.profile.ifBlank { "pass" })
+                currentStreamUrl = newUrl
+                playLiveAuto(server, newUrl)
+            } else {
+                playHttp(url)   // nenaslo sa -> povodna cesta (reconnect + diag)
+            }
+        }
+        return true
+    }
+
     /** Live HTTP s auto-detekciou auth: digest-only -> feeder, inak priama cesta. */
     private fun playLiveAuto(server: sk.tvhclient.shared.model.TvhServer, url: String) {
+        if (server.connectionMode != "htsp" && healStaleLiveId(server, url)) return
         if (server.username.isEmpty()) { playHttp(url); return }
         val cached = liveNeedsFeeder
         if (cached != null) {

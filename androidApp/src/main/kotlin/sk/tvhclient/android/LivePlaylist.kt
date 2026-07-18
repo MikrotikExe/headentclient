@@ -38,6 +38,14 @@ object LivePlaylist {
     @Volatile
     var activeGroupKey: String = GROUP_ALL
 
+    /** M391: uplny reset (zmena sposobu pripojenia servera — stare id neplatia). */
+    fun reset() {
+        allChannels = emptyList()
+        channels = emptyList()
+        groups = emptyList()
+        activeGroupKey = GROUP_ALL
+    }
+
     /** Naplni zoznam aj skupiny a resetuje filter na Vsetky. */
     fun setChannels(full: List<LiveChannel>, grps: List<Group>) {
         allChannels = full

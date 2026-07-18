@@ -366,8 +366,8 @@ private fun TvHomeHost() {
                             LivePlaylist.setIndexForUuid(uuid)
                             playUuid(uuid, title)
                         },
-                        onChannels = { lastTile = "channels"; if (play.isEmpty()) play = "tv" },
-                        onRadio = { lastTile = "radio"; if (play.isEmpty()) play = "radio" },
+                        onChannels = { lastTile = "channels"; chVm.loadIfNeeded(); if (play.isEmpty()) play = "tv" },
+                        onRadio = { lastTile = "radio"; raVm.load(); if (play.isEmpty()) play = "radio" },
                         onTvProgram = { lastTile = "epg"; section = "epg" },
                         onArchive = { lastTile = "archive"; section = "archive" },
                         onSettings = { lastTile = "settings"; section = "settings" },
@@ -375,8 +375,8 @@ private fun TvHomeHost() {
                 } else {
                 TvHomeScreen(   // pocas pending (play) zostava viditelny launcher, kym naskoci prehravac
                     focusKey = lastTile,
-                    onChannels = { lastTile = "channels"; if (play.isEmpty()) play = "tv" },
-                    onRadio = { lastTile = "radio"; if (play.isEmpty()) play = "radio" },
+                    onChannels = { lastTile = "channels"; chVm.loadIfNeeded(); if (play.isEmpty()) play = "tv" },
+                    onRadio = { lastTile = "radio"; raVm.load(); if (play.isEmpty()) play = "radio" },
                     onTvProgram = { lastTile = "epg"; section = "epg" },
                     onArchive = { lastTile = "archive"; section = "archive" },
                     onSettings = { lastTile = "settings"; section = "settings" },
