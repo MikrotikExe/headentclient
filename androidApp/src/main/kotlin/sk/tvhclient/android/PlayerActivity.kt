@@ -3310,6 +3310,10 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    /** M390-fix DIAG: kratke id kanala z intentu (fallback pre toast). */
+    private fun channelUuidExtraShort(): String =
+        intent.getStringExtra(EXTRA_UUID)?.take(8) ?: "?"
+
     /** Zrusi naplanovane znovupripojenie a skryje indikator. */
     private fun cancelReconnect() {
         reconnectHandler.removeCallbacksAndMessages(null)
@@ -3365,6 +3369,38 @@ class PlayerActivity : ComponentActivity() {
             return
         }
         reconnectAttempts++
+        // M390-fix DIAG (docasne, po najdeni priciny odstranit): pri 1. vypadku live
+        // over stream URL cez OkHttp a ukaz vysledok (HTTP kod / chybu) + id kanala.
+        if (reconnectAttempts == 1 && !seekablePlayback) {
+            val diagUrl = currentStreamUrl
+            val diagSrv = liveServer
+            if (diagUrl != null) lifecycleScope.launch(Dispatchers.IO) {
+                val msg = try {
+                    val b = okhttp3.OkHttpClient.Builder()
+                        .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+                        .readTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+                    if (diagSrv != null && diagSrv.username.isNotEmpty()) {
+                        b.authenticator(sk.tvhclient.shared.net.DigestAuthenticator(diagSrv.username, diagSrv.password))
+                    }
+                    val req = okhttp3.Request.Builder().url(stripCreds(diagUrl))
+                        .header("Range", "bytes=0-2047")
+                        .apply {
+                            if (diagSrv != null && diagSrv.username.isNotEmpty()) {
+                                header("Authorization", okhttp3.Credentials.basic(diagSrv.username, diagSrv.password))
+                            }
+                        }
+                        .build()
+                    b.build().newCall(req).execute().use { r ->
+                        "http=" + r.code + " ct=" + (r.header("Content-Type") ?: "?")
+                    }
+                } catch (t: Throwable) { "err=" + (t.message ?: t.javaClass.simpleName) }
+                val uuidShort = liveUuids.getOrNull(liveIndex)?.take(8) ?: channelUuidExtraShort()
+                withContext(Dispatchers.Main) {
+                    android.util.Log.i("HCDiag", "M390 diag uuid=" + uuidShort + " " + msg)
+                    Toast.makeText(this@PlayerActivity, "M390 diag: uuid=" + uuidShort + " " + msg, Toast.LENGTH_LONG).show()
+                }
+            }
+        }
         reconnectingState.value = true
         val delay = (1500L * reconnectAttempts).coerceAtMost(8000L)
         reconnectHandler.removeCallbacksAndMessages(null)
