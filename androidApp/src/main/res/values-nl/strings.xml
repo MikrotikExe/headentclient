@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">HDR-omschakeling toestaan</string>
     <string name="afr_hdr_switch_desc">Uit: verversing wijzigt alleen naadloos (geen HDMI-re-sync of HDR-wissel).</string>
     <string name="epg_density">EPG-dichtheid</string>
+    <string name="srv_leave_title">Afsluiten zonder opslaan?</string>
+    <string name="srv_leave_msg">Je hebt niet-opgeslagen wijzigingen. Wil je echt afsluiten zonder op te slaan?</string>
+    <string name="srv_leave_yes">Verwerpen</string>
 </resources>

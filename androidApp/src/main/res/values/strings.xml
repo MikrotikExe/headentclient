@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">Allow HDR switching</string>
     <string name="afr_hdr_switch_desc">Off: refresh rate changes only seamlessly (no HDMI re-sync, no HDR flip).</string>
     <string name="epg_density">EPG density</string>
+    <string name="srv_leave_title">Leave without saving?</string>
+    <string name="srv_leave_msg">You have unsaved changes. Do you really want to leave without saving?</string>
+    <string name="srv_leave_yes">Discard</string>
 </resources>

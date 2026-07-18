@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">HDR切り替えを許可</string>
     <string name="afr_hdr_switch_desc">オフ：リフレッシュレートはシームレスな場合のみ変更（HDMI再同期やHDR切替なし）。</string>
     <string name="epg_density">番組表の密度</string>
+    <string name="srv_leave_title">保存せずに閉じますか？</string>
+    <string name="srv_leave_msg">保存されていない変更があります。本当に保存せずに閉じますか？</string>
+    <string name="srv_leave_yes">破棄</string>
 </resources>

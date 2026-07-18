@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">允许切换到 HDR</string>
     <string name="afr_hdr_switch_desc">关闭：刷新率仅无缝更改（无 HDMI 重新同步，不切换 HDR）。</string>
     <string name="epg_density">节目表密度</string>
+    <string name="srv_leave_title">不保存就退出？</string>
+    <string name="srv_leave_msg">您有未保存的更改。确定不保存就退出吗？</string>
+    <string name="srv_leave_yes">放弃</string>
 </resources>

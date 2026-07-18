@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">اجازهٔ تغییر به HDR</string>
     <string name="afr_hdr_switch_desc">خاموش: نرخ نوسازی فقط بدون وقفه تغییر می‌کند (بدون همگام‌سازی مجدد HDMI یا HDR).</string>
     <string name="epg_density">تراکم EPG</string>
+    <string name="srv_leave_title">خروج بدون ذخیره؟</string>
+    <string name="srv_leave_msg">تغییرات ذخیره‌نشده دارید. واقعاً می‌خواهید بدون ذخیره خارج شوید؟</string>
+    <string name="srv_leave_yes">دور انداختن</string>
 </resources>

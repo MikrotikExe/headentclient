@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">Разрешаване на превключване към HDR</string>
     <string name="afr_hdr_switch_desc">Изкл.: честотата се сменя само плавно (без HDMI ресинхронизация и HDR).</string>
     <string name="epg_density">Плътност на EPG</string>
+    <string name="srv_leave_title">Изход без запазване?</string>
+    <string name="srv_leave_msg">Имате незапазени промени. Наистина ли искате да излезете без запазване?</string>
+    <string name="srv_leave_yes">Отхвърли</string>
 </resources>

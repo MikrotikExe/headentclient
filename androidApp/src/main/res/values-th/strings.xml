@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">อนุญาตการสลับเป็น HDR</string>
     <string name="afr_hdr_switch_desc">ปิด: อัตรารีเฟรชเปลี่ยนแบบไร้รอยต่อเท่านั้น (ไม่มี HDMI re-sync หรือสลับ HDR)</string>
     <string name="epg_density">ความหนาแน่นของผังรายการ</string>
+    <string name="srv_leave_title">ออกโดยไม่บันทึกหรือไม่</string>
+    <string name="srv_leave_msg">คุณมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก ต้องการออกโดยไม่บันทึกจริงหรือไม่</string>
+    <string name="srv_leave_yes">ละทิ้ง</string>
 </resources>

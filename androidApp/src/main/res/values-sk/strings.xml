@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">Povoliť prepnutie do HDR</string>
     <string name="afr_hdr_switch_desc">Vypnuté: frekvencia sa mení len plynulo (bez HDMI re-syncu a prepnutia do HDR).</string>
     <string name="epg_density">Hustota EPG</string>
+    <string name="srv_leave_title">Odísť bez uloženia?</string>
+    <string name="srv_leave_msg">Máte neuložené zmeny. Naozaj chcete odísť bez uloženia?</string>
+    <string name="srv_leave_yes">Zahodiť</string>
 </resources>

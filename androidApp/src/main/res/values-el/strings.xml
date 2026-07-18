@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">Να επιτρέπεται η εναλλαγή σε HDR</string>
     <string name="afr_hdr_switch_desc">Ανενεργό: ο ρυθμός ανανέωσης αλλάζει μόνο ομαλά (χωρίς HDMI re-sync ή HDR).</string>
     <string name="epg_density">Πυκνότητα EPG</string>
+    <string name="srv_leave_title">Έξοδος χωρίς αποθήκευση;</string>
+    <string name="srv_leave_msg">Έχετε μη αποθηκευμένες αλλαγές. Θέλετε σίγουρα να αποχωρήσετε χωρίς αποθήκευση;</string>
+    <string name="srv_leave_yes">Απόρριψη</string>
 </resources>

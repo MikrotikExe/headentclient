@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">Autoriser le passage en HDR</string>
     <string name="afr_hdr_switch_desc">Désactivé : la fréquence ne change que sans coupure (pas de re-sync HDMI ni de bascule HDR).</string>
     <string name="epg_density">Densité du guide TV</string>
+    <string name="srv_leave_title">Quitter sans enregistrer ?</string>
+    <string name="srv_leave_msg">Vous avez des modifications non enregistrées. Voulez-vous vraiment quitter sans enregistrer ?</string>
+    <string name="srv_leave_yes">Abandonner</string>
 </resources>

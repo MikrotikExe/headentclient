@@ -102,6 +102,8 @@ object TabController {
     fun pressInfo() { infoKey.value = infoKey.value + 1 }
     // ci boli v aktualnej podsekcii nastaveni vykonane zmeny (kvoli potvrdeniu pri odchode)
     val settingsDirty = mutableStateOf(false)
+    // M389-fix: true = zmeny s explicitnym Ulozit (formular servera) -> dialog "bez ulozenia"
+    val settingsDirtyUnsaved = mutableStateOf(false)
     // zvysenim sa vynuti znovunacitanie kanalov/radii/archivu/EPG (po ulozeni/zmene servera)
     val dataReload = mutableStateOf(0)
 }
@@ -714,14 +716,18 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
     leaveConfirm?.let { action ->
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { leaveConfirm = null },
-            title = { Text(stringResource(R.string.set_leave_title)) },
-            text = { Text(stringResource(R.string.set_leave_msg)) },
+            title = { Text(stringResource(
+                if (TabController.settingsDirtyUnsaved.value) R.string.srv_leave_title else R.string.set_leave_title)) },
+            text = { Text(stringResource(
+                if (TabController.settingsDirtyUnsaved.value) R.string.srv_leave_msg else R.string.set_leave_msg)) },
             confirmButton = {
                 TextButton(onClick = {
                     TabController.settingsDirty.value = false
+                    TabController.settingsDirtyUnsaved.value = false
                     leaveConfirm = null
                     action()
-                }) { Text(stringResource(R.string.set_leave_yes)) }
+                }) { Text(stringResource(
+                    if (TabController.settingsDirtyUnsaved.value) R.string.srv_leave_yes else R.string.set_leave_yes)) }
             },
             dismissButton = {
                 TextButton(onClick = { leaveConfirm = null }) {

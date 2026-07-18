@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">HDR geçişine izin ver</string>
     <string name="afr_hdr_switch_desc">Kapalı: yenileme hızı yalnızca kesintisiz değişir (HDMI yeniden eşitleme ve HDR geçişi yok).</string>
     <string name="epg_density">EPG yoğunluğu</string>
+    <string name="srv_leave_title">Kaydetmeden çıkılsın mı?</string>
+    <string name="srv_leave_msg">Kaydedilmemiş değişiklikleriniz var. Gerçekten kaydetmeden çıkmak istiyor musunuz?</string>
+    <string name="srv_leave_yes">Vazgeç</string>
 </resources>

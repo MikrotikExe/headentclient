@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">Izinkan beralih ke HDR</string>
     <string name="afr_hdr_switch_desc">Mati: laju penyegaran hanya berubah mulus (tanpa re-sync HDMI atau beralih HDR).</string>
     <string name="epg_density">Kepadatan EPG</string>
+    <string name="srv_leave_title">Keluar tanpa menyimpan?</string>
+    <string name="srv_leave_msg">Ada perubahan yang belum disimpan. Yakin ingin keluar tanpa menyimpan?</string>
+    <string name="srv_leave_yes">Buang</string>
 </resources>

@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">HDR-এ পরিবর্তনের অনুমতি</string>
     <string name="afr_hdr_switch_desc">বন্ধ: রিফ্রেশ রেট কেবল মসৃণভাবে বদলায় (HDMI রি-সিঙ্ক বা HDR ফ্লিপ নেই)।</string>
     <string name="epg_density">EPG ঘনত্ব</string>
+    <string name="srv_leave_title">সংরক্ষণ ছাড়া বের হবেন?</string>
+    <string name="srv_leave_msg">আপনার অসংরক্ষিত পরিবর্তন আছে। সত্যিই সংরক্ষণ ছাড়া বের হতে চান?</string>
+    <string name="srv_leave_yes">বাতিল করুন</string>
 </resources>

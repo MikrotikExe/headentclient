@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">Zezwól na przełączanie HDR</string>
     <string name="afr_hdr_switch_desc">Wył.: częstotliwość zmienia się tylko płynnie (bez re-synca HDMI i HDR).</string>
     <string name="epg_density">Gęstość EPG</string>
+    <string name="srv_leave_title">Wyjść bez zapisywania?</string>
+    <string name="srv_leave_msg">Masz niezapisane zmiany. Czy na pewno chcesz wyjść bez zapisywania?</string>
+    <string name="srv_leave_yes">Odrzuć</string>
 </resources>

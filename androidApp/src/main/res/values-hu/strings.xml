@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">HDR-váltás engedélyezése</string>
     <string name="afr_hdr_switch_desc">Ki: a frissítés csak zökkenőmentesen vált (nincs HDMI újraszinkron és HDR-váltás).</string>
     <string name="epg_density">EPG sűrűség</string>
+    <string name="srv_leave_title">Kilépés mentés nélkül?</string>
+    <string name="srv_leave_msg">Nem mentett módosításai vannak. Biztosan mentés nélkül lép ki?</string>
+    <string name="srv_leave_yes">Elvetés</string>
 </resources>

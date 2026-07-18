@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">Дозволи пребацивање у HDR</string>
     <string name="afr_hdr_switch_desc">Искључено: учесталост се мења само глатко (без HDMI ре-синка и HDR-а).</string>
     <string name="epg_density">Густина EPG-а</string>
+    <string name="srv_leave_title">Изаћи без чувања?</string>
+    <string name="srv_leave_msg">Имате несачуване измене. Да ли заиста желите да изађете без чувања?</string>
+    <string name="srv_leave_yes">Одбаци</string>
 </resources>

@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">Dopusti prebacivanje u HDR</string>
     <string name="afr_hdr_switch_desc">Isključeno: frekvencija se mijenja samo besprijekorno (bez HDMI re-synca i HDR-a).</string>
     <string name="epg_density">Gustoća EPG-a</string>
+    <string name="srv_leave_title">Izaći bez spremanja?</string>
+    <string name="srv_leave_msg">Imate nespremljene promjene. Želite li stvarno izaći bez spremanja?</string>
+    <string name="srv_leave_yes">Odbaci</string>
 </resources>

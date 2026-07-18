@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">HDR-Umschaltung erlauben</string>
     <string name="afr_hdr_switch_desc">Aus: Bildrate ändert sich nur nahtlos (kein HDMI-Re-Sync, kein HDR-Wechsel).</string>
     <string name="epg_density">EPG-Dichte</string>
+    <string name="srv_leave_title">Ohne Speichern verlassen?</string>
+    <string name="srv_leave_msg">Sie haben ungespeicherte Änderungen. Wirklich ohne Speichern verlassen?</string>
+    <string name="srv_leave_yes">Verwerfen</string>
 </resources>

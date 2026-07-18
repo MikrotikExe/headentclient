@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">Permite comutarea la HDR</string>
     <string name="afr_hdr_switch_desc">Dezactivat: rata de reîmprospătare se schimbă doar fără întreruperi (fără re-sync HDMI sau HDR).</string>
     <string name="epg_density">Densitatea EPG</string>
+    <string name="srv_leave_title">Ieșiți fără a salva?</string>
+    <string name="srv_leave_msg">Aveți modificări nesalvate. Sigur doriți să ieșiți fără a salva?</string>
+    <string name="srv_leave_yes">Renunță</string>
 </resources>

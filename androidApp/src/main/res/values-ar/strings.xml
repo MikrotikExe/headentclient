@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">السماح بالتبديل إلى HDR</string>
     <string name="afr_hdr_switch_desc">إيقاف: تتغير سرعة التحديث بسلاسة فقط (دون إعادة مزامنة HDMI أو تبديل HDR).</string>
     <string name="epg_density">كثافة دليل البرامج</string>
+    <string name="srv_leave_title">المغادرة دون حفظ؟</string>
+    <string name="srv_leave_msg">لديك تغييرات غير محفوظة. هل تريد فعلًا المغادرة دون حفظ؟</string>
+    <string name="srv_leave_yes">تجاهل</string>
 </resources>

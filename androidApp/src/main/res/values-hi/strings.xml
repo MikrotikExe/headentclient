@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">HDR स्विचिंग की अनुमति दें</string>
     <string name="afr_hdr_switch_desc">बंद: रिफ्रेश दर केवल बिना रुकावट बदलती है (कोई HDMI री-सिंक या HDR फ्लिप नहीं)।</string>
     <string name="epg_density">EPG घनत्व</string>
+    <string name="srv_leave_title">बिना सहेजे बाहर निकलें?</string>
+    <string name="srv_leave_msg">आपके पास सहेजे नहीं गए बदलाव हैं। क्या आप वाकई बिना सहेजे बाहर निकलना चाहते हैं?</string>
+    <string name="srv_leave_yes">हटाएं</string>
 </resources>

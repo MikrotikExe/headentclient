@@ -132,19 +132,25 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
     val dirty = formSig() != initSig
     var leaveAsk by remember { mutableStateOf(false) }
     fun requestClose() { if (dirty) leaveAsk = true else onClose() }
-    LaunchedEffect(dirty) { TabController.settingsDirty.value = dirty }
+    LaunchedEffect(dirty) {
+        TabController.settingsDirty.value = dirty
+        TabController.settingsDirtyUnsaved.value = dirty
+    }
     androidx.compose.runtime.DisposableEffect(Unit) {
-        onDispose { TabController.settingsDirty.value = false }
+        onDispose {
+            TabController.settingsDirty.value = false
+            TabController.settingsDirtyUnsaved.value = false
+        }
     }
     androidx.activity.compose.BackHandler { requestClose() }
     if (leaveAsk) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { leaveAsk = false },
-            title = { Text(stringResource(R.string.set_leave_title)) },
-            text = { Text(stringResource(R.string.set_leave_msg)) },
+            title = { Text(stringResource(R.string.srv_leave_title)) },
+            text = { Text(stringResource(R.string.srv_leave_msg)) },
             confirmButton = {
                 TextButton(onClick = { leaveAsk = false; onClose() }) {
-                    Text(stringResource(R.string.set_leave_yes))
+                    Text(stringResource(R.string.srv_leave_yes))
                 }
             },
             dismissButton = {

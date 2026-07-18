@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">Дозволити перемикання в HDR</string>
     <string name="afr_hdr_switch_desc">Вимк.: частота змінюється лише безшовно (без HDMI-ресинхронізації та HDR).</string>
     <string name="epg_density">Щільність EPG</string>
+    <string name="srv_leave_title">Вийти без збереження?</string>
+    <string name="srv_leave_msg">У вас є незбережені зміни. Справді вийти без збереження?</string>
+    <string name="srv_leave_yes">Відхилити</string>
 </resources>

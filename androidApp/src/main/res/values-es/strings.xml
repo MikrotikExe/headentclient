@@ -337,4 +337,7 @@
     <string name="afr_hdr_switch">Permitir cambio a HDR</string>
     <string name="afr_hdr_switch_desc">Desactivado: la frecuencia solo cambia sin cortes (sin re-sync HDMI ni salto a HDR).</string>
     <string name="epg_density">Densidad de la EPG</string>
+    <string name="srv_leave_title">¿Salir sin guardar?</string>
+    <string name="srv_leave_msg">Tienes cambios sin guardar. ¿Seguro que quieres salir sin guardar?</string>
+    <string name="srv_leave_yes">Descartar</string>
 </resources>
