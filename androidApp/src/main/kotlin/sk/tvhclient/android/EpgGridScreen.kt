@@ -5,11 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.displayCutout
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -646,11 +641,10 @@ fun EpgGridScreen(
             )
         }
     ) { padding ->
-        // M387: citatelna zona aj do stran — obsah neschovat pod vyrez displeja (landscape)
-        Column(
-            Modifier.fillMaxSize().padding(padding)
-                .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-        ) {
+        // M387-fix2: odsadenie o displayCutout ODSTRANENE — na telefonoch s vyrezom
+        // na lavej hrane robilo v landscape siroky biely pas a EPG nesedelo s hlavickou;
+        // lavy okraj je teraz rovnaky ako na ostatnych kartach.
+        Column(Modifier.fillMaxSize().padding(padding)) {
             // Vyber dna; rozsah dozadu/dopredu podla nastavenia (EpgRangePref) — daysBack/daysForward su definovane vyssie
             LaunchedEffect(daysBack, daysForward) {
                 if (dayOffset < -daysBack) dayOffset = -daysBack
