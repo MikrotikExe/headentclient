@@ -412,9 +412,11 @@ class PlayerActivity : ComponentActivity() {
             return
         }
         lifecycleScope.launch {
-            val nf = withContext(Dispatchers.IO) { DvrAuthProbe.needsFeeder(server, stripCreds(url)) }
+            // M390: null = sonda zlyhala -> skus priamu cestu, ale vysledok necachuj;
+            // ak priama cesta pada, scheduleReconnect prepne na feeder.
+            val nf = withContext(Dispatchers.IO) { DvrAuthProbe.needsFeederOrNull(server, stripCreds(url)) }
             liveNeedsFeeder = nf
-            if (nf) playLiveViaFeeder(server, url) else playHttp(url)
+            if (nf == true) playLiveViaFeeder(server, url) else playHttp(url)
         }
     }
 
@@ -3378,10 +3380,19 @@ class PlayerActivity : ComponentActivity() {
                 } else if (liveNeedsFeeder == true && srv != null && url != null) {
                     playLiveViaFeeder(srv, url)   // HTTP digest-only -> feeder
                 } else if (url != null) {
-                    val m = buildMedia(url)       // bezne HTTP
-                    mediaPlayer.media = m
-                    m.release()
-                    mediaPlayer.play()
+                    // M390: priame HTTP live na niektorych boxoch pada v libVLC (auth/transport),
+                    // hoci feeder (OkHttp -> pipe) funguje — po 2. neuspesnom pokuse prepni na feeder.
+                    if (reconnectAttempts >= 2 && !seekablePlayback && srv != null &&
+                        srv.username.isNotEmpty()
+                    ) {
+                        liveNeedsFeeder = true
+                        playLiveViaFeeder(srv, url)
+                    } else {
+                        val m = buildMedia(url)       // bezne HTTP
+                        mediaPlayer.media = m
+                        m.release()
+                        mediaPlayer.play()
+                    }
                 }
             }
             // watchdog: ak sa do 12 s neobjavi prehravanie (spinner ostal), skus znova;

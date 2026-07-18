@@ -16,7 +16,12 @@ import java.util.concurrent.TimeUnit
 object DvrAuthProbe {
 
     /** Zisti ci treba HttpTsFeeder (digest-only). bareUrl = dvrfile URL bez creds. */
-    fun needsFeeder(server: TvhServer, bareUrl: String): Boolean {
+    fun needsFeeder(server: TvhServer, bareUrl: String): Boolean =
+        needsFeederOrNull(server, bareUrl) ?: false
+
+    /** M390: null = sonda zlyhala (timeout/siet) — vysledok sa NEsmie cachovat,
+     *  inak sa omylom zafixuje priama cesta aj na digest-only serveri. */
+    fun needsFeederOrNull(server: TvhServer, bareUrl: String): Boolean? {
         if (server.username.isEmpty()) return false
         return try {
             val ok = OkHttpClient.Builder()
@@ -38,7 +43,7 @@ object DvrAuthProbe {
                 hasDigest && !hasBasic
             }
         } catch (_: Throwable) {
-            false
+            null
         }
     }
 }
