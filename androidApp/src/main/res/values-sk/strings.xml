@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">Priehľadné</string>
     <string name="afr_hdr_switch">Povoliť prepnutie do HDR</string>
     <string name="afr_hdr_switch_desc">Vypnuté: frekvencia sa mení len plynulo (bez HDMI re-syncu a prepnutia do HDR).</string>
+    <string name="epg_density">Hustota EPG</string>
 </resources>

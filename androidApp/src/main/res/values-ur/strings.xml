@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">شفاف</string>
     <string name="afr_hdr_switch">HDR سوئچنگ کی اجازت دیں</string>
     <string name="afr_hdr_switch_desc">بند: ریفریش ریٹ صرف بلا تعطل بدلتا ہے (نہ HDMI ری سنک، نہ HDR)۔</string>
+    <string name="epg_density">EPG کثافت</string>
 </resources>

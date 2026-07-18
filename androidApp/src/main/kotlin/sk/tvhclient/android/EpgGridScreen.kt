@@ -51,6 +51,8 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ViewComfy
+import androidx.compose.material.icons.filled.ViewCompact
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.platform.LocalConfiguration
@@ -95,8 +97,9 @@ private const val PICON_COL = 64           // minimalna sirka stlpca kanala (uzk
 private const val CHAN_COL_WIDE = 188
 // M387: adaptivne — stlpec kanala je percento sirky okna (uzke 19 %, siroke 22 %),
 // pismo a picon na uzkych obrazovkach skalovane faktorom k = sirka / 390 (0,9–1,3)
-private fun chanColFor(screenWidthDp: Int): Int =
+private fun chanColFor(screenWidthDp: Int, compact: Boolean = false): Int =
     if (screenWidthDp >= 600) (screenWidthDp * 22 / 100).coerceIn(CHAN_COL_WIDE - 28, 200)
+    else if (compact) (screenWidthDp * 16 / 100).coerceIn(56, 92)
     else (screenWidthDp * 19 / 100).coerceIn(PICON_COL, 110)
 private fun epgScaleK(screenWidthDp: Int): Float =
     (screenWidthDp / 390f).coerceIn(0.9f, 1.3f)
@@ -357,15 +360,20 @@ fun EpgGridScreen(
     val hScroll = rememberScrollState()
     val density = androidx.compose.ui.platform.LocalDensity.current
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    // M388: kompaktna hustota (len telefon <600dp), prepinatelna tlacidlom v hlavicke
+    val ctxDen = LocalContext.current
+    val epgCompact = configuration.screenWidthDp < 600 &&
+        EpgDensityPref.compactStateOf(ctxDen).value
+    val pxMin = if (epgCompact) 3 else PX_PER_MIN
 
     // Viditeľné časové okno (v minútach) — riadky vykreslia len bloky v okolí,
     // nie všetkých ~40. Bucketujeme po 30 min, aby sa neprekresľovalo pri každom
     // pixeli horizontálneho skrolu. To rieši zaseky pri zvislom posúvaní.
-    val pxPerMinPx = with(density) { PX_PER_MIN.dp.toPx() }
-    val screenWMin = remember(configuration.screenWidthDp) {
+    val pxPerMinPx = with(density) { pxMin.dp.toPx() }
+    val screenWMin = remember(configuration.screenWidthDp, pxMin) {
         (with(density) { configuration.screenWidthDp.dp.toPx() } / pxPerMinPx).toInt()
     }
-    val winBucket by remember {
+    val winBucket by remember(pxPerMinPx) {
         androidx.compose.runtime.derivedStateOf { (hScroll.value / pxPerMinPx / 30f).toInt() }
     }
     val visStartMin = winBucket * 30 - screenWMin
@@ -380,7 +388,7 @@ fun EpgGridScreen(
     var pendingJump by remember { mutableStateOf<DayJump?>(null) }
 
     // Po prepnuti/otvoreni nastav poziciu: kontinuita cez polnoc, inak aktualny cas
-    LaunchedEffect(dayOffset) {
+    LaunchedEffect(dayOffset, pxMin) {
         var tries = 0
         while (hScroll.maxValue == 0 && tries < 25) {
             kotlinx.coroutines.delay(20); tries++
@@ -393,9 +401,9 @@ fun EpgGridScreen(
                     (((currentTimeSeconds() - dayStart) / 60).toInt()) else 0
                 // vycentruj "teraz" do stredu viditelnej casti casovej osi (sirka obrazovky
                 // bez stlpca s logom kanala), nech vidno aj kus minulosti vlavo
-                val halfVisMin = ((configuration.screenWidthDp - chanColFor(configuration.screenWidthDp)) / 2) / PX_PER_MIN
+                val halfVisMin = ((configuration.screenWidthDp - chanColFor(configuration.screenWidthDp, epgCompact)) / 2) / pxMin
                 val startMin = (nowMin - halfVisMin).coerceIn(0, DAY_MIN)
-                with(density) { (startMin * PX_PER_MIN).dp.toPx() }.toInt()
+                with(density) { (startMin * pxMin).dp.toPx() }.toInt()
                     .coerceAtMost(hScroll.maxValue)
             }
         }
@@ -518,8 +526,8 @@ fun EpgGridScreen(
         val midSec = if (cell != null) (cell.start + cell.stop) / 2 else s
         val midMin = (((midSec - dayStart) / 60).toInt()).coerceIn(0, DAY_MIN)
         // do stredu viditelnej casovej osi (sirka obrazovky bez stlpca s logom)
-        val halfVisPx = with(density) { ((configuration.screenWidthDp - chanColFor(configuration.screenWidthDp)) / 2).dp.toPx() }
-        val target = with(density) { (midMin * PX_PER_MIN).dp.toPx() } - halfVisPx
+        val halfVisPx = with(density) { ((configuration.screenWidthDp - chanColFor(configuration.screenWidthDp, epgCompact)) / 2).dp.toPx() }
+        val target = with(density) { (midMin * pxMin).dp.toPx() } - halfVisPx
         runCatching { hScroll.animateScrollTo(target.toInt().coerceAtLeast(0)) }
     }
 
@@ -541,6 +549,17 @@ fun EpgGridScreen(
                     )
                 },
                 actions = {
+                    // M388: prepinac hustoty (kompakt/komfort) — len telefon <600dp
+                    if (configuration.screenWidthDp < 600) {
+                        androidx.compose.material3.IconButton(onClick = {
+                            EpgDensityPref.set(ctxDen, !EpgDensityPref.compactStateOf(ctxDen).value)
+                        }) {
+                            androidx.compose.material3.Icon(
+                                if (epgCompact) Icons.Default.ViewComfy else Icons.Default.ViewCompact,
+                                contentDescription = stringResource(R.string.epg_density)
+                            )
+                        }
+                    }
                     if (epgLoading) {
                         androidx.compose.material3.CircularProgressIndicator(
                             modifier = Modifier.size(22.dp).padding(end = 4.dp),
@@ -702,13 +721,13 @@ fun EpgGridScreen(
             // Casova os (hlavicka) — skroluje horizontalne spolu s riadkami;
             // moderny rezim: navyse teal bublina s aktualnym casom nad teraz-ciarou
             Row {
-                Spacer(Modifier.width(chanColFor(configuration.screenWidthDp).dp))
+                Spacer(Modifier.width(chanColFor(configuration.screenWidthDp, epgCompact).dp))
                 Box(Modifier.horizontalScroll(hScroll)) {
                     Row {
                         for (h in 0 until 24) {
                             Text(
                                 "%02d:00".format(h),
-                                modifier = Modifier.width(HOUR_W.dp).padding(start = 4.dp, bottom = 4.dp),
+                                modifier = Modifier.width((60 * pxMin).dp).padding(start = 4.dp, bottom = 4.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -719,7 +738,7 @@ fun EpgGridScreen(
                         if (nowMin in 0..DAY_MIN) {
                             Box(
                                 Modifier
-                                    .offset(x = (nowMin * PX_PER_MIN - 26).dp)
+                                    .offset(x = (nowMin * pxMin - 26).dp)
                                     .clip(RoundedCornerShape(11.dp))
                                     .background(MaterialTheme.colorScheme.primary)
                                     .padding(horizontal = 9.dp, vertical = 2.dp)
@@ -1108,11 +1127,17 @@ private fun EpgGridRow(
     // M387: adaptivne rozmery podla sirky okna; siroke obrazovky (>=600dp) ostavaju
     // presne ako po M377 (k = 1, povodne vysky riadkov)
     val conf = androidx.compose.ui.platform.LocalConfiguration.current
-    val chanW = chanColFor(conf.screenWidthDp)
+    // M388: kompaktna hustota na telefone (prepinac v hlavicke EPG)
+    val ctxDen = LocalContext.current
+    val epgCompact = conf.screenWidthDp < 600 && EpgDensityPref.compactStateOf(ctxDen).value
+    val pxMin = if (epgCompact) 3 else PX_PER_MIN
+    val chanW = chanColFor(conf.screenWidthDp, epgCompact)
     val wide = conf.screenWidthDp >= 600
     val k = if (wide) 1f else epgScaleK(conf.screenWidthDp)
-    // uzke obrazovky: riadok o nieco vyssi, nech sa pod picon zmesti "cislo · nazov"
+    // uzke obrazovky: riadok o nieco vyssi, nech sa pod picon zmesti "cislo · nazov";
+    // kompakt = nizsie riadky (viac kanalov na obrazovke)
     val rowH = if (wide) { if (modern) ROW_H_M else ROW_H }
+        else if (epgCompact) ((if (modern) 62 else 54) * k).toInt()
         else (((if (modern) ROW_H_M + 6 else ROW_H + 16)) * k).toInt()
     Row(Modifier.height(rowH.dp)) {
         // Stlpec kanala. M377: na sirokych obrazovkach (TV/tablet)
@@ -1212,7 +1237,7 @@ private fun EpgGridRow(
                     } else if (num != null && num > 0) {
                         Text(
                             num.toString(),
-                            fontSize = (20 * k).sp,
+                            fontSize = ((if (epgCompact) 16 else 20) * k).sp,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                             color = cs.primary,
                             maxLines = 1
@@ -1227,7 +1252,7 @@ private fun EpgGridRow(
                 }
                 Text(
                     label,
-                    fontSize = (10 * k).sp,
+                    fontSize = ((if (epgCompact) 9 else 10) * k).sp,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
                     color = if (modern) cs.onSurfaceVariant else cs.onSurface,
                     maxLines = 1,
@@ -1242,7 +1267,7 @@ private fun EpgGridRow(
                 .horizontalScroll(hScroll)
                 .height(rowH.dp)
         ) {
-            Box(Modifier.width((DAY_MIN * PX_PER_MIN).dp).height(rowH.dp)) {
+            Box(Modifier.width((DAY_MIN * pxMin).dp).height(rowH.dp)) {
                 // Nahravky (dokoncene zelene + prebiehajuce cervene) zlucene do jednej
                 // sady blokov — bez prekryvov a duplicit (aj pri "(ST)" variantach nazvu);
                 // vykreslime iba bloky vo viditeľnom okne (cullovanie)
@@ -1274,7 +1299,7 @@ private fun EpgGridRow(
                         if (modern) ModernGridBlock(
                             startMin = startMin,
                             endMin = endMin,
-                            rowH = rowH,
+                            rowH = rowH, pxMin = pxMin, compact = epgCompact,
                             title = rb.title,
                             timeLabel = formatTimeHm(rb.start) + " - " + formatTimeHm(rb.stop),
                             kind = MgKind.REC,
@@ -1282,7 +1307,7 @@ private fun EpgGridRow(
                             selected = selectedStart == rb.start,
                             onClick = { onInProgress(rb.entry) }
                         ) else GridBlock(
-                            rowH = rowH,
+                            rowH = rowH, pxMin = pxMin, compact = epgCompact,
                             startMin = startMin,
                             endMin = endMin,
                             title = rb.title,
@@ -1300,14 +1325,14 @@ private fun EpgGridRow(
                         if (modern) ModernGridBlock(
                             startMin = startMin,
                             endMin = endMin,
-                            rowH = rowH,
+                            rowH = rowH, pxMin = pxMin, compact = epgCompact,
                             title = rb.title,
                             timeLabel = formatTimeHm(rb.start) + " - " + formatTimeHm(rb.stop),
                             kind = MgKind.RECORDED,
                             selected = selectedStart == rb.start,
                             onClick = { onDvr(rb.entry) }
                         ) else GridBlock(
-                            rowH = rowH,
+                            rowH = rowH, pxMin = pxMin, compact = epgCompact,
                             startMin = startMin,
                             endMin = endMin,
                             title = rb.title,
@@ -1333,7 +1358,7 @@ private fun EpgGridRow(
                     if (modern) ModernGridBlock(
                         startMin = startMin,
                         endMin = endMin,
-                        rowH = rowH,
+                        rowH = rowH, pxMin = pxMin, compact = epgCompact,
                         title = ev.title.ifBlank { "—" },
                         timeLabel = formatTimeHm(ev.start) + " - " + formatTimeHm(ev.stop),
                         kind = when { isNow -> MgKind.NOW; isPast -> MgKind.PAST; else -> MgKind.FUTURE },
@@ -1343,7 +1368,7 @@ private fun EpgGridRow(
                         selected = selectedStart == ev.start,
                         onClick = { onClick(ev) }
                     ) else GridBlock(
-                        rowH = rowH,
+                        rowH = rowH, pxMin = pxMin, compact = epgCompact,
                         startMin = startMin,
                         endMin = endMin,
                         title = ev.title.ifBlank { "—" },
@@ -1378,7 +1403,7 @@ private fun EpgGridRow(
                     if (nowMin in 0..DAY_MIN) {
                         Box(
                             Modifier
-                                .offset(x = (nowMin * PX_PER_MIN).dp)
+                                .offset(x = (nowMin * pxMin).dp)
                                 .width(if (modern) 2.5.dp else 1.5.dp)
                                 .height(rowH.dp)
                                 .background(
@@ -1402,6 +1427,8 @@ private fun GridBlock(
     timeLabel: String,
     bg: Color,
     rowH: Int = ROW_H,
+    pxMin: Int = PX_PER_MIN,
+    compact: Boolean = false,
     recorded: Boolean,
     progressMin: Int = 0,
     progressColor: Color? = null,
@@ -1416,7 +1443,7 @@ private fun GridBlock(
     val timeColor = fgDim ?: MaterialTheme.colorScheme.onSurfaceVariant
     val wMin = endMin - startMin
     if (wMin <= 0) return
-    val cellW = wMin * PX_PER_MIN
+    val cellW = wMin * pxMin
     val fullTitle = (prefix ?: if (recorded) "\u25B6 " else "") + title
     // M377: fokus-rozbalenie — ked je vybrana bunka prilis uzka na cely nazov,
     // vykreslime nad nou docasnu sirsiu bublinu (overlay so zIndex-om; mriezka
@@ -1435,12 +1462,12 @@ private fun GridBlock(
     val expand = selected && needDp > (cellW - 16f)
     val bubbleW = if (expand) (needDp + 24f).coerceAtMost(320f).coerceAtLeast(cellW.toFloat()) else 0f
     val shiftDp = if (expand) {
-        val over = (startMin * PX_PER_MIN + bubbleW) - (DAY_MIN * PX_PER_MIN)
+        val over = (startMin * pxMin + bubbleW) - (DAY_MIN * pxMin)
         if (over > 0f) -over else 0f
     } else 0f
     Box(
         Modifier
-            .offset(x = (startMin * PX_PER_MIN).dp)
+            .offset(x = (startMin * pxMin).dp)
             .width(cellW.dp)
             .height(rowH.dp)
             .zIndex(if (expand) 2f else 0f)
@@ -1461,12 +1488,12 @@ private fun GridBlock(
             if (progressMin > 0) {
                 Box(
                     Modifier
-                        .width((progressMin.coerceAtMost(wMin) * PX_PER_MIN).dp)
+                        .width((progressMin.coerceAtMost(wMin) * pxMin).dp)
                         .height(rowH.dp)
                         .background(progressColor ?: MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
                 )
             }
-            Column(Modifier.padding(horizontal = 6.dp, vertical = 4.dp)) {
+            Column(Modifier.padding(horizontal = if (compact) 5.dp else 6.dp, vertical = if (compact) 2.dp else 4.dp)) {
                 Text(
                     fullTitle,
                     style = MaterialTheme.typography.bodySmall,
@@ -1568,6 +1595,8 @@ private fun ModernGridBlock(
     startMin: Int,
     endMin: Int,
     rowH: Int,
+    pxMin: Int = PX_PER_MIN,
+    compact: Boolean = false,
     title: String,
     timeLabel: String,
     kind: MgKind,
@@ -1579,7 +1608,7 @@ private fun ModernGridBlock(
     val light = isLightTheme()
     val wMin = endMin - startMin
     if (wMin <= 0) return
-    val cellW = wMin * PX_PER_MIN
+    val cellW = wMin * pxMin
     // M377: fokus-rozbalenie kratkych kariet (rovnaky princip ako klasicky rezim)
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
     val mTitleStyle = MaterialTheme.typography.bodyMedium
@@ -1596,7 +1625,7 @@ private fun ModernGridBlock(
     val expand = selected && needDp > (cellW - 18f)
     val bubbleW = if (expand) (needDp + 28f).coerceAtMost(340f).coerceAtLeast(cellW.toFloat()) else 0f
     val shiftDp = if (expand) {
-        val over = (startMin * PX_PER_MIN + bubbleW) - (DAY_MIN * PX_PER_MIN)
+        val over = (startMin * pxMin + bubbleW) - (DAY_MIN * pxMin)
         if (over > 0f) -over else 0f
     } else 0f
     val bg = when (kind) {
@@ -1624,7 +1653,7 @@ private fun ModernGridBlock(
     }
     Box(
         Modifier
-            .offset(x = (startMin * PX_PER_MIN).dp)
+            .offset(x = (startMin * pxMin).dp)
             .width(cellW.dp)
             .height(rowH.dp)
             .zIndex(if (expand) 2f else 0f)
@@ -1655,7 +1684,7 @@ private fun ModernGridBlock(
                     .fillMaxSize()
                     .padding(
                         start = if (stripColor != null) 10.dp else 8.dp,
-                        end = 6.dp, top = 5.dp, bottom = 5.dp
+                        end = 6.dp, top = if (compact) 3.dp else 5.dp, bottom = if (compact) 3.dp else 5.dp
                     )
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">透明</string>
     <string name="afr_hdr_switch">HDR切り替えを許可</string>
     <string name="afr_hdr_switch_desc">オフ：リフレッシュレートはシームレスな場合のみ変更（HDMI再同期やHDR切替なし）。</string>
+    <string name="epg_density">番組表の密度</string>
 </resources>

@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">Transparan</string>
     <string name="afr_hdr_switch">Izinkan beralih ke HDR</string>
     <string name="afr_hdr_switch_desc">Mati: laju penyegaran hanya berubah mulus (tanpa re-sync HDMI atau beralih HDR).</string>
+    <string name="epg_density">Kepadatan EPG</string>
 </resources>

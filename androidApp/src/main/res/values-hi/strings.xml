@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">पारदर्शी</string>
     <string name="afr_hdr_switch">HDR स्विचिंग की अनुमति दें</string>
     <string name="afr_hdr_switch_desc">बंद: रिफ्रेश दर केवल बिना रुकावट बदलती है (कोई HDMI री-सिंक या HDR फ्लिप नहीं)।</string>
+    <string name="epg_density">EPG घनत्व</string>
 </resources>

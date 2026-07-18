@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">স্বচ্ছ</string>
     <string name="afr_hdr_switch">HDR-এ পরিবর্তনের অনুমতি</string>
     <string name="afr_hdr_switch_desc">বন্ধ: রিফ্রেশ রেট কেবল মসৃণভাবে বদলায় (HDMI রি-সিঙ্ক বা HDR ফ্লিপ নেই)।</string>
+    <string name="epg_density">EPG ঘনত্ব</string>
 </resources>

@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">Прозоре</string>
     <string name="afr_hdr_switch">Дозволити перемикання в HDR</string>
     <string name="afr_hdr_switch_desc">Вимк.: частота змінюється лише безшовно (без HDMI-ресинхронізації та HDR).</string>
+    <string name="epg_density">Щільність EPG</string>
 </resources>

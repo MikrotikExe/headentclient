@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">Átlátszó</string>
     <string name="afr_hdr_switch">HDR-váltás engedélyezése</string>
     <string name="afr_hdr_switch_desc">Ki: a frissítés csak zökkenőmentesen vált (nincs HDMI újraszinkron és HDR-váltás).</string>
+    <string name="epg_density">EPG sűrűség</string>
 </resources>

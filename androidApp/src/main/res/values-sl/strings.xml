@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">Prosojno</string>
     <string name="afr_hdr_switch">Dovoli preklop v HDR</string>
     <string name="afr_hdr_switch_desc">Izklopljeno: frekvenca se spreminja le brez prekinitev (brez HDMI re-synca in HDR).</string>
+    <string name="epg_density">Gostota EPG</string>
 </resources>

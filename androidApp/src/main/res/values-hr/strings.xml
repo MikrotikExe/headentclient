@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">Prozirno</string>
     <string name="afr_hdr_switch">Dopusti prebacivanje u HDR</string>
     <string name="afr_hdr_switch_desc">Isključeno: frekvencija se mijenja samo besprijekorno (bez HDMI re-synca i HDR-a).</string>
+    <string name="epg_density">Gustoća EPG-a</string>
 </resources>

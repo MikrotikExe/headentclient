@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">Şeffaf</string>
     <string name="afr_hdr_switch">HDR geçişine izin ver</string>
     <string name="afr_hdr_switch_desc">Kapalı: yenileme hızı yalnızca kesintisiz değişir (HDMI yeniden eşitleme ve HDR geçişi yok).</string>
+    <string name="epg_density">EPG yoğunluğu</string>
 </resources>

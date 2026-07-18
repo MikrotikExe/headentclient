@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">Transparent</string>
     <string name="afr_hdr_switch">HDR-Umschaltung erlauben</string>
     <string name="afr_hdr_switch_desc">Aus: Bildrate ändert sich nur nahtlos (kein HDMI-Re-Sync, kein HDR-Wechsel).</string>
+    <string name="epg_density">EPG-Dichte</string>
 </resources>

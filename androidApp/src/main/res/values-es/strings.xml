@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">Transparente</string>
     <string name="afr_hdr_switch">Permitir cambio a HDR</string>
     <string name="afr_hdr_switch_desc">Desactivado: la frecuencia solo cambia sin cortes (sin re-sync HDMI ni salto a HDR).</string>
+    <string name="epg_density">Densidad de la EPG</string>
 </resources>

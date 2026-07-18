@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">Transparent</string>
     <string name="afr_hdr_switch">Allow HDR switching</string>
     <string name="afr_hdr_switch_desc">Off: refresh rate changes only seamlessly (no HDMI re-sync, no HDR flip).</string>
+    <string name="epg_density">EPG density</string>
 </resources>

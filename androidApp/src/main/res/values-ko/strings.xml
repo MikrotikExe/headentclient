@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">투명</string>
     <string name="afr_hdr_switch">HDR 전환 허용</string>
     <string name="afr_hdr_switch_desc">끄기: 재생률은 끊김 없이 가능한 경우에만 변경(HDMI 재동기화·HDR 전환 없음).</string>
+    <string name="epg_density">EPG 밀도</string>
 </resources>

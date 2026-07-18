@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">透明</string>
     <string name="afr_hdr_switch">允许切换到 HDR</string>
     <string name="afr_hdr_switch_desc">关闭：刷新率仅无缝更改（无 HDMI 重新同步，不切换 HDR）。</string>
+    <string name="epg_density">节目表密度</string>
 </resources>

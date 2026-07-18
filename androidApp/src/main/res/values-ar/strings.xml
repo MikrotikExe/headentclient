@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">شفاف</string>
     <string name="afr_hdr_switch">السماح بالتبديل إلى HDR</string>
     <string name="afr_hdr_switch_desc">إيقاف: تتغير سرعة التحديث بسلاسة فقط (دون إعادة مزامنة HDMI أو تبديل HDR).</string>
+    <string name="epg_density">كثافة دليل البرامج</string>
 </resources>

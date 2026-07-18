@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">Transparant</string>
     <string name="afr_hdr_switch">HDR-omschakeling toestaan</string>
     <string name="afr_hdr_switch_desc">Uit: verversing wijzigt alleen naadloos (geen HDMI-re-sync of HDR-wissel).</string>
+    <string name="epg_density">EPG-dichtheid</string>
 </resources>

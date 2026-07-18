@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">شفاف</string>
     <string name="afr_hdr_switch">اجازهٔ تغییر به HDR</string>
     <string name="afr_hdr_switch_desc">خاموش: نرخ نوسازی فقط بدون وقفه تغییر می‌کند (بدون همگام‌سازی مجدد HDMI یا HDR).</string>
+    <string name="epg_density">تراکم EPG</string>
 </resources>

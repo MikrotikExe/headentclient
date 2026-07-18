@@ -336,4 +336,5 @@
     <string name="picon_bg_transparent">Διαφανές</string>
     <string name="afr_hdr_switch">Να επιτρέπεται η εναλλαγή σε HDR</string>
     <string name="afr_hdr_switch_desc">Ανενεργό: ο ρυθμός ανανέωσης αλλάζει μόνο ομαλά (χωρίς HDMI re-sync ή HDR).</string>
+    <string name="epg_density">Πυκνότητα EPG</string>
 </resources>
