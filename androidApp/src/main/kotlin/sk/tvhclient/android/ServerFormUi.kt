@@ -125,6 +125,36 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
 
     val testState by vm.testState.collectAsState()
 
+    // M389: neulozene zmeny — porovnanie aktualnych poli s hodnotami pri otvoreni.
+    // Pri odchode (BACK / Zrusit / prepnutie tabu cez guardLeave) sa vypyta potvrdenie.
+    fun formSig() = listOf(name, host, port, useHttps, username, password, profile, authMode, connMode, htspPort)
+    val initSig = remember { formSig() }
+    val dirty = formSig() != initSig
+    var leaveAsk by remember { mutableStateOf(false) }
+    fun requestClose() { if (dirty) leaveAsk = true else onClose() }
+    LaunchedEffect(dirty) { TabController.settingsDirty.value = dirty }
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose { TabController.settingsDirty.value = false }
+    }
+    androidx.activity.compose.BackHandler { requestClose() }
+    if (leaveAsk) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { leaveAsk = false },
+            title = { Text(stringResource(R.string.set_leave_title)) },
+            text = { Text(stringResource(R.string.set_leave_msg)) },
+            confirmButton = {
+                TextButton(onClick = { leaveAsk = false; onClose() }) {
+                    Text(stringResource(R.string.set_leave_yes))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { leaveAsk = false }) {
+                    Text(stringResource(R.string.set_leave_no))
+                }
+            }
+        )
+    }
+
     fun buildServer(): TvhServer? {
         val p = port.toIntOrNull() ?: return null
         if (host.isBlank()) return null
@@ -280,7 +310,7 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                 Button(onClick = { buildServer()?.let { vm.save(it); onClose() } }) {
                     Text(stringResource(R.string.save))
                 }
-                TextButton(onClick = onClose) {
+                TextButton(onClick = { requestClose() }) {
                     Text(stringResource(R.string.cancel))
                 }
             }
