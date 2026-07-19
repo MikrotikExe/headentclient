@@ -39,6 +39,7 @@ class RadioPlayerService : Service() {
     private var player: MediaPlayer? = null
     private var focusRequest: AudioFocusRequest? = null
     private var curName = ""
+    private var closedTvForStart = false
     private var curEpg = ""
     // Rovnaka auth cesta ako prehravac (M352): digest-only server sa neda hrat
     // z holej user:pass@ URL — stream musi tiect cez HttpTsFeeder (OkHttp digest)
@@ -70,6 +71,9 @@ class RadioPlayerService : Service() {
         createChannel()
         startForeground(NOTIF_ID, buildNotification(playing = true))
         releasePlayer()
+        // M394-fix: uvolni pripadny TV stream (aj PiP) — pri limite 1 pripojenia
+        // by server radio inak odmietol, kym stary stream drzi slot
+        closedTvForStart = PlayerActivity.closeActive()
         runCatching {
             val vlc = LibVLC(this, arrayListOf(
                 "--no-video",
@@ -109,9 +113,14 @@ class RadioPlayerService : Service() {
         val server = curServer
         if (server == null || server.username.isEmpty()) {
             // bez creds alebo neznamy server -> priama URL
-            setDirectMedia(vlc, p, url); return
+            scope.launch {
+                if (closedTvForStart) kotlinx.coroutines.delay(400)  // M394-fix
+                if (player === p) setDirectMedia(vlc, p, url)
+            }
+            return
         }
         scope.launch {
+            if (closedTvForStart) kotlinx.coroutines.delay(400)  // M394-fix: nech TV stihne pustit slot
             val needsFeeder = withContext(Dispatchers.IO) {
                 runCatching { DvrAuthProbe.needsFeeder(server, stripCreds(url)) }.getOrDefault(false)
             }

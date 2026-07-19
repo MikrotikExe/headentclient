@@ -3917,6 +3917,14 @@ class PlayerActivity : ComponentActivity() {
         // Odkaz na prave zijucu instanciu prehravaca. Pri otvoreni noveho kanala zavrieme predoslu
         // (aj tu visiacu v PiP), inak by stara PiP zostala visiet so starym kanalom.
         private var liveInstance: java.lang.ref.WeakReference<PlayerActivity>? = null
+        /** M394-fix: zavri beziaci TV prehravac (aj PiP) pred startom radia —
+         *  stream drzi jediny slot a ucet s limitom 1 pripojenia by radio odmietol. */
+        fun closeActive(): Boolean {
+            val a = liveInstance?.get() ?: return false
+            if (a.isFinishing || a.isDestroyed) return false
+            a.runOnUiThread { runCatching { a.finish() } }
+            return true
+        }
     }
 }
 
