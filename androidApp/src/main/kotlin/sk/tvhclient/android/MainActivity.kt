@@ -326,16 +326,33 @@ private fun TvHomeHost() {
         section == "epg" -> {
             // M396: TV program otvoreny Z PREHRAVACA -> BACK vrati do prehravaca
             // na povodny kanal (ako v zalozke Kanaly), nie na uvod launchera.
+            // M397-fix: mriezku pri navrate NEZHASINAME hned (preblikol by uvod,
+            // kym sa prehravac spusta) — ostane zobrazena, kym ju prehravac
+            // neprekryje, a zhasne az po navrate z neho (vzor ChannelsScreen).
+            var pendingEpgDismiss by remember { mutableStateOf(false) }
+            val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+            DisposableEffect(lifecycleOwner) {
+                val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+                    if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME && pendingEpgDismiss) {
+                        pendingEpgDismiss = false
+                        section = ""
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(obs)
+                onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+            }
             val epgBack: () -> Unit = {
                 if (TabController.epgFromPlayer) {
                     val uuid = TabController.epgReturnUuid
                     TabController.epgFromPlayer = false
                     TabController.epgReturnUuid = null
-                    section = ""
                     if (uuid != null) {
                         LivePlaylist.setIndexForUuid(uuid)
                         val title = LivePlaylist.channels.firstOrNull { it.uuid == uuid }?.name ?: ""
+                        pendingEpgDismiss = true
                         playUuid(uuid, title)
+                    } else {
+                        section = ""
                     }
                 } else {
                     section = ""
