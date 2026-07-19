@@ -339,4 +339,5 @@
     <string name="srv_leave_title">সংরক্ষণ ছাড়া বের হবেন?</string>
     <string name="srv_leave_msg">আপনার অসংরক্ষিত পরিবর্তন আছে। সত্যিই সংরক্ষণ ছাড়া বের হতে চান?</string>
     <string name="srv_leave_yes">বাতিল করুন</string>
+    <string name="diag_decode">সার্ভার প্রতিক্রিয়া ডিকোড ত্রুটি: %1$d (সর্বশেষ: %2$s)</string>
 </resources>

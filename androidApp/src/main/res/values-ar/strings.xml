@@ -339,4 +339,5 @@
     <string name="srv_leave_title">المغادرة دون حفظ؟</string>
     <string name="srv_leave_msg">لديك تغييرات غير محفوظة. هل تريد فعلًا المغادرة دون حفظ؟</string>
     <string name="srv_leave_yes">تجاهل</string>
+    <string name="diag_decode">أخطاء فك ترميز استجابة الخادم: %1$d (الأخير: %2$s)</string>
 </resources>

@@ -122,7 +122,11 @@ object Tvh {
             sk.tvhclient.shared.htsp.HtspData.dvrRecording(
                 sk.tvhclient.shared.htsp.HtspData.metadata(server, false, currentTimeSeconds()))
         else api.dvrUpcoming().filter {
-            it.schedStatus == "recording" || it.status == "recording" || it.fileSize > 0
+            // M399: dev buildy TVH pouzivaju aj "Running" / ine velke pismena
+            it.schedStatus.equals("recording", ignoreCase = true) ||
+                it.status.equals("recording", ignoreCase = true) ||
+                it.status.equals("running", ignoreCase = true) ||
+                it.fileSize > 0
         }
 
     /** Zoznam nadchadzajucich relacii na kanal (HTSP, pre auto-prechod na zozname). */

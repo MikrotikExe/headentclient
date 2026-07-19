@@ -339,4 +339,5 @@
     <string name="srv_leave_title">Leave without saving?</string>
     <string name="srv_leave_msg">You have unsaved changes. Do you really want to leave without saving?</string>
     <string name="srv_leave_yes">Discard</string>
+    <string name="diag_decode">Server response decode errors: %1$d (last: %2$s)</string>
 </resources>

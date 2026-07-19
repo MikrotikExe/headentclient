@@ -339,4 +339,5 @@
     <string name="srv_leave_title">Вийти без збереження?</string>
     <string name="srv_leave_msg">У вас є незбережені зміни. Справді вийти без збереження?</string>
     <string name="srv_leave_yes">Відхилити</string>
+    <string name="diag_decode">Помилки декодування відповіді сервера: %1$d (остання: %2$s)</string>
 </resources>

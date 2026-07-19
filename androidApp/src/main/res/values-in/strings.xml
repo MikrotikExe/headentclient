@@ -339,4 +339,5 @@
     <string name="srv_leave_title">Keluar tanpa menyimpan?</string>
     <string name="srv_leave_msg">Ada perubahan yang belum disimpan. Yakin ingin keluar tanpa menyimpan?</string>
     <string name="srv_leave_yes">Buang</string>
+    <string name="diag_decode">Kesalahan dekode respons server: %1$d (terakhir: %2$s)</string>
 </resources>

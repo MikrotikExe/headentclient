@@ -339,4 +339,5 @@
     <string name="srv_leave_title">Ohne Speichern verlassen?</string>
     <string name="srv_leave_msg">Sie haben ungespeicherte Änderungen. Wirklich ohne Speichern verlassen?</string>
     <string name="srv_leave_yes">Verwerfen</string>
+    <string name="diag_decode">Fehler beim Dekodieren der Serverantwort: %1$d (zuletzt: %2$s)</string>
 </resources>

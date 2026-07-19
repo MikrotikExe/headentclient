@@ -339,4 +339,5 @@
     <string name="srv_leave_title">Zapustiti brez shranjevanja?</string>
     <string name="srv_leave_msg">Imate neshranjene spremembe. Res želite oditi brez shranjevanja?</string>
     <string name="srv_leave_yes">Zavrzi</string>
+    <string name="diag_decode">Napake pri dekodiranju odgovora strežnika: %1$d (zadnja: %2$s)</string>
 </resources>

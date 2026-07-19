@@ -339,4 +339,5 @@
     <string name="srv_leave_title">Afsluiten zonder opslaan?</string>
     <string name="srv_leave_msg">Je hebt niet-opgeslagen wijzigingen. Wil je echt afsluiten zonder op te slaan?</string>
     <string name="srv_leave_yes">Verwerpen</string>
+    <string name="diag_decode">Fouten bij decoderen serverantwoord: %1$d (laatste: %2$s)</string>
 </resources>

@@ -339,4 +339,5 @@
     <string name="srv_leave_title">保存せずに閉じますか？</string>
     <string name="srv_leave_msg">保存されていない変更があります。本当に保存せずに閉じますか？</string>
     <string name="srv_leave_yes">破棄</string>
+    <string name="diag_decode">サーバー応答のデコードエラー: %1$d 件（最新: %2$s）</string>
 </resources>

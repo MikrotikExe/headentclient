@@ -339,4 +339,5 @@
     <string name="srv_leave_title">Izaći bez spremanja?</string>
     <string name="srv_leave_msg">Imate nespremljene promjene. Želite li stvarno izaći bez spremanja?</string>
     <string name="srv_leave_yes">Odbaci</string>
+    <string name="diag_decode">Pogreške dekodiranja odgovora poslužitelja: %1$d (zadnja: %2$s)</string>
 </resources>

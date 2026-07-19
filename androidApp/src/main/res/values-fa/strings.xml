@@ -339,4 +339,5 @@
     <string name="srv_leave_title">خروج بدون ذخیره؟</string>
     <string name="srv_leave_msg">تغییرات ذخیره‌نشده دارید. واقعاً می‌خواهید بدون ذخیره خارج شوید؟</string>
     <string name="srv_leave_yes">دور انداختن</string>
+    <string name="diag_decode">خطاهای رمزگشایی پاسخ سرور: %1$d (آخرین: %2$s)</string>
 </resources>

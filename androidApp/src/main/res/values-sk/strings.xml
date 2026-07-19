@@ -339,4 +339,5 @@
     <string name="srv_leave_title">Odísť bez uloženia?</string>
     <string name="srv_leave_msg">Máte neuložené zmeny. Naozaj chcete odísť bez uloženia?</string>
     <string name="srv_leave_yes">Zahodiť</string>
+    <string name="diag_decode">Chyby dekódovania odpovedí servera: %1$d (posledná: %2$s)</string>
 </resources>

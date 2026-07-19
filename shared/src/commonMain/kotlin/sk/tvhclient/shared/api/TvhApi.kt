@@ -34,7 +34,10 @@ import sk.tvhclient.shared.model.TvhServer
  */
 class TvhApi(private val server: TvhServer) {
 
-    private val json = Json { ignoreUnknownKeys = true }
+    // M399: coerceInputValues + isLenient — dev buildy Tvheadendu obcas menia
+    // typy poli (cislo <-> string, null); bez tolerancie cely zaznam potichu
+    // vypadol (runCatching -> null) a DVR/Archiv boli prazdne bez chyby.
+    private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true; isLenient = true }
 
     private val client = sk.tvhclient.shared.net.tvhHttpClient(server, json)
 
@@ -122,7 +125,18 @@ class TvhApi(private val server: TvhServer) {
     }
 
     private inline fun <reified T> decode(obj: JsonObject): T =
-        json.decodeFromJsonElement<T>(obj)
+        try { json.decodeFromJsonElement<T>(obj) }
+        catch (t: Throwable) {
+            decodeFailCount++
+            lastDecodeError = (t.message ?: t::class.simpleName ?: "?").take(300)
+            throw t
+        }
+
+    /** M399: pocitadlo + posledna chyba dekodovania (zobrazitelne v diagnostike). */
+    companion object {
+        @kotlin.jvm.Volatile var decodeFailCount: Int = 0
+        @kotlin.jvm.Volatile var lastDecodeError: String? = null
+    }
 
     // ---- verejne API ----
 

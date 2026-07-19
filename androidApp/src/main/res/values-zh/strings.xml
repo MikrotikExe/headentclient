@@ -339,4 +339,5 @@
     <string name="srv_leave_title">不保存就退出？</string>
     <string name="srv_leave_msg">您有未保存的更改。确定不保存就退出吗？</string>
     <string name="srv_leave_yes">放弃</string>
+    <string name="diag_decode">服务器响应解码错误：%1$d（最近：%2$s）</string>
 </resources>

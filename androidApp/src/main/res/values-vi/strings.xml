@@ -339,4 +339,5 @@
     <string name="srv_leave_title">Thoát mà không lưu?</string>
     <string name="srv_leave_msg">Bạn có thay đổi chưa lưu. Bạn có chắc muốn thoát mà không lưu?</string>
     <string name="srv_leave_yes">Bỏ</string>
+    <string name="diag_decode">Lỗi giải mã phản hồi máy chủ: %1$d (gần nhất: %2$s)</string>
 </resources>

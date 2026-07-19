@@ -339,4 +339,5 @@
     <string name="srv_leave_title">बिना सहेजे बाहर निकलें?</string>
     <string name="srv_leave_msg">आपके पास सहेजे नहीं गए बदलाव हैं। क्या आप वाकई बिना सहेजे बाहर निकलना चाहते हैं?</string>
     <string name="srv_leave_yes">हटाएं</string>
+    <string name="diag_decode">सर्वर प्रतिक्रिया डिकोड त्रुटियां: %1$d (अंतिम: %2$s)</string>
 </resources>

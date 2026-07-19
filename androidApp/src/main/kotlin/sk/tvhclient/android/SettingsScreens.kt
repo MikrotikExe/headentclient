@@ -1083,6 +1083,21 @@ internal fun InfoSettings(
             modifier = Modifier.dpadReadable()   // M395-fix2: docitatelne D-padom
                 .padding(horizontal = 8.dp, vertical = 6.dp)
         )
+        // M399: viditelne chyby dekodovania odpovedi servera (inak sa zaznamy
+        // ticho zahadzovali a napr. Archiv bol prazdny bez akejkolvek stopy)
+        if (sk.tvhclient.shared.api.TvhApi.decodeFailCount > 0) {
+            Text(
+                stringResource(
+                    R.string.diag_decode,
+                    sk.tvhclient.shared.api.TvhApi.decodeFailCount,
+                    sk.tvhclient.shared.api.TvhApi.lastDecodeError ?: "?"
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.dpadReadable()
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+            )
+        }
         if (hasLog) {
             InfoLinkRow(stringResource(R.string.diag_send)) { CrashLogReporter.share(ctx) }
             Spacer(Modifier.height(8.dp))

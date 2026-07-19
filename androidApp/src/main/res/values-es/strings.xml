@@ -339,4 +339,5 @@
     <string name="srv_leave_title">¿Salir sin guardar?</string>
     <string name="srv_leave_msg">Tienes cambios sin guardar. ¿Seguro que quieres salir sin guardar?</string>
     <string name="srv_leave_yes">Descartar</string>
+    <string name="diag_decode">Errores al decodificar la respuesta del servidor: %1$d (último: %2$s)</string>
 </resources>
