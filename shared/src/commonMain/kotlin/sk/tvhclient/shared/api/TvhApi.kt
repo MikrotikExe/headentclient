@@ -203,7 +203,7 @@ class TvhApi(private val server: TvhServer) {
             // mal identicky zjednoteny zoznam s prekryvmi. Odpoved preto vzdy
             // filtrujeme podla kanala udalosti (na korektnych serveroch no-op;
             // udalosti bez channelUuid nechavame, nevieme ich posudit).
-            .filter { it.channelUuid.isBlank() || it.channelUuid == channelUuid }
+            .filter { it.channelUuid.isNullOrBlank() || it.channelUuid == channelUuid }
             .distinctBy { it.eventId ?: "${'$'}{it.start}-${'$'}{it.title}" }
             .sortedBy { it.start }
     }
