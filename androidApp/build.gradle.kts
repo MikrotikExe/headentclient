@@ -39,7 +39,7 @@ android {
         applicationId = "sk.tvhclient"
         minSdk = 23
         targetSdk = 35
-        versionCode = 34
+        versionCode = 35
         versionName = "1.0.0"
         buildConfigField(
             "String",
@@ -81,10 +81,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // M374: natívne debug symboly vypnuté — na Play sme ich nikdy
-            // nenahravali a extrakcia z ~200MB libVLC .so len zdrzuje CI build.
-            // Play ukaze upozornenie o chybajucich symboloch; funkcnost bez vplyvu.
-            // (Navrat: ndk { debugSymbolLevel = "SYMBOL_TABLE" })
+            // M400: natívne debug symboly ZAPNUTÉ (návrat z M374) — pribalia sa
+            // do AAB a Play prestane hlásiť upozornenie; natívne pády (libVLC)
+            // budú v Console čitateľné. Cena: dlhší CI build (extrakcia symbolov
+            // z ~200MB .so kniznic).
+            ndk { debugSymbolLevel = "SYMBOL_TABLE" }
             // Play: vlastny kluc ak je keystore.properties; inak (CI test) debug
             // podpis, nech je release APK instalovatelny na otestovanie R8.
             signingConfig = if (keystorePropsFile.exists()) {
