@@ -1016,14 +1016,12 @@ internal fun InfoSettings(
     SettingsGroup(null) {
     // M395: na TV je informacny blok fokusovatelna karta — inak D-pad skoci rovno
     // na Dokumenty, obsah sa odroluje a vrchne informacie sa nedaju precitat.
+    // M395-fix2: neviditelny fokus (dpadReadable) — blok nevyzera klikatelne,
+    // ale D-pad sa nan vie postavit a odroluje sa do vyhladu
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
-            // M395-fix: dpadFocusable len kresli zvyraznenie — fokusovatelnost
-            // musi dodat focusable() (v InfoLinkRow ju dodava clickable)
-            .dpadFocusable()
-            .focusable()
+            .dpadReadable()
             .padding(8.dp)
     ) {
     Text(
@@ -1082,7 +1080,8 @@ internal fun InfoSettings(
             stringResource(R.string.diag_note),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+            modifier = Modifier.dpadReadable()   // M395-fix2: docitatelne D-padom
+                .padding(horizontal = 8.dp, vertical = 6.dp)
         )
         if (hasLog) {
             InfoLinkRow(stringResource(R.string.diag_send)) { CrashLogReporter.share(ctx) }
@@ -1097,6 +1096,7 @@ internal fun InfoSettings(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .dpadReadable()   // M395-fix2: dlhy log sa da docitat D-padom
                     .padding(horizontal = 8.dp)
                     .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHighest)

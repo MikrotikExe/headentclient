@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.focusable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
@@ -24,6 +25,16 @@ import androidx.compose.material3.MaterialTheme
  *
  * Ramik ma vzdy 2.dp (len mení farbu), aby sa layout pri fokuse neposuval.
  */
+/**
+ * M395-fix2: NEVIDITELNY fokus pre cisto citatelne (neklikatelne) bloky na TV.
+ * Ziadne zvyraznenie ani ramik — prvok je len focus target, takze D-pad sa nan
+ * vie postavit a scroll kontajner ho automaticky odroluje do vyhladu (focusable
+ * v Compose robi bringIntoView sam). Pouzi na informacne texty nad/pod
+ * klikatelnymi prvkami, aby sa dali docitat: Column(Modifier.dpadReadable()).
+ */
+fun Modifier.dpadReadable(): Modifier =
+    this.then(androidx.compose.ui.Modifier.focusable())
+
 fun Modifier.dpadFocusable(shape: Shape = RoundedCornerShape(8.dp)): Modifier = composed {
     var focused by remember { mutableStateOf(false) }
     val primary = MaterialTheme.colorScheme.primary
