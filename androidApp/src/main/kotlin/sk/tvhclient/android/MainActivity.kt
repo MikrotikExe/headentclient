@@ -314,10 +314,27 @@ private fun TvHomeHost() {
 
     when {
         section == "epg" -> {
-            androidx.activity.compose.BackHandler { section = "" }
+            // M396: TV program otvoreny Z PREHRAVACA -> BACK vrati do prehravaca
+            // na povodny kanal (ako v zalozke Kanaly), nie na uvod launchera.
+            val epgBack: () -> Unit = {
+                if (TabController.epgFromPlayer) {
+                    val uuid = TabController.epgReturnUuid
+                    TabController.epgFromPlayer = false
+                    TabController.epgReturnUuid = null
+                    section = ""
+                    if (uuid != null) {
+                        LivePlaylist.setIndexForUuid(uuid)
+                        val title = LivePlaylist.channels.firstOrNull { it.uuid == uuid }?.name ?: ""
+                        playUuid(uuid, title)
+                    }
+                } else {
+                    section = ""
+                }
+            }
+            androidx.activity.compose.BackHandler { epgBack() }
             val st = chState
             if (st is ChannelsState.Loaded) {
-                EpgGridScreen(allRows = st.allRows, categories = st.categories, seed = epgMap, onBack = { section = "" })
+                EpgGridScreen(allRows = st.allRows, categories = st.categories, seed = epgMap, onBack = { epgBack() })
             } else {
                 CenterLoading()
             }
