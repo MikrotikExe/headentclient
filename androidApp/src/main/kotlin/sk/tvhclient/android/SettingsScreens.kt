@@ -1013,6 +1013,15 @@ internal fun InfoSettings(
         }.getOrNull() ?: "?"
     }
     SettingsGroup(null) {
+    // M395: na TV je informacny blok fokusovatelna karta — inak D-pad skoci rovno
+    // na Dokumenty, obsah sa odroluje a vrchne informacie sa nedaju precitat.
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+            .dpadFocusable()
+            .padding(8.dp)
+    ) {
     Text(
         stringResource(R.string.info_app_version) + ": " + version +
             " (" + BuildConfig.VERSION_CODE + ") \u2022 " + BuildConfig.BUILD_DATE,
@@ -1051,6 +1060,7 @@ internal fun InfoSettings(
             style = labelStyle, color = labelColor)
     } else {
         Text(stringResource(R.string.no_servers))
+    }
     }
 
     }
