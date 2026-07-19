@@ -195,9 +195,17 @@ class TvhApi(private val server: TvhServer) {
                 "dir" to "ASC"
             ))
         }.getOrNull() ?: return emptyList()
-        return (data["entries"] as? JsonArray)?.mapNotNull { el ->
+        return ((data["entries"] as? JsonArray)?.mapNotNull { el ->
             (el as? JsonObject)?.let { runCatching { decode<EpgEvent>(it) }.getOrNull() }
-        } ?: emptyList()
+        } ?: emptyList())
+            // M398-fix: niektore buildy Tvheadendu (napr. 4.3~dev) ignoruju
+            // parameter channel a vratia globalny grid — kazdy kanal by potom
+            // mal identicky zjednoteny zoznam s prekryvmi. Odpoved preto vzdy
+            // filtrujeme podla kanala udalosti (na korektnych serveroch no-op;
+            // udalosti bez channelUuid nechavame, nevieme ich posudit).
+            .filter { it.channelUuid.isBlank() || it.channelUuid == channelUuid }
+            .distinctBy { it.eventId ?: "${'$'}{it.start}-${'$'}{it.title}" }
+            .sortedBy { it.start }
     }
 
     /** Dokoncene DVR nahravky (grid_finished). */
