@@ -92,9 +92,13 @@ object TabController {
     // Otvorenie mriezky aj pri cerstvom mounte Kanalov (napr. z modernej Domov
     // obrazovky) — bez tohto by baseline signal zhltol a otvoril sa len zoznam.
     var epgColdOpen = false
+    // M397: jednorazovy priznak "otvor mriezku hned" — hosty ho konzumuju uz
+    // pocas kompozicie, takze sa nestihne mihnut uvodna obrazovka
+    var epgPending = false
     fun openEpgGrid(fromPlayer: Boolean = false, returnUuid: String? = null) {
         epgFromPlayer = fromPlayer
         epgReturnUuid = returnUuid
+        epgPending = true
         epgGrid.value = epgGrid.value + 1
     }
     // INFO kláves -> detail vybranej relacie (v mriezke)
@@ -237,7 +241,13 @@ private fun TvHomeHost() {
     var section by remember { mutableStateOf("") }
     // Prehravac ziada TV program (open_epg intent) -> otvor mriezku aj v TV launcheri (M323)
     val epgSigTv by TabController.epgGrid
-    LaunchedEffect(epgSigTv) { if (epgSigTv > 0) section = "epg" }
+    // M397: signal konzumujeme UZ POCAS kompozicie — LaunchedEffect bezal az po
+    // prvom frame, takze pri otvoreni TV programu z prehravaca preblikol uvod.
+    // Citanie epgSigTv zabezpeci rekompoziciu aj pri teplom onNewIntent.
+    if (epgSigTv > 0 && TabController.epgPending) {
+        TabController.epgPending = false
+        if (section != "epg") section = "epg"
+    }
     var lastTile by remember { mutableStateOf("channels") }
     var play by remember { mutableStateOf("") }
     var showExit by remember { mutableStateOf(false) }
