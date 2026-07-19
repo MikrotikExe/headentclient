@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Tvheadend 连接、当前服务器</string>
     <string name="set_sub_remote">用手机控制电视应用</string>
     <string name="set_sub_info">版本、许可证、法律文件</string>
-    <string name="set_grp_appearance">外观</string>
     <string name="set_grp_autostart">自动启动</string>
     <string name="set_grp_video">视频</string>
     <string name="set_grp_sound">音频</string>

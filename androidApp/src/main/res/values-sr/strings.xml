@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Tvheadend везе, активни сервер</string>
     <string name="set_sub_remote">Управљање ТВ апликацијом са телефона</string>
     <string name="set_sub_info">Верзија, лиценце, правни документи</string>
-    <string name="set_grp_appearance">Изглед</string>
     <string name="set_grp_autostart">Аутоматско покретање</string>
     <string name="set_grp_video">Видео</string>
     <string name="set_grp_sound">Звук</string>

@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Tvheadend-Verbindungen, aktiver Server</string>
     <string name="set_sub_remote">TV-App vom Handy aus steuern</string>
     <string name="set_sub_info">Version, Lizenzen, rechtliche Dokumente</string>
-    <string name="set_grp_appearance">Darstellung</string>
     <string name="set_grp_autostart">Autostart</string>
     <string name="set_grp_video">Video</string>
     <string name="set_grp_sound">Ton</string>

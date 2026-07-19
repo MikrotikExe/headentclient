@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Tvheadend کنکشنز، فعال سرور</string>
     <string name="set_sub_remote">فون سے TV ایپ کو کنٹرول کریں</string>
     <string name="set_sub_info">ورژن، لائسنسز، قانونی دستاویزات</string>
-    <string name="set_grp_appearance">ظاہری شکل</string>
     <string name="set_grp_autostart">خودکار آغاز</string>
     <string name="set_grp_video">ویڈیو</string>
     <string name="set_grp_sound">آڈیو</string>

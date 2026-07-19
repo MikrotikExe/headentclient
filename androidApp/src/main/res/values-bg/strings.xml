@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Tvheadend връзки, активен сървър</string>
     <string name="set_sub_remote">Управление на TV приложението от телефона</string>
     <string name="set_sub_info">Версия, лицензи, правни документи</string>
-    <string name="set_grp_appearance">Външен вид</string>
     <string name="set_grp_autostart">Автостарт</string>
     <string name="set_grp_video">Видео</string>
     <string name="set_grp_sound">Звук</string>

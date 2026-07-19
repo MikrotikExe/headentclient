@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Tvheadend kapcsolatok, aktív szerver</string>
     <string name="set_sub_remote">A TV-alkalmazás vezérlése telefonról</string>
     <string name="set_sub_info">Verzió, licencek, jogi dokumentumok</string>
-    <string name="set_grp_appearance">Megjelenés</string>
     <string name="set_grp_autostart">Automatikus indítás</string>
     <string name="set_grp_video">Videó</string>
     <string name="set_grp_sound">Hang</string>

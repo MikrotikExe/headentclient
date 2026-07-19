@@ -300,7 +300,6 @@
     <string name="set_sub_servers">Tvheadend connections, active server</string>
     <string name="set_sub_remote">Control the TV app from your phone</string>
     <string name="set_sub_info">Version, licenses, legal documents</string>
-    <string name="set_grp_appearance">Appearance</string>
     <string name="set_grp_autostart">Autostart</string>
     <string name="set_grp_video">Video</string>
     <string name="set_grp_sound">Audio</string>

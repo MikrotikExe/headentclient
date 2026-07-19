@@ -278,7 +278,6 @@
     <string name="set_sub_servers">اتصالات Tvheadend، الخادم النشط</string>
     <string name="set_sub_remote">التحكم في تطبيق التلفاز من الهاتف</string>
     <string name="set_sub_info">الإصدار والتراخيص والمستندات القانونية</string>
-    <string name="set_grp_appearance">المظهر</string>
     <string name="set_grp_autostart">تشغيل تلقائي</string>
     <string name="set_grp_video">الفيديو</string>
     <string name="set_grp_sound">الصوت</string>

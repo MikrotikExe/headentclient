@@ -300,7 +300,6 @@
     <string name="set_sub_servers">Tvheadend pripojenia, aktívny server</string>
     <string name="set_sub_remote">Ovládanie TV aplikácie z telefónu</string>
     <string name="set_sub_info">Verzia, licencie, právne dokumenty</string>
-    <string name="set_grp_appearance">Vzhľad</string>
     <string name="set_grp_autostart">Autoštart</string>
     <string name="set_grp_video">Video</string>
     <string name="set_grp_sound">Zvuk</string>

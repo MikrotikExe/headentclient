@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Tvheadend 연결, 활성 서버</string>
     <string name="set_sub_remote">휴대폰으로 TV 앱 제어</string>
     <string name="set_sub_info">버전, 라이선스, 법적 문서</string>
-    <string name="set_grp_appearance">모양</string>
     <string name="set_grp_autostart">자동 시작</string>
     <string name="set_grp_video">비디오</string>
     <string name="set_grp_sound">오디오</string>

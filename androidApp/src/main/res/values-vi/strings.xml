@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Kết nối Tvheadend, máy chủ đang hoạt động</string>
     <string name="set_sub_remote">Điều khiển ứng dụng TV từ điện thoại</string>
     <string name="set_sub_info">Phiên bản, giấy phép, tài liệu pháp lý</string>
-    <string name="set_grp_appearance">Giao diện</string>
     <string name="set_grp_autostart">Tự khởi động</string>
     <string name="set_grp_video">Video</string>
     <string name="set_grp_sound">Âm thanh</string>

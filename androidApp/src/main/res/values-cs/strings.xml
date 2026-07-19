@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Tvheadend připojení, aktivní server</string>
     <string name="set_sub_remote">Ovládání TV aplikace z telefonu</string>
     <string name="set_sub_info">Verze, licence, právní dokumenty</string>
-    <string name="set_grp_appearance">Vzhled</string>
     <string name="set_grp_autostart">Autostart</string>
     <string name="set_grp_video">Video</string>
     <string name="set_grp_sound">Zvuk</string>

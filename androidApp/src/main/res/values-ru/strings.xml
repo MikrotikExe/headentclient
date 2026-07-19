@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Подключения Tvheadend, активный сервер</string>
     <string name="set_sub_remote">Управление ТВ-приложением с телефона</string>
     <string name="set_sub_info">Версия, лицензии, правовые документы</string>
-    <string name="set_grp_appearance">Внешний вид</string>
     <string name="set_grp_autostart">Автозапуск</string>
     <string name="set_grp_video">Видео</string>
     <string name="set_grp_sound">Звук</string>

@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Tvheadend bağlantıları, etkin sunucu</string>
     <string name="set_sub_remote">TV uygulamasını telefondan kontrol edin</string>
     <string name="set_sub_info">Sürüm, lisanslar, yasal belgeler</string>
-    <string name="set_grp_appearance">Görünüm</string>
     <string name="set_grp_autostart">Otomatik başlatma</string>
     <string name="set_grp_video">Video</string>
     <string name="set_grp_sound">Ses</string>

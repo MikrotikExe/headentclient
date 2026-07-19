@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Połączenia Tvheadend, aktywny serwer</string>
     <string name="set_sub_remote">Sterowanie aplikacją TV z telefonu</string>
     <string name="set_sub_info">Wersja, licencje, dokumenty prawne</string>
-    <string name="set_grp_appearance">Wygląd</string>
     <string name="set_grp_autostart">Autostart</string>
     <string name="set_grp_video">Wideo</string>
     <string name="set_grp_sound">Dźwięk</string>

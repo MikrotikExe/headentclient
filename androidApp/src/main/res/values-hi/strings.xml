@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Tvheadend कनेक्शन, सक्रिय सर्वर</string>
     <string name="set_sub_remote">फ़ोन से TV ऐप नियंत्रित करें</string>
     <string name="set_sub_info">संस्करण, लाइसेंस, कानूनी दस्तावेज़</string>
-    <string name="set_grp_appearance">दिखावट</string>
     <string name="set_grp_autostart">ऑटोस्टार्ट</string>
     <string name="set_grp_video">वीडियो</string>
     <string name="set_grp_sound">ऑडियो</string>

@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Tvheadend-verbindingen, actieve server</string>
     <string name="set_sub_remote">Bedien de tv-app vanaf je telefoon</string>
     <string name="set_sub_info">Versie, licenties, juridische documenten</string>
-    <string name="set_grp_appearance">Weergave</string>
     <string name="set_grp_autostart">Automatisch starten</string>
     <string name="set_grp_video">Video</string>
     <string name="set_grp_sound">Geluid</string>

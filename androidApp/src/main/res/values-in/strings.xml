@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Koneksi Tvheadend, server aktif</string>
     <string name="set_sub_remote">Kendalikan aplikasi TV dari ponsel</string>
     <string name="set_sub_info">Versi, lisensi, dokumen hukum</string>
-    <string name="set_grp_appearance">Tampilan</string>
     <string name="set_grp_autostart">Mulai otomatis</string>
     <string name="set_grp_video">Video</string>
     <string name="set_grp_sound">Audio</string>

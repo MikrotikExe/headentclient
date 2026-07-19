@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Συνδέσεις Tvheadend, ενεργός διακομιστής</string>
     <string name="set_sub_remote">Έλεγχος της εφαρμογής TV από το τηλέφωνο</string>
     <string name="set_sub_info">Έκδοση, άδειες, νομικά έγγραφα</string>
-    <string name="set_grp_appearance">Εμφάνιση</string>
     <string name="set_grp_autostart">Αυτόματη εκκίνηση</string>
     <string name="set_grp_video">Βίντεο</string>
     <string name="set_grp_sound">Ήχος</string>

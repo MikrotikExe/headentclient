@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Ligações Tvheadend, servidor ativo</string>
     <string name="set_sub_remote">Controlar a app de TV pelo telemóvel</string>
     <string name="set_sub_info">Versão, licenças, documentos legais</string>
-    <string name="set_grp_appearance">Aparência</string>
     <string name="set_grp_autostart">Início automático</string>
     <string name="set_grp_video">Vídeo</string>
     <string name="set_grp_sound">Áudio</string>

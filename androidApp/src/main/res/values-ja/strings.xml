@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Tvheadend接続、アクティブなサーバー</string>
     <string name="set_sub_remote">スマートフォンからTVアプリを操作</string>
     <string name="set_sub_info">バージョン、ライセンス、法的文書</string>
-    <string name="set_grp_appearance">外観</string>
     <string name="set_grp_autostart">自動起動</string>
     <string name="set_grp_video">動画</string>
     <string name="set_grp_sound">音声</string>

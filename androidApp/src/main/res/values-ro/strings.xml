@@ -278,7 +278,6 @@
     <string name="set_sub_servers">Conexiuni Tvheadend, server activ</string>
     <string name="set_sub_remote">Controlează aplicația TV de pe telefon</string>
     <string name="set_sub_info">Versiune, licențe, documente legale</string>
-    <string name="set_grp_appearance">Aspect</string>
     <string name="set_grp_autostart">Pornire automată</string>
     <string name="set_grp_video">Video</string>
     <string name="set_grp_sound">Audio</string>

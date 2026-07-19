@@ -278,7 +278,6 @@
     <string name="set_sub_servers">การเชื่อมต่อ Tvheadend เซิร์ฟเวอร์ที่ใช้งาน</string>
     <string name="set_sub_remote">ควบคุมแอปทีวีจากโทรศัพท์</string>
     <string name="set_sub_info">เวอร์ชัน ใบอนุญาต เอกสารทางกฎหมาย</string>
-    <string name="set_grp_appearance">ลักษณะ</string>
     <string name="set_grp_autostart">เริ่มอัตโนมัติ</string>
     <string name="set_grp_video">วิดีโอ</string>
     <string name="set_grp_sound">เสียง</string>
