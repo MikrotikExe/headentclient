@@ -234,6 +234,13 @@ object HtspData {
                 val evs = try {
                     client.getEvents(cid, numFollowing = 80, maxTime = nowSec + 3 * 86400)
                         .mapNotNull { mapEvent(it) }
+                        // M398: niektore buildy Tvheadendu (napr. 4.3~dev, HTSP v44)
+                        // vratia na getEvents udalosti VSETKYCH kanalov naraz —
+                        // mriezka mala potom v kazdom riadku identicky zjednoteny
+                        // zoznam s prekryvajucimi sa blokmi. Odpoved preto vzdy
+                        // filtrujeme podla pozadovaneho kanala a deduplikujeme.
+                        .filter { it.channelUuid == cid.toString() }
+                        .distinctBy { it.eventId ?: "${'$'}{it.start}-${'$'}{it.title}" }
                         .sortedBy { it.start }
                 } catch (e: Exception) { emptyList() }
                 onChannel(cid.toString(), evs)
