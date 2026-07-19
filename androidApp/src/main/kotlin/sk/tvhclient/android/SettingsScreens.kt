@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -1019,7 +1020,10 @@ internal fun InfoSettings(
         Modifier
             .fillMaxWidth()
             .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+            // M395-fix: dpadFocusable len kresli zvyraznenie — fokusovatelnost
+            // musi dodat focusable() (v InfoLinkRow ju dodava clickable)
             .dpadFocusable()
+            .focusable()
             .padding(8.dp)
     ) {
     Text(
