@@ -512,7 +512,7 @@ class PlayerActivity : ComponentActivity() {
         val media = Media(libVlc, fd)
         media.setHWDecoderEnabled(true, false)
         media.addOption(":demux=ts")
-        media.addOption(":file-caching=" + BufferPref.ms(this))
+        media.addOption(":file-caching=" + BufferPref.htspMs(this))
         applyDeinterlace(media)
         mediaPlayer.media = media
         media.release()
@@ -541,7 +541,7 @@ class PlayerActivity : ComponentActivity() {
             val media = Media(libVlc, fd)
             media.setHWDecoderEnabled(true, false)
             media.addOption(":demux=ts")
-            media.addOption(":file-caching=" + BufferPref.ms(this))
+            media.addOption(":file-caching=" + BufferPref.htspMs(this))
             applyDeinterlace(media)
                 mediaPlayer.media = media
             media.release()

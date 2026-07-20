@@ -25,10 +25,20 @@ object BufferPref {
             .edit().putString(KEY, value).apply()
     }
 
-    /** Hlbka bufferu v ms pre libVLC (file-caching / network-caching). */
+    /** Hlbka bufferu v ms pre HTTP cestu (server sklada hotovy stream — moze plny). */
     fun ms(context: Context): Int = when (get(context)) {
         SMALL -> 1500     // povodne spravanie — rychla LAN, najnizsia latencia
         LARGE -> 6000     // kolisava wifi / mobil — max odolnost
         else -> 3500      // STREDNY default — vyvazene pre wifi aj mobilne data
+    }
+
+    /** M406-fix: hlbka bufferu pre HTSP cestu (stream skladame MY cez TsMuxer).
+     *  Velky buffer tu rozladi nase PCR a A/V sa rozide pri nabehu, preto drzime
+     *  konzervativnejsie hodnoty — stale citelne vacsie nez povodnych 1500 ms
+     *  (lepsia odolnost na wifi/mobil), ale nie tak vela, aby remux odplaval. */
+    fun htspMs(context: Context): Int = when (get(context)) {
+        SMALL -> 1500
+        LARGE -> 3000
+        else -> 2200
     }
 }
