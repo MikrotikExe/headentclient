@@ -359,11 +359,39 @@ class PlayerActivity : ComponentActivity() {
      *  minuty utecie (prepnutie kanala sync resetne a drift zacne znova).
      *  audio-time-stretch = korekcie natahovanim zvuku bez zmeny vysky tonu,
      *  clock-jitter=0 = netolerovat narastajucu odchylku, korigovat priebezne. */
+    // M403-fix2: periodicky re-sync proti driftu. Meranie ukazalo, ze obraz bezi
+    // PRED zvukom a posun narasta za 1-2 min, a to LEN cez nasu feeder->remux->VLC
+    // cestu (vo VLC pre Android je ten isty kanal v poriadku) — cize nejde o hodiny
+    // vysielatela, ale o pomalu akumulaciu v retazci. Kodi to riesi priebeznym
+    // prevzorkovanim; my periodicky znovu aplikujeme setAudioDelay (osvedcene
+    // z M349), cim drift zhodime spat na nulu skor, nez sa stane rusivym.
+    private val driftHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val driftResyncMs = 20_000L   // interval doťahovania (20 s < 1-2 min prah)
+    private val driftResync = object : Runnable {
+        override fun run() {
+            if (::mediaPlayer.isInitialized && mediaPlayer.isPlaying && !seekablePlayback) {
+                // re-aplikacia audio delay prinuti VLC prepocitat A/V zarovnanie
+                runCatching {
+                    val d = AudioDelayPref.effectiveUs(this@PlayerActivity)
+                    mediaPlayer.audioDelay = d + 1
+                    mediaPlayer.audioDelay = d
+                }
+            }
+            driftHandler.postDelayed(this, driftResyncMs)
+        }
+    }
+    private fun startDriftResync() {
+        if (!AudioDriftFixPref.get(this)) return
+        driftHandler.removeCallbacks(driftResync)
+        driftHandler.postDelayed(driftResync, driftResyncMs)
+    }
+    private fun stopDriftResync() = driftHandler.removeCallbacks(driftResync)
+
+    /** M403: pri live streame nechame len jemny time-stretch (bez skodlivych
+     *  clock experimentov); tvrdu pracu robi periodicky startDriftResync(). */
     private fun applyDriftFix(m: Media) {
         if (!AudioDriftFixPref.get(this)) return
         m.addOption(":audio-time-stretch")
-        m.addOption(":clock-jitter=0")
-        m.addOption(":clock-synchro=0")
     }
 
     /** Rezim deinterlacingu z nastaveni -> (hodnota --deinterlace, mod alebo null).
@@ -2721,6 +2749,7 @@ class PlayerActivity : ComponentActivity() {
                     if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }  // M392-fix2
                     maybeApplyAfr()  // AFR (M346): prepni Hz displeja podla fps streamu
                     applyAudioDelay()  // kompenzacia sink latencie (M349, ako Kodi)
+                    startDriftResync()  // M403-fix2: periodicke dotahovanie A/V pri drifte
                     keepScreenOn(true)  // pocas prehravania nedovol setric/ambient na boxoch
                     cancelReconnect()  // uspesne pripojenie -> vynuluj pokusy
                     dvrReopenAttempts = 0  // uspesne pokracovanie -> vynuluj pokusy o znovu-otvorenie
@@ -3808,6 +3837,7 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onDestroy() {
         clearAfr()
+        stopDriftResync()   // M403-fix2
         saveDvrProgress()
         super.onDestroy()
         // uvolni odkaz, len ak stale ukazuje na tuto instanciu (nie na novsiu)
