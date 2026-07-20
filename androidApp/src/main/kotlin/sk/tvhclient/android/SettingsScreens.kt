@@ -1025,8 +1025,9 @@ internal fun InfoSettings(
             .padding(8.dp)
     ) {
     Text(
+        // M401: verziovanie uz len semver (1.0.0) — cislo buildu sa nezobrazuje
         stringResource(R.string.info_app_version) + ": " + version +
-            " (" + BuildConfig.VERSION_CODE + ") \u2022 " + BuildConfig.BUILD_DATE,
+            " \u2022 " + BuildConfig.BUILD_DATE,
         style = MaterialTheme.typography.bodyLarge
     )
     Spacer(Modifier.height(12.dp))

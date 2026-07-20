@@ -104,7 +104,8 @@ fun WelcomeScreen(vm: ServersViewModel) {
     val gapLogo = if (compact) 10.dp else 18.dp
     val gapForm = if (compact) 20.dp else 36.dp
     val vPad = if (compact) 8.dp else 16.dp
-    val versionLabel = "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}) \u2022 ${BuildConfig.BUILD_DATE}"
+    // M401: verziovanie uz len semver — cislo buildu sa nezobrazuje
+    val versionLabel = "v${BuildConfig.VERSION_NAME} \u2022 ${BuildConfig.BUILD_DATE}"
 
     // Branding (logo + nazov + popis) - zdielane pre oba layouty
     val modernUi = isModernUi()
