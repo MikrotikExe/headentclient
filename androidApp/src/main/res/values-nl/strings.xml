@@ -340,6 +340,4 @@
     <string name="srv_leave_msg">Je hebt niet-opgeslagen wijzigingen. Wil je echt afsluiten zonder op te slaan?</string>
     <string name="srv_leave_yes">Verwerpen</string>
     <string name="diag_decode">Fouten bij decoderen serverantwoord: %1$d (laatste: %2$s)</string>
-    <string name="set_drift_title">Audiodriftcompensatie</string>
-    <string name="set_drift_note">Experimenteel: voor zenders waar het geluid in minuten langzaam uit sync loopt (weergave wordt continu gecorrigeerd door het geluid zacht te rekken). Geldt vanaf de volgende weergave.</string>
 </resources>

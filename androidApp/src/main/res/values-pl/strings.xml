@@ -340,6 +340,4 @@
     <string name="srv_leave_msg">Masz niezapisane zmiany. Czy na pewno chcesz wyjść bez zapisywania?</string>
     <string name="srv_leave_yes">Odrzuć</string>
     <string name="diag_decode">Błędy dekodowania odpowiedzi serwera: %1$d (ostatni: %2$s)</string>
-    <string name="set_drift_title">Kompensacja dryfu dźwięku</string>
-    <string name="set_drift_note">Eksperymentalne: dla kanałów, na których dźwięk w ciągu minut powoli się rozjeżdża (odtwarzanie jest stale korygowane przez delikatne rozciąganie dźwięku). Działa od następnego odtwarzania.</string>
 </resources>

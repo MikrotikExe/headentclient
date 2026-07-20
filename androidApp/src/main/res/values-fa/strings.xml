@@ -340,6 +340,4 @@
     <string name="srv_leave_msg">تغییرات ذخیره‌نشده دارید. واقعاً می‌خواهید بدون ذخیره خارج شوید؟</string>
     <string name="srv_leave_yes">دور انداختن</string>
     <string name="diag_decode">خطاهای رمزگشایی پاسخ سرور: %1$d (آخرین: %2$s)</string>
-    <string name="set_drift_title">جبران انحراف صدا</string>
-    <string name="set_drift_note">آزمایشی: برای کانال‌هایی که صدا طی چند دقیقه به‌آرامی از همگامی خارج می‌شود (پخش با کشش ملایم صدا به‌طور پیوسته اصلاح می‌شود). از پخش بعدی اعمال می‌شود.</string>
 </resources>

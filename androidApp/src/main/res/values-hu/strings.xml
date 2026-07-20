@@ -340,6 +340,4 @@
     <string name="srv_leave_msg">Nem mentett módosításai vannak. Biztosan mentés nélkül lép ki?</string>
     <string name="srv_leave_yes">Elvetés</string>
     <string name="diag_decode">Szerverválasz-dekódolási hibák: %1$d (utolsó: %2$s)</string>
-    <string name="set_drift_title">Hangcsúszás-kompenzáció</string>
-    <string name="set_drift_note">Kísérleti: olyan csatornákhoz, ahol a hang percek alatt lassan elcsúszik (a lejátszás a hang finom nyújtásával folyamatosan korrigál). A következő lejátszástól érvényes.</string>
 </resources>

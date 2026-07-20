@@ -340,6 +340,4 @@
     <string name="srv_leave_msg">آپ کی غیر محفوظ شدہ تبدیلیاں ہیں۔ کیا واقعی محفوظ کیے بغیر باہر نکلنا چاہتے ہیں؟</string>
     <string name="srv_leave_yes">مسترد کریں</string>
     <string name="diag_decode">سرور جواب ڈی کوڈ کرنے کی خرابیاں: %1$d (آخری: %2$s)</string>
-    <string name="set_drift_title">آڈیو ڈرفٹ کی تلافی</string>
-    <string name="set_drift_note">تجرباتی: ان چینلز کے لیے جہاں آواز منٹوں میں آہستہ آہستہ ہم آہنگی سے ہٹ جاتی ہے (آڈیو کو نرمی سے کھینچ کر پلے بیک مسلسل درست ہوتا ہے)۔ اگلے پلے بیک سے لاگو۔</string>
 </resources>

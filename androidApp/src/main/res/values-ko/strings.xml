@@ -340,6 +340,4 @@
     <string name="srv_leave_msg">저장되지 않은 변경 사항이 있습니다. 정말 저장하지 않고 나가시겠습니까?</string>
     <string name="srv_leave_yes">버리기</string>
     <string name="diag_decode">서버 응답 디코딩 오류: %1$d (최근: %2$s)</string>
-    <string name="set_drift_title">오디오 드리프트 보정</string>
-    <string name="set_drift_note">실험적: 몇 분에 걸쳐 소리가 서서히 어긋나는 채널용(오디오를 부드럽게 늘여 재생을 지속적으로 보정). 다음 재생부터 적용.</string>
 </resources>

@@ -340,6 +340,4 @@
     <string name="srv_leave_msg">您有未保存的更改。确定不保存就退出吗？</string>
     <string name="srv_leave_yes">放弃</string>
     <string name="diag_decode">服务器响应解码错误：%1$d（最近：%2$s）</string>
-    <string name="set_drift_title">音频漂移补偿</string>
-    <string name="set_drift_note">实验性：适用于声音在几分钟内逐渐失去同步的频道（播放会通过轻微拉伸音频持续校正）。下次播放时生效。</string>
 </resources>

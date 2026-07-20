@@ -340,6 +340,4 @@
     <string name="srv_leave_msg">আপনার অসংরক্ষিত পরিবর্তন আছে। সত্যিই সংরক্ষণ ছাড়া বের হতে চান?</string>
     <string name="srv_leave_yes">বাতিল করুন</string>
     <string name="diag_decode">সার্ভার প্রতিক্রিয়া ডিকোড ত্রুটি: %1$d (সর্বশেষ: %2$s)</string>
-    <string name="set_drift_title">অডিও ড্রিফট ক্ষতিপূরণ</string>
-    <string name="set_drift_note">পরীক্ষামূলক: যেসব চ্যানেলে শব্দ ধীরে ধীরে কয়েক মিনিটে সিঙ্কের বাইরে চলে যায় (অডিও মৃদুভাবে টেনে প্লেব্যাক ক্রমাগত সংশোধিত হয়)। পরের প্লেব্যাক থেকে কার্যকর।</string>
 </resources>

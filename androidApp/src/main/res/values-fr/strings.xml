@@ -340,6 +340,4 @@
     <string name="srv_leave_msg">Vous avez des modifications non enregistrées. Voulez-vous vraiment quitter sans enregistrer ?</string>
     <string name="srv_leave_yes">Abandonner</string>
     <string name="diag_decode">Erreurs de décodage de la réponse du serveur : %1$d (dernière : %2$s)</string>
-    <string name="set_drift_title">Compensation de dérive audio</string>
-    <string name="set_drift_note">Expérimental : pour les chaînes où le son se décale lentement en quelques minutes (la lecture se corrige en continu par un léger étirement du son). Prend effet à la prochaine lecture.</string>
 </resources>

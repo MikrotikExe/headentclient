@@ -340,6 +340,4 @@
     <string name="srv_leave_msg">Kaydedilmemiş değişiklikleriniz var. Gerçekten kaydetmeden çıkmak istiyor musunuz?</string>
     <string name="srv_leave_yes">Vazgeç</string>
     <string name="diag_decode">Sunucu yanıtı çözme hataları: %1$d (son: %2$s)</string>
-    <string name="set_drift_title">Ses kayması telafisi</string>
-    <string name="set_drift_note">Deneysel: sesin dakikalar içinde yavaşça kaydığı kanallar için (oynatma, ses hafifçe esnetilerek sürekli düzeltilir). Bir sonraki oynatmada etkinleşir.</string>
 </resources>

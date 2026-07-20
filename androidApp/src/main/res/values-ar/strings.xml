@@ -340,6 +340,4 @@
     <string name="srv_leave_msg">لديك تغييرات غير محفوظة. هل تريد فعلًا المغادرة دون حفظ؟</string>
     <string name="srv_leave_yes">تجاهل</string>
     <string name="diag_decode">أخطاء فك ترميز استجابة الخادم: %1$d (الأخير: %2$s)</string>
-    <string name="set_drift_title">تعويض انحراف الصوت</string>
-    <string name="set_drift_note">تجريبي: للقنوات التي ينزلق فيها الصوت تدريجيًا عن التزامن خلال دقائق (يُصحَّح التشغيل باستمرار بتمديد الصوت بلطف). يسري عند التشغيل التالي.</string>
 </resources>
