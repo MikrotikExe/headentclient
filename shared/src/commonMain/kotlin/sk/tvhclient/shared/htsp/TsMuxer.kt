@@ -69,6 +69,12 @@ class TsMuxer(streams: List<Stream>) {
     // skok pri subscriptionSkip (RW/FF). Pri beznom zivom je offset konstantny (= pass-through).
     private var hasOffset = false
     private var tsOffset = 0L
+    // M404: plynula PCR os. PCR nesmie kopirovat DTS (to poskakuje po davkach a
+    // VLC z neho odvodi pokrivene hodiny -> obraz predbieha zvuk, drift 1-2 min).
+    // Drzime monotonne rastuce PCR ukotvene k vystupnej osi, s malym predstihom
+    // pred DTS (dekoder ocakava PCR skor nez data prezentuje).
+    private var lastPcr = -1L
+    private val pcrLeadTicks = 6300L   // ~70 ms predstih PCR pred DTS (90kHz)
     private var lastOut = 0L
     private val discontTicks = 90000L * 4   // 4 s = diskontinuita -> re-base
     private val frameGapTicks = 3000L        // ~33 ms medzera po skoku
@@ -193,6 +199,17 @@ class TsMuxer(streams: List<Stream>) {
     }
 
     /** Postavi PES jednej stopy do TS paketov (+ periodicke PAT/PMT). */
+    /** M404: plynula, monotonne rastuca PCR hodnota. Vychadza z vystupneho DTS
+     *  (uz premapovaneho na spojitu os v remap()), ale nikdy neklesne a drzi maly
+     *  predstih, takze VLC dostane rovnomerne bezuce hodiny namiesto poskakujuceho
+     *  DTS. Pri re-base (skok/diskontinuita) sa os sama zosuladi cez remap(). */
+    private fun nextPcr(outTs: Long?): Long {
+        val target = (outTs ?: (lastPcr + 3600L)) - pcrLeadTicks
+        val pcr = if (lastPcr < 0) target else maxOf(target, lastPcr + 1)
+        lastPcr = pcr
+        return pcr.coerceAtLeast(0L)
+    }
+
     private fun emitPes(t: Track, es: ByteArray, outPts: Long?, outDts: Long?, rap: Boolean): ByteArray {
         val packets = ArrayList<ByteArray>()
         psiCounter -= 1
@@ -200,7 +217,8 @@ class TsMuxer(streams: List<Stream>) {
             packets.add(pat()); packets.add(pmt()); psiCounter = siInterval
         }
         val pes = buildPes(t, es, outPts, outDts)
-        val pcr = if (t.pid == pcrPid) (outDts ?: outPts) else null
+        // M404: PCR z monotonnej vystupnej osi (nie surove DTS)
+        val pcr = if (t.pid == pcrPid) nextPcr(outDts ?: outPts) else null
         writePackets(t, pes, pcr, rap, packets)
         return flatten(packets)
     }

@@ -366,24 +366,33 @@ class PlayerActivity : ComponentActivity() {
     // prevzorkovanim; my periodicky znovu aplikujeme setAudioDelay (osvedcene
     // z M349), cim drift zhodime spat na nulu skor, nez sa stane rusivym.
     private val driftHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val driftResyncMs = 20_000L   // interval doťahovania (20 s < 1-2 min prah)
+    // M403-fix4: ADAPTIVNE dotahovanie. Kontrolujeme casto (2 s), ale audioDelay
+    // prepiseme LEN ked sa realne zmenil efektivny delay — takze na kanaloch BEZ
+    // driftu prepinac prakticky nic nerobi a nema co sekat. Samotny audio-time-
+    // stretch (z applyDriftFix) drzi mierny drift plynulo; toto je poistka proti
+    // velkemu nazbieranemu posunu, ktora uz nedovoli 5-min sek.
+    private val driftCheckMs = 2_000L
+    private var lastAppliedDelay = Long.MIN_VALUE
     private val driftResync = object : Runnable {
         override fun run() {
             if (::mediaPlayer.isInitialized && mediaPlayer.isPlaying && !seekablePlayback) {
-                // re-aplikacia audio delay prinuti VLC prepocitat A/V zarovnanie
                 runCatching {
                     val d = AudioDelayPref.effectiveUs(this@PlayerActivity)
-                    mediaPlayer.audioDelay = d + 1
-                    mediaPlayer.audioDelay = d
+                    if (d != lastAppliedDelay) {
+                        mediaPlayer.audioDelay = d
+                        lastAppliedDelay = d
+                    }
                 }
             }
-            driftHandler.postDelayed(this, driftResyncMs)
+            driftHandler.postDelayed(this, driftCheckMs)
         }
     }
     private fun startDriftResync() {
-        if (!AudioDriftFixPref.get(this)) return
+        // M404: koren driftu opraveny v TsMuxeri (plynule PCR) — periodicke
+        // dotahovanie uz netreba a mohlo cvakat, takze ho necinnime. Prepinac
+        // "kompenzacia posunu zvuku" ponechavame na jemny audio-time-stretch
+        // (aplikovany v applyDriftFix), pre pripad inych problematickych zdrojov.
         driftHandler.removeCallbacks(driftResync)
-        driftHandler.postDelayed(driftResync, driftResyncMs)
     }
     private fun stopDriftResync() = driftHandler.removeCallbacks(driftResync)
 
@@ -391,6 +400,8 @@ class PlayerActivity : ComponentActivity() {
      *  clock experimentov); tvrdu pracu robi periodicky startDriftResync(). */
     private fun applyDriftFix(m: Media) {
         if (!AudioDriftFixPref.get(this)) return
+        // audio-time-stretch: korekcie plynulym natahovanim zvuku bez zmeny tonu
+        // (nie skokom) — hlavny plynuly mechanizmus proti mieremu driftu
         m.addOption(":audio-time-stretch")
     }
 
