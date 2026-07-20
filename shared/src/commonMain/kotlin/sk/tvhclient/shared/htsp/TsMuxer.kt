@@ -207,7 +207,12 @@ class TsMuxer(streams: List<Stream>) {
      *  predstih, takze VLC dostane rovnomerne bezuce hodiny namiesto poskakujuceho
      *  DTS. Pri re-base (skok/diskontinuita) sa os sama zosuladi cez remap(). */
     private fun nextPcr(outTs: Long?): Long {
-        val target = (outTs ?: (lastPcr + 3600L)) - pcrLeadTicks
+        // M406-fix2: PCR ukotvi az na prvom pakete s platnym casom PCR-PID stopy.
+        // Ked cas chyba, drobne posun predoslu hodnotu (nedovol skok z cudzej osi).
+        // Toto opravuje rozladenie A/V pri rychlom prepnuti kanala tam a spat, kedy
+        // sa os inak ukotvila na prvom (nahodne audio) pakete namiesto videa.
+        if (outTs == null) return (if (lastPcr < 0) 0L else lastPcr + 3600L).also { lastPcr = it }
+        val target = outTs - pcrLeadTicks
         val pcr = if (lastPcr < 0) target else maxOf(target, lastPcr + 1)
         lastPcr = pcr
         return pcr.coerceAtLeast(0L)

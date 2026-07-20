@@ -1245,12 +1245,46 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    // M407: debounce rychleho zappingu cez CH+/-. Rychle stisky len posuvaju
+    // cielovy index a hned aktualizuju info na obrazovke; tazke nacitanie streamu
+    // sa spusti az ked na ~350 ms prestanes prepinat (ako set-top box). Bez toho
+    // sa kazdy stisk cakal na dokoncenie predosleho nacitania.
+    private val zapHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var zapPendingIndex = -1
+    private val zapCommit = Runnable {
+        val target = zapPendingIndex
+        zapPendingIndex = -1
+        if (target >= 0 && target != liveIndex) switchToIndex(target)
+    }
+    private val zapDebounceMs = 350L
+
+    /** M407: preview info kanala bez nacitania streamu (pre rychly zapping). */
+    private fun showZapPreview(i: Int) {
+        val name = liveNames.getOrElse(i) { "" }
+        liveIndexState.value = i
+        liveTitleState.value = name
+        liveUuidState.value = liveUuids.getOrNull(i) ?: liveUuidState.value
+        val ch = LivePlaylist.channels.getOrNull(i)
+        liveProgStartState.value = ch?.nowStart ?: 0L
+        liveProgStopState.value = ch?.nowStop ?: 0L
+        liveProgTitleState.value = ch?.nowTitle ?: ""
+        liveNextTitleState.value = ch?.nextTitle ?: ""
+        liveNextStartState.value = ch?.nextStart ?: 0L
+        liveNextStopState.value = ch?.nextStop ?: 0L
+        zapPokeState.value = zapPokeState.value + 1
+    }
+
     private fun switchLive(delta: Int) {
         hapticChannelSwitch()
-        postZapResyncKick()
         if (liveUuids.size < 2 || liveIndex < 0) return
         val n = liveUuids.size
-        switchToIndex(((liveIndex + delta) % n + n) % n)
+        // od aktualneho ciela (ak uz caka) alebo od aktualneho kanala
+        val from = if (zapPendingIndex >= 0) zapPendingIndex else liveIndex
+        val target = ((from + delta) % n + n) % n
+        zapPendingIndex = target
+        showZapPreview(target)                 // okamzita odozva na obrazovke
+        zapHandler.removeCallbacks(zapCommit)
+        zapHandler.postDelayed(zapCommit, zapDebounceMs)
     }
 
     // ===== M369: filter skupin v zozname kanalov (a tym aj CH+/-) =====
@@ -2364,9 +2398,19 @@ class PlayerActivity : ComponentActivity() {
         if (::mediaPlayer.isInitialized) {
             val canZap = !seekablePlayback && liveUuids.size > 1
             // prepinanie kanalov: Channel+/-, Page+/-, aj sipky hore/dole = zap
+            // M407-fix: CH+/- a Page+/- uz NEfiltruju repeatCount — vdaka debounce
+            // v switchLive() rychle stisky len posuvaju ciel a nacitanie ide az po
+            // zastaveni, takze prepinanie ide svizne aj ked je bar zobrazeny a aj
+            // pri drzani/rychlom klikani. D-pad hore/dole ostava na prvy stisk
+            // (repeatCount==0), lebo tam koliduje s navigaciou v bare.
             when (kc) {
                 android.view.KeyEvent.KEYCODE_CHANNEL_UP,
-                android.view.KeyEvent.KEYCODE_PAGE_UP,
+                android.view.KeyEvent.KEYCODE_PAGE_UP ->
+                    if (down && canZap) {
+                        switchLive(+1)
+                        if (modernTvActive()) { modernOvCard.value = liveIndexState.value.coerceAtLeast(0); openModernOverlay() } else showControlsFocused()
+                        return true
+                    }
                 android.view.KeyEvent.KEYCODE_DPAD_UP ->
                     if (down && canZap && event.repeatCount == 0) {
                         switchLive(+1)
@@ -2374,7 +2418,12 @@ class PlayerActivity : ComponentActivity() {
                         return true
                     }
                 android.view.KeyEvent.KEYCODE_CHANNEL_DOWN,
-                android.view.KeyEvent.KEYCODE_PAGE_DOWN,
+                android.view.KeyEvent.KEYCODE_PAGE_DOWN ->
+                    if (down && canZap) {
+                        switchLive(-1)
+                        if (modernTvActive()) { modernOvCard.value = liveIndexState.value.coerceAtLeast(0); openModernOverlay() } else showControlsFocused()
+                        return true
+                    }
                 android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
                     if (down && canZap && event.repeatCount == 0) {
                         switchLive(-1)
@@ -3797,6 +3846,7 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onDestroy() {
         clearAfr()
+        zapHandler.removeCallbacks(zapCommit)   // M407
         saveDvrProgress()
         super.onDestroy()
         // uvolni odkaz, len ak stale ukazuje na tuto instanciu (nie na novsiu)
