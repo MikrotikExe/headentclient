@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">您有未保存的更改。确定不保存就退出吗？</string>
     <string name="srv_leave_yes">放弃</string>
     <string name="diag_decode">服务器响应解码错误：%1$d（最近：%2$s）</string>
+    <string name="buf_title">网络缓冲</string>
+    <string name="buf_note">更大的缓冲可跨过 Wi-Fi 或移动网络的短暂中断，让播放更少卡顿。代价是相对直播延迟略高、换台稍慢。</string>
+    <string name="buf_small">小（快速局域网）</string>
+    <string name="buf_medium">中（推荐）</string>
+    <string name="buf_large">大（弱 Wi-Fi / 移动网络）</string>
 </resources>

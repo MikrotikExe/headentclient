@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">Máte neuložené změny. Opravdu chcete odejít bez uložení?</string>
     <string name="srv_leave_yes">Zahodit</string>
     <string name="diag_decode">Chyby dekódování odpovědí serveru: %1$d (poslední: %2$s)</string>
+    <string name="buf_title">Síťová vyrovnávací paměť</string>
+    <string name="buf_note">Větší buffer překlene krátké výpadky Wi-Fi nebo mobilní sítě, takže přehrávání méně zamrzá. Kompromisem je mírně vyšší zpoždění od živého a pomalejší přepínání kanálů.</string>
+    <string name="buf_small">Malá (rychlá LAN)</string>
+    <string name="buf_medium">Střední (doporučeno)</string>
+    <string name="buf_large">Velká (slabá Wi-Fi / mobil)</string>
 </resources>

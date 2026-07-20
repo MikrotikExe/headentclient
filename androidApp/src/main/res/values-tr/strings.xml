@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">Kaydedilmemiş değişiklikleriniz var. Gerçekten kaydetmeden çıkmak istiyor musunuz?</string>
     <string name="srv_leave_yes">Vazgeç</string>
     <string name="diag_decode">Sunucu yanıtı çözme hataları: %1$d (son: %2$s)</string>
+    <string name="buf_title">Ağ arabelleği</string>
+    <string name="buf_note">Daha büyük arabellek kısa Wi-Fi veya mobil ağ kesintilerini köprüler, böylece oynatma daha az takılır. Karşılığında canlıya göre biraz daha fazla gecikme ve daha yavaş kanal değişimi.</string>
+    <string name="buf_small">Küçük (hızlı LAN)</string>
+    <string name="buf_medium">Orta (önerilir)</string>
+    <string name="buf_large">Büyük (zayıf Wi-Fi / mobil)</string>
 </resources>

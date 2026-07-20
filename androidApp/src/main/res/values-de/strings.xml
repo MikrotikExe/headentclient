@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">Sie haben ungespeicherte Änderungen. Wirklich ohne Speichern verlassen?</string>
     <string name="srv_leave_yes">Verwerfen</string>
     <string name="diag_decode">Fehler beim Dekodieren der Serverantwort: %1$d (zuletzt: %2$s)</string>
+    <string name="buf_title">Netzwerkpuffer</string>
+    <string name="buf_note">Ein größerer Puffer überbrückt kurze WLAN- oder Mobilfunk-Aussetzer, sodass die Wiedergabe seltener stockt. Der Kompromiss ist etwas mehr Verzögerung zum Live-Signal und langsameres Umschalten.</string>
+    <string name="buf_small">Klein (schnelles LAN)</string>
+    <string name="buf_medium">Mittel (empfohlen)</string>
+    <string name="buf_large">Groß (schwaches WLAN / mobil)</string>
 </resources>

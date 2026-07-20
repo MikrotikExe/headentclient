@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">Bạn có thay đổi chưa lưu. Bạn có chắc muốn thoát mà không lưu?</string>
     <string name="srv_leave_yes">Bỏ</string>
     <string name="diag_decode">Lỗi giải mã phản hồi máy chủ: %1$d (gần nhất: %2$s)</string>
+    <string name="buf_title">Bộ đệm mạng</string>
+    <string name="buf_note">Bộ đệm lớn hơn giúp vượt qua các gián đoạn ngắn của Wi-Fi hoặc mạng di động, nên phát ít bị đứng hơn. Đổi lại, trễ hơn một chút so với trực tiếp và chuyển kênh chậm hơn.</string>
+    <string name="buf_small">Nhỏ (LAN nhanh)</string>
+    <string name="buf_medium">Vừa (khuyến nghị)</string>
+    <string name="buf_large">Lớn (Wi-Fi yếu / di động)</string>
 </resources>

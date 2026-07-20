@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">You have unsaved changes. Do you really want to leave without saving?</string>
     <string name="srv_leave_yes">Discard</string>
     <string name="diag_decode">Server response decode errors: %1$d (last: %2$s)</string>
+    <string name="buf_title">Network buffer</string>
+    <string name="buf_note">A larger buffer bridges brief Wi-Fi or mobile network drops, so playback stalls less. The trade-off is slightly higher delay from live and slower channel switching.</string>
+    <string name="buf_small">Small (fast LAN)</string>
+    <string name="buf_medium">Medium (recommended)</string>
+    <string name="buf_large">Large (weak Wi-Fi / mobile)</string>
 </resources>

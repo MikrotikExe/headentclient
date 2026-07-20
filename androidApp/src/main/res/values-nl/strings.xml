@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">Je hebt niet-opgeslagen wijzigingen. Wil je echt afsluiten zonder op te slaan?</string>
     <string name="srv_leave_yes">Verwerpen</string>
     <string name="diag_decode">Fouten bij decoderen serverantwoord: %1$d (laatste: %2$s)</string>
+    <string name="buf_title">Netwerkbuffer</string>
+    <string name="buf_note">Een grotere buffer overbrugt korte wifi- of mobiele netwerkonderbrekingen, zodat de weergave minder hapert. Nadeel is iets meer vertraging t.o.v. live en trager schakelen.</string>
+    <string name="buf_small">Klein (snel LAN)</string>
+    <string name="buf_medium">Gemiddeld (aanbevolen)</string>
+    <string name="buf_large">Groot (zwakke wifi / mobiel)</string>
 </resources>

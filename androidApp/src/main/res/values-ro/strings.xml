@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">Aveți modificări nesalvate. Sigur doriți să ieșiți fără a salva?</string>
     <string name="srv_leave_yes">Renunță</string>
     <string name="diag_decode">Erori de decodare a răspunsului serverului: %1$d (ultima: %2$s)</string>
+    <string name="buf_title">Buffer de rețea</string>
+    <string name="buf_note">Un buffer mai mare acoperă întreruperile scurte de Wi-Fi sau rețea mobilă, deci redarea se blochează mai rar. Compromisul e o întârziere ceva mai mare față de live și schimbare mai lentă a canalelor.</string>
+    <string name="buf_small">Mic (LAN rapid)</string>
+    <string name="buf_medium">Mediu (recomandat)</string>
+    <string name="buf_large">Mare (Wi-Fi slab / mobil)</string>
 </resources>

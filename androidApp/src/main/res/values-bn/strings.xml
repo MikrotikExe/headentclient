@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">আপনার অসংরক্ষিত পরিবর্তন আছে। সত্যিই সংরক্ষণ ছাড়া বের হতে চান?</string>
     <string name="srv_leave_yes">বাতিল করুন</string>
     <string name="diag_decode">সার্ভার প্রতিক্রিয়া ডিকোড ত্রুটি: %1$d (সর্বশেষ: %2$s)</string>
+    <string name="buf_title">নেটওয়ার্ক বাফার</string>
+    <string name="buf_note">বড় বাফার সংক্ষিপ্ত Wi-Fi বা মোবাইল নেটওয়ার্ক বিঘ্ন সামলায়, তাই প্লেব্যাক কম আটকায়। বিনিময়ে লাইভ থেকে সামান্য বেশি বিলম্ব ও ধীর চ্যানেল বদল।</string>
+    <string name="buf_small">ছোট (দ্রুত LAN)</string>
+    <string name="buf_medium">মাঝারি (প্রস্তাবিত)</string>
+    <string name="buf_large">বড় (দুর্বল Wi-Fi / মোবাইল)</string>
 </resources>

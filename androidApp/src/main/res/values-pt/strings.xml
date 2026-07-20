@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">Tem alterações por guardar. Quer mesmo sair sem guardar?</string>
     <string name="srv_leave_yes">Descartar</string>
     <string name="diag_decode">Erros ao descodificar a resposta do servidor: %1$d (último: %2$s)</string>
+    <string name="buf_title">Buffer de rede</string>
+    <string name="buf_note">Um buffer maior supera quebras breves de Wi-Fi ou rede móvel, reduzindo as paragens. Em troca, um pouco mais de atraso face ao direto e mudança de canal mais lenta.</string>
+    <string name="buf_small">Pequeno (LAN rápida)</string>
+    <string name="buf_medium">Médio (recomendado)</string>
+    <string name="buf_large">Grande (Wi-Fi fraco / móvel)</string>
 </resources>

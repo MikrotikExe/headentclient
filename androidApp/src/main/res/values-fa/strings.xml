@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">تغییرات ذخیره‌نشده دارید. واقعاً می‌خواهید بدون ذخیره خارج شوید؟</string>
     <string name="srv_leave_yes">دور انداختن</string>
     <string name="diag_decode">خطاهای رمزگشایی پاسخ سرور: %1$d (آخرین: %2$s)</string>
+    <string name="buf_title">بافر شبکه</string>
+    <string name="buf_note">بافر بزرگ‌تر قطعی‌های کوتاه Wi‑Fi یا شبکه همراه را پر می‌کند تا پخش کمتر گیر کند. در عوض تأخیر بیشتری از پخش زنده و تعویض کندتر کانال دارد.</string>
+    <string name="buf_small">کوچک (LAN سریع)</string>
+    <string name="buf_medium">متوسط (پیشنهادی)</string>
+    <string name="buf_large">بزرگ (Wi‑Fi ضعیف / همراه)</string>
 </resources>

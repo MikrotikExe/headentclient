@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">آپ کی غیر محفوظ شدہ تبدیلیاں ہیں۔ کیا واقعی محفوظ کیے بغیر باہر نکلنا چاہتے ہیں؟</string>
     <string name="srv_leave_yes">مسترد کریں</string>
     <string name="diag_decode">سرور جواب ڈی کوڈ کرنے کی خرابیاں: %1$d (آخری: %2$s)</string>
+    <string name="buf_title">نیٹ ورک بفر</string>
+    <string name="buf_note">بڑا بفر Wi-Fi یا موبائل نیٹ ورک کی مختصر رکاوٹوں کو پُر کرتا ہے، اس لیے پلے بیک کم رکتا ہے۔ بدلے میں لائیو سے کچھ زیادہ تاخیر اور چینل کی سست تبدیلی۔</string>
+    <string name="buf_small">چھوٹا (تیز LAN)</string>
+    <string name="buf_medium">درمیانہ (تجویز کردہ)</string>
+    <string name="buf_large">بڑا (کمزور Wi-Fi / موبائل)</string>
 </resources>

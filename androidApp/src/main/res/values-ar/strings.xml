@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">لديك تغييرات غير محفوظة. هل تريد فعلًا المغادرة دون حفظ؟</string>
     <string name="srv_leave_yes">تجاهل</string>
     <string name="diag_decode">أخطاء فك ترميز استجابة الخادم: %1$d (الأخير: %2$s)</string>
+    <string name="buf_title">مخزن الشبكة المؤقت</string>
+    <string name="buf_note">المخزن الأكبر يعبر انقطاعات Wi‑Fi أو شبكة الجوال القصيرة، فيقل تقطع التشغيل. المقابل تأخير أعلى قليلاً عن البث المباشر وتبديل أبطأ للقنوات.</string>
+    <string name="buf_small">صغير (شبكة محلية سريعة)</string>
+    <string name="buf_medium">متوسط (موصى به)</string>
+    <string name="buf_large">كبير (Wi‑Fi ضعيف / جوال)</string>
 </resources>

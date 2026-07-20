@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">Имате незапазени промени. Наистина ли искате да излезете без запазване?</string>
     <string name="srv_leave_yes">Отхвърли</string>
     <string name="diag_decode">Грешки при декодиране на отговора на сървъра: %1$d (последна: %2$s)</string>
+    <string name="buf_title">Мрежов буфер</string>
+    <string name="buf_note">По-големият буфер преодолява кратки прекъсвания на Wi-Fi или мобилната мрежа, така че възпроизвеждането засича по-рядко. Компромисът е малко по-голямо забавяне от живо и по-бавно превключване.</string>
+    <string name="buf_small">Малък (бърза LAN)</string>
+    <string name="buf_medium">Среден (препоръчано)</string>
+    <string name="buf_large">Голям (слаб Wi-Fi / мобилен)</string>
 </resources>

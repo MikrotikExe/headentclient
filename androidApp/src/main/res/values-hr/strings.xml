@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">Imate nespremljene promjene. Želite li stvarno izaći bez spremanja?</string>
     <string name="srv_leave_yes">Odbaci</string>
     <string name="diag_decode">Pogreške dekodiranja odgovora poslužitelja: %1$d (zadnja: %2$s)</string>
+    <string name="buf_title">Mrežni međuspremnik</string>
+    <string name="buf_note">Veći međuspremnik premošćuje kratke prekide Wi-Fija ili mobilne mreže pa reprodukcija rjeđe zastaje. Kompromis je nešto veće kašnjenje od uživo i sporija promjena kanala.</string>
+    <string name="buf_small">Mali (brzi LAN)</string>
+    <string name="buf_medium">Srednji (preporučeno)</string>
+    <string name="buf_large">Veliki (slab Wi-Fi / mobilni)</string>
 </resources>

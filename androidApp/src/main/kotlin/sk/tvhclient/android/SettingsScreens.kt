@@ -667,6 +667,35 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
 
     // Deinterlacing — odstranuje hrebenove pasy (combing) pri prekladanom DVB
     // videu na rychlych zaberoch. AUTO deinterlacuje len ked treba.
+    // M406: velkost sietoveho bufferu — vacsi = odolnejsie na wifi/mobil (menej sekov)
+    run {
+        var buf by remember { mutableStateOf(BufferPref.get(ctx)) }
+        val bufLabel: @Composable (String) -> String = { v ->
+            when (v) {
+                BufferPref.SMALL -> stringResource(R.string.buf_small)
+                BufferPref.LARGE -> stringResource(R.string.buf_large)
+                else -> stringResource(R.string.buf_medium)
+            }
+        }
+        DropdownField(
+            label = stringResource(R.string.buf_title),
+            value = buf,
+            options = BufferPref.options,
+            optionLabel = bufLabel,
+            onSelect = { v ->
+                buf = v
+                BufferPref.set(ctx, v)
+                TabController.settingsDirty.value = true
+            }
+        )
+        Text(
+            stringResource(R.string.buf_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.dpadReadable().padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+
     var deint by remember { mutableStateOf(DeinterlacePref.get(ctx)) }
     val deintLabel: @Composable (String) -> String = { v ->
         when (v) {

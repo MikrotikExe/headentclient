@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">У вас есть несохранённые изменения. Действительно выйти без сохранения?</string>
     <string name="srv_leave_yes">Отменить изменения</string>
     <string name="diag_decode">Ошибки декодирования ответа сервера: %1$d (последняя: %2$s)</string>
+    <string name="buf_title">Сетевой буфер</string>
+    <string name="buf_note">Больший буфер сглаживает короткие провалы Wi-Fi или мобильной сети, поэтому воспроизведение реже прерывается. Плата — чуть большая задержка от эфира и более медленное переключение каналов.</string>
+    <string name="buf_small">Малый (быстрая LAN)</string>
+    <string name="buf_medium">Средний (рекомендуется)</string>
+    <string name="buf_large">Большой (слабый Wi-Fi / моб.)</string>
 </resources>

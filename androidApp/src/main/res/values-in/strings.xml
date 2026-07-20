@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">Ada perubahan yang belum disimpan. Yakin ingin keluar tanpa menyimpan?</string>
     <string name="srv_leave_yes">Buang</string>
     <string name="diag_decode">Kesalahan dekode respons server: %1$d (terakhir: %2$s)</string>
+    <string name="buf_title">Buffer jaringan</string>
+    <string name="buf_note">Buffer lebih besar menjembatani putus singkat Wi-Fi atau jaringan seluler, jadi pemutaran lebih jarang tersendat. Konsekuensinya sedikit lebih lambat dari siaran langsung dan ganti saluran lebih lambat.</string>
+    <string name="buf_small">Kecil (LAN cepat)</string>
+    <string name="buf_medium">Sedang (disarankan)</string>
+    <string name="buf_large">Besar (Wi-Fi lemah / seluler)</string>
 </resources>

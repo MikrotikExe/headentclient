@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">Imate neshranjene spremembe. Res želite oditi brez shranjevanja?</string>
     <string name="srv_leave_yes">Zavrzi</string>
     <string name="diag_decode">Napake pri dekodiranju odgovora strežnika: %1$d (zadnja: %2$s)</string>
+    <string name="buf_title">Omrežni medpomnilnik</string>
+    <string name="buf_note">Večji medpomnilnik premosti kratke izpade Wi-Fi ali mobilnega omrežja, zato predvajanje manj zastaja. Cena je nekoliko večja zakasnitev od živega in počasnejše preklapljanje.</string>
+    <string name="buf_small">Majhen (hiter LAN)</string>
+    <string name="buf_medium">Srednji (priporočeno)</string>
+    <string name="buf_large">Velik (šibek Wi-Fi / mobilno)</string>
 </resources>

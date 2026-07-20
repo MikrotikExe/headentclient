@@ -340,4 +340,9 @@
     <string name="srv_leave_msg">Έχετε μη αποθηκευμένες αλλαγές. Θέλετε σίγουρα να αποχωρήσετε χωρίς αποθήκευση;</string>
     <string name="srv_leave_yes">Απόρριψη</string>
     <string name="diag_decode">Σφάλματα αποκωδικοποίησης απάντησης διακομιστή: %1$d (τελευταίο: %2$s)</string>
+    <string name="buf_title">Buffer δικτύου</string>
+    <string name="buf_note">Μεγαλύτερο buffer γεφυρώνει σύντομες διακοπές Wi-Fi ή δικτύου κινητής, ώστε η αναπαραγωγή να κολλάει λιγότερο. Το τίμημα είναι λίγο μεγαλύτερη καθυστέρηση από το ζωντανό και πιο αργή αλλαγή καναλιού.</string>
+    <string name="buf_small">Μικρό (γρήγορο LAN)</string>
+    <string name="buf_medium">Μεσαίο (συνιστάται)</string>
+    <string name="buf_large">Μεγάλο (αδύναμο Wi-Fi / κινητό)</string>
 </resources>
