@@ -74,7 +74,10 @@ class TsMuxer(streams: List<Stream>) {
     // Drzime monotonne rastuce PCR ukotvene k vystupnej osi, s malym predstihom
     // pred DTS (dekoder ocakava PCR skor nez data prezentuje).
     private var lastPcr = -1L
-    private val pcrLeadTicks = 6300L   // ~70 ms predstih PCR pred DTS (90kHz)
+    // M404-fix: predstih vyrazne zmenseny (70 ms -> 10 ms). Privelky predstih
+    // sposoboval, ze PCR "predbehlo" realne data a VLC na 2-3 s cakal (sek obrazu).
+    // 10 ms staci dekoderu na buffer a uz nepredbieha tok.
+    private val pcrLeadTicks = 900L   // ~10 ms predstih PCR pred DTS (90kHz)
     private var lastOut = 0L
     private val discontTicks = 90000L * 4   // 4 s = diskontinuita -> re-base
     private val frameGapTicks = 3000L        // ~33 ms medzera po skoku
