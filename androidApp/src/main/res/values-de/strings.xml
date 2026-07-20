@@ -340,4 +340,6 @@
     <string name="srv_leave_msg">Sie haben ungespeicherte Änderungen. Wirklich ohne Speichern verlassen?</string>
     <string name="srv_leave_yes">Verwerfen</string>
     <string name="diag_decode">Fehler beim Dekodieren der Serverantwort: %1$d (zuletzt: %2$s)</string>
+    <string name="set_drift_title">Audio-Drift-Kompensation</string>
+    <string name="set_drift_note">Experimentell: für Sender, bei denen der Ton über Minuten langsam auseinanderläuft (die Wiedergabe wird durch sanftes Dehnen des Tons laufend korrigiert). Wirksam ab der nächsten Wiedergabe.</string>
 </resources>

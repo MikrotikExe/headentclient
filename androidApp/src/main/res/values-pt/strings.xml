@@ -340,4 +340,6 @@
     <string name="srv_leave_msg">Tem alterações por guardar. Quer mesmo sair sem guardar?</string>
     <string name="srv_leave_yes">Descartar</string>
     <string name="diag_decode">Erros ao descodificar a resposta do servidor: %1$d (último: %2$s)</string>
+    <string name="set_drift_title">Compensação de deriva de áudio</string>
+    <string name="set_drift_note">Experimental: para canais onde o som se dessincroniza lentamente em minutos (a reprodução corrige-se continuamente esticando suavemente o áudio). Aplica-se na próxima reprodução.</string>
 </resources>

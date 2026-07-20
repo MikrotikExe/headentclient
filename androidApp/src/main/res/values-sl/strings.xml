@@ -340,4 +340,6 @@
     <string name="srv_leave_msg">Imate neshranjene spremembe. Res želite oditi brez shranjevanja?</string>
     <string name="srv_leave_yes">Zavrzi</string>
     <string name="diag_decode">Napake pri dekodiranju odgovora strežnika: %1$d (zadnja: %2$s)</string>
+    <string name="set_drift_title">Kompenzacija zdrsa zvoka</string>
+    <string name="set_drift_note">Poskusno: za programe, kjer zvok v minutah počasi uide iz sinhronizacije (predvajanje se sproti popravlja z nežnim raztegovanjem zvoka). Velja od naslednjega predvajanja.</string>
 </resources>

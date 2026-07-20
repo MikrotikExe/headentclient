@@ -340,4 +340,6 @@
     <string name="srv_leave_msg">You have unsaved changes. Do you really want to leave without saving?</string>
     <string name="srv_leave_yes">Discard</string>
     <string name="diag_decode">Server response decode errors: %1$d (last: %2$s)</string>
+    <string name="set_drift_title">Audio drift compensation</string>
+    <string name="set_drift_note">Experimental: for channels where sound slowly drifts out of sync over minutes (playback corrects continuously by gently stretching audio). Takes effect on next playback.</string>
 </resources>

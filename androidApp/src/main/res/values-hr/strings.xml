@@ -340,4 +340,6 @@
     <string name="srv_leave_msg">Imate nespremljene promjene. Želite li stvarno izaći bez spremanja?</string>
     <string name="srv_leave_yes">Odbaci</string>
     <string name="diag_decode">Pogreške dekodiranja odgovora poslužitelja: %1$d (zadnja: %2$s)</string>
+    <string name="set_drift_title">Kompenzacija pomaka zvuka</string>
+    <string name="set_drift_note">Eksperimentalno: za kanale gdje zvuk tijekom minuta polako bježi iz sinkronizacije (reprodukcija se stalno ispravlja blagim rastezanjem zvuka). Vrijedi od sljedeće reprodukcije.</string>
 </resources>

@@ -340,4 +340,6 @@
     <string name="srv_leave_msg">आपके पास सहेजे नहीं गए बदलाव हैं। क्या आप वाकई बिना सहेजे बाहर निकलना चाहते हैं?</string>
     <string name="srv_leave_yes">हटाएं</string>
     <string name="diag_decode">सर्वर प्रतिक्रिया डिकोड त्रुटियां: %1$d (अंतिम: %2$s)</string>
+    <string name="set_drift_title">ऑडियो ड्रिफ्ट क्षतिपूर्ति</string>
+    <string name="set_drift_note">प्रायोगिक: उन चैनलों के लिए जहां आवाज़ मिनटों में धीरे-धीरे सिंक से बाहर हो जाती है (ऑडियो को हल्का खींचकर प्लेबैक लगातार सुधारा जाता है)। अगले प्लेबैक से लागू।</string>
 </resources>

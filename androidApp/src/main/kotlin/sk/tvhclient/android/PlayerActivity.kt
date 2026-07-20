@@ -349,7 +349,21 @@ class PlayerActivity : ComponentActivity() {
         // User-Agent: nech server vidi, ze sa pripaja HeadentClient
         m.addOption(":http-user-agent=" + userAgent())
         applyDeinterlace(m)
+        applyDriftFix(m)
         return m
+    }
+
+    /** M403: kompenzacia postupneho posunu zvuku (experimentalne, opt-in).
+     *  Niektore kanaly maju mierne nepresne hodiny (PCR/PTS) — Kodi drift maskuje
+     *  priebeznym prevzorkovanim zvuku, libVLC sa znackam podriaduje a zvuk za
+     *  minuty utecie (prepnutie kanala sync resetne a drift zacne znova).
+     *  audio-time-stretch = korekcie natahovanim zvuku bez zmeny vysky tonu,
+     *  clock-jitter=0 = netolerovat narastajucu odchylku, korigovat priebezne. */
+    private fun applyDriftFix(m: Media) {
+        if (!AudioDriftFixPref.get(this)) return
+        m.addOption(":audio-time-stretch")
+        m.addOption(":clock-jitter=0")
+        m.addOption(":clock-synchro=0")
     }
 
     /** Rezim deinterlacingu z nastaveni -> (hodnota --deinterlace, mod alebo null).
@@ -404,6 +418,7 @@ class PlayerActivity : ComponentActivity() {
         applyFeederDemux(media, url)
         media.addOption(":file-caching=1500")
         applyDeinterlace(media)
+        applyDriftFix(media)
         mediaPlayer.media = media
         media.release()
         mediaPlayer.play()
@@ -508,6 +523,7 @@ class PlayerActivity : ComponentActivity() {
         media.addOption(":demux=ts")
         media.addOption(":file-caching=1500")
         applyDeinterlace(media)
+        applyDriftFix(media)
         mediaPlayer.media = media
         media.release()
         mediaPlayer.play()
@@ -537,6 +553,7 @@ class PlayerActivity : ComponentActivity() {
             media.addOption(":demux=ts")
             media.addOption(":file-caching=1500")
             applyDeinterlace(media)
+            applyDriftFix(media)
             mediaPlayer.media = media
             media.release()
             mediaPlayer.play()

@@ -340,4 +340,6 @@
     <string name="srv_leave_msg">Máte neuložené zmeny. Naozaj chcete odísť bez uloženia?</string>
     <string name="srv_leave_yes">Zahodiť</string>
     <string name="diag_decode">Chyby dekódovania odpovedí servera: %1$d (posledná: %2$s)</string>
+    <string name="set_drift_title">Kompenzácia posunu zvuku</string>
+    <string name="set_drift_note">Experimentálne: pre kanály, kde zvuk počas minút pomaly uteká zo synchronizácie (prehrávanie sa priebežne koriguje jemným naťahovaním zvuku). Prejaví sa pri ďalšom prehrávaní.</string>
 </resources>

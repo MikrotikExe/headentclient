@@ -597,6 +597,21 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
     }
     SettingsGroup(stringResource(R.string.set_grp_video)) {
+    // M403: kompenzacia postupneho posunu zvuku (experimentalne, opt-in)
+    run {
+        var driftFix by remember { mutableStateOf(AudioDriftFixPref.get(ctx)) }
+        SettingsSwitchRow(
+            label = stringResource(R.string.set_drift_title),
+            note = stringResource(R.string.set_drift_note),
+            checked = driftFix,
+            onChange = { on ->
+                driftFix = on
+                AudioDriftFixPref.set(ctx, on)
+                TabController.settingsDirty.value = true
+            }
+        )
+    }
+
     // AFR — automaticka obnovovacia frekvencia (M346; M348 aj telefony
     // cez Surface.setFrameRate — tam bez pauzy, system prepina plynulo)
     run {
