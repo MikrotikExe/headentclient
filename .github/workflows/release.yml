@@ -58,8 +58,11 @@ jobs:
 
       - name: Priprav artefakty (nazov + sha256)
         run: |
-          APK=androidApp/build/outputs/apk/release/androidApp-release.apk
-          test -f "$APK"
+          # M402-fix: nazov vystupu sa moze lisit -> najdi APK wildcardom
+          ls -la androidApp/build/outputs/apk/release/ || true
+          APK=$(ls androidApp/build/outputs/apk/release/*.apk 2>/dev/null | head -1)
+          if [ -z "$APK" ]; then echo "Release APK sa nenasiel" >&2; exit 1; fi
+          case "$APK" in *unsigned*) echo "APK je NEPODPISANE — skontroluj signing secrets" >&2; exit 1;; esac
           cp "$APK" "HeadentClient-${REL_TAG#v}.apk"
           sha256sum "HeadentClient-${REL_TAG#v}.apk" > "HeadentClient-${REL_TAG#v}.apk.sha256"
           cat "HeadentClient-${REL_TAG#v}.apk.sha256"
