@@ -507,11 +507,6 @@ class PlayerActivity : ComponentActivity() {
         media.setHWDecoderEnabled(true, false)
         media.addOption(":demux=ts")
         media.addOption(":file-caching=" + BufferPref.htspMs(this))
-        // M410: mechanizmus podla Kodi — necha VLC demux zosynchronizovat audio
-        // a video podla ich PTS (niektore kanaly posielaju velke pociatocne
-        // odsadenie ~1 s, overene curl+ffprobe zo servera).
-        media.addOption(":cr-average=40000")   // dlhsie priemerovanie hodin (stabilnejsi A/V lock)
-        media.addOption(":clock-synchro=0")    // synchronizuj podla vstupnych PTS
         applyDeinterlace(media)
         mediaPlayer.media = media
         media.release()
@@ -2737,6 +2732,11 @@ class PlayerActivity : ComponentActivity() {
             "--no-stats",
             "--http-user-agent=" + userAgent()
         )
+        // Korekcia synchronizacie zvuku ako init volba (jellyfin pristup). Aplikuje
+        // sa pri vytvarani prehravaca, robustnejsie nez setAudioDelay za behu.
+        // Predvolene 0 = vypnute (nic nemeni). Zaporna = zvuk skor, kladna = neskor.
+        val desyncMs = AudioDesyncPref.getMs(this)
+        if (desyncMs != 0) options.add("--audio-desync=$desyncMs")
         // Deinterlacing (globalne, nech plati uz na prvom otvoreni; per-medium
         // sa nastavi znova pri kazdom prepnuti kanala)
         val (dEn, dMode) = deinterlaceSpec()
@@ -2774,7 +2774,6 @@ class PlayerActivity : ComponentActivity() {
                     isPlayingState.value = true; refreshPipIfActive()
                     if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }  // M392-fix2
                     maybeApplyAfr()  // AFR (M346): prepni Hz displeja podla fps streamu
-                    scheduleAvSyncKick()  // M414: kop do VLC A/V zarovnania po nabehu
                     keepScreenOn(true)  // pocas prehravania nedovol setric/ambient na boxoch
                     cancelReconnect()  // uspesne pripojenie -> vynuluj pokusy
                     dvrReopenAttempts = 0  // uspesne pokracovanie -> vynuluj pokusy o znovu-otvorenie
@@ -3826,59 +3825,9 @@ class PlayerActivity : ComponentActivity() {
 
     /** Kompenzacia oneskorenia zvuku (M349) — pri passthrough dekoduje TV/AVR
      *  a pridava latenciu, ktoru prehravac nevidi; zaporny delay zvuk zarovna. */
-    // M412: automaticka A/V korekcia. Po ustaleni streamu (3 s) vycita namerane
-    // odsadenie audio/video z HTSP remuxu a nastavi ho ako audio delay. Kladne
-    // odsadenie = audio ide pred videom -> audio oneskorime. Meria sa PER STREAM,
-    // takze rozne kanaly dostanu svoju vlastnu hodnotu (ziadna pevna konstanta).
-    // M412 auto A/V korekcia ODSTRANENA — kalibracia ukazala, ze pri 0%% (bez
-    // korekcie) zvuk sedi. Spravny fix bol M411 (ukotvenie osi na video); M412
-    // do spravneho zvuku len pridavala posun navyse. avSyncHandler ponechany
-    // nepouzity odstranenim referencii nizsie.
-
-    // M414: po nabehu streamu (a po kazdom prepnuti) raz "kopneme" VLC A/V
-    // zarovnanie zavolanim setAudioDelay(0). Diagnostika ukazala, ze VLC pri
-    // nabehu neustali A/V spravne SAM, ale zavolanie setAudioDelay ho prinuti
-    // prepocitat a zosynchronizovat — v kalibracii to spravilo prepnutie na 0%%.
-    // Nie je to korekcia (hodnota=0), len impulz na resync. Volame viackrat, lebo
-    // stream sa ustaluje par sekund.
-    private val avKickHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private fun scheduleAvSyncKick() {
-        if (!htspStream) return
-        avKickHandler.removeCallbacksAndMessages(null)
-        val kick = Runnable {
-            if (::mediaPlayer.isInitialized && mediaPlayer.isPlaying) {
-                runCatching {
-                    mediaPlayer.audioDelay = 1000   // drobny impulz
-                    mediaPlayer.audioDelay = 0      // spat na nulu -> VLC prepocita A/V
-                }
-            }
-        }
-        avKickHandler.postDelayed(kick, 1500)
-        avKickHandler.postDelayed(kick, 3000)
-        avKickHandler.postDelayed(kick, 5000)
-        // M415-DIAG: kazde 2s vypis realne VLC stats (co VLC dekoduje a zobrazuje)
-        val diag = object : Runnable {
-            override fun run() {
-                if (!::mediaPlayer.isInitialized || !mediaPlayer.isPlaying) return
-                runCatching {
-                    val m = mediaPlayer.media   // +1 refcount, treba uvolnit
-                    val st = m?.stats
-                    val delay = mediaPlayer.audioDelay
-                    if (st != null) {
-                        println("HC_STATS decAudio=${st.decodedAudio} decVideo=${st.decodedVideo} " +
-                                "displayed=${st.displayedPictures} lostPic=${st.lostPictures} " +
-                                "playedAbuf=${st.playedAbuffers} lostAbuf=${st.lostAbuffers} " +
-                                "audioDelay=$delay time=${mediaPlayer.time}")
-                    } else {
-                        println("HC_STATS media=${m} stats=null delay=$delay time=${mediaPlayer.time}")
-                    }
-                    m?.release()
-                }
-                avKickHandler.postDelayed(this, 2000)
-            }
-        }
-        avKickHandler.postDelayed(diag, 6000)
-    }
+    // A/V synchronizaciu riesi M411 (ukotvenie vystupnej osi na prve VIDEO)
+    // v TsMuxeri + M404 plynule PCR. Ziadne dalsie VLC A/V zasahy — ciste
+    // prehravanie, VLC si A/V zarovnava podla PTS sam.
 
     private fun applyAudioDelay() {
         if (!::mediaPlayer.isInitialized) return
@@ -3917,7 +3866,6 @@ class PlayerActivity : ComponentActivity() {
     override fun onDestroy() {
         clearAfr()
         zapHandler.removeCallbacks(zapCommit)   // M407
-        avKickHandler.removeCallbacksAndMessages(null)   // M414
         saveDvrProgress()
         super.onDestroy()
         // uvolni odkaz, len ak stale ukazuje na tuto instanciu (nie na novsiu)

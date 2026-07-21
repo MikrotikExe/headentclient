@@ -69,17 +69,8 @@ class TsMuxer(streams: List<Stream>) {
     // skok pri subscriptionSkip (RW/FF). Pri beznom zivom je offset konstantny (= pass-through).
     private var hasOffset = false
     private var tsOffset = 0L
-    // M404: plynula PCR os. PCR nesmie kopirovat DTS (to poskakuje po davkach a
-    // VLC z neho odvodi pokrivene hodiny -> obraz predbieha zvuk, drift 1-2 min).
-    // Drzime monotonne rastuce PCR ukotvene k vystupnej osi, s malym predstihom
-    // pred DTS (dekoder ocakava PCR skor nez data prezentuje).
-    private var lastPcr = -1L
     // M412: nameraný raw PTS prveho audia a prveho videa — z rozdielu appka
     // vypocita A/V odsadenie a nastavi audio delay v prehravaci (auto-korekcia).
-    // M404-fix: predstih vyrazne zmenseny (70 ms -> 10 ms). Privelky predstih
-    // sposoboval, ze PCR "predbehlo" realne data a VLC na 2-3 s cakal (sek obrazu).
-    // 10 ms staci dekoderu na buffer a uz nepredbieha tok.
-    private val pcrLeadTicks = 900L   // ~10 ms predstih PCR pred DTS (90kHz)
     private var lastOut = 0L
     private val discontTicks = 90000L * 4   // 4 s = diskontinuita -> re-base
     private val frameGapTicks = 3000L        // ~33 ms medzera po skoku
@@ -200,29 +191,12 @@ class TsMuxer(streams: List<Stream>) {
             heldClearPayload = null; heldClearTrack = null
         }
         val es = if (t.isAac) adtsWrap(t, payload) else payload
-        // M411: audio/titulky pred prvym video paketom preskoc (remap ich zahodi,
-        // kym sa neukotvi os na videu) — zabranuje predbehnutiu zvuku pred obrazom
-        if (!hasOffset && !t.isVideo) return flushed + activated
-        val (op, od) = remap(pts, dts, t.isVideo)
+        val (op, od) = remap(pts, dts)
         return flushed + activated + emitPes(t, es, op, od, randomAccess)
     }
 
     /** Postavi PES jednej stopy do TS paketov (+ periodicke PAT/PMT). */
-    /** M404: plynula, monotonne rastuca PCR hodnota. Vychadza z vystupneho DTS
-     *  (uz premapovaneho na spojitu os v remap()), ale nikdy neklesne a drzi maly
-     *  predstih, takze VLC dostane rovnomerne bezuce hodiny namiesto poskakujuceho
-     *  DTS. Pri re-base (skok/diskontinuita) sa os sama zosuladi cez remap(). */
-    private fun nextPcr(outTs: Long?): Long {
-        // M406-fix2: PCR ukotvi az na prvom pakete s platnym casom PCR-PID stopy.
-        // Ked cas chyba, drobne posun predoslu hodnotu (nedovol skok z cudzej osi).
-        // Toto opravuje rozladenie A/V pri rychlom prepnuti kanala tam a spat, kedy
-        // sa os inak ukotvila na prvom (nahodne audio) pakete namiesto videa.
-        if (outTs == null) return (if (lastPcr < 0) 0L else lastPcr + 3600L).also { lastPcr = it }
-        val target = outTs - pcrLeadTicks
-        val pcr = if (lastPcr < 0) target else maxOf(target, lastPcr + 1)
-        lastPcr = pcr
-        return pcr.coerceAtLeast(0L)
-    }
+
 
     private fun emitPes(t: Track, es: ByteArray, outPts: Long?, outDts: Long?, rap: Boolean): ByteArray {
         val packets = ArrayList<ByteArray>()
@@ -231,8 +205,7 @@ class TsMuxer(streams: List<Stream>) {
             packets.add(pat()); packets.add(pmt()); psiCounter = siInterval
         }
         val pes = buildPes(t, es, outPts, outDts)
-        // M404: PCR z monotonnej vystupnej osi (nie surove DTS)
-        val pcr = if (t.pid == pcrPid) nextPcr(outDts ?: outPts) else null
+        val pcr = if (t.pid == pcrPid) (outDts ?: outPts) else null
         writePackets(t, pes, pcr, rap, packets)
         return flatten(packets)
     }
@@ -287,24 +260,10 @@ class TsMuxer(streams: List<Stream>) {
         return Pair(outPts, outDts)
     }
 
-    /** Premapuj vstupne pts/dts na spojitu rastucu vystupnu os.
-     *  M411: os ukotvime az na prvom VIDEO pakete (pcrPid). Server posiela audio
-     *  a video s velkym pociatocnym odsadenim (~1,2 s, potvrdene logom) a audio
-     *  casto prichadza prve — ak sa os ukotvila na nom, video sa oneskorilo o to
-     *  odsadenie a zvuk isiel pred obrazom. Ukotvenie na video zarovna obe stopy
-     *  spravne; skorsie audio dostane zaporny cas -> orezany na 0 (hra hned). */
-    private fun remap(pts: Long?, dts: Long?, isVideo: Boolean): Pair<Long?, Long?> {
+    /** Premapuj vstupne pts/dts na spojitu rastucu vystupnu os. */
+    private fun remap(pts: Long?, dts: Long?): Pair<Long?, Long?> {
         val ref = pts ?: dts ?: return Pair(pts, dts)
-        // M411: os ukotvi az na prvom VIDEO pakete (pcrPid). Server posiela audio
-        // ~1,2 s pred videom (potvrdene logom) a audio casto pride prve; ak sa os
-        // ukotvila na nom, VLC dostalo video posunute -> zvuk sa predbehol obraz.
-        // Kym nepride prve video, audio pakety zahodime (par desiatok ms na zaciatku
-        // streamu, nepocutelne) — tym sa audio aj video zarovnaju na spolocnu nulu
-        // danu videom a A/V sedi.
-        if (!hasOffset) {
-            if (!isVideo) return Pair(null, null)   // audio pred prvym videom -> zahod
-            hasOffset = true; tsOffset = ref; lastOut = 0L
-        }
+        if (!hasOffset) { hasOffset = true; tsOffset = ref; lastOut = 0L }
         var out = ref - tsOffset
         if (out < lastOut - discontTicks || out > lastOut + discontTicks) {
             tsOffset = ref - (lastOut + frameGapTicks)   // re-base po skoku
