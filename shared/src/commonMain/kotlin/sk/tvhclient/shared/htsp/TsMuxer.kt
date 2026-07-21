@@ -310,6 +310,7 @@ class TsMuxer(streams: List<Stream>) {
         if (!hasOffset) {
             if (!isVideo) return Pair(null, null)   // audio pred prvym videom -> zahod
             hasOffset = true; tsOffset = ref; lastOut = 0L
+            println("HC_AVSYNC ANCHOR tsOffset=$ref isVideo=$isVideo")
         }
         var out = ref - tsOffset
         if (out < lastOut - discontTicks || out > lastOut + discontTicks) {
