@@ -36,6 +36,10 @@ class HtspClient(
     private val writeMutex = Mutex()
     private var streamSubId: Int = -1
     private var liveMuxer: TsMuxer? = null   // aktivny muxer streamu (pre pôvod časovej osi)
+
+    /** M412: namerane A/V odsadenie aktualneho streamu v mikrosekundach (video-audio).
+     *  Kladne = audio ide skor, prehravac ma audio o tolko oneskorit. null = zatial neznme. */
+    fun currentAvOffsetUs(): Long? = liveMuxer?.avOffsetUs()
     private val subDecoder = DvbSubtitleDecoder()
     private var subDecodeEs = -1             // ktory ES sa dekóduje na titulky (-1 = ziadny)
 

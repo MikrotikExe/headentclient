@@ -2774,8 +2774,7 @@ class PlayerActivity : ComponentActivity() {
                     isPlayingState.value = true; refreshPipIfActive()
                     if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }  // M392-fix2
                     maybeApplyAfr()  // AFR (M346): prepni Hz displeja podla fps streamu
-                    // M410-test: applyAudioDelay() docasne vypnute, nech zvuk
-                    // zarovnava LEN jeden mechanizmus (M410 cr-average/clock-synchro)
+                    scheduleAutoAvSync()  // M412: auto A/V korekcia z nameranej odchylky
                     keepScreenOn(true)  // pocas prehravania nedovol setric/ambient na boxoch
                     cancelReconnect()  // uspesne pripojenie -> vynuluj pokusy
                     dvrReopenAttempts = 0  // uspesne pokracovanie -> vynuluj pokusy o znovu-otvorenie
@@ -3827,6 +3826,24 @@ class PlayerActivity : ComponentActivity() {
 
     /** Kompenzacia oneskorenia zvuku (M349) — pri passthrough dekoduje TV/AVR
      *  a pridava latenciu, ktoru prehravac nevidi; zaporny delay zvuk zarovna. */
+    // M412: automaticka A/V korekcia. Po ustaleni streamu (3 s) vycita namerane
+    // odsadenie audio/video z HTSP remuxu a nastavi ho ako audio delay. Kladne
+    // odsadenie = audio ide pred videom -> audio oneskorime. Meria sa PER STREAM,
+    // takze rozne kanaly dostanu svoju vlastnu hodnotu (ziadna pevna konstanta).
+    private val avSyncHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private fun scheduleAutoAvSync() {
+        if (!htspStream) return           // len HTSP (tam robime remux a mame odchylku)
+        avSyncHandler.removeCallbacksAndMessages(null)
+        avSyncHandler.postDelayed({
+            val us = htspFeeder?.avOffsetUs() ?: return@postDelayed
+            if (!::mediaPlayer.isInitialized) return@postDelayed
+            // bezpecnostny strop: nepouzi nezmyselne velke hodnoty (> 2 s)
+            val clamped = us.coerceIn(-2_000_000L, 2_000_000L)
+            runCatching { mediaPlayer.audioDelay = clamped }
+            println("HC_AVSYNC AUTO setAudioDelay=$clamped us (measured=$us)")
+        }, 3000)
+    }
+
     private fun applyAudioDelay() {
         if (!::mediaPlayer.isInitialized) return
         runCatching { mediaPlayer.setAudioDelay(AudioDelayPref.effectiveUs(this)) }

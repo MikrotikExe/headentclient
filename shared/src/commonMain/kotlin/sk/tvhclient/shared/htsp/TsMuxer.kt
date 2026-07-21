@@ -75,6 +75,10 @@ class TsMuxer(streams: List<Stream>) {
     // pred DTS (dekoder ocakava PCR skor nez data prezentuje).
     private var lastPcr = -1L
     private var avLogCounter = 0L   // M411-LOG
+    // M412: nameraný raw PTS prveho audia a prveho videa — z rozdielu appka
+    // vypocita A/V odsadenie a nastavi audio delay v prehravaci (auto-korekcia).
+    private var firstVideoRawPts = -1L
+    private var firstAudioRawPts = -1L
     // M404-fix: predstih vyrazne zmenseny (70 ms -> 10 ms). Privelky predstih
     // sposoboval, ze PCR "predbehlo" realne data a VLC na 2-3 s cakal (sek obrazu).
     // 10 ms staci dekoderu na buffer a uz nepredbieha tok.
@@ -110,6 +114,16 @@ class TsMuxer(streams: List<Stream>) {
 
     /** Pôvod časovej osi (prvé pts), na ktorý sa zarovnáva mediaPlayer.time. null = ešte neznámy. */
     fun timelineOriginPts(): Long? = if (hasOffset) tsOffset else null
+
+    /** M412: namerane A/V odsadenie v mikrosekundach, alebo null ak este nemame
+     *  obe hodnoty. Kladne cislo = audio PTS je pred video PTS (audio ide skor),
+     *  takze prehravac ma audio o tolko ONESKORIT (setAudioDelay kladnou hodnotou).
+     *  90 kHz ticky -> mikrosekundy: tick / 0.09. */
+    fun avOffsetUs(): Long? {
+        if (firstVideoRawPts < 0 || firstAudioRawPts < 0) return null
+        val ticks = firstVideoRawPts - firstAudioRawPts   // >0 ak audio skor
+        return (ticks * 1000L / 90L)
+    }
 
     /** Identifikacia titulkovej stopy zo subscriptionStart (kompletny zoznam, nezavisle
      *  od toho ci uz "prehovorila" a je v libVLC). esIndex = HTSP stream index. */
@@ -198,6 +212,11 @@ class TsMuxer(streams: List<Stream>) {
             heldClearPayload = null; heldClearTrack = null
         }
         val es = if (t.isAac) adtsWrap(t, payload) else payload
+        // M412: zapamataj prve raw PTS video/audio pre auto-korekciu A/V
+        if (pts != null) {
+            if (t.isVideo && firstVideoRawPts < 0) firstVideoRawPts = pts
+            if (!t.isVideo && !t.isSubtitle && firstAudioRawPts < 0) firstAudioRawPts = pts
+        }
         // M411: audio/titulky pred prvym video paketom preskoc (remap ich zahodi,
         // kym sa neukotvi os na videu) — zabranuje predbehnutiu zvuku pred obrazom
         if (!hasOffset && !t.isVideo) return flushed + activated

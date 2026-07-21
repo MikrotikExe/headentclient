@@ -32,6 +32,8 @@ class HtspTsFeeder(
 
     /** Posledny posun za zivym v 90kHz tikoch (z timeshiftStatus). 0 = zive. */
     @Volatile var shiftTicks: Long = 0L
+    // M412: namerane A/V odsadenie (mikrosekundy) z aktualneho streamu
+    fun avOffsetUs(): Long? = client?.currentAvOffsetUs()
         private set
 
     /** Kompletny zoznam DVB titulkovych stop kanala zo subscriptionStart (esIndex + jazyk).
