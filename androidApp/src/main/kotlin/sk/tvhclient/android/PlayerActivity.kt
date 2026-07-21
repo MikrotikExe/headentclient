@@ -3832,6 +3832,8 @@ class PlayerActivity : ComponentActivity() {
     // takze rozne kanaly dostanu svoju vlastnu hodnotu (ziadna pevna konstanta).
     private val avSyncHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var avSyncTries = 0
+    private var avCalStep = 0   // M412-CAL kalibracny krok
+    private val AV_VLC_RATIO = 0.5   // M412-fix6: VLC vyrovna ~polovicu (namerane 840ms vs pocute 400ms); vlastnost VLC, univerzalna
     private fun scheduleAutoAvSync() {
         if (!htspStream) return           // len HTSP (tam robime remux a mame odchylku)
         avSyncHandler.removeCallbacksAndMessages(null)
@@ -3845,11 +3847,20 @@ class PlayerActivity : ComponentActivity() {
                     if (avSyncTries++ < 20) avSyncHandler.postDelayed(this, 500)
                     return
                 }
-                // M412-fix5 DIAG: zatial NEnastavujeme delay, len priebezne meriame
-                // odchylku kazde 2 s — z logu uvidime ci je po ustaleni konstantna
-                // alebo kolise. Podla toho zvolime spravne riesenie.
-                println("HC_AVSYNC DIAG measured=$us us  time=${runCatching{mediaPlayer.time}.getOrNull()}")
-                avSyncHandler.postDelayed(this, 2000)
+                // M412-CAL: KALIBRACNY REZIM. Appka cykluje cez pomery nameranej
+                // odchylky a Toastom ukaze, ktory prave bezi. Pouzivatel pozera na
+                // pery vs zvuk a ked SADNE, precita percento z obrazovky -> to je
+                // presna hodnota pomeru VLC (nie odhad). Kazdy krok drzi 8 s.
+                val ratios = listOf(0.0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0)
+                val idx = avCalStep % ratios.size
+                val r = ratios[idx]
+                val corrected = (us * r).toLong().coerceIn(-2_000_000L, 2_000_000L)
+                runCatching { mediaPlayer.audioDelay = corrected }
+                val pct = (r * 100).toInt()
+                Toast.makeText(this@PlayerActivity, "A/V test: $pct%  (${corrected/1000} ms)", Toast.LENGTH_SHORT).show()
+                println("HC_AVSYNC CAL step=$idx ratio=$r set=$corrected us measured=$us")
+                avCalStep++
+                avSyncHandler.postDelayed(this, 8000)
             }
         }
         avSyncHandler.postDelayed(poll, 2000)

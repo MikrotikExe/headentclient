@@ -224,8 +224,8 @@ class TsMuxer(streams: List<Stream>) {
                 lastVideoRawPtsForAv = pts
             } else if (!t.isSubtitle && lastVideoRawPtsForAv >= 0) {
                 avSamples.add(lastVideoRawPtsForAv - pts)
-                while (avSamples.size > 40) avSamples.removeAt(0)
-                if (avSamples.size >= 20) {
+                while (avSamples.size > 60) avSamples.removeAt(0)
+                if (avSamples.size >= 40) {
                     val sorted = avSamples.sorted()
                     avOffsetStable = sorted[sorted.size / 2]   // median z okna
                 }
