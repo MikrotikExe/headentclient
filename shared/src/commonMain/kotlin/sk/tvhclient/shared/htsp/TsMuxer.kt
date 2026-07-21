@@ -216,16 +216,18 @@ class TsMuxer(streams: List<Stream>) {
             heldClearPayload = null; heldClearTrack = null
         }
         val es = if (t.isAac) adtsWrap(t, payload) else payload
-        // M412-fix4: zber vzoriek A/V odchylky (audio PTS vs najblizsie video PTS)
-        if (pts != null && avOffsetStable == null) {
+        // M412-fix5: kluzave okno poslednych 40 vzoriek A/V odchylky (audio PTS vs
+        // najblizsie video PTS). Median sa aktualizuje priebezne — vidime ci sa
+        // po ustaleni ustali na konstante alebo kolise.
+        if (pts != null) {
             if (t.isVideo) {
                 lastVideoRawPtsForAv = pts
             } else if (!t.isSubtitle && lastVideoRawPtsForAv >= 0) {
-                // rozdiel video-audio v podobnom okamihu; audio pred videom => kladne
                 avSamples.add(lastVideoRawPtsForAv - pts)
+                while (avSamples.size > 40) avSamples.removeAt(0)
                 if (avSamples.size >= 20) {
                     val sorted = avSamples.sorted()
-                    avOffsetStable = sorted[sorted.size / 2]   // median
+                    avOffsetStable = sorted[sorted.size / 2]   // median z okna
                 }
             }
         }

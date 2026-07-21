@@ -3845,11 +3845,11 @@ class PlayerActivity : ComponentActivity() {
                     if (avSyncTries++ < 20) avSyncHandler.postDelayed(this, 500)
                     return
                 }
-                // M412-fix4: stabilna namerana odchylka (median vzoriek), ZIADNA
-                // pevna hodnota — kazdy stream si dopocita vlastnu z A/V PTS.
-                val clamped = us.coerceIn(-2_000_000L, 2_000_000L)
-                runCatching { mediaPlayer.audioDelay = clamped }
-                println("HC_AVSYNC AUTO setAudioDelay=$clamped us (measured=$us)")
+                // M412-fix5 DIAG: zatial NEnastavujeme delay, len priebezne meriame
+                // odchylku kazde 2 s — z logu uvidime ci je po ustaleni konstantna
+                // alebo kolise. Podla toho zvolime spravne riesenie.
+                println("HC_AVSYNC DIAG measured=$us us  time=${runCatching{mediaPlayer.time}.getOrNull()}")
+                avSyncHandler.postDelayed(this, 2000)
             }
         }
         avSyncHandler.postDelayed(poll, 2000)
