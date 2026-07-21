@@ -74,6 +74,7 @@ class TsMuxer(streams: List<Stream>) {
     // Drzime monotonne rastuce PCR ukotvene k vystupnej osi, s malym predstihom
     // pred DTS (dekoder ocakava PCR skor nez data prezentuje).
     private var lastPcr = -1L
+    private var avLogCounter = 0L   // M411-LOG
     // M404-fix: predstih vyrazne zmenseny (70 ms -> 10 ms). Privelky predstih
     // sposoboval, ze PCR "predbehlo" realne data a VLC na 2-3 s cakal (sek obrazu).
     // 10 ms staci dekoderu na buffer a uz nepredbieha tok.
@@ -198,6 +199,14 @@ class TsMuxer(streams: List<Stream>) {
         }
         val es = if (t.isAac) adtsWrap(t, payload) else payload
         val (op, od) = remap(pts, dts)
+        // M411-LOG: diagnostika A/V synchronizacie. Vypise vstupne (raw z HTSP) aj
+        // vystupne (po remap) PTS/DTS pre video a audio. V logcate cez "HC_AVSYNC"
+        // uvidime, ci a kde sa audio/video rozchadza. Kazdy 50. paket, nech nezahlti.
+        avLogCounter++
+        if (avLogCounter % 50 == 0L) {
+            val kind = if (t.isVideo) "VIDEO" else if (t.isSubtitle) "SUB" else "AUDIO"
+            println("HC_AVSYNC $kind rawPts=$pts rawDts=$dts outPts=$op outDts=$od pcrPid=$pcrPid pid=${t.pid}")
+        }
         return flushed + activated + emitPes(t, es, op, od, randomAccess)
     }
 
