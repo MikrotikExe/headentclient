@@ -352,10 +352,6 @@ class PlayerActivity : ComponentActivity() {
         return m
     }
 
-    /** M403: kompenzacia postupneho posunu zvuku (experimentalne, opt-in).
-     *  Niektore kanaly maju mierne nepresne hodiny (PCR/PTS) — Kodi drift maskuje
-     *  priebeznym prevzorkovanim zvuku, libVLC sa znackam podriaduje a zvuk za
-     *  minuty utecie (prepnutie kanala sync resetne a drift zacne znova).
     /** Rezim deinterlacingu z nastaveni -> (hodnota --deinterlace, mod alebo null).
      *  -1 = automaticky (deinterlacuje len prekladany zdroj), 0 = vypnute, 1 = zapnute. */
     private fun deinterlaceSpec(): Pair<String, String?> = when (DeinterlacePref.get(this)) {
