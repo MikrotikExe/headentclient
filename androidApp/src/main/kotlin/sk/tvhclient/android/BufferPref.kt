@@ -36,6 +36,7 @@ object BufferPref {
      *  Velky buffer tu rozladi nase PCR a A/V sa rozide pri nabehu, preto drzime
      *  konzervativnejsie hodnoty — stale citelne vacsie nez povodnych 1500 ms
      *  (lepsia odolnost na wifi/mobil), ale nie tak vela, aby remux odplaval. */
+    /** Hlbka bufferu pre HTSP cestu (stream skladame MY cez TsMuxer). */
     fun htspMs(context: Context): Int = when (get(context)) {
         SMALL -> 1500
         LARGE -> 3000

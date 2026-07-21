@@ -332,7 +332,10 @@ class HtspClient(
      *  odpovie na akukolvek metodu; getDiskSpace nic nemeni a je nenarocna.
      *  Odpoved ignorujeme, ide len o to, aby na spojeni tiekla prevadzka. */
     suspend fun keepAlive() {
-        runCatching { send("getDiskSpace") }
+        // M408-fix: poslat BEZ seq — server potom neposle reply, ktora by inak
+        // dorazila do prijimacej slucky streamu a po chvili ju zasekla (kanal
+        // po minute-dvoch prestal nabiehat). Bez seq staci na udrzanie spojenia.
+        runCatching { send("getDiskSpace", withSeq = false) }
     }
 
     suspend fun setSpeed(speed: Int) {
