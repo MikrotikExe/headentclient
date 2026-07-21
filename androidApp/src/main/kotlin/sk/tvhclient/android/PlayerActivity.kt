@@ -3837,7 +3837,10 @@ class PlayerActivity : ComponentActivity() {
         avSyncHandler.postDelayed({
             val us = htspFeeder?.avOffsetUs() ?: return@postDelayed
             if (!::mediaPlayer.isInitialized) return@postDelayed
-            // bezpecnostny strop: nepouzi nezmyselne velke hodnoty (> 2 s)
+            // M412-fix3: presne namerane odsadenie tohto streamu, ZIADNA pevna
+            // hodnota. Kazdy stream si dopocita vlastnu z audio/video PTS. Aby to
+            // sedelo presne, VLC vlastnu korekciu vypina init volba (nizsie), takze
+            // cele zarovnanie drzi tato jedna namerana hodnota.
             val clamped = us.coerceIn(-2_000_000L, 2_000_000L)
             runCatching { mediaPlayer.audioDelay = clamped }
             println("HC_AVSYNC AUTO setAudioDelay=$clamped us (measured=$us)")
