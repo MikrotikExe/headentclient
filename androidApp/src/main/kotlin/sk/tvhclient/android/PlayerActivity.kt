@@ -356,8 +356,6 @@ class PlayerActivity : ComponentActivity() {
      *  Niektore kanaly maju mierne nepresne hodiny (PCR/PTS) — Kodi drift maskuje
      *  priebeznym prevzorkovanim zvuku, libVLC sa znackam podriaduje a zvuk za
      *  minuty utecie (prepnutie kanala sync resetne a drift zacne znova).
-     *  audio-time-stretch = korekcie natahovanim zvuku bez zmeny vysky tonu,
-     *  clock-jitter=0 = netolerovat narastajucu odchylku, korigovat priebezne. */
     /** Rezim deinterlacingu z nastaveni -> (hodnota --deinterlace, mod alebo null).
      *  -1 = automaticky (deinterlacuje len prekladany zdroj), 0 = vypnute, 1 = zapnute. */
     private fun deinterlaceSpec(): Pair<String, String?> = when (DeinterlacePref.get(this)) {
@@ -2739,8 +2737,6 @@ class PlayerActivity : ComponentActivity() {
 
         val options = arrayListOf(
             "--network-caching=" + BufferPref.ms(this),
-            "--no-drop-late-frames",
-            "--no-skip-frames",
             "--quiet",
             "--no-stats",
             "--http-user-agent=" + userAgent()
@@ -2782,7 +2778,8 @@ class PlayerActivity : ComponentActivity() {
                     isPlayingState.value = true; refreshPipIfActive()
                     if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }  // M392-fix2
                     maybeApplyAfr()  // AFR (M346): prepni Hz displeja podla fps streamu
-                    applyAudioDelay()  // kompenzacia sink latencie (M349, ako Kodi)
+                    // M410-test: applyAudioDelay() docasne vypnute, nech zvuk
+                    // zarovnava LEN jeden mechanizmus (M410 cr-average/clock-synchro)
                     keepScreenOn(true)  // pocas prehravania nedovol setric/ambient na boxoch
                     cancelReconnect()  // uspesne pripojenie -> vynuluj pokusy
                     dvrReopenAttempts = 0  // uspesne pokracovanie -> vynuluj pokusy o znovu-otvorenie
