@@ -2774,6 +2774,7 @@ class PlayerActivity : ComponentActivity() {
                     isPlayingState.value = true; refreshPipIfActive()
                     if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }  // M392-fix2
                     maybeApplyAfr()  // AFR (M346): prepni Hz displeja podla fps streamu
+                    scheduleAvSyncKick()  // M414: kop do VLC A/V zarovnania po nabehu
                     keepScreenOn(true)  // pocas prehravania nedovol setric/ambient na boxoch
                     cancelReconnect()  // uspesne pripojenie -> vynuluj pokusy
                     dvrReopenAttempts = 0  // uspesne pokracovanie -> vynuluj pokusy o znovu-otvorenie
@@ -3834,6 +3835,30 @@ class PlayerActivity : ComponentActivity() {
     // do spravneho zvuku len pridavala posun navyse. avSyncHandler ponechany
     // nepouzity odstranenim referencii nizsie.
 
+    // M414: po nabehu streamu (a po kazdom prepnuti) raz "kopneme" VLC A/V
+    // zarovnanie zavolanim setAudioDelay(0). Diagnostika ukazala, ze VLC pri
+    // nabehu neustali A/V spravne SAM, ale zavolanie setAudioDelay ho prinuti
+    // prepocitat a zosynchronizovat — v kalibracii to spravilo prepnutie na 0%%.
+    // Nie je to korekcia (hodnota=0), len impulz na resync. Volame viackrat, lebo
+    // stream sa ustaluje par sekund.
+    private val avKickHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private fun scheduleAvSyncKick() {
+        if (!htspStream) return
+        avKickHandler.removeCallbacksAndMessages(null)
+        val kick = Runnable {
+            if (::mediaPlayer.isInitialized && mediaPlayer.isPlaying) {
+                runCatching {
+                    mediaPlayer.audioDelay = 1000   // drobny impulz
+                    mediaPlayer.audioDelay = 0      // spat na nulu -> VLC prepocita A/V
+                }
+            }
+        }
+        // niekolko kopov ako sa stream ustaluje
+        avKickHandler.postDelayed(kick, 1500)
+        avKickHandler.postDelayed(kick, 3000)
+        avKickHandler.postDelayed(kick, 5000)
+    }
+
     private fun applyAudioDelay() {
         if (!::mediaPlayer.isInitialized) return
         runCatching { mediaPlayer.setAudioDelay(AudioDelayPref.effectiveUs(this)) }
@@ -3871,6 +3896,7 @@ class PlayerActivity : ComponentActivity() {
     override fun onDestroy() {
         clearAfr()
         zapHandler.removeCallbacks(zapCommit)   // M407
+        avKickHandler.removeCallbacksAndMessages(null)   // M414
         saveDvrProgress()
         super.onDestroy()
         // uvolni odkaz, len ak stale ukazuje na tuto instanciu (nie na novsiu)
