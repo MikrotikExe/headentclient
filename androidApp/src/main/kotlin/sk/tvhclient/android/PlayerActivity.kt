@@ -3853,10 +3853,27 @@ class PlayerActivity : ComponentActivity() {
                 }
             }
         }
-        // niekolko kopov ako sa stream ustaluje
         avKickHandler.postDelayed(kick, 1500)
         avKickHandler.postDelayed(kick, 3000)
         avKickHandler.postDelayed(kick, 5000)
+        // M415-DIAG: kazde 2s vypis realne VLC stats (co VLC dekoduje a zobrazuje)
+        val diag = object : Runnable {
+            override fun run() {
+                if (!::mediaPlayer.isInitialized || !mediaPlayer.isPlaying) return
+                runCatching {
+                    val st = mediaPlayer.media?.stats
+                    val delay = mediaPlayer.audioDelay
+                    if (st != null) {
+                        println("HC_STATS decAudio=${st.decodedAudio} decVideo=${st.decodedVideo} " +
+                                "displayed=${st.displayedPictures} lostPic=${st.lostPictures} " +
+                                "playedAbuf=${st.playedAbuffers} lostAbuf=${st.lostAbuffers} " +
+                                "audioDelay=$delay time=${mediaPlayer.time}")
+                    }
+                }
+                avKickHandler.postDelayed(this, 2000)
+            }
+        }
+        avKickHandler.postDelayed(diag, 6000)
     }
 
     private fun applyAudioDelay() {
