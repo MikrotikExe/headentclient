@@ -2372,6 +2372,25 @@ class PlayerActivity : ComponentActivity() {
                         }
                         return true
                     }
+                    // M407-fix2: CH+/- a Page+/- prepinaju kanal aj v modernom overlay
+                    // (predtym sa tu prehltli a nic nerobili). Debounce v switchLive
+                    // zabezpeci svizne prepinanie bez cakania na nacitanie.
+                    android.view.KeyEvent.KEYCODE_CHANNEL_UP,
+                    android.view.KeyEvent.KEYCODE_PAGE_UP -> {
+                        if (!seekablePlayback && liveUuids.size > 1) {
+                            switchLive(+1)
+                            modernOvCard.value = liveIndexState.value.coerceAtLeast(0); modernOvPoke.value++
+                        }
+                        return true
+                    }
+                    android.view.KeyEvent.KEYCODE_CHANNEL_DOWN,
+                    android.view.KeyEvent.KEYCODE_PAGE_DOWN -> {
+                        if (!seekablePlayback && liveUuids.size > 1) {
+                            switchLive(-1)
+                            modernOvCard.value = liveIndexState.value.coerceAtLeast(0); modernOvPoke.value++
+                        }
+                        return true
+                    }
                     android.view.KeyEvent.KEYCODE_BACK -> { closeModernOverlay(); return true }
                 }
             } else {
