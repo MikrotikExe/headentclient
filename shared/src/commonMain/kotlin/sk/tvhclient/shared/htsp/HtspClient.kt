@@ -328,6 +328,13 @@ class HtspClient(
     }
 
     /** subscriptionSpeed: 0 = pauza, 100 = normal (kladne FF, zaporne RW). */
+    /** M408: keepalive — lahka poziadavka, ktora drzi spojenie nazive. Tvheadend
+     *  odpovie na akukolvek metodu; getDiskSpace nic nemeni a je nenarocna.
+     *  Odpoved ignorujeme, ide len o to, aby na spojeni tiekla prevadzka. */
+    suspend fun keepAlive() {
+        runCatching { send("getDiskSpace") }
+    }
+
     suspend fun setSpeed(speed: Int) {
         val id = streamSubId
         if (id <= 0) return

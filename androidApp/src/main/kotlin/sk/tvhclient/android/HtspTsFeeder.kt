@@ -3,8 +3,10 @@ package sk.tvhclient.android
 import android.os.ParcelFileDescriptor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import sk.tvhclient.shared.htsp.HtspClient
 import sk.tvhclient.shared.model.TvhServer
 import java.io.FileDescriptor
@@ -53,6 +55,17 @@ class HtspTsFeeder(
         val c = HtspClient(server.host, server.htspPort, server.username, server.password)
         client = c
         job = scope.launch(Dispatchers.IO) {
+            // M408: keepalive job — kazdych 10 s posle lahku HTSP poziadavku, aby
+            // router/operator/NAT nezahodil necinne spojenie (pricina nahodnych
+            // zamrznuti na wifi/mobile). Bezi paralelne, zrusi sa vo finally.
+            val keepAlive = launch(Dispatchers.IO) {
+                try {
+                    while (isActive) {
+                        delay(10_000)
+                        c.keepAlive()
+                    }
+                } catch (_: Throwable) {}
+            }
             try {
                 c.connect()
                 c.streamSubscribe(
@@ -66,6 +79,7 @@ class HtspTsFeeder(
             } catch (_: Throwable) {
                 // zrusenie / zlomeny pipe / chyba spojenia
             } finally {
+                keepAlive.cancel()
                 c.close()
                 try { os.close() } catch (_: Throwable) {}
             }
