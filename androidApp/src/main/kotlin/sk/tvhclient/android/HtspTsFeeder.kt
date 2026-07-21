@@ -34,8 +34,6 @@ class HtspTsFeeder(
     @Volatile var shiftTicks: Long = 0L
         private set
 
-    // M412: namerane A/V odsadenie (mikrosekundy) z aktualneho streamu
-    fun avOffsetUs(): Long? = client?.currentAvOffsetUs()
 
     /** Kompletny zoznam DVB titulkovych stop kanala zo subscriptionStart (esIndex + jazyk).
      *  Nezavisi od libVLC, takze je rovnaky na kazdom zariadeni. Nastavi sa po subscriptionStart. */

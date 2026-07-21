@@ -74,16 +74,8 @@ class TsMuxer(streams: List<Stream>) {
     // Drzime monotonne rastuce PCR ukotvene k vystupnej osi, s malym predstihom
     // pred DTS (dekoder ocakava PCR skor nez data prezentuje).
     private var lastPcr = -1L
-    private var avLogCounter = 0L   // M411-LOG
     // M412: nameraný raw PTS prveho audia a prveho videa — z rozdielu appka
     // vypocita A/V odsadenie a nastavi audio delay v prehravaci (auto-korekcia).
-    // M412-fix4: spravne meranie A/V odchylky — nie "prve" pakety z roznych casov
-    // (to davalo rastuce nezmyselne cislo), ale rozdiel PTS audio a video paketov
-    // blizkych v case (rovnaky okamih streamu). Drzime posledne video PTS a ked
-    // pride audio, porovname; median z prvych N vzoriek = stabilna odchylka.
-    private var lastVideoRawPtsForAv = -1L
-    private val avSamples = mutableListOf<Long>()
-    private var avOffsetStable: Long? = null
     // M404-fix: predstih vyrazne zmenseny (70 ms -> 10 ms). Privelky predstih
     // sposoboval, ze PCR "predbehlo" realne data a VLC na 2-3 s cakal (sek obrazu).
     // 10 ms staci dekoderu na buffer a uz nepredbieha tok.
@@ -120,14 +112,6 @@ class TsMuxer(streams: List<Stream>) {
     /** Pôvod časovej osi (prvé pts), na ktorý sa zarovnáva mediaPlayer.time. null = ešte neznámy. */
     fun timelineOriginPts(): Long? = if (hasOffset) tsOffset else null
 
-    /** M412: namerane A/V odsadenie v mikrosekundach, alebo null ak este nemame
-     *  obe hodnoty. Kladne cislo = audio PTS je pred video PTS (audio ide skor),
-     *  takze prehravac ma audio o tolko ONESKORIT (setAudioDelay kladnou hodnotou).
-     *  90 kHz ticky -> mikrosekundy: tick / 0.09. */
-    fun avOffsetUs(): Long? {
-        val ticks = avOffsetStable ?: return null   // az ked mame stabilny median
-        return (ticks * 1000L / 90L)
-    }
 
     /** Identifikacia titulkovej stopy zo subscriptionStart (kompletny zoznam, nezavisle
      *  od toho ci uz "prehovorila" a je v libVLC). esIndex = HTSP stream index. */
@@ -216,33 +200,10 @@ class TsMuxer(streams: List<Stream>) {
             heldClearPayload = null; heldClearTrack = null
         }
         val es = if (t.isAac) adtsWrap(t, payload) else payload
-        // M412-fix5: kluzave okno poslednych 40 vzoriek A/V odchylky (audio PTS vs
-        // najblizsie video PTS). Median sa aktualizuje priebezne — vidime ci sa
-        // po ustaleni ustali na konstante alebo kolise.
-        if (pts != null) {
-            if (t.isVideo) {
-                lastVideoRawPtsForAv = pts
-            } else if (!t.isSubtitle && lastVideoRawPtsForAv >= 0) {
-                avSamples.add(lastVideoRawPtsForAv - pts)
-                while (avSamples.size > 60) avSamples.removeAt(0)
-                if (avSamples.size >= 40) {
-                    val sorted = avSamples.sorted()
-                    avOffsetStable = sorted[sorted.size / 2]   // median z okna
-                }
-            }
-        }
         // M411: audio/titulky pred prvym video paketom preskoc (remap ich zahodi,
         // kym sa neukotvi os na videu) — zabranuje predbehnutiu zvuku pred obrazom
         if (!hasOffset && !t.isVideo) return flushed + activated
         val (op, od) = remap(pts, dts, t.isVideo)
-        // M411-LOG: diagnostika A/V synchronizacie. Vypise vstupne (raw z HTSP) aj
-        // vystupne (po remap) PTS/DTS pre video a audio. V logcate cez "HC_AVSYNC"
-        // uvidime, ci a kde sa audio/video rozchadza. Kazdy 50. paket, nech nezahlti.
-        avLogCounter++
-        if (avLogCounter % 50 == 0L) {
-            val kind = if (t.isVideo) "VIDEO" else if (t.isSubtitle) "SUB" else "AUDIO"
-            println("HC_AVSYNC $kind rawPts=$pts rawDts=$dts outPts=$op outDts=$od pcrPid=$pcrPid pid=${t.pid}")
-        }
         return flushed + activated + emitPes(t, es, op, od, randomAccess)
     }
 
@@ -343,7 +304,6 @@ class TsMuxer(streams: List<Stream>) {
         if (!hasOffset) {
             if (!isVideo) return Pair(null, null)   // audio pred prvym videom -> zahod
             hasOffset = true; tsOffset = ref; lastOut = 0L
-            println("HC_AVSYNC ANCHOR tsOffset=$ref isVideo=$isVideo")
         }
         var out = ref - tsOffset
         if (out < lastOut - discontTicks || out > lastOut + discontTicks) {

@@ -2774,7 +2774,6 @@ class PlayerActivity : ComponentActivity() {
                     isPlayingState.value = true; refreshPipIfActive()
                     if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }  // M392-fix2
                     maybeApplyAfr()  // AFR (M346): prepni Hz displeja podla fps streamu
-                    scheduleAutoAvSync()  // M412: auto A/V korekcia z nameranej odchylky
                     keepScreenOn(true)  // pocas prehravania nedovol setric/ambient na boxoch
                     cancelReconnect()  // uspesne pripojenie -> vynuluj pokusy
                     dvrReopenAttempts = 0  // uspesne pokracovanie -> vynuluj pokusy o znovu-otvorenie
@@ -3830,41 +3829,10 @@ class PlayerActivity : ComponentActivity() {
     // odsadenie audio/video z HTSP remuxu a nastavi ho ako audio delay. Kladne
     // odsadenie = audio ide pred videom -> audio oneskorime. Meria sa PER STREAM,
     // takze rozne kanaly dostanu svoju vlastnu hodnotu (ziadna pevna konstanta).
-    private val avSyncHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private var avSyncTries = 0
-    private var avCalStep = 0   // M412-CAL kalibracny krok
-    private val AV_VLC_RATIO = 0.5   // M412-fix6: VLC vyrovna ~polovicu (namerane 840ms vs pocute 400ms); vlastnost VLC, univerzalna
-    private fun scheduleAutoAvSync() {
-        if (!htspStream) return           // len HTSP (tam robime remux a mame odchylku)
-        avSyncHandler.removeCallbacksAndMessages(null)
-        avSyncTries = 0
-        val poll = object : Runnable {
-            override fun run() {
-                if (!::mediaPlayer.isInitialized || !mediaPlayer.isPlaying) return
-                val us = htspFeeder?.avOffsetUs()
-                if (us == null) {
-                    // meranie este nazbiera vzorky — skus znova (max ~10 s)
-                    if (avSyncTries++ < 20) avSyncHandler.postDelayed(this, 500)
-                    return
-                }
-                // M412-CAL: KALIBRACNY REZIM. Appka cykluje cez pomery nameranej
-                // odchylky a Toastom ukaze, ktory prave bezi. Pouzivatel pozera na
-                // pery vs zvuk a ked SADNE, precita percento z obrazovky -> to je
-                // presna hodnota pomeru VLC (nie odhad). Kazdy krok drzi 8 s.
-                val ratios = listOf(0.0, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0)
-                val idx = avCalStep % ratios.size
-                val r = ratios[idx]
-                val corrected = (us * r).toLong().coerceIn(-2_000_000L, 2_000_000L)
-                runCatching { mediaPlayer.audioDelay = corrected }
-                val pct = (r * 100).toInt()
-                Toast.makeText(this@PlayerActivity, "A/V test: $pct%  (${corrected/1000} ms)", Toast.LENGTH_SHORT).show()
-                println("HC_AVSYNC CAL step=$idx ratio=$r set=$corrected us measured=$us")
-                avCalStep++
-                avSyncHandler.postDelayed(this, 8000)
-            }
-        }
-        avSyncHandler.postDelayed(poll, 2000)
-    }
+    // M412 auto A/V korekcia ODSTRANENA — kalibracia ukazala, ze pri 0%% (bez
+    // korekcie) zvuk sedi. Spravny fix bol M411 (ukotvenie osi na video); M412
+    // do spravneho zvuku len pridavala posun navyse. avSyncHandler ponechany
+    // nepouzity odstranenim referencii nizsie.
 
     private fun applyAudioDelay() {
         if (!::mediaPlayer.isInitialized) return
