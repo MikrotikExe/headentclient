@@ -3831,20 +3831,28 @@ class PlayerActivity : ComponentActivity() {
     // odsadenie = audio ide pred videom -> audio oneskorime. Meria sa PER STREAM,
     // takze rozne kanaly dostanu svoju vlastnu hodnotu (ziadna pevna konstanta).
     private val avSyncHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var avSyncTries = 0
     private fun scheduleAutoAvSync() {
         if (!htspStream) return           // len HTSP (tam robime remux a mame odchylku)
         avSyncHandler.removeCallbacksAndMessages(null)
-        avSyncHandler.postDelayed({
-            val us = htspFeeder?.avOffsetUs() ?: return@postDelayed
-            if (!::mediaPlayer.isInitialized) return@postDelayed
-            // M412-fix3: presne namerane odsadenie tohto streamu, ZIADNA pevna
-            // hodnota. Kazdy stream si dopocita vlastnu z audio/video PTS. Aby to
-            // sedelo presne, VLC vlastnu korekciu vypina init volba (nizsie), takze
-            // cele zarovnanie drzi tato jedna namerana hodnota.
-            val clamped = us.coerceIn(-2_000_000L, 2_000_000L)
-            runCatching { mediaPlayer.audioDelay = clamped }
-            println("HC_AVSYNC AUTO setAudioDelay=$clamped us (measured=$us)")
-        }, 3000)
+        avSyncTries = 0
+        val poll = object : Runnable {
+            override fun run() {
+                if (!::mediaPlayer.isInitialized || !mediaPlayer.isPlaying) return
+                val us = htspFeeder?.avOffsetUs()
+                if (us == null) {
+                    // meranie este nazbiera vzorky — skus znova (max ~10 s)
+                    if (avSyncTries++ < 20) avSyncHandler.postDelayed(this, 500)
+                    return
+                }
+                // M412-fix4: stabilna namerana odchylka (median vzoriek), ZIADNA
+                // pevna hodnota — kazdy stream si dopocita vlastnu z A/V PTS.
+                val clamped = us.coerceIn(-2_000_000L, 2_000_000L)
+                runCatching { mediaPlayer.audioDelay = clamped }
+                println("HC_AVSYNC AUTO setAudioDelay=$clamped us (measured=$us)")
+            }
+        }
+        avSyncHandler.postDelayed(poll, 2000)
     }
 
     private fun applyAudioDelay() {

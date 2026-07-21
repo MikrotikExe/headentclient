@@ -77,8 +77,13 @@ class TsMuxer(streams: List<Stream>) {
     private var avLogCounter = 0L   // M411-LOG
     // M412: nameraný raw PTS prveho audia a prveho videa — z rozdielu appka
     // vypocita A/V odsadenie a nastavi audio delay v prehravaci (auto-korekcia).
-    private var firstVideoRawPts = -1L
-    private var firstAudioRawPts = -1L
+    // M412-fix4: spravne meranie A/V odchylky — nie "prve" pakety z roznych casov
+    // (to davalo rastuce nezmyselne cislo), ale rozdiel PTS audio a video paketov
+    // blizkych v case (rovnaky okamih streamu). Drzime posledne video PTS a ked
+    // pride audio, porovname; median z prvych N vzoriek = stabilna odchylka.
+    private var lastVideoRawPtsForAv = -1L
+    private val avSamples = mutableListOf<Long>()
+    private var avOffsetStable: Long? = null
     // M404-fix: predstih vyrazne zmenseny (70 ms -> 10 ms). Privelky predstih
     // sposoboval, ze PCR "predbehlo" realne data a VLC na 2-3 s cakal (sek obrazu).
     // 10 ms staci dekoderu na buffer a uz nepredbieha tok.
@@ -120,8 +125,7 @@ class TsMuxer(streams: List<Stream>) {
      *  takze prehravac ma audio o tolko ONESKORIT (setAudioDelay kladnou hodnotou).
      *  90 kHz ticky -> mikrosekundy: tick / 0.09. */
     fun avOffsetUs(): Long? {
-        if (firstVideoRawPts < 0 || firstAudioRawPts < 0) return null
-        val ticks = firstVideoRawPts - firstAudioRawPts   // >0 ak audio skor
+        val ticks = avOffsetStable ?: return null   // az ked mame stabilny median
         return (ticks * 1000L / 90L)
     }
 
@@ -212,10 +216,18 @@ class TsMuxer(streams: List<Stream>) {
             heldClearPayload = null; heldClearTrack = null
         }
         val es = if (t.isAac) adtsWrap(t, payload) else payload
-        // M412: zapamataj prve raw PTS video/audio pre auto-korekciu A/V
-        if (pts != null) {
-            if (t.isVideo && firstVideoRawPts < 0) firstVideoRawPts = pts
-            if (!t.isVideo && !t.isSubtitle && firstAudioRawPts < 0) firstAudioRawPts = pts
+        // M412-fix4: zber vzoriek A/V odchylky (audio PTS vs najblizsie video PTS)
+        if (pts != null && avOffsetStable == null) {
+            if (t.isVideo) {
+                lastVideoRawPtsForAv = pts
+            } else if (!t.isSubtitle && lastVideoRawPtsForAv >= 0) {
+                // rozdiel video-audio v podobnom okamihu; audio pred videom => kladne
+                avSamples.add(lastVideoRawPtsForAv - pts)
+                if (avSamples.size >= 20) {
+                    val sorted = avSamples.sorted()
+                    avOffsetStable = sorted[sorted.size / 2]   // median
+                }
+            }
         }
         // M411: audio/titulky pred prvym video paketom preskoc (remap ich zahodi,
         // kym sa neukotvi os na videu) — zabranuje predbehnutiu zvuku pred obrazom
