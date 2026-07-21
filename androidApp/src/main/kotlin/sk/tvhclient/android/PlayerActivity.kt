@@ -513,6 +513,12 @@ class PlayerActivity : ComponentActivity() {
         media.setHWDecoderEnabled(true, false)
         media.addOption(":demux=ts")
         media.addOption(":file-caching=" + BufferPref.htspMs(this))
+        // M410: niektore kanaly posielaju audio a video s velkym pociatocnym
+        // odsadenim PTS (napr. ~1 s, overene curl+ffprobe zo servera). VLC to na
+        // TV boxe dorovna, na telefone nie vzdy -> zvuk mimo obraz. Tieto volby
+        // daju demuxu vacsi priestor zosynchronizovat stopy podla ich PTS:
+        media.addOption(":cr-average=40000")   // dlhsie priemerovanie hodin (stabilnejsi A/V lock)
+        media.addOption(":clock-synchro=0")    // nech VLC synchronizuje podla vstupnych PTS
         applyDeinterlace(media)
         mediaPlayer.media = media
         media.release()
