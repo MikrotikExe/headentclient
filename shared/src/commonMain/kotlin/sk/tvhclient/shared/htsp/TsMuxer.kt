@@ -198,7 +198,10 @@ class TsMuxer(streams: List<Stream>) {
             heldClearPayload = null; heldClearTrack = null
         }
         val es = if (t.isAac) adtsWrap(t, payload) else payload
-        val (op, od) = remap(pts, dts)
+        // M411: audio/titulky pred prvym video paketom preskoc (remap ich zahodi,
+        // kym sa neukotvi os na videu) — zabranuje predbehnutiu zvuku pred obrazom
+        if (!hasOffset && !t.isVideo) return flushed + activated
+        val (op, od) = remap(pts, dts, t.isVideo)
         // M411-LOG: diagnostika A/V synchronizacie. Vypise vstupne (raw z HTSP) aj
         // vystupne (po remap) PTS/DTS pre video a audio. V logcate cez "HC_AVSYNC"
         // uvidime, ci a kde sa audio/video rozchadza. Kazdy 50. paket, nech nezahlti.
@@ -290,10 +293,24 @@ class TsMuxer(streams: List<Stream>) {
         return Pair(outPts, outDts)
     }
 
-    /** Premapuj vstupne pts/dts na spojitu rastucu vystupnu os. */
-    private fun remap(pts: Long?, dts: Long?): Pair<Long?, Long?> {
+    /** Premapuj vstupne pts/dts na spojitu rastucu vystupnu os.
+     *  M411: os ukotvime az na prvom VIDEO pakete (pcrPid). Server posiela audio
+     *  a video s velkym pociatocnym odsadenim (~1,2 s, potvrdene logom) a audio
+     *  casto prichadza prve — ak sa os ukotvila na nom, video sa oneskorilo o to
+     *  odsadenie a zvuk isiel pred obrazom. Ukotvenie na video zarovna obe stopy
+     *  spravne; skorsie audio dostane zaporny cas -> orezany na 0 (hra hned). */
+    private fun remap(pts: Long?, dts: Long?, isVideo: Boolean): Pair<Long?, Long?> {
         val ref = pts ?: dts ?: return Pair(pts, dts)
-        if (!hasOffset) { hasOffset = true; tsOffset = ref; lastOut = 0L }
+        // M411: os ukotvi az na prvom VIDEO pakete (pcrPid). Server posiela audio
+        // ~1,2 s pred videom (potvrdene logom) a audio casto pride prve; ak sa os
+        // ukotvila na nom, VLC dostalo video posunute -> zvuk sa predbehol obraz.
+        // Kym nepride prve video, audio pakety zahodime (par desiatok ms na zaciatku
+        // streamu, nepocutelne) — tym sa audio aj video zarovnaju na spolocnu nulu
+        // danu videom a A/V sedi.
+        if (!hasOffset) {
+            if (!isVideo) return Pair(null, null)   // audio pred prvym videom -> zahod
+            hasOffset = true; tsOffset = ref; lastOut = 0L
+        }
         var out = ref - tsOffset
         if (out < lastOut - discontTicks || out > lastOut + discontTicks) {
             tsOffset = ref - (lastOut + frameGapTicks)   // re-base po skoku
