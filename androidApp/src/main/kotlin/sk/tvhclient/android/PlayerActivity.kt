@@ -3861,14 +3861,18 @@ class PlayerActivity : ComponentActivity() {
             override fun run() {
                 if (!::mediaPlayer.isInitialized || !mediaPlayer.isPlaying) return
                 runCatching {
-                    val st = mediaPlayer.media?.stats
+                    val m = mediaPlayer.media   // +1 refcount, treba uvolnit
+                    val st = m?.stats
                     val delay = mediaPlayer.audioDelay
                     if (st != null) {
                         println("HC_STATS decAudio=${st.decodedAudio} decVideo=${st.decodedVideo} " +
                                 "displayed=${st.displayedPictures} lostPic=${st.lostPictures} " +
                                 "playedAbuf=${st.playedAbuffers} lostAbuf=${st.lostAbuffers} " +
                                 "audioDelay=$delay time=${mediaPlayer.time}")
+                    } else {
+                        println("HC_STATS media=${m} stats=null delay=$delay time=${mediaPlayer.time}")
                     }
+                    m?.release()
                 }
                 avKickHandler.postDelayed(this, 2000)
             }
