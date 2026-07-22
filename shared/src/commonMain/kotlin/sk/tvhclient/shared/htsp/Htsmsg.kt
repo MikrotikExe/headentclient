@@ -87,16 +87,23 @@ internal object Htsmsg {
         while (pos + 6 <= n) {
             val typ = data[pos].toInt() and 0xFF
             val nl = data[pos + 1].toInt() and 0xFF
-            val dl = ((data[pos + 2].toInt() and 0xFF) shl 24) or
-                    ((data[pos + 3].toInt() and 0xFF) shl 16) or
-                    ((data[pos + 4].toInt() and 0xFF) shl 8) or
-                    (data[pos + 5].toInt() and 0xFF)
+            // dataLen ako Long (unsigned 32-bit) — cez Int by najvyssi bit daval
+            // zaporne cislo a rozbil kontrolu -> OOM pri copyOfRange (crash pri
+            // poskodenych/rozsynchronizovanych datach, napr. zvysky po starom spojeni)
+            val dl = (((data[pos + 2].toLong() and 0xFF) shl 24) or
+                    ((data[pos + 3].toLong() and 0xFF) shl 16) or
+                    ((data[pos + 4].toLong() and 0xFF) shl 8) or
+                    (data[pos + 5].toLong() and 0xFF))
             pos += 6
-            if (pos + nl + dl > n) break
+            // Ochrana: dl aj nl musia byt nezaporne a zmestit sa do zvysku dat.
+            // Ak nie, sprava je poskodena/rozsynchronizovana -> prerus parsovanie
+            // namiesto pokusu alokovat obrovske pole (predtym crash OOM).
+            if (dl < 0 || nl < 0 || pos.toLong() + nl + dl > n) break
+            val dlInt = dl.toInt()
             val name = data.decodeToString(pos, pos + nl)
             pos += nl
-            val pay = data.copyOfRange(pos, pos + dl)
-            pos += dl
+            val pay = data.copyOfRange(pos, pos + dlInt)
+            pos += dlInt
             val v: Any? = when (typ) {
                 STR -> pay.decodeToString()
                 BIN -> pay

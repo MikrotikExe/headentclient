@@ -28,6 +28,9 @@ class HtspClient(
     private val user: String = "",
     private val pwd: String = ""
 ) {
+    private companion object {
+        private const val MAX_MSG_LEN = 32L * 1024 * 1024
+    }
     private var selector: SelectorManager? = null
     private var socket: Socket? = null
     private var read: ByteReadChannel? = null
@@ -115,11 +118,20 @@ class HtspClient(
     private suspend fun recv(): Map<String, Any?> {
         val r = read!!
         val hdr = r.readByteArray(4)
-        val len = ((hdr[0].toInt() and 0xFF) shl 24) or
-                ((hdr[1].toInt() and 0xFF) shl 16) or
-                ((hdr[2].toInt() and 0xFF) shl 8) or
-                (hdr[3].toInt() and 0xFF)
-        val body = if (len > 0) r.readByteArray(len) else ByteArray(0)
+        // dlzka ako Long (unsigned 32-bit) — cez Int by najvyssi bit daval zaporne
+        val len = (((hdr[0].toLong() and 0xFF) shl 24) or
+                ((hdr[1].toLong() and 0xFF) shl 16) or
+                ((hdr[2].toLong() and 0xFF) shl 8) or
+                (hdr[3].toLong() and 0xFF))
+        // Ochrana proti OOM: platna HTSP sprava nema realne viac nez par MB. Ak
+        // prefix hlasi nezmyselnu dlzku (poskodene / rozsynchronizovane data,
+        // napr. zvysky po starom spojeni pri rychlom restarte appky), je to chyba
+        // protokolu — vyhod vynimku (spojenie sa znovu nadviaze) namiesto pokusu
+        // alokovat obrovske pole, ktore predtym zhodilo appku (OutOfMemoryError).
+        if (len < 0 || len > MAX_MSG_LEN) {
+            throw IllegalStateException("HTSP: neplatna dlzka spravy=$len (poskodeny stream)")
+        }
+        val body = if (len > 0) r.readByteArray(len.toInt()) else ByteArray(0)
         return Htsmsg.deserializeMap(body)
     }
 
