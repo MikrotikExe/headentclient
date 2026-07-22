@@ -46,15 +46,25 @@ object HtspData {
             throw e
         } catch (e: Throwable) {
             // Ina chyba (napr. poskodene data z rozsynchronizovaneho spojenia pri
-            // rychlom restarte). NEZHADZUJEME appku — vratime cache alebo prazdne.
+            // rychlom restarte). NEZHADZUJEME appku — ak mame stare cache data,
+            // vratime ich; inak vyhodime chybu, aby volajuci skusil znovu.
+            // NEUKLADAME prazdne do cache (inak by dalsie spustenie ukazalo prazdno).
             withContext(NonCancellable) { client.close() }
-            return c?.meta ?: HtspClient.Metadata(emptyList(), emptyList(), emptyList(), emptyList(), false)
+            c?.meta?.let { return it }
+            throw e
         } finally {
             // Poistka: socket zatvor cisto aj pri normalnom dobehu / zruseni.
             withContext(NonCancellable) { client.close() }
         }
-        cache[key] = Cache(nowSec, meta, withEpg)
-        return meta
+        // Kompletne data (dokonceny sync) -> uloz do cache a vrat.
+        if (meta.syncDone && meta.channels.isNotEmpty()) {
+            cache[key] = Cache(nowSec, meta, withEpg)
+            return meta
+        }
+        // Nekompletne (napr. prerusene ukoncenim appky pocas nacitavania):
+        // ak mame stare kompletne cache data, radsej vratime tie; inak vratime
+        // co je (aspon ciastocne) a NEcachujeme, nech dalsie spustenie stiahne znovu.
+        return c?.meta ?: meta
     }
 
     /** now/next mapa: pre kazdy kanal aktualne beziaci program. Cez getEvents
