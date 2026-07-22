@@ -33,6 +33,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -136,20 +140,24 @@ fun ModernTvHomeScreen(
     var tvpFocused by remember { mutableStateOf(false) }
     val topFocused = watchFocused || tvpFocused
     LaunchedEffect(hero?.channel?.uuid) { runCatching { heroFocus.requestFocus() } }
-    // Bug2-fix3: kym je fokus na hornych tlacidlach, TRVALO sleduj scroll a hned
-    // ho vrat na 0. snapshotFlow reaguje na kazdy pohyb (aj bring-into-view pri
-    // prepinani Sledovat<->TV program), takze vrch (datum/cas) ostane vidno.
-    LaunchedEffect(topFocused) {
-        if (topFocused) {
-            snapshotFlow { homeScroll.value }
-                .collect { v -> if (v != 0) runCatching { homeScroll.scrollTo(0) } }
+    // Bug2-fix5: ked je fokus na hornych tlacidlach, nechame scroll pohltit
+    // scrollovanie cez nestedScroll spojku — tym k bring-into-view skoku vobec
+    // nedojde (ziadne blikanie) a vrch (datum/cas) ostane vidno.
+    val topHold = remember {
+        object : NestedScrollConnection {
+            var active = false
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset =
+                if (active) Offset(0f, available.y) else Offset.Zero
         }
     }
+    topHold.active = topFocused
+    LaunchedEffect(topFocused) { if (topFocused) runCatching { homeScroll.scrollTo(0) } }
 
     Column(
         Modifier
             .fillMaxSize()
             .background(bg)
+            .nestedScroll(topHold)
             .verticalScroll(homeScroll)
             .padding(horizontal = 40.dp, vertical = 24.dp)
     ) {
