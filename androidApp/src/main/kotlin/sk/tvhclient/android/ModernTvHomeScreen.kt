@@ -127,11 +127,17 @@ fun ModernTvHomeScreen(
 
     val heroFocus = remember { FocusRequester() }
     val homeScroll = rememberScrollState()
-    var heroScrollUp by remember { mutableStateOf(false) }
+    // Bug2-fix2: kym je fokus na hornych tlacidlach (Sledovat / TV program),
+    // drzime scroll uplne hore (0), aby nad nimi bola vidno hlavicka datum/cas.
+    // Jednorazovy animateScrollTo(0) Compose "bring into view" prebijal — preto
+    // scroll drzime aktivne, kolko trva fokus hore.
+    var topFocused by remember { mutableStateOf(false) }
     LaunchedEffect(hero?.channel?.uuid) { runCatching { heroFocus.requestFocus() } }
-    // Bug2-fix: ked Sledovat ziska fokus, plynulo posun zoznam na uplny vrch
-    LaunchedEffect(heroScrollUp) {
-        if (heroScrollUp) { runCatching { homeScroll.animateScrollTo(0) }; heroScrollUp = false }
+    LaunchedEffect(topFocused) {
+        if (topFocused) {
+            // drz na vrchu kym je fokus hore (opakovane, nech to bring-into-view neposunie)
+            repeat(6) { runCatching { homeScroll.scrollTo(0) }; kotlinx.coroutines.delay(30) }
+        }
     }
 
     Column(
@@ -235,7 +241,7 @@ fun ModernTvHomeScreen(
                                 // inak fokus posunul scroll len po tlacidlo a
                                 // hlavicka zostala skryta nad viditelnou oblastou.
                                 .onFocusChanged { st ->
-                                    if (st.isFocused) heroScrollUp = true
+                                    topFocused = st.isFocused
                                 }
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(accent)
@@ -249,6 +255,9 @@ fun ModernTvHomeScreen(
                         Box(
                             Modifier
                                 .dpadFocusable(RoundedCornerShape(999.dp))
+                                // Bug2-fix2: aj TV program drzi scroll hore, nech
+                                // je nad nim vidno datum/cas.
+                                .onFocusChanged { st -> if (st.isFocused) topFocused = true }
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(cs.surfaceContainerHigh)
                                 .clickable { onTvProgram() }
