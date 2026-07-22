@@ -1,6 +1,6 @@
 [versions]
 kotlin = "2.1.20"
-agp = "8.7.3"
+agp = "8.9.1"
 ktor = "3.1.1"
 okhttp = "4.12.0"
 kotlinxSerialization = "1.8.0"

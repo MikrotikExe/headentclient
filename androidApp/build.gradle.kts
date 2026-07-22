@@ -11,7 +11,7 @@ plugins {
 
 android {
     namespace = "sk.tvhclient.android"
-    compileSdk = 35
+    compileSdk = 36
 
     // M374: ndkVersion odstranena — NDK bol potrebny len na extrakciu
     // natívnych debug symbolov (vypnute nizsie), inak ho build nepotrebuje.
@@ -38,8 +38,8 @@ android {
     defaultConfig {
         applicationId = "sk.tvhclient"
         minSdk = 23
-        targetSdk = 35
-        versionCode = 37
+        targetSdk = 36
+        versionCode = 38
         versionName = "1.0.1"
         buildConfigField(
             "String",

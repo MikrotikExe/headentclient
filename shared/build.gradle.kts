@@ -44,7 +44,7 @@ kotlin {
 
 android {
     namespace = "sk.tvhclient.shared"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         minSdk = 23
     }
