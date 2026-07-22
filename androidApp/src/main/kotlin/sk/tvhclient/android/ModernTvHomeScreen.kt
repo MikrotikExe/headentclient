@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -125,13 +126,19 @@ fun ModernTvHomeScreen(
     val nextLabel = stringResource(R.string.mh_next)
 
     val heroFocus = remember { FocusRequester() }
+    val homeScroll = rememberScrollState()
+    var heroScrollUp by remember { mutableStateOf(false) }
     LaunchedEffect(hero?.channel?.uuid) { runCatching { heroFocus.requestFocus() } }
+    // Bug2-fix: ked Sledovat ziska fokus, plynulo posun zoznam na uplny vrch
+    LaunchedEffect(heroScrollUp) {
+        if (heroScrollUp) { runCatching { homeScroll.animateScrollTo(0) }; heroScrollUp = false }
+    }
 
     Column(
         Modifier
             .fillMaxSize()
             .background(bg)
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(homeScroll)
             .padding(horizontal = 40.dp, vertical = 24.dp)
     ) {
         // horna lista: datum | cas
@@ -223,6 +230,13 @@ fun ModernTvHomeScreen(
                             Modifier
                                 .dpadFocusable(RoundedCornerShape(999.dp))
                                 .focusRequester(heroFocus)
+                                // Bug2-fix: pri fokuse Sledovat posun zoznam uplne
+                                // na vrch, aby sa ukazala hlavicka (datum/cas) —
+                                // inak fokus posunul scroll len po tlacidlo a
+                                // hlavicka zostala skryta nad viditelnou oblastou.
+                                .onFocusChanged { st ->
+                                    if (st.isFocused) heroScrollUp = true
+                                }
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(accent)
                                 .clickable { onPlayChannel(hero.channel.uuid, hero.channel.name) }
