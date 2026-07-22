@@ -315,7 +315,6 @@
     <string name="afr_title">Автоматична честота на опресняване (AFR)</string>
     <string name="afr_note">Превключва дисплея според кадрите на потока (напр. 50 Hz за 25 fps) — премахва накъсването. Екранът за миг притъмнява при превключване.</string>
     <string name="afr_delay_title">Пауза след смяна на честотата</string>
-    <string name="audio_delay_title">Компенсация на аудио закъснение</string>
     <string name="pm_pip">Картина в картина (PiP)</string>
     <string name="set_grp_diag">Диагностика</string>
     <string name="diag_note">Ако приложението блокира или работи неправилно, тук се записва дневник. Можете да ни го изпратите, за да намерим проблема.</string>

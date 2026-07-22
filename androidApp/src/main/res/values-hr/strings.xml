@@ -315,7 +315,6 @@
     <string name="afr_title">Automatska stopa osvježavanja (AFR)</string>
     <string name="afr_note">Prebacuje zaslon prema broju sličica streama (npr. 50 Hz za 25 fps) — uklanja trzanje. Zaslon nakratko potamni pri prebacivanju.</string>
     <string name="afr_delay_title">Pauza nakon promjene frekvencije</string>
-    <string name="audio_delay_title">Kompenzacija kašnjenja zvuka</string>
     <string name="pm_pip">Slika u slici (PiP)</string>
     <string name="set_grp_diag">Dijagnostika</string>
     <string name="diag_note">Ako se aplikacija sruši ili radi pogrešno, ovdje se sprema zapis. Možeš nam ga poslati da pomogneš pronaći problem.</string>

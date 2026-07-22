@@ -2733,10 +2733,7 @@ class PlayerActivity : ComponentActivity() {
             "--http-user-agent=" + userAgent()
         )
         // Korekcia synchronizacie zvuku ako init volba (jellyfin pristup). Aplikuje
-        // sa pri vytvarani prehravaca, robustnejsie nez setAudioDelay za behu.
         // Predvolene 0 = vypnute (nic nemeni). Zaporna = zvuk skor, kladna = neskor.
-        val desyncMs = AudioDesyncPref.getMs(this)
-        if (desyncMs != 0) options.add("--audio-desync=$desyncMs")
         // Deinterlacing (globalne, nech plati uz na prvom otvoreni; per-medium
         // sa nastavi znova pri kazdom prepnuti kanala)
         val (dEn, dMode) = deinterlaceSpec()
@@ -3823,34 +3820,8 @@ class PlayerActivity : ComponentActivity() {
         return if (surf != null && surf.isValid) surf else null
     }
 
-    /** Kompenzacia oneskorenia zvuku (M349) — pri passthrough dekoduje TV/AVR
-     *  a pridava latenciu, ktoru prehravac nevidi; zaporny delay zvuk zarovna. */
-    // A/V synchronizaciu riesi M411 (ukotvenie vystupnej osi na prve VIDEO)
-    // v TsMuxeri + M404 plynule PCR. Ziadne dalsie VLC A/V zasahy — ciste
-    // prehravanie, VLC si A/V zarovnava podla PTS sam.
-
-    private fun applyAudioDelay() {
-        if (!::mediaPlayer.isInitialized) return
-        runCatching { mediaPlayer.setAudioDelay(AudioDelayPref.effectiveUs(this)) }
-    }
-
-    /** Resync kick (M349, mechanizmus Kodi c.1): po prepnuti kanala pri
-     *  passthrough sa audio pipeline TV/AVR nestihne zrovnat — kratke
-     *  pause/play po nabehnuti flushne vystup a VLC zrovna hodiny. */
-    private fun postZapResyncKick() {
-        if (seekablePlayback) return
-        if (AudioOutputPref.get(this) != AudioOutputPref.PASSTHROUGH) return
-        window.decorView.postDelayed({
-            runCatching {
-                if (::mediaPlayer.isInitialized && mediaPlayer.isPlaying) {
-                    mediaPlayer.pause()
-                    window.decorView.postDelayed({
-                        runCatching { if (::mediaPlayer.isInitialized) mediaPlayer.play() }
-                    }, 120L)
-                }
-            }
-        }, 1200L)
-    }
+    // A/V synchronizaciu riesi remux (ukotvenie vystupnej osi na prve VIDEO +
+     // plynule PCR) v TsMuxeri. Ziadne VLC A/V zasahy — VLC si A/V zarovnava sam.
 
     private fun clearAfr() {
         if (android.os.Build.VERSION.SDK_INT < 23) return

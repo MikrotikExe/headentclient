@@ -69,8 +69,6 @@ class TsMuxer(streams: List<Stream>) {
     // skok pri subscriptionSkip (RW/FF). Pri beznom zivom je offset konstantny (= pass-through).
     private var hasOffset = false
     private var tsOffset = 0L
-    // M412: nameraný raw PTS prveho audia a prveho videa — z rozdielu appka
-    // vypocita A/V odsadenie a nastavi audio delay v prehravaci (auto-korekcia).
     private var lastOut = 0L
     private val discontTicks = 90000L * 4   // 4 s = diskontinuita -> re-base
     private val frameGapTicks = 3000L        // ~33 ms medzera po skoku

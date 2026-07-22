@@ -315,7 +315,6 @@
     <string name="afr_title">Автоматична частота оновлення (AFR)</string>
     <string name="afr_note">Перемикає дисплей під частоту кадрів потоку (напр. 50 Гц для 25 fps) — прибирає посмикування. Під час перемикання екран на мить гасне.</string>
     <string name="afr_delay_title">Пауза після зміни частоти</string>
-    <string name="audio_delay_title">Компенсація затримки звуку</string>
     <string name="pm_pip">Картинка в картинці (PiP)</string>
     <string name="set_grp_diag">Діагностика</string>
     <string name="diag_note">Якщо застосунок вилітає або працює неправильно, сюди зберігається журнал. Ви можете надіслати його нам, щоб допомогти знайти проблему.</string>

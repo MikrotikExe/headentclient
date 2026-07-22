@@ -315,7 +315,6 @@
     <string name="afr_title">Tần số quét tự động (AFR)</string>
     <string name="afr_note">Chuyển màn hình theo tốc độ khung hình của luồng (vd. 50 Hz cho 25 fps) — loại bỏ giật hình. Màn hình tối một lát khi chuyển.</string>
     <string name="afr_delay_title">Tạm dừng sau khi đổi tần số</string>
-    <string name="audio_delay_title">Bù trễ âm thanh</string>
     <string name="pm_pip">Hình trong hình (PiP)</string>
     <string name="set_grp_diag">Chẩn đoán</string>
     <string name="diag_note">Nếu ứng dụng bị treo hoặc lỗi, một nhật ký được lưu ở đây. Bạn có thể gửi cho chúng tôi để giúp tìm ra vấn đề.</string>

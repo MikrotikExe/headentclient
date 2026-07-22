@@ -315,7 +315,6 @@
     <string name="afr_title">Automatická obnovovací frekvence (AFR)</string>
     <string name="afr_note">Přepne displej podle snímkové frekvence streamu (např. 50 Hz pro 25 fps vysílání) — odstraní trhání obrazu. Při přepnutí obrazovka na chvíli ztmavne.</string>
     <string name="afr_delay_title">Pauza po změně frekvence</string>
-    <string name="audio_delay_title">Kompenzace zpoždění zvuku</string>
     <string name="pm_pip">Obraz v obraze (PiP)</string>
     <string name="set_grp_diag">Diagnostika</string>
     <string name="diag_note">Pokud aplikace spadne nebo se chová chybně, sem se uloží log. Můžeš nám ho poslat a pomoci najít problém.</string>

@@ -315,7 +315,6 @@
     <string name="afr_title">Automatikus képfrissítés (AFR)</string>
     <string name="afr_note">A kijelzőt a stream képkockasebességéhez igazítja (pl. 50 Hz 25 fps-hez) — megszünteti az akadozást. Váltáskor a képernyő rövid időre elsötétül.</string>
     <string name="afr_delay_title">Szünet frissítésváltás után</string>
-    <string name="audio_delay_title">Hangkésleltetés-kompenzáció</string>
     <string name="pm_pip">Kép a képben (PiP)</string>
     <string name="set_grp_diag">Diagnosztika</string>
     <string name="diag_note">Ha az alkalmazás összeomlik vagy hibázik, ide mentődik egy napló. Elküldheted nekünk, hogy segíts megtalálni a hibát.</string>

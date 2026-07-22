@@ -315,7 +315,6 @@
     <string name="afr_title">自動リフレッシュレート (AFR)</string>
     <string name="afr_note">ストリームのフレームレートに合わせて画面を切り替えます（例: 25fps → 50Hz）— カクつきを解消。切替時に画面が一瞬暗転します。</string>
     <string name="afr_delay_title">リフレッシュレート変更後に一時停止</string>
-    <string name="audio_delay_title">音声遅延補正</string>
     <string name="pm_pip">ピクチャーインピクチャー (PiP)</string>
     <string name="set_grp_diag">診断</string>
     <string name="diag_note">アプリがクラッシュしたり動作がおかしい場合、ここにログが保存されます。問題の特定に役立つよう送信できます。</string>

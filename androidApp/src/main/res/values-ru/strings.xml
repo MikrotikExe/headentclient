@@ -315,7 +315,6 @@
     <string name="afr_title">Автоматическая частота обновления (AFR)</string>
     <string name="afr_note">Переключает дисплей под частоту кадров потока (напр. 50 Гц для 25 fps) — убирает дрожание. При переключении экран на мгновение гаснет.</string>
     <string name="afr_delay_title">Пауза после смены частоты</string>
-    <string name="audio_delay_title">Компенсация задержки звука</string>
     <string name="pm_pip">Картинка в картинке (PiP)</string>
     <string name="set_grp_diag">Диагностика</string>
     <string name="diag_note">Если приложение вылетает или работает неправильно, сюда сохраняется журнал. Вы можете отправить его нам, чтобы помочь найти проблему.</string>

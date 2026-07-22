@@ -315,7 +315,6 @@
     <string name="afr_title">Otomatik yenileme hızı (AFR)</string>
     <string name="afr_note">Ekranı yayının kare hızına göre değiştirir (örn. 25 fps için 50 Hz) — takılmayı giderir. Geçişte ekran kısa süre kararır.</string>
     <string name="afr_delay_title">Frekans değişiminden sonra duraklat</string>
-    <string name="audio_delay_title">Ses gecikmesi telafisi</string>
     <string name="pm_pip">Resim içinde resim (PiP)</string>
     <string name="set_grp_diag">Tanılama</string>
     <string name="diag_note">Uygulama çökerse veya hatalı çalışırsa, buraya bir günlük kaydedilir. Sorunu bulmamıza yardımcı olmak için bize gönderebilirsiniz.</string>
