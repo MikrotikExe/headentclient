@@ -2,6 +2,8 @@ package sk.tvhclient.shared.htsp
 
 import sk.tvhclient.shared.model.Channel
 import sk.tvhclient.shared.model.ChannelTag
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import sk.tvhclient.shared.model.DvrEntry
 import sk.tvhclient.shared.model.EpgEvent
 import sk.tvhclient.shared.model.TvhServer
@@ -36,14 +38,20 @@ object HtspData {
         client.connect()
         val meta = try {
             client.fetchMetadata(withEpg = withEpg, epgMaxDays = epgMaxDays, nowSec = nowSec)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // Appka sa ukoncuje pocas nacitavania — socket ZATVOR CISTO (NonCancellable,
+            // inak visi a FinalizerWatchdog zhodi appku pri dalsom spusteni), a
+            // znovu vyhod zrusenie (coroutine sa ma korektne ukoncit).
+            withContext(NonCancellable) { client.close() }
+            throw e
         } catch (e: Throwable) {
-            // Chyba pri nacitani (napr. poskodene data z rozsynchronizovaneho
-            // spojenia pri rychlom restarte appky). NEZHADZUJEME appku — ak mame
-            // v cache stare metadata, vratime ich; inak prazdne, aby appka bezala
-            // a dalsi pokus (nove ciste spojenie) uspel.
+            // Ina chyba (napr. poskodene data z rozsynchronizovaneho spojenia pri
+            // rychlom restarte). NEZHADZUJEME appku — vratime cache alebo prazdne.
+            withContext(NonCancellable) { client.close() }
             return c?.meta ?: HtspClient.Metadata(emptyList(), emptyList(), emptyList(), emptyList(), false)
         } finally {
-            client.close()
+            // Poistka: socket zatvor cisto aj pri normalnom dobehu / zruseni.
+            withContext(NonCancellable) { client.close() }
         }
         cache[key] = Cache(nowSec, meta, withEpg)
         return meta

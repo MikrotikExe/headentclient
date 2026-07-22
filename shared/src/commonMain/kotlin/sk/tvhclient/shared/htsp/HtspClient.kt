@@ -10,6 +10,8 @@ import io.ktor.utils.io.ByteWriteChannel
 import io.ktor.utils.io.readByteArray
 import io.ktor.utils.io.writeByteArray
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
@@ -69,27 +71,37 @@ class HtspClient(
     )
 
     suspend fun connect() {
-        val sel = SelectorManager(Dispatchers.Default)
-        selector = sel
-        val s = withTimeoutOrNull(8_000) {
-            aSocket(sel).tcp().connect(host, port)
-        } ?: run {
-            sel.close()
-            throw IllegalStateException("port $port nedostupný (timeout) — je HTSP forwardnutý?")
-        }
-        socket = s
-        read = s.openReadChannel()
-        write = s.openWriteChannel(autoFlush = true)
-        val ok = withTimeoutOrNull(8_000) {
-            hello()
-            auth()
-        } ?: run {
-            close()
-            throw IllegalStateException("HTSP handshake timeout (odpovedá port HTSP serverom?)")
-        }
-        if (!ok) {
-            close()
-            throw IllegalStateException("HTSP autentifikácia zlyhala")
+        try {
+            val sel = SelectorManager(Dispatchers.Default)
+            selector = sel
+            val s = withTimeoutOrNull(8_000) {
+                aSocket(sel).tcp().connect(host, port)
+            } ?: run {
+                sel.close()
+                throw IllegalStateException("port $port nedostupný (timeout) — je HTSP forwardnutý?")
+            }
+            socket = s
+            read = s.openReadChannel()
+            write = s.openWriteChannel(autoFlush = true)
+            val ok = withTimeoutOrNull(8_000) {
+                hello()
+                auth()
+            } ?: run {
+                close()
+                throw IllegalStateException("HTSP handshake timeout (odpovedá port HTSP serverom?)")
+            }
+            if (!ok) {
+                close()
+                throw IllegalStateException("HTSP autentifikácia zlyhala")
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // Zrusene pocas pripajania (appka sa ukoncuje) — upraceme socket cisto,
+            // nech nevisi a nezhodi FinalizerWatchdog. Potom znovu vyhodime zrusenie.
+            withContext(NonCancellable) { close() }
+            throw e
+        } catch (e: Throwable) {
+            withContext(NonCancellable) { close() }
+            throw e
         }
     }
 
