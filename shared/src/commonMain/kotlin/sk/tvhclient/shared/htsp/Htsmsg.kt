@@ -98,7 +98,9 @@ internal object Htsmsg {
             // Ochrana: dl aj nl musia byt nezaporne a zmestit sa do zvysku dat.
             // Ak nie, sprava je poskodena/rozsynchronizovana -> prerus parsovanie
             // namiesto pokusu alokovat obrovske pole (predtym crash OOM).
-            if (dl < 0 || nl < 0 || pos.toLong() + nl + dl > n) break
+            // nl je 1 bajt (0-255), dl az 4 bajty. Oba musia byt nezaporne a
+            // zmestit sa do zvysku dat — inak su data poskodene, preruš.
+            if (dl < 0 || nl < 0 || nl > n || pos.toLong() + nl + dl > n) break
             val dlInt = dl.toInt()
             val name = data.decodeToString(pos, pos + nl)
             pos += nl

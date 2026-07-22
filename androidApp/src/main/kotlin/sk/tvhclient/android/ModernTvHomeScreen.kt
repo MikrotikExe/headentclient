@@ -33,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -131,12 +132,17 @@ fun ModernTvHomeScreen(
     // drzime scroll uplne hore (0), aby nad nimi bola vidno hlavicka datum/cas.
     // Jednorazovy animateScrollTo(0) Compose "bring into view" prebijal — preto
     // scroll drzime aktivne, kolko trva fokus hore.
-    var topFocused by remember { mutableStateOf(false) }
+    var watchFocused by remember { mutableStateOf(false) }
+    var tvpFocused by remember { mutableStateOf(false) }
+    val topFocused = watchFocused || tvpFocused
     LaunchedEffect(hero?.channel?.uuid) { runCatching { heroFocus.requestFocus() } }
+    // Bug2-fix3: kym je fokus na hornych tlacidlach, TRVALO sleduj scroll a hned
+    // ho vrat na 0. snapshotFlow reaguje na kazdy pohyb (aj bring-into-view pri
+    // prepinani Sledovat<->TV program), takze vrch (datum/cas) ostane vidno.
     LaunchedEffect(topFocused) {
         if (topFocused) {
-            // drz na vrchu kym je fokus hore (opakovane, nech to bring-into-view neposunie)
-            repeat(6) { runCatching { homeScroll.scrollTo(0) }; kotlinx.coroutines.delay(30) }
+            snapshotFlow { homeScroll.value }
+                .collect { v -> if (v != 0) runCatching { homeScroll.scrollTo(0) } }
         }
     }
 
@@ -241,7 +247,7 @@ fun ModernTvHomeScreen(
                                 // inak fokus posunul scroll len po tlacidlo a
                                 // hlavicka zostala skryta nad viditelnou oblastou.
                                 .onFocusChanged { st ->
-                                    topFocused = st.isFocused
+                                    watchFocused = st.isFocused
                                 }
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(accent)
@@ -257,7 +263,7 @@ fun ModernTvHomeScreen(
                                 .dpadFocusable(RoundedCornerShape(999.dp))
                                 // Bug2-fix2: aj TV program drzi scroll hore, nech
                                 // je nad nim vidno datum/cas.
-                                .onFocusChanged { st -> if (st.isFocused) topFocused = true }
+                                .onFocusChanged { st -> tvpFocused = st.isFocused }
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(cs.surfaceContainerHigh)
                                 .clickable { onTvProgram() }

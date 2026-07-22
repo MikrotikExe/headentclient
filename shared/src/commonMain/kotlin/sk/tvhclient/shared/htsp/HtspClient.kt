@@ -132,7 +132,16 @@ class HtspClient(
             throw IllegalStateException("HTSP: neplatna dlzka spravy=$len (poskodeny stream)")
         }
         val body = if (len > 0) r.readByteArray(len.toInt()) else ByteArray(0)
-        return Htsmsg.deserializeMap(body)
+        // Ochrana: parsovanie poskodenych dat (napr. zvysky po starom spojeni pri
+        // rychlom restarte) moze hodit OutOfMemoryError. Zachytime ho a premenime
+        // na normalnu vynimku, nech appka nespadne — spojenie sa znovu nadviaze.
+        return try {
+            Htsmsg.deserializeMap(body)
+        } catch (e: OutOfMemoryError) {
+            throw IllegalStateException("HTSP: poskodena sprava (OOM pri parsovani)")
+        } catch (e: Exception) {
+            throw IllegalStateException("HTSP: chyba parsovania spravy: ${e.message}")
+        }
     }
 
     private suspend fun recvReply(s: Int, maxN: Int = 400): Map<String, Any?> {

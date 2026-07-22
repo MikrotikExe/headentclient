@@ -36,6 +36,12 @@ object HtspData {
         client.connect()
         val meta = try {
             client.fetchMetadata(withEpg = withEpg, epgMaxDays = epgMaxDays, nowSec = nowSec)
+        } catch (e: Throwable) {
+            // Chyba pri nacitani (napr. poskodene data z rozsynchronizovaneho
+            // spojenia pri rychlom restarte appky). NEZHADZUJEME appku — ak mame
+            // v cache stare metadata, vratime ich; inak prazdne, aby appka bezala
+            // a dalsi pokus (nove ciste spojenie) uspel.
+            return c?.meta ?: HtspClient.Metadata(emptyList(), emptyList(), emptyList(), emptyList(), false)
         } finally {
             client.close()
         }
