@@ -56,9 +56,16 @@ android {
     // libVLC bundluje natívne .so pre vsetky ABI (~200MB). Rozdelime APK
     // podla ABI a zahodime x86/x86_64 (len emulator). Vysledok: samostatne
     // mensie APK pre kazde realne zariadenie (~50-60MB namiesto ~200MB).
+    // ABI splits len pre APK build (assemble*), NIE pre bundle (AAB). AGP 8.9+
+    // pri bundleRelease so zapnutym splits padne ("Sequence contains more than one
+    // matching element"). Pri AAB sa splits aj tak ignoruje — Play si rozdeli ABI
+    // sam z App Bundle. Podmienka podla nazvu gradle ulohy.
+    val buildingBundle = gradle.startParameter.taskNames.any {
+        it.contains("bundle", ignoreCase = true)
+    }
     splits {
         abi {
-            isEnable = true
+            isEnable = !buildingBundle
             reset()
             include("armeabi-v7a", "arm64-v8a")
             isUniversalApk = false
