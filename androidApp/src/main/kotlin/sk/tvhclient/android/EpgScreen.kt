@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
@@ -157,7 +158,10 @@ private fun EpgRow(ev: EpgEvent, isNow: Boolean, onClick: () -> Unit) {
             style = MaterialTheme.typography.bodyMedium,
             color = if (isNow) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(56.dp)
+            maxLines = 1,
+            // M425: pevnych 56.dp stacilo na "23:30", ale nie na "11:30 PM" —
+            // text sa zalomil na dva riadky a rozhodil vysku riadka zoznamu.
+            modifier = Modifier.widthIn(min = 56.dp)
         )
         Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f)) {

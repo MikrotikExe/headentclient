@@ -70,6 +70,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -737,7 +738,18 @@ fun EpgGridScreen(
                         if (nowMin in 0..DAY_MIN) {
                             Box(
                                 Modifier
-                                    .offset(x = (nowMin * pxMin - 26).dp)
+                                    .offset(x = (nowMin * pxMin).dp)
+                                    // M425: predtym tu bolo "- 26", teda polovica
+                                    // sirky bubliny odhadnutej pre tvar HH:mm.
+                                    // Pri 12-hodinovom case je bublina sirsia a
+                                    // znacka sa posunula mimo ciary. Teraz sa
+                                    // posuva o polovicu skutocnej nameranej sirky.
+                                    .layout { measurable, constraints ->
+                                        val p = measurable.measure(constraints)
+                                        layout(p.width, p.height) {
+                                            p.place(-p.width / 2, 0)
+                                        }
+                                    }
                                     .clip(RoundedCornerShape(11.dp))
                                     .background(MaterialTheme.colorScheme.primary)
                                     .padding(horizontal = 9.dp, vertical = 2.dp)
@@ -1512,7 +1524,8 @@ private fun GridBlock(
                     timeLabel,
                     style = MaterialTheme.typography.labelSmall,
                     color = timeColor,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -1542,7 +1555,8 @@ private fun GridBlock(
                         timeLabel,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -1787,7 +1801,8 @@ private fun ModernGridBlock(
                         timeLabel,
                         style = MaterialTheme.typography.labelSmall,
                         color = cs.onSurfaceVariant,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         title,

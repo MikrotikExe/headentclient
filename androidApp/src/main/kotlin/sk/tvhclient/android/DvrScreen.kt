@@ -1513,7 +1513,8 @@ private fun ArcRecCard(e: DvrEntry, picon: String?, loader: coil.ImageLoader, co
             fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Text(formatDateFull(e.start) + "  \u00B7  " + formatTimeHm(e.start),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodySmall, maxLines = 1)
+            style = MaterialTheme.typography.bodySmall, maxLines = 1,
+            overflow = TextOverflow.Ellipsis)   // M425: dlhsi 12-hodinovy cas
     }
 }
 
