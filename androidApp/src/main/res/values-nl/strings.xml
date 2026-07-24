@@ -251,6 +251,10 @@
     <string name="track_none">Geen sporen</string>
     <string name="theme_title">Thema</string>
     <string name="theme_auto">Automatisch (systeem)</string>
+    <string name="clock_title">Tijdnotatie</string>
+    <string name="clock_auto">Automatisch (systeem)</string>
+    <string name="clock_24">24-uurs</string>
+    <string name="clock_12">12-uurs</string>
     <string name="theme_light">Licht</string>
     <string name="theme_dark">Donker</string>
     <string name="player_theme_title">Spelerthema</string>

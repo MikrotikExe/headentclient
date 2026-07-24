@@ -251,6 +251,10 @@
     <string name="track_none">ไม่มีแทร็ก</string>
     <string name="theme_title">ธีม</string>
     <string name="theme_auto">อัตโนมัติ (ระบบ)</string>
+    <string name="clock_title">รูปแบบเวลา</string>
+    <string name="clock_auto">อัตโนมัติ (ระบบ)</string>
+    <string name="clock_24">24 ชั่วโมง</string>
+    <string name="clock_12">12 ชั่วโมง</string>
     <string name="theme_light">สว่าง</string>
     <string name="theme_dark">มืด</string>
     <string name="player_theme_title">ธีมเครื่องเล่น</string>

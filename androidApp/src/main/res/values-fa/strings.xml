@@ -251,6 +251,10 @@
     <string name="track_none">قطعه‌ای نیست</string>
     <string name="theme_title">پوسته</string>
     <string name="theme_auto">خودکار (سیستم)</string>
+    <string name="clock_title">قالب زمان</string>
+    <string name="clock_auto">خودکار (سیستم)</string>
+    <string name="clock_24">۲۴ ساعته</string>
+    <string name="clock_12">۱۲ ساعته</string>
     <string name="theme_light">روشن</string>
     <string name="theme_dark">تیره</string>
     <string name="player_theme_title">پوسته پخش‌کننده</string>

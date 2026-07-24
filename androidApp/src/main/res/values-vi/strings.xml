@@ -251,6 +251,10 @@
     <string name="track_none">Không có bản nào</string>
     <string name="theme_title">Giao diện</string>
     <string name="theme_auto">Tự động (hệ thống)</string>
+    <string name="clock_title">Định dạng giờ</string>
+    <string name="clock_auto">Tự động (hệ thống)</string>
+    <string name="clock_24">24 giờ</string>
+    <string name="clock_12">12 giờ</string>
     <string name="theme_light">Sáng</string>
     <string name="theme_dark">Tối</string>
     <string name="player_theme_title">Giao diện trình phát</string>

@@ -251,6 +251,10 @@
     <string name="track_none">Nema zapisa</string>
     <string name="theme_title">Tema</string>
     <string name="theme_auto">Automatski (sustav)</string>
+    <string name="clock_title">Format vremena</string>
+    <string name="clock_auto">Automatski (sustav)</string>
+    <string name="clock_24">24-satni</string>
+    <string name="clock_12">12-satni</string>
     <string name="theme_light">Svijetla</string>
     <string name="theme_dark">Tamna</string>
     <string name="player_theme_title">Tema playera</string>

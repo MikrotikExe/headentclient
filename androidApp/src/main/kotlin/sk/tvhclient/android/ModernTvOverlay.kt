@@ -90,7 +90,8 @@ internal fun ModernTvOverlay(
     }
     val nowSec = now / 1000
     val locale = Locale.getDefault()
-    val hhmm = remember(locale) { SimpleDateFormat("HH:mm", locale) }
+    val clockFmt = ClockPref.hm(LocalContext.current)
+    val hhmm = remember(locale, clockFmt) { SimpleDateFormat(clockFmt, locale) }
     val listState = rememberLazyListState()
     LaunchedEffect(cardIndex) {
         // Blizky posun animuj; vzdialeny skok (napr. wrap 1 -> 300 pri chprev)

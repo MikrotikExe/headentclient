@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -77,7 +78,8 @@ fun TvHomeScreen(
     }
     val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
     val dateStr = remember(now) { SimpleDateFormat("EEEE d. MMMM", locale).format(Date(now)) }
-    val timeStr = remember(now) { SimpleDateFormat("HH:mm", locale).format(Date(now)) }
+    val clockFmt = ClockPref.hm(LocalContext.current)
+    val timeStr = remember(now, clockFmt) { SimpleDateFormat(clockFmt, locale).format(Date(now)) }
 
     val firstFocus = remember { FocusRequester() }
     LaunchedEffect(focusKey) { runCatching { firstFocus.requestFocus() } }

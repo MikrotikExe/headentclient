@@ -251,6 +251,10 @@
     <string name="track_none">Brak ścieżek</string>
     <string name="theme_title">Motyw</string>
     <string name="theme_auto">Automatyczny (system)</string>
+    <string name="clock_title">Format czasu</string>
+    <string name="clock_auto">Automatyczny (system)</string>
+    <string name="clock_24">24-godzinny</string>
+    <string name="clock_12">12-godzinny</string>
     <string name="theme_light">Jasny</string>
     <string name="theme_dark">Ciemny</string>
     <string name="player_theme_title">Motyw odtwarzacza</string>

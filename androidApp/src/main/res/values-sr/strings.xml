@@ -251,6 +251,10 @@
     <string name="track_none">Нема нумера</string>
     <string name="theme_title">Тема</string>
     <string name="theme_auto">Аутоматски (систем)</string>
+    <string name="clock_title">Формат времена</string>
+    <string name="clock_auto">Аутоматски (систем)</string>
+    <string name="clock_24">24-часовни</string>
+    <string name="clock_12">12-часовни</string>
     <string name="theme_light">Светла</string>
     <string name="theme_dark">Тамна</string>
     <string name="player_theme_title">Тема плејера</string>

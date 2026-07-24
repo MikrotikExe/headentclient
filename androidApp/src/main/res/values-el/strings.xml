@@ -251,6 +251,10 @@
     <string name="track_none">Χωρίς κανάλια</string>
     <string name="theme_title">Θέμα</string>
     <string name="theme_auto">Αυτόματο (σύστημα)</string>
+    <string name="clock_title">Μορφή ώρας</string>
+    <string name="clock_auto">Αυτόματο (σύστημα)</string>
+    <string name="clock_24">24 ώρες</string>
+    <string name="clock_12">12 ώρες</string>
     <string name="theme_light">Φωτεινό</string>
     <string name="theme_dark">Σκούρο</string>
     <string name="player_theme_title">Θέμα προγράμματος αναπαραγωγής</string>

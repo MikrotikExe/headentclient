@@ -1649,7 +1649,7 @@ class PlayerActivity : ComponentActivity() {
     private val infoDescState = androidx.compose.runtime.mutableStateOf("")
 
     private fun fmtClock(s: Long): String =
-        if (s <= 0) "" else java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+        if (s <= 0) "" else java.text.SimpleDateFormat(sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault())
             .format(java.util.Date(s * 1000))
     private fun fmtRange(a: Long, b: Long): String {
         val sa = fmtClock(a); val sb = fmtClock(b)
@@ -4797,9 +4797,9 @@ private fun PlayerUi(
                 val curCh = liveChannels.getOrNull(liveCurrentIndex)
                 val infoLoader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
                 fun clock(sec: Long): String =
-                    if (sec <= 0) "" else java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                    if (sec <= 0) "" else java.text.SimpleDateFormat(sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault())
                         .format(java.util.Date(sec * 1000))
-                val dateTime = java.text.SimpleDateFormat("EEE d. M., HH:mm", java.util.Locale.getDefault())
+                val dateTime = java.text.SimpleDateFormat("EEE d. M., " + sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault())
                     .format(java.util.Date(liveNowSec * 1000))
                 val hasNow = !seekable && progStart > 0 && progStop > progStart
                 val total = (progStop - progStart).coerceAtLeast(1)
@@ -5263,7 +5263,7 @@ private fun PlayerUi(
         if (showInfo) {
             androidx.activity.compose.BackHandler { showInfo = false }
             val clk: (Long) -> String = { sec ->
-                if (sec <= 0) "" else java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                if (sec <= 0) "" else java.text.SimpleDateFormat(sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault())
                     .format(java.util.Date(sec * 1000))
             }
             val tRange = if (progStart > 0 && progStop > progStart)
@@ -5613,7 +5613,7 @@ private fun PlayerUi(
             val curT = epgT.firstOrNull { it.start <= nowT && nowT < it.stop }
             val nextT = epgT.filter { it.start >= nowT }.sortedBy { it.start }.take(4)
             fun hhmm(s: Long): String =
-                java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(s * 1000))
+                java.text.SimpleDateFormat(sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault()).format(java.util.Date(s * 1000))
             val dateStr = java.text.SimpleDateFormat("EEEE d. MMMM", java.util.Locale.getDefault())
                 .format(java.util.Date(nowT * 1000)).replaceFirstChar { it.uppercase() }
             val accentC = playerAccent()

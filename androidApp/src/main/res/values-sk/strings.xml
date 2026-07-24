@@ -270,6 +270,10 @@
     <string name="mtv_ts_warn">Prepnutím ukončíš posun v čase</string>
     <string name="mh_fav_now">Obľúbené kanály · Teraz</string>
     <string name="theme_auto">Automaticky (systém)</string>
+    <string name="clock_title">Formát času</string>
+    <string name="clock_auto">Automaticky (systém)</string>
+    <string name="clock_24">24-hodinový</string>
+    <string name="clock_12">12-hodinový</string>
     <string name="theme_light">Svetlá</string>
     <string name="theme_dark">Tmavá</string>
     <string name="player_theme_title">Téma prehrávača</string>

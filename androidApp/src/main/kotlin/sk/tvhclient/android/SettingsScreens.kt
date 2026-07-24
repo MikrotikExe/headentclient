@@ -308,6 +308,28 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
     )
     SettingsGroupDivider()
 
+    // Format hodin: automaticky (system) / 24 hodin / 12 hodin (M423)
+    var clock by remember { mutableStateOf(ClockPref.get(ctx)) }
+    val clockLabel: @Composable (String) -> String = { v ->
+        when (v) {
+            ClockPref.H24 -> stringResource(R.string.clock_24)
+            ClockPref.H12 -> stringResource(R.string.clock_12)
+            else -> stringResource(R.string.clock_auto)
+        }
+    }
+    DropdownField(
+        label = stringResource(R.string.clock_title),
+        value = clock,
+        options = ClockPref.options,
+        optionLabel = clockLabel,
+        onSelect = { v ->
+            clock = v
+            ClockPref.set(ctx, v)
+            TabController.settingsDirty.value = true
+        }
+    )
+    SettingsGroupDivider()
+
     // Tema aplikacie: automaticky (system) / svetla / tmava
     var theme by remember { mutableStateOf(ThemePref.get(ctx)) }
     val themeLabel: @Composable (String) -> String = { v ->

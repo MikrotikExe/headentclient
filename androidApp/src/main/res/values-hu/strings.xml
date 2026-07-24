@@ -251,6 +251,10 @@
     <string name="track_none">Nincsenek sávok</string>
     <string name="theme_title">Téma</string>
     <string name="theme_auto">Automatikus (rendszer)</string>
+    <string name="clock_title">Időformátum</string>
+    <string name="clock_auto">Automatikus (rendszer)</string>
+    <string name="clock_24">24 órás</string>
+    <string name="clock_12">12 órás</string>
     <string name="theme_light">Világos</string>
     <string name="theme_dark">Sötét</string>
     <string name="player_theme_title">Lejátszó témája</string>

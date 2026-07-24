@@ -251,6 +251,10 @@
     <string name="track_none">Keine Spuren</string>
     <string name="theme_title">Design</string>
     <string name="theme_auto">Automatisch (System)</string>
+    <string name="clock_title">Zeitformat</string>
+    <string name="clock_auto">Automatisch (System)</string>
+    <string name="clock_24">24-Stunden</string>
+    <string name="clock_12">12-Stunden</string>
     <string name="theme_light">Hell</string>
     <string name="theme_dark">Dunkel</string>
     <string name="player_theme_title">Player-Design</string>

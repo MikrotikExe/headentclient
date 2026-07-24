@@ -80,7 +80,8 @@ fun ModernPhoneHomeScreen(
         while (true) { now = System.currentTimeMillis(); kotlinx.coroutines.delay(30_000) }
     }
     val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
-    val hhmm = remember(locale) { SimpleDateFormat("HH:mm", locale) }
+    val clockFmt = ClockPref.hm(LocalContext.current)
+    val hhmm = remember(locale, clockFmt) { SimpleDateFormat(clockFmt, locale) }
     val dateStr = remember(now) { SimpleDateFormat("EEEE d. MMMM", locale).format(Date(now)) }
 
     val rows: List<ChannelRow> = (chState as? ChannelsState.Loaded)?.allRows ?: emptyList()

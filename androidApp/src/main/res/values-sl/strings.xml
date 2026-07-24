@@ -251,6 +251,10 @@
     <string name="track_none">Ni posnetkov</string>
     <string name="theme_title">Tema</string>
     <string name="theme_auto">Samodejno (sistem)</string>
+    <string name="clock_title">Oblika časa</string>
+    <string name="clock_auto">Samodejno (sistem)</string>
+    <string name="clock_24">24-urna</string>
+    <string name="clock_12">12-urna</string>
     <string name="theme_light">Svetla</string>
     <string name="theme_dark">Temna</string>
     <string name="player_theme_title">Tema predvajalnika</string>

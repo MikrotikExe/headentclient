@@ -251,6 +251,10 @@
     <string name="track_none">لا توجد مسارات</string>
     <string name="theme_title">المظهر</string>
     <string name="theme_auto">تلقائي (النظام)</string>
+    <string name="clock_title">تنسيق الوقت</string>
+    <string name="clock_auto">تلقائي (النظام)</string>
+    <string name="clock_24">24 ساعة</string>
+    <string name="clock_12">12 ساعة</string>
     <string name="theme_light">فاتح</string>
     <string name="theme_dark">داكن</string>
     <string name="player_theme_title">مظهر المشغّل</string>

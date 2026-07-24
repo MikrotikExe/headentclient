@@ -270,6 +270,10 @@
     <string name="mtv_ts_warn">Switching ends timeshift</string>
     <string name="mh_fav_now">Favorite channels · Now</string>
     <string name="theme_auto">Automatic (system)</string>
+    <string name="clock_title">Time format</string>
+    <string name="clock_auto">Automatic (system)</string>
+    <string name="clock_24">24-hour</string>
+    <string name="clock_12">12-hour</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="player_theme_title">Player theme</string>

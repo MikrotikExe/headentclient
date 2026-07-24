@@ -251,6 +251,10 @@
     <string name="track_none">Žádné stopy</string>
     <string name="theme_title">Motiv</string>
     <string name="theme_auto">Automaticky (systém)</string>
+    <string name="clock_title">Formát času</string>
+    <string name="clock_auto">Automaticky (systém)</string>
+    <string name="clock_24">24hodinový</string>
+    <string name="clock_12">12hodinový</string>
     <string name="theme_light">Světlý</string>
     <string name="theme_dark">Tmavý</string>
     <string name="player_theme_title">Motiv přehrávače</string>

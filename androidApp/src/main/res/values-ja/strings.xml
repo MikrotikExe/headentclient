@@ -251,6 +251,10 @@
     <string name="track_none">トラックなし</string>
     <string name="theme_title">テーマ</string>
     <string name="theme_auto">自動（システム）</string>
+    <string name="clock_title">時刻表示</string>
+    <string name="clock_auto">自動（システム）</string>
+    <string name="clock_24">24時間表示</string>
+    <string name="clock_12">12時間表示</string>
     <string name="theme_light">ライト</string>
     <string name="theme_dark">ダーク</string>
     <string name="player_theme_title">プレーヤーのテーマ</string>

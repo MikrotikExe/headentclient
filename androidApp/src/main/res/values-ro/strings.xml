@@ -251,6 +251,10 @@
     <string name="track_none">Nicio pistă</string>
     <string name="theme_title">Temă</string>
     <string name="theme_auto">Automat (sistem)</string>
+    <string name="clock_title">Formatul orei</string>
+    <string name="clock_auto">Automat (sistem)</string>
+    <string name="clock_24">24 de ore</string>
+    <string name="clock_12">12 ore</string>
     <string name="theme_light">Luminoasă</string>
     <string name="theme_dark">Întunecată</string>
     <string name="player_theme_title">Tema playerului</string>

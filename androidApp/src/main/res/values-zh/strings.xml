@@ -251,6 +251,10 @@
     <string name="track_none">没有音轨</string>
     <string name="theme_title">主题</string>
     <string name="theme_auto">自动（系统）</string>
+    <string name="clock_title">时间格式</string>
+    <string name="clock_auto">自动（系统）</string>
+    <string name="clock_24">24小时制</string>
+    <string name="clock_12">12小时制</string>
     <string name="theme_light">浅色</string>
     <string name="theme_dark">深色</string>
     <string name="player_theme_title">播放器主题</string>

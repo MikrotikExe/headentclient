@@ -251,6 +251,10 @@
     <string name="track_none">کوئی ٹریک نہیں</string>
     <string name="theme_title">تھیم</string>
     <string name="theme_auto">خودکار (سسٹم)</string>
+    <string name="clock_title">وقت کی شکل</string>
+    <string name="clock_auto">خودکار (سسٹم)</string>
+    <string name="clock_24">24 گھنٹے</string>
+    <string name="clock_12">12 گھنٹے</string>
     <string name="theme_light">روشن</string>
     <string name="theme_dark">گہرا</string>
     <string name="player_theme_title">پلیئر تھیم</string>

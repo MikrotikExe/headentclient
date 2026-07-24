@@ -251,6 +251,10 @@
     <string name="track_none">Aucune piste</string>
     <string name="theme_title">Thème</string>
     <string name="theme_auto">Automatique (système)</string>
+    <string name="clock_title">Format de l\'heure</string>
+    <string name="clock_auto">Automatique (système)</string>
+    <string name="clock_24">24 heures</string>
+    <string name="clock_12">12 heures</string>
     <string name="theme_light">Clair</string>
     <string name="theme_dark">Sombre</string>
     <string name="player_theme_title">Thème du lecteur</string>

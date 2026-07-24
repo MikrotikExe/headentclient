@@ -251,6 +251,10 @@
     <string name="track_none">Tidak ada trek</string>
     <string name="theme_title">Tema</string>
     <string name="theme_auto">Otomatis (sistem)</string>
+    <string name="clock_title">Format waktu</string>
+    <string name="clock_auto">Otomatis (sistem)</string>
+    <string name="clock_24">24 jam</string>
+    <string name="clock_12">12 jam</string>
     <string name="theme_light">Terang</string>
     <string name="theme_dark">Gelap</string>
     <string name="player_theme_title">Tema pemutar</string>

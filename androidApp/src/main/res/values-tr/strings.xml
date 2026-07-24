@@ -251,6 +251,10 @@
     <string name="track_none">Parça yok</string>
     <string name="theme_title">Tema</string>
     <string name="theme_auto">Otomatik (sistem)</string>
+    <string name="clock_title">Saat biçimi</string>
+    <string name="clock_auto">Otomatik (sistem)</string>
+    <string name="clock_24">24 saat</string>
+    <string name="clock_12">12 saat</string>
     <string name="theme_light">Açık</string>
     <string name="theme_dark">Koyu</string>
     <string name="player_theme_title">Oynatıcı teması</string>

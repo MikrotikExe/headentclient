@@ -21,15 +21,28 @@ class TvhApplication : Application() {
         }
     }
 
+    // Zmena systemoveho nastavenia 12/24 hodin (M423-fix). Android ju hlasi
+    // cez ACTION_TIME_CHANGED — rovnako to riesi aj systemovy TextClock.
+    private val timeFormatReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent?) {
+            if (intent?.action != Intent.ACTION_TIME_CHANGED) return
+            ClockPref.onSystemFormatChanged(context)
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         CrashLogger.install(this)   // diagnostika pádov (M353)
         initSecureStorage(this)
+        ClockPref.apply(this)       // format hodin do zdielaneho modulu (M423)
         // SCREEN_ON sa od Androidu 8 nedá registrovať v manifeste — len za behu.
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_USER_PRESENT)
         }
         runCatching { registerReceiver(screenOnReceiver, filter) }
+        runCatching {
+            registerReceiver(timeFormatReceiver, IntentFilter(Intent.ACTION_TIME_CHANGED))
+        }
     }
 }

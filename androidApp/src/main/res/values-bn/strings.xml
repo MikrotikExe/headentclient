@@ -251,6 +251,10 @@
     <string name="track_none">কোনো ট্র্যাক নেই</string>
     <string name="theme_title">থিম</string>
     <string name="theme_auto">স্বয়ংক্রিয় (সিস্টেম)</string>
+    <string name="clock_title">সময় বিন্যাস</string>
+    <string name="clock_auto">স্বয়ংক্রিয় (সিস্টেম)</string>
+    <string name="clock_24">24-ঘণ্টা</string>
+    <string name="clock_12">12-ঘণ্টা</string>
     <string name="theme_light">হালকা</string>
     <string name="theme_dark">গাঢ়</string>
     <string name="player_theme_title">প্লেয়ার থিম</string>

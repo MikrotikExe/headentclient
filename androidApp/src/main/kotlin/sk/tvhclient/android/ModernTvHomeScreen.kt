@@ -97,9 +97,10 @@ fun ModernTvHomeScreen(
         while (true) { now = System.currentTimeMillis(); kotlinx.coroutines.delay(30_000) }
     }
     val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
-    val timeStr = remember(now) { SimpleDateFormat("HH:mm", locale).format(Date(now)) }
+    val clockFmt = ClockPref.hm(LocalContext.current)
+    val timeStr = remember(now, clockFmt) { SimpleDateFormat(clockFmt, locale).format(Date(now)) }
     val dateStr = remember(now) { SimpleDateFormat("EEEE d. MMMM", locale).format(Date(now)) }
-    val hhmm = remember(locale) { SimpleDateFormat("HH:mm", locale) }
+    val hhmm = remember(locale, clockFmt) { SimpleDateFormat(clockFmt, locale) }
 
     val rows: List<ChannelRow> = (chState as? ChannelsState.Loaded)?.allRows ?: emptyList()
     val sid = remember { Tvh.store.active()?.id ?: "default" }
