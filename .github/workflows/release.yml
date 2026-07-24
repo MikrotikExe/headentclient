@@ -58,14 +58,39 @@ jobs:
 
       - name: Priprav artefakty (nazov + sha256)
         run: |
-          # M402-fix: nazov vystupu sa moze lisit -> najdi APK wildcardom
-          ls -la androidApp/build/outputs/apk/release/ || true
-          APK=$(ls androidApp/build/outputs/apk/release/*.apk 2>/dev/null | head -1)
-          if [ -z "$APK" ]; then echo "Release APK sa nenasiel" >&2; exit 1; fi
-          case "$APK" in *unsigned*) echo "APK je NEPODPISANE — skontroluj signing secrets" >&2; exit 1;; esac
-          cp "$APK" "HeadentClient-${REL_TAG#v}.apk"
-          sha256sum "HeadentClient-${REL_TAG#v}.apk" > "HeadentClient-${REL_TAG#v}.apk.sha256"
-          cat "HeadentClient-${REL_TAG#v}.apk.sha256"
+          # M424: assembleRelease vyrobi viac APK (jeden na kazde ABI + univerzalny).
+          # Predtym tu bolo "ls | head -1", co abecedne vybralo arm64 a zvysok zahodilo
+          # -> na 32-bitovych zariadeniach sa vydanie nedalo nainstalovat.
+          DIR=androidApp/build/outputs/apk/release
+          VER="${REL_TAG#v}"
+          ls -la "$DIR" || true
+          FOUND=0
+          for APK in "$DIR"/*.apk; do
+            [ -e "$APK" ] || continue
+            case "$APK" in *unsigned*) echo "APK je NEPODPISANE — skontroluj signing secrets" >&2; exit 1;; esac
+            case "$(basename "$APK")" in
+              *universal*)    OUT="HeadentClient-$VER.apk" ;;
+              *arm64-v8a*)    OUT="HeadentClient-$VER-arm64-v8a.apk" ;;
+              *armeabi-v7a*)  OUT="HeadentClient-$VER-armeabi-v7a.apk" ;;
+              *)              OUT="HeadentClient-$VER.apk" ;;
+            esac
+            cp "$APK" "$OUT"
+            sha256sum "$OUT" > "$OUT.sha256"
+            echo "-> $OUT ($(du -h "$OUT" | cut -f1))"
+            FOUND=$((FOUND+1))
+          done
+          if [ "$FOUND" -eq 0 ]; then echo "Release APK sa nenasiel" >&2; exit 1; fi
+          # Poistka proti navratu tej istej chyby. Vydanie musi byt instalovatelne
+          # na 32-bit aj 64-bit, co plati ked existuje bud univerzalny APK, alebo
+          # oba splity. Druha moznost nastane pri rucnom spusteni nad starsou
+          # znackou, ktorej build.gradle.kts univerzalny APK este nevyrabal.
+          if [ ! -f "HeadentClient-$VER.apk" ] &&
+             { [ ! -f "HeadentClient-$VER-arm64-v8a.apk" ] ||
+               [ ! -f "HeadentClient-$VER-armeabi-v7a.apk" ]; }; then
+            echo "Vydanie by pokrylo len jednu architekturu — zastavene" >&2
+            exit 1
+          fi
+          cat HeadentClient-*.apk.sha256
 
       - name: Poznamky k vydaniu
         id: notes

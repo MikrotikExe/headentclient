@@ -68,7 +68,11 @@ android {
             isEnable = !buildingBundle
             reset()
             include("armeabi-v7a", "arm64-v8a")
-            isUniversalApk = false
+            // M424: k jednotlivym ABI sa stava aj univerzalny APK. Ten ide na
+            // GitHub Release pre bocnu instalaciu — jeden subor, ktory nasadne
+            // na 32-bit aj 64-bit. Predtym sa do vydania dostal len arm64 split
+            // a na 32-bitovych boxoch hlasil "aplikacia nie je kompatibilna".
+            isUniversalApk = !buildingBundle
         }
     }
 
