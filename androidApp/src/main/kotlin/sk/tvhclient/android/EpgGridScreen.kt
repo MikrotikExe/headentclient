@@ -724,11 +724,19 @@ fun EpgGridScreen(
                 Spacer(Modifier.width(chanColFor(configuration.screenWidthDp, epgCompact).dp))
                 Box(Modifier.horizontalScroll(hScroll)) {
                     Row {
+                        // M423-fix2: pravitko respektuje volbu 12/24 h. Dlazdice a
+                        // bublina "teraz" idu cez formatTimeHm, tu bolo "%02d:00"
+                        // natvrdo — jedine miesto, kde ostal 24-hodinovy format.
+                        val ruler12 = !ClockPref.is24(LocalContext.current)
                         for (h in 0 until 24) {
                             Text(
-                                "%02d:00".format(h),
+                                if (ruler12) {
+                                    val h12 = if (h % 12 == 0) 12 else h % 12
+                                    "%d %s".format(h12, if (h < 12) "AM" else "PM")
+                                } else "%02d:00".format(h),
                                 modifier = Modifier.width((60 * pxMin).dp).padding(start = 4.dp, bottom = 4.dp),
                                 style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
