@@ -345,7 +345,11 @@ class PlayerActivity : ComponentActivity() {
 
     private fun buildMedia(url: String): Media {
         val m = Media(libVlc, Uri.parse(url))
-        m.setHWDecoderEnabled(true, false)
+        if (android.os.Build.FINGERPRINT.contains("emu") || android.os.Build.MODEL.contains("sdk_gphone") || android.os.Build.HARDWARE.contains("ranchu")) {
+            // Emulator Android Studia: MediaCodec cez virtualne GPU zamrzne na
+            // prvom snimku. Softverove dekodovanie funguje. Netyka sa zariadeni.
+            m.setHWDecoderEnabled(false, false)
+        } else m.setHWDecoderEnabled(true, false)
         // User-Agent: nech server vidi, ze sa pripaja HeadentClient
         m.addOption(":http-user-agent=" + userAgent())
         applyDeinterlace(m)
@@ -400,7 +404,11 @@ class PlayerActivity : ComponentActivity() {
         httpFeeder = feeder
         val fd = feeder.start(lifecycleScope)
         val media = Media(libVlc, fd)
-        media.setHWDecoderEnabled(true, false)
+        if (android.os.Build.FINGERPRINT.contains("emu") || android.os.Build.MODEL.contains("sdk_gphone") || android.os.Build.HARDWARE.contains("ranchu")) {
+            // Emulator Android Studia: MediaCodec cez virtualne GPU zamrzne na
+            // prvom snimku. Softverove dekodovanie funguje. Netyka sa zariadeni.
+            media.setHWDecoderEnabled(false, false)
+        } else media.setHWDecoderEnabled(true, false)
         applyFeederDemux(media, url)
         media.addOption(":file-caching=" + BufferPref.ms(this))
         applyDeinterlace(media)
@@ -504,7 +512,11 @@ class PlayerActivity : ComponentActivity() {
         httpFeeder = feeder
         val fd = feeder.start(lifecycleScope)
         val media = Media(libVlc, fd)
-        media.setHWDecoderEnabled(true, false)
+        if (android.os.Build.FINGERPRINT.contains("emu") || android.os.Build.MODEL.contains("sdk_gphone") || android.os.Build.HARDWARE.contains("ranchu")) {
+            // Emulator Android Studia: MediaCodec cez virtualne GPU zamrzne na
+            // prvom snimku. Softverove dekodovanie funguje. Netyka sa zariadeni.
+            media.setHWDecoderEnabled(false, false)
+        } else media.setHWDecoderEnabled(true, false)
         media.addOption(":demux=ts")
         media.addOption(":file-caching=" + BufferPref.htspMs(this))
         applyDeinterlace(media)
@@ -533,7 +545,11 @@ class PlayerActivity : ComponentActivity() {
             resetTimeshift()
             val fd = feeder.start(channelId, lifecycleScope)
             val media = Media(libVlc, fd)
-            media.setHWDecoderEnabled(true, false)
+            if (android.os.Build.FINGERPRINT.contains("emu") || android.os.Build.MODEL.contains("sdk_gphone") || android.os.Build.HARDWARE.contains("ranchu")) {
+            // Emulator Android Studia: MediaCodec cez virtualne GPU zamrzne na
+            // prvom snimku. Softverove dekodovanie funguje. Netyka sa zariadeni.
+            media.setHWDecoderEnabled(false, false)
+        } else media.setHWDecoderEnabled(true, false)
             media.addOption(":demux=ts")
             media.addOption(":file-caching=" + BufferPref.htspMs(this))
             applyDeinterlace(media)
