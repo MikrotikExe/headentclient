@@ -350,14 +350,16 @@ class PlayerActivity : ComponentActivity() {
      * zariadenia maju vo fingerprinte vyrobcu a v hardware nazov cipu.
      */
     /**
-     * M428: zariadenia, kde MediaCodec cesta nefunguje a treba softverove
-     * dekodovanie. Raspberry Pi (KonstaKANG/LineageOS): HW V4L2 dekoder bezi,
-     * ale odovzdavanie bufferov na surface zlyhava (bcm2835-codec "buffer size
-     * mismatch", "MediaCodec discarded an unknown buffer") — obraz zamrzne na
-     * prvom snimku. Softverovy dekoder ffmpeg 1080p H.264 na Pi 4 zvlada.
+     * M428-fix: softverove dekodovanie len pre emulator. Na Raspberry Pi
+     * (KonstaKANG) sa problem "obraz zamrzne na prvom snimku" riesi v systeme,
+     * nie v appke: Settings -> System -> Raspberry Pi settings -> Hardware
+     * video decoding -> zvolit variant "FFmpeg H.264 and H.265 hardware
+     * decoding" (predvoleny v4l2_codec2 variant zahadzuje buffery pri
+     * odovzdavani na surface — bcm2835-codec "buffer size mismatch").
+     * Softverovy dekoder bol na 1080i kanaloch trhany (dekodovanie + yadif
+     * deinterlace naraz CPU Pi 4 nezvlada), preto sa nevnucuje.
      */
-    private fun useSoftwareDecode(): Boolean =
-        isEmulator() || android.os.Build.HARDWARE.lowercase().contains("rpi")
+    private fun useSoftwareDecode(): Boolean = isEmulator()
 
     private fun isEmulator(): Boolean =
         android.os.Build.FINGERPRINT.contains("emu") ||
