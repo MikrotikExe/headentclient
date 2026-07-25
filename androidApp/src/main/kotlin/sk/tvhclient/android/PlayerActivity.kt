@@ -349,6 +349,16 @@ class PlayerActivity : ComponentActivity() {
      * vyskytuje vo fingerprintoch vsetkych emulatorovych obrazov. Skutocne
      * zariadenia maju vo fingerprinte vyrobcu a v hardware nazov cipu.
      */
+    /**
+     * M428: zariadenia, kde MediaCodec cesta nefunguje a treba softverove
+     * dekodovanie. Raspberry Pi (KonstaKANG/LineageOS): HW V4L2 dekoder bezi,
+     * ale odovzdavanie bufferov na surface zlyhava (bcm2835-codec "buffer size
+     * mismatch", "MediaCodec discarded an unknown buffer") — obraz zamrzne na
+     * prvom snimku. Softverovy dekoder ffmpeg 1080p H.264 na Pi 4 zvlada.
+     */
+    private fun useSoftwareDecode(): Boolean =
+        isEmulator() || android.os.Build.HARDWARE.lowercase().contains("rpi")
+
     private fun isEmulator(): Boolean =
         android.os.Build.FINGERPRINT.contains("emu") ||
         android.os.Build.MODEL.contains("sdk_gphone") ||
@@ -357,9 +367,8 @@ class PlayerActivity : ComponentActivity() {
 
     private fun buildMedia(url: String): Media {
         val m = Media(libVlc, Uri.parse(url))
-        if (isEmulator()) {
-            // Emulator Android Studia: MediaCodec cez virtualne GPU zamrzne na
-            // prvom snimku. Softverove dekodovanie funguje. Netyka sa zariadeni.
+        if (useSoftwareDecode()) {
+            // Emulator alebo Raspberry Pi — viz useSoftwareDecode() (M428)
             m.setHWDecoderEnabled(false, false)
         } else m.setHWDecoderEnabled(true, false)
         // User-Agent: nech server vidi, ze sa pripaja HeadentClient
@@ -418,9 +427,8 @@ class PlayerActivity : ComponentActivity() {
         httpFeeder = feeder
         val fd = feeder.start(lifecycleScope)
         val media = Media(libVlc, fd)
-        if (isEmulator()) {
-            // Emulator Android Studia: MediaCodec cez virtualne GPU zamrzne na
-            // prvom snimku. Softverove dekodovanie funguje. Netyka sa zariadeni.
+        if (useSoftwareDecode()) {
+            // Emulator alebo Raspberry Pi — viz useSoftwareDecode() (M428)
             media.setHWDecoderEnabled(false, false)
         } else media.setHWDecoderEnabled(true, false)
         applyFeederDemux(media, url)
@@ -526,9 +534,8 @@ class PlayerActivity : ComponentActivity() {
         httpFeeder = feeder
         val fd = feeder.start(lifecycleScope)
         val media = Media(libVlc, fd)
-        if (isEmulator()) {
-            // Emulator Android Studia: MediaCodec cez virtualne GPU zamrzne na
-            // prvom snimku. Softverove dekodovanie funguje. Netyka sa zariadeni.
+        if (useSoftwareDecode()) {
+            // Emulator alebo Raspberry Pi — viz useSoftwareDecode() (M428)
             media.setHWDecoderEnabled(false, false)
         } else media.setHWDecoderEnabled(true, false)
         media.addOption(":demux=ts")
@@ -559,9 +566,8 @@ class PlayerActivity : ComponentActivity() {
             resetTimeshift()
             val fd = feeder.start(channelId, lifecycleScope)
             val media = Media(libVlc, fd)
-            if (isEmulator()) {
-            // Emulator Android Studia: MediaCodec cez virtualne GPU zamrzne na
-            // prvom snimku. Softverove dekodovanie funguje. Netyka sa zariadeni.
+            if (useSoftwareDecode()) {
+            // Emulator alebo Raspberry Pi — viz useSoftwareDecode() (M428)
             media.setHWDecoderEnabled(false, false)
         } else media.setHWDecoderEnabled(true, false)
             media.addOption(":demux=ts")
