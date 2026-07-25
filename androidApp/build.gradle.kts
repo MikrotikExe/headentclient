@@ -48,11 +48,13 @@ android {
         applicationId = "sk.tvhclient"
         minSdk = 23
         targetSdk = 36
-        // M424-fix2: pri stavbe APK (nie bundle) obmedz natívne kniznice na ARM.
-        // Univerzalny APK inak zoberie VSETKY ABI z libVLC vratane x86/x86_64
-        // a narastie na dvojnasobok. AAB pre Play filter nema — Play si ABI
-        // deli sam a x86 zariadenia (Chromebooky) ostavaju pokryte.
-        if (!buildingBundle) {
+        // M424-fix4: ABI filter LEN pre univerzalny build. Pri zapnutych
+        // splitoch ABI obmedzuje uz include() v splits bloku a AGP kombinaciu
+        // ndk.abiFilters + splits odmieta ("Conflicting configuration").
+        // Univerzalny build ma splity vypnute a bez filtra by zobral vsetky
+        // ABI z libVLC vratane x86/x86_64 (212 MB namiesto ~104 MB).
+        // AAB pre Play filter nema — Play si ABI deli sam.
+        if (universalRequested && !buildingBundle) {
             ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
         }
         versionCode = 39
