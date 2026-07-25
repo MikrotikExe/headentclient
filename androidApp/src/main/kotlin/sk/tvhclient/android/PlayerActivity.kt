@@ -343,9 +343,21 @@ class PlayerActivity : ComponentActivity() {
         return url.substring(0, i + 3) + rest.substring(at + 1)
     }
 
+    /**
+     * Detekcia emulatora Android Studia (M426): ranchu/goldfish su nazvy jeho
+     * virtualnych dosiek, sdk_gphone modely telefonnych obrazov, "emu" sa
+     * vyskytuje vo fingerprintoch vsetkych emulatorovych obrazov. Skutocne
+     * zariadenia maju vo fingerprinte vyrobcu a v hardware nazov cipu.
+     */
+    private fun isEmulator(): Boolean =
+        android.os.Build.FINGERPRINT.contains("emu") ||
+        android.os.Build.MODEL.contains("sdk_gphone") ||
+        android.os.Build.HARDWARE.contains("ranchu") ||
+        android.os.Build.HARDWARE.contains("goldfish")
+
     private fun buildMedia(url: String): Media {
         val m = Media(libVlc, Uri.parse(url))
-        if (android.os.Build.FINGERPRINT.contains("emu") || android.os.Build.MODEL.contains("sdk_gphone") || android.os.Build.HARDWARE.contains("ranchu")) {
+        if (isEmulator()) {
             // Emulator Android Studia: MediaCodec cez virtualne GPU zamrzne na
             // prvom snimku. Softverove dekodovanie funguje. Netyka sa zariadeni.
             m.setHWDecoderEnabled(false, false)
@@ -404,7 +416,7 @@ class PlayerActivity : ComponentActivity() {
         httpFeeder = feeder
         val fd = feeder.start(lifecycleScope)
         val media = Media(libVlc, fd)
-        if (android.os.Build.FINGERPRINT.contains("emu") || android.os.Build.MODEL.contains("sdk_gphone") || android.os.Build.HARDWARE.contains("ranchu")) {
+        if (isEmulator()) {
             // Emulator Android Studia: MediaCodec cez virtualne GPU zamrzne na
             // prvom snimku. Softverove dekodovanie funguje. Netyka sa zariadeni.
             media.setHWDecoderEnabled(false, false)
@@ -512,7 +524,7 @@ class PlayerActivity : ComponentActivity() {
         httpFeeder = feeder
         val fd = feeder.start(lifecycleScope)
         val media = Media(libVlc, fd)
-        if (android.os.Build.FINGERPRINT.contains("emu") || android.os.Build.MODEL.contains("sdk_gphone") || android.os.Build.HARDWARE.contains("ranchu")) {
+        if (isEmulator()) {
             // Emulator Android Studia: MediaCodec cez virtualne GPU zamrzne na
             // prvom snimku. Softverove dekodovanie funguje. Netyka sa zariadeni.
             media.setHWDecoderEnabled(false, false)
@@ -545,7 +557,7 @@ class PlayerActivity : ComponentActivity() {
             resetTimeshift()
             val fd = feeder.start(channelId, lifecycleScope)
             val media = Media(libVlc, fd)
-            if (android.os.Build.FINGERPRINT.contains("emu") || android.os.Build.MODEL.contains("sdk_gphone") || android.os.Build.HARDWARE.contains("ranchu")) {
+            if (isEmulator()) {
             // Emulator Android Studia: MediaCodec cez virtualne GPU zamrzne na
             // prvom snimku. Softverove dekodovanie funguje. Netyka sa zariadeni.
             media.setHWDecoderEnabled(false, false)
@@ -2750,6 +2762,10 @@ class PlayerActivity : ComponentActivity() {
         )
         // Korekcia synchronizacie zvuku ako init volba (jellyfin pristup). Aplikuje
         // Predvolene 0 = vypnute (nic nemeni). Zaporna = zvuk skor, kladna = neskor.
+        // M426-fix2: na emulatore zvuk mesksa ~1 s za obrazom (softverovy dekoder
+        // + virtualna zvukovka). Pevna kompenzacia LEN pre emulator — na
+        // zariadeniach sa nic nemeni, A/V sync je tam vyladeny z 1.0.1.
+        if (isEmulator()) options.add("--audio-desync=-1000")
         // Deinterlacing (globalne, nech plati uz na prvom otvoreni; per-medium
         // sa nastavi znova pri kazdom prepnuti kanala)
         val (dEn, dMode) = deinterlaceSpec()
