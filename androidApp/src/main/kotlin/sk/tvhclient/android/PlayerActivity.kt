@@ -361,6 +361,11 @@ class PlayerActivity : ComponentActivity() {
      */
     private fun useSoftwareDecode(): Boolean = isEmulator()
 
+    /** M429: TV zariadenie podla UI modu (Homatics, Shield, Pi — maju aj PiP feature). */
+    private fun isTvDevice(): Boolean =
+        (getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager)
+            ?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
+
     private fun isEmulator(): Boolean =
         android.os.Build.FINGERPRINT.contains("emu") ||
         android.os.Build.MODEL.contains("sdk_gphone") ||
@@ -3703,8 +3708,12 @@ class PlayerActivity : ComponentActivity() {
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
         // Auto-PiP na telefonoch pri odchode z aplikacie.
-        // TV boxy nemaju FEATURE_PICTURE_IN_PICTURE, takze pipSupported = telefon/tablet.
-        if (AutoPipPref.get(this) && pipSupported && isPlayingState.value &&
+        // M429: povodny predpoklad "TV boxy nemaju FEATURE_PICTURE_IN_PICTURE" NEPLATI
+        // (Homatics, Shield, Raspberry Pi ju maju) — auto-PiP pri HOME sa tam spustal
+        // tiez a miniatura ostavala visiet nad launcherom/YouTube (hlasenie z Redditu).
+        // Na TV preto pri odchode z appky do PiP nevstupujeme; PiP na TV zostava len
+        // vnutri appky (BACK -> miniatura nad TV programom).
+        if (!isTvDevice() && AutoPipPref.get(this) && pipSupported && isPlayingState.value &&
             !(android.os.Build.VERSION.SDK_INT >= 24 && isInPictureInPictureMode)) {
             enterPipIfPossible()
         }
@@ -3953,6 +3962,17 @@ class PlayerActivity : ComponentActivity() {
             val a = liveInstance?.get() ?: return false
             if (a.isFinishing || a.isDestroyed) return false
             a.runOnUiThread { runCatching { a.finish() } }
+            return true
+        }
+
+        /** M429: zavri prehravac, ak visi v PiP miniature — vratane pripnuteho okna.
+         *  Vola MainActivity.onStop na TV: ked pouzivatel odide z appky (ina appka,
+         *  HOME), miniatura nad cudzim obsahom nema co robit. */
+        fun closeIfInPip(): Boolean {
+            val a = liveInstance?.get() ?: return false
+            if (a.isFinishing || a.isDestroyed) return false
+            if (android.os.Build.VERSION.SDK_INT < 24 || !a.inPipState.value) return false
+            a.runOnUiThread { runCatching { a.finishAndRemoveTask() } }
             return true
         }
     }

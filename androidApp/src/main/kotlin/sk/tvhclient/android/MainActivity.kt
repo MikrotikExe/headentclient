@@ -114,6 +114,20 @@ object TabController {
 }
 
 class MainActivity : ComponentActivity() {
+
+    /** M429 (len TV): ked pouzivatel odide z appky a prehravac visi v PiP
+     *  miniature, zavri ju aj s pripnutym oknom. PiP na TV zije len vnutri
+     *  appky (miniatura nad TV programom); nad launcherom/YouTube nema co robit.
+     *  Telefonov sa netyka — tam je PiP nad inymi appkami ziaduce. */
+    override fun onStop() {
+        super.onStop()
+        val isTv = (getSystemService(UI_MODE_SERVICE) as? android.app.UiModeManager)
+            ?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
+        if (isTv && !isChangingConfigurations) {
+            PlayerActivity.closeIfInPip()
+        }
+    }
+
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(LocaleHelper.wrap(newBase))
     }
