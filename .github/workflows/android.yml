@@ -45,7 +45,11 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: HeadentClient-debug
-          path: androidApp/build/outputs/apk/debug/*.apk
+          # M424-fix2: len splity — univerzalny APK by artefakt zdvojnasobil,
+          # na test na zariadeni ho netreba (patri len do GitHub Release)
+          path: |
+            androidApp/build/outputs/apk/debug/*-arm64-v8a-*.apk
+            androidApp/build/outputs/apk/debug/*-armeabi-v7a-*.apk
 
       - name: Build release APK (R8, na test na zariadeni)
         run: gradle :androidApp:assembleRelease
@@ -53,7 +57,10 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: HeadentClient-release
-          path: androidApp/build/outputs/apk/release/*.apk
+          # M424-fix2: len splity, univerzalny sa nahrava len v release.yml
+          path: |
+            androidApp/build/outputs/apk/release/*-arm64-v8a-*.apk
+            androidApp/build/outputs/apk/release/*-armeabi-v7a-*.apk
 
       - name: Build release AAB (pre Google Play)
         run: gradle :androidApp:bundleRelease

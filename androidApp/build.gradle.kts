@@ -35,10 +35,26 @@ android {
         }
     }
 
+    val buildingBundle = gradle.startParameter.taskNames.any {
+        it.contains("bundle", ignoreCase = true)
+    }
+    // M424-fix3: univerzalny APK sa stava SAMOSTATNE, len na vyziadanie:
+    //   gradle :androidApp:assembleRelease -PuniversalApk
+    // Vtedy sa vypnu splity a vznikne jeden APK s oboma ARM ABI (androidApp-release.apk).
+    // Bezny build (push, ladenie) stavia len splity — univerzalny nezdrziava CI.
+    val universalRequested = project.hasProperty("universalApk")
+
     defaultConfig {
         applicationId = "sk.tvhclient"
         minSdk = 23
         targetSdk = 36
+        // M424-fix2: pri stavbe APK (nie bundle) obmedz natívne kniznice na ARM.
+        // Univerzalny APK inak zoberie VSETKY ABI z libVLC vratane x86/x86_64
+        // a narastie na dvojnasobok. AAB pre Play filter nema — Play si ABI
+        // deli sam a x86 zariadenia (Chromebooky) ostavaju pokryte.
+        if (!buildingBundle) {
+            ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
+        }
         versionCode = 39
         versionName = "1.0.1"
         buildConfigField(
@@ -60,19 +76,12 @@ android {
     // pri bundleRelease so zapnutym splits padne ("Sequence contains more than one
     // matching element"). Pri AAB sa splits aj tak ignoruje — Play si rozdeli ABI
     // sam z App Bundle. Podmienka podla nazvu gradle ulohy.
-    val buildingBundle = gradle.startParameter.taskNames.any {
-        it.contains("bundle", ignoreCase = true)
-    }
     splits {
         abi {
-            isEnable = !buildingBundle
+            isEnable = !buildingBundle && !universalRequested
             reset()
             include("armeabi-v7a", "arm64-v8a")
-            // M424: k jednotlivym ABI sa stava aj univerzalny APK. Ten ide na
-            // GitHub Release pre bocnu instalaciu — jeden subor, ktory nasadne
-            // na 32-bit aj 64-bit. Predtym sa do vydania dostal len arm64 split
-            // a na 32-bitovych boxoch hlasil "aplikacia nie je kompatibilna".
-            isUniversalApk = !buildingBundle
+            isUniversalApk = false
         }
     }
 

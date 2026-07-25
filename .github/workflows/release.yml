@@ -53,8 +53,19 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
           printf 'storeFile=keystore.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
 
-      - name: Build release APK
-        run: gradle :androidApp:assembleRelease
+      - name: Build release APK (splity)
+        run: |
+          gradle :androidApp:assembleRelease
+          # odloz splity bokom, dalsi build ma rovnaky vystupny priecinok
+          mkdir -p /tmp/rel-apks
+          cp androidApp/build/outputs/apk/release/*.apk /tmp/rel-apks/
+
+      - name: Build release APK (univerzalny, samostatne)
+        run: |
+          gradle :androidApp:assembleRelease -PuniversalApk
+          cp androidApp/build/outputs/apk/release/androidApp-release.apk /tmp/rel-apks/ 2>/dev/null \
+            || cp androidApp/build/outputs/apk/release/*-release.apk /tmp/rel-apks/
+          cp -f /tmp/rel-apks/*.apk androidApp/build/outputs/apk/release/
 
       - name: Priprav artefakty (nazov + sha256)
         run: |
