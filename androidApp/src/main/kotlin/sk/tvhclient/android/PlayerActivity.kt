@@ -382,6 +382,8 @@ class PlayerActivity : ComponentActivity() {
     /** Aplikuje deinterlacing na dane medium (riesi hrebenove pasy / combing pri
      *  prekladanom DVB videu na rychlych zaberoch). */
     private fun applyDeinterlace(m: Media) {
+        if (isEmulator()) return  // M426-fix3: viz komentar pri inicializacii LibVLC
+
         val (en, mode) = deinterlaceSpec()
         m.addOption(":deinterlace=$en")
         if (mode != null) m.addOption(":deinterlace-mode=$mode")
@@ -2768,9 +2770,19 @@ class PlayerActivity : ComponentActivity() {
         if (isEmulator()) options.add("--audio-desync=-1000")
         // Deinterlacing (globalne, nech plati uz na prvom otvoreni; per-medium
         // sa nastavi znova pri kazdom prepnuti kanala)
-        val (dEn, dMode) = deinterlaceSpec()
-        options.add("--deinterlace=$dEn")
-        if (dMode != null) options.add("--deinterlace-mode=$dMode")
+        // M426-fix3: na emulatore softverova cesta nevie postavit retaz
+        // filtrov pre deinterlace ("Too high level of recursion", "Failed to
+        // create video converter" -> vout creation failed = ziadny obraz).
+        // Deinterlace tam vypiname a zobrazeniu vnucujeme RGB chromu, ktoru
+        // emulatorovy vystup zvlada. Zariadeni sa netyka.
+        if (isEmulator()) {
+            options.add("--deinterlace=0")
+            options.add("--android-display-chroma=RV32")
+        } else {
+            val (dEn, dMode) = deinterlaceSpec()
+            options.add("--deinterlace=$dEn")
+            if (dMode != null) options.add("--deinterlace-mode=$dMode")
+        }
         libVlc = LibVLC(this, options)
         mediaPlayer = MediaPlayer(libVlc)
         // Zvukovy vystup z nastaveni. Modul (telefon: AudioTrack/OpenSL ES) aj
