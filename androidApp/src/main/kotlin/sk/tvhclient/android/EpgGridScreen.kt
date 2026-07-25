@@ -732,7 +732,7 @@ fun EpgGridScreen(
                             Text(
                                 if (ruler12) {
                                     val h12 = if (h % 12 == 0) 12 else h % 12
-                                    "%d %s".format(h12, if (h < 12) "AM" else "PM")
+                                    "%d:00 %s".format(h12, if (h < 12) "AM" else "PM")
                                 } else "%02d:00".format(h),
                                 modifier = Modifier.width((60 * pxMin).dp).padding(start = 4.dp, bottom = 4.dp),
                                 style = MaterialTheme.typography.labelSmall,
