@@ -2676,7 +2676,14 @@ class PlayerActivity : ComponentActivity() {
         RadioPlayerService.stop(this)
         // Zavri predoslu instanciu prehravaca (napr. visiacu v PiP so starym kanalom),
         // nech pri prepnuti kanala nezostane stara PiP visiet. Nova sa otvori na celu obrazovku.
-        liveInstance?.get()?.let { old -> if (old !== this) runCatching { old.finish() } }
+        // M427: ak stara instancia visi v PiP, obycajny finish() zavrie aktivitu,
+        // ale pripnute PiP okno (pinned task) moze ostat visiet ako prazdna karta
+        // — systemu treba povedat, nech odstrani cely task. Mimo PiP staci finish().
+        liveInstance?.get()?.let { old ->
+            if (old !== this) runCatching {
+                if (old.isInPictureInPictureMode) old.finishAndRemoveTask() else old.finish()
+            }
+        }
         liveInstance = java.lang.ref.WeakReference(this)
         // Navrat na povodny zivy kanal po zatvoreni (pri "Prehrat od zaciatku" z prehravaca)
         returnLiveUuid = intent.getStringExtra(EXTRA_RETURN_UUID)
