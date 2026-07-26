@@ -271,7 +271,7 @@ private fun TvHomeHost() {
         // M432 (plan B): ten isty kanal uz bezi v PiP miniature -> len ju
         // vytiahni na fullscreen, prehravac sa nestartuje nanovo (stream ide
         // dalej bez prerusenia). Pri neuspechu pokracuje normalny start.
-        if (kind == "tv" && PlayerActivity.expandIfPipWithChannel(this, uuid)) return
+        if (kind == "tv" && PlayerActivity.expandIfPipWithChannel(ctx, uuid)) return
 
         runCatching {
             ctx.startActivity(Intent(ctx, PlayerActivity::class.java).apply {
