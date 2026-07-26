@@ -361,11 +361,6 @@ class PlayerActivity : ComponentActivity() {
      */
     private fun useSoftwareDecode(): Boolean = isEmulator()
 
-    /** M429: TV zariadenie podla UI modu (Homatics, Shield, Pi — maju aj PiP feature). */
-    private fun isTvDevice(): Boolean =
-        (getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager)
-            ?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
-
     private fun isEmulator(): Boolean =
         android.os.Build.FINGERPRINT.contains("emu") ||
         android.os.Build.MODEL.contains("sdk_gphone") ||
