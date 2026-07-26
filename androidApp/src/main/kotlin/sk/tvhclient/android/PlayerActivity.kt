@@ -4076,31 +4076,6 @@ class PlayerActivity : ComponentActivity() {
             return true
         }
 
-        /** M432 (plan B): ak instancia visi v PiP a hra presne dany kanal, skus
-         *  pripnuty task vytiahnut na fullscreen. Vola sa z MainActivity PRED
-         *  startom novej aktivity — ked uspeje, nova aktivita sa vobec nestartuje
-         *  (ziadne nove HTSP spojenie, ziadne cierne prebliknutie). Vracia true
-         *  len pri uspesnom presune; inak volajuci startuje prehravac normalne. */
-        fun expandIfPipWithChannel(ctx: android.content.Context, uuid: String): Boolean {
-            val a = liveInstance?.get() ?: return false
-            if (a.isFinishing || a.isDestroyed) return false
-            if (android.os.Build.VERSION.SDK_INT < 26 || !a.inPipState.value) return false
-            if (a.liveUuids.getOrNull(a.liveIndexState.value) != uuid) return false
-            return runCatching {
-                val am = ctx.getSystemService(android.content.Context.ACTIVITY_SERVICE)
-                    as android.app.ActivityManager
-                val task = am.appTasks.firstOrNull { t ->
-                    runCatching {
-                        val ti = t.taskInfo
-                        val comp = ti.topActivity?.className
-                            ?: ti.baseIntent.component?.className
-                        comp == PlayerActivity::class.java.name
-                    }.getOrDefault(false)
-                }
-                if (task != null) { task.moveToFront(); true } else false
-            }.getOrDefault(false)
-        }
-
         /** M429: zavri prehravac, ak visi v PiP miniature — vratane pripnuteho okna.
          *  Vola MainActivity.onStop na TV: ked pouzivatel odide z appky (ina appka,
          *  HOME), miniatura nad cudzim obsahom nema co robit. */
