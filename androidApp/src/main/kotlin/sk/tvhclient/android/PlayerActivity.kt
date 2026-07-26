@@ -2714,40 +2714,6 @@ class PlayerActivity : ComponentActivity() {
         RadioPlayerService.stop(this)
         // Zavri predoslu instanciu prehravaca (napr. visiacu v PiP so starym kanalom),
         // nech pri prepnuti kanala nezostane stara PiP visiet. Nova sa otvori na celu obrazovku.
-        // M432: ak stara instancia v PiP hra PRESNE ten kanal, ktory sa ziada,
-        // nezakladaj novu — pripnuty task vytiahni na fullscreen (stream bezi
-        // dalej, ziadne nove HTSP pripojenie ani cierna medzera) a tuto aktivitu
-        // ticho ukonci skor, nez cokolvek alokuje. Iny kanal = M427 nizsie.
-        run {
-            val old = liveInstance?.get() ?: return@run
-            if (old === this || old.isFinishing || old.isDestroyed) return@run
-            if (android.os.Build.VERSION.SDK_INT < 26 || !old.inPipState.value) return@run
-            val reqUuid = intent.getStringExtra(EXTRA_UUID) ?: return@run
-            val oldUuid = old.liveUuids.getOrNull(old.liveIndexState.value) ?: return@run
-            if (reqUuid != oldUuid) return@run
-            // M432-fix: novu aktivitu ukonci LEN ak sa pripnuty task nasiel
-            // a presunul do popredia — inak by pouzivatel ostal na uvode so
-            // zaseknutou miniaturou. Ked sa nenajde/nepresunie, prepadni do
-            // M427 restartu nizsie (spravanie pred M432, vzdy funkcne).
-            val myTaskId = taskId
-            val moved = runCatching {
-                val am = getSystemService(android.content.Context.ACTIVITY_SERVICE)
-                    as android.app.ActivityManager
-                val task = am.appTasks.firstOrNull { t ->
-                    runCatching {
-                        val ti = t.taskInfo
-                        val comp = ti.topActivity?.className
-                            ?: ti.baseIntent.component?.className
-                        ti.id != myTaskId && comp == PlayerActivity::class.java.name
-                    }.getOrDefault(false)
-                }
-                if (task != null) { task.moveToFront(); true } else false
-            }.getOrDefault(false)
-            if (moved) {
-                finish()
-                return
-            }
-        }
         // M427: ak stara instancia visi v PiP, obycajny finish() zavrie aktivitu,
         // ale pripnute PiP okno (pinned task) moze ostat visiet ako prazdna karta
         // — systemu treba povedat, nech odstrani cely task. Mimo PiP staci finish().
@@ -4108,6 +4074,31 @@ class PlayerActivity : ComponentActivity() {
             if (a.isFinishing || a.isDestroyed) return false
             a.runOnUiThread { runCatching { a.finish() } }
             return true
+        }
+
+        /** M432 (plan B): ak instancia visi v PiP a hra presne dany kanal, skus
+         *  pripnuty task vytiahnut na fullscreen. Vola sa z MainActivity PRED
+         *  startom novej aktivity — ked uspeje, nova aktivita sa vobec nestartuje
+         *  (ziadne nove HTSP spojenie, ziadne cierne prebliknutie). Vracia true
+         *  len pri uspesnom presune; inak volajuci startuje prehravac normalne. */
+        fun expandIfPipWithChannel(ctx: android.content.Context, uuid: String): Boolean {
+            val a = liveInstance?.get() ?: return false
+            if (a.isFinishing || a.isDestroyed) return false
+            if (android.os.Build.VERSION.SDK_INT < 26 || !a.inPipState.value) return false
+            if (a.liveUuids.getOrNull(a.liveIndexState.value) != uuid) return false
+            return runCatching {
+                val am = ctx.getSystemService(android.content.Context.ACTIVITY_SERVICE)
+                    as android.app.ActivityManager
+                val task = am.appTasks.firstOrNull { t ->
+                    runCatching {
+                        val ti = t.taskInfo
+                        val comp = ti.topActivity?.className
+                            ?: ti.baseIntent.component?.className
+                        comp == PlayerActivity::class.java.name
+                    }.getOrDefault(false)
+                }
+                if (task != null) { task.moveToFront(); true } else false
+            }.getOrDefault(false)
         }
 
         /** M429: zavri prehravac, ak visi v PiP miniature — vratane pripnuteho okna.

@@ -268,6 +268,11 @@ private fun TvHomeHost() {
     var showExit by remember { mutableStateOf(false) }
 
     fun playUuid(uuid: String, title: String, kind: String = "tv") {
+        // M432 (plan B): ten isty kanal uz bezi v PiP miniature -> len ju
+        // vytiahni na fullscreen, prehravac sa nestartuje nanovo (stream ide
+        // dalej bez prerusenia). Pri neuspechu pokracuje normalny start.
+        if (kind == "tv" && PlayerActivity.expandIfPipWithChannel(this, uuid)) return
+
         runCatching {
             ctx.startActivity(Intent(ctx, PlayerActivity::class.java).apply {
                 putExtra(PlayerActivity.EXTRA_UUID, uuid)
