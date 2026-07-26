@@ -331,8 +331,10 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
     SettingsGroupDivider()
 
     // M430-fix: prekryv pri prepinani kanalov (CH+/CH-); vypnute (predvolene)
-    // = kompaktny zap pas s piconou, cislom, programom a priebehom
-    run {
+    // = kompaktny zap pas s piconou, cislom, programom a priebehom.
+    // M434-fix: len TV/leanback — telefon CH+/CH- tlacidla nema, predvolba by
+    // tam nic neovladala.
+    if (ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)) {
         var zapOv by remember { mutableStateOf(ZapOverlayPref.get(ctx)) }
         SettingsSwitchRow(
             label = stringResource(R.string.zap_overlay_title),
@@ -344,8 +346,8 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
                 TabController.settingsDirty.value = true
             }
         )
+        SettingsGroupDivider()
     }
-    SettingsGroupDivider()
 
     // Tema aplikacie: automaticky (system) / svetla / tmava
     var theme by remember { mutableStateOf(ThemePref.get(ctx)) }
