@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Tvheadend 클라이언트 앱</string>
     <string name="login_in_progress">로그인 중…</string>
     <string name="auto_pip_title">자동 화면 속 화면</string>
+    <string name="zap_overlay_title">채널 전환 시 오버레이</string>
+    <string name="zap_overlay_note">끄면 채널 번호와 프로그램이 있는 짧은 바만 표시</string>
     <string name="archive_choice_title">보관 중인 채널에서 묻기</string>
     <string name="archive_choice_note">보관 중인 채널을 선택할 때 실시간으로 재생할지 처음부터 재생할지 묻습니다. 끄면 바로 실시간으로 전환됩니다.</string>
     <string name="ts_enable_title">타임시프트 (실시간 일시정지 / 되감기)</string>

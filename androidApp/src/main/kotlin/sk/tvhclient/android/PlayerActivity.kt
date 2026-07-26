@@ -1729,6 +1729,34 @@ class PlayerActivity : ComponentActivity() {
     }
     private fun closeChannelInfo() { infoVisibleState.value = false }
 
+    // ---- M430: kompaktny zap pas pri prepinani kanalov (prekryv vypnuty) ----
+    private val zapBarVisible = androidx.compose.runtime.mutableStateOf(false)
+    private val zapBarNumber = androidx.compose.runtime.mutableStateOf("")
+    private val zapBarChannel = androidx.compose.runtime.mutableStateOf("")
+    private val zapBarTitle = androidx.compose.runtime.mutableStateOf("")
+    private val zapBarTime = androidx.compose.runtime.mutableStateOf("")
+    private val zapBarProgress = androidx.compose.runtime.mutableStateOf(0f)
+    private var zapBarJob: kotlinx.coroutines.Job? = null
+
+    /** Zobrazi kratky pas (cislo · kanal / program · cas / priebeh) na ~4 s.
+     *  Data ma z liveChannelsState (EPG now/next uz v pamati), nic nestahuje. */
+    private fun showZapBar() {
+        val ch = liveChannelsState.value.getOrNull(liveIndexState.value) ?: return
+        zapBarNumber.value = ch.number?.toString() ?: ""
+        zapBarChannel.value = ch.name
+        zapBarTitle.value = ch.nowTitle
+        zapBarTime.value = fmtRange(ch.nowStart, ch.nowStop)
+        val now = System.currentTimeMillis() / 1000
+        zapBarProgress.value = if (ch.nowStop > ch.nowStart)
+            ((now - ch.nowStart).toFloat() / (ch.nowStop - ch.nowStart)).coerceIn(0f, 1f) else 0f
+        zapBarVisible.value = true
+        zapBarJob?.cancel()
+        zapBarJob = lifecycleScope.launch {
+            kotlinx.coroutines.delay(4000)
+            zapBarVisible.value = false
+        }
+    }
+
     // Kedy sa zoznam otvoril — OK eventy tesne po otvoreni (zvysky otvaracieho
     // dlheho stlacenia, ghost DOWN/UP pary z IR/CEC ovladacov) sa ignoruju (M330-fix2)
     private var channelListOpenedAt = 0L
@@ -2459,26 +2487,26 @@ class PlayerActivity : ComponentActivity() {
                 android.view.KeyEvent.KEYCODE_PAGE_UP ->
                     if (down && canZap) {
                         switchLive(+1)
-                        if (modernTvActive()) { modernOvCard.value = liveIndexState.value.coerceAtLeast(0); openModernOverlay() } else showControlsFocused()
+                        if (!ZapOverlayPref.get(this)) showZapBar() else if (modernTvActive()) { modernOvCard.value = liveIndexState.value.coerceAtLeast(0); openModernOverlay() } else showControlsFocused()
                         return true
                     }
                 android.view.KeyEvent.KEYCODE_DPAD_UP ->
                     if (down && canZap && event.repeatCount == 0) {
                         switchLive(+1)
-                        if (modernTvActive()) { modernOvCard.value = liveIndexState.value.coerceAtLeast(0); openModernOverlay() } else showControlsFocused()
+                        if (!ZapOverlayPref.get(this)) showZapBar() else if (modernTvActive()) { modernOvCard.value = liveIndexState.value.coerceAtLeast(0); openModernOverlay() } else showControlsFocused()
                         return true
                     }
                 android.view.KeyEvent.KEYCODE_CHANNEL_DOWN,
                 android.view.KeyEvent.KEYCODE_PAGE_DOWN ->
                     if (down && canZap) {
                         switchLive(-1)
-                        if (modernTvActive()) { modernOvCard.value = liveIndexState.value.coerceAtLeast(0); openModernOverlay() } else showControlsFocused()
+                        if (!ZapOverlayPref.get(this)) showZapBar() else if (modernTvActive()) { modernOvCard.value = liveIndexState.value.coerceAtLeast(0); openModernOverlay() } else showControlsFocused()
                         return true
                     }
                 android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
                     if (down && canZap && event.repeatCount == 0) {
                         switchLive(-1)
-                        if (modernTvActive()) { modernOvCard.value = liveIndexState.value.coerceAtLeast(0); openModernOverlay() } else showControlsFocused()
+                        if (!ZapOverlayPref.get(this)) showZapBar() else if (modernTvActive()) { modernOvCard.value = liveIndexState.value.coerceAtLeast(0); openModernOverlay() } else showControlsFocused()
                         return true
                     }
             }
@@ -3425,6 +3453,56 @@ class PlayerActivity : ComponentActivity() {
                             ) {
                                 Text(androidx.compose.ui.res.stringResource(R.string.exit_yes), color = Color(0xFFFF6B6B),
                                     fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                }
+            }
+            // M430: kompaktny zap pas — cislo · kanal / program · cas / priebeh
+            if (zapBarVisible.value && !infoVisibleState.value) {
+                Box(
+                    Modifier.fillMaxSize().padding(start = 28.dp, bottom = 32.dp),
+                    contentAlignment = Alignment.BottomStart
+                ) {
+                    Column(
+                        Modifier.widthIn(min = 300.dp, max = 520.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xF20E1728))
+                            .padding(horizontal = 20.dp, vertical = 14.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (zapBarNumber.value.isNotBlank()) {
+                                Text(zapBarNumber.value, color = Color(0xFF5FD9B4),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold)
+                                Text("  ·  ", color = Color(0xFF48628A),
+                                    style = MaterialTheme.typography.titleLarge)
+                            }
+                            Text(zapBarChannel.value, color = Color.White,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                        if (zapBarTitle.value.isNotBlank() || zapBarTime.value.isNotBlank()) {
+                            Spacer(Modifier.height(2.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(zapBarTitle.value, color = Color(0xFFB8C6DC),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false))
+                                if (zapBarTime.value.isNotBlank()) {
+                                    Spacer(Modifier.width(16.dp))
+                                    Text(zapBarTime.value, color = Color(0xFF8AA0C2),
+                                        style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        }
+                        if (zapBarProgress.value > 0f) {
+                            Spacer(Modifier.height(8.dp))
+                            Box(Modifier.fillMaxWidth().height(4.dp)
+                                .clip(RoundedCornerShape(2.dp)).background(Color(0xFF20344F))) {
+                                Box(Modifier.fillMaxWidth(zapBarProgress.value).fillMaxHeight()
+                                    .clip(RoundedCornerShape(2.dp)).background(Color(0xFF5FD9B4)))
                             }
                         }
                     }

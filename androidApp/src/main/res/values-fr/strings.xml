@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Application client Tvheadend</string>
     <string name="login_in_progress">Connexion…</string>
     <string name="auto_pip_title">Image dans l\'image automatique</string>
+    <string name="zap_overlay_title">Superposition au changement de chaîne</string>
+    <string name="zap_overlay_note">Désactivé : seulement une barre brève avec numéro de chaîne et programme</string>
     <string name="archive_choice_title">Demander pour une chaîne archivée</string>
     <string name="archive_choice_note">Lors de la sélection d\'une chaîne en cours d\'archivage, demander de lire en direct ou depuis le début. Si désactivé, passe directement en direct.</string>
     <string name="ts_enable_title">Timeshift (mettre en pause / rembobiner le direct)</string>

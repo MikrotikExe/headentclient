@@ -267,6 +267,8 @@
     <string name="welcome_tagline">برنامه کلاینت Tvheadend</string>
     <string name="login_in_progress">در حال ورود…</string>
     <string name="auto_pip_title">تصویر در تصویر خودکار</string>
+    <string name="zap_overlay_title">روکش هنگام تعویض کانال</string>
+    <string name="zap_overlay_note">خاموش: فقط نوار کوتاه با شماره کانال و برنامه</string>
     <string name="archive_choice_title">پرسیدن در کانال بایگانی‌شده</string>
     <string name="archive_choice_note">هنگام انتخاب کانالی که در حال بایگانی است، بپرس که زنده پخش شود یا از ابتدا. اگر خاموش باشد، مستقیماً به پخش زنده می‌رود.</string>
     <string name="ts_enable_title">Timeshift (مکث / بازپخش زنده)</string>

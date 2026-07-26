@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Odjemalska aplikacija Tvheadend</string>
     <string name="login_in_progress">Prijavljanje…</string>
     <string name="auto_pip_title">Samodejna slika v sliki</string>
+    <string name="zap_overlay_title">Prekrivanje ob preklapljanju kanalov</string>
+    <string name="zap_overlay_note">Izklopljeno: samo kratka vrstica s številko kanala in oddajo</string>
     <string name="archive_choice_title">Vprašaj pri arhiviranem kanalu</string>
     <string name="archive_choice_note">Pri izbiri kanala, ki se arhivira, vprašaj, ali naj se predvaja v živo ali od začetka. Ko je izklopljeno, takoj preklopi na v živo.</string>
     <string name="ts_enable_title">Timeshift (premor / previjanje v živo)</string>

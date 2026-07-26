@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Клієнтський застосунок Tvheadend</string>
     <string name="login_in_progress">Вхід…</string>
     <string name="auto_pip_title">Автоматичний «картинка в картинці»</string>
+    <string name="zap_overlay_title">Оверлей під час перемикання каналів</string>
+    <string name="zap_overlay_note">Вимкнено: лише коротка панель з номером каналу та передачею</string>
     <string name="archive_choice_title">Запитувати на архівованому каналі</string>
     <string name="archive_choice_note">Під час вибору каналу, що архівується, запитувати, відтворювати наживо чи спочатку. Якщо вимкнено, одразу перемикає на наживо.</string>
     <string name="ts_enable_title">Timeshift (пауза / перемотування наживо)</string>

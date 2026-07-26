@@ -267,6 +267,8 @@
     <string name="welcome_tagline">แอปไคลเอ็นต์ Tvheadend</string>
     <string name="login_in_progress">กำลังลงชื่อเข้าใช้…</string>
     <string name="auto_pip_title">ภาพซ้อนภาพอัตโนมัติ</string>
+    <string name="zap_overlay_title">โอเวอร์เลย์เมื่อเปลี่ยนช่อง</string>
+    <string name="zap_overlay_note">ปิด: แสดงเฉพาะแถบสั้นพร้อมหมายเลขช่องและรายการ</string>
     <string name="archive_choice_title">ถามเมื่อเป็นช่องที่บันทึกลงคลัง</string>
     <string name="archive_choice_note">เมื่อเลือกช่องที่กำลังบันทึกลงคลัง ให้ถามว่าจะเล่นแบบสดหรือตั้งแต่ต้น เมื่อปิดจะสลับไปแบบสดทันที</string>
     <string name="ts_enable_title">Timeshift (หยุด / ย้อนรายการสด)</string>

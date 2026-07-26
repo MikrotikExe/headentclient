@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Tvheadend-client-app</string>
     <string name="login_in_progress">Inloggen…</string>
     <string name="auto_pip_title">Automatisch beeld-in-beeld</string>
+    <string name="zap_overlay_title">Overlay bij zenderwissel</string>
+    <string name="zap_overlay_note">Uit: alleen een korte balk met zendernummer en programma</string>
     <string name="archive_choice_title">Vragen bij gearchiveerde zender</string>
     <string name="archive_choice_note">Bij het kiezen van een zender die wordt gearchiveerd, vragen of live of vanaf het begin moet worden afgespeeld. Indien uit, schakelt direct naar live.</string>
     <string name="ts_enable_title">Timeshift (live-tv pauzeren / terugspoelen)</string>

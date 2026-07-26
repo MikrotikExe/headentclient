@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Клиентское приложение Tvheadend</string>
     <string name="login_in_progress">Вход…</string>
     <string name="auto_pip_title">Автоматический «картинка в картинке»</string>
+    <string name="zap_overlay_title">Оверлей при переключении каналов</string>
+    <string name="zap_overlay_note">Выкл.: только короткая панель с номером канала и передачей</string>
     <string name="archive_choice_title">Спрашивать на архивируемом канале</string>
     <string name="archive_choice_note">При выборе канала, который архивируется, спрашивать, смотреть в эфире или сначала. Если выключено, сразу переключает на эфир.</string>
     <string name="ts_enable_title">Timeshift (пауза / перемотка эфира)</string>

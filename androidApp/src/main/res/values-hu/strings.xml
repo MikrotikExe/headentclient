@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Tvheadend kliensalkalmazás</string>
     <string name="login_in_progress">Bejelentkezés…</string>
     <string name="auto_pip_title">Automatikus kép a képben</string>
+    <string name="zap_overlay_title">Fedvény csatornaváltáskor</string>
+    <string name="zap_overlay_note">Kikapcsolva: csak rövid sáv csatornaszámmal és műsorral</string>
     <string name="archive_choice_title">Kérdés archivált csatornánál</string>
     <string name="archive_choice_note">Archiválás alatt álló csatorna kiválasztásakor kérdezze meg, hogy élőben vagy az elejétől játssza-e le. Kikapcsolva közvetlenül élőre vált.</string>
     <string name="ts_enable_title">Timeshift (élő TV szüneteltetése / visszatekerése)</string>

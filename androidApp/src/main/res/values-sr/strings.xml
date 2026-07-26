@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Tvheadend клијент апликација</string>
     <string name="login_in_progress">Пријављивање…</string>
     <string name="auto_pip_title">Аутоматска слика у слици</string>
+    <string name="zap_overlay_title">Preklop pri promeni kanala</string>
+    <string name="zap_overlay_note">Isključeno: samo kratka traka sa brojem kanala i programom</string>
     <string name="archive_choice_title">Питај код архивираног канала</string>
     <string name="archive_choice_note">При избору канала који се архивира, питај да ли пустити уживо или од почетка. Када је искључено, прелази директно на уживо.</string>
     <string name="ts_enable_title">Timeshift (пауза / премотавање уживо)</string>

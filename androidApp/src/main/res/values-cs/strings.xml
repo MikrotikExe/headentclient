@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Aplikace – klient pro Tvheadend</string>
     <string name="login_in_progress">Přihlašování probíhá…</string>
     <string name="auto_pip_title">Automatický režim PiP</string>
+    <string name="zap_overlay_title">Překryv při přepínání kanálů</string>
+    <string name="zap_overlay_note">Vypnuto: jen krátký informační pruh s číslem kanálu a pořadem</string>
     <string name="archive_choice_title">Upozornění u archivovaného kanálu</string>
     <string name="archive_choice_note">Při výběru kanálu, který se archivuje, nabídnout volbu přehrát živě nebo od začátku. Když je vypnuto, přepne rovnou živě.</string>
     <string name="ts_enable_title">Timeshift (pauza / přetáčení živé TV)</string>

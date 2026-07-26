@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Εφαρμογή πελάτη Tvheadend</string>
     <string name="login_in_progress">Σύνδεση…</string>
     <string name="auto_pip_title">Αυτόματη εικόνα σε εικόνα</string>
+    <string name="zap_overlay_title">Επικάλυψη κατά την αλλαγή καναλιών</string>
+    <string name="zap_overlay_note">Ανενεργό: μόνο σύντομη γραμμή με αριθμό καναλιού και πρόγραμμα</string>
     <string name="archive_choice_title">Ερώτηση σε αρχειοθετημένο κανάλι</string>
     <string name="archive_choice_note">Όταν επιλέγεις κανάλι που αρχειοθετείται, ερώτηση αν θα γίνει ζωντανή αναπαραγωγή ή από την αρχή. Όταν είναι ανενεργό, μεταβαίνει απευθείας σε ζωντανή.</string>
     <string name="ts_enable_title">Timeshift (παύση / επαναφορά ζωντανής TV)</string>

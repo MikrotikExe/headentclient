@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Tvheadend istemci uygulaması</string>
     <string name="login_in_progress">Oturum açılıyor…</string>
     <string name="auto_pip_title">Otomatik resim içinde resim</string>
+    <string name="zap_overlay_title">Kanal değiştirirken katman</string>
+    <string name="zap_overlay_note">Kapalı: yalnızca kanal numarası ve programla kısa bir bilgi çubuğu</string>
     <string name="archive_choice_title">Arşivlenen kanalda sor</string>
     <string name="archive_choice_note">Arşivlenmekte olan bir kanal seçildiğinde canlı mı yoksa baştan mı oynatılacağını sor. Kapalıyken doğrudan canlıya geçer.</string>
     <string name="ts_enable_title">Timeshift (canlı yayını duraklat / geri sar)</string>

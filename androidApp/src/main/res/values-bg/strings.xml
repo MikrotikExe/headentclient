@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Клиентско приложение за Tvheadend</string>
     <string name="login_in_progress">Влизане…</string>
     <string name="auto_pip_title">Автоматично картина в картина</string>
+    <string name="zap_overlay_title">Наслагване при превключване на канали</string>
+    <string name="zap_overlay_note">Изключено: само кратка лента с номер на канала и програмата</string>
     <string name="archive_choice_title">Питане при архивиран канал</string>
     <string name="archive_choice_note">При избор на канал, който се архивира, питай дали да се възпроизведе на живо или от началото. Когато е изключено, превключва директно на живо.</string>
     <string name="ts_enable_title">Timeshift (пауза / превъртане на живо)</string>

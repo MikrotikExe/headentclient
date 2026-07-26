@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Aplikasi klien Tvheadend</string>
     <string name="login_in_progress">Sedang masuk…</string>
     <string name="auto_pip_title">Gambar dalam gambar otomatis</string>
+    <string name="zap_overlay_title">Overlay saat berpindah saluran</string>
+    <string name="zap_overlay_note">Mati: hanya bilah info singkat dengan nomor saluran dan program</string>
     <string name="archive_choice_title">Tanya pada saluran yang diarsipkan</string>
     <string name="archive_choice_note">Saat memilih saluran yang sedang diarsipkan, tanyakan apakah akan diputar langsung atau dari awal. Jika mati, langsung beralih ke siaran langsung.</string>
     <string name="ts_enable_title">Timeshift (jeda / putar mundur siaran langsung)</string>

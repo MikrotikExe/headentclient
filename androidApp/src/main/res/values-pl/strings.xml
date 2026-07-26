@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Aplikacja kliencka Tvheadend</string>
     <string name="login_in_progress">Logowanie…</string>
     <string name="auto_pip_title">Automatyczny obraz w obrazie</string>
+    <string name="zap_overlay_title">Nakładka przy przełączaniu kanałów</string>
+    <string name="zap_overlay_note">Wyłączone: tylko krótki pasek z numerem kanału i programem</string>
     <string name="archive_choice_title">Pytaj przy archiwizowanym kanale</string>
     <string name="archive_choice_note">Przy wyborze kanału, który jest archiwizowany, pytaj, czy odtwarzać na żywo, czy od początku. Gdy wyłączone, przełącza bezpośrednio na żywo.</string>
     <string name="ts_enable_title">Timeshift (wstrzymanie / przewijanie na żywo)</string>

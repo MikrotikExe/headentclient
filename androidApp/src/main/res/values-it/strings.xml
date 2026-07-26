@@ -267,6 +267,8 @@
     <string name="welcome_tagline">App client per Tvheadend</string>
     <string name="login_in_progress">Accesso in corso…</string>
     <string name="auto_pip_title">Picture-in-picture automatico</string>
+    <string name="zap_overlay_title">Overlay al cambio canale</string>
+    <string name="zap_overlay_note">Disattivato: solo una breve barra con numero canale e programma</string>
     <string name="archive_choice_title">Chiedi su canale archiviato</string>
     <string name="archive_choice_note">Quando selezioni un canale in fase di archiviazione, chiedi se riprodurre in diretta o dall\'inizio. Se disattivato, passa direttamente alla diretta.</string>
     <string name="ts_enable_title">Timeshift (metti in pausa / riavvolgi la TV in diretta)</string>

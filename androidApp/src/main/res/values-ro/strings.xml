@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Aplicație client Tvheadend</string>
     <string name="login_in_progress">Se autentifică…</string>
     <string name="auto_pip_title">Imagine în imagine automată</string>
+    <string name="zap_overlay_title">Suprapunere la schimbarea canalelor</string>
+    <string name="zap_overlay_note">Dezactivat: doar o bară scurtă cu numărul canalului și programul</string>
     <string name="archive_choice_title">Întreabă la canal arhivat</string>
     <string name="archive_choice_note">La selectarea unui canal care este arhivat, întreabă dacă să se redea live sau de la început. Dacă este dezactivat, comută direct pe live.</string>
     <string name="ts_enable_title">Timeshift (pauză / derulare live)</string>

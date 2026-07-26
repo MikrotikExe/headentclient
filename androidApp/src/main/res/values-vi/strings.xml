@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Ứng dụng khách Tvheadend</string>
     <string name="login_in_progress">Đang đăng nhập…</string>
     <string name="auto_pip_title">Hình trong hình tự động</string>
+    <string name="zap_overlay_title">Lớp phủ khi chuyển kênh</string>
+    <string name="zap_overlay_note">Tắt: chỉ hiển thị thanh ngắn với số kênh và chương trình</string>
     <string name="archive_choice_title">Hỏi khi kênh đang lưu trữ</string>
     <string name="archive_choice_note">Khi chọn một kênh đang được lưu trữ, hỏi xem nên phát trực tiếp hay từ đầu. Khi tắt, sẽ chuyển thẳng sang trực tiếp.</string>
     <string name="ts_enable_title">Timeshift (tạm dừng / tua lại trực tiếp)</string>

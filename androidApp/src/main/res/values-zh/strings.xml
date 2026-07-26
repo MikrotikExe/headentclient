@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Tvheadend 客户端应用</string>
     <string name="login_in_progress">正在登录…</string>
     <string name="auto_pip_title">自动画中画</string>
+    <string name="zap_overlay_title">切换频道时的叠加层</string>
+    <string name="zap_overlay_note">关闭：仅显示带频道号和节目的简短信息条</string>
     <string name="archive_choice_title">存档频道时询问</string>
     <string name="archive_choice_note">选择正在存档的频道时，询问是直播播放还是从头播放。关闭时直接切换到直播。</string>
     <string name="ts_enable_title">时移（暂停 / 回看直播）</string>

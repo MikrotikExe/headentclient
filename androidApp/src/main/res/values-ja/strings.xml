@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Tvheadend クライアントアプリ</string>
     <string name="login_in_progress">サインイン中…</string>
     <string name="auto_pip_title">自動ピクチャーインピクチャー</string>
+    <string name="zap_overlay_title">チャンネル切替時のオーバーレイ</string>
+    <string name="zap_overlay_note">オフ: チャンネル番号と番組の短いバーのみ表示</string>
     <string name="archive_choice_title">アーカイブ中のチャンネルで確認</string>
     <string name="archive_choice_note">アーカイブ中のチャンネルを選んだとき、ライブで再生するか最初から再生するかを確認します。オフの場合は直接ライブに切り替わります。</string>
     <string name="ts_enable_title">タイムシフト（ライブの一時停止 / 巻き戻し）</string>

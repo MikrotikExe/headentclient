@@ -267,6 +267,8 @@
     <string name="welcome_tagline">App cliente de Tvheadend</string>
     <string name="login_in_progress">Iniciando sesión…</string>
     <string name="auto_pip_title">Imagen en imagen automática</string>
+    <string name="zap_overlay_title">Superposición al cambiar de canal</string>
+    <string name="zap_overlay_note">Desactivado: solo una barra breve con número de canal y programa</string>
     <string name="archive_choice_title">Preguntar en canal archivado</string>
     <string name="archive_choice_note">Al seleccionar un canal que se está archivando, preguntar si reproducir en directo o desde el inicio. Si está desactivado, cambia directamente a directo.</string>
     <string name="ts_enable_title">Timeshift (pausar / rebobinar TV en directo)</string>

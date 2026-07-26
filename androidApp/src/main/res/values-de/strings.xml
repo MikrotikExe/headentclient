@@ -267,6 +267,8 @@
     <string name="welcome_tagline">Tvheadend-Client-App</string>
     <string name="login_in_progress">Anmeldung läuft…</string>
     <string name="auto_pip_title">Automatisches Bild-in-Bild</string>
+    <string name="zap_overlay_title">Overlay beim Kanalwechsel</string>
+    <string name="zap_overlay_note">Aus: nur kurze Infoleiste mit Kanalnummer und Sendung</string>
     <string name="archive_choice_title">Bei archiviertem Sender nachfragen</string>
     <string name="archive_choice_note">Beim Wählen eines Senders, der archiviert wird, fragen, ob live oder von Anfang an wiedergegeben werden soll. Wenn aus, wird direkt live gewechselt.</string>
     <string name="ts_enable_title">Timeshift (Live-TV pausieren / zurückspulen)</string>

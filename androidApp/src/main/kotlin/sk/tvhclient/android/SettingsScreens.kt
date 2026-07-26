@@ -808,6 +808,21 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         )
     }
 
+    // M430: prekryv pri prepinani kanalov (CH+/CH-) — vypnute = kompaktny zap pas
+    run {
+        var zapOv by remember { mutableStateOf(ZapOverlayPref.get(ctx)) }
+        SettingsSwitchRow(
+            label = stringResource(R.string.zap_overlay_title),
+            note = stringResource(R.string.zap_overlay_note),
+            checked = zapOv,
+            onChange = { on ->
+                zapOv = on
+                ZapOverlayPref.set(ctx, on)
+                TabController.settingsDirty.value = true
+            }
+        )
+    }
+
     // Vyber pri archivovanom kanali v prehravaci (nazivo / od zaciatku) — len TV/box
     if (isTvDev) {
         SettingsGroupDivider()
