@@ -2725,18 +2725,28 @@ class PlayerActivity : ComponentActivity() {
             val reqUuid = intent.getStringExtra(EXTRA_UUID) ?: return@run
             val oldUuid = old.liveUuids.getOrNull(old.liveIndexState.value) ?: return@run
             if (reqUuid != oldUuid) return@run
-            runCatching {
+            // M432-fix: novu aktivitu ukonci LEN ak sa pripnuty task nasiel
+            // a presunul do popredia — inak by pouzivatel ostal na uvode so
+            // zaseknutou miniaturou. Ked sa nenajde/nepresunie, prepadni do
+            // M427 restartu nizsie (spravanie pred M432, vzdy funkcne).
+            val myTaskId = taskId
+            val moved = runCatching {
                 val am = getSystemService(android.content.Context.ACTIVITY_SERVICE)
                     as android.app.ActivityManager
-                am.appTasks.firstOrNull { t ->
+                val task = am.appTasks.firstOrNull { t ->
                     runCatching {
-                        t.taskInfo.baseIntent.component?.className ==
-                            PlayerActivity::class.java.name
+                        val ti = t.taskInfo
+                        val comp = ti.topActivity?.className
+                            ?: ti.baseIntent.component?.className
+                        ti.id != myTaskId && comp == PlayerActivity::class.java.name
                     }.getOrDefault(false)
-                }?.moveToFront()
+                }
+                if (task != null) { task.moveToFront(); true } else false
+            }.getOrDefault(false)
+            if (moved) {
+                finish()
+                return
             }
-            finish()
-            return
         }
         // M427: ak stara instancia visi v PiP, obycajny finish() zavrie aktivitu,
         // ale pripnute PiP okno (pinned task) moze ostat visiet ako prazdna karta
