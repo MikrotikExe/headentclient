@@ -2714,6 +2714,30 @@ class PlayerActivity : ComponentActivity() {
         RadioPlayerService.stop(this)
         // Zavri predoslu instanciu prehravaca (napr. visiacu v PiP so starym kanalom),
         // nech pri prepnuti kanala nezostane stara PiP visiet. Nova sa otvori na celu obrazovku.
+        // M432: ak stara instancia v PiP hra PRESNE ten kanal, ktory sa ziada,
+        // nezakladaj novu — pripnuty task vytiahni na fullscreen (stream bezi
+        // dalej, ziadne nove HTSP pripojenie ani cierna medzera) a tuto aktivitu
+        // ticho ukonci skor, nez cokolvek alokuje. Iny kanal = M427 nizsie.
+        run {
+            val old = liveInstance?.get() ?: return@run
+            if (old === this || old.isFinishing || old.isDestroyed) return@run
+            if (android.os.Build.VERSION.SDK_INT < 26 || !old.inPipState.value) return@run
+            val reqUuid = intent.getStringExtra(EXTRA_UUID) ?: return@run
+            val oldUuid = old.liveUuids.getOrNull(old.liveIndexState.value) ?: return@run
+            if (reqUuid != oldUuid) return@run
+            runCatching {
+                val am = getSystemService(android.content.Context.ACTIVITY_SERVICE)
+                    as android.app.ActivityManager
+                am.appTasks.firstOrNull { t ->
+                    runCatching {
+                        t.taskInfo.baseIntent.component?.className ==
+                            PlayerActivity::class.java.name
+                    }.getOrDefault(false)
+                }?.moveToFront()
+            }
+            finish()
+            return
+        }
         // M427: ak stara instancia visi v PiP, obycajny finish() zavrie aktivitu,
         // ale pripnute PiP okno (pinned task) moze ostat visiet ako prazdna karta
         // — systemu treba povedat, nech odstrani cely task. Mimo PiP staci finish().
