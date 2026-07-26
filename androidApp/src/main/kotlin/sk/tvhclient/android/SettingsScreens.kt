@@ -578,6 +578,9 @@ internal fun GeneralSettings(ctx: android.content.Context) {
             }
         }
     }
+    // M434-fix2: Autostart len na TV/leanback — boot-do-appky a prebudenie
+    // boxu su TV veci, telefon appku pri starte spustat nema.
+    if (ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK))
     SettingsGroup(stringResource(R.string.set_grp_autostart)) {
     var autostart by remember { mutableStateOf(AutostartPref.isEnabled(ctx)) }
     SettingsSwitchRow(
