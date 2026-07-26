@@ -3621,6 +3621,10 @@ class PlayerActivity : ComponentActivity() {
      * Vrati true, ak presiel do PiP (volajuci moze podla toho preskocit finish()).
      */
     private fun autoPipIfPossible(): Boolean {
+        // M431: radio do PiP nepatri (zvuk bez obrazu v okne). Namiesto PiP handoff
+        // do RadioPlayerService (moderny rezim); v klasiku vrati false a volajuci
+        // pokracuje bez PiP (zatvorenie/EPG) — povodne spravanie klasiku bez okna.
+        if (playKind == "radio") return radioHandoffIfPossible()
         if (AutoPipPref.get(this) && pipSupported && isPlayingState.value &&
             android.os.Build.VERSION.SDK_INT >= 26 &&
             packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
@@ -3811,6 +3815,8 @@ class PlayerActivity : ComponentActivity() {
         // tiez a miniatura ostavala visiet nad launcherom/YouTube (hlasenie z Redditu).
         // Na TV preto pri odchode z appky do PiP nevstupujeme; PiP na TV zostava len
         // vnutri appky (BACK -> miniatura nad TV programom).
+        // M431: HOME pocas radia — ziadne PiP okno; v modernom rezime handoff na pozadie
+        if (playKind == "radio") { radioHandoffIfPossible(); return }
         if (!isTvDevice() && AutoPipPref.get(this) && pipSupported && isPlayingState.value &&
             !(android.os.Build.VERSION.SDK_INT >= 24 && isInPictureInPictureMode)) {
             enterPipIfPossible()
