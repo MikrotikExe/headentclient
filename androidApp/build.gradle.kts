@@ -43,12 +43,6 @@ android {
     // Vtedy sa vypnu splity a vznikne jeden APK s oboma ARM ABI (androidApp-release.apk).
     // Bezny build (push, ladenie) stavia len splity — univerzalny nezdrziava CI.
     val universalRequested = project.hasProperty("universalApk")
-    // M426: build pre emulator Android Studia (x86_64 obrazy):
-    //   gradle :androidApp:assembleDebug -Pemulator
-    // Vypne splity a NEuplatni ARM filter, takze APK obsahuje vsetky ABI
-    // z libVLC vratane x86_64 — libVLC bezi na emulatore nativne, nie cez
-    // pomaly preklad ARM kodu. Len na lokalne ladenie, CI to nepouziva.
-    val emulatorRequested = project.hasProperty("emulator")
 
     defaultConfig {
         applicationId = "sk.tvhclient"
@@ -60,7 +54,7 @@ android {
         // Univerzalny build ma splity vypnute a bez filtra by zobral vsetky
         // ABI z libVLC vratane x86/x86_64 (212 MB namiesto ~104 MB).
         // AAB pre Play filter nema — Play si ABI deli sam.
-        if (universalRequested && !buildingBundle && !emulatorRequested) {
+        if (universalRequested && !buildingBundle) {
             ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
         }
         versionCode = 40
@@ -86,7 +80,7 @@ android {
     // sam z App Bundle. Podmienka podla nazvu gradle ulohy.
     splits {
         abi {
-            isEnable = !buildingBundle && !universalRequested && !emulatorRequested
+            isEnable = !buildingBundle && !universalRequested
             reset()
             include("armeabi-v7a", "arm64-v8a")
             isUniversalApk = false

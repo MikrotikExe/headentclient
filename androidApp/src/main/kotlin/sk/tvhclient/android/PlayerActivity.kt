@@ -349,30 +349,9 @@ class PlayerActivity : ComponentActivity() {
      * vyskytuje vo fingerprintoch vsetkych emulatorovych obrazov. Skutocne
      * zariadenia maju vo fingerprinte vyrobcu a v hardware nazov cipu.
      */
-    /**
-     * M428-fix: softverove dekodovanie len pre emulator. Na Raspberry Pi
-     * (KonstaKANG) sa problem "obraz zamrzne na prvom snimku" riesi v systeme,
-     * nie v appke: Settings -> System -> Raspberry Pi settings -> Hardware
-     * video decoding -> zvolit variant "FFmpeg H.264 and H.265 hardware
-     * decoding" (predvoleny v4l2_codec2 variant zahadzuje buffery pri
-     * odovzdavani na surface — bcm2835-codec "buffer size mismatch").
-     * Softverovy dekoder bol na 1080i kanaloch trhany (dekodovanie + yadif
-     * deinterlace naraz CPU Pi 4 nezvlada), preto sa nevnucuje.
-     */
-    private fun useSoftwareDecode(): Boolean = isEmulator()
-
-    private fun isEmulator(): Boolean =
-        android.os.Build.FINGERPRINT.contains("emu") ||
-        android.os.Build.MODEL.contains("sdk_gphone") ||
-        android.os.Build.HARDWARE.contains("ranchu") ||
-        android.os.Build.HARDWARE.contains("goldfish")
-
     private fun buildMedia(url: String): Media {
         val m = Media(libVlc, Uri.parse(url))
-        if (useSoftwareDecode()) {
-            // Emulator alebo Raspberry Pi — viz useSoftwareDecode() (M428)
-            m.setHWDecoderEnabled(false, false)
-        } else m.setHWDecoderEnabled(true, false)
+        m.setHWDecoderEnabled(true, false)
         // User-Agent: nech server vidi, ze sa pripaja HeadentClient
         m.addOption(":http-user-agent=" + userAgent())
         applyDeinterlace(m)
@@ -393,7 +372,6 @@ class PlayerActivity : ComponentActivity() {
     /** Aplikuje deinterlacing na dane medium (riesi hrebenove pasy / combing pri
      *  prekladanom DVB videu na rychlych zaberoch). */
     private fun applyDeinterlace(m: Media) {
-        if (isEmulator()) return  // M426-fix3: viz komentar pri inicializacii LibVLC
 
         val (en, mode) = deinterlaceSpec()
         m.addOption(":deinterlace=$en")
@@ -429,10 +407,7 @@ class PlayerActivity : ComponentActivity() {
         httpFeeder = feeder
         val fd = feeder.start(lifecycleScope)
         val media = Media(libVlc, fd)
-        if (useSoftwareDecode()) {
-            // Emulator alebo Raspberry Pi — viz useSoftwareDecode() (M428)
-            media.setHWDecoderEnabled(false, false)
-        } else media.setHWDecoderEnabled(true, false)
+        media.setHWDecoderEnabled(true, false)
         applyFeederDemux(media, url)
         media.addOption(":file-caching=" + BufferPref.ms(this))
         applyDeinterlace(media)
@@ -536,10 +511,7 @@ class PlayerActivity : ComponentActivity() {
         httpFeeder = feeder
         val fd = feeder.start(lifecycleScope)
         val media = Media(libVlc, fd)
-        if (useSoftwareDecode()) {
-            // Emulator alebo Raspberry Pi — viz useSoftwareDecode() (M428)
-            media.setHWDecoderEnabled(false, false)
-        } else media.setHWDecoderEnabled(true, false)
+        media.setHWDecoderEnabled(true, false)
         media.addOption(":demux=ts")
         media.addOption(":file-caching=" + BufferPref.htspMs(this))
         applyDeinterlace(media)
@@ -568,10 +540,7 @@ class PlayerActivity : ComponentActivity() {
             resetTimeshift()
             val fd = feeder.start(channelId, lifecycleScope)
             val media = Media(libVlc, fd)
-            if (useSoftwareDecode()) {
-            // Emulator alebo Raspberry Pi — viz useSoftwareDecode() (M428)
-            media.setHWDecoderEnabled(false, false)
-        } else media.setHWDecoderEnabled(true, false)
+            media.setHWDecoderEnabled(true, false)
             media.addOption(":demux=ts")
             media.addOption(":file-caching=" + BufferPref.htspMs(this))
             applyDeinterlace(media)
@@ -2809,25 +2778,11 @@ class PlayerActivity : ComponentActivity() {
         )
         // Korekcia synchronizacie zvuku ako init volba (jellyfin pristup). Aplikuje
         // Predvolene 0 = vypnute (nic nemeni). Zaporna = zvuk skor, kladna = neskor.
-        // M426-fix2: na emulatore zvuk mesksa ~1 s za obrazom (softverovy dekoder
-        // + virtualna zvukovka). Pevna kompenzacia LEN pre emulator — na
-        // zariadeniach sa nic nemeni, A/V sync je tam vyladeny z 1.0.1.
-        if (isEmulator()) options.add("--audio-desync=-1000")
         // Deinterlacing (globalne, nech plati uz na prvom otvoreni; per-medium
         // sa nastavi znova pri kazdom prepnuti kanala)
-        // M426-fix3: na emulatore softverova cesta nevie postavit retaz
-        // filtrov pre deinterlace ("Too high level of recursion", "Failed to
-        // create video converter" -> vout creation failed = ziadny obraz).
-        // Deinterlace tam vypiname a zobrazeniu vnucujeme RGB chromu, ktoru
-        // emulatorovy vystup zvlada. Zariadeni sa netyka.
-        if (isEmulator()) {
-            options.add("--deinterlace=0")
-            options.add("--android-display-chroma=RV32")
-        } else {
-            val (dEn, dMode) = deinterlaceSpec()
-            options.add("--deinterlace=$dEn")
-            if (dMode != null) options.add("--deinterlace-mode=$dMode")
-        }
+        val (dEn, dMode) = deinterlaceSpec()
+        options.add("--deinterlace=$dEn")
+        if (dMode != null) options.add("--deinterlace-mode=$dMode")
         libVlc = LibVLC(this, options)
         mediaPlayer = MediaPlayer(libVlc)
         // Zvukovy vystup z nastaveni. Modul (telefon: AudioTrack/OpenSL ES) aj
