@@ -3612,6 +3612,13 @@ class PlayerActivity : ComponentActivity() {
      *  Vstup do PiP sam zbali aktivitu do plavajuceho okna, nic dalsie netreba —
      *  auto-PiP cesta to robi rovnako a funguje. */
     private fun enterPipAndMinimize() {
+        // M431-fix: BACK cez Compose BackHandler vola tuto funkciu priamo (mimo
+        // closePlayer/autoPipIfPossible), takze radio brana musi byt aj tu —
+        // inak radio konci v PiP okne. Handoff na pozadie / zatvorenie.
+        if (playKind == "radio") {
+            if (!radioHandoffIfPossible()) finish()
+            return
+        }
         enterPipIfPossible()
     }
 
