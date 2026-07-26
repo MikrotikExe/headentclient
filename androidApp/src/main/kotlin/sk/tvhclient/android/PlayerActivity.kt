@@ -1732,6 +1732,7 @@ class PlayerActivity : ComponentActivity() {
     // ---- M430: kompaktny zap pas pri prepinani kanalov (prekryv vypnuty) ----
     private val zapBarVisible = androidx.compose.runtime.mutableStateOf(false)
     private val zapBarNumber = androidx.compose.runtime.mutableStateOf("")
+    private val zapBarPicon = androidx.compose.runtime.mutableStateOf<String?>(null)
     private val zapBarChannel = androidx.compose.runtime.mutableStateOf("")
     private val zapBarTitle = androidx.compose.runtime.mutableStateOf("")
     private val zapBarTime = androidx.compose.runtime.mutableStateOf("")
@@ -1742,7 +1743,8 @@ class PlayerActivity : ComponentActivity() {
      *  Data ma z liveChannelsState (EPG now/next uz v pamati), nic nestahuje. */
     private fun showZapBar() {
         val ch = liveChannelsState.value.getOrNull(liveIndexState.value) ?: return
-        zapBarNumber.value = ch.number?.toString() ?: ""
+        zapBarNumber.value = if (ch.number > 0) ch.number.toString() else ""
+        zapBarPicon.value = ch.piconUrl
         zapBarChannel.value = ch.name
         zapBarTitle.value = ch.nowTitle
         zapBarTime.value = fmtRange(ch.nowStart, ch.nowStop)
@@ -3464,12 +3466,34 @@ class PlayerActivity : ComponentActivity() {
                     Modifier.fillMaxSize().padding(start = 28.dp, bottom = 32.dp),
                     contentAlignment = Alignment.BottomStart
                 ) {
-                    Column(
-                        Modifier.widthIn(min = 300.dp, max = 520.dp)
+                    Row(
+                        Modifier.widthIn(min = 300.dp, max = 560.dp)
                             .clip(RoundedCornerShape(16.dp))
                             .background(Color(0xF20E1728))
-                            .padding(horizontal = 20.dp, vertical = 14.dp)
+                            .padding(horizontal = 18.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val zpCtx = androidx.compose.ui.platform.LocalContext.current
+                        val zpSrv = remember { Tvh.store.active() }
+                        val zpLoader = remember(zpSrv?.id) { PiconImageLoader.get(zpCtx, zpSrv) }
+                        val zpUrl = zapBarPicon.value
+                        if (!zpUrl.isNullOrBlank()) {
+                            var zpOk by remember(zpUrl) { androidx.compose.runtime.mutableStateOf(true) }
+                            if (zpOk) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(zpCtx).data(zpUrl).build(),
+                                    contentDescription = null,
+                                    imageLoader = zpLoader,
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                                    onState = { st ->
+                                        if (st is coil.compose.AsyncImagePainter.State.Error) zpOk = false
+                                    },
+                                    modifier = Modifier.size(46.dp)
+                                )
+                                Spacer(Modifier.width(14.dp))
+                            }
+                        }
+                        Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (zapBarNumber.value.isNotBlank()) {
                                 Text(zapBarNumber.value, color = Color(0xFF5FD9B4),
@@ -3504,6 +3528,7 @@ class PlayerActivity : ComponentActivity() {
                                 Box(Modifier.fillMaxWidth(zapBarProgress.value).fillMaxHeight()
                                     .clip(RoundedCornerShape(2.dp)).background(Color(0xFF5FD9B4)))
                             }
+                        }
                         }
                     }
                 }

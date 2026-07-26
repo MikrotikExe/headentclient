@@ -11,11 +11,12 @@ object ZapOverlayPref {
     private const val PREFS = "app_prefs"
     private const val KEY = "zap_overlay"
 
-    /** M430: true (predvolene) = pri CH+/CH- sa otvori prekryv/ovladanie ako doteraz;
-     *  false = zobrazi sa len kompaktny zap pas (cislo, kanal, program, priebeh). */
+    /** M430-fix: false (predvolene) = pri CH+/CH- sa zobrazi kompaktny zap pas
+     *  (picona, cislo, kanal, program, priebeh) — spravanie klasickej telky;
+     *  true = otvori sa prekryv/ovladanie (kto ho chce, zapne si ho). */
     fun get(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY, true)
+            .getBoolean(KEY, false)
 
     fun set(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

@@ -330,6 +330,23 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
     )
     SettingsGroupDivider()
 
+    // M430-fix: prekryv pri prepinani kanalov (CH+/CH-); vypnute (predvolene)
+    // = kompaktny zap pas s piconou, cislom, programom a priebehom
+    run {
+        var zapOv by remember { mutableStateOf(ZapOverlayPref.get(ctx)) }
+        SettingsSwitchRow(
+            label = stringResource(R.string.zap_overlay_title),
+            note = stringResource(R.string.zap_overlay_note),
+            checked = zapOv,
+            onChange = { on ->
+                zapOv = on
+                ZapOverlayPref.set(ctx, on)
+                TabController.settingsDirty.value = true
+            }
+        )
+    }
+    SettingsGroupDivider()
+
     // Tema aplikacie: automaticky (system) / svetla / tmava
     var theme by remember { mutableStateOf(ThemePref.get(ctx)) }
     val themeLabel: @Composable (String) -> String = { v ->
@@ -803,21 +820,6 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
             onChange = { on ->
                 autoPip = on
                 AutoPipPref.set(ctx, on)
-                TabController.settingsDirty.value = true
-            }
-        )
-    }
-
-    // M430: prekryv pri prepinani kanalov (CH+/CH-) — vypnute = kompaktny zap pas
-    run {
-        var zapOv by remember { mutableStateOf(ZapOverlayPref.get(ctx)) }
-        SettingsSwitchRow(
-            label = stringResource(R.string.zap_overlay_title),
-            note = stringResource(R.string.zap_overlay_note),
-            checked = zapOv,
-            onChange = { on ->
-                zapOv = on
-                ZapOverlayPref.set(ctx, on)
                 TabController.settingsDirty.value = true
             }
         )
