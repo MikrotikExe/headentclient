@@ -80,10 +80,10 @@ jobs:
             [ -e "$APK" ] || continue
             case "$APK" in *unsigned*) echo "APK je NEPODPISANE — skontroluj signing secrets" >&2; exit 1;; esac
             case "$(basename "$APK")" in
-              *universal*)    OUT="HeadentClient-$VER.apk" ;;
+              *universal*)    OUT="HeadentClient-$VER-universal.apk" ;;
               *arm64-v8a*)    OUT="HeadentClient-$VER-arm64-v8a.apk" ;;
               *armeabi-v7a*)  OUT="HeadentClient-$VER-armeabi-v7a.apk" ;;
-              *)              OUT="HeadentClient-$VER.apk" ;;
+              *)              OUT="HeadentClient-$VER-universal.apk" ;;
             esac
             cp "$APK" "$OUT"
             sha256sum "$OUT" > "$OUT.sha256"
@@ -95,7 +95,7 @@ jobs:
           # na 32-bit aj 64-bit, co plati ked existuje bud univerzalny APK, alebo
           # oba splity. Druha moznost nastane pri rucnom spusteni nad starsou
           # znackou, ktorej build.gradle.kts univerzalny APK este nevyrabal.
-          if [ ! -f "HeadentClient-$VER.apk" ] &&
+          if [ ! -f "HeadentClient-$VER-universal.apk" ] &&
              { [ ! -f "HeadentClient-$VER-arm64-v8a.apk" ] ||
                [ ! -f "HeadentClient-$VER-armeabi-v7a.apk" ]; }; then
             echo "Vydanie by pokrylo len jednu architekturu — zastavene" >&2
