@@ -167,7 +167,7 @@ class HtspClient(
     private suspend fun hello() {
         val s = send("hello", mapOf(
             "htspversion" to 35L,
-            "clientname" to "HeadentClient/1.0.0",
+            "clientname" to sk.tvhclient.shared.ClientIdent.userAgent,
             "clientversion" to "1.0.0"
         ))
         val r = recvReply(s)

@@ -32,6 +32,10 @@ class TvhApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // M440: verzia do jednotnej identity klienta (User-Agent, HTSP clientname)
+        sk.tvhclient.shared.ClientIdent.version =
+            runCatching { packageManager.getPackageInfo(packageName, 0).versionName }
+                .getOrNull() ?: "?"
         CrashLogger.install(this)   // diagnostika pádov (M353)
         initSecureStorage(this)
         ClockPref.apply(this)       // format hodin do zdielaneho modulu (M423)

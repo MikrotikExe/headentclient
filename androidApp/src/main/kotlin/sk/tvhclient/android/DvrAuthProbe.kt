@@ -42,7 +42,7 @@ object DvrAuthProbe {
                 .build()
             val req = Request.Builder()
                 .url(probeUrl)
-                .header("User-Agent", "HeadentClient")
+                .header("User-Agent", sk.tvhclient.shared.ClientIdent.userAgent)
                 .build()
             ok.newCall(req).execute().use { resp ->
                 if (resp.code != 401) return false.also { cache[server.id] = it }

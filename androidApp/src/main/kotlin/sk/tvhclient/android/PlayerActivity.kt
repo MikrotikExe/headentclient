@@ -327,10 +327,7 @@ class PlayerActivity : ComponentActivity() {
     private var numJob: kotlinx.coroutines.Job? = null
 
     /** Vytvori Media s HW/SW dekoderom podla preferencie (lacne boxy = SW). */
-    private fun userAgent(): String {
-        val v = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull() ?: "?"
-        return "HeadentClient/$v"
-    }
+    private fun userAgent(): String = sk.tvhclient.shared.ClientIdent.userAgent
 
     /** Odstrani user:pass@ z URL (pre feeder/probe — auth riesi OkHttp hlavickou). */
     private fun stripCreds(url: String): String {

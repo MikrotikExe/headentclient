@@ -21,7 +21,7 @@ expect fun tvhHttpClient(server: TvhServer, json: Json): HttpClient
 /** Spolocna konfiguracia nezavisla od enginu (bez auth — to je platformove). */
 internal fun HttpClientConfig<*>.tvhCommonConfig(json: Json) {
     expectSuccess = false
-    install(UserAgent) { agent = "HeadentClient/1.0.0" }
+    install(UserAgent) { agent = sk.tvhclient.shared.ClientIdent.userAgent }
     install(ContentNegotiation) { json(json) }
     install(HttpTimeout) {
         connectTimeoutMillis = 5_000

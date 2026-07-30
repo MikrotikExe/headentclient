@@ -66,7 +66,7 @@ class HttpTsFeeder(
         val builder = OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val r = chain.request().newBuilder().apply {
-                    header("User-Agent", "HeadentClient")
+                    header("User-Agent", sk.tvhclient.shared.ClientIdent.userAgent)
                     if (preemptiveBasic != null) header("Authorization", preemptiveBasic)
                 }.build()
                 chain.proceed(r)

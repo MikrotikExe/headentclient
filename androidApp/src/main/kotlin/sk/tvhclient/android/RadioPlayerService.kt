@@ -80,7 +80,7 @@ class RadioPlayerService : Service() {
                 "--network-caching=1500",
                 "--quiet",
                 "--no-stats",
-                "--http-user-agent=HeadentClient"
+                "--http-user-agent=" + sk.tvhclient.shared.ClientIdent.userAgent
             ))
             libVlc = vlc
             val p = MediaPlayer(vlc)

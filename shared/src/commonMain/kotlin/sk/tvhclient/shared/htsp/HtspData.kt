@@ -165,6 +165,11 @@ object HtspData {
         meta.dvr.mapNotNull { d ->
             val state = strOf(d, "state")
             if (state.isNotBlank() && state != "completed") return@mapNotNull null
+            // M439: "Removed Recordings" — TVH drzi zaznam ako "completed" aj po
+            // zmazani suboru (podla retencie), ale dataSize uz neposiela / je 0.
+            // Do archivu nepatria: subor neexistuje, prehratie by vratilo 404.
+            val ds = longOf(d, "dataSize")
+            if (ds == null || ds <= 0) return@mapNotNull null
             mapDvrEntry(d)
         }
 
