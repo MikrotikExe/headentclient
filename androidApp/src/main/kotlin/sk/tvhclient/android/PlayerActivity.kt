@@ -90,6 +90,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
@@ -1252,7 +1253,11 @@ class PlayerActivity : ComponentActivity() {
     private val zapCommit = Runnable {
         val target = zapPendingIndex
         zapPendingIndex = -1
-        if (target >= 0 && target != liveIndex) switchToIndex(target)
+        // M444: ked bezi zap pas (prekryv vypnuty), prepnutie kanala NESMIE
+        // stuchnut klasicke ovladanie — inak sa 350 ms po stlaceni sipky vysunie
+        // este aj stara lista a na obrazovke su dva pasy naraz (Xiaomi Mi Box).
+        val poke = ZapOverlayPref.get(this@PlayerActivity)
+        if (target >= 0 && target != liveIndex) switchToIndex(target, poke = poke)
     }
     private val zapDebounceMs = 350L
 
@@ -1708,6 +1713,12 @@ class PlayerActivity : ComponentActivity() {
     /** Zobrazi kratky pas (cislo · kanal / program · cas / priebeh) na ~4 s.
      *  Data ma z liveChannelsState (EPG now/next uz v pamati), nic nestahuje. */
     private fun showZapBar() {
+        // M442: ak uz je na obrazovke klasicke ovladanie / moderny prehlad / info
+        // okno, zap pas nezobrazuj — tie ukazuju rovnaky udaj (cislo, kanal,
+        // program, priebeh) a pri prepinani sa samy aktualizuju. Inak by na
+        // niektorych zariadeniach (Xiaomi Mi Box, Android 9) svietili dva pasy
+        // naraz.
+        if (controlsShown || modernOvState.value || infoVisibleState.value) return
         val ch = liveChannelsState.value.getOrNull(liveIndexState.value) ?: return
         zapBarNumber.value = if (ch.number > 0) ch.number.toString() else ""
         zapBarPicon.value = ch.piconUrl
@@ -3420,8 +3431,9 @@ class PlayerActivity : ComponentActivity() {
                 ) {
                     Row(
                         Modifier.widthIn(min = 300.dp, max = 560.dp)
+                            .shadow(8.dp, RoundedCornerShape(16.dp))
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xF20E1728))
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
                             .padding(horizontal = 18.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -3448,13 +3460,13 @@ class PlayerActivity : ComponentActivity() {
                         Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (zapBarNumber.value.isNotBlank()) {
-                                Text(zapBarNumber.value, color = Color(0xFF5FD9B4),
+                                Text(zapBarNumber.value, color = MaterialTheme.colorScheme.primary,
                                     style = MaterialTheme.typography.headlineSmall,
                                     fontWeight = FontWeight.Bold)
-                                Text("  ·  ", color = Color(0xFF48628A),
+                                Text("  ·  ", color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     style = MaterialTheme.typography.titleLarge)
                             }
-                            Text(zapBarChannel.value, color = Color.White,
+                            Text(zapBarChannel.value, color = MaterialTheme.colorScheme.onSurface,
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.SemiBold,
                                 maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -3462,13 +3474,13 @@ class PlayerActivity : ComponentActivity() {
                         if (zapBarTitle.value.isNotBlank() || zapBarTime.value.isNotBlank()) {
                             Spacer(Modifier.height(2.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(zapBarTitle.value, color = Color(0xFFB8C6DC),
+                                Text(zapBarTitle.value, color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     style = MaterialTheme.typography.bodyLarge,
                                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f, fill = false))
                                 if (zapBarTime.value.isNotBlank()) {
                                     Spacer(Modifier.width(16.dp))
-                                    Text(zapBarTime.value, color = Color(0xFF8AA0C2),
+                                    Text(zapBarTime.value, color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         style = MaterialTheme.typography.bodyMedium)
                                 }
                             }
@@ -3476,9 +3488,10 @@ class PlayerActivity : ComponentActivity() {
                         if (zapBarProgress.value > 0f) {
                             Spacer(Modifier.height(8.dp))
                             Box(Modifier.fillMaxWidth().height(4.dp)
-                                .clip(RoundedCornerShape(2.dp)).background(Color(0xFF20344F))) {
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f))) {
                                 Box(Modifier.fillMaxWidth(zapBarProgress.value).fillMaxHeight()
-                                    .clip(RoundedCornerShape(2.dp)).background(Color(0xFF5FD9B4)))
+                                    .clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary))
                             }
                         }
                         }
