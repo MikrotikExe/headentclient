@@ -765,10 +765,14 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
 
     // Zvukovy vystup — riesi rozchadzajuci sa / oneskoreny zvuk. PASSTHROUGH
     // (priamy prenos) posiela zvuk priamo do TV/AVR (zarovna sync na niektorych boxoch).
-    // Len na TV/boxoch — na telefone nema zmysel (zvuk ide do reproduktora).
+    // M441: zobrazuje sa aj na telefone. Od M436 je predvolene PCM (natvrdo
+    // setAudioOutputDevice("pcm")), predtym telefon dostaval AUTO = detekcia
+    // libVLC. Bez tejto volby by pouzivatel telefonu nemal ako sa z predvolby
+    // dostat, keby mu nesadla. PASSTHROUGH na telefone zmysel nema, ale
+    // AUTO/STEREO ano — a nic sa nerozbije, ak ho niekto zvoli.
     }
     SettingsGroup(stringResource(R.string.set_grp_sound)) {
-    if (isTvDev) {
+    run {
         var aout by remember { mutableStateOf(AudioOutputPref.get(ctx)) }
         val aoutLabel: @Composable (String) -> String = { v ->
             when (v) {
