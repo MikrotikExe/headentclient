@@ -371,6 +371,18 @@ class TsMuxer(streams: List<Stream>) {
 
     // ---- PES ----
 
+    /**
+     * M449: PES sa sklada priamo do ByteArray.
+     *
+     * Povodne to bol ArrayList<Byte> a kazdy bajt elementarneho streamu sa
+     * pridaval jednotlivo (`for (b in es) out.add(b)`) — teda boxovanie a potom
+     * rozbalenie spat pri toByteArray(). Pri beznych snimkoch (desiatky kB) to
+     * nikto nepocitil, ale klucovy snimok 10-bit HEVC ma 300-600 kB a na
+     * slabsom 32-bitovom CPU (Xiaomi Mi Box S, Cortex-A53) to trvalo stovky ms.
+     * Vysledok: raz za GOP sa cela cesta dat zastavila a libVLC potom hlasil
+     * davku "picture is too late to be displayed (missing ~380 ms)". Teraz sa
+     * alokuje presne jedno pole a telo sa kopiruje naraz (copyInto).
+     */
     private fun buildPes(t: Track, es: ByteArray, pts: Long?, dts: Long?): ByteArray {
         val hasPts = pts != null
         // DVB titulky musia mat len PTS (DTS je pre ne nevalidne a niektore stream zdroje
@@ -378,35 +390,38 @@ class TsMuxer(streams: List<Stream>) {
         val hasDts = dts != null && dts != pts && !t.isSubtitle
         val ptsDtsFlags = if (hasPts && hasDts) 0xC0 else if (hasPts) 0x80 else 0x00
         val headerDataLen = if (hasPts && hasDts) 10 else if (hasPts) 5 else 0
-        val out = ArrayList<Byte>(es.size + 14)
-        out.add(0x00); out.add(0x00); out.add(0x01)
-        out.add((t.streamId and 0xFF).toByte())
         val pesPayloadLen = 3 + headerDataLen + es.size
         val lenField = if (t.isVideo) 0 else if (pesPayloadLen <= 0xFFFF) pesPayloadLen else 0
-        out.add(((lenField ushr 8) and 0xFF).toByte())
-        out.add((lenField and 0xFF).toByte())
+        val out = ByteArray(9 + headerDataLen + es.size)
+        out[0] = 0x00; out[1] = 0x00; out[2] = 0x01
+        out[3] = (t.streamId and 0xFF).toByte()
+        out[4] = ((lenField ushr 8) and 0xFF).toByte()
+        out[5] = (lenField and 0xFF).toByte()
         // '10' marker; pre titulky aj data_alignment_indicator (0x04), aby libVLC spravne
         // ohranicil kazdy titulkovy display-set
-        out.add((if (t.isSubtitle) 0x84 else 0x80).toByte())
-        out.add((ptsDtsFlags and 0xC0).toByte())
-        out.add((headerDataLen and 0xFF).toByte())
+        out[6] = (if (t.isSubtitle) 0x84 else 0x80).toByte()
+        out[7] = (ptsDtsFlags and 0xC0).toByte()
+        out[8] = (headerDataLen and 0xFF).toByte()
+        var i = 9
         if (hasPts && hasDts) {
-            addTimestamp(out, 0x3, pts!!)
-            addTimestamp(out, 0x1, dts!!)
+            i = putTimestamp(out, i, 0x3, pts!!)
+            i = putTimestamp(out, i, 0x1, dts!!)
         } else if (hasPts) {
-            addTimestamp(out, 0x2, pts!!)
+            i = putTimestamp(out, i, 0x2, pts!!)
         }
-        for (b in es) out.add(b)
-        return out.toByteArray()
+        es.copyInto(out, i)
+        return out
     }
 
-    private fun addTimestamp(out: ArrayList<Byte>, prefix: Int, ts: Long) {
+    /** Zapise 5-bajtovu casovu znacku na dany index, vrati novy index. */
+    private fun putTimestamp(out: ByteArray, at: Int, prefix: Int, ts: Long): Int {
         val v = ts and 0x1FFFFFFFFL                     // 33 bitov
-        out.add(((prefix shl 4) or ((((v ushr 30) and 0x07).toInt()) shl 1) or 0x01).toByte())
-        out.add(((v ushr 22) and 0xFF).toByte())
-        out.add((((((v ushr 15) and 0x7F).toInt()) shl 1) or 0x01).toByte())
-        out.add(((v ushr 7) and 0xFF).toByte())
-        out.add((((((v and 0x7F).toInt())) shl 1) or 0x01).toByte())
+        out[at] = ((prefix shl 4) or ((((v ushr 30) and 0x07).toInt()) shl 1) or 0x01).toByte()
+        out[at + 1] = ((v ushr 22) and 0xFF).toByte()
+        out[at + 2] = (((((v ushr 15) and 0x7F).toInt()) shl 1) or 0x01).toByte()
+        out[at + 3] = ((v ushr 7) and 0xFF).toByte()
+        out[at + 4] = (((((v and 0x7F).toInt())) shl 1) or 0x01).toByte()
+        return at + 5
     }
 
     // ---- TS packetizacia ----
