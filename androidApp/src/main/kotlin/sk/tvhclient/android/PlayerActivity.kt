@@ -217,6 +217,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     private fun openModernOverlay() {
+        hideZapBar()  // M446
         modernOvCard.value = liveIndexState.value.coerceAtLeast(0)
         modernOvStrip.value = modernStripIds().indexOf("play").coerceAtLeast(0)
         modernOvRow.value = 0
@@ -554,6 +555,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     private fun pokeControls() {
+        hideZapBar()  // M446
         // Moderny rezim na TV pri live: stary ovladaci panel sa nezobrazuje (M325/M327)
         if (modernTvActive()) return
         controlsPokeState.value = controlsPokeState.value + 1
@@ -590,6 +592,7 @@ class PlayerActivity : ComponentActivity() {
         }
     }
     private fun showControlsFocused() {
+        hideZapBar()  // M446
         val order = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable())
         controlNavState.value = order.indexOf("play").coerceAtLeast(0)
         pokeControls()
@@ -1678,6 +1681,7 @@ class PlayerActivity : ComponentActivity() {
         infoTitleState.value = ch.nowTitle
         infoTimeState.value = fmtRange(ch.nowStart, ch.nowStop)
         infoDescState.value = ""
+        hideZapBar()  // M446
         infoVisibleState.value = true
         val srv = Tvh.store.active() ?: return
         val nowSec = System.currentTimeMillis() / 1000
@@ -1712,6 +1716,14 @@ class PlayerActivity : ComponentActivity() {
 
     /** Zobrazi kratky pas (cislo · kanal / program · cas / priebeh) na ~4 s.
      *  Data ma z liveChannelsState (EPG now/next uz v pamati), nic nestahuje. */
+    /** M446: zrusi zap pas — vola sa vzdy, ked sa otvara iny prekryv (moderny
+     *  prehlad, klasicke ovladanie, info). Bez toho by pas ostal visiet navrchu
+     *  az do vyprsania 4 s a bary by sa prekryvali. */
+    private fun hideZapBar() {
+        zapBarJob?.cancel()
+        zapBarVisible.value = false
+    }
+
     private fun showZapBar() {
         // M442: ak uz je na obrazovke klasicke ovladanie / moderny prehlad / info
         // okno, zap pas nezobrazuj — tie ukazuju rovnaky udaj (cislo, kanal,
