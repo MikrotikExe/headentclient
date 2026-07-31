@@ -267,6 +267,10 @@
     <string name="welcome_tagline">Odjemalska aplikacija Tvheadend</string>
     <string name="login_in_progress">Prijavljanje…</string>
     <string name="auto_pip_title">Samodejna slika v sliki</string>
+    <string name="sw_decode_title">Programsko dekodiranje videa</string>
+    <string name="sw_decode_note">Vklopi le, če se slika na nekaterih kanalih trga ali zamrzne. Večja obremenitev procesorja.</string>
+    <string name="vlc_verbose_title">Podroben dnevnik predvajalnika</string>
+    <string name="vlc_verbose_note">Samo za diagnostiko težav s predvajanjem. Upočasni predvajalnik; nato izklopi.</string>
     <string name="zap_overlay_title">Prekrivanje ob preklapljanju kanalov</string>
     <string name="zap_overlay_note">Izklopljeno: samo kratka vrstica s številko kanala in oddajo</string>
     <string name="archive_choice_title">Vprašaj pri arhiviranem kanalu</string>

@@ -641,6 +641,21 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
     }
     SettingsGroup(stringResource(R.string.set_grp_video)) {
+    // M447: vynutene softverove dekodovanie — zachrana pre zariadenia
+    // s pokazenym HW dekoderom (Mi Box S a 10-bit HEVC).
+    run {
+        var swDec by remember { mutableStateOf(SwDecodePref.get(ctx)) }
+        SettingsSwitchRow(
+            label = stringResource(R.string.sw_decode_title),
+            note = stringResource(R.string.sw_decode_note),
+            checked = swDec,
+            onChange = { on ->
+                swDec = on
+                SwDecodePref.set(ctx, on)
+                TabController.settingsDirty.value = true
+            }
+        )
+    }
     // AFR — automaticka obnovovacia frekvencia (M346; M348 aj telefony
     // cez Surface.setFrameRate — tam bez pauzy, system prepina plynulo)
     run {
@@ -1137,6 +1152,20 @@ internal fun InfoSettings(
 
     // Diagnosticky log (M353) — zobrazit / odoslat / vymazat
     SettingsGroup(stringResource(R.string.set_grp_diag)) {
+    // M448: podrobny zaznam prehravaca — na diagnostiku trhania/zamrzania
+    run {
+        var vlcVerbose by remember { mutableStateOf(VlcVerbosePref.get(ctx)) }
+        SettingsSwitchRow(
+            label = stringResource(R.string.vlc_verbose_title),
+            note = stringResource(R.string.vlc_verbose_note),
+            checked = vlcVerbose,
+            onChange = { on ->
+                vlcVerbose = on
+                VlcVerbosePref.set(ctx, on)
+                TabController.settingsDirty.value = true
+            }
+        )
+    }
         var logText by remember { mutableStateOf(CrashLogger.readText(ctx)) }
         val hasLog = logText.isNotBlank()
         Text(

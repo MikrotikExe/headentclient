@@ -267,6 +267,10 @@
     <string name="welcome_tagline">Tvheadend 客户端应用</string>
     <string name="login_in_progress">正在登录…</string>
     <string name="auto_pip_title">自动画中画</string>
+    <string name="sw_decode_title">软件视频解码</string>
+    <string name="sw_decode_note">仅当部分频道画面卡顿或停顿时开启。会占用更多 CPU。</string>
+    <string name="vlc_verbose_title">播放器详细日志</string>
+    <string name="vlc_verbose_note">仅用于排查播放问题。会拖慢播放，排查后请关闭。</string>
     <string name="zap_overlay_title">切换频道时的叠加层</string>
     <string name="zap_overlay_note">关闭：仅显示带频道号和节目的简短信息条</string>
     <string name="archive_choice_title">存档频道时询问</string>

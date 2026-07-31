@@ -267,6 +267,10 @@
     <string name="welcome_tagline">แอปไคลเอ็นต์ Tvheadend</string>
     <string name="login_in_progress">กำลังลงชื่อเข้าใช้…</string>
     <string name="auto_pip_title">ภาพซ้อนภาพอัตโนมัติ</string>
+    <string name="sw_decode_title">ถอดรหัสวิดีโอด้วยซอฟต์แวร์</string>
+    <string name="sw_decode_note">เปิดเฉพาะเมื่อภาพกระตุกหรือค้างในบางช่อง ใช้ CPU มากขึ้น</string>
+    <string name="vlc_verbose_title">บันทึกละเอียดของตัวเล่น</string>
+    <string name="vlc_verbose_note">ใช้เพื่อวิเคราะห์ปัญหาการเล่นเท่านั้น ทำให้ช้าลง ปิดเมื่อเสร็จ</string>
     <string name="zap_overlay_title">โอเวอร์เลย์เมื่อเปลี่ยนช่อง</string>
     <string name="zap_overlay_note">ปิด: แสดงเฉพาะแถบสั้นพร้อมหมายเลขช่องและรายการ</string>
     <string name="archive_choice_title">ถามเมื่อเป็นช่องที่บันทึกลงคลัง</string>

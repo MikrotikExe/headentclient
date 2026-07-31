@@ -267,6 +267,10 @@
     <string name="welcome_tagline">Tvheadend-Client-App</string>
     <string name="login_in_progress">Anmeldung läuft…</string>
     <string name="auto_pip_title">Automatisches Bild-in-Bild</string>
+    <string name="sw_decode_title">Software-Videodekodierung</string>
+    <string name="sw_decode_note">Nur aktivieren, wenn das Bild auf manchen Kanälen ruckelt oder einfriert. Höhere CPU-Last.</string>
+    <string name="vlc_verbose_title">Ausführliches Player-Protokoll</string>
+    <string name="vlc_verbose_note">Nur zur Fehlersuche bei der Wiedergabe. Bremst den Player; danach ausschalten.</string>
     <string name="zap_overlay_title">Overlay beim Kanalwechsel</string>
     <string name="zap_overlay_note">Aus: nur kurze Infoleiste mit Kanalnummer und Sendung</string>
     <string name="archive_choice_title">Bei archiviertem Sender nachfragen</string>

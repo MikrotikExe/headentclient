@@ -267,6 +267,10 @@
     <string name="welcome_tagline">Tvheadend kliensalkalmazás</string>
     <string name="login_in_progress">Bejelentkezés…</string>
     <string name="auto_pip_title">Automatikus kép a képben</string>
+    <string name="sw_decode_title">Szoftveres videódekódolás</string>
+    <string name="sw_decode_note">Csak akkor kapcsold be, ha a kép egyes csatornákon akadozik vagy lefagy. Nagyobb CPU-terhelés.</string>
+    <string name="vlc_verbose_title">Részletes lejátszónapló</string>
+    <string name="vlc_verbose_note">Csak lejátszási hibák kereséséhez. Lassítja a lejátszót, utána kapcsold ki.</string>
     <string name="zap_overlay_title">Fedvény csatornaváltáskor</string>
     <string name="zap_overlay_note">Kikapcsolva: csak rövid sáv csatornaszámmal és műsorral</string>
     <string name="archive_choice_title">Kérdés archivált csatornánál</string>

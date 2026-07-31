@@ -267,6 +267,10 @@
     <string name="welcome_tagline">Tvheadend کلائنٹ ایپ</string>
     <string name="login_in_progress">سائن اِن ہو رہا ہے…</string>
     <string name="auto_pip_title">خودکار تصویر در تصویر</string>
+    <string name="sw_decode_title">سافٹ ویئر ویڈیو ڈی کوڈنگ</string>
+    <string name="sw_decode_note">صرف اس صورت میں آن کریں جب کچھ چینلز پر تصویر رکتی یا جمتی ہو۔ پروسیسر زیادہ استعمال ہوتا ہے۔</string>
+    <string name="vlc_verbose_title">تفصیلی پلیئر لاگ</string>
+    <string name="vlc_verbose_note">صرف پلے بیک مسائل کی تشخیص کے لیے۔ پلیئر سست ہوتا ہے، بعد میں بند کر دیں۔</string>
     <string name="zap_overlay_title">چینل بدلتے وقت اوورلے</string>
     <string name="zap_overlay_note">بند: صرف چینل نمبر اور پروگرام کے ساتھ مختصر بار</string>
     <string name="archive_choice_title">آرکائیو شدہ چینل پر پوچھیں</string>

@@ -267,6 +267,10 @@
     <string name="welcome_tagline">Ứng dụng khách Tvheadend</string>
     <string name="login_in_progress">Đang đăng nhập…</string>
     <string name="auto_pip_title">Hình trong hình tự động</string>
+    <string name="sw_decode_title">Giải mã video bằng phần mềm</string>
+    <string name="sw_decode_note">Chỉ bật nếu hình bị giật hoặc đứng ở một số kênh. Tốn CPU hơn.</string>
+    <string name="vlc_verbose_title">Nhật ký chi tiết của trình phát</string>
+    <string name="vlc_verbose_note">Chỉ để chẩn đoán lỗi phát. Làm chậm trình phát; xong thì tắt.</string>
     <string name="zap_overlay_title">Lớp phủ khi chuyển kênh</string>
     <string name="zap_overlay_note">Tắt: chỉ hiển thị thanh ngắn với số kênh và chương trình</string>
     <string name="archive_choice_title">Hỏi khi kênh đang lưu trữ</string>

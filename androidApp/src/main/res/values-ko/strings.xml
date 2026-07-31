@@ -267,6 +267,10 @@
     <string name="welcome_tagline">Tvheadend 클라이언트 앱</string>
     <string name="login_in_progress">로그인 중…</string>
     <string name="auto_pip_title">자동 화면 속 화면</string>
+    <string name="sw_decode_title">소프트웨어 영상 디코딩</string>
+    <string name="sw_decode_note">일부 채널에서 영상이 끊기거나 멈출 때만 켜세요. CPU 사용량이 늘어납니다.</string>
+    <string name="vlc_verbose_title">플레이어 상세 로그</string>
+    <string name="vlc_verbose_note">재생 문제 진단용입니다. 재생이 느려지므로 확인 후 끄세요.</string>
     <string name="zap_overlay_title">채널 전환 시 오버레이</string>
     <string name="zap_overlay_note">끄면 채널 번호와 프로그램이 있는 짧은 바만 표시</string>
     <string name="archive_choice_title">보관 중인 채널에서 묻기</string>

@@ -267,6 +267,10 @@
     <string name="welcome_tagline">Aplikasi klien Tvheadend</string>
     <string name="login_in_progress">Sedang masuk…</string>
     <string name="auto_pip_title">Gambar dalam gambar otomatis</string>
+    <string name="sw_decode_title">Dekode video via perangkat lunak</string>
+    <string name="sw_decode_note">Aktifkan hanya jika video tersendat atau membeku di beberapa saluran. Lebih banyak CPU.</string>
+    <string name="vlc_verbose_title">Log pemutar terperinci</string>
+    <string name="vlc_verbose_note">Hanya untuk mendiagnosis masalah pemutaran. Memperlambat pemutar; matikan setelah selesai.</string>
     <string name="zap_overlay_title">Overlay saat berpindah saluran</string>
     <string name="zap_overlay_note">Mati: hanya bilah info singkat dengan nomor saluran dan program</string>
     <string name="archive_choice_title">Tanya pada saluran yang diarsipkan</string>

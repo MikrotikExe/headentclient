@@ -267,6 +267,10 @@
     <string name="welcome_tagline">Aplicație client Tvheadend</string>
     <string name="login_in_progress">Se autentifică…</string>
     <string name="auto_pip_title">Imagine în imagine automată</string>
+    <string name="sw_decode_title">Decodare video software</string>
+    <string name="sw_decode_note">Activează doar dacă imaginea se blochează sau se întrerupe pe unele canale. Consum CPU mai mare.</string>
+    <string name="vlc_verbose_title">Jurnal detaliat al playerului</string>
+    <string name="vlc_verbose_note">Doar pentru diagnosticarea problemelor de redare. Încetinește playerul; dezactivează după.</string>
     <string name="zap_overlay_title">Suprapunere la schimbarea canalelor</string>
     <string name="zap_overlay_note">Dezactivat: doar o bară scurtă cu numărul canalului și programul</string>
     <string name="archive_choice_title">Întreabă la canal arhivat</string>

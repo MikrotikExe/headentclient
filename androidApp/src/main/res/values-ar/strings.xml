@@ -267,6 +267,10 @@
     <string name="welcome_tagline">تطبيق عميل Tvheadend</string>
     <string name="login_in_progress">جارٍ تسجيل الدخول…</string>
     <string name="auto_pip_title">صورة داخل صورة تلقائية</string>
+    <string name="sw_decode_title">فك ترميز الفيديو برمجيًا</string>
+    <string name="sw_decode_note">فعّله فقط إذا كان الفيديو يتقطع أو يتجمد في بعض القنوات. يستهلك معالجًا أكثر.</string>
+    <string name="vlc_verbose_title">سجل مفصّل للمشغّل</string>
+    <string name="vlc_verbose_note">للتشخيص فقط عند مشاكل التشغيل. يبطئ المشغّل، أطفئه بعد الانتهاء.</string>
     <string name="zap_overlay_title">طبقة العرض عند تبديل القنوات</string>
     <string name="zap_overlay_note">إيقاف: شريط معلومات قصير فقط برقم القناة والبرنامج</string>
     <string name="archive_choice_title">السؤال عند قناة مؤرشفة</string>

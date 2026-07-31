@@ -350,7 +350,7 @@ class PlayerActivity : ComponentActivity() {
      */
     private fun buildMedia(url: String): Media {
         val m = Media(libVlc, Uri.parse(url))
-        m.setHWDecoderEnabled(true, false)
+        m.setHWDecoderEnabled(!SwDecodePref.get(this), false)  // M447
         // User-Agent: nech server vidi, ze sa pripaja HeadentClient
         m.addOption(":http-user-agent=" + userAgent())
         applyDeinterlace(m)
@@ -406,7 +406,7 @@ class PlayerActivity : ComponentActivity() {
         httpFeeder = feeder
         val fd = feeder.start(lifecycleScope)
         val media = Media(libVlc, fd)
-        media.setHWDecoderEnabled(true, false)
+        media.setHWDecoderEnabled(!SwDecodePref.get(this), false)  // M447
         applyFeederDemux(media, url)
         media.addOption(":file-caching=" + BufferPref.ms(this))
         applyDeinterlace(media)
@@ -510,7 +510,7 @@ class PlayerActivity : ComponentActivity() {
         httpFeeder = feeder
         val fd = feeder.start(lifecycleScope)
         val media = Media(libVlc, fd)
-        media.setHWDecoderEnabled(true, false)
+        media.setHWDecoderEnabled(!SwDecodePref.get(this), false)  // M447
         media.addOption(":demux=ts")
         media.addOption(":file-caching=" + BufferPref.htspMs(this))
         applyDeinterlace(media)
@@ -539,7 +539,7 @@ class PlayerActivity : ComponentActivity() {
             resetTimeshift()
             val fd = feeder.start(channelId, lifecycleScope)
             val media = Media(libVlc, fd)
-            media.setHWDecoderEnabled(true, false)
+            media.setHWDecoderEnabled(!SwDecodePref.get(this), false)  // M447
             media.addOption(":demux=ts")
             media.addOption(":file-caching=" + BufferPref.htspMs(this))
             applyDeinterlace(media)
@@ -2792,7 +2792,7 @@ class PlayerActivity : ComponentActivity() {
 
         val options = arrayListOf(
             "--network-caching=" + BufferPref.ms(this),
-            "--quiet",
+            if (VlcVerbosePref.get(this)) "-vv" else "--quiet",  // M448
             "--no-stats",
             "--http-user-agent=" + userAgent()
         )

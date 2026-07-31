@@ -267,6 +267,10 @@
     <string name="welcome_tagline">Клиентско приложение за Tvheadend</string>
     <string name="login_in_progress">Влизане…</string>
     <string name="auto_pip_title">Автоматично картина в картина</string>
+    <string name="sw_decode_title">Софтуерно декодиране на видео</string>
+    <string name="sw_decode_note">Включете само ако видеото засича или замръзва на някои канали. Повече натоварване на процесора.</string>
+    <string name="vlc_verbose_title">Подробен дневник на плейъра</string>
+    <string name="vlc_verbose_note">Само за диагностика на проблеми с възпроизвеждането. Забавя плейъра, после изключете.</string>
     <string name="zap_overlay_title">Наслагване при превключване на канали</string>
     <string name="zap_overlay_note">Изключено: само кратка лента с номер на канала и програмата</string>
     <string name="archive_choice_title">Питане при архивиран канал</string>

@@ -267,6 +267,10 @@
     <string name="welcome_tagline">App client per Tvheadend</string>
     <string name="login_in_progress">Accesso in corso…</string>
     <string name="auto_pip_title">Picture-in-picture automatico</string>
+    <string name="sw_decode_title">Decodifica video software</string>
+    <string name="sw_decode_note">Attiva solo se il video scatta o si blocca su alcuni canali. Usa più CPU.</string>
+    <string name="vlc_verbose_title">Log dettagliato del lettore</string>
+    <string name="vlc_verbose_note">Solo per diagnosticare problemi di riproduzione. Rallenta il lettore; disattivalo dopo.</string>
     <string name="zap_overlay_title">Overlay al cambio canale</string>
     <string name="zap_overlay_note">Disattivato: solo una breve barra con numero canale e programma</string>
     <string name="archive_choice_title">Chiedi su canale archiviato</string>

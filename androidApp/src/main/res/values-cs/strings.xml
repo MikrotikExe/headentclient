@@ -267,6 +267,10 @@
     <string name="welcome_tagline">Aplikace – klient pro Tvheadend</string>
     <string name="login_in_progress">Přihlašování probíhá…</string>
     <string name="auto_pip_title">Automatický režim PiP</string>
+    <string name="sw_decode_title">Softwarové dekódování videa</string>
+    <string name="sw_decode_note">Zapni jen když se obraz na některých kanálech trhá nebo zamrzá. Více zatěžuje procesor.</string>
+    <string name="vlc_verbose_title">Podrobný záznam přehrávače</string>
+    <string name="vlc_verbose_note">Jen pro hledání problémů s přehráváním. Zpomaluje přehrávač, po diagnostice vypni.</string>
     <string name="zap_overlay_title">Překryv při přepínání kanálů</string>
     <string name="zap_overlay_note">Vypnuto: jen krátký informační pruh s číslem kanálu a pořadem</string>
     <string name="archive_choice_title">Upozornění u archivovaného kanálu</string>

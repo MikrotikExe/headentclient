@@ -267,6 +267,10 @@
     <string name="welcome_tagline">Tvheadend क्लाइंट ऐप</string>
     <string name="login_in_progress">साइन इन हो रहा है…</string>
     <string name="auto_pip_title">स्वचालित पिक्चर-इन-पिक्चर</string>
+    <string name="sw_decode_title">सॉफ़्टवेयर वीडियो डिकोडिंग</string>
+    <string name="sw_decode_note">केवल तभी चालू करें जब कुछ चैनलों पर वीडियो अटके या रुके। CPU अधिक उपयोग होता है.</string>
+    <string name="vlc_verbose_title">विस्तृत प्लेयर लॉग</string>
+    <string name="vlc_verbose_note">केवल प्लेबैक समस्याओं की जाँच के लिए। प्लेयर धीमा होता है, बाद में बंद करें.</string>
     <string name="zap_overlay_title">चैनल बदलते समय ओवरले</string>
     <string name="zap_overlay_note">बंद: केवल चैनल नंबर और कार्यक्रम के साथ छोटी पट्टी</string>
     <string name="archive_choice_title">संग्रहित चैनल पर पूछें</string>

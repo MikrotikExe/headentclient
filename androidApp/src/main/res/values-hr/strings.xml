@@ -267,6 +267,10 @@
     <string name="welcome_tagline">Tvheadend klijentska aplikacija</string>
     <string name="login_in_progress">Prijava…</string>
     <string name="auto_pip_title">Automatska slika u slici</string>
+    <string name="sw_decode_title">Softversko dekodiranje videa</string>
+    <string name="sw_decode_note">Uključi samo ako se slika na nekim kanalima trza ili zamrzava. Veće opterećenje procesora.</string>
+    <string name="vlc_verbose_title">Detaljan zapis reproduktora</string>
+    <string name="vlc_verbose_note">Samo za dijagnostiku problema s reprodukcijom. Usporava reproduktor; poslije isključi.</string>
     <string name="zap_overlay_title">Preklop pri promjeni kanala</string>
     <string name="zap_overlay_note">Isključeno: samo kratka traka s brojem kanala i programom</string>
     <string name="archive_choice_title">Pitaj kod arhiviranog kanala</string>

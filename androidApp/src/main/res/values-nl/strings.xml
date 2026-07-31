@@ -267,6 +267,10 @@
     <string name="welcome_tagline">Tvheadend-client-app</string>
     <string name="login_in_progress">Inloggen…</string>
     <string name="auto_pip_title">Automatisch beeld-in-beeld</string>
+    <string name="sw_decode_title">Softwarematige videodecodering</string>
+    <string name="sw_decode_note">Alleen inschakelen als het beeld op sommige zenders hapert of vastloopt. Meer CPU-gebruik.</string>
+    <string name="vlc_verbose_title">Uitgebreid spelerlogboek</string>
+    <string name="vlc_verbose_note">Alleen om afspeelproblemen op te sporen. Vertraagt de speler; daarna uitschakelen.</string>
     <string name="zap_overlay_title">Overlay bij zenderwissel</string>
     <string name="zap_overlay_note">Uit: alleen een korte balk met zendernummer en programma</string>
     <string name="archive_choice_title">Vragen bij gearchiveerde zender</string>
