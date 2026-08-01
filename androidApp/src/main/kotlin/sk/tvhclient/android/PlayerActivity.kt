@@ -2846,6 +2846,15 @@ class PlayerActivity : ComponentActivity() {
         // Predvolene 0 = vypnute (nic nemeni). Zaporna = zvuk skor, kladna = neskor.
         // Deinterlacing (globalne, nech plati uz na prvom otvoreni; per-medium
         // sa nastavi znova pri kazdom prepnuti kanala)
+        // M461: nase PCR pochadza z DTS snimkov, takze nie je rovnomerne rozlozene
+        // v case ako u servera (HTTP cesta). libVLC z neho obnovuje hodiny a pri
+        // 10-bit HEVC s velkymi klucovymi snimkami sa mu to rozkolisalo — obraz
+        // sekal raz za GOP, zvuk bezal plynulo, procesor mal rezervu a vacsi
+        // buffer nepomohol. `--clock-jitter=0` mu povie, nech PCR neberie ako
+        // riadiaci signal a drzi vlastne hodiny.
+        options.add("--clock-jitter=0")
+        options.add("--clock-synchro=0")
+
         val (dEn, dMode) = deinterlaceSpec()
         options.add("--deinterlace=$dEn")
         if (dMode != null) options.add("--deinterlace-mode=$dMode")
