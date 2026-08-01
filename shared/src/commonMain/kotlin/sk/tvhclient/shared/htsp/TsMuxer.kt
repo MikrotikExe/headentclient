@@ -45,8 +45,18 @@ class TsMuxer(streams: List<Stream>) {
     private val programNumber = 1
     private val siInterval = 20   // re-emit PAT/PMT po kazdych N muxpkt
 
-    /** M457: o kolko PCR predbieha DTS (90 kHz). 400 ms = bezna rezerva. */
-    private val PCR_LEAD = 36_000L
+    /** M463: o kolko PCR predbieha DTS (90 kHz). Serverovy stream (HTTP pass)
+     *  drzi stabilnych 700-780 ms, drzime sa toho. */
+    private val PCR_LEAD = 63_000L
+
+    /** M463: najviac tolko TS paketov medzi dvoma PCR znackami. Pri 1080p50
+     *  HEVC ma klucovy snimok az ~480 paketov — bez priebeznych znaciek dekoder
+     *  nema pol sekundy ziadnu referenciu a jeho hodinova regulacia sa rozhadze
+     *  presne raz za GOP. Serverovy stream ma znacku kazdych ~235 paketov. */
+    private val PCR_MAX_GAP_PKT = 40
+
+    /** M463: DTS predchadzajuceho snimku — na interpolaciu PCR vnutri snimku. */
+    private var lastPcrDts: Long? = null
 
     private val tracks = ArrayList<Track>()
     private var trackByEs: Map<Int, Track> = emptyMap()
@@ -256,17 +266,22 @@ class TsMuxer(streams: List<Stream>) {
         // problem je v casovani). Silnejsie boxy to nepocitili, lebo dekoduju
         // rychlejsie, nez uplynie termin. Tvheadend na HTTP ceste PCR generuje
         // s rezervou — preto tam bol obraz plynuly.
-        val pcr = if (t.pid == pcrPid) {
-            val base = outDts ?: outPts
-            if (base != null) (base - PCR_LEAD).coerceAtLeast(0L) else null
-        } else null
+        val dtsNow = if (t.pid == pcrPid) (outDts ?: outPts) else null
+        val pcr = if (dtsNow != null) (dtsNow - PCR_LEAD).coerceAtLeast(0L) else null
+        // trvanie snimku pre interpolaciu (prvy snimok: 20 ms ako rozumny odhad)
+        val frameSpan = if (dtsNow != null) {
+            val prev = lastPcrDts
+            val d = if (prev != null && dtsNow > prev) dtsNow - prev else 1_800L
+            lastPcrDts = dtsNow
+            d
+        } else 0L
 
         val psiLen = (patPkt?.size ?: 0) + (pmtPkt?.size ?: 0)
         val out = ByteArray(psiLen + tsPacketCount(pesLen, pcr != null, rap) * 188)
         var off = 0
         patPkt?.let { it.copyInto(out, off); off += it.size }
         pmtPkt?.let { it.copyInto(out, off); off += it.size }
-        writePackets(t, pesBuf, pesLen, pcr, rap, out, off)
+        writePackets(t, pesBuf, pesLen, pcr, frameSpan, rap, out, off)
         return out
     }
 
@@ -278,18 +293,21 @@ class TsMuxer(streams: List<Stream>) {
         var pos = 0
         var first = true
         var count = 0
+        var sincePcr = 0
         while (pos < pesSize) {
             val remaining = pesSize - pos
-            val indicators = first && (hasPcr || rap)
+            val pcrHere = hasPcr && (first || sincePcr >= PCR_MAX_GAP_PKT)
+            val indicators = pcrHere || (first && rap)
             val take = if (!indicators && remaining >= 184) 184
             else if (!indicators && remaining == 183) 183
             else {
-                val mandatory = if (first && hasPcr) 7 else 1
+                val mandatory = if (pcrHere) 7 else 1
                 val avail = 184 - 1 - mandatory
                 if (remaining >= avail) avail else remaining
             }
             pos += take
             count++
+            sincePcr = if (pcrHere) 0 else sincePcr + 1
             first = false
         }
         return count
@@ -400,6 +418,12 @@ class TsMuxer(streams: List<Stream>) {
                 l[0].code.toByte(), l[1].code.toByte(), l[2].code.toByte(),
                 0x00                                        // audio_type = undefined
             )
+        }
+        // M463: registracny deskriptor pre HEVC (05 04 "HEVC") — presne ako ho
+        // posiela Tvheadend v HTTP streame. Niektore demuxery/dekodery podla neho
+        // rozpoznavaju format spolahlivejsie nez podla stream_type 0x24.
+        if (t.isVideo && t.streamType == 0x24) {
+            return byteArrayOf(0x05, 0x04, 0x48, 0x45, 0x56, 0x43)   // "HEVC"
         }
         return ByteArray(0)
     }
@@ -563,7 +587,13 @@ class TsMuxer(streams: List<Stream>) {
                 if (pcrHere) flags = flags or 0x10
                 pkt[idx++] = flags.toByte()
                 if (pcrHere) {
-                    val base = pcrBase!! and 0x1FFFFFFFFL
+                    // M463: hodnota sa interpoluje naprieč snimkom, aby PCR
+                    // rastlo plynulo aj vnutri velkeho klucoveho snimku
+                    val interp = if (totalPkts > 1)
+                        pcrBase!! + frameSpan * pcrIdx.toLong() / totalPkts.toLong()
+                    else pcrBase!!
+                    pcrIdx += PCR_MAX_GAP_PKT
+                    val base = interp and 0x1FFFFFFFFL
                     pkt[idx++] = ((base ushr 25) and 0xFF).toByte()
                     pkt[idx++] = ((base ushr 17) and 0xFF).toByte()
                     pkt[idx++] = ((base ushr 9) and 0xFF).toByte()
@@ -578,6 +608,7 @@ class TsMuxer(streams: List<Stream>) {
             pes.copyInto(out, base + payloadStart, pos, pos + take)
             pos += take
             base += 188
+            sincePcr = if (pcrHere) 0 else sincePcr + 1
             first = false
         }
     }
