@@ -1041,16 +1041,56 @@ class PlayerActivity : ComponentActivity() {
         LivePlaylist.channels = updated
     }
 
-    /** M275: asynchronny zapis EPG cache na disk (per server). */
+    // ---- M456: zlucovanie zapisov EPG cache ----
+    private var epgPersistJob: kotlinx.coroutines.Job? = null
+    private var epgPersistPending: Map<String, List<sk.tvhclient.shared.model.EpgEvent>>? = null
+    private var epgLastPersistMs = 0L
+    private val epgPersistMinGapMs = 30_000L
+
+    /**
+     * M275: asynchronny zapis EPG cache na disk (per server).
+     *
+     * M456: zapis sa ZLUCUJE. Povodne sa pri kazdej HTSP aktualizacii jedneho
+     * kanala serializovala a zapisovala CELA mapa vsetkych kanalov — Tvheadend
+     * posiela eventUpdate priebezne, takze pri velkej ponuke to bezalo niekolko
+     * krat za sekundu. V profile to bola najdrahsia vec v celej appke
+     * (EpgEvent$$serializer.serialize + FileOutputStream.write viac vzoriek nez
+     * cely TS muxer) a na slabsom boxe to znamenalo rozdiel 136 % vs 42 % CPU
+     * oproti HTTP ceste, kde sa EPG stiahne raz. Teraz sa zapisuje najviac raz
+     * za 30 s a vzdy posledny stav; pri odchode z prehravaca sa docaka zvysok.
+     */
     private fun persistEpg(map: Map<String, List<sk.tvhclient.shared.model.EpgEvent>>) {
         val srv = liveServer ?: return
         if (map.isEmpty()) return
-        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+        epgPersistPending = map
+        if (epgPersistJob?.isActive == true) return
+        val since = System.currentTimeMillis() - epgLastPersistMs
+        val wait = if (since >= epgPersistMinGapMs) 0L else epgPersistMinGapMs - since
+        epgPersistJob = lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            if (wait > 0) kotlinx.coroutines.delay(wait)
+            val snapshot = epgPersistPending ?: return@launch
+            epgPersistPending = null
+            epgLastPersistMs = System.currentTimeMillis()
             runCatching {
                 val nowSec = System.currentTimeMillis() / 1000
-                EpgCache.saveLive(this@PlayerActivity, srv.id, map, nowSec, EpgRangePref.daysBack(this@PlayerActivity))
+                EpgCache.saveLive(this@PlayerActivity, srv.id, snapshot, nowSec, EpgRangePref.daysBack(this@PlayerActivity))
             }
         }
+    }
+
+    /** M456: dopis EPG cache pri odchode, nech sa posledne zmeny nestratia. */
+    private fun flushEpgPersist() {
+        val srv = liveServer ?: return
+        val snapshot = epgPersistPending ?: return
+        epgPersistPending = null
+        val app = applicationContext
+        val days = EpgRangePref.daysBack(this)
+        // samostatne vlakno — aktivita konci, jej scope by zapis zrusil
+        Thread {
+            runCatching {
+                EpgCache.saveLive(app, srv.id, snapshot, System.currentTimeMillis() / 1000, days)
+            }
+        }.start()
     }
 
     /** M274: prefetch EPG na pozadi LEN ak je cache prazdna/zastarana (prvy start, >3h).
@@ -4036,6 +4076,7 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onDestroy() {
         releaseStreamLocks()  // M452
+        flushEpgPersist()     // M456
         clearAfr()
         zapHandler.removeCallbacks(zapCommit)   // M407
         saveDvrProgress()
