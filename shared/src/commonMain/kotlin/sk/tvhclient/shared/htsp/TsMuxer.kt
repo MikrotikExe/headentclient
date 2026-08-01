@@ -53,7 +53,7 @@ class TsMuxer(streams: List<Stream>) {
      *  HEVC ma klucovy snimok az ~480 paketov — bez priebeznych znaciek dekoder
      *  nema pol sekundy ziadnu referenciu a jeho hodinova regulacia sa rozhadze
      *  presne raz za GOP. Serverovy stream ma znacku kazdych ~235 paketov. */
-    private val PCR_MAX_GAP_PKT = 40
+    private val PCR_MAX_GAP_PKT = 200
 
     /** M463: DTS predchadzajuceho snimku — na interpolaciu PCR vnutri snimku. */
     private var lastPcrDts: Long? = null
@@ -80,14 +80,6 @@ class TsMuxer(streams: List<Stream>) {
 
     // Prepis casovych znaciek na spojitu vystupnu os — aby libVLC nevidel spatny/dopredny
     // skok pri subscriptionSkip (RW/FF). Pri beznom zivom je offset konstantny (= pass-through).
-    /** M450-diag: zapne vypis casovych znaciek (nastavuje appka podla predvolby).
-     *  Hodiny aj zapis dodava appka, aby shared kod nepotreboval platformove API. */
-    var diag = false
-    var nowMillis: () -> Long = { 0L }
-    var diagLog: (String) -> Unit = { }
-    private var diagLastWall = 0L
-    private var diagLastOut = Long.MIN_VALUE
-
     private var hasOffset = false
     private var tsOffset = 0L
     private var lastOut = 0L
@@ -211,22 +203,6 @@ class TsMuxer(streams: List<Stream>) {
         }
         val es = if (t.isAac) adtsWrap(t, payload) else payload
         val (op, od) = remap(pts, dts)
-        // M450-diag: docasna diagnostika casovych znaciek video stopy.
-        // Zapina sa TsMuxer.diag = true (Diagnostika -> podrobny zaznam).
-        if (diag && t.isVideo) {
-            val nowMs = nowMillis()
-            val wall = if (diagLastWall != 0L) nowMs - diagLastWall else 0L
-            val dOut = if (diagLastOut != Long.MIN_VALUE) ((op ?: od ?: 0L) - diagLastOut) else 0L
-            diagLog(
-                "TSMUX pts=" + pts + " dts=" + dts +
-                " -> out=" + op + "/" + od +
-                " dOut=" + dOut + " (" + (dOut / 90) + "ms)" +
-                " wall=" + wall + "ms rap=" + randomAccess +
-                " size=" + payload.size
-            )
-            diagLastWall = nowMs
-            diagLastOut = op ?: od ?: diagLastOut
-        }
         val body = emitPes(t, es, op, od, randomAccess)
         // M454: `a + b` na ByteArray vytvori nove pole a skopiruje don vsetko.
         // flushed/activated su pri beznom snimku prazdne, takze konkatenacia

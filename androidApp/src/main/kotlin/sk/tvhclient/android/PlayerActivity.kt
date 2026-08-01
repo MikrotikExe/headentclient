@@ -512,14 +512,7 @@ class PlayerActivity : ComponentActivity() {
         val media = Media(libVlc, fd)
         media.setHWDecoderEnabled(!SwDecodePref.get(this), false)  // M447
         media.addOption(":demux=ts")
-        // M464: stream z HTSP ide cez file descriptor, takze libVLC ho doteraz
-        // obsluhoval ako SUBOR na disku (:file-caching) — predpokladal okamzitu
-        // dostupnost dat. HTTP cesta pritom bezi ako zivy sietovy stream
-        // (--network-caching) a prave ta hrala plynulo. Pridavame preto aj
-        // live/network caching, nech prehravac vie, ze data chodia v realnom case.
         media.addOption(":file-caching=" + BufferPref.htspMs(this))
-        media.addOption(":live-caching=" + BufferPref.htspMs(this))
-        media.addOption(":network-caching=" + BufferPref.htspMs(this))
         applyDeinterlace(media)
         mediaPlayer.media = media
         media.release()
@@ -548,14 +541,7 @@ class PlayerActivity : ComponentActivity() {
             val media = Media(libVlc, fd)
             media.setHWDecoderEnabled(!SwDecodePref.get(this), false)  // M447
             media.addOption(":demux=ts")
-            // M464: stream z HTSP ide cez file descriptor, takze libVLC ho doteraz
-            // obsluhoval ako SUBOR na disku (:file-caching) — predpokladal okamzitu
-            // dostupnost dat. HTTP cesta pritom bezi ako zivy sietovy stream
-            // (--network-caching) a prave ta hrala plynulo. Pridavame preto aj
-            // live/network caching, nech prehravac vie, ze data chodia v realnom case.
             media.addOption(":file-caching=" + BufferPref.htspMs(this))
-            media.addOption(":live-caching=" + BufferPref.htspMs(this))
-            media.addOption(":network-caching=" + BufferPref.htspMs(this))
             applyDeinterlace(media)
                 mediaPlayer.media = media
             media.release()
@@ -2755,10 +2741,6 @@ class PlayerActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Mini radio (M340) nesmie hrat popri plnom prehravaci
         RadioPlayerService.stop(this)
-        // M450-diag: diagnostika TS muxera ide spolu s podrobnym zaznamom prehravaca
-        sk.tvhclient.shared.htsp.TsDiag.enabled = VlcVerbosePref.get(this)
-        sk.tvhclient.shared.htsp.TsDiag.nowMillis = { android.os.SystemClock.elapsedRealtime() }
-        sk.tvhclient.shared.htsp.TsDiag.log = { m -> android.util.Log.w("TSMUX", m) }
         // Zavri predoslu instanciu prehravaca (napr. visiacu v PiP so starym kanalom),
         // nech pri prepnuti kanala nezostane stara PiP visiet. Nova sa otvori na celu obrazovku.
         // M427: ak stara instancia visi v PiP, obycajny finish() zavrie aktivitu,
@@ -2785,7 +2767,6 @@ class PlayerActivity : ComponentActivity() {
         // Drz obrazovku zapnutu od startu prehravaca (setric/ambient na boxoch sa nesmie spustit)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         acquireStreamLocks()  // M452
-        MethodProfiler.startIfArmed(this)  // M460-diag
 
         // Immersive fullscreen — skry status aj navigacnu listu, nech
         // neprekryvaju ovladanie. Listy sa daju vytiahnut potiahnutim.
@@ -2860,15 +2841,6 @@ class PlayerActivity : ComponentActivity() {
         // Predvolene 0 = vypnute (nic nemeni). Zaporna = zvuk skor, kladna = neskor.
         // Deinterlacing (globalne, nech plati uz na prvom otvoreni; per-medium
         // sa nastavi znova pri kazdom prepnuti kanala)
-        // M461: nase PCR pochadza z DTS snimkov, takze nie je rovnomerne rozlozene
-        // v case ako u servera (HTTP cesta). libVLC z neho obnovuje hodiny a pri
-        // 10-bit HEVC s velkymi klucovymi snimkami sa mu to rozkolisalo — obraz
-        // sekal raz za GOP, zvuk bezal plynulo, procesor mal rezervu a vacsi
-        // buffer nepomohol. `--clock-jitter=0` mu povie, nech PCR neberie ako
-        // riadiaci signal a drzi vlastne hodiny.
-        options.add("--clock-jitter=0")
-        options.add("--clock-synchro=0")
-
         val (dEn, dMode) = deinterlaceSpec()
         options.add("--deinterlace=$dEn")
         if (dMode != null) options.add("--deinterlace-mode=$dMode")

@@ -1192,20 +1192,6 @@ internal fun InfoSettings(
         }
         if (hasLog) {
             InfoLinkRow(stringResource(R.string.diag_send)) { CrashLogReporter.share(ctx) }
-            // M455-diag: zaznam stromu volani (docasne, na ladenie HTSP zataze)
-            // M462-diag: odber vzorky TS na porovnanie so serverom
-            InfoLinkRow("Odobrať vzorku streamu (pri ďalšom kanáli)") {
-                TsDump.arm(ctx)
-                android.widget.Toast.makeText(
-                    ctx, "Prepni kanál — uloží sa ~12 MB vzorky", android.widget.Toast.LENGTH_LONG
-                ).show()
-            }
-            InfoLinkRow("Naplánovať profil (spustí sa pri sledovaní)") {
-                MethodProfiler.armed = true
-                android.widget.Toast.makeText(
-                    ctx, "Vráť sa na kanál — záznam sa spustí o 15 s", android.widget.Toast.LENGTH_LONG
-                ).show()
-            }
             Spacer(Modifier.height(8.dp))
             InfoLinkRow(stringResource(R.string.diag_clear)) {
                 CrashLogger.clear(ctx); logText = ""

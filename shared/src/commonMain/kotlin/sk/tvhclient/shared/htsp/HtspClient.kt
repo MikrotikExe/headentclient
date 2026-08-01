@@ -127,16 +127,9 @@ class HtspClient(
         }
     }
 
-    // M451-diag
-    private var diagPrevMux = 0L
-    private var diagRecvWait = 0L
-    private var diagTsWrite = 0L
-
     private suspend fun recv(): Map<String, Any?> {
         val r = read!!
-        val tRecv = if (TsDiag.enabled) TsDiag.nowMillis() else 0L
         val hdr = r.readByteArray(4)
-        if (TsDiag.enabled) diagRecvWait += TsDiag.nowMillis() - tRecv
         // dlzka ako Long (unsigned 32-bit) — cez Int by najvyssi bit daval zaporne
         val len = (((hdr[0].toLong() and 0xFF) shl 24) or
                 ((hdr[1].toLong() and 0xFF) shl 16) or
@@ -321,10 +314,6 @@ class HtspClient(
                         val existing = muxer
                         if (existing == null) {
                             val mx = TsMuxer(streams)
-                            // M450-diag: diagnostika casovych znaciek (Diagnostika -> podrobny zaznam)
-                            mx.diag = TsDiag.enabled
-                            mx.nowMillis = TsDiag.nowMillis
-                            mx.diagLog = TsDiag.log
                             muxer = mx
                             liveMuxer = mx
                             onSubtitles(mx.subtitleStreams())
@@ -336,15 +325,6 @@ class HtspClient(
                         }
                     }
                     "muxpkt" -> {
-                        // M451-diag: kde vznika sekundovy naraz? recvMs = cakanie na
-                        // data zo socketu, tsMs = zapis do libVLC (pipe).
-                        if (TsDiag.enabled) {
-                            val nowD = TsDiag.nowMillis()
-                            val since = if (diagPrevMux != 0L) nowD - diagPrevMux else 0L
-                            if (since > 100L) TsDiag.log("RECV gap=" + since + "ms recvWait=" + diagRecvWait + "ms tsWrite=" + diagTsWrite + "ms")
-                            diagPrevMux = nowD
-                            diagRecvWait = 0L; diagTsWrite = 0L
-                        }
                         val mx = muxer ?: continue
                         val es = (m["payload"] as? ByteArray) ?: continue
                         val streamIdx = (m["stream"] as? Long)?.toInt() ?: continue
@@ -362,11 +342,7 @@ class HtspClient(
                         }
                         val rap = ((m["frametype"] as? Long)?.toInt() ?: 0) == 'I'.code
                         val ts = mx.mux(streamIdx, es, pts, dts, rap)
-                        if (ts.isNotEmpty()) {
-                            val tW = if (TsDiag.enabled) TsDiag.nowMillis() else 0L
-                            onTs(ts)
-                            if (TsDiag.enabled) diagTsWrite += TsDiag.nowMillis() - tW
-                        }
+                        if (ts.isNotEmpty()) onTs(ts)
                     }
                     "timeshiftStatus" -> {
                         val shift = (m["shift"] as? Long) ?: 0L
