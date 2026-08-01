@@ -512,7 +512,14 @@ class PlayerActivity : ComponentActivity() {
         val media = Media(libVlc, fd)
         media.setHWDecoderEnabled(!SwDecodePref.get(this), false)  // M447
         media.addOption(":demux=ts")
+        // M464: stream z HTSP ide cez file descriptor, takze libVLC ho doteraz
+        // obsluhoval ako SUBOR na disku (:file-caching) — predpokladal okamzitu
+        // dostupnost dat. HTTP cesta pritom bezi ako zivy sietovy stream
+        // (--network-caching) a prave ta hrala plynulo. Pridavame preto aj
+        // live/network caching, nech prehravac vie, ze data chodia v realnom case.
         media.addOption(":file-caching=" + BufferPref.htspMs(this))
+        media.addOption(":live-caching=" + BufferPref.htspMs(this))
+        media.addOption(":network-caching=" + BufferPref.htspMs(this))
         applyDeinterlace(media)
         mediaPlayer.media = media
         media.release()
@@ -541,7 +548,14 @@ class PlayerActivity : ComponentActivity() {
             val media = Media(libVlc, fd)
             media.setHWDecoderEnabled(!SwDecodePref.get(this), false)  // M447
             media.addOption(":demux=ts")
+            // M464: stream z HTSP ide cez file descriptor, takze libVLC ho doteraz
+            // obsluhoval ako SUBOR na disku (:file-caching) — predpokladal okamzitu
+            // dostupnost dat. HTTP cesta pritom bezi ako zivy sietovy stream
+            // (--network-caching) a prave ta hrala plynulo. Pridavame preto aj
+            // live/network caching, nech prehravac vie, ze data chodia v realnom case.
             media.addOption(":file-caching=" + BufferPref.htspMs(this))
+            media.addOption(":live-caching=" + BufferPref.htspMs(this))
+            media.addOption(":network-caching=" + BufferPref.htspMs(this))
             applyDeinterlace(media)
                 mediaPlayer.media = media
             media.release()
