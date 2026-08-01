@@ -1192,6 +1192,8 @@ internal fun InfoSettings(
         }
         if (hasLog) {
             InfoLinkRow(stringResource(R.string.diag_send)) { CrashLogReporter.share(ctx) }
+            // M455-diag: zaznam stromu volani (docasne, na ladenie HTSP zataze)
+            InfoLinkRow("Zaznamenať profil (10 s)") { MethodProfiler.record(ctx, 10) }
             Spacer(Modifier.height(8.dp))
             InfoLinkRow(stringResource(R.string.diag_clear)) {
                 CrashLogger.clear(ctx); logText = ""
