@@ -45,6 +45,9 @@ class TsMuxer(streams: List<Stream>) {
     private val programNumber = 1
     private val siInterval = 20   // re-emit PAT/PMT po kazdych N muxpkt
 
+    /** M457: o kolko PCR predbieha DTS (90 kHz). 400 ms = bezna rezerva. */
+    private val PCR_LEAD = 36_000L
+
     private val tracks = ArrayList<Track>()
     private var trackByEs: Map<Int, Track> = emptyMap()
     private val pendingSubs = ArrayList<Track>()   // DVB titulky cakajuce na prvy paket
@@ -244,7 +247,19 @@ class TsMuxer(streams: List<Stream>) {
         if (withPsi) psiCounter = siInterval
 
         val pesLen = buildPesInto(t, es, outPts, outDts)
-        val pcr = if (t.pid == pcrPid) (outDts ?: outPts) else null
+        // M457: PCR musi PREDBIEHAT DTS o hodnotu dekodovacieho buffera.
+        // Povodne sa PCR rovnalo DTS snimku — dekoder tak dostal snimok presne
+        // vo chvili, ked ho mal uz zobrazit, bez rezervy na dekodovanie. Bezne
+        // snimky to prezili, ale klucovy snimok 10-bit HEVC (70+ kB) sa nestihol
+        // a obraz sekol RAZ ZA GOP, teda raz za sekundu (Xiaomi Mi Box S; zvuk
+        // pritom bezal plynulo, co ukazalo, ze data prichadzaju v poriadku a
+        // problem je v casovani). Silnejsie boxy to nepocitili, lebo dekoduju
+        // rychlejsie, nez uplynie termin. Tvheadend na HTTP ceste PCR generuje
+        // s rezervou — preto tam bol obraz plynuly.
+        val pcr = if (t.pid == pcrPid) {
+            val base = outDts ?: outPts
+            if (base != null) (base - PCR_LEAD).coerceAtLeast(0L) else null
+        } else null
 
         val psiLen = (patPkt?.size ?: 0) + (pmtPkt?.size ?: 0)
         val out = ByteArray(psiLen + tsPacketCount(pesLen, pcr != null, rap) * 188)
