@@ -314,6 +314,10 @@ class HtspClient(
                         val existing = muxer
                         if (existing == null) {
                             val mx = TsMuxer(streams)
+                            // M450-diag: diagnostika casovych znaciek (Diagnostika -> podrobny zaznam)
+                            mx.diag = TsDiag.enabled
+                            mx.nowMillis = TsDiag.nowMillis
+                            mx.diagLog = TsDiag.log
                             muxer = mx
                             liveMuxer = mx
                             onSubtitles(mx.subtitleStreams())

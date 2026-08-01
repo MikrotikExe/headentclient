@@ -2701,6 +2701,10 @@ class PlayerActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Mini radio (M340) nesmie hrat popri plnom prehravaci
         RadioPlayerService.stop(this)
+        // M450-diag: diagnostika TS muxera ide spolu s podrobnym zaznamom prehravaca
+        sk.tvhclient.shared.htsp.TsDiag.enabled = VlcVerbosePref.get(this)
+        sk.tvhclient.shared.htsp.TsDiag.nowMillis = { android.os.SystemClock.elapsedRealtime() }
+        sk.tvhclient.shared.htsp.TsDiag.log = { m -> android.util.Log.w("TSMUX", m) }
         // Zavri predoslu instanciu prehravaca (napr. visiacu v PiP so starym kanalom),
         // nech pri prepnuti kanala nezostane stara PiP visiet. Nova sa otvori na celu obrazovku.
         // M427: ak stara instancia visi v PiP, obycajny finish() zavrie aktivitu,
