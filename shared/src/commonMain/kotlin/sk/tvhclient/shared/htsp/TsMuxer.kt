@@ -543,14 +543,18 @@ class TsMuxer(streams: List<Stream>) {
     // ---- TS packetizacia ----
 
     /** M453: zapisuje TS pakety priamo do `out` od indexu `startOff`. */
-    private fun writePackets(t: Track, pes: ByteArray, pesLen: Int, pcrBase: Long?, rap: Boolean, out: ByteArray, startOff: Int) {
+    private fun writePackets(t: Track, pes: ByteArray, pesLen: Int, pcrBase: Long?, frameSpan: Long, rap: Boolean, out: ByteArray, startOff: Int) {
         var pos = 0
         var first = true
         val n = pesLen
         var base = startOff
+        var sincePcr = 0
+        var pcrIdx = 0
+        // M463: kolko paketov snimok zaberie — na rovnomerne rozlozenie PCR
+        val totalPkts = if (pcrBase != null && t.pid == pcrPid) tsPacketCount(pesLen, true, rap) else 0
         while (pos < n) {
             val remaining = n - pos
-            val pcrHere = first && pcrBase != null && t.pid == pcrPid
+            val pcrHere = pcrBase != null && t.pid == pcrPid && (first || sincePcr >= PCR_MAX_GAP_PKT)
             val rapHere = first && rap
             val indicators = pcrHere || rapHere
 
