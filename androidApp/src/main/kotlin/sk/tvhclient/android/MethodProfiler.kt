@@ -20,6 +20,24 @@ import java.io.File
 object MethodProfiler {
     private var running = false
 
+    /**
+     * M460-diag: naplanovany zaznam. Zapne sa v Diagnostike, ale sam sa spusti
+     * az `delaySeconds` po navrate do prehravania — takze v profile nie je
+     * prechod medzi obrazovkami (ten sam o sebe vyvola prekreslenie celeho UI
+     * a skresluje vysledok), ale ustaleny stav pocas sledovania.
+     */
+    @Volatile
+    var armed = false
+
+    /** Vola PlayerActivity po nabehnuti prehravania. */
+    fun startIfArmed(context: Context, delaySeconds: Int = 15, recordSeconds: Int = 10) {
+        if (!armed || running) return
+        armed = false
+        Handler(Looper.getMainLooper()).postDelayed({
+            record(context, recordSeconds)
+        }, delaySeconds * 1000L)
+    }
+
     /** Spusti zaznam na dany pocet sekund; subor skonci v files/profile.trace. */
     fun record(context: Context, seconds: Int = 10) {
         if (running) {

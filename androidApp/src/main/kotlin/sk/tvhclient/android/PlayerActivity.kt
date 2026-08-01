@@ -992,7 +992,7 @@ class PlayerActivity : ComponentActivity() {
             epgLastOkMs = System.currentTimeMillis()
             LivePlaylist.epgLastOkMs = epgLastOkMs
         }
-        persistEpg(m)   // M275: zapis na disk, nech prezije restart boxu
+        persistEpg(m)   // M275/M456: zapis na disk (zluceny)
     }
 
     /** M275: nacitanie EPG z disku do procesovej cache pri starte (ak je process cache
@@ -2771,6 +2771,7 @@ class PlayerActivity : ComponentActivity() {
         // Drz obrazovku zapnutu od startu prehravaca (setric/ambient na boxoch sa nesmie spustit)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         acquireStreamLocks()  // M452
+        MethodProfiler.startIfArmed(this)  // M460-diag
 
         // Immersive fullscreen — skry status aj navigacnu listu, nech
         // neprekryvaju ovladanie. Listy sa daju vytiahnut potiahnutim.
