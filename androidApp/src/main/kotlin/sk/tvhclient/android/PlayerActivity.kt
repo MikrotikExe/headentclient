@@ -2730,6 +2730,7 @@ class PlayerActivity : ComponentActivity() {
         remoteDebug = RemoteDebugPref.isEnabled(this)
         // Drz obrazovku zapnutu od startu prehravaca (setric/ambient na boxoch sa nesmie spustit)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        acquireStreamLocks()  // M452
 
         // Immersive fullscreen — skry status aj navigacnu listu, nech
         // neprekryvaju ovladanie. Listy sa daju vytiahnut potiahnutim.
@@ -3994,7 +3995,47 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    // ---- M452: zamky pre plynuly prijem streamu ----
+    private var wifiLock: android.net.wifi.WifiManager.WifiLock? = null
+    private var cpuLock: android.os.PowerManager.WakeLock? = null
+
+    /**
+     * Bez WifiLocku Android na Wi-Fi zariadeniach (Xiaomi Mi Box a spol.) uspava
+     * Wi-Fi cip a pakety dorucuje v davkach — HTSP data potom prichadzaju raz za
+     * sekundu naraz a obraz sa trha (libVLC hlasi "picture is too late to be
+     * displayed"). Merania: recvWait ~950 ms, tsWrite 0 ms — cakalo sa vylucne
+     * na siet. Zariadenia na ethernete (Strong, Raspberry Pi) to nepocitili.
+     * WakeLock drzi procesor, aby sa prijmacia slucka neuspala.
+     */
+    private fun acquireStreamLocks() {
+        runCatching {
+            if (wifiLock == null) {
+                val wm = applicationContext.getSystemService(android.content.Context.WIFI_SERVICE)
+                    as? android.net.wifi.WifiManager
+                wifiLock = wm?.createWifiLock(
+                    android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF, "HeadentClient:stream"
+                )?.apply { setReferenceCounted(false) }
+            }
+            if (wifiLock?.isHeld == false) wifiLock?.acquire()
+        }
+        runCatching {
+            if (cpuLock == null) {
+                val pm = getSystemService(android.content.Context.POWER_SERVICE) as? android.os.PowerManager
+                cpuLock = pm?.newWakeLock(
+                    android.os.PowerManager.PARTIAL_WAKE_LOCK, "HeadentClient:stream"
+                )?.apply { setReferenceCounted(false) }
+            }
+            if (cpuLock?.isHeld == false) cpuLock?.acquire()
+        }
+    }
+
+    private fun releaseStreamLocks() {
+        runCatching { if (wifiLock?.isHeld == true) wifiLock?.release() }
+        runCatching { if (cpuLock?.isHeld == true) cpuLock?.release() }
+    }
+
     override fun onDestroy() {
+        releaseStreamLocks()  // M452
         clearAfr()
         zapHandler.removeCallbacks(zapCommit)   // M407
         saveDvrProgress()
