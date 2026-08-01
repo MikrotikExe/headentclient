@@ -26,7 +26,11 @@ object MethodProfiler {
             Toast.makeText(context, "Záznam už beží", Toast.LENGTH_SHORT).show()
             return
         }
-        val out = File(context.filesDir, "profile.trace")
+        // M455-fix: do verejneho priecinka appky — z filesDir sa subor na release
+        // builde neda vytiahnut (run-as: package not debuggable). Tu staci
+        // adb pull /sdcard/Android/data/sk.tvhclient/files/profile.trace
+        val dir = context.getExternalFilesDir(null) ?: context.filesDir
+        val out = File(dir, "profile.trace")
         runCatching {
             // 32 MB buffer, vzorkovanie kazdych 1000 us (1 ms) — nizsia rezia
             // nez plne trasovanie, staci na najdenie horucich metod.
