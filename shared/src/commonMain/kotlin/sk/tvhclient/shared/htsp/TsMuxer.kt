@@ -214,7 +214,13 @@ class TsMuxer(streams: List<Stream>) {
             diagLastWall = nowMs
             diagLastOut = op ?: od ?: diagLastOut
         }
-        return flushed + activated + emitPes(t, es, op, od, randomAccess)
+        val body = emitPes(t, es, op, od, randomAccess)
+        // M454: `a + b` na ByteArray vytvori nove pole a skopiruje don vsetko.
+        // flushed/activated su pri beznom snimku prazdne, takze konkatenacia
+        // znamenala zbytocnu kopiu CELEHO TS bloku pri kazdom snimku (velke
+        // pole -> Large Object Space -> GC kazde 2-3 s po ~1 s na Mi Boxe).
+        return if (flushed.isEmpty() && activated.isEmpty()) body
+        else flushed + activated + body
     }
 
     /** Postavi PES jednej stopy do TS paketov (+ periodicke PAT/PMT). */
@@ -237,15 +243,15 @@ class TsMuxer(streams: List<Stream>) {
         val pmtPkt = if (withPsi) pmt() else null
         if (withPsi) psiCounter = siInterval
 
-        val pes = buildPes(t, es, outPts, outDts)
+        val pesLen = buildPesInto(t, es, outPts, outDts)
         val pcr = if (t.pid == pcrPid) (outDts ?: outPts) else null
 
         val psiLen = (patPkt?.size ?: 0) + (pmtPkt?.size ?: 0)
-        val out = ByteArray(psiLen + tsPacketCount(pes.size, pcr != null, rap) * 188)
+        val out = ByteArray(psiLen + tsPacketCount(pesLen, pcr != null, rap) * 188)
         var off = 0
         patPkt?.let { it.copyInto(out, off); off += it.size }
         pmtPkt?.let { it.copyInto(out, off); off += it.size }
-        writePackets(t, pes, pcr, rap, out, off)
+        writePackets(t, pesBuf, pesLen, pcr, rap, out, off)
         return out
     }
 
@@ -449,7 +455,10 @@ class TsMuxer(streams: List<Stream>) {
      * davku "picture is too late to be displayed (missing ~380 ms)". Teraz sa
      * alokuje presne jedno pole a telo sa kopiruje naraz (copyInto).
      */
-    private fun buildPes(t: Track, es: ByteArray, pts: Long?, dts: Long?): ByteArray {
+    /** M454: znovupouzivany buffer pre PES — nealokuje sa pole na kazdy snimok. */
+    private var pesBuf = ByteArray(64 * 1024)
+
+    private fun buildPesInto(t: Track, es: ByteArray, pts: Long?, dts: Long?): Int {
         val hasPts = pts != null
         // DVB titulky musia mat len PTS (DTS je pre ne nevalidne a niektore stream zdroje
         // ho posielaju nekonzistentne -> raz sa titulok zobrazi, raz nie). Vynutime PTS-only.
@@ -458,7 +467,9 @@ class TsMuxer(streams: List<Stream>) {
         val headerDataLen = if (hasPts && hasDts) 10 else if (hasPts) 5 else 0
         val pesPayloadLen = 3 + headerDataLen + es.size
         val lenField = if (t.isVideo) 0 else if (pesPayloadLen <= 0xFFFF) pesPayloadLen else 0
-        val out = ByteArray(9 + headerDataLen + es.size)
+        val total = 9 + headerDataLen + es.size
+        if (pesBuf.size < total) pesBuf = ByteArray(total + total / 4)
+        val out = pesBuf
         out[0] = 0x00; out[1] = 0x00; out[2] = 0x01
         out[3] = (t.streamId and 0xFF).toByte()
         out[4] = ((lenField ushr 8) and 0xFF).toByte()
@@ -476,7 +487,7 @@ class TsMuxer(streams: List<Stream>) {
             i = putTimestamp(out, i, 0x2, pts!!)
         }
         es.copyInto(out, i)
-        return out
+        return total
     }
 
     /** Zapise 5-bajtovu casovu znacku na dany index, vrati novy index. */
@@ -493,10 +504,10 @@ class TsMuxer(streams: List<Stream>) {
     // ---- TS packetizacia ----
 
     /** M453: zapisuje TS pakety priamo do `out` od indexu `startOff`. */
-    private fun writePackets(t: Track, pes: ByteArray, pcrBase: Long?, rap: Boolean, out: ByteArray, startOff: Int) {
+    private fun writePackets(t: Track, pes: ByteArray, pesLen: Int, pcrBase: Long?, rap: Boolean, out: ByteArray, startOff: Int) {
         var pos = 0
         var first = true
-        val n = pes.size
+        val n = pesLen
         var base = startOff
         while (pos < n) {
             val remaining = n - pos

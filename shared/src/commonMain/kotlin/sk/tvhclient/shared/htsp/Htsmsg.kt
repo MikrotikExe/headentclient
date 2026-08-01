@@ -65,6 +65,15 @@ internal object Htsmsg {
         return out.toByteArray()
     }
 
+    /** M454: to iste ako bin2int, ale z rozsahu pola bez kopie. */
+    private fun bin2intRange(b: ByteArray, off: Int, len: Int): Long {
+        var n = 0L
+        for (i in (off + len - 1) downTo off) {
+            n = (n shl 8) or (b[i].toLong() and 0xFF)
+        }
+        return n
+    }
+
     private fun bin2int(b: ByteArray): Long {
         var n = 0L
         for (i in b.indices.reversed()) {
@@ -104,15 +113,20 @@ internal object Htsmsg {
             val dlInt = dl.toInt()
             val name = data.decodeToString(pos, pos + nl)
             pos += nl
-            val pay = data.copyOfRange(pos, pos + dlInt)
+            // M454: kopiu robime LEN tam, kde ju naozaj potrebujeme (BIN payload
+            // ide dalej do muxera). STR/S64 citame priamo z povodneho pola a
+            // vnorene MAP/LIST parsujeme z rozsahu — usetri to jednu kopiu na
+            // kazde pole; pri muxpkt sli desiatky kB navyse do Large Object
+            // Space a GC potom bezal kazde 2-3 s takmer sekundu.
+            val start = pos
             pos += dlInt
             val v: Any? = when (typ) {
-                STR -> pay.decodeToString()
-                BIN -> pay
-                S64 -> bin2int(pay)
-                MAP -> deser(pay, false)
-                LIST -> deser(pay, true)
-                else -> pay
+                STR -> data.decodeToString(start, start + dlInt)
+                BIN -> data.copyOfRange(start, start + dlInt)
+                S64 -> bin2intRange(data, start, dlInt)
+                MAP -> deser(data.copyOfRange(start, start + dlInt), false)
+                LIST -> deser(data.copyOfRange(start, start + dlInt), true)
+                else -> data.copyOfRange(start, start + dlInt)
             }
             if (isList) resList.add(v) else resMap[name] = v
         }
