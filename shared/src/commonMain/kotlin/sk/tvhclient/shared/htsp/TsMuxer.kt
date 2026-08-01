@@ -220,16 +220,58 @@ class TsMuxer(streams: List<Stream>) {
     /** Postavi PES jednej stopy do TS paketov (+ periodicke PAT/PMT). */
 
 
+    /**
+     * M453: vysledok sa sklada do JEDNEHO pola.
+     *
+     * Povodne sa pre kazdy 188-bajtovy TS paket alokovalo samostatne pole, tie
+     * sa zbierali do ArrayListu a flatten() ich este raz skopiroval do vysledku.
+     * Pri 1080p50 HEVC to je ~7000 alokacii za sekundu + zdvojene kopirovanie —
+     * na Cortex-A53 (Xiaomi Mi Box S) to zralo cele jedno jadro (94 % CPU
+     * v `top`, kym hardverovy dekoder mal 11 %). Teraz sa spocita presna velkost,
+     * alokuje jedno pole a pakety sa zapisuju priamo don.
+     */
     private fun emitPes(t: Track, es: ByteArray, outPts: Long?, outDts: Long?, rap: Boolean): ByteArray {
-        val packets = ArrayList<ByteArray>()
         psiCounter -= 1
-        if (psiCounter <= 0) {
-            packets.add(pat()); packets.add(pmt()); psiCounter = siInterval
-        }
+        val withPsi = psiCounter <= 0
+        val patPkt = if (withPsi) pat() else null
+        val pmtPkt = if (withPsi) pmt() else null
+        if (withPsi) psiCounter = siInterval
+
         val pes = buildPes(t, es, outPts, outDts)
         val pcr = if (t.pid == pcrPid) (outDts ?: outPts) else null
-        writePackets(t, pes, pcr, rap, packets)
-        return flatten(packets)
+
+        val psiLen = (patPkt?.size ?: 0) + (pmtPkt?.size ?: 0)
+        val out = ByteArray(psiLen + tsPacketCount(pes.size, pcr != null, rap) * 188)
+        var off = 0
+        patPkt?.let { it.copyInto(out, off); off += it.size }
+        pmtPkt?.let { it.copyInto(out, off); off += it.size }
+        writePackets(t, pes, pcr, rap, out, off)
+        return out
+    }
+
+    /**
+     * Kolko 188-bajtovych TS paketov zaberie PES danej velkosti. Musi presne
+     * kopirovat rozhodovanie vo writePackets, inak by vysledne pole nesedelo.
+     */
+    private fun tsPacketCount(pesSize: Int, hasPcr: Boolean, rap: Boolean): Int {
+        var pos = 0
+        var first = true
+        var count = 0
+        while (pos < pesSize) {
+            val remaining = pesSize - pos
+            val indicators = first && (hasPcr || rap)
+            val take = if (!indicators && remaining >= 184) 184
+            else if (!indicators && remaining == 183) 183
+            else {
+                val mandatory = if (first && hasPcr) 7 else 1
+                val avail = 184 - 1 - mandatory
+                if (remaining >= avail) avail else remaining
+            }
+            pos += take
+            count++
+            first = false
+        }
+        return count
     }
 
     /** DVB titulkovy display-set bez regionu (0x11) a objektu (0x13) = prazdny "clear". */
@@ -450,17 +492,19 @@ class TsMuxer(streams: List<Stream>) {
 
     // ---- TS packetizacia ----
 
-    private fun writePackets(t: Track, pes: ByteArray, pcrBase: Long?, rap: Boolean, packets: MutableList<ByteArray>) {
+    /** M453: zapisuje TS pakety priamo do `out` od indexu `startOff`. */
+    private fun writePackets(t: Track, pes: ByteArray, pcrBase: Long?, rap: Boolean, out: ByteArray, startOff: Int) {
         var pos = 0
         var first = true
         val n = pes.size
+        var base = startOff
         while (pos < n) {
             val remaining = n - pos
             val pcrHere = first && pcrBase != null && t.pid == pcrPid
             val rapHere = first && rap
             val indicators = pcrHere || rapHere
 
-            val pkt = ByteArray(188)
+            val pkt = TsPacketView(out, base)
             pkt[0] = 0x47
             var b1 = (t.pid ushr 8) and 0x1F
             if (first) b1 = b1 or 0x40                  // PUSI
@@ -505,13 +549,14 @@ class TsMuxer(streams: List<Stream>) {
                 while (s > 0) { pkt[idx++] = 0xFF.toByte(); s-- }
                 payloadStart = 5 + afContentLen
             }
-            pes.copyInto(pkt, payloadStart, pos, pos + take)
+            pes.copyInto(out, base + payloadStart, pos, pos + take)
             pos += take
-            packets.add(pkt)
+            base += 188
             first = false
         }
     }
 
+    /** Spojenie niekolkych paketov (PAT/PMT pri starte) — mimo horucej cesty. */
     private fun flatten(packets: List<ByteArray>): ByteArray {
         var total = 0
         for (p in packets) total += p.size
@@ -519,6 +564,14 @@ class TsMuxer(streams: List<Stream>) {
         var o = 0
         for (p in packets) { p.copyInto(res, o); o += p.size }
         return res
+    }
+
+    /**
+     * Tenky pohlad na 188-bajtovy usek vysledneho pola — aby telo writePackets
+     * mohlo zapisovat cez `pkt[i]` bez alokovania samostatneho pola na paket.
+     */
+    private class TsPacketView(private val buf: ByteArray, private val off: Int) {
+        operator fun set(i: Int, v: Byte) { buf[off + i] = v }
     }
 
     private fun crc32(data: ByteArray): Long {
