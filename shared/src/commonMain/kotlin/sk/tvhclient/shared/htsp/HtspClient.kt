@@ -7,7 +7,6 @@ import io.ktor.network.sockets.openReadChannel
 import io.ktor.network.sockets.openWriteChannel
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.ByteWriteChannel
-import io.ktor.utils.io.readAvailable
 import io.ktor.utils.io.readByteArray
 import io.ktor.utils.io.writeByteArray
 import kotlinx.coroutines.Dispatchers
@@ -38,56 +37,6 @@ class HtspClient(
     private var socket: Socket? = null
     private var read: ByteReadChannel? = null
     private var write: ByteWriteChannel? = null
-    // ---- M465: vlastny vyrovnavaci buffer nad Ktor kanalom ----
-    //
-    // Kazda HTSP sprava sa citala dvoma volaniami readByteArray (hlavicka + telo).
-    // Kazde z nich je suspend bod cez Ktor a alokuje nove pole — pri 1080p50 s
-    // audiom to je ~200 takych volani za sekundu. V profile Mi Boxu zabrala
-    // korutinova rezia 26,6 % a Ktor dalsich 11,1 % vsetkej prace, kym nas
-    // vlastny spracovatelsky kod len ~14 %. Teraz sa zo socketu cita po velkych
-    // kusoch (64 kB) a spravy sa vyberaju z pamate bez suspend bodov —
-    // pocet volani klesne radovo z ~200/s na ~20/s.
-    private var rbuf = ByteArray(64 * 1024)
-    private var rpos = 0
-    private var rlim = 0
-
-    private fun rAvail() = rlim - rpos
-
-    /** Doplni buffer zo socketu (aspon 1 bajt). Vrati false pri konci streamu. */
-    private suspend fun rFill(): Boolean {
-        val r = read ?: return false
-        if (rpos > 0 && rpos == rlim) { rpos = 0; rlim = 0 }
-        else if (rpos > rbuf.size / 2) {
-            rbuf.copyInto(rbuf, 0, rpos, rlim); rlim -= rpos; rpos = 0
-        }
-        if (rlim == rbuf.size) return true      // plny buffer, netreba citat
-        val n = r.readAvailable(rbuf, rlim, rbuf.size - rlim)
-        if (n <= 0) return false
-        rlim += n
-        return true
-    }
-
-    /** Precita presne `n` bajtov (z buffera, doplna zo socketu podla potreby). */
-    private suspend fun rExact(n: Int): ByteArray {
-        if (n > rbuf.size) {                    // velka sprava — precitaj priamo
-            val out = ByteArray(n)
-            var got = 0
-            while (got < n) {
-                if (rAvail() == 0 && !rFill()) throw IllegalStateException("HTSP: koniec streamu")
-                val take = minOf(rAvail(), n - got)
-                rbuf.copyInto(out, got, rpos, rpos + take)
-                rpos += take; got += take
-            }
-            return out
-        }
-        while (rAvail() < n) {
-            if (!rFill()) throw IllegalStateException("HTSP: koniec streamu")
-        }
-        val out = rbuf.copyOfRange(rpos, rpos + n)
-        rpos += n
-        return out
-    }
-
     private var seq = 0
     private val writeMutex = Mutex()
     private var streamSubId: Int = -1
@@ -122,7 +71,6 @@ class HtspClient(
     )
 
     suspend fun connect() {
-        rpos = 0; rlim = 0        // M465: cisty buffer pre nove spojenie
         try {
             val sel = SelectorManager(Dispatchers.Default)
             selector = sel
@@ -185,8 +133,9 @@ class HtspClient(
     private var diagTsWrite = 0L
 
     private suspend fun recv(): Map<String, Any?> {
+        val r = read!!
         val tRecv = if (TsDiag.enabled) TsDiag.nowMillis() else 0L
-        val hdr = rExact(4)
+        val hdr = r.readByteArray(4)
         if (TsDiag.enabled) diagRecvWait += TsDiag.nowMillis() - tRecv
         // dlzka ako Long (unsigned 32-bit) — cez Int by najvyssi bit daval zaporne
         val len = (((hdr[0].toLong() and 0xFF) shl 24) or
@@ -201,7 +150,7 @@ class HtspClient(
         if (len < 0 || len > MAX_MSG_LEN) {
             throw IllegalStateException("HTSP: neplatna dlzka spravy=$len (poskodeny stream)")
         }
-        val body = if (len > 0) rExact(len.toInt()) else ByteArray(0)
+        val body = if (len > 0) r.readByteArray(len.toInt()) else ByteArray(0)
         // Ochrana: parsovanie poskodenych dat (napr. zvysky po starom spojeni pri
         // rychlom restarte) moze hodit OutOfMemoryError. Zachytime ho a premenime
         // na normalnu vynimku, nech appka nespadne — spojenie sa znovu nadviaze.
