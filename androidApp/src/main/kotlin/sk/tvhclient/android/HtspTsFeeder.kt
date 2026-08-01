@@ -68,15 +68,27 @@ class HtspTsFeeder(
         // neprejavilo — blokovany zapis nespotrebuva procesor.
         val queue = java.util.concurrent.LinkedBlockingQueue<ByteArray>(256)
         tsQueue = queue
+        // M462-diag: ak je zapnuty odber vzorky, prvych ~8 s TS ulozime aj do
+        // suboru, aby sa nas vystup dal porovnat so streamom zo servera.
+        val dumpFile = TsDump.take()
+        var dumped = 0L
+        val dumpOs = if (dumpFile != null) runCatching { java.io.FileOutputStream(dumpFile) }.getOrNull() else null
+
         val writer = Thread({
             try {
                 while (true) {
                     val b = queue.take()
                     if (b.isEmpty()) break          // signal na ukoncenie
                     os.write(b)
+                    if (dumpOs != null && dumped < TsDump.MAX_BYTES) {
+                        runCatching { dumpOs.write(b); dumped += b.size }
+                        if (dumped >= TsDump.MAX_BYTES) runCatching { dumpOs.flush(); dumpOs.close() }
+                    }
                 }
             } catch (_: InterruptedException) {
             } catch (_: Throwable) {
+            } finally {
+                runCatching { dumpOs?.flush(); dumpOs?.close() }
             }
         }, "HeadentClient:tsWriter")
         writer.isDaemon = true
