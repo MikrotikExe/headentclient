@@ -768,7 +768,16 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
                     }
                 },
                 label = "tabFade"
-            ) { t -> tabContent(t) }
+            ) { t ->
+                // M482: pocas prechodu su na obrazovke obe karty naraz a bez
+                // vlastneho pozadia bolo vidiet jednu cez druhu (texty sa
+                // prekryvali). Nepriehladne pozadie to odstrani.
+                androidx.compose.foundation.layout.Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                ) { tabContent(t) }
+            }
         }
     }
 
