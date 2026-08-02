@@ -271,6 +271,10 @@
     <string name="sw_decode_note">Chỉ bật nếu hình bị giật hoặc đứng ở một số kênh. Tốn CPU hơn.</string>
     <string name="vlc_verbose_title">Nhật ký chi tiết của trình phát</string>
     <string name="vlc_verbose_note">Chỉ để chẩn đoán lỗi phát. Làm chậm trình phát; xong thì tắt.</string>
+    <string name="dvr_rec_button">Ghi</string>
+    <string name="dvr_rec_working">Đang lên lịch…</string>
+    <string name="dvr_rec_scheduled">Đã lên lịch ghi</string>
+    <string name="dvr_rec_failed">Không thể lên lịch ghi</string>
     <string name="zap_overlay_title">Lớp phủ khi chuyển kênh</string>
     <string name="zap_overlay_note">Tắt: chỉ hiển thị thanh ngắn với số kênh và chương trình</string>
     <string name="archive_choice_title">Hỏi khi kênh đang lưu trữ</string>

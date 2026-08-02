@@ -271,6 +271,10 @@
     <string name="sw_decode_note">เปิดเฉพาะเมื่อภาพกระตุกหรือค้างในบางช่อง ใช้ CPU มากขึ้น</string>
     <string name="vlc_verbose_title">บันทึกละเอียดของตัวเล่น</string>
     <string name="vlc_verbose_note">ใช้เพื่อวิเคราะห์ปัญหาการเล่นเท่านั้น ทำให้ช้าลง ปิดเมื่อเสร็จ</string>
+    <string name="dvr_rec_button">บันทึก</string>
+    <string name="dvr_rec_working">กำลังตั้งเวลา…</string>
+    <string name="dvr_rec_scheduled">ตั้งเวลาบันทึกแล้ว</string>
+    <string name="dvr_rec_failed">ตั้งเวลาบันทึกไม่สำเร็จ</string>
     <string name="zap_overlay_title">โอเวอร์เลย์เมื่อเปลี่ยนช่อง</string>
     <string name="zap_overlay_note">ปิด: แสดงเฉพาะแถบสั้นพร้อมหมายเลขช่องและรายการ</string>
     <string name="archive_choice_title">ถามเมื่อเป็นช่องที่บันทึกลงคลัง</string>

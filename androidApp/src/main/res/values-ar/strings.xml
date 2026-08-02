@@ -271,6 +271,10 @@
     <string name="sw_decode_note">فعّله فقط إذا كان الفيديو يتقطع أو يتجمد في بعض القنوات. يستهلك معالجًا أكثر.</string>
     <string name="vlc_verbose_title">سجل مفصّل للمشغّل</string>
     <string name="vlc_verbose_note">للتشخيص فقط عند مشاكل التشغيل. يبطئ المشغّل، أطفئه بعد الانتهاء.</string>
+    <string name="dvr_rec_button">تسجيل</string>
+    <string name="dvr_rec_working">جارٍ الجدولة…</string>
+    <string name="dvr_rec_scheduled">تمت جدولة التسجيل</string>
+    <string name="dvr_rec_failed">تعذّرت جدولة التسجيل</string>
     <string name="zap_overlay_title">طبقة العرض عند تبديل القنوات</string>
     <string name="zap_overlay_note">إيقاف: شريط معلومات قصير فقط برقم القناة والبرنامج</string>
     <string name="archive_choice_title">السؤال عند قناة مؤرشفة</string>

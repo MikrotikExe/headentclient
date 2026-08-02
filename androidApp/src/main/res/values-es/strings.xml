@@ -271,6 +271,10 @@
     <string name="sw_decode_note">Actívalo solo si el vídeo se entrecorta o se congela en algunos canales. Usa más CPU.</string>
     <string name="vlc_verbose_title">Registro detallado del reproductor</string>
     <string name="vlc_verbose_note">Solo para diagnosticar problemas de reproducción. Ralentiza el reproductor; desactívalo después.</string>
+    <string name="dvr_rec_button">Grabar</string>
+    <string name="dvr_rec_working">Programando…</string>
+    <string name="dvr_rec_scheduled">Grabación programada</string>
+    <string name="dvr_rec_failed">No se pudo programar la grabación</string>
     <string name="zap_overlay_title">Superposición al cambiar de canal</string>
     <string name="zap_overlay_note">Desactivado: solo una barra breve con número de canal y programa</string>
     <string name="archive_choice_title">Preguntar en canal archivado</string>

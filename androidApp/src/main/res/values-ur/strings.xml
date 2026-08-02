@@ -271,6 +271,10 @@
     <string name="sw_decode_note">صرف اس صورت میں آن کریں جب کچھ چینلز پر تصویر رکتی یا جمتی ہو۔ پروسیسر زیادہ استعمال ہوتا ہے۔</string>
     <string name="vlc_verbose_title">تفصیلی پلیئر لاگ</string>
     <string name="vlc_verbose_note">صرف پلے بیک مسائل کی تشخیص کے لیے۔ پلیئر سست ہوتا ہے، بعد میں بند کر دیں۔</string>
+    <string name="dvr_rec_button">ریکارڈ</string>
+    <string name="dvr_rec_working">شیڈول ہو رہا ہے…</string>
+    <string name="dvr_rec_scheduled">ریکارڈنگ شیڈول ہو گئی</string>
+    <string name="dvr_rec_failed">ریکارڈنگ شیڈول نہیں ہو سکی</string>
     <string name="zap_overlay_title">چینل بدلتے وقت اوورلے</string>
     <string name="zap_overlay_note">بند: صرف چینل نمبر اور پروگرام کے ساتھ مختصر بار</string>
     <string name="archive_choice_title">آرکائیو شدہ چینل پر پوچھیں</string>

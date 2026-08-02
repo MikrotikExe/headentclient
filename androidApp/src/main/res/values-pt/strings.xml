@@ -271,6 +271,10 @@
     <string name="sw_decode_note">Ativa só se a imagem falhar ou congelar nalguns canais. Usa mais CPU.</string>
     <string name="vlc_verbose_title">Registo detalhado do leitor</string>
     <string name="vlc_verbose_note">Apenas para diagnosticar problemas de reprodução. Torna o leitor mais lento; desliga depois.</string>
+    <string name="dvr_rec_button">Gravar</string>
+    <string name="dvr_rec_working">A agendar…</string>
+    <string name="dvr_rec_scheduled">Gravação agendada</string>
+    <string name="dvr_rec_failed">Não foi possível agendar a gravação</string>
     <string name="zap_overlay_title">Sobreposição ao mudar de canal</string>
     <string name="zap_overlay_note">Desligado: apenas uma barra breve com número do canal e programa</string>
     <string name="archive_choice_title">Perguntar em canal arquivado</string>

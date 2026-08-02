@@ -271,6 +271,10 @@
     <string name="sw_decode_note">Включете само ако видеото засича или замръзва на някои канали. Повече натоварване на процесора.</string>
     <string name="vlc_verbose_title">Подробен дневник на плейъра</string>
     <string name="vlc_verbose_note">Само за диагностика на проблеми с възпроизвеждането. Забавя плейъра, после изключете.</string>
+    <string name="dvr_rec_button">Запис</string>
+    <string name="dvr_rec_working">Планиране…</string>
+    <string name="dvr_rec_scheduled">Записът е планиран</string>
+    <string name="dvr_rec_failed">Записът не можа да бъде планиран</string>
     <string name="zap_overlay_title">Наслагване при превключване на канали</string>
     <string name="zap_overlay_note">Изключено: само кратка лента с номер на канала и програмата</string>
     <string name="archive_choice_title">Питане при архивиран канал</string>

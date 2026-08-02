@@ -271,6 +271,10 @@
     <string name="sw_decode_note">Aktifkan hanya jika video tersendat atau membeku di beberapa saluran. Lebih banyak CPU.</string>
     <string name="vlc_verbose_title">Log pemutar terperinci</string>
     <string name="vlc_verbose_note">Hanya untuk mendiagnosis masalah pemutaran. Memperlambat pemutar; matikan setelah selesai.</string>
+    <string name="dvr_rec_button">Rekam</string>
+    <string name="dvr_rec_working">Menjadwalkan…</string>
+    <string name="dvr_rec_scheduled">Perekaman dijadwalkan</string>
+    <string name="dvr_rec_failed">Gagal menjadwalkan perekaman</string>
     <string name="zap_overlay_title">Overlay saat berpindah saluran</string>
     <string name="zap_overlay_note">Mati: hanya bilah info singkat dengan nomor saluran dan program</string>
     <string name="archive_choice_title">Tanya pada saluran yang diarsipkan</string>

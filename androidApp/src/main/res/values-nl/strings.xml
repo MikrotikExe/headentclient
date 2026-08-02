@@ -271,6 +271,10 @@
     <string name="sw_decode_note">Alleen inschakelen als het beeld op sommige zenders hapert of vastloopt. Meer CPU-gebruik.</string>
     <string name="vlc_verbose_title">Uitgebreid spelerlogboek</string>
     <string name="vlc_verbose_note">Alleen om afspeelproblemen op te sporen. Vertraagt de speler; daarna uitschakelen.</string>
+    <string name="dvr_rec_button">Opnemen</string>
+    <string name="dvr_rec_working">Plannen…</string>
+    <string name="dvr_rec_scheduled">Opname gepland</string>
+    <string name="dvr_rec_failed">Opname kon niet worden gepland</string>
     <string name="zap_overlay_title">Overlay bij zenderwissel</string>
     <string name="zap_overlay_note">Uit: alleen een korte balk met zendernummer en programma</string>
     <string name="archive_choice_title">Vragen bij gearchiveerde zender</string>

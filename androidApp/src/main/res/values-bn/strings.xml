@@ -271,6 +271,10 @@
     <string name="sw_decode_note">কিছু চ্যানেলে ভিডিও আটকে গেলে বা থেমে গেলে তবেই চালু করুন। বেশি CPU লাগে.</string>
     <string name="vlc_verbose_title">বিস্তারিত প্লেয়ার লগ</string>
     <string name="vlc_verbose_note">শুধু প্লেব্যাক সমস্যা খোঁজার জন্য। প্লেয়ার ধীর হয়, পরে বন্ধ করুন.</string>
+    <string name="dvr_rec_button">রেকর্ড</string>
+    <string name="dvr_rec_working">শিডিউল হচ্ছে…</string>
+    <string name="dvr_rec_scheduled">রেকর্ডিং শিডিউল হয়েছে</string>
+    <string name="dvr_rec_failed">রেকর্ডিং শিডিউল করা যায়নি</string>
     <string name="zap_overlay_title">চ্যানেল পরিবর্তনের সময় ওভারলে</string>
     <string name="zap_overlay_note">বন্ধ: শুধু চ্যানেল নম্বর ও অনুষ্ঠানসহ সংক্ষিপ্ত তথ্য বার</string>
     <string name="archive_choice_title">আর্কাইভ করা চ্যানেলে জিজ্ঞাসা করুন</string>

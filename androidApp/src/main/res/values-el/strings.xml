@@ -271,6 +271,10 @@
     <string name="sw_decode_note">Ενεργοποιήστε μόνο αν η εικόνα κολλάει ή παγώνει σε ορισμένα κανάλια. Μεγαλύτερη χρήση CPU.</string>
     <string name="vlc_verbose_title">Αναλυτικό αρχείο καταγραφής</string>
     <string name="vlc_verbose_note">Μόνο για διάγνωση προβλημάτων αναπαραγωγής. Επιβραδύνει την αναπαραγωγή· απενεργοποιήστε μετά.</string>
+    <string name="dvr_rec_button">Εγγραφή</string>
+    <string name="dvr_rec_working">Προγραμματισμός…</string>
+    <string name="dvr_rec_scheduled">Η εγγραφή προγραμματίστηκε</string>
+    <string name="dvr_rec_failed">Δεν ήταν δυνατός ο προγραμματισμός</string>
     <string name="zap_overlay_title">Επικάλυψη κατά την αλλαγή καναλιών</string>
     <string name="zap_overlay_note">Ανενεργό: μόνο σύντομη γραμμή με αριθμό καναλιού και πρόγραμμα</string>
     <string name="archive_choice_title">Ερώτηση σε αρχειοθετημένο κανάλι</string>

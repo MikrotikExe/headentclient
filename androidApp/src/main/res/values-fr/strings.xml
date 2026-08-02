@@ -271,6 +271,10 @@
     <string name="sw_decode_note">À activer seulement si l\'image saccade ou se fige sur certaines chaînes. Consomme plus de CPU.</string>
     <string name="vlc_verbose_title">Journal détaillé du lecteur</string>
     <string name="vlc_verbose_note">Uniquement pour diagnostiquer des problèmes de lecture. Ralentit le lecteur ; à désactiver ensuite.</string>
+    <string name="dvr_rec_button">Enregistrer</string>
+    <string name="dvr_rec_working">Programmation…</string>
+    <string name="dvr_rec_scheduled">Enregistrement programmé</string>
+    <string name="dvr_rec_failed">Impossible de programmer l\'enregistrement</string>
     <string name="zap_overlay_title">Superposition au changement de chaîne</string>
     <string name="zap_overlay_note">Désactivé : seulement une barre brève avec numéro de chaîne et programme</string>
     <string name="archive_choice_title">Demander pour une chaîne archivée</string>

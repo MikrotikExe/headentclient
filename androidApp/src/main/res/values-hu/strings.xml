@@ -271,6 +271,10 @@
     <string name="sw_decode_note">Csak akkor kapcsold be, ha a kép egyes csatornákon akadozik vagy lefagy. Nagyobb CPU-terhelés.</string>
     <string name="vlc_verbose_title">Részletes lejátszónapló</string>
     <string name="vlc_verbose_note">Csak lejátszási hibák kereséséhez. Lassítja a lejátszót, utána kapcsold ki.</string>
+    <string name="dvr_rec_button">Felvétel</string>
+    <string name="dvr_rec_working">Ütemezés…</string>
+    <string name="dvr_rec_scheduled">Felvétel ütemezve</string>
+    <string name="dvr_rec_failed">A felvételt nem sikerült ütemezni</string>
     <string name="zap_overlay_title">Fedvény csatornaváltáskor</string>
     <string name="zap_overlay_note">Kikapcsolva: csak rövid sáv csatornaszámmal és műsorral</string>
     <string name="archive_choice_title">Kérdés archivált csatornánál</string>

@@ -271,6 +271,10 @@
     <string name="sw_decode_note">Uključi samo ako se slika na nekim kanalima trza ili zamrzava. Veće opterećenje procesora.</string>
     <string name="vlc_verbose_title">Detaljan zapis plejera</string>
     <string name="vlc_verbose_note">Samo za dijagnostiku problema sa reprodukcijom. Usporava plejer; posle isključi.</string>
+    <string name="dvr_rec_button">Snimi</string>
+    <string name="dvr_rec_working">Planiranje…</string>
+    <string name="dvr_rec_scheduled">Snimanje zakazano</string>
+    <string name="dvr_rec_failed">Snimanje nije moguće zakazati</string>
     <string name="zap_overlay_title">Preklop pri promeni kanala</string>
     <string name="zap_overlay_note">Isključeno: samo kratka traka sa brojem kanala i programom</string>
     <string name="archive_choice_title">Питај код архивираног канала</string>

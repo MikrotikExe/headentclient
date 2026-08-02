@@ -23,6 +23,10 @@ import sk.tvhclient.shared.formatDayLabel
 import sk.tvhclient.shared.formatTimeHm
 import sk.tvhclient.shared.model.DvbGenre
 import sk.tvhclient.shared.model.EpgEvent
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import kotlinx.coroutines.launch
+import androidx.compose.material3.Button
 
 @Composable
 fun genreLabel(topNibble: Int): String? {
@@ -47,6 +51,25 @@ fun genreLabel(topNibble: Int): String? {
 @Composable
 fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
     BackHandler { onBack() }
+
+    // ---- M472: nahravanie programu ----
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var canRecord by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var recording by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var recMessage by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    var server by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf<sk.tvhclient.shared.model.TvhServer?>(null)
+    }
+
+    // Prava zistime raz pri otvoreni; ak ich server neoznami, tlacidlo ukazeme
+    // a pripadnu chybu zobrazime az z odpovede.
+    androidx.compose.runtime.LaunchedEffect(event.eventId) {
+        val s = sk.tvhclient.shared.Tvh.store.active()
+        server = s
+        canRecord = if (s == null || event.eventId == null) false
+        else DvrController.access(s).canRecord
+    }
 
     Scaffold(
         topBar = {
@@ -106,6 +129,40 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
                 Text(event.subtitle, style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
+            }
+
+            // M472: nahravanie — len ak ma pouzivatel pravo a ide o buduci program
+            val nowSec = System.currentTimeMillis() / 1000
+            if (canRecord && event.eventId != null && event.stop > nowSec) {
+                Spacer(Modifier.height(4.dp))
+                Button(
+                    onClick = {
+                        val s = server ?: return@Button
+                        val eid = event.eventId ?: return@Button
+                        recording = true
+                        recMessage = null
+                        scope.launch {
+                            val r = DvrController.recordEvent(s, eid)
+                            recording = false
+                            recMessage = if (r.success)
+                                ctx.getString(R.string.dvr_rec_scheduled)
+                            else r.error ?: ctx.getString(R.string.dvr_rec_failed)
+                        }
+                    },
+                    enabled = !recording,
+                    modifier = Modifier.dpadFocusable()
+                ) {
+                    Text(
+                        if (recording) stringResource(R.string.dvr_rec_working)
+                        else stringResource(R.string.dvr_rec_button)
+                    )
+                }
+                recMessage?.let {
+                    Spacer(Modifier.height(6.dp))
+                    Text(it, style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary)
+                }
+                Spacer(Modifier.height(12.dp))
             }
 
             // Plny popis

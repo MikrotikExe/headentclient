@@ -3,6 +3,8 @@ package sk.tvhclient.shared.api
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
@@ -235,6 +237,24 @@ class TvhApi(private val server: TvhServer) {
         }.dedupByUuid()
 
     /**
+     * M472: POST na JSON API. Tvheadend berie parametre ako formularove pole
+     * (application/x-www-form-urlencoded) a vracia JSON objekt.
+     */
+    internal suspend fun apiPost(path: String, params: Map<String, String>): JsonObject {
+        val resp = client.post(url(path)) {
+            io.ktor.http.contentType(io.ktor.http.ContentType.Application.FormUrlEncoded)
+            setBody(params.entries.joinToString("&") { (k, v) ->
+                k + "=" + io.ktor.http.encodeURLParameter(v)
+            })
+        }
+        val code = resp.status.value
+        if (code != 200) throw TvhHttpException(code)
+        val body = resp.body<String>()
+        return if (body.isBlank()) JsonObject(emptyMap())
+        else runCatching { json.parseToJsonElement(body).jsonObject }.getOrElse { JsonObject(emptyMap()) }
+    }
+
+    /**
      * M471: prava prihlaseneho pouzivatela cez HTTP.
      *
      * `api/access/whoami` pribudlo v Tvheadend API v20 (2026-07) a vracia
@@ -266,6 +286,15 @@ class TvhApi(private val server: TvhServer) {
     } catch (_: Throwable) {
         DvrAccess.UNKNOWN
     }
+
+    /** M472: DVR profily (api/dvr/config/grid). */
+    suspend fun dvrConfigs(): List<DvrConfig> = runCatching {
+        apiGetAll("api/dvr/config/grid", pageLimit = 100).mapNotNull { o ->
+            val uuid = (o["uuid"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: return@mapNotNull null
+            val name = (o["name"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: ""
+            DvrConfig(uuid, name)
+        }
+    }.getOrElse { emptyList() }
 
     fun close() = client.close()
 }

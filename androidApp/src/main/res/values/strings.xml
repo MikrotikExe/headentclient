@@ -293,6 +293,10 @@
     <string name="sw_decode_note">Turn on only if video stutters or freezes on some channels. Uses more CPU.</string>
     <string name="vlc_verbose_title">Verbose player log</string>
     <string name="vlc_verbose_note">Only for troubleshooting playback issues. Slows the player down; turn off when done.</string>
+    <string name="dvr_rec_button">Record</string>
+    <string name="dvr_rec_working">Scheduling…</string>
+    <string name="dvr_rec_scheduled">Recording scheduled</string>
+    <string name="dvr_rec_failed">Could not schedule the recording</string>
     <string name="zap_overlay_title">Overlay when switching channels</string>
     <string name="zap_overlay_note">Off: only a short info bar with channel number and program</string>
     <string name="archive_choice_title">Prompt on archived channel</string>

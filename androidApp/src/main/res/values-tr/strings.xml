@@ -271,6 +271,10 @@
     <string name="sw_decode_note">Yalnızca bazı kanallarda görüntü takılıyor veya donuyorsa açın. Daha fazla CPU kullanır.</string>
     <string name="vlc_verbose_title">Ayrıntılı oynatıcı günlüğü</string>
     <string name="vlc_verbose_note">Yalnızca oynatma sorunlarını bulmak için. Oynatıcıyı yavaşlatır; sonra kapatın.</string>
+    <string name="dvr_rec_button">Kaydet</string>
+    <string name="dvr_rec_working">Planlanıyor…</string>
+    <string name="dvr_rec_scheduled">Kayıt planlandı</string>
+    <string name="dvr_rec_failed">Kayıt planlanamadı</string>
     <string name="zap_overlay_title">Kanal değiştirirken katman</string>
     <string name="zap_overlay_note">Kapalı: yalnızca kanal numarası ve programla kısa bir bilgi çubuğu</string>
     <string name="archive_choice_title">Arşivlenen kanalda sor</string>

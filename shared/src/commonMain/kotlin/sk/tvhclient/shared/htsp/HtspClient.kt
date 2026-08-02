@@ -141,7 +141,8 @@ class HtspClient(
         socket = null; selector = null; read = null; write = null
     }
 
-    private suspend fun send(method: String, args: Map<String, Any?> = emptyMap(), withSeq: Boolean = true): Int {
+    /** M472: pristupne aj mimo triedy — DVR prikazy (addDvrEntry a spol.). */
+    internal suspend fun send(method: String, args: Map<String, Any?> = emptyMap(), withSeq: Boolean = true): Int {
         val msg = HashMap<String, Any?>(args)
         msg["method"] = method
         return writeMutex.withLock {
@@ -186,7 +187,13 @@ class HtspClient(
         }
     }
 
-    private suspend fun recvReply(s: Int, maxN: Int = 400): Map<String, Any?> {
+    /** M472: precita jednu asynchronnu spravu (napr. accessUpdate) a spracuje ju. */
+    internal suspend fun pumpOnce() {
+        val m = kotlinx.coroutines.withTimeoutOrNull(1_500L) { recv() } ?: return
+        if ((m["method"] as? String) == "accessUpdate") applyAccessUpdate(m)
+    }
+
+    internal suspend fun recvReply(s: Int, maxN: Int = 400): Map<String, Any?> {
         repeat(maxN) {
             val m = recv()
             if ((m["seq"] as? Long)?.toInt() == s) return m

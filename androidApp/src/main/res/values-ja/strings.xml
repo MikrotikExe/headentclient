@@ -271,6 +271,10 @@
     <string name="sw_decode_note">一部のチャンネルで映像がカクつく・止まる場合のみ有効にしてください。CPU負荷が上がります。</string>
     <string name="vlc_verbose_title">プレーヤーの詳細ログ</string>
     <string name="vlc_verbose_note">再生の問題を調べるときだけ使用してください。動作が重くなるため、確認後はオフに。</string>
+    <string name="dvr_rec_button">録画</string>
+    <string name="dvr_rec_working">予約中…</string>
+    <string name="dvr_rec_scheduled">録画を予約しました</string>
+    <string name="dvr_rec_failed">録画を予約できませんでした</string>
     <string name="zap_overlay_title">チャンネル切替時のオーバーレイ</string>
     <string name="zap_overlay_note">オフ: チャンネル番号と番組の短いバーのみ表示</string>
     <string name="archive_choice_title">アーカイブ中のチャンネルで確認</string>
