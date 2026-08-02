@@ -32,6 +32,7 @@
     <string name="playback_error">Přehrávání selhalo: %1$s</string>
     <string name="field_profile">Stream profil</string>
     <string name="profile_note">Ne každý profil se musí dát přehrát — závisí to na kontejneru a kodecích. Pokud si nejste jisti, použijte pass.</string>
+    <string name="profile_server_default">Podle nastavení serveru</string>
     <string name="genre_film">Film / Drama</string>
     <string name="genre_news">Zpravodajství</string>
     <string name="genre_show">Show / Zábava</string>

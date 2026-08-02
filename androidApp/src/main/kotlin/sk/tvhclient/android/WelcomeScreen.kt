@@ -219,7 +219,12 @@ fun WelcomeScreen(vm: ServersViewModel) {
                         useHttps = useHttps,
                         username = username.trim(),
                         password = password,
-                        profile = profile.trim().ifBlank { "pass" },
+                        // M479: pri HTSP profil NEURCUJEME — "pass" je profil pre
+                        // HTTP prenos (MPEG-TS passthrough), HTSP prenasa elementarne
+                        // streamy. Prazdna hodnota = server pouzije profil podla
+                        // nastavenia konta, co je spravne predvolene spravanie.
+                        profile = if (connMode == "htsp") ""
+                        else profile.trim().ifBlank { "pass" },
                         authMode = authMode,
                         connectionMode = connMode,
                         htspPort = htspPort.toIntOrNull() ?: 9982

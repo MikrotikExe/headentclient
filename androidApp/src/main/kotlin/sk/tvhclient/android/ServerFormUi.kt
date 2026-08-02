@@ -281,10 +281,13 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                     // M380: zoznam zo servera (vratane vlastnych transcode
                     // profilov) tak, ako ho vratil; fallback len pri uprave
                     // existujuceho servera, ked sa zoznam nepodarilo nacitat.
-                    options = serverProfiles.ifEmpty {
+                    // M479: prva moznost je prazdna = "podla nastavenia servera".
+                    // Pri HTSP je to spravna predvolba (profil urci konto na serveri),
+                    // pri HTTP je to tiez legitimne — server pouzije svoj default.
+                    options = listOf("") + serverProfiles.ifEmpty {
                         ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
                     },
-                    optionLabel = { it },
+                    optionLabel = { if (it.isBlank()) stringResource(R.string.profile_server_default) else it },
                     onSelect = { profile = it }
                 )
                 // M382: nie kazdy profil sa da prehrat (kontajner/kodeky) —

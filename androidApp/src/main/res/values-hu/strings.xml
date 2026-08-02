@@ -32,6 +32,7 @@
     <string name="playback_error">A lejátszás sikertelen: %1$s</string>
     <string name="field_profile">Adatfolyam-profil</string>
     <string name="profile_note">Nem minden profil játszható le – ez a konténertől és a kodekektől függ. Ha bizonytalan, használja a pass profilt.</string>
+    <string name="profile_server_default">Kiszolgáló alapértelmezése</string>
     <string name="genre_film">Film / Dráma</string>
     <string name="genre_news">Hírek</string>
     <string name="genre_show">Show / Szórakozás</string>
