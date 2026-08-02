@@ -187,7 +187,8 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
     val serverProfiles by vm.profiles.collectAsState()
     LaunchedEffect(Unit) { vm.clearProfiles() }
     LaunchedEffect(host, port, username, password, useHttps, authMode, connMode) {
-        if (connMode == "htsp") return@LaunchedEffect
+        // M476: profily sa nacitavaju aj pre HTSP — protokol ma vlastny
+        // getProfiles (v16+), takze netreba HTTP port
         kotlinx.coroutines.delay(800)
         buildServer()?.let { vm.loadProfiles(it) }
     }
@@ -267,7 +268,7 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                 value = password, onValueChange = { password = it },
                 modifier = Modifier.fillMaxWidth(), password = true
             )
-            if (connMode != "htsp") {
+            run {   // M476: stream profil plati pre HTTP aj HTSP
                 DropdownField(
                     label = stringResource(R.string.field_profile),
                     value = profile,
