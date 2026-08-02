@@ -371,7 +371,7 @@
     <string name="dvr_stop_title">Opname stoppen?</string>
     <string name="dvr_stop_msg">De opname %1$s loopt nu. Bij stoppen blijft het al opgenomen deel behouden.</string>
     <string name="dvr_stop_done">Opname gestopt</string>
-    <string name="epg_recording_badge">Neemt op</string>
+    <string name="epg_recording_badge">Opname loopt</string>
     <string name="epg_scheduled_badge">Gepland</string>
     <string name="dvr_rec_duplicate">Dit programma staat al ingepland om op te nemen: %1$s, %2$s</string>
     <string name="field_dvr_config">Opnameprofiel</string>

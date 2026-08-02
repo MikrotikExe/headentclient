@@ -276,8 +276,8 @@
     <string name="dvr_rec_working">Ütemezés…</string>
     <string name="dvr_rec_scheduled">Felvétel ütemezve</string>
     <string name="dvr_rec_failed">A felvételt nem sikerült ütemezni</string>
-    <string name="dvr_rec_cancel_button">Felvétel törlése</string>
-    <string name="dvr_rec_cancelled">Felvétel törölve</string>
+    <string name="dvr_rec_cancel_button">Felvétel visszavonása</string>
+    <string name="dvr_rec_cancelled">Felvétel visszavonva</string>
     <string name="zap_overlay_title">Fedvény csatornaváltáskor</string>
     <string name="zap_overlay_note">Kikapcsolva: csak rövid sáv csatornaszámmal és műsorral</string>
     <string name="archive_choice_title">Kérdés archivált csatornánál</string>

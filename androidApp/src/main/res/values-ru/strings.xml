@@ -371,7 +371,7 @@
     <string name="dvr_stop_title">Остановить запись?</string>
     <string name="dvr_stop_msg">Запись %1$s идёт прямо сейчас. При остановке записанная часть сохранится.</string>
     <string name="dvr_stop_done">Запись остановлена</string>
-    <string name="epg_recording_badge">Идет запись</string>
+    <string name="epg_recording_badge">Идёт запись</string>
     <string name="epg_scheduled_badge">Запланировано</string>
     <string name="dvr_rec_duplicate">Для этой передачи уже запланирована запись: %1$s, %2$s</string>
     <string name="field_dvr_config">Профиль записи</string>

@@ -273,7 +273,7 @@
     <string name="vlc_verbose_title">Detaljan zapis reproduktora</string>
     <string name="vlc_verbose_note">Samo za dijagnostiku problema s reprodukcijom. Usporava reproduktor; poslije isključi.</string>
     <string name="dvr_rec_button">Snimi</string>
-    <string name="dvr_rec_working">Planiranje…</string>
+    <string name="dvr_rec_working">Zakazivanje…</string>
     <string name="dvr_rec_scheduled">Snimanje zakazano</string>
     <string name="dvr_rec_failed">Snimanje nije moguće zakazati</string>
     <string name="dvr_rec_cancel_button">Otkaži snimanje</string>

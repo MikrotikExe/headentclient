@@ -371,7 +371,7 @@
     <string name="dvr_stop_title">Aufnahme stoppen?</string>
     <string name="dvr_stop_msg">Die Aufnahme %1$s läuft gerade. Beim Stoppen bleibt der bisher aufgenommene Teil erhalten.</string>
     <string name="dvr_stop_done">Aufnahme gestoppt</string>
-    <string name="epg_recording_badge">Nimmt auf</string>
+    <string name="epg_recording_badge">Aufnahme läuft</string>
     <string name="epg_scheduled_badge">Geplant</string>
     <string name="dvr_rec_duplicate">Diese Sendung wird bereits aufgenommen: %1$s, %2$s</string>
     <string name="field_dvr_config">Aufnahmeprofil</string>

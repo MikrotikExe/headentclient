@@ -372,7 +372,7 @@
     <string name="dvr_stop_msg">Înregistrarea %1$s este în curs. La oprire, partea deja înregistrată se păstrează.</string>
     <string name="dvr_stop_done">Înregistrare oprită</string>
     <string name="epg_recording_badge">Se înregistrează</string>
-    <string name="epg_scheduled_badge">Programată</string>
+    <string name="epg_scheduled_badge">Programat</string>
     <string name="dvr_rec_duplicate">Acest program are deja o înregistrare programată: %1$s, %2$s</string>
     <string name="field_dvr_config">Profil de înregistrare</string>
     <string name="dvr_config_note">Tvheadend reține doar ce profiluri poate folosi contul, nu pe care ar trebui să-l folosească. Fără o alegere, înregistrările merg în profilul implicit al serverului.</string>
