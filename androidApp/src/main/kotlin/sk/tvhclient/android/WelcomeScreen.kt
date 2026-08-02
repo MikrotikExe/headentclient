@@ -313,22 +313,12 @@ fun WelcomeScreen(vm: ServersViewModel) {
                     }
                 }
             ) { authMode = it }
-            if (connMode != "htsp") {
-                Spacer(Modifier.height(10.dp))
-                DropdownField(
-                    label = stringResource(R.string.field_profile),
-                    value = profile,
-                    options = ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() },
-                    optionLabel = { it }
-                ) { profile = it }
-                // M382: rovnaka poznamka ako v Upravit server
-                Text(
-                    stringResource(R.string.profile_note),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-            }
+            // M478: na uvodnej obrazovke sa profil UZ NEPONUKA. Zoznam sa tu
+            // nedal nacitat zo servera (este nie je kam sa pripojit), takze
+            // pouzivatel vyberal z predvolenych nazvov, ktore jeho server
+            // nemusi mat vobec. Novy server sa zalozi s "pass" a profil sa da
+            // zmenit po prihlaseni — v uprave servera alebo priamo v prehravaci,
+            // kde uz zoznam prichadza zo servera.
             Spacer(Modifier.height(8.dp))
             BackupControls(compact = true, onImported = { vm.refresh() })
         }
