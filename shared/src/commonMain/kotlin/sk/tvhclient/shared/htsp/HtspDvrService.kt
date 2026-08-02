@@ -40,9 +40,11 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
         withClient { c ->
             // prava chodia asynchronne hned po prihlaseni — staci chvilu pockat
             c.send("enableAsyncMetadata", mapOf("epg" to 0L))
+            // M480: prava chodia hned po prihlaseni; cakame najviac par sprav,
+            // nie 20 (kazda s 1,5 s timeoutom = az 30 s cakania a ANR).
             var acc = c.access
             var guard = 0
-            while (acc == null && guard++ < 20) {
+            while (acc == null && guard++ < 4) {
                 c.pumpOnce()
                 acc = c.access
             }
