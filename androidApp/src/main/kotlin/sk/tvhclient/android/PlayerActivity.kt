@@ -118,6 +118,7 @@ import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.util.VLCVideoLayout
 import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.htsp.HtspData
+import androidx.compose.runtime.rememberCoroutineScope
 
 /**
  * Live prehravac na libVLC. Dekoduje MPEG-2 + MP2/AC3/EAC3/DTS softverovo.
@@ -4386,12 +4387,18 @@ private fun PlayerUi(
     var showInfo by remember { mutableStateOf(false) }
     // Moderny rezim (telefon): vysuvaci panel "Viac" (zvuk/titulky/casovac/zamok/info)
     var showMoreSheet by remember { mutableStateOf(false) }
-    // M473: nahravanie prave beziacej relacie z panela "Viac"
+    // M473: nahravanie prave beziacej relacie z panela "Viac".
+    // Composable je mimo triedy aktivity, takze sa k nej dostaneme cez kontext.
+    val dvrActivity = LocalContext.current as? PlayerActivity
     var dvrCanRecord by remember { mutableStateOf(false) }
+    var dvrEventId by remember { mutableStateOf<Long?>(null) }
     val dvrScope = rememberCoroutineScope()
-    LaunchedEffect(Unit) {
-        val srv = sk.tvhclient.shared.Tvh.store.active()
-        dvrCanRecord = srv != null && DvrController.access(srv).canRecord
+    LaunchedEffect(showMoreSheet) {
+        if (showMoreSheet) {
+            dvrEventId = dvrActivity?.currentEventId()
+            val srv = sk.tvhclient.shared.Tvh.store.active()
+            dvrCanRecord = srv != null && DvrController.access(srv).canRecord
+        }
     }
     // odpocet casovaca uspatia (aktualizuje sa kym je casovac aktivny)
     var sleepNow by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -5471,11 +5478,11 @@ private fun PlayerUi(
                 onProfile = { showMoreSheet = false; menu = "profile" },
                 onPip = { showMoreSheet = false; onEnterPip() },
                 onSubs = { showMoreSheet = false; menu = "spu" },
-                recordVisible = dvrCanRecord && liveInstance?.get()?.currentEventId() != null,
+                recordVisible = dvrCanRecord && dvrEventId != null,
                 onRecord = {
                     showMoreSheet = false
-                    val act = liveInstance?.get()
-                    val eid = act?.currentEventId()
+                    val act = dvrActivity
+                    val eid = dvrEventId
                     val srv = sk.tvhclient.shared.Tvh.store.active()
                     if (act != null && eid != null && srv != null) {
                         dvrScope.launch {

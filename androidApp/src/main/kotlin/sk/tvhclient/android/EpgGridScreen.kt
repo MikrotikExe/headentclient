@@ -84,6 +84,8 @@ import sk.tvhclient.shared.formatDayLabel
 import sk.tvhclient.shared.formatTimeHm
 import sk.tvhclient.shared.model.EpgEvent
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 private const val PX_PER_MIN = 4          // sirka 1 minuty v dp
 private const val HOUR_W = 60 * PX_PER_MIN // 240 dp
