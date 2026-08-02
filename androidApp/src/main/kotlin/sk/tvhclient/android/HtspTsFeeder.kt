@@ -76,7 +76,7 @@ class HtspTsFeeder(
         tsQueue = queue
         val writer = Thread({
             try {
-                while (true) {
+                while (!Thread.currentThread().isInterrupted) {
                     val b = queue.take()
                     if (b.isEmpty()) break          // signal na ukoncenie
                     os.write(b)
@@ -113,7 +113,14 @@ class HtspTsFeeder(
                         // ak by sa fronta zaplnila (libVLC dlho necita), radsej
                         // pockame — je to ta ista spatna vazba ako predtym, len
                         // s 256-blokovou rezervou navyse
-                        if (bytes.isNotEmpty()) queue.put(bytes)
+                        // M481: caka najviac 10 s. Blokovanie je tu zamerne (spatny
+                        // tlak, ked libVLC necita), ale po zastaveni prehravania uz
+                        // nikto frontu nevyprazdnuje a slucka by visela navzdy.
+                        if (bytes.isNotEmpty()) {
+                            if (!queue.offer(bytes, 10, java.util.concurrent.TimeUnit.SECONDS)) {
+                                throw java.io.IOException("TS fronta sa neuvolnila")
+                            }
+                        }
                     },
                     onStatus = { shift, _ -> shiftTicks = shift },
                     onSubtitles = { subs -> subtitleStreams = subs },
@@ -124,7 +131,8 @@ class HtspTsFeeder(
             } finally {
                 keepAlive.cancel()
                 c.close()
-                runCatching { queue.put(ByteArray(0)) }   // M458: ukonci writer
+                runCatching { queue.offer(ByteArray(0)) }   // M481
+                runCatching { writer.interrupt() }
                 runCatching { writer.join(500) }
                 try { os.close() } catch (_: Throwable) {}
             }
@@ -158,8 +166,14 @@ class HtspTsFeeder(
     fun stop() {
         job?.cancel()
         job = null
-        // M458: prebud a ukonci zapisovacie vlakno, nech neostane visiet na fronte
-        runCatching { tsQueue?.put(ByteArray(0)) }
+        // M481: ukonci zapisovacie vlakno BEZ blokovania.
+        //
+        // Povodne tu bolo `tsQueue?.put(ByteArray(0))` — put() na plnej fronte
+        // CAKA. stop() pritom bezi na hlavnom vlakne (prepnutie kanala, otvorenie
+        // nahravky, koniec prehravania), takze ked bola fronta plna a zapisovacie
+        // vlakno viselo na plnej pipe, hlavne vlakno tam uviazlo a appka prestala
+        // reagovat. offer() miesto vlozenia neceka; prebudenie zaridi interrupt.
+        runCatching { tsQueue?.offer(ByteArray(0)) }
         runCatching { tsWriter?.interrupt() }
         tsQueue = null
         tsWriter = null
