@@ -362,14 +362,14 @@
     <string name="buf_medium">Μεσαίο (συνιστάται)</string>
     <string name="buf_large">Μεγάλο (αδύναμο Wi-Fi / κινητό)</string>
     <string name="dvr_del_title">Διαγραφή εγγραφής;</string>
-    <string name="dvr_del_msg">Το %1$s θα διαγραφεί οριστικά από τον διακομιστή, μαζί με το αρχείο.</string>
+    <string name="dvr_del_msg">Η εγγραφή %1$s θα διαγραφεί οριστικά από τον διακομιστή, μαζί με το αρχείο.</string>
     <string name="dvr_del_done">Η εγγραφή διαγράφηκε</string>
     <string name="dvr_del_failed">Η διαγραφή δεν ήταν δυνατή</string>
     <string name="dvr_del_working">Διαγραφή…</string>
     <string name="dvr_delete_button">Διαγραφή εγγραφής</string>
     <string name="dvr_stop_button">Διακοπή εγγραφής</string>
     <string name="dvr_stop_title">Διακοπή εγγραφής;</string>
-    <string name="dvr_stop_msg">Το %1$s εγγράφεται τώρα. Με τη διακοπή διατηρείται όσο έχει εγγραφεί.</string>
+    <string name="dvr_stop_msg">Η εγγραφή %1$s εκτελείται τώρα. Με τη διακοπή διατηρείται όσο έχει εγγραφεί.</string>
     <string name="dvr_stop_done">Η εγγραφή διακόπηκε</string>
     <string name="epg_recording_badge">Γίνεται εγγραφή</string>
     <string name="epg_scheduled_badge">Προγραμματισμένο</string>

@@ -362,14 +362,14 @@
     <string name="buf_medium">Gemiddeld (aanbevolen)</string>
     <string name="buf_large">Groot (zwakke wifi / mobiel)</string>
     <string name="dvr_del_title">Opname verwijderen?</string>
-    <string name="dvr_del_msg">%1$s wordt definitief van de server verwijderd, inclusief het bestand.</string>
+    <string name="dvr_del_msg">De opname %1$s wordt definitief van de server verwijderd, inclusief het bestand.</string>
     <string name="dvr_del_done">Opname verwijderd</string>
     <string name="dvr_del_failed">Kan de opname niet verwijderen</string>
     <string name="dvr_del_working">Bezig met verwijderen…</string>
     <string name="dvr_delete_button">Opname verwijderen</string>
     <string name="dvr_stop_button">Opname stoppen</string>
     <string name="dvr_stop_title">Opname stoppen?</string>
-    <string name="dvr_stop_msg">%1$s wordt nu opgenomen. Bij stoppen blijft het al opgenomen deel behouden.</string>
+    <string name="dvr_stop_msg">De opname %1$s loopt nu. Bij stoppen blijft het al opgenomen deel behouden.</string>
     <string name="dvr_stop_done">Opname gestopt</string>
     <string name="epg_recording_badge">Neemt op</string>
     <string name="epg_scheduled_badge">Gepland</string>

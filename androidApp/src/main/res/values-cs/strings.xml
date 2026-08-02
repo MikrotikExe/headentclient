@@ -362,14 +362,14 @@
     <string name="buf_medium">Střední (doporučeno)</string>
     <string name="buf_large">Velká (slabá Wi-Fi / mobil)</string>
     <string name="dvr_del_title">Smazat nahrávku?</string>
-    <string name="dvr_del_msg">%1$s bude trvale smazána ze serveru včetně souboru.</string>
+    <string name="dvr_del_msg">Nahrávka %1$s bude trvale smazána ze serveru včetně souboru.</string>
     <string name="dvr_del_done">Nahrávka smazána</string>
     <string name="dvr_del_failed">Nahrávku se nepodařilo smazat</string>
     <string name="dvr_del_working">Maže se…</string>
     <string name="dvr_delete_button">Smazat nahrávku</string>
     <string name="dvr_stop_button">Zastavit nahrávání</string>
     <string name="dvr_stop_title">Zastavit nahrávání?</string>
-    <string name="dvr_stop_msg">%1$s se právě nahrává. Zastavením zůstane zachována dosud nahraná část.</string>
+    <string name="dvr_stop_msg">Nahrávka %1$s se právě pořizuje. Zastavením zůstane zachována dosud nahraná část.</string>
     <string name="dvr_stop_done">Nahrávání zastaveno</string>
     <string name="epg_recording_badge">Nahrává se</string>
     <string name="epg_scheduled_badge">Naplánováno</string>

@@ -362,14 +362,14 @@
     <string name="buf_medium">Medio (recomendado)</string>
     <string name="buf_large">Grande (Wi-Fi débil / móvil)</string>
     <string name="dvr_del_title">¿Eliminar la grabación?</string>
-    <string name="dvr_del_msg">%1$s se eliminará permanentemente del servidor, incluido el archivo.</string>
+    <string name="dvr_del_msg">La grabación de %1$s se eliminará permanentemente del servidor, incluido el archivo.</string>
     <string name="dvr_del_done">Grabación eliminada</string>
     <string name="dvr_del_failed">No se pudo eliminar la grabación</string>
     <string name="dvr_del_working">Eliminando…</string>
     <string name="dvr_delete_button">Eliminar grabación</string>
     <string name="dvr_stop_button">Detener grabación</string>
     <string name="dvr_stop_title">¿Detener la grabación?</string>
-    <string name="dvr_stop_msg">%1$s se está grabando ahora. Al detenerla se conserva lo grabado hasta ahora.</string>
+    <string name="dvr_stop_msg">La grabación de %1$s está en curso. Al detenerla se conserva lo grabado hasta ahora.</string>
     <string name="dvr_stop_done">Grabación detenida</string>
     <string name="epg_recording_badge">Grabando</string>
     <string name="epg_scheduled_badge">Programada</string>

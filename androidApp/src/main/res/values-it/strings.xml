@@ -362,14 +362,14 @@
     <string name="buf_medium">Medio (consigliato)</string>
     <string name="buf_large">Grande (Wi-Fi debole / mobile)</string>
     <string name="dvr_del_title">Eliminare la registrazione?</string>
-    <string name="dvr_del_msg">%1$s sarà eliminata definitivamente dal server, file compreso.</string>
+    <string name="dvr_del_msg">La registrazione di %1$s sarà eliminata definitivamente dal server, file compreso.</string>
     <string name="dvr_del_done">Registrazione eliminata</string>
     <string name="dvr_del_failed">Impossibile eliminare la registrazione</string>
     <string name="dvr_del_working">Eliminazione…</string>
     <string name="dvr_delete_button">Elimina registrazione</string>
     <string name="dvr_stop_button">Interrompi registrazione</string>
     <string name="dvr_stop_title">Interrompere la registrazione?</string>
-    <string name="dvr_stop_msg">%1$s è in registrazione. Interrompendola resta la parte già registrata.</string>
+    <string name="dvr_stop_msg">La registrazione di %1$s è in corso. Interrompendola resta la parte già registrata.</string>
     <string name="dvr_stop_done">Registrazione interrotta</string>
     <string name="epg_recording_badge">In registrazione</string>
     <string name="epg_scheduled_badge">Programmata</string>

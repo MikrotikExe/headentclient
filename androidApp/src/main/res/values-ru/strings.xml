@@ -362,14 +362,14 @@
     <string name="buf_medium">Средний (рекомендуется)</string>
     <string name="buf_large">Большой (слабый Wi-Fi / моб.)</string>
     <string name="dvr_del_title">Удалить запись?</string>
-    <string name="dvr_del_msg">%1$s будет навсегда удалена с сервера вместе с файлом.</string>
+    <string name="dvr_del_msg">Запись %1$s будет навсегда удалена с сервера вместе с файлом.</string>
     <string name="dvr_del_done">Запись удалена</string>
     <string name="dvr_del_failed">Не удалось удалить запись</string>
     <string name="dvr_del_working">Удаление…</string>
     <string name="dvr_delete_button">Удалить запись</string>
     <string name="dvr_stop_button">Остановить запись</string>
     <string name="dvr_stop_title">Остановить запись?</string>
-    <string name="dvr_stop_msg">%1$s сейчас записывается. При остановке записанная часть сохранится.</string>
+    <string name="dvr_stop_msg">Запись %1$s идёт прямо сейчас. При остановке записанная часть сохранится.</string>
     <string name="dvr_stop_done">Запись остановлена</string>
     <string name="epg_recording_badge">Идет запись</string>
     <string name="epg_scheduled_badge">Запланировано</string>

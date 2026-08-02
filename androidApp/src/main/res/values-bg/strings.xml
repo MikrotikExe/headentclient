@@ -362,14 +362,14 @@
     <string name="buf_medium">Среден (препоръчано)</string>
     <string name="buf_large">Голям (слаб Wi-Fi / мобилен)</string>
     <string name="dvr_del_title">Да се изтрие ли записът?</string>
-    <string name="dvr_del_msg">%1$s ще бъде изтрит окончателно от сървъра, заедно с файла.</string>
+    <string name="dvr_del_msg">Записът %1$s ще бъде изтрит окончателно от сървъра, заедно с файла.</string>
     <string name="dvr_del_done">Записът е изтрит</string>
     <string name="dvr_del_failed">Записът не може да бъде изтрит</string>
     <string name="dvr_del_working">Изтриване…</string>
     <string name="dvr_delete_button">Изтрий записа</string>
     <string name="dvr_stop_button">Спри записа</string>
     <string name="dvr_stop_title">Да се спре ли записът?</string>
-    <string name="dvr_stop_msg">%1$s се записва в момента. При спиране записаната досега част се запазва.</string>
+    <string name="dvr_stop_msg">Записът %1$s тече в момента. При спиране записаната досега част се запазва.</string>
     <string name="dvr_stop_done">Записът е спрян</string>
     <string name="epg_recording_badge">Записва се</string>
     <string name="epg_scheduled_badge">Планирано</string>

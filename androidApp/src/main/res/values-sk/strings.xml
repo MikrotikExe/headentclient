@@ -362,19 +362,19 @@
     <string name="buf_medium">Stredná (odporúčané)</string>
     <string name="buf_large">Veľká (slabá Wi-Fi / mobil)</string>
     <string name="dvr_del_title">Zmazať nahrávku?</string>
-    <string name="dvr_del_msg">%1$s sa natrvalo zmaže zo servera aj so súborom.</string>
+    <string name="dvr_del_msg">Nahrávka %1$s sa natrvalo zmaže zo servera aj so súborom.</string>
     <string name="dvr_del_done">Nahrávka zmazaná</string>
     <string name="dvr_del_failed">Nahrávku sa nepodarilo zmazať</string>
     <string name="dvr_del_working">Maže sa…</string>
     <string name="dvr_delete_button">Zmazať nahrávku</string>
     <string name="dvr_stop_button">Zastaviť nahrávanie</string>
     <string name="dvr_stop_title">Zastaviť nahrávanie?</string>
-    <string name="dvr_stop_msg">%1$s sa práve nahráva. Zastavením ostane zachovaná doteraz nahratá časť.</string>
+    <string name="dvr_stop_msg">Nahrávka %1$s práve prebieha. Zastavením ostane zachovaná doteraz nahratá časť.</string>
     <string name="dvr_stop_done">Nahrávanie zastavené</string>
     <string name="epg_recording_badge">Nahráva sa</string>
     <string name="epg_scheduled_badge">Naplánované</string>
     <string name="dvr_rec_duplicate">Táto relácia už má naplánovanú nahrávku: %1$s, %2$s</string>
     <string name="field_dvr_config">Profil nahrávania</string>
-    <string name="dvr_config_note">Tvheadend si drží len to, ktoré profily konto smie použiť, nie ktorý má použiť. Ak nevyberíš žiadny, nahráva sa do predvoleného profilu servera.</string>
+    <string name="dvr_config_note">Tvheadend si drží len to, ktoré profily konto smie použiť, nie ktorý má použiť. Ak nevyberieš žiadny, nahráva sa do predvoleného profilu servera.</string>
     <string name="dvr_config_default">Predvolený profil servera</string>
 </resources>
