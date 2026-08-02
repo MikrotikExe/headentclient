@@ -373,4 +373,5 @@
     <string name="dvr_stop_done">Kayıt durduruldu</string>
     <string name="epg_recording_badge">Kaydediliyor</string>
     <string name="epg_scheduled_badge">Planlandı</string>
+    <string name="dvr_rec_duplicate">Bu program için zaten bir kayıt planlandı: %1$s, %2$s</string>
 </resources>

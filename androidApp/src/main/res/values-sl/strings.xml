@@ -373,4 +373,5 @@
     <string name="dvr_stop_done">Snemanje ustavljeno</string>
     <string name="epg_recording_badge">Snemanje poteka</string>
     <string name="epg_scheduled_badge">Načrtovano</string>
+    <string name="dvr_rec_duplicate">Ta oddaja ima že načrtovano snemanje: %1$s, %2$s</string>
 </resources>

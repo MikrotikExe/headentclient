@@ -373,4 +373,5 @@
     <string name="dvr_stop_done">Đã dừng ghi</string>
     <string name="epg_recording_badge">Đang ghi</string>
     <string name="epg_scheduled_badge">Đã lên lịch</string>
+    <string name="dvr_rec_duplicate">Chương trình này đã được lên lịch ghi: %1$s, %2$s</string>
 </resources>

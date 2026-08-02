@@ -373,4 +373,5 @@
     <string name="dvr_stop_done">রেকর্ডিং থামানো হয়েছে</string>
     <string name="epg_recording_badge">রেকর্ড হচ্ছে</string>
     <string name="epg_scheduled_badge">নির্ধারিত</string>
+    <string name="dvr_rec_duplicate">এই অনুবানের রেকর্ডিং ইতিমধ্যেই নির্ধারিত: %1$s, %2$s</string>
 </resources>

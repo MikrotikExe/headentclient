@@ -373,4 +373,5 @@
     <string name="dvr_stop_done">Gravação parada</string>
     <string name="epg_recording_badge">A gravar</string>
     <string name="epg_scheduled_badge">Agendada</string>
+    <string name="dvr_rec_duplicate">Este programa já tem uma gravação agendada: %1$s, %2$s</string>
 </resources>

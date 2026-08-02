@@ -26,7 +26,13 @@ import sk.tvhclient.shared.model.EpgEvent
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import kotlinx.coroutines.launch
-import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FiberManualRecord
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 
 @Composable
 fun genreLabel(topNibble: Int): String? {
@@ -58,17 +64,28 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
     var canRecord by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var recording by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var recMessage by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    // M484: chybu odlisime farbou od potvrdenia
+    var recOk by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(true) }
+    // M484: ta ista logika ako v mriezke — ak nahravka uz existuje, ponukneme
+    // jej zrusenie namiesto toho, aby sme dali naplanovat druhu
+    var existingRec by androidx.compose.runtime.remember {
+        androidx.compose.runtime.mutableStateOf<sk.tvhclient.shared.model.DvrEntry?>(null)
+    }
+    var recReload by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(0) }
     var server by androidx.compose.runtime.remember {
         androidx.compose.runtime.mutableStateOf<sk.tvhclient.shared.model.TvhServer?>(null)
     }
 
     // Prava zistime raz pri otvoreni; ak ich server neoznami, tlacidlo ukazeme
     // a pripadnu chybu zobrazime az z odpovede.
-    androidx.compose.runtime.LaunchedEffect(event.eventId) {
+    androidx.compose.runtime.LaunchedEffect(event.eventId, recReload) {
         val s = sk.tvhclient.shared.Tvh.store.active()
         server = s
         canRecord = if (s == null || event.eventId == null) false
         else DvrController.access(s).canRecord
+        val chUuid = event.channelUuid
+        existingRec = if (s == null || chUuid.isNullOrBlank()) null
+        else DvrController.scheduledFor(s, chUuid, event.start, event.stop)
     }
 
     Scaffold(
@@ -132,35 +149,62 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
             }
 
             // M472: nahravanie — len ak ma pouzivatel pravo a ide o buduci program
+            // M484: tlacidlo sa prepina Nahrat <-> Zrusit, ako v mriezke
             val nowSec = System.currentTimeMillis() / 1000
+            val rec = existingRec
             if (canRecord && event.eventId != null && event.stop > nowSec) {
                 Spacer(Modifier.height(4.dp))
-                Button(
+                OutlinedButton(
                     onClick = {
-                        val s = server ?: return@Button
-                        val eid = event.eventId ?: return@Button
+                        val s = server ?: return@OutlinedButton
+                        val eid = event.eventId ?: return@OutlinedButton
                         recording = true
                         recMessage = null
                         scope.launch {
-                            val r = DvrController.recordEvent(s, eid)
+                            val r = if (rec != null) DvrController.cancel(s, rec)
+                            else DvrController.recordEvent(
+                                s, eid, event.channelUuid ?: "",
+                                event.start, event.stop, event.title
+                            )
+                            val dup = if (r.success || rec != null) null
+                            else DvrController.duplicateOf(s, event.title)
                             recording = false
-                            recMessage = if (r.success)
-                                ctx.getString(R.string.dvr_rec_scheduled)
-                            else r.error ?: ctx.getString(R.string.dvr_rec_failed)
+                            recOk = r.success
+                            recMessage = when {
+                                r.success && rec != null -> ctx.getString(R.string.dvr_rec_cancelled)
+                                r.success -> ctx.getString(R.string.dvr_rec_scheduled)
+                                dup != null && dup.channelName.isNotBlank() ->
+                                    ctx.getString(
+                                        R.string.dvr_rec_duplicate, dup.channelName,
+                                        formatDayLabel(dup.start) + " " + formatTimeHm(dup.start)
+                                    )
+                                else -> r.error ?: ctx.getString(R.string.dvr_rec_failed)
+                            }
+                            if (r.success) recReload++
                         }
                     },
                     enabled = !recording,
-                    modifier = Modifier.dpadFocusable()
+                    modifier = Modifier.fillMaxWidth().dpadFocusable()
                 ) {
+                    Icon(
+                        if (rec != null) Icons.Default.Close else Icons.Default.FiberManualRecord,
+                        contentDescription = null
+                    )
+                    Spacer(Modifier.width(8.dp))
                     Text(
-                        if (recording) stringResource(R.string.dvr_rec_working)
-                        else stringResource(R.string.dvr_rec_button)
+                        when {
+                            recording -> stringResource(R.string.dvr_rec_working)
+                            rec != null -> stringResource(R.string.dvr_rec_cancel_button)
+                            else -> stringResource(R.string.dvr_rec_button)
+                        },
+                        style = MaterialTheme.typography.titleMedium
                     )
                 }
                 recMessage?.let {
                     Spacer(Modifier.height(6.dp))
                     Text(it, style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary)
+                        color = if (recOk) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.error)
                 }
                 Spacer(Modifier.height(12.dp))
             }

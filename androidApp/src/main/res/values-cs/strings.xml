@@ -373,4 +373,5 @@
     <string name="dvr_stop_done">Nahrávání zastaveno</string>
     <string name="epg_recording_badge">Nahrává se</string>
     <string name="epg_scheduled_badge">Naplánováno</string>
+    <string name="dvr_rec_duplicate">Tento pořad už má naplánovanou nahrávku: %1$s, %2$s</string>
 </resources>

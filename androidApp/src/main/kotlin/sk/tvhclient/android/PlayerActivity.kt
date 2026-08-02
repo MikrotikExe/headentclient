@@ -1090,6 +1090,19 @@ class PlayerActivity : ComponentActivity() {
     }
 
     /** M475: naplanovana/beziaca nahravka pre prave sledovanu relaciu (null = ziadna). */
+    /**
+     * M484: kanal a prave beziaca relacia — po naplanovani sa posle do
+     * DvrController, aby sa nahravka hned premietla do zoznamu a tlacidlo sa
+     * prepislo na „Zrusit" bez cakania na obnovu cache metadat.
+     */
+    fun currentLiveEvent(): Pair<String, sk.tvhclient.shared.model.EpgEvent>? {
+        val ch = liveChannelsState.value.getOrNull(liveIndexState.value) ?: return null
+        val nowSec = System.currentTimeMillis() / 1000
+        val ev = epgUpcomingState.value[ch.uuid]
+            ?.firstOrNull { it.start <= nowSec && nowSec < it.stop } ?: return null
+        return ch.uuid to ev
+    }
+
     suspend fun currentEventRecording(
         server: sk.tvhclient.shared.model.TvhServer?
     ): sk.tvhclient.shared.model.DvrEntry? {
@@ -5504,14 +5517,30 @@ private fun PlayerUi(
                     val srv = sk.tvhclient.shared.Tvh.store.active()
                     if (act != null && srv != null && (eid != null || existing != null)) {
                         dvrScope.launch {
+                            val hint = act.currentLiveEvent()          // M484
                             val r = if (existing != null) DvrController.cancel(srv, existing)
-                            else DvrController.recordEvent(srv, eid!!)
+                            else DvrController.recordEvent(
+                                srv, eid!!,
+                                hint?.first ?: "",
+                                hint?.second?.start ?: 0L,
+                                hint?.second?.stop ?: 0L,
+                                hint?.second?.title ?: ""
+                            )
+                            // M484: pri duplikate dohladaj, kde uz nahravka je
+                            val dup = if (r.success || existing != null) null
+                            else DvrController.duplicateOf(srv, hint?.second?.title ?: "")
                             dvrExisting = act.currentEventRecording(srv)
                             android.widget.Toast.makeText(
                                 act,
                                 when {
                                     r.success && existing != null -> act.getString(R.string.dvr_rec_cancelled)
                                     r.success -> act.getString(R.string.dvr_rec_scheduled)
+                                    dup != null && dup.channelName.isNotBlank() ->
+                                        act.getString(
+                                            R.string.dvr_rec_duplicate, dup.channelName,
+                                            sk.tvhclient.shared.formatDayLabel(dup.start) + " " +
+                                                sk.tvhclient.shared.formatTimeHm(dup.start)
+                                        )
                                     else -> r.error ?: act.getString(R.string.dvr_rec_failed)
                                 },
                                 android.widget.Toast.LENGTH_LONG

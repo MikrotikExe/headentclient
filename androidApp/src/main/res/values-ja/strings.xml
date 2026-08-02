@@ -373,4 +373,5 @@
     <string name="dvr_stop_done">録画を停止しました</string>
     <string name="epg_recording_badge">録画中</string>
     <string name="epg_scheduled_badge">予約済み</string>
+    <string name="dvr_rec_duplicate">この番組はすでに録画予約済みです: %1$s、%2$s</string>
 </resources>

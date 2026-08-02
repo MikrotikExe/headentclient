@@ -373,4 +373,5 @@
     <string name="dvr_stop_done">Snimanje zaustavljeno</string>
     <string name="epg_recording_badge">Snima se</string>
     <string name="epg_scheduled_badge">Zakazano</string>
+    <string name="dvr_rec_duplicate">Ova emisija već ima zakazano snimanje: %1$s, %2$s</string>
 </resources>

@@ -902,6 +902,9 @@ private fun GridDetailContent(
     var canRecord by remember { mutableStateOf(false) }
     var recBusy by remember { mutableStateOf(false) }
     var recMsg by remember { mutableStateOf<String?>(null) }
+    // M484: chybu treba odlisit farbou — „Could not add dvrEntry" v zelenej
+    // vyzeralo ako uspesne naplanovanie
+    var recOk by remember { mutableStateOf(true) }
     // M483: po uspesnom zmazani/zastaveni uz tlacidlo neponukame (zaznam je prec)
     var recDone by remember { mutableStateOf(false) }
     // M483: potvrdenie mazania/zastavenia
@@ -1177,11 +1180,26 @@ private fun GridDetailContent(
                         recBusy = true; recMsg = null
                         dvrScope.launch {
                             val r = if (rec != null) DvrController.cancel(srv, rec)
-                            else DvrController.recordEvent(srv, recEventId)
+                            // M484: popis relacie -> zaznam sa hned premietne do zoznamu
+                            else DvrController.recordEvent(
+                                srv, recEventId,
+                                (detail as? GridDetail.Epg)?.row?.channel?.uuid ?: "",
+                                start, stop, title
+                            )
+                            // M484: server pri duplikate vrati len strohu chybu —
+                            // dohladame, kde uz nahravka je
+                            val dup = if (r.success || rec != null) null
+                            else DvrController.duplicateOf(srv, title)
                             recBusy = false
+                            recOk = r.success
                             recMsg = when {
                                 r.success && rec != null -> context.getString(R.string.dvr_rec_cancelled)
                                 r.success -> context.getString(R.string.dvr_rec_scheduled)
+                                dup != null && dup.channelName.isNotBlank() ->
+                                    context.getString(
+                                        R.string.dvr_rec_duplicate, dup.channelName,
+                                        formatDayLabel(dup.start) + " " + formatTimeHm(dup.start)
+                                    )
                                 else -> r.error ?: context.getString(R.string.dvr_rec_failed)
                             }
                             if (r.success) recReload++   // znovu zisti stav
@@ -1237,7 +1255,8 @@ private fun GridDetailContent(
             recMsg?.let {
                 Spacer(Modifier.height(6.dp))
                 Text(it, style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary)
+                    color = if (recOk) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.error)
             }
 
             if (desc.isNotBlank() && detailModern) {
@@ -1284,6 +1303,7 @@ private fun GridDetailContent(
                         val r = if (stopping) DvrController.cancel(srv, dvrEntry)
                         else DvrController.delete(srv, dvrEntry)
                         recBusy = false
+                        recOk = r.success
                         recMsg = when {
                             r.success && stopping -> context.getString(R.string.dvr_stop_done)
                             r.success -> context.getString(R.string.dvr_del_done)

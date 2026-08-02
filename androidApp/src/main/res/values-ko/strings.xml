@@ -373,4 +373,5 @@
     <string name="dvr_stop_done">녹화를 중지했습니다</string>
     <string name="epg_recording_badge">녹화 중</string>
     <string name="epg_scheduled_badge">예약됨</string>
+    <string name="dvr_rec_duplicate">이 프로그램은 이미 녹화 예약되어 있습니다: %1$s, %2$s</string>
 </resources>

@@ -373,4 +373,5 @@
     <string name="dvr_stop_done">Enregistrement arrêté</string>
     <string name="epg_recording_badge">Enregistrement en cours</string>
     <string name="epg_scheduled_badge">Programmé</string>
+    <string name="dvr_rec_duplicate">Cette émission est déjà programmée à l\'enregistrement : %1$s, %2$s</string>
 </resources>

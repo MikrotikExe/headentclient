@@ -373,4 +373,5 @@
     <string name="dvr_stop_done">Înregistrare oprită</string>
     <string name="epg_recording_badge">Se înregistrează</string>
     <string name="epg_scheduled_badge">Programată</string>
+    <string name="dvr_rec_duplicate">Acest program are deja o înregistrare programată: %1$s, %2$s</string>
 </resources>

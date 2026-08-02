@@ -373,4 +373,5 @@
     <string name="dvr_stop_done">หยุดการบันทึกแล้ว</string>
     <string name="epg_recording_badge">กำลังบันทึก</string>
     <string name="epg_scheduled_badge">ตั้งเวลาไว้</string>
+    <string name="dvr_rec_duplicate">รายการนี้ตั้งเวลาบันทึกไว้แล้ว: %1$s, %2$s</string>
 </resources>

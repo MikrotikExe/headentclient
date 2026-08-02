@@ -373,4 +373,5 @@
     <string name="dvr_stop_done">Nagrywanie zatrzymane</string>
     <string name="epg_recording_badge">Nagrywanie</string>
     <string name="epg_scheduled_badge">Zaplanowane</string>
+    <string name="dvr_rec_duplicate">Ten program ma już zaplanowane nagranie: %1$s, %2$s</string>
 </resources>

@@ -373,4 +373,5 @@
     <string name="dvr_stop_done">已停止录制</string>
     <string name="epg_recording_badge">录制中</string>
     <string name="epg_scheduled_badge">已安排</string>
+    <string name="dvr_rec_duplicate">该节目已安排录制：%1$s、%2$s</string>
 </resources>
