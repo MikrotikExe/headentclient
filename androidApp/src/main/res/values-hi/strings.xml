@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">शेड्यूल हो रहा है…</string>
     <string name="dvr_rec_scheduled">रिकॉर्डिंग शेड्यूल हुई</string>
     <string name="dvr_rec_failed">रिकॉर्डिंग शेड्यूल नहीं हो सकी</string>
+    <string name="dvr_rec_cancel_button">रिकॉर्डिंग रद्द करें</string>
+    <string name="dvr_rec_cancelled">रिकॉर्डिंग रद्द हुई</string>
     <string name="zap_overlay_title">चैनल बदलते समय ओवरले</string>
     <string name="zap_overlay_note">बंद: केवल चैनल नंबर और कार्यक्रम के साथ छोटी पट्टी</string>
     <string name="archive_choice_title">संग्रहित चैनल पर पूछें</string>

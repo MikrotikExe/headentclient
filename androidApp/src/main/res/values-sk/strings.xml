@@ -297,6 +297,8 @@
     <string name="dvr_rec_working">Plánujem…</string>
     <string name="dvr_rec_scheduled">Nahrávka naplánovaná</string>
     <string name="dvr_rec_failed">Nahrávku sa nepodarilo naplánovať</string>
+    <string name="dvr_rec_cancel_button">Zrušiť nahrávanie</string>
+    <string name="dvr_rec_cancelled">Nahrávanie zrušené</string>
     <string name="zap_overlay_title">Prekryv pri prepínaní kanálov</string>
     <string name="zap_overlay_note">Vypnuté: len krátky pás s číslom kanála a programom</string>
     <string name="archive_choice_title">Upozornenie pri archivovanom kanáli</string>

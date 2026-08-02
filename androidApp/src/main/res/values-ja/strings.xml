@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">予約中…</string>
     <string name="dvr_rec_scheduled">録画を予約しました</string>
     <string name="dvr_rec_failed">録画を予約できませんでした</string>
+    <string name="dvr_rec_cancel_button">録画を取り消す</string>
+    <string name="dvr_rec_cancelled">録画を取り消しました</string>
     <string name="zap_overlay_title">チャンネル切替時のオーバーレイ</string>
     <string name="zap_overlay_note">オフ: チャンネル番号と番組の短いバーのみ表示</string>
     <string name="archive_choice_title">アーカイブ中のチャンネルで確認</string>

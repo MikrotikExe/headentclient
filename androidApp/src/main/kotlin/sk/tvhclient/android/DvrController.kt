@@ -64,7 +64,15 @@ object DvrController {
      */
     suspend fun isScheduled(
         server: TvhServer, channelUuid: String, start: Long, stop: Long
-    ): Boolean = scheduled(server).any { r ->
+    ): Boolean = scheduledFor(server, channelUuid, start, stop) != null
+
+    /**
+     * M475: naplanovana nahravka pre danu relaciu (null = ziadna). Vracia cely
+     * zaznam, aby sa dala rovno zrusit — na to treba jej id/uuid.
+     */
+    suspend fun scheduledFor(
+        server: TvhServer, channelUuid: String, start: Long, stop: Long
+    ): sk.tvhclient.shared.model.DvrEntry? = scheduled(server).firstOrNull { r ->
         val sameChannel = r.channelUuid.isNotBlank() && r.channelUuid == channelUuid
         sameChannel && r.start < stop && start < r.stop
     }
@@ -86,11 +94,17 @@ object DvrController {
         return r
     }
 
-    suspend fun cancel(server: TvhServer, id: String): DvrResult =
-        runCatching { serviceFor(server).cancel(id) }
+    suspend fun cancel(server: TvhServer, id: String): DvrResult {
+        val r = runCatching { serviceFor(server).cancel(id) }
             .getOrElse { DvrResult.fail(it.message) }
+        if (r.success) invalidateScheduled(server.id)   // M475
+        return r
+    }
 
-    suspend fun delete(server: TvhServer, id: String): DvrResult =
-        runCatching { serviceFor(server).delete(id) }
+    suspend fun delete(server: TvhServer, id: String): DvrResult {
+        val r = runCatching { serviceFor(server).delete(id) }
             .getOrElse { DvrResult.fail(it.message) }
+        if (r.success) invalidateScheduled(server.id)
+        return r
+    }
 }

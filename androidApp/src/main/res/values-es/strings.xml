@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">Programando…</string>
     <string name="dvr_rec_scheduled">Grabación programada</string>
     <string name="dvr_rec_failed">No se pudo programar la grabación</string>
+    <string name="dvr_rec_cancel_button">Cancelar grabación</string>
+    <string name="dvr_rec_cancelled">Grabación cancelada</string>
     <string name="zap_overlay_title">Superposición al cambiar de canal</string>
     <string name="zap_overlay_note">Desactivado: solo una barra breve con número de canal y programa</string>
     <string name="archive_choice_title">Preguntar en canal archivado</string>

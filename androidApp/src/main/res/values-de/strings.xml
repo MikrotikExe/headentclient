@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">Wird geplant…</string>
     <string name="dvr_rec_scheduled">Aufnahme geplant</string>
     <string name="dvr_rec_failed">Aufnahme konnte nicht geplant werden</string>
+    <string name="dvr_rec_cancel_button">Aufnahme abbrechen</string>
+    <string name="dvr_rec_cancelled">Aufnahme abgebrochen</string>
     <string name="zap_overlay_title">Overlay beim Kanalwechsel</string>
     <string name="zap_overlay_note">Aus: nur kurze Infoleiste mit Kanalnummer und Sendung</string>
     <string name="archive_choice_title">Bei archiviertem Sender nachfragen</string>

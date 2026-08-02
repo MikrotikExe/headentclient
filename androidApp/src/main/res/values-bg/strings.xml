@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">Планиране…</string>
     <string name="dvr_rec_scheduled">Записът е планиран</string>
     <string name="dvr_rec_failed">Записът не можа да бъде планиран</string>
+    <string name="dvr_rec_cancel_button">Отказ на записа</string>
+    <string name="dvr_rec_cancelled">Записът е отказан</string>
     <string name="zap_overlay_title">Наслагване при превключване на канали</string>
     <string name="zap_overlay_note">Изключено: само кратка лента с номер на канала и програмата</string>
     <string name="archive_choice_title">Питане при архивиран канал</string>

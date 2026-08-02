@@ -31,6 +31,27 @@ object HtspData {
         )
     }
 
+    /**
+     * M476: zoznam stream profilov cez HTSP (`getProfiles`, HTSPv16+).
+     * Doteraz sa profily citali len cez HTTP API — na cistom HTSP pripojeni
+     * (otvoreny len port 9982) tak zoznam nebol dostupny vobec.
+     */
+    suspend fun streamProfiles(server: TvhServer): List<String> = runCatching {
+        val c = HtspClient(server.host, server.htspPort, server.username, server.password)
+        c.connect()
+        try {
+            val r = c.recvReply(c.send("getProfiles"))
+            @Suppress("UNCHECKED_CAST")
+            val list = (r["profiles"] as? List<Any?>) ?: emptyList()
+            list.mapNotNull { p ->
+                val m = p as? Map<String, Any?> ?: return@mapNotNull null
+                (m["name"] as? String)?.takeIf { it.isNotBlank() }
+            }
+        } finally {
+            withContext(NonCancellable) { c.close() }
+        }
+    }.getOrDefault(emptyList())
+
     private data class Cache(val ts: Long, val meta: HtspClient.Metadata, val withEpg: Boolean)
     private val cache = HashMap<String, Cache>()
     private data class NowCache(val ts: Long, val map: Map<String, List<EpgEvent>>)
@@ -182,7 +203,11 @@ object HtspData {
         meta.dvr.mapNotNull { d ->
             val state = strOf(d, "state")
             if (state != "scheduled" && state != "recording") return@mapNotNull null
-            mapDvrEntry(d)
+            val e = mapDvrEntry(d) ?: return@mapNotNull null
+            // M475: HTSP prikazy (cancelDvrEntry/deleteDvrEntry) beru CISELNE id,
+            // nie textove uuid — do uuid preto dame id, aby sa dala nahravka zrusit.
+            val numId = longOf(d, "id")
+            if (numId != null) e.copy(uuid = numId.toString()) else e
         }
 
     /** Dokončené DVR nahrávky (state == "completed"). */

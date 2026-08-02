@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">Planiranje…</string>
     <string name="dvr_rec_scheduled">Snimanje zakazano</string>
     <string name="dvr_rec_failed">Snimanje nije moguće zakazati</string>
+    <string name="dvr_rec_cancel_button">Otkaži snimanje</string>
+    <string name="dvr_rec_cancelled">Snimanje otkazano</string>
     <string name="zap_overlay_title">Preklop pri promeni kanala</string>
     <string name="zap_overlay_note">Isključeno: samo kratka traka sa brojem kanala i programom</string>
     <string name="archive_choice_title">Питај код архивираног канала</string>

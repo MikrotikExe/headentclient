@@ -895,15 +895,18 @@ private fun GridDetailContent(
     var canRecord by remember { mutableStateOf(false) }
     var recBusy by remember { mutableStateOf(false) }
     var recMsg by remember { mutableStateOf<String?>(null) }
-    var alreadyScheduled by remember { mutableStateOf(false) }
-    LaunchedEffect(recEventId) {
+    // M475: ak uz nahravka existuje, drzime si ju — ponukneme zrusenie
+    var existingRec by remember {
+        mutableStateOf<sk.tvhclient.shared.model.DvrEntry?>(null)
+    }
+    var recReload by remember { mutableStateOf(0) }
+    LaunchedEffect(recEventId, recReload) {
         val ep = (detail as? GridDetail.Epg)
         val srv = sk.tvhclient.shared.Tvh.store.active()
         canRecord = if (recEventId == null || srv == null) false
         else DvrController.access(srv).canRecord
-        // M474: relacia, ktora uz nahravanie ma, tlacidlo neponuka
-        alreadyScheduled = if (ep == null || srv == null) false
-        else DvrController.isScheduled(srv, ep.row.channel.uuid, ep.ev.start, ep.ev.stop)
+        existingRec = if (ep == null || srv == null) null
+        else DvrController.scheduledFor(srv, ep.row.channel.uuid, ep.ev.start, ep.ev.stop)
     }
 
     // Spolocne polia z oboch typov
@@ -1125,25 +1128,35 @@ private fun GridDetailContent(
 
             // M473: nahravanie — len pre EPG relaciu, ktora este neskoncila,
             // a len ak ma pouzivatel na serveri pravo nahravat
-            if (canRecord && recEventId != null && stop > nowSec && !alreadyScheduled) {
+            // M475: nahrat / zrusit naplanovanu nahravku
+            val rec = existingRec
+            if (canRecord && recEventId != null && stop > nowSec) {
                 Spacer(Modifier.height(10.dp))
                 androidx.compose.material3.OutlinedButton(
                     onClick = {
                         val srv = sk.tvhclient.shared.Tvh.store.active() ?: return@OutlinedButton
                         recBusy = true; recMsg = null
                         dvrScope.launch {
-                            val r = DvrController.recordEvent(srv, recEventId)
+                            val r = if (rec != null) DvrController.cancel(srv, rec.uuid)
+                            else DvrController.recordEvent(srv, recEventId)
                             recBusy = false
-                            recMsg = if (r.success) context.getString(R.string.dvr_rec_scheduled)
-                            else r.error ?: context.getString(R.string.dvr_rec_failed)
+                            recMsg = when {
+                                r.success && rec != null -> context.getString(R.string.dvr_rec_cancelled)
+                                r.success -> context.getString(R.string.dvr_rec_scheduled)
+                                else -> r.error ?: context.getString(R.string.dvr_rec_failed)
+                            }
+                            if (r.success) recReload++   // znovu zisti stav
                         }
                     },
                     enabled = !recBusy,
                     modifier = Modifier.dpadFocusable()
                 ) {
                     Text(
-                        if (recBusy) stringResource(R.string.dvr_rec_working)
-                        else stringResource(R.string.dvr_rec_button),
+                        when {
+                            recBusy -> stringResource(R.string.dvr_rec_working)
+                            rec != null -> stringResource(R.string.dvr_rec_cancel_button)
+                            else -> stringResource(R.string.dvr_rec_button)
+                        },
                         style = MaterialTheme.typography.titleMedium
                     )
                 }

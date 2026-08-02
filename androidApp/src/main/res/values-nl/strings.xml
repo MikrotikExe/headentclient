@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">Plannen…</string>
     <string name="dvr_rec_scheduled">Opname gepland</string>
     <string name="dvr_rec_failed">Opname kon niet worden gepland</string>
+    <string name="dvr_rec_cancel_button">Opname annuleren</string>
+    <string name="dvr_rec_cancelled">Opname geannuleerd</string>
     <string name="zap_overlay_title">Overlay bij zenderwissel</string>
     <string name="zap_overlay_note">Uit: alleen een korte balk met zendernummer en programma</string>
     <string name="archive_choice_title">Vragen bij gearchiveerde zender</string>

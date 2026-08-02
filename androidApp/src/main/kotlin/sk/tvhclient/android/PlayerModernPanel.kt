@@ -187,6 +187,8 @@ internal fun ModernMoreSheet(
     // M473: nahravanie prave beziacej relacie — len ak ma pouzivatel pravo
     // a ak vieme, ktora relacia bezi (eventId z EPG)
     recordVisible: Boolean = false,
+    /** M475: true = nahravka uz existuje, polozka ponuka jej zrusenie */
+    recordIsCancel: Boolean = false,
     onRecord: () -> Unit = {},
     onSleep: () -> Unit,
     onLockToggle: () -> Unit,
@@ -231,7 +233,10 @@ internal fun ModernMoreSheet(
             if (recordVisible) {
                 ModernSheetRow(
                     Icons.Default.FiberManualRecord,
-                    stringResource(R.string.dvr_rec_button),
+                    stringResource(
+                        if (recordIsCancel) R.string.dvr_rec_cancel_button
+                        else R.string.dvr_rec_button
+                    ),
                     onRecord
                 )
             }

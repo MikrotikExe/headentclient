@@ -539,7 +539,7 @@ class PlayerActivity : ComponentActivity() {
             selectedSubEsState.value = -1
             desiredSubName = null
             resetTimeshift()
-            val fd = feeder.start(channelId, lifecycleScope)
+            val fd = feeder.start(channelId, lifecycleScope, liveServer?.profile)   // M476
             val media = Media(libVlc, fd)
             media.setHWDecoderEnabled(!SwDecodePref.get(this), false)  // M447
             media.addOption(":demux=ts")
@@ -1089,14 +1089,16 @@ class PlayerActivity : ComponentActivity() {
             ?.eventId
     }
 
-    /** M474: ma prave beziaca relacia uz naplanovanu nahravku? */
-    suspend fun currentEventScheduled(server: sk.tvhclient.shared.model.TvhServer?): Boolean {
-        val srv = server ?: return false
-        val ch = liveChannelsState.value.getOrNull(liveIndexState.value) ?: return false
+    /** M475: naplanovana/beziaca nahravka pre prave sledovanu relaciu (null = ziadna). */
+    suspend fun currentEventRecording(
+        server: sk.tvhclient.shared.model.TvhServer?
+    ): sk.tvhclient.shared.model.DvrEntry? {
+        val srv = server ?: return null
+        val ch = liveChannelsState.value.getOrNull(liveIndexState.value) ?: return null
         val nowSec = System.currentTimeMillis() / 1000
         val ev = epgUpcomingState.value[ch.uuid]
-            ?.firstOrNull { it.start <= nowSec && nowSec < it.stop } ?: return false
-        return DvrController.isScheduled(srv, ch.uuid, ev.start, ev.stop)
+            ?.firstOrNull { it.start <= nowSec && nowSec < it.stop } ?: return null
+        return DvrController.scheduledFor(srv, ch.uuid, ev.start, ev.stop)
     }
 
     /** M456: dopis EPG cache pri odchode, nech sa posledne zmeny nestratia. */
@@ -2964,11 +2966,11 @@ class PlayerActivity : ComponentActivity() {
         // Live-zapping nizsie zavisi od liveUuids (pri DVR prazdne), nie od liveServer.
         liveServer = server
         currentProfileState.value = server.profile.ifBlank { "pass" }
-        profileSwitchState.value =
-            directUrl == null && channelUuid != null && server.connectionMode != "htsp"
+        // M476: prepinac profilu plati aj pre HTSP — protokol ho podporuje od v16
+        profileSwitchState.value = directUrl == null && channelUuid != null
         // M383: prednacitaj zoznam profilov (dotykove tlacidlo otvara menu priamo,
         // bez openProfileMenu) — fallback hned, servrovy zoznam async
-        if (server.connectionMode != "htsp" && profileItemsState.value.isEmpty()) {
+        if (profileItemsState.value.isEmpty()) {
             profileItemsState.value =
                 ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
             lifecycleScope.launch {
@@ -4403,14 +4405,15 @@ private fun PlayerUi(
     val dvrActivity = LocalContext.current as? PlayerActivity
     var dvrCanRecord by remember { mutableStateOf(false) }
     var dvrEventId by remember { mutableStateOf<Long?>(null) }
+    var dvrExisting by remember { mutableStateOf<sk.tvhclient.shared.model.DvrEntry?>(null) }
     val dvrScope = rememberCoroutineScope()
     LaunchedEffect(showMoreSheet) {
         if (showMoreSheet) {
             dvrEventId = dvrActivity?.currentEventId()
             val srv = sk.tvhclient.shared.Tvh.store.active()
-            // M474: ak sa prave beziaca relacia uz nahrava, polozku neponukame
-            val already = dvrActivity?.currentEventScheduled(srv) == true
-            dvrCanRecord = srv != null && !already && DvrController.access(srv).canRecord
+            // M475: ak uz nahravka existuje, ponukneme jej zrusenie
+            dvrExisting = dvrActivity?.currentEventRecording(srv)
+            dvrCanRecord = srv != null && DvrController.access(srv).canRecord
         }
     }
     // odpocet casovaca uspatia (aktualizuje sa kym je casovac aktivny)
@@ -5491,19 +5494,26 @@ private fun PlayerUi(
                 onProfile = { showMoreSheet = false; menu = "profile" },
                 onPip = { showMoreSheet = false; onEnterPip() },
                 onSubs = { showMoreSheet = false; menu = "spu" },
-                recordVisible = dvrCanRecord && dvrEventId != null,
+                recordVisible = dvrCanRecord && (dvrEventId != null || dvrExisting != null),
+                recordIsCancel = dvrExisting != null,
                 onRecord = {
                     showMoreSheet = false
                     val act = dvrActivity
                     val eid = dvrEventId
+                    val existing = dvrExisting
                     val srv = sk.tvhclient.shared.Tvh.store.active()
-                    if (act != null && eid != null && srv != null) {
+                    if (act != null && srv != null && (eid != null || existing != null)) {
                         dvrScope.launch {
-                            val r = DvrController.recordEvent(srv, eid)
+                            val r = if (existing != null) DvrController.cancel(srv, existing.uuid)
+                            else DvrController.recordEvent(srv, eid!!)
+                            dvrExisting = act.currentEventRecording(srv)
                             android.widget.Toast.makeText(
                                 act,
-                                if (r.success) act.getString(R.string.dvr_rec_scheduled)
-                                else (r.error ?: act.getString(R.string.dvr_rec_failed)),
+                                when {
+                                    r.success && existing != null -> act.getString(R.string.dvr_rec_cancelled)
+                                    r.success -> act.getString(R.string.dvr_rec_scheduled)
+                                    else -> r.error ?: act.getString(R.string.dvr_rec_failed)
+                                },
                                 android.widget.Toast.LENGTH_LONG
                             ).show()
                         }

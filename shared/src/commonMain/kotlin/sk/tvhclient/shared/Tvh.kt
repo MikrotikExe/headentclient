@@ -105,7 +105,9 @@ object Tvh {
      * nedostupny, stare API) nehadzeme vyssie: volajuci pouzije fallback.
      */
     suspend fun streamProfiles(server: TvhServer): List<String> {
-        if (server.connectionMode == "htsp") return emptyList()
+        // M476: HTSP ma vlastny getProfiles (v16+), netreba HTTP port
+        if (server.connectionMode == "htsp")
+            return sk.tvhclient.shared.htsp.HtspData.streamProfiles(server)
         return runCatching { TvhApi(server).streamProfiles() }.getOrDefault(emptyList())
     }
 

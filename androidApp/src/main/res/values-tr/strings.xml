@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">Planlanıyor…</string>
     <string name="dvr_rec_scheduled">Kayıt planlandı</string>
     <string name="dvr_rec_failed">Kayıt planlanamadı</string>
+    <string name="dvr_rec_cancel_button">Kaydı iptal et</string>
+    <string name="dvr_rec_cancelled">Kayıt iptal edildi</string>
     <string name="zap_overlay_title">Kanal değiştirirken katman</string>
     <string name="zap_overlay_note">Kapalı: yalnızca kanal numarası ve programla kısa bir bilgi çubuğu</string>
     <string name="archive_choice_title">Arşivlenen kanalda sor</string>

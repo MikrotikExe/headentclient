@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">Se programează…</string>
     <string name="dvr_rec_scheduled">Înregistrare programată</string>
     <string name="dvr_rec_failed">Înregistrarea nu a putut fi programată</string>
+    <string name="dvr_rec_cancel_button">Anulează înregistrarea</string>
+    <string name="dvr_rec_cancelled">Înregistrare anulată</string>
     <string name="zap_overlay_title">Suprapunere la schimbarea canalelor</string>
     <string name="zap_overlay_note">Dezactivat: doar o bară scurtă cu numărul canalului și programul</string>
     <string name="archive_choice_title">Întreabă la canal arhivat</string>

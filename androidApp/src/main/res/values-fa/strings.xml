@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">در حال زمان‌بندی…</string>
     <string name="dvr_rec_scheduled">ضبط زمان‌بندی شد</string>
     <string name="dvr_rec_failed">زمان‌بندی ضبط ممکن نشد</string>
+    <string name="dvr_rec_cancel_button">لغو ضبط</string>
+    <string name="dvr_rec_cancelled">ضبط لغو شد</string>
     <string name="zap_overlay_title">روکش هنگام تعویض کانال</string>
     <string name="zap_overlay_note">خاموش: فقط نوار کوتاه با شماره کانال و برنامه</string>
     <string name="archive_choice_title">پرسیدن در کانال بایگانی‌شده</string>

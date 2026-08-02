@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">Планирование…</string>
     <string name="dvr_rec_scheduled">Запись запланирована</string>
     <string name="dvr_rec_failed">Не удалось запланировать запись</string>
+    <string name="dvr_rec_cancel_button">Отменить запись</string>
+    <string name="dvr_rec_cancelled">Запись отменена</string>
     <string name="zap_overlay_title">Оверлей при переключении каналов</string>
     <string name="zap_overlay_note">Выкл.: только короткая панель с номером канала и передачей</string>
     <string name="archive_choice_title">Спрашивать на архивируемом канале</string>

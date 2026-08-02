@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">Programmation…</string>
     <string name="dvr_rec_scheduled">Enregistrement programmé</string>
     <string name="dvr_rec_failed">Impossible de programmer l\'enregistrement</string>
+    <string name="dvr_rec_cancel_button">Annuler l\'enregistrement</string>
+    <string name="dvr_rec_cancelled">Enregistrement annulé</string>
     <string name="zap_overlay_title">Superposition au changement de chaîne</string>
     <string name="zap_overlay_note">Désactivé : seulement une barre brève avec numéro de chaîne et programme</string>
     <string name="archive_choice_title">Demander pour une chaîne archivée</string>

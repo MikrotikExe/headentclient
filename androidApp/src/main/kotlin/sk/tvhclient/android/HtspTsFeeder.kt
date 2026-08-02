@@ -46,7 +46,13 @@ class HtspTsFeeder(
     @Volatile var onSubtitlePage: ((sk.tvhclient.shared.htsp.DvbSubtitleDecoder.DecodedPage, Long) -> Unit)? = null
 
     /** Spusti feed pre kanal a vrati read FileDescriptor pre libVLC. */
-    fun start(channelId: Long, scope: CoroutineScope): FileDescriptor {
+    /**
+     * M476: `profile` sa odovzdava do HTSP subscribe. HTSP profily podporuje od
+     * v16 (getProfiles + pole `profile` v subscribe), appka ich vsak doteraz
+     * posielala len na HTTP ceste — cez HTSP sa preto vzdy hralo so serverovou
+     * predvolbou. Prazdny/`null` = nechaj rozhodnut server (povodne spravanie).
+     */
+    fun start(channelId: Long, scope: CoroutineScope, profile: String? = null): FileDescriptor {
         this.scope = scope
         val pipe = ParcelFileDescriptor.createPipe()
         val read = pipe[0]
@@ -101,6 +107,7 @@ class HtspTsFeeder(
                 c.connect()
                 c.streamSubscribe(
                     channelId = channelId,
+                    profile = profile?.takeIf { it.isNotBlank() },
                     timeshiftPeriodSec = timeshiftPeriodSec,
                     onTs = { bytes ->
                         // ak by sa fronta zaplnila (libVLC dlho necita), radsej

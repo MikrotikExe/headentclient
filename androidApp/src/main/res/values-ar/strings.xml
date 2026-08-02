@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">جارٍ الجدولة…</string>
     <string name="dvr_rec_scheduled">تمت جدولة التسجيل</string>
     <string name="dvr_rec_failed">تعذّرت جدولة التسجيل</string>
+    <string name="dvr_rec_cancel_button">إلغاء التسجيل</string>
+    <string name="dvr_rec_cancelled">تم إلغاء التسجيل</string>
     <string name="zap_overlay_title">طبقة العرض عند تبديل القنوات</string>
     <string name="zap_overlay_note">إيقاف: شريط معلومات قصير فقط برقم القناة والبرنامج</string>
     <string name="archive_choice_title">السؤال عند قناة مؤرشفة</string>

@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">Planowanie…</string>
     <string name="dvr_rec_scheduled">Nagranie zaplanowane</string>
     <string name="dvr_rec_failed">Nie udało się zaplanować nagrania</string>
+    <string name="dvr_rec_cancel_button">Anuluj nagrywanie</string>
+    <string name="dvr_rec_cancelled">Nagrywanie anulowane</string>
     <string name="zap_overlay_title">Nakładka przy przełączaniu kanałów</string>
     <string name="zap_overlay_note">Wyłączone: tylko krótki pasek z numerem kanału i programem</string>
     <string name="archive_choice_title">Pytaj przy archiwizowanym kanale</string>

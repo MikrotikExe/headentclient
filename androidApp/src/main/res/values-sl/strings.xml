@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">Načrtovanje…</string>
     <string name="dvr_rec_scheduled">Snemanje načrtovano</string>
     <string name="dvr_rec_failed">Snemanja ni bilo mogoče načrtovati</string>
+    <string name="dvr_rec_cancel_button">Prekliči snemanje</string>
+    <string name="dvr_rec_cancelled">Snemanje preklicano</string>
     <string name="zap_overlay_title">Prekrivanje ob preklapljanju kanalov</string>
     <string name="zap_overlay_note">Izklopljeno: samo kratka vrstica s številko kanala in oddajo</string>
     <string name="archive_choice_title">Vprašaj pri arhiviranem kanalu</string>

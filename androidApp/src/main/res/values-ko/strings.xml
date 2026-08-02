@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">예약 중…</string>
     <string name="dvr_rec_scheduled">녹화가 예약되었습니다</string>
     <string name="dvr_rec_failed">녹화를 예약하지 못했습니다</string>
+    <string name="dvr_rec_cancel_button">녹화 취소</string>
+    <string name="dvr_rec_cancelled">녹화를 취소했습니다</string>
     <string name="zap_overlay_title">채널 전환 시 오버레이</string>
     <string name="zap_overlay_note">끄면 채널 번호와 프로그램이 있는 짧은 바만 표시</string>
     <string name="archive_choice_title">보관 중인 채널에서 묻기</string>

@@ -275,6 +275,8 @@
     <string name="dvr_rec_working">Menjadwalkan…</string>
     <string name="dvr_rec_scheduled">Perekaman dijadwalkan</string>
     <string name="dvr_rec_failed">Gagal menjadwalkan perekaman</string>
+    <string name="dvr_rec_cancel_button">Batalkan perekaman</string>
+    <string name="dvr_rec_cancelled">Perekaman dibatalkan</string>
     <string name="zap_overlay_title">Overlay saat berpindah saluran</string>
     <string name="zap_overlay_note">Mati: hanya bilah info singkat dengan nomor saluran dan program</string>
     <string name="archive_choice_title">Tanya pada saluran yang diarsipkan</string>
