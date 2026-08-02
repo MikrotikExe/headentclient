@@ -1078,6 +1078,15 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    /** M473: eventId prave beziacej relacie na aktualnom kanali (null = nevieme). */
+    fun currentEventId(): Long? {
+        val ch = liveChannelsState.value.getOrNull(liveIndexState.value) ?: return null
+        val nowSec = System.currentTimeMillis() / 1000
+        return epgUpcomingState.value[ch.uuid]
+            ?.firstOrNull { it.start <= nowSec && nowSec < it.stop }
+            ?.eventId
+    }
+
     /** M456: dopis EPG cache pri odchode, nech sa posledne zmeny nestratia. */
     private fun flushEpgPersist() {
         val srv = liveServer ?: return
@@ -4377,6 +4386,13 @@ private fun PlayerUi(
     var showInfo by remember { mutableStateOf(false) }
     // Moderny rezim (telefon): vysuvaci panel "Viac" (zvuk/titulky/casovac/zamok/info)
     var showMoreSheet by remember { mutableStateOf(false) }
+    // M473: nahravanie prave beziacej relacie z panela "Viac"
+    var dvrCanRecord by remember { mutableStateOf(false) }
+    val dvrScope = rememberCoroutineScope()
+    LaunchedEffect(Unit) {
+        val srv = sk.tvhclient.shared.Tvh.store.active()
+        dvrCanRecord = srv != null && DvrController.access(srv).canRecord
+    }
     // odpocet casovaca uspatia (aktualizuje sa kym je casovac aktivny)
     var sleepNow by remember { mutableStateOf(System.currentTimeMillis()) }
     LaunchedEffect(sleepDeadline) {
@@ -5455,6 +5471,24 @@ private fun PlayerUi(
                 onProfile = { showMoreSheet = false; menu = "profile" },
                 onPip = { showMoreSheet = false; onEnterPip() },
                 onSubs = { showMoreSheet = false; menu = "spu" },
+                recordVisible = dvrCanRecord && liveInstance?.get()?.currentEventId() != null,
+                onRecord = {
+                    showMoreSheet = false
+                    val act = liveInstance?.get()
+                    val eid = act?.currentEventId()
+                    val srv = sk.tvhclient.shared.Tvh.store.active()
+                    if (act != null && eid != null && srv != null) {
+                        dvrScope.launch {
+                            val r = DvrController.recordEvent(srv, eid)
+                            android.widget.Toast.makeText(
+                                act,
+                                if (r.success) act.getString(R.string.dvr_rec_scheduled)
+                                else (r.error ?: act.getString(R.string.dvr_rec_failed)),
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                },
                 onSleep = { showMoreSheet = false; onOpenSleep() },
                 onLockToggle = {
                     orientationLocked = !orientationLocked

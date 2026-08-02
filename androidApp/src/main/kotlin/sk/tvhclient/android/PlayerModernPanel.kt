@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.ClosedCaption
+import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.GridView
@@ -183,6 +184,10 @@ internal fun ModernMoreSheet(
     profileVisible: Boolean = false,
     onProfile: () -> Unit = {},
     onSubs: () -> Unit,
+    // M473: nahravanie prave beziacej relacie — len ak ma pouzivatel pravo
+    // a ak vieme, ktora relacia bezi (eventId z EPG)
+    recordVisible: Boolean = false,
+    onRecord: () -> Unit = {},
     onSleep: () -> Unit,
     onLockToggle: () -> Unit,
     onInfo: () -> Unit,
@@ -222,6 +227,13 @@ internal fun ModernMoreSheet(
             }
             if (pipVisible) {
                 ModernSheetRow(Icons.Default.PictureInPictureAlt, stringResource(R.string.pm_pip), onPip)
+            }
+            if (recordVisible) {
+                ModernSheetRow(
+                    Icons.Default.FiberManualRecord,
+                    stringResource(R.string.dvr_rec_button),
+                    onRecord
+                )
             }
             ModernSheetRow(Icons.Default.Timer, stringResource(R.string.sleep_timer), onSleep)
             if (lockVisible) {

@@ -886,6 +886,20 @@ private fun GridDetailContent(
 ) {
     val context = LocalContext.current
     val playFocus = remember { FocusRequester() }
+
+    // ---- M473: nahravanie programu z detailu (moderny aj klasicky rezim) ----
+    val dvrScope = rememberCoroutineScope()
+    val recEventId = (detail as? GridDetail.Epg)?.ev?.eventId
+    var canRecord by remember { mutableStateOf(false) }
+    var recBusy by remember { mutableStateOf(false) }
+    var recMsg by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(recEventId) {
+        canRecord = if (recEventId == null) false else {
+            val srv = sk.tvhclient.shared.Tvh.store.active()
+            srv != null && DvrController.access(srv).canRecord
+        }
+    }
+
     // Spolocne polia z oboch typov
     val title: String
     val subtitle: String
@@ -1101,6 +1115,37 @@ private fun GridDetailContent(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+
+            // M473: nahravanie — len pre EPG relaciu, ktora este neskoncila,
+            // a len ak ma pouzivatel na serveri pravo nahravat
+            if (canRecord && recEventId != null && stop > nowSec) {
+                Spacer(Modifier.height(10.dp))
+                androidx.compose.material3.OutlinedButton(
+                    onClick = {
+                        val srv = sk.tvhclient.shared.Tvh.store.active() ?: return@OutlinedButton
+                        recBusy = true; recMsg = null
+                        dvrScope.launch {
+                            val r = DvrController.recordEvent(srv, recEventId)
+                            recBusy = false
+                            recMsg = if (r.success) context.getString(R.string.dvr_rec_scheduled)
+                            else r.error ?: context.getString(R.string.dvr_rec_failed)
+                        }
+                    },
+                    enabled = !recBusy,
+                    modifier = Modifier.dpadFocusable()
+                ) {
+                    Text(
+                        if (recBusy) stringResource(R.string.dvr_rec_working)
+                        else stringResource(R.string.dvr_rec_button),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                recMsg?.let {
+                    Spacer(Modifier.height(6.dp))
+                    Text(it, style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary)
+                }
             }
 
             if (desc.isNotBlank() && detailModern) {
