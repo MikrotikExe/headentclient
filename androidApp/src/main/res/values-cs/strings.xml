@@ -28,9 +28,9 @@
     <string name="all_channels">Všechny</string>
     <string name="no_channels">Žádné kanály.</string>
     <string name="no_active_server">Žádný aktivní server. Přidej ho v záložce Servery.</string>
-    <string name="no_program">Žádný program</string>
+    <string name="no_program">Žádný pořad</string>
     <string name="playback_error">Přehrávání selhalo: %1$s</string>
-    <string name="field_profile">Stream profil</string>
+    <string name="field_profile">Profil streamu</string>
     <string name="profile_note">Ne každý profil se musí dát přehrát — závisí to na kontejneru a kodecích. Pokud si nejste jisti, použijte pass.</string>
     <string name="profile_server_default">Podle nastavení serveru</string>
     <string name="genre_film">Film / Drama</string>
@@ -239,7 +239,7 @@
     <string name="remote_debug_note">V přehrávači se při stisku neobvyklé klávesy krátce zobrazí její kód. Slouží ke zjištění kódu EPG tlačítka dálkového ovladače.</string>
     <string name="plock_grace_title">Po odemknutí nevyžadovat PIN</string>
     <string name="plock_grace_always">Vždy vyžadovat</string>
-    <string name="plock_scope_title">Vyžaduje se PIN kód pro</string>
+    <string name="plock_scope_title">Vyžadovat PIN pro</string>
     <string name="plock_scope_channels">Kanály</string>
     <string name="plock_scope_settings">Nastavení</string>
     <string name="plock_pin_input_title">Způsob zadávání PIN</string>
@@ -292,7 +292,7 @@
     <string name="set_sub_general">Jazyk, motiv, vzhled rozhraní</string>
     <string name="set_sub_playback">Dekodér, deinterlacing, zvuk, titulky</string>
     <string name="set_sub_plock">PIN, zamčené kanály a archiv</string>
-    <string name="set_sub_servers">Tvheadend připojení, aktivní server</string>
+    <string name="set_sub_servers">Připojení k Tvheadendu, aktivní server</string>
     <string name="set_sub_remote">Ovládání TV aplikace z telefonu</string>
     <string name="set_sub_info">Verze, licence, právní dokumenty</string>
     <string name="set_grp_autostart">Autostart</string>
@@ -338,7 +338,7 @@
     <string name="diag_send">Odeslat diagnostický log</string>
     <string name="diag_clear">Vymazat log</string>
     <string name="diag_empty">Zatím žádný log — nic se nezaznamenalo.</string>
-    <string name="diag_email_body">Přiložený diagnostický log. Popiš prosím, co jsi dělal, když nastal problém:</string>
+    <string name="diag_email_body">Přiložený diagnostický log. Popiš prosím, při jaké činnosti problém nastal:</string>
     <string name="epg_today">Dnes</string>
     <string name="epg_filter">Filtr</string>
     <string name="overlay_solid_bg">Plné pozadí informační lišty</string>

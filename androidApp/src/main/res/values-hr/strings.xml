@@ -338,7 +338,7 @@
     <string name="diag_send">Pošalji dijagnostički zapis</string>
     <string name="diag_clear">Obriši zapis</string>
     <string name="diag_empty">Još nema zapisa — ništa nije zabilježeno.</string>
-    <string name="diag_email_body">Priložen dijagnostički zapis. Opiši što si radio kad se problem dogodio:</string>
+    <string name="diag_email_body">Priložen dijagnostički zapis. Opiši pri kojoj je radnji došlo do problema:</string>
     <string name="epg_today">Danas</string>
     <string name="epg_filter">Filtar</string>
     <string name="overlay_solid_bg">Puna pozadina informacijske trake</string>

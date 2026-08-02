@@ -338,7 +338,7 @@
     <string name="diag_send">Wyślij dziennik diagnostyczny</string>
     <string name="diag_clear">Wyczyść dziennik</string>
     <string name="diag_empty">Brak dziennika — nic nie zarejestrowano.</string>
-    <string name="diag_email_body">Załączono dziennik diagnostyczny. Opisz, co robiłeś, gdy wystąpił problem:</string>
+    <string name="diag_email_body">Załączono dziennik diagnostyczny. Opisz, przy jakiej czynności wystąpił problem:</string>
     <string name="epg_today">Dziś</string>
     <string name="epg_filter">Filtr</string>
     <string name="overlay_solid_bg">Pełne tło paska informacji</string>
