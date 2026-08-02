@@ -5,6 +5,9 @@ import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.ktor.http.encodeURLParameter
 import io.ktor.client.statement.HttpResponse
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
@@ -242,9 +245,9 @@ class TvhApi(private val server: TvhServer) {
      */
     internal suspend fun apiPost(path: String, params: Map<String, String>): JsonObject {
         val resp = client.post(url(path)) {
-            io.ktor.http.contentType(io.ktor.http.ContentType.Application.FormUrlEncoded)
+            contentType(ContentType.Application.FormUrlEncoded)
             setBody(params.entries.joinToString("&") { (k, v) ->
-                k + "=" + io.ktor.http.encodeURLParameter(v)
+                k.encodeURLParameter() + "=" + v.encodeURLParameter()
             })
         }
         val code = resp.status.value
