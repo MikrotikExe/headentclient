@@ -62,12 +62,42 @@ class HtspClient(
         private set
     private var challenge: ByteArray? = null
 
+    /**
+     * M471: prava prihlaseneho pouzivatela z asynchronnej spravy `accessUpdate`.
+     * Tvheadend ju posiela sam po prihlaseni (htsp_server.c). Pole `dvr`
+     * zodpoveda pravu ACCESS_HTSP_RECORDER — podla neho appka zobrazi alebo
+     * skryje nahravanie. Server prava aj tak vynuti, toto je len pre UI.
+     */
+    data class Access(
+        val admin: Boolean = false,
+        val streaming: Boolean = false,
+        val dvr: Boolean = false,
+        val failedDvr: Boolean = false,
+        val connLimitDvr: Int = 0
+    )
+
+    /** Naposledy prijate prava (null = server ich neposlal). */
+    var access: Access? = null
+        private set
+
+    private fun applyAccessUpdate(m: Map<String, Any?>) {
+        fun flag(k: String) = ((m[k] as? Long) ?: 0L) == 1L
+        access = Access(
+            admin = flag("admin"),
+            streaming = flag("streaming"),
+            dvr = flag("dvr"),
+            failedDvr = flag("faileddvr"),
+            connLimitDvr = ((m["limitdvr"] as? Long) ?: 0L).toInt()
+        )
+    }
+
     data class Metadata(
         val channels: List<Map<String, Any?>>,
         val tags: List<Map<String, Any?>>,
         val events: List<Map<String, Any?>>,
         val dvr: List<Map<String, Any?>>,
-        val syncDone: Boolean
+        val syncDone: Boolean,
+        val access: Access? = null   // M471
     )
 
     suspend fun connect() {
@@ -248,6 +278,7 @@ class HtspClient(
                     "tagAdd" -> tags.add(m)
                     "eventAdd" -> events.add(m)
                     "dvrEntryAdd" -> dvr.add(m)
+                    "accessUpdate" -> applyAccessUpdate(m)   // M471
                     "initialSyncCompleted" -> {
                         syncDone = true
                         if (!withEpg) break
@@ -258,7 +289,7 @@ class HtspClient(
         }
         try { send("disableAsyncMetadata", emptyMap(), withSeq = false) } catch (_: Throwable) {}
 
-        return Metadata(channels, tags, events, dvr, syncDone || result == true)
+        return Metadata(channels, tags, events, dvr, syncDone || result == true, access)
     }
 
     /**

@@ -234,6 +234,39 @@ class TvhApi(private val server: TvhServer) {
             runCatching { decode<sk.tvhclient.shared.model.DvrEntry>(it) }.getOrNull()
         }.dedupByUuid()
 
+    /**
+     * M471: prava prihlaseneho pouzivatela cez HTTP.
+     *
+     * `api/access/whoami` pribudlo v Tvheadend API v20 (2026-07) a vracia
+     * prava aktualnej session vratane zoznamu `dvr`. Na starsich serveroch
+     * endpoint neexistuje (404) — vtedy vratime UNKNOWN a nahravanie
+     * ponukneme; ak pouzivatel prava nema, server volanie odmietne (403)
+     * a chybu zobrazime.
+     */
+    suspend fun dvrAccess(): DvrAccess = try {
+        val o = apiGet("api/access/whoami")
+        fun strList(key: String): List<String> =
+            (o[key] as? kotlinx.serialization.json.JsonArray)
+                ?.mapNotNull { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+                ?: emptyList()
+        fun flag(key: String): Boolean =
+            (o[key] as? kotlinx.serialization.json.JsonPrimitive)?.content == "true"
+        val dvrRights = strList("dvr")
+        DvrAccess(
+            // "basic"/"htsp"/"all"/"all_rw" = moze nahravat; prazdny zoznam = nie
+            canRecord = dvrRights.any { it in setOf("basic", "htsp", "all", "all_rw") },
+            canSeeFailed = dvrRights.contains("failed"),
+            isAdmin = flag("admin"),
+            recordingLimit = 0,
+            known = true
+        )
+    } catch (e: TvhHttpException) {
+        // 404 = stary server bez whoami, 403 = bez prav na tento endpoint
+        if (e.httpCode == 403) DvrAccess.DENIED else DvrAccess.UNKNOWN
+    } catch (_: Throwable) {
+        DvrAccess.UNKNOWN
+    }
+
     fun close() = client.close()
 }
 

@@ -17,6 +17,20 @@ import sk.tvhclient.shared.model.TvhServer
  * Streaming a picony ostávajú HTTP (HTSP tu rieši len dáta).
  */
 object HtspData {
+
+    /** M471: prava z posledneho HTSP spojenia (accessUpdate), prelozene do
+     *  spolocneho tvaru pre UI. */
+    fun accessOf(meta: HtspClient.Metadata): sk.tvhclient.shared.api.DvrAccess {
+        val a = meta.access ?: return sk.tvhclient.shared.api.DvrAccess.UNKNOWN
+        return sk.tvhclient.shared.api.DvrAccess(
+            canRecord = a.dvr,
+            canSeeFailed = a.failedDvr,
+            isAdmin = a.admin,
+            recordingLimit = a.connLimitDvr,
+            known = true
+        )
+    }
+
     private data class Cache(val ts: Long, val meta: HtspClient.Metadata, val withEpg: Boolean)
     private val cache = HashMap<String, Cache>()
     private data class NowCache(val ts: Long, val map: Map<String, List<EpgEvent>>)
