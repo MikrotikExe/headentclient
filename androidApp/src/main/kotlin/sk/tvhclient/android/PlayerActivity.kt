@@ -5504,7 +5504,7 @@ private fun PlayerUi(
                     val srv = sk.tvhclient.shared.Tvh.store.active()
                     if (act != null && srv != null && (eid != null || existing != null)) {
                         dvrScope.launch {
-                            val r = if (existing != null) DvrController.cancel(srv, existing.uuid)
+                            val r = if (existing != null) DvrController.cancel(srv, existing)
                             else DvrController.recordEvent(srv, eid!!)
                             dvrExisting = act.currentEventRecording(srv)
                             android.widget.Toast.makeText(

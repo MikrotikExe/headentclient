@@ -35,9 +35,16 @@ data class DvrEntry(
     @SerialName("status") val status: String = "",
     @SerialName("sched_status") val schedStatus: String = "",
     @SerialName("content_type") val contentType: Int = 0,
-    @SerialName("errors") val errors: Int = 0
+    @SerialName("errors") val errors: Int = 0,
+    // M483: HTSP prikazy (cancelDvrEntry/deleteDvrEntry) beru CISELNE id, kym
+    // /dvrfile na prehratie potrebuje hex uuid. Pri HTSP si preto drzime oboje.
+    // HTTP toto pole nema — tam sa aj prikazy aj prehratie riadia cez uuid.
+    val dvrId: String = ""
 ) {
     val title: String get() = dispTitle.ifBlank { "—" }
+
+    /** M483: id pre DVR prikazy (zrusit/zmazat). HTSP = ciselne id, HTTP = uuid. */
+    val commandId: String get() = dvrId.ifBlank { uuid }
 
     val durationSec: Long
         get() = if (duration > 0) duration else (if (stop > start) stop - start else 0)

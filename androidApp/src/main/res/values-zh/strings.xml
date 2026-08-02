@@ -361,4 +361,16 @@
     <string name="buf_small">小（快速局域网）</string>
     <string name="buf_medium">中（推荐）</string>
     <string name="buf_large">大（弱 Wi-Fi / 移动网络）</string>
+    <string name="dvr_del_title">删除录制？</string>
+    <string name="dvr_del_msg">%1$s 将连同文件一起从服务器永久删除。</string>
+    <string name="dvr_del_done">已删除录制</string>
+    <string name="dvr_del_failed">无法删除录制</string>
+    <string name="dvr_del_working">正在删除…</string>
+    <string name="dvr_delete_button">删除录制</string>
+    <string name="dvr_stop_button">停止录制</string>
+    <string name="dvr_stop_title">停止录制？</string>
+    <string name="dvr_stop_msg">%1$s 正在录制。停止后已录制的部分会保留。</string>
+    <string name="dvr_stop_done">已停止录制</string>
+    <string name="epg_recording_badge">录制中</string>
+    <string name="epg_scheduled_badge">已安排</string>
 </resources>

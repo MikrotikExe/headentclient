@@ -361,4 +361,16 @@
     <string name="buf_small">Kicsi (gyors LAN)</string>
     <string name="buf_medium">Közepes (ajánlott)</string>
     <string name="buf_large">Nagy (gyenge Wi-Fi / mobil)</string>
+    <string name="dvr_del_title">Törlöd a felvételt?</string>
+    <string name="dvr_del_msg">A(z) %1$s véglegesen törlődik a kiszolgálóról a fájllal együtt.</string>
+    <string name="dvr_del_done">A felvétel törölve</string>
+    <string name="dvr_del_failed">A felvételt nem sikerült törölni</string>
+    <string name="dvr_del_working">Törlés…</string>
+    <string name="dvr_delete_button">Felvétel törlése</string>
+    <string name="dvr_stop_button">Felvétel leállítása</string>
+    <string name="dvr_stop_title">Leállítod a felvételt?</string>
+    <string name="dvr_stop_msg">A(z) %1$s éppen rögzítés alatt áll. Leállításkor az eddig rögzített rész megmarad.</string>
+    <string name="dvr_stop_done">A felvétel leállítva</string>
+    <string name="epg_recording_badge">Felvétel folyamatban</string>
+    <string name="epg_scheduled_badge">Ütemezve</string>
 </resources>

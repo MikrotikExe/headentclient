@@ -361,4 +361,16 @@
     <string name="buf_small">Kecil (LAN cepat)</string>
     <string name="buf_medium">Sedang (disarankan)</string>
     <string name="buf_large">Besar (Wi-Fi lemah / seluler)</string>
+    <string name="dvr_del_title">Hapus rekaman?</string>
+    <string name="dvr_del_msg">%1$s akan dihapus permanen dari server, termasuk berkasnya.</string>
+    <string name="dvr_del_done">Rekaman dihapus</string>
+    <string name="dvr_del_failed">Rekaman tidak dapat dihapus</string>
+    <string name="dvr_del_working">Menghapus…</string>
+    <string name="dvr_delete_button">Hapus rekaman</string>
+    <string name="dvr_stop_button">Hentikan perekaman</string>
+    <string name="dvr_stop_title">Hentikan perekaman?</string>
+    <string name="dvr_stop_msg">%1$s sedang direkam. Jika dihentikan, bagian yang sudah terekam tetap tersimpan.</string>
+    <string name="dvr_stop_done">Perekaman dihentikan</string>
+    <string name="epg_recording_badge">Sedang merekam</string>
+    <string name="epg_scheduled_badge">Terjadwal</string>
 </resources>

@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.animation.animateContentSize
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -54,6 +55,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +68,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.dateKey
 import sk.tvhclient.shared.formatDateFull
@@ -84,6 +87,77 @@ private sealed class DvrNav {
     data class Category(val catKey: String) : DvrNav()
     data class Subgenre(val catKey: String, val subKey: String) : DvrNav()
     data class Series(val catKey: String, val subKey: String, val seriesTitle: String) : DvrNav()
+}
+
+/**
+ * M483: ziadost o zmazanie nahravky z archivu.
+ *
+ * Riadok aj kartu vykresluju funkcie volane z desiatok miest, takze pretlacit
+ * callback az dole by znamenalo zmenit kazde volanie. Ziadost preto ide cez
+ * tento maly zdielany stav a dialog vykresli obrazovka, ktora ma po ruke
+ * ViewModel na obnovenie zoznamu.
+ */
+internal object DvrDeleteRequest {
+    /** Zaznam cakajuci na potvrdenie; null = dialog sa nezobrazuje. */
+    var pending by mutableStateOf<DvrEntry?>(null)
+    /** Ma pouzivatel pravo nahravat/mazat? Zisti sa raz pri otvoreni archivu. */
+    var allowed by mutableStateOf(false)
+
+    fun ask(entry: DvrEntry) { if (allowed) pending = entry }
+}
+
+/**
+ * M483: potvrdenie a vykonanie zmazania (telefon aj TV archiv).
+ *
+ * Mazanie je nevratne — server zmaze aj subor — preto sa vzdy pyta. Po uspechu
+ * sa zoznam nacita znova, aby nahravka zmizla aj z mriezky v TV programe.
+ */
+@Composable
+internal fun DvrDeleteDialog(vm: DvrViewModel) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        val srv = Tvh.store.active()
+        DvrDeleteRequest.allowed = srv != null && DvrController.access(srv).canRecord
+    }
+    val entry = DvrDeleteRequest.pending ?: return
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = { if (!busy) DvrDeleteRequest.pending = null },
+        title = { Text(stringResource(R.string.dvr_del_title)) },
+        text = { Text(stringResource(R.string.dvr_del_msg, entry.title)) },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                enabled = !busy,
+                onClick = {
+                    val srv = Tvh.store.active() ?: return@TextButton
+                    busy = true
+                    scope.launch {
+                        val r = DvrController.delete(srv, entry)
+                        busy = false
+                        DvrDeleteRequest.pending = null
+                        android.widget.Toast.makeText(
+                            context,
+                            if (r.success) context.getString(R.string.dvr_del_done)
+                            else r.error ?: context.getString(R.string.dvr_del_failed),
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                        if (r.success) vm.refresh()
+                    }
+                }
+            ) {
+                Text(stringResource(
+                    if (busy) R.string.dvr_del_working else R.string.delete
+                ))
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(
+                enabled = !busy,
+                onClick = { DvrDeleteRequest.pending = null }
+            ) { Text(stringResource(R.string.cancel)) }
+        }
+    )
 }
 
 @Composable
@@ -172,6 +246,8 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
             }
         }
     }
+
+    DvrDeleteDialog(vm)   // M483: mazanie nahravky (dlhe podrzanie na polozke)
 
     Column(Modifier.fillMaxSize()) {
         // Vyhladavanie nahravok (cez vsetky, podla nazvu) — klavesnica az po OK
@@ -571,6 +647,7 @@ internal fun playDvr(context: Context, entry: DvrEntry) {
     context.startActivity(intent)
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun RecordingCard(entry: DvrEntry, context: Context, progressTick: Int) {
     val server = remember { Tvh.store.active() }
@@ -591,7 +668,11 @@ private fun RecordingCard(entry: DvrEntry, context: Context, progressTick: Int) 
                     .dpadFocusable(RoundedCornerShape(14.dp))
                 else Modifier.dpadFocusable()
             )
-            .clickable { playDvr(context, entry) }
+            // M483: dlhe podrzanie = ponuka zmazat nahravku
+            .combinedClickable(
+                onClick = { playDvr(context, entry) },
+                onLongClick = { DvrDeleteRequest.ask(entry) }
+            )
             .then(if (modernRec) Modifier.padding(6.dp) else Modifier),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -657,6 +738,7 @@ object DvrViewPref {
     }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int) {
     val server = remember { Tvh.store.active() }
@@ -678,7 +760,11 @@ private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int) {
                     .dpadFocusable(RoundedCornerShape(14.dp))
                 else Modifier.dpadFocusable()
             )
-            .clickable { playDvr(context, entry) }
+            // M483: dlhe podrzanie = ponuka zmazat nahravku
+            .combinedClickable(
+                onClick = { playDvr(context, entry) },
+                onLongClick = { DvrDeleteRequest.ask(entry) }
+            )
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1054,6 +1140,8 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
         }
     }
 
+    DvrDeleteDialog(vm)   // M483: mazanie nahravky (dlhe OK -> info -> Zmazat)
+
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Text(
             stringResource(R.string.dvr_archive).uppercase(),
@@ -1359,6 +1447,21 @@ private fun ArcInfoDialog(e: DvrEntry, onDismiss: () -> Unit) {
                 Column(Modifier.heightIn(max = 300.dp).verticalScroll(rememberScrollState())) {
                     Text(if (desc.isNotBlank()) desc else "\u2014", style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface)
+                }
+                // M483: mazanie z TV archivu — sipka dole na tlacidlo, OK potvrdi
+                if (DvrDeleteRequest.allowed) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        stringResource(R.string.dvr_delete_button),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .dpadFocusable(RoundedCornerShape(10.dp))
+                            .clickable { onDismiss(); DvrDeleteRequest.ask(e) }
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
                 }
                 Spacer(Modifier.height(14.dp))
                 Text(stringResource(R.string.close) + "  (OK)", color = MaterialTheme.colorScheme.primary,

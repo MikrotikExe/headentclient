@@ -131,4 +131,17 @@ object DvrController {
         if (r.success) invalidateScheduled(server.id)
         return r
     }
+
+    /**
+     * M483: zrusenie/zastavenie a mazanie podla celeho zaznamu.
+     *
+     * Volajuci nema ako vediet, ci server bezi cez HTSP (ciselne id) alebo HTTP
+     * (hex uuid) — `commandId` vrati to spravne. Pri dokoncenych HTSP nahravkach
+     * je `uuid` hex (kvoli /dvrfile), takze mazanie cez `uuid` by vzdy zlyhalo.
+     */
+    suspend fun cancel(server: TvhServer, entry: sk.tvhclient.shared.model.DvrEntry): DvrResult =
+        cancel(server, entry.commandId)
+
+    suspend fun delete(server: TvhServer, entry: sk.tvhclient.shared.model.DvrEntry): DvrResult =
+        delete(server, entry.commandId)
 }

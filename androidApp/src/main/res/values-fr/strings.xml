@@ -361,4 +361,16 @@
     <string name="buf_small">Petit (LAN rapide)</string>
     <string name="buf_medium">Moyen (recommandé)</string>
     <string name="buf_large">Grand (Wi-Fi faible / mobile)</string>
+    <string name="dvr_del_title">Supprimer l\'enregistrement ?</string>
+    <string name="dvr_del_msg">%1$s sera définitivement supprimé du serveur, fichier compris.</string>
+    <string name="dvr_del_done">Enregistrement supprimé</string>
+    <string name="dvr_del_failed">Impossible de supprimer l\'enregistrement</string>
+    <string name="dvr_del_working">Suppression…</string>
+    <string name="dvr_delete_button">Supprimer l\'enregistrement</string>
+    <string name="dvr_stop_button">Arrêter l\'enregistrement</string>
+    <string name="dvr_stop_title">Arrêter l\'enregistrement ?</string>
+    <string name="dvr_stop_msg">%1$s est en cours d\'enregistrement. L\'arrêt conserve la partie déjà enregistrée.</string>
+    <string name="dvr_stop_done">Enregistrement arrêté</string>
+    <string name="epg_recording_badge">Enregistrement en cours</string>
+    <string name="epg_scheduled_badge">Programmé</string>
 </resources>

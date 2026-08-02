@@ -361,4 +361,16 @@
     <string name="buf_small">صغير (شبكة محلية سريعة)</string>
     <string name="buf_medium">متوسط (موصى به)</string>
     <string name="buf_large">كبير (Wi‑Fi ضعيف / جوال)</string>
+    <string name="dvr_del_title">حذف التسجيل؟</string>
+    <string name="dvr_del_msg">سيُحذف %1$s نهائيًا من الخادم مع الملف.</string>
+    <string name="dvr_del_done">تم حذف التسجيل</string>
+    <string name="dvr_del_failed">تعذر حذف التسجيل</string>
+    <string name="dvr_del_working">جارٍ الحذف…</string>
+    <string name="dvr_delete_button">حذف التسجيل</string>
+    <string name="dvr_stop_button">إيقاف التسجيل</string>
+    <string name="dvr_stop_title">إيقاف التسجيل؟</string>
+    <string name="dvr_stop_msg">%1$s يُسجّل الآن. عند الإيقاف يُحفظ الجزء المسجّل حتى الآن.</string>
+    <string name="dvr_stop_done">تم إيقاف التسجيل</string>
+    <string name="epg_recording_badge">جارٍ التسجيل</string>
+    <string name="epg_scheduled_badge">مجدول</string>
 </resources>

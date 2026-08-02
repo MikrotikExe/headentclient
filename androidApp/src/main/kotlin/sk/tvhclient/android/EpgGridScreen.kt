@@ -863,7 +863,9 @@ fun EpgGridScreen(
                     onPlayFromStart = (d as? GridDetail.InProgress)?.let { ip ->
                         { playDvr(context, ip.rec) }
                     },
-                    playLabelRes = if (d is GridDetail.InProgress) R.string.play_live else R.string.play
+                    playLabelRes = if (d is GridDetail.InProgress) R.string.play_live else R.string.play,
+                    // M483: po zmazani/zastaveni nech blok z mriezky zmizne
+                    onDvrChanged = { dvrVm.refresh() }
                 )
             }
         }
@@ -884,7 +886,8 @@ private fun GridDetailContent(
     onBack: () -> Unit,
     onPlay: () -> Unit,
     onPlayFromStart: (() -> Unit)? = null,
-    playLabelRes: Int = R.string.play
+    playLabelRes: Int = R.string.play,
+    onDvrChanged: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val playFocus = remember { FocusRequester() }
@@ -895,19 +898,30 @@ private fun GridDetailContent(
     var canRecord by remember { mutableStateOf(false) }
     var recBusy by remember { mutableStateOf(false) }
     var recMsg by remember { mutableStateOf<String?>(null) }
+    // M483: po uspesnom zmazani/zastaveni uz tlacidlo neponukame (zaznam je prec)
+    var recDone by remember { mutableStateOf(false) }
+    // M483: potvrdenie mazania/zastavenia
+    var confirmDvr by remember { mutableStateOf(false) }
     // M475: ak uz nahravka existuje, drzime si ju — ponukneme zrusenie
     var existingRec by remember {
         mutableStateOf<sk.tvhclient.shared.model.DvrEntry?>(null)
     }
     var recReload by remember { mutableStateOf(0) }
-    LaunchedEffect(recEventId, recReload) {
+    // M483: prava treba aj pri DVR zazname (mazanie), nie len pri EPG relacii
+    LaunchedEffect(detail, recReload) {
         val ep = (detail as? GridDetail.Epg)
         val srv = sk.tvhclient.shared.Tvh.store.active()
-        canRecord = if (recEventId == null || srv == null) false
-        else DvrController.access(srv).canRecord
+        canRecord = if (srv == null) false else DvrController.access(srv).canRecord
         existingRec = if (ep == null || srv == null) null
         else DvrController.scheduledFor(srv, ep.row.channel.uuid, ep.ev.start, ep.ev.stop)
     }
+    // M483: zaznam, ktoreho sa tykaju akcie zmazat/zastavit
+    val dvrEntry: sk.tvhclient.shared.model.DvrEntry? = when (detail) {
+        is GridDetail.Dvr -> detail.rec
+        is GridDetail.InProgress -> detail.rec
+        is GridDetail.Epg -> null
+    }
+    val stopping = detail is GridDetail.InProgress
 
     // Spolocne polia z oboch typov
     val title: String
@@ -919,7 +933,10 @@ private fun GridDetailContent(
     val desc: String
     val ageRating: Int
     val episode: String
-    val recorded: Boolean
+    // M483: mame na serveri subor, ktory sa da prehrat? (predtym `recorded` —
+    // to isté pole sa pouzivalo aj na odznak, preto prebiehajuca nahravka
+    // hlasila „Nahraté". Odznak sa teraz riesi zvlast, podla stavu.)
+    val hasFile: Boolean
     when (detail) {
         is GridDetail.Epg -> {
             title = detail.ev.title.ifBlank { "—" }
@@ -930,7 +947,7 @@ private fun GridDetailContent(
             desc = detail.ev.bestDescription
             ageRating = detail.ev.ageRating
             episode = detail.ev.episodeOnscreen
-            recorded = false
+            hasFile = false
         }
         is GridDetail.Dvr -> {
             title = detail.rec.title
@@ -941,7 +958,7 @@ private fun GridDetailContent(
             desc = detail.rec.dispDescription
             ageRating = 0
             episode = ""
-            recorded = true
+            hasFile = true
         }
         is GridDetail.InProgress -> {
             title = detail.rec.title
@@ -952,7 +969,7 @@ private fun GridDetailContent(
             desc = detail.rec.dispDescription
             ageRating = 0
             episode = ""
-            recorded = true
+            hasFile = true
         }
     }
     val durationMin = ((stop - start) / 60).toInt()
@@ -1038,18 +1055,36 @@ private fun GridDetailContent(
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = if (detailModern) androidx.compose.ui.text.font.FontWeight.Bold else null
             )
-            if (detailModern && recorded) {
+            // M483: tri stavy namiesto jedneho — prebiehajuca nahravka je cervena
+            // (rovnako ako jej blok v mriezke), dokoncena a naplanovana su v akcente.
+            val badgeRes: Int? = when {
+                detail is GridDetail.InProgress -> R.string.epg_recording_badge
+                detail is GridDetail.Dvr -> R.string.epg_recorded_badge
+                existingRec != null -> R.string.epg_scheduled_badge
+                else -> null
+            }
+            if (detailModern && badgeRes != null) {
+                val live = detail is GridDetail.InProgress
+                val badgeColor = if (live) androidx.compose.ui.graphics.Color(0xFFE53935) else dcs.primary
+                val glyph = when {
+                    live -> "\u25CF "
+                    detail is GridDetail.Dvr -> "\u2713 "
+                    else -> "\u23F1 "
+                }
                 Spacer(Modifier.height(8.dp))
                 Box(
                     Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
-                        .background(dcs.primaryContainer.copy(alpha = 0.6f))
+                        .background(
+                            if (live) badgeColor.copy(alpha = 0.18f)
+                            else dcs.primaryContainer.copy(alpha = 0.6f)
+                        )
                         .padding(horizontal = 10.dp, vertical = 3.dp)
                 ) {
                     Text(
-                        "\u2713 " + stringResource(R.string.epg_recorded_badge),
+                        glyph + stringResource(badgeRes),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                        color = dcs.primary
+                        color = badgeColor
                     )
                 }
             }
@@ -1077,7 +1112,7 @@ private fun GridDetailContent(
             // Prehrat len ak je co prehrat: DVR nahravka, alebo EPG relacia
             // ktora prave bezi (naziva). Buduca/nenahravana sa prehrat neda.
             val nowSec = currentTimeSeconds()
-            val playable = recorded || (start <= nowSec && nowSec < stop)
+            val playable = hasFile || (start <= nowSec && nowSec < stop)
             if (playable) {
                 // Na TV/diaľkovom daj počiatočný fokus na Prehrať, nech OK funguje hneď
                 LaunchedEffect(detail) {
@@ -1137,7 +1172,7 @@ private fun GridDetailContent(
                         val srv = sk.tvhclient.shared.Tvh.store.active() ?: return@OutlinedButton
                         recBusy = true; recMsg = null
                         dvrScope.launch {
-                            val r = if (rec != null) DvrController.cancel(srv, rec.uuid)
+                            val r = if (rec != null) DvrController.cancel(srv, rec)
                             else DvrController.recordEvent(srv, recEventId)
                             recBusy = false
                             recMsg = when {
@@ -1160,11 +1195,33 @@ private fun GridDetailContent(
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
-                recMsg?.let {
-                    Spacer(Modifier.height(6.dp))
-                    Text(it, style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary)
+            }
+
+            // M483: DVR zaznam — dokoncenu nahravku sa da zmazat, prebiehajucu
+            // zastavit. Doteraz sa tlacidlo ponukalo len pri EPG relacii, takze
+            // nahravku otvorenu z mriezky sa nedalo nijako odstranit.
+            if (canRecord && dvrEntry != null && !recDone) {
+                Spacer(Modifier.height(10.dp))
+                androidx.compose.material3.OutlinedButton(
+                    onClick = { confirmDvr = true },
+                    enabled = !recBusy,
+                    modifier = Modifier.dpadFocusable()
+                ) {
+                    Text(
+                        when {
+                            recBusy -> stringResource(R.string.dvr_del_working)
+                            stopping -> stringResource(R.string.dvr_stop_button)
+                            else -> stringResource(R.string.dvr_delete_button)
+                        },
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
+            }
+
+            recMsg?.let {
+                Spacer(Modifier.height(6.dp))
+                Text(it, style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary)
             }
 
             if (desc.isNotBlank() && detailModern) {
@@ -1183,6 +1240,56 @@ private fun GridDetailContent(
                 Text(desc, style = MaterialTheme.typography.bodyMedium)
             }
         }
+    }
+
+    // M483: mazanie/zastavenie sa vzdy pyta — je to nevratne a na dialkovom
+    // ovladaci sa OK stlaci lahko omylom.
+    if (confirmDvr && dvrEntry != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmDvr = false },
+            title = {
+                Text(stringResource(
+                    if (stopping) R.string.dvr_stop_title else R.string.dvr_del_title
+                ))
+            },
+            text = {
+                Text(stringResource(
+                    if (stopping) R.string.dvr_stop_msg else R.string.dvr_del_msg,
+                    dvrEntry.title
+                ))
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    confirmDvr = false
+                    val srv = sk.tvhclient.shared.Tvh.store.active()
+                        ?: return@TextButton
+                    recBusy = true; recMsg = null
+                    dvrScope.launch {
+                        val r = if (stopping) DvrController.cancel(srv, dvrEntry)
+                        else DvrController.delete(srv, dvrEntry)
+                        recBusy = false
+                        recMsg = when {
+                            r.success && stopping -> context.getString(R.string.dvr_stop_done)
+                            r.success -> context.getString(R.string.dvr_del_done)
+                            else -> r.error ?: context.getString(R.string.dvr_del_failed)
+                        }
+                        if (r.success) {
+                            recDone = true
+                            onDvrChanged()   // mriezka nacita DVR zoznam znova
+                        }
+                    }
+                }) {
+                    Text(stringResource(
+                        if (stopping) R.string.dvr_stop_button else R.string.delete
+                    ))
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmDvr = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 }
 

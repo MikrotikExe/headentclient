@@ -252,7 +252,10 @@ object HtspData {
             duration = if (stop > start) stop - start else 0,
             fileSize = longOf(d, "dataSize") ?: 0,
             status = strOf(d, "state"),
-            contentType = longOf(d, "contentType")?.toInt() ?: 0
+            contentType = longOf(d, "contentType")?.toInt() ?: 0,
+            // M483: ciselne id pre cancelDvrEntry/deleteDvrEntry — uuid ostava
+            // hex (na /dvrfile), inak by sa dokoncena nahravka nedala zmazat.
+            dvrId = id.toString()
         )
     }
 
