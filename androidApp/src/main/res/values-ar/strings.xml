@@ -377,4 +377,7 @@
     <string name="field_dvr_config">ملف التسجيل</string>
     <string name="dvr_config_note">يحتفظ Tvheadend فقط بالملفات المسموحة للحساب، لا بالملف الواجب استخدامه. بدون اختيار، تُنشأ التسجيلات في الملف الافتراضي.</string>
     <string name="dvr_config_default">ملف الخادم الافتراضي</string>
+    <string name="load_error">فشل التحميل</string>
+    <string name="err_timeout">لم يستجب الخادم في الوقت المناسب</string>
+    <string name="sub_dvb">ترجمات DVB</string>
 </resources>

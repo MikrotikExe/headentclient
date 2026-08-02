@@ -377,4 +377,7 @@
     <string name="field_dvr_config">रिकॉर्डिंग प्रोफ़ाइल</string>
     <string name="dvr_config_note">Tvheadend केवल यह रखता है कि खाता कौन-सी प्रोफ़ाइलें इस्तेमाल कर सकता है, यह नहीं कि कौन-सी करनी चाहिए। चयन न होने पर रिकॉर्डिंग डिफ़ॉल्ट प्रोफ़ाइल में जाती है।</string>
     <string name="dvr_config_default">सर्वर की डिफ़ॉल्ट प्रोफ़ाइल</string>
+    <string name="load_error">लोड करने में त्रुटि</string>
+    <string name="err_timeout">सर्वर ने समय पर जवाब नहीं दिया</string>
+    <string name="sub_dvb">DVB उपशीर्षक</string>
 </resources>

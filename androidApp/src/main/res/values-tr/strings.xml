@@ -377,4 +377,7 @@
     <string name="field_dvr_config">Kayıt profili</string>
     <string name="dvr_config_note">Tvheadend yalnızca hesabın hangi profilleri kullanabileceğini tutar, hangisini kullanması gerektiğini değil. Seçim yapmazsan kayıtlar sunucunun varsayılan profiline gider.</string>
     <string name="dvr_config_default">Sunucunun varsayılan profili</string>
+    <string name="load_error">Yükleme başarısız</string>
+    <string name="err_timeout">Sunucu zamanında yanıt vermedi</string>
+    <string name="sub_dvb">DVB altyazıları</string>
 </resources>

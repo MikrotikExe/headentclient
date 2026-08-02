@@ -11,11 +11,14 @@ data class DvrResult(
     val success: Boolean,
     val error: String? = null,
     /** ID vytvoreneho zaznamu, ak ho server vratil. */
-    val id: String? = null
+    val id: String? = null,
+    /** M491: server neodpovedal v limite — text hlasky doplni UI (preklad). */
+    val timeout: Boolean = false
 ) {
     companion object {
         val OK = DvrResult(true)
-        fun fail(msg: String?) = DvrResult(false, msg)
+        fun fail(msg: String?, timeout: Boolean = false) =
+            DvrResult(false, msg, timeout = timeout)
     }
 }
 

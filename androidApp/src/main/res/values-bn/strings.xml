@@ -377,4 +377,7 @@
     <string name="field_dvr_config">রেকর্ডিং প্রোফাইল</string>
     <string name="dvr_config_note">Tvheadend কেবল রাখে অ্যাকাউন্ট কোন প্রোফাইলগুলো ব্যবহার করতে পারে, কোনটি করা উচিত তা নয়। না বাছলে রেকর্ডিং ডিফল্ট প্রোফাইলে যায়।</string>
     <string name="dvr_config_default">সার্ভারের ডিফল্ট প্রোফাইল</string>
+    <string name="load_error">লোড করতে সমস্যা</string>
+    <string name="err_timeout">সার্ভার সময়মতো সাড়া দেয়নি</string>
+    <string name="sub_dvb">DVB সাবটাইটেল</string>
 </resources>

@@ -377,4 +377,7 @@
     <string name="field_dvr_config">Profil snemanja</string>
     <string name="dvr_config_note">Tvheadend hrani le, katere profile račun sme uporabiti, ne pa katerega naj. Brez izbire gredo posnetki v privzeti profil strežnika.</string>
     <string name="dvr_config_default">Privzeti profil strežnika</string>
+    <string name="load_error">Napaka pri nalaganju</string>
+    <string name="err_timeout">Strežnik ni odgovoril pravočasno</string>
+    <string name="sub_dvb">Podnapisi DVB</string>
 </resources>

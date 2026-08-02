@@ -214,7 +214,9 @@ object DvrController {
             withTimeoutOrNull(15_000L) {
                 runCatching { block() }.getOrElse { DvrResult.fail(it.message) }
             }
-        } ?: DvrResult.fail("Server neodpovedal včas")
+        // M491: DvrController je objekt bez kontextu, takze hlasku nevie prelozit.
+        // Vrati timeout priznak a text doplni UI.
+        } ?: DvrResult.fail(null, timeout = true)
 
     suspend fun cancel(server: TvhServer, id: String): DvrResult {
         val r = ioResult { serviceFor(server).cancel(id) }

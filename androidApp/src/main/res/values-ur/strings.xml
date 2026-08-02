@@ -377,4 +377,7 @@
     <string name="field_dvr_config">ریکارڈنگ پروفائل</string>
     <string name="dvr_config_note">Tvheadend صرف یہ رکھتا ہے کہ اکاؤنٹ کون سی پروفائلز استعمال کر سکتا ہے، یہ نہیں کہ کون سی کرنی چاہیے۔ انتخاب نہ ہونے پر ریکارڈنگ ڈیفالٹ پروفائل میں جاتی ہے۔</string>
     <string name="dvr_config_default">سرور کی ڈیفالٹ پروفائل</string>
+    <string name="load_error">لوڈنگ ناکام</string>
+    <string name="err_timeout">سرور نے بروقت جواب نہیں دیا</string>
+    <string name="sub_dvb">DVB ذیلی عنوانات</string>
 </resources>

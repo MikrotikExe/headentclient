@@ -377,4 +377,7 @@
     <string name="field_dvr_config">Perfil de grabación</string>
     <string name="dvr_config_note">Tvheadend solo guarda qué perfiles puede usar la cuenta, no cuál debe usar. Si no eliges ninguno, las grabaciones van al perfil predeterminado del servidor.</string>
     <string name="dvr_config_default">Perfil predeterminado del servidor</string>
+    <string name="load_error">Error al cargar</string>
+    <string name="err_timeout">El servidor no respondió a tiempo</string>
+    <string name="sub_dvb">Subtítulos DVB</string>
 </resources>

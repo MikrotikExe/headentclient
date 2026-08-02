@@ -377,4 +377,7 @@
     <string name="field_dvr_config">录制配置</string>
     <string name="dvr_config_note">Tvheadend 只记录账号可以使用哪些配置，而不是应该使用哪个。不选择时，录制会使用默认配置。</string>
     <string name="dvr_config_default">服务器默认配置</string>
+    <string name="load_error">加载失败</string>
+    <string name="err_timeout">服务器未及时响应</string>
+    <string name="sub_dvb">DVB 字幕</string>
 </resources>

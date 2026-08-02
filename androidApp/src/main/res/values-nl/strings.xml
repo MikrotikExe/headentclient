@@ -377,4 +377,7 @@
     <string name="field_dvr_config">Opnameprofiel</string>
     <string name="dvr_config_note">Tvheadend onthoudt alleen welke profielen het account mag gebruiken, niet welk profiel het moet gebruiken. Kies je niets, dan gaan opnamen naar het standaardprofiel van de server.</string>
     <string name="dvr_config_default">Standaardprofiel van de server</string>
+    <string name="load_error">Laden mislukt</string>
+    <string name="err_timeout">Server reageerde niet op tijd</string>
+    <string name="sub_dvb">DVB-ondertitels</string>
 </resources>

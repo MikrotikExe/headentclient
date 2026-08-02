@@ -227,7 +227,7 @@ internal fun CircleButton(
 
 // Poradie ovladacich prvkov v paneli prehravaca pre D-pad navigaciu (Activity ich navriguje).
 // Musi sediet s vykreslenim v PlayerUi (rovnaka podmienka canZap).
-internal fun playerControlOrder(canZap: Boolean, seekable: Boolean = false, pip: Boolean = true, timeshift: Boolean = false, profile: Boolean = false): List<String> = buildList {
+internal fun playerControlOrder(canZap: Boolean, seekable: Boolean = false, pip: Boolean = true, timeshift: Boolean = false, profile: Boolean = false, record: Boolean = false): List<String> = buildList {
     // vlavo
     add("close")
     if (pip) add("pip")
@@ -242,6 +242,7 @@ internal fun playerControlOrder(canZap: Boolean, seekable: Boolean = false, pip:
     // vpravo — M383: prepinac stream profilu hned za titulkami (len HTTP live)
     add("audio"); add("subs")
     if (profile) add("profile")
+    if (record) add("rec")   // M490: nahrat / zrusit nahravku beziacej relacie
     add("sleep"); add("info")
 }
 

@@ -377,4 +377,7 @@
     <string name="field_dvr_config">Профил снимања</string>
     <string name="dvr_config_note">Tvheadend памти само које профиле налог сме да користи, а не који треба. Без избора снимци иду у подразумевани профил сервера.</string>
     <string name="dvr_config_default">Подразумевани профил сервера</string>
+    <string name="load_error">Грешка при учитавању</string>
+    <string name="err_timeout">Сервер није одговорио на време</string>
+    <string name="sub_dvb">DVB титлови</string>
 </resources>

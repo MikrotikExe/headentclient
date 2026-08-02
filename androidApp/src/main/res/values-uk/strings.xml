@@ -377,4 +377,7 @@
     <string name="field_dvr_config">Профіль запису</string>
     <string name="dvr_config_note">Tvheadend зберігає лише те, які профілі обліковому запису дозволені, а не який слід обрати. Без вибору записи потрапляють у профіль за замовчуванням.</string>
     <string name="dvr_config_default">Профіль сервера за замовчуванням</string>
+    <string name="load_error">Помилка завантаження</string>
+    <string name="err_timeout">Сервер не відповів вчасно</string>
+    <string name="sub_dvb">Субтитри DVB</string>
 </resources>

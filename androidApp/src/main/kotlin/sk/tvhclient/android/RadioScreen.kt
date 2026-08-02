@@ -180,7 +180,9 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
             when (val s = state) {
                 is RadioState.Loading -> LoadingStatus()
                 is RadioState.NoServer -> NoServerStatus()
-                is RadioState.Error -> ErrorStatus(s.message, onRetry = { vm.load() })
+                is RadioState.Error -> ErrorStatus(   // M491
+                    s.message.ifBlank { stringResource(R.string.load_error) },
+                    onRetry = { vm.load() })
                 is RadioState.Loaded -> {
                     val q = query.trim().lowercase()
                     val rows = if (q.isBlank()) s.rows

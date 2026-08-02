@@ -377,4 +377,7 @@
     <string name="field_dvr_config">Hồ sơ ghi hình</string>
     <string name="dvr_config_note">Tvheadend chỉ lưu tài khoản được dùng những hồ sơ nào, không lưu nên dùng hồ sơ nào. Nếu không chọn, bản ghi sẽ vào hồ sơ mặc định.</string>
     <string name="dvr_config_default">Hồ sơ mặc định của máy chủ</string>
+    <string name="load_error">Tải thất bại</string>
+    <string name="err_timeout">Máy chủ không phản hồi kịp thời</string>
+    <string name="sub_dvb">Phụ đề DVB</string>
 </resources>

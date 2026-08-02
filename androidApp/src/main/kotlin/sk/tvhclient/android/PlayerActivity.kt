@@ -56,6 +56,8 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Timer
@@ -199,6 +201,75 @@ class PlayerActivity : ComponentActivity() {
         add("subs"); add("more")
     }
 
+    // ===== M490: nahravanie prave beziacej relacie =====
+    // Logika zila od M473 vpisana priamo v telefonnom paneli „Viac", takze
+    // klasicky bar ani moderny TV overlay ju nemali odkial zavolat. Stav aj
+    // akcia su teraz na Activity a zdielaju ich vsetky vstupy.
+    val dvrCanRecordState = androidx.compose.runtime.mutableStateOf(false)
+    val dvrEventIdState = androidx.compose.runtime.mutableStateOf<Long?>(null)
+    val dvrExistingState =
+        androidx.compose.runtime.mutableStateOf<sk.tvhclient.shared.model.DvrEntry?>(null)
+
+    /** Ma sa ovladac nahravania vobec ukazat? */
+    fun dvrRecordVisible(): Boolean =
+        dvrCanRecordState.value && (dvrEventIdState.value != null || dvrExistingState.value != null)
+
+    /**
+     * Zisti prava a stav nahravky pre prave sledovanu relaciu.
+     *
+     * Vola sa pri starte prehravaca a po prepnuti kanala — nie pri otvoreni
+     * ovladania. Poradie ovladacov sa pocita z `playerControlOrder()`, takze
+     * keby polozka pribudla az kym je lista otvorena, posunuli by sa indexy
+     * pod rukou a dpad by aktivoval nieco ine.
+     */
+    fun refreshDvrState() {
+        lifecycleScope.launch {
+            val srv = Tvh.store.active()
+            dvrEventIdState.value = currentEventId()
+            dvrExistingState.value = currentEventRecording(srv)
+            dvrCanRecordState.value = srv != null && DvrController.access(srv).canRecord
+        }
+    }
+
+    /** Nahrat prave beziacu relaciu, alebo zrusit uz naplanovanu nahravku. */
+    fun toggleRecordCurrent() {
+        val srv = Tvh.store.active() ?: return
+        lifecycleScope.launch {
+            val existing = dvrExistingState.value ?: currentEventRecording(srv)
+            val eid = dvrEventIdState.value ?: currentEventId()
+            if (existing == null && eid == null) return@launch
+            val hint = currentLiveEvent()
+            val r = if (existing != null) DvrController.cancel(srv, existing)
+            else DvrController.recordEvent(
+                srv, eid!!,
+                hint?.first ?: "",
+                hint?.second?.start ?: 0L,
+                hint?.second?.stop ?: 0L,
+                hint?.second?.title ?: ""
+            )
+            // M484: pri duplikate dohladaj, kde uz nahravka je
+            val dup = if (r.success || existing != null) null
+            else DvrController.duplicateOf(srv, hint?.second?.title ?: "")
+            dvrExistingState.value = currentEventRecording(srv)
+            android.widget.Toast.makeText(
+                this@PlayerActivity,
+                when {
+                    r.success && existing != null -> getString(R.string.dvr_rec_cancelled)
+                    r.success -> getString(R.string.dvr_rec_scheduled)
+                    dup != null && dup.channelName.isNotBlank() -> getString(
+                        R.string.dvr_rec_duplicate, dup.channelName,
+                        sk.tvhclient.shared.formatDayLabel(dup.start) + " " +
+                            sk.tvhclient.shared.formatTimeHm(dup.start)
+                    )
+                    else -> r.error ?: getString(
+                        if (r.timeout) R.string.err_timeout else R.string.dvr_rec_failed
+                    )
+                },
+                android.widget.Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
     // "Viac" menu listy (M327): menej pouzivane polozky — rezerva pre dlhsie preklady
     private val modernMoreState = androidx.compose.runtime.mutableStateOf(false)
     private val modernMoreIdx = androidx.compose.runtime.mutableStateOf(0)
@@ -206,6 +277,7 @@ class PlayerActivity : ComponentActivity() {
     private fun modernMoreIds(): List<String> = buildList {
         add("list"); add("sleep"); add("info")
         if (profileSwitchAvailable()) add("profile")
+        if (dvrRecordVisible()) add("rec")   // M490
     }
     private fun modernMoreActivate() {
         val id = modernMoreIds().getOrNull(modernMoreIdx.value) ?: return
@@ -215,6 +287,7 @@ class PlayerActivity : ComponentActivity() {
             "sleep" -> { closeModernOverlay(); openSleepMenu() }
             "info" -> { closeModernOverlay(); toggleInfo() }
             "profile" -> { closeModernOverlay(); openProfileMenu() }
+            "rec" -> { closeModernOverlay(); toggleRecordCurrent() }   // M490
         }
     }
 
@@ -595,7 +668,7 @@ class PlayerActivity : ComponentActivity() {
     }
     private fun showControlsFocused() {
         hideZapBar()  // M446
-        val order = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable())
+        val order = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable(), dvrRecordVisible())
         controlNavState.value = order.indexOf("play").coerceAtLeast(0)
         pokeControls()
     }
@@ -611,7 +684,7 @@ class PlayerActivity : ComponentActivity() {
                 timeshiftEngagedState.value = true
                 // zapnutim timeshiftu pribudnu ovladace pretacania (tsrew pred play) a posunu sa
                 // indexy — re-ukotvi fokus na play/pause, nech "neskoci" na pretacanie
-                val ord = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), true, profileSwitchAvailable())
+                val ord = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), true, profileSwitchAvailable(), dvrRecordVisible())
                 controlNavState.value = ord.indexOf("play").coerceAtLeast(0)
                 tsPauseStartedAt = System.currentTimeMillis()
                 startTimeshiftTicker()
@@ -989,6 +1062,7 @@ class PlayerActivity : ComponentActivity() {
         val m = epgUpcomingState.value.toMutableMap()
         m[uuid] = list
         epgUpcomingState.value = m
+        refreshDvrState()   // M490: EPG je k dispozicii -> zisti stav nahravania
         LivePlaylist.epgUpcoming = m
         if (epgLastOkMs == 0L) {
             epgLastOkMs = System.currentTimeMillis()
@@ -1243,6 +1317,7 @@ class PlayerActivity : ComponentActivity() {
     private fun switchToIndex(i: Int, poke: Boolean = true) {
         if (i < 0 || i >= liveUuids.size) return
         if (i == liveIndex) { if (poke) pokeControls(); return }  // ten isty kanal -> nenacitavaj znova
+        refreshDvrState()   // M490: ina relacia -> iny stav nahravania
         val srv = liveServer ?: return
         val uuid = liveUuids[i]
         // rodicovsky zamok: zamknuty kanal mimo 5-min okna -> vypytaj PIN
@@ -1728,6 +1803,8 @@ class PlayerActivity : ComponentActivity() {
 
     // --- Info o relacii (detail) v prehravaci ---
     private val infoVisibleState = androidx.compose.runtime.mutableStateOf(false)
+    // M490: v info prekryti je vybrata polozka nahravania (sipka dole)
+    private val infoRecSelState = androidx.compose.runtime.mutableStateOf(false)
     // M280: potvrdenie ukoncenia ziveho prehravania (BACK) — ako exit dialog v menu
     private val exitConfirmState = androidx.compose.runtime.mutableStateOf(false)
     private val exitConfirmSelState = androidx.compose.runtime.mutableStateOf(0) // 0=Zrusit, 1=Ukoncit
@@ -1758,6 +1835,7 @@ class PlayerActivity : ComponentActivity() {
         infoTimeState.value = fmtRange(ch.nowStart, ch.nowStop)
         infoDescState.value = ""
         hideZapBar()  // M446
+        infoRecSelState.value = false   // M490
         infoVisibleState.value = true
         val srv = Tvh.store.active() ?: return
         val nowSec = System.currentTimeMillis() / 1000
@@ -1894,7 +1972,10 @@ class PlayerActivity : ComponentActivity() {
      *  nezavisle od toho ci jazyk uz "prehovoril"). id = HTSP stream index. */
     private fun htspSpuItemsList(): List<TrackItem> {
         val subs = htspFeeder?.subtitleStreams ?: return emptyList()
-        return subs.map { TrackItem(it.esIndex, langDisplay(it.language) ?: "DVB titulky") }
+        // M491: nazov stopy, ked sa jazyk neda urcit — bol natvrdo po slovensky
+        return subs.map {
+            TrackItem(it.esIndex, langDisplay(it.language) ?: getString(R.string.sub_dvb))
+        }
     }
 
     /** HTSP vyber titulku: zapamataj zelany jazyk a skus ho hned nastavit v libVLC; ak stopa
@@ -2037,6 +2118,7 @@ class PlayerActivity : ComponentActivity() {
             "pip" -> enterPipAndMinimize()
             "info" -> { toggleInfo(); pokeControls() }
             "sleep" -> openSleepMenu()
+            "rec" -> { toggleRecordCurrent(); pokeControls() }   // M490
         }
     }
 
@@ -2203,9 +2285,23 @@ class PlayerActivity : ComponentActivity() {
         // 0d) Info o relacii (detail) -> hociktore OK/BACK/vlavo zatvori
         if (infoVisibleState.value) {
             if (down) when (kc) {
+                // M490: dole vyberie nahravanie, hore sa vrati na „zavriet"
+                android.view.KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    if (dvrRecordVisible()) infoRecSelState.value = true
+                    return true
+                }
+                android.view.KeyEvent.KEYCODE_DPAD_UP -> {
+                    infoRecSelState.value = false
+                    return true
+                }
                 android.view.KeyEvent.KEYCODE_DPAD_CENTER,
                 android.view.KeyEvent.KEYCODE_ENTER,
-                android.view.KeyEvent.KEYCODE_NUMPAD_ENTER,
+                android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                    val rec = infoRecSelState.value
+                    closeChannelInfo()
+                    if (rec) toggleRecordCurrent()
+                    return true
+                }
                 android.view.KeyEvent.KEYCODE_BACK,
                 android.view.KeyEvent.KEYCODE_DPAD_LEFT -> { closeChannelInfo(); return true }
             }
@@ -2601,7 +2697,7 @@ class PlayerActivity : ComponentActivity() {
             // ovladanie zobrazene -> vlavo/vpravo naviguju panel, OK aktivuje
             // zvyrazneny prvok (hore/dole prepinaju kanal vyssie)
             if (controlsShown) {
-                val order = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable())
+                val order = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable(), dvrRecordVisible())
                 val n = order.size
                 if (seekablePlayback) {
                     val onSeek = order.getOrNull(controlNavState.value) == "seek"
@@ -3016,7 +3112,7 @@ class PlayerActivity : ComponentActivity() {
         val canZap = directUrl == null && liveUuids.size > 1
         seekablePlayback = directUrl != null
         // predvolene zvyraznenie ovladacieho panela = play (nie krizik)
-        controlNavState.value = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable()).indexOf("play").coerceAtLeast(0)
+        controlNavState.value = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable(), dvrRecordVisible()).indexOf("play").coerceAtLeast(0)
         currentStreamUrl = streamUrl
 
         setContent {
@@ -3621,6 +3717,43 @@ class PlayerActivity : ComponentActivity() {
                                 modifier = Modifier
                                     .heightIn(max = 260.dp)
                                     .verticalScroll(androidx.compose.foundation.rememberScrollState()))
+                        }
+                        // M490: nahravanie priamo z info prekrytia. Dialog pohlcuje
+                        // vsetky klavesy a OK ho zatvara, takze focusovatelne
+                        // tlacidlo tu nefunguje — polozka sa vybera sipkou dole.
+                        if (dvrRecordVisible()) {
+                            val sel = infoRecSelState.value
+                            Spacer(Modifier.height(16.dp))
+                            Row(
+                                Modifier.fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (sel) Color(0x553B82F6) else Color.Transparent)
+                                    .border(
+                                        1.dp,
+                                        if (sel) Color(0xFF3B82F6) else Color(0x33FFFFFF),
+                                        RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable { closeChannelInfo(); toggleRecordCurrent() }
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                androidx.compose.material3.Icon(
+                                    if (dvrExistingState.value != null) Icons.Default.Stop
+                                    else Icons.Default.FiberManualRecord,
+                                    contentDescription = null,
+                                    tint = if (sel) Color(0xFF6699FF) else Color(0xFFB9C2D0),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(12.dp))
+                                Text(
+                                    androidx.compose.ui.res.stringResource(
+                                        if (dvrExistingState.value != null) R.string.dvr_rec_cancel_button
+                                        else R.string.dvr_rec_button
+                                    ),
+                                    color = if (sel) Color.White else Color(0xFFD7DEE8),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
                         }
                     }
                 }
@@ -4416,18 +4549,11 @@ private fun PlayerUi(
     // M473: nahravanie prave beziacej relacie z panela "Viac".
     // Composable je mimo triedy aktivity, takze sa k nej dostaneme cez kontext.
     val dvrActivity = LocalContext.current as? PlayerActivity
-    var dvrCanRecord by remember { mutableStateOf(false) }
-    var dvrEventId by remember { mutableStateOf<Long?>(null) }
-    var dvrExisting by remember { mutableStateOf<sk.tvhclient.shared.model.DvrEntry?>(null) }
-    val dvrScope = rememberCoroutineScope()
+    // M490: stav drzi Activity (dvrCanRecordState / dvrEventIdState /
+    // dvrExistingState), aby ho videl aj klasicky bar a TV overlay.
+    // Pri otvoreni panela ho este raz osviezime — relacia sa mohla prepnut.
     LaunchedEffect(showMoreSheet) {
-        if (showMoreSheet) {
-            dvrEventId = dvrActivity?.currentEventId()
-            val srv = sk.tvhclient.shared.Tvh.store.active()
-            // M475: ak uz nahravka existuje, ponukneme jej zrusenie
-            dvrExisting = dvrActivity?.currentEventRecording(srv)
-            dvrCanRecord = srv != null && DvrController.access(srv).canRecord
-        }
+        if (showMoreSheet) dvrActivity?.refreshDvrState()
     }
     // odpocet casovaca uspatia (aktualizuje sa kym je casovac aktivny)
     var sleepNow by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -5088,7 +5214,8 @@ private fun PlayerUi(
             modifier = Modifier.fillMaxSize()
         ) {
             Box(Modifier.fillMaxSize().systemBarsPadding()) {
-                val order = playerControlOrder(onPrevChannel != null, seekable, pipButton, timeshiftEngaged, profileSwitch)
+                val order = playerControlOrder(onPrevChannel != null, seekable, pipButton, timeshiftEngaged, profileSwitch,
+                    dvrActivity?.dvrRecordVisible() == true)
                 // fokusove zvyraznenie len na TV (D-pad); na telefone (dotyk) ziadne "vybrate" tlacidlo
                 val isTvDevice = remember {
                     val um = ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
@@ -5365,6 +5492,13 @@ private fun PlayerUi(
                             "pip" -> CircleButton(
                                 icon = Icons.Default.PictureInPictureAlt, selected = selCtrl == "pip", scale = bk, onClick = onEnterPip
                             )
+                            // M490: nahrat / zrusit nahravku prave beziacej relacie
+                            "rec" -> CircleButton(
+                                icon = if (dvrActivity?.dvrExistingState?.value != null)
+                                    Icons.Default.Stop else Icons.Default.FiberManualRecord,
+                                selected = selCtrl == "rec", scale = bk,
+                                onClick = { dvrActivity?.toggleRecordCurrent() }
+                            )
                             "info" -> CircleButton(
                                 icon = Icons.Default.Info, selected = selCtrl == "info", scale = bk,
                                 onClick = { showInfo = !showInfo }
@@ -5485,6 +5619,7 @@ private fun PlayerUi(
                             barCtrl("audio")
                             barCtrl("subs")
                             if (has("profile")) barCtrl("profile")
+                            if (has("rec")) barCtrl("rec")     // M490
                             barCtrl("sleep")
                             barCtrl("info")
                             if (lockVisible) barCtrl("lock")
@@ -5507,46 +5642,12 @@ private fun PlayerUi(
                 onProfile = { showMoreSheet = false; menu = "profile" },
                 onPip = { showMoreSheet = false; onEnterPip() },
                 onSubs = { showMoreSheet = false; menu = "spu" },
-                recordVisible = dvrCanRecord && (dvrEventId != null || dvrExisting != null),
-                recordIsCancel = dvrExisting != null,
+                // M490: rovnaky stav aj akcia ako klasicky bar a TV overlay
+                recordVisible = dvrActivity?.dvrRecordVisible() == true,
+                recordIsCancel = dvrActivity?.dvrExistingState?.value != null,
                 onRecord = {
                     showMoreSheet = false
-                    val act = dvrActivity
-                    val eid = dvrEventId
-                    val existing = dvrExisting
-                    val srv = sk.tvhclient.shared.Tvh.store.active()
-                    if (act != null && srv != null && (eid != null || existing != null)) {
-                        dvrScope.launch {
-                            val hint = act.currentLiveEvent()          // M484
-                            val r = if (existing != null) DvrController.cancel(srv, existing)
-                            else DvrController.recordEvent(
-                                srv, eid!!,
-                                hint?.first ?: "",
-                                hint?.second?.start ?: 0L,
-                                hint?.second?.stop ?: 0L,
-                                hint?.second?.title ?: ""
-                            )
-                            // M484: pri duplikate dohladaj, kde uz nahravka je
-                            val dup = if (r.success || existing != null) null
-                            else DvrController.duplicateOf(srv, hint?.second?.title ?: "")
-                            dvrExisting = act.currentEventRecording(srv)
-                            android.widget.Toast.makeText(
-                                act,
-                                when {
-                                    r.success && existing != null -> act.getString(R.string.dvr_rec_cancelled)
-                                    r.success -> act.getString(R.string.dvr_rec_scheduled)
-                                    dup != null && dup.channelName.isNotBlank() ->
-                                        act.getString(
-                                            R.string.dvr_rec_duplicate, dup.channelName,
-                                            sk.tvhclient.shared.formatDayLabel(dup.start) + " " +
-                                                sk.tvhclient.shared.formatTimeHm(dup.start)
-                                        )
-                                    else -> r.error ?: act.getString(R.string.dvr_rec_failed)
-                                },
-                                android.widget.Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    }
+                    dvrActivity?.toggleRecordCurrent()
                 },
                 onSleep = { showMoreSheet = false; onOpenSleep() },
                 onLockToggle = {
@@ -5679,6 +5780,25 @@ private fun PlayerUi(
                             Spacer(Modifier.height(14.dp))
                             Text(progDesc, color = playerFgDim(), fontSize = 16.sp, lineHeight = 22.sp)
                         }
+                        // M490: nahravanie aj z info okna (telefon — dotyk, bez fokusu)
+                        if (dvrActivity?.dvrRecordVisible() == true) {
+                            Spacer(Modifier.height(16.dp))
+                            androidx.compose.material3.OutlinedButton(
+                                onClick = { showInfo = false; dvrActivity?.toggleRecordCurrent() },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                androidx.compose.material3.Icon(
+                                    if (dvrActivity?.dvrExistingState?.value != null) Icons.Default.Stop
+                                    else Icons.Default.FiberManualRecord,
+                                    contentDescription = null
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(stringResource(
+                                    if (dvrActivity?.dvrExistingState?.value != null)
+                                        R.string.dvr_rec_cancel_button else R.string.dvr_rec_button
+                                ))
+                            }
+                        }
                         if (nextTitle.isNotBlank()) {
                             Spacer(Modifier.height(16.dp))
                             val nr = when {
@@ -5688,7 +5808,8 @@ private fun PlayerUi(
                                 else -> ""
                             }
                             Text(
-                                "Nasleduje: " + nr + nextTitle,
+                                // M491: bolo natvrdo po slovensky
+                                stringResource(R.string.mh_next) + " " + nr + nextTitle,
                                 color = playerFgFaint(),
                                 fontSize = 14.sp
                             )
@@ -6291,6 +6412,10 @@ private fun PlayerUi(
                     "list" -> stringResource(R.string.tab_channels)
                     "sleep" -> stringResource(R.string.sleep_timer)
                     "profile" -> stringResource(R.string.field_profile)
+                    "rec" -> stringResource(                       // M490
+                        if (dvrActivity?.dvrExistingState?.value != null)
+                            R.string.dvr_rec_cancel_button else R.string.dvr_rec_button
+                    )
                     else -> stringResource(R.string.pm_info)
                 }
             }

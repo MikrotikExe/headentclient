@@ -58,7 +58,7 @@ class RadioViewModel : ViewModel() {
                 _state.value = RadioState.Loaded(rows)
                 loadedOnce = true
             } catch (e: Exception) {
-                _state.value = RadioState.Error(e.message ?: "Chyba načítania")
+                _state.value = RadioState.Error(e.message ?: "")   // M491: prazdne = UI doplni preklad
             }
         }
     }

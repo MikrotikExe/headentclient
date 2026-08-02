@@ -179,7 +179,9 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
                                         R.string.dvr_rec_duplicate, dup.channelName,
                                         formatDayLabel(dup.start) + " " + formatTimeHm(dup.start)
                                     )
-                                else -> r.error ?: ctx.getString(R.string.dvr_rec_failed)
+                                else -> r.error ?: ctx.getString(
+                                    if (r.timeout) R.string.err_timeout else R.string.dvr_rec_failed
+                                )
                             }
                             if (r.success) recReload++
                         }

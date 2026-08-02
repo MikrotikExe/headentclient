@@ -377,4 +377,7 @@
     <string name="field_dvr_config">Profil perekaman</string>
     <string name="dvr_config_note">Tvheadend hanya menyimpan profil mana yang boleh dipakai akun, bukan yang seharusnya dipakai. Tanpa pilihan, rekaman masuk ke profil bawaan server.</string>
     <string name="dvr_config_default">Profil bawaan server</string>
+    <string name="load_error">Gagal memuat</string>
+    <string name="err_timeout">Server tidak merespons tepat waktu</string>
+    <string name="sub_dvb">Subtitel DVB</string>
 </resources>

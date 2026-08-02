@@ -377,4 +377,7 @@
     <string name="field_dvr_config">โปรไฟล์การบันทึก</string>
     <string name="dvr_config_note">Tvheadend เก็บเฉพาะว่าบัญชีใช้โปรไฟล์ใดได้บ้าง ไม่ได้เก็บว่าควรใช้อันไหน หากไม่เลือก การบันทึกจะไปที่โปรไฟล์เริ่มต้น</string>
     <string name="dvr_config_default">โปรไฟล์เริ่มต้นของเซิร์ฟเวอร์</string>
+    <string name="load_error">โหลดไม่สำเร็จ</string>
+    <string name="err_timeout">เซิร์ฟเวอร์ไม่ตอบกลับทันเวลา</string>
+    <string name="sub_dvb">คำบรรยาย DVB</string>
 </resources>

@@ -377,4 +377,7 @@
     <string name="field_dvr_config">録画プロファイル</string>
     <string name="dvr_config_note">Tvheadend はアカウントが使えるプロファイルだけを保持し、どれを使うべきかは保持しません。選ばないと録画は既定プロファイルに作成されます。</string>
     <string name="dvr_config_default">サーバーの既定プロファイル</string>
+    <string name="load_error">読み込みに失敗しました</string>
+    <string name="err_timeout">サーバーが時間内に応答しませんでした</string>
+    <string name="sub_dvb">DVB字幕</string>
 </resources>

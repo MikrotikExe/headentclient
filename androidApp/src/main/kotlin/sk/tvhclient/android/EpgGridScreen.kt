@@ -1205,7 +1205,9 @@ private fun GridDetailContent(
                                         R.string.dvr_rec_duplicate, dup.channelName,
                                         formatDayLabel(dup.start) + " " + formatTimeHm(dup.start)
                                     )
-                                else -> r.error ?: context.getString(R.string.dvr_rec_failed)
+                                else -> r.error ?: context.getString(
+                                    if (r.timeout) R.string.err_timeout else R.string.dvr_rec_failed
+                                )
                             }
                             if (r.success) {
                                 recReload++          // znovu zisti stav
@@ -1321,7 +1323,9 @@ private fun GridDetailContent(
                         recMsg = when {
                             r.success && stopping -> context.getString(R.string.dvr_stop_done)
                             r.success -> context.getString(R.string.dvr_del_done)
-                            else -> r.error ?: context.getString(R.string.dvr_del_failed)
+                            else -> r.error ?: context.getString(
+                                if (r.timeout) R.string.err_timeout else R.string.dvr_del_failed
+                            )
                         }
                         if (r.success) {
                             recDone = true

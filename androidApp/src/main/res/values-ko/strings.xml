@@ -377,4 +377,7 @@
     <string name="field_dvr_config">녹화 프로필</string>
     <string name="dvr_config_note">Tvheadend는 계정이 사용할 수 있는 프로필만 저장하고, 어느 것을 써야 하는지는 저장하지 않습니다. 선택하지 않으면 녹화는 기본 프로필로 들어갑니다.</string>
     <string name="dvr_config_default">서버 기본 프로필</string>
+    <string name="load_error">불러오기 실패</string>
+    <string name="err_timeout">서버가 제시간에 응답하지 않았습니다</string>
+    <string name="sub_dvb">DVB 자막</string>
 </resources>

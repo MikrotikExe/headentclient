@@ -377,4 +377,7 @@
     <string name="field_dvr_config">Προφίλ εγγραφής</string>
     <string name="dvr_config_note">Το Tvheadend κρατά μόνο ποια προφίλ μπορεί να χρησιμοποιήσει ο λογαριασμός, όχι ποιο πρέπει. Χωρίς επιλογή, οι εγγραφές πανε στο προεπιλεγμένο προφίλ.</string>
     <string name="dvr_config_default">Προεπιλεγμένο προφίλ διακομιστή</string>
+    <string name="load_error">Αποτυχία φόρτωσης</string>
+    <string name="err_timeout">Ο διακομιστής δεν απάντησε έγκαιρα</string>
+    <string name="sub_dvb">Υπότιτλοι DVB</string>
 </resources>

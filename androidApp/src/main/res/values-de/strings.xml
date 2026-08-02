@@ -377,4 +377,7 @@
     <string name="field_dvr_config">Aufnahmeprofil</string>
     <string name="dvr_config_note">Tvheadend speichert nur, welche Profile das Konto verwenden darf, nicht welches es verwenden soll. Ohne Auswahl landen Aufnahmen im Standardprofil des Servers.</string>
     <string name="dvr_config_default">Standardprofil des Servers</string>
+    <string name="load_error">Laden fehlgeschlagen</string>
+    <string name="err_timeout">Server hat nicht rechtzeitig geantwortet</string>
+    <string name="sub_dvb">DVB-Untertitel</string>
 </resources>

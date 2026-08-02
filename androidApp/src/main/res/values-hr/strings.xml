@@ -377,4 +377,7 @@
     <string name="field_dvr_config">Profil snimanja</string>
     <string name="dvr_config_note">Tvheadend pamti samo koje profile račun smije koristiti, ne i koji bi trebao. Bez odabira snimke idu u zadani profil poslužitelja.</string>
     <string name="dvr_config_default">Zadani profil poslužitelja</string>
+    <string name="load_error">Greška pri učitavanju</string>
+    <string name="err_timeout">Poslužitelj nije odgovorio na vrijeme</string>
+    <string name="sub_dvb">DVB podnaslovi</string>
 </resources>

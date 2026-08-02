@@ -98,7 +98,10 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
                 }
             } catch (e: Exception) {
                 CrashLogger.report(getApplication(), "ChannelsViewModel.load", e)
-                _state.value = ChannelsState.Error(e.message ?: "Chyba načítania")
+                _state.value = ChannelsState.Error(
+                    e.message ?: getApplication<android.app.Application>()
+                        .getString(R.string.load_error)   // M491
+                )
             }
         }
     }

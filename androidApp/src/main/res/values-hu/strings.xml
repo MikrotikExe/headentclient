@@ -377,4 +377,7 @@
     <string name="field_dvr_config">Felvételi profil</string>
     <string name="dvr_config_note">A Tvheadend csak azt tartja nyilván, mely profilokat használhatja a fiók, azt nem, melyiket kellene. Választás nélkül a felvételek az alapértelmezett profilba kerülnek.</string>
     <string name="dvr_config_default">A kiszolgáló alapértelmezett profilja</string>
+    <string name="load_error">A betöltés nem sikerült</string>
+    <string name="err_timeout">A kiszolgáló nem válaszolt időben</string>
+    <string name="sub_dvb">DVB-feliratok</string>
 </resources>

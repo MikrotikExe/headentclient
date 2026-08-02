@@ -377,4 +377,7 @@
     <string name="field_dvr_config">Profil nahrávání</string>
     <string name="dvr_config_note">Tvheadend si drží jen to, které profily účet smí použít, ne který má použít. Když žádný nevybereš, nahrává se do výchozího profilu serveru.</string>
     <string name="dvr_config_default">Výchozí profil serveru</string>
+    <string name="load_error">Chyba načítání</string>
+    <string name="err_timeout">Server neodpověděl včas</string>
+    <string name="sub_dvb">DVB titulky</string>
 </resources>

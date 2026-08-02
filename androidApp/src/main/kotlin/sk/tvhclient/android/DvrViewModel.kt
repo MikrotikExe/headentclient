@@ -90,7 +90,7 @@ class DvrViewModel : ViewModel() {
                 loadedOnce = true
             } catch (e: Exception) {
                 if (_state.value !is DvrState.Loaded) {
-                    _state.value = DvrState.Error(e.message ?: "Chyba načítania")
+                    _state.value = DvrState.Error(e.message ?: "")   // M491: prazdne = UI doplni preklad
                 }
             }
         }
