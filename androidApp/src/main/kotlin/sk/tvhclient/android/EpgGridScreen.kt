@@ -42,6 +42,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FiberManualRecord
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -1189,8 +1193,7 @@ private fun GridDetailContent(
                     modifier = Modifier.fillMaxWidth().dpadFocusable()
                 ) {
                     androidx.compose.material3.Icon(
-                        if (rec != null) androidx.compose.material.icons.Icons.Default.Close
-                        else androidx.compose.material.icons.Icons.Default.FiberManualRecord,
+                        if (rec != null) Icons.Default.Close else Icons.Default.FiberManualRecord,
                         contentDescription = null
                     )
                     Spacer(Modifier.width(8.dp))
@@ -1216,8 +1219,7 @@ private fun GridDetailContent(
                     modifier = Modifier.fillMaxWidth().dpadFocusable()
                 ) {
                     androidx.compose.material3.Icon(
-                        if (stopping) androidx.compose.material.icons.Icons.Default.Stop
-                        else androidx.compose.material.icons.Icons.Default.Delete,
+                        if (stopping) Icons.Default.Stop else Icons.Default.Delete,
                         contentDescription = null
                     )
                     Spacer(Modifier.width(8.dp))
