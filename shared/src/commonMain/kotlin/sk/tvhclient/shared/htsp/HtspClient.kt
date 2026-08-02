@@ -168,7 +168,7 @@ class HtspClient(
         val s = send("hello", mapOf(
             "htspversion" to 35L,
             "clientname" to sk.tvhclient.shared.ClientIdent.userAgent,
-            "clientversion" to "1.0.0"
+            "clientversion" to sk.tvhclient.shared.ClientIdent.version   // M470
         ))
         val r = recvReply(s)
         serverVersion = r["htspversion"] as? Long
