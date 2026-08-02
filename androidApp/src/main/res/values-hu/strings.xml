@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">Ütemezve</string>
     <string name="dvr_rec_duplicate">Ehhez a műsorhoz már van ütemezett felvétel: %1$s, %2$s</string>
     <string name="field_dvr_config">Felvételi profil</string>
-    <string name="dvr_config_note">Melyik DVR-profillal jönnek létre az új felvételek. Hagyd a kiszolgáló beállítását, hacsak a fiók nincs egy adott profilhoz kötve.</string>
+    <string name="dvr_config_note">A Tvheadend csak azt tartja nyilván, mely profilokat használhatja a fiók, azt nem, melyiket kellene. Választás nélkül a felvételek az alapértelmezett profilba kerülnek.</string>
+    <string name="dvr_config_default">A kiszolgáló alapértelmezett profilja</string>
 </resources>

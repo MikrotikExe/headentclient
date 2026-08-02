@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">Terjadwal</string>
     <string name="dvr_rec_duplicate">Program ini sudah dijadwalkan untuk direkam: %1$s, %2$s</string>
     <string name="field_dvr_config">Profil perekaman</string>
-    <string name="dvr_config_note">Rekaman baru dibuat dengan profil DVR yang mana. Biarkan pengaturan server kecuali akun dibatasi ke profil tertentu.</string>
+    <string name="dvr_config_note">Tvheadend hanya menyimpan profil mana yang boleh dipakai akun, bukan yang seharusnya dipakai. Tanpa pilihan, rekaman masuk ke profil bawaan server.</string>
+    <string name="dvr_config_default">Profil bawaan server</string>
 </resources>

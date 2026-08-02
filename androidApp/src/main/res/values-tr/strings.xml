@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">Planlandı</string>
     <string name="dvr_rec_duplicate">Bu program için zaten bir kayıt planlandı: %1$s, %2$s</string>
     <string name="field_dvr_config">Kayıt profili</string>
-    <string name="dvr_config_note">Yeni kayıtların hangi DVR profiliyle oluşturulacağı. Hesabın belirli bir profile bağlı değilse sunucu ayarında bırak.</string>
+    <string name="dvr_config_note">Tvheadend yalnızca hesabın hangi profilleri kullanabileceğini tutar, hangisini kullanması gerektiğini değil. Seçim yapmazsan kayıtlar sunucunun varsayılan profiline gider.</string>
+    <string name="dvr_config_default">Sunucunun varsayılan profili</string>
 </resources>

@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">निर्धारित</string>
     <string name="dvr_rec_duplicate">इस कार्यक्रम की रिकॉर्डिंग पहले से निर्धारित है: %1$s, %2$s</string>
     <string name="field_dvr_config">रिकॉर्डिंग प्रोफ़ाइल</string>
-    <string name="dvr_config_note">नई रिकॉर्डिंग किस DVR प्रोफ़ाइल में बनें। यदि खाता किसी खास प्रोफ़ाइल से बंधा नहीं है, तो सर्वर की सेटिंग रहने दें।</string>
+    <string name="dvr_config_note">Tvheadend केवल यह रखता है कि खाता कौन-सी प्रोफ़ाइलें इस्तेमाल कर सकता है, यह नहीं कि कौन-सी करनी चाहिए। चयन न होने पर रिकॉर्डिंग डिफ़ॉल्ट प्रोफ़ाइल में जाती है।</string>
+    <string name="dvr_config_default">सर्वर की डिफ़ॉल्ट प्रोफ़ाइल</string>
 </resources>

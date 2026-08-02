@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">予約済み</string>
     <string name="dvr_rec_duplicate">この番組はすでに録画予約済みです: %1$s、%2$s</string>
     <string name="field_dvr_config">録画プロファイル</string>
-    <string name="dvr_config_note">新しい録画をどのDVRプロファイルで作成するか。アカウントが特定のプロファイルに限定されていなければサーバーの設定のままで構いません。</string>
+    <string name="dvr_config_note">Tvheadend はアカウントが使えるプロファイルだけを保持し、どれを使うべきかは保持しません。選ばないと録画は既定プロファイルに作成されます。</string>
+    <string name="dvr_config_default">サーバーの既定プロファイル</string>
 </resources>

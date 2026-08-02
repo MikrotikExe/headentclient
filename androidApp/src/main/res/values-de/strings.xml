@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">Geplant</string>
     <string name="dvr_rec_duplicate">Diese Sendung wird bereits aufgenommen: %1$s, %2$s</string>
     <string name="field_dvr_config">Aufnahmeprofil</string>
-    <string name="dvr_config_note">Mit welchem DVR-Profil neue Aufnahmen angelegt werden. Belasse die Servervorgabe, sofern dein Konto nicht auf ein bestimmtes Profil beschränkt ist.</string>
+    <string name="dvr_config_note">Tvheadend speichert nur, welche Profile das Konto verwenden darf, nicht welches es verwenden soll. Ohne Auswahl landen Aufnahmen im Standardprofil des Servers.</string>
+    <string name="dvr_config_default">Standardprofil des Servers</string>
 </resources>

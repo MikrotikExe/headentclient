@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">Gepland</string>
     <string name="dvr_rec_duplicate">Dit programma staat al ingepland om op te nemen: %1$s, %2$s</string>
     <string name="field_dvr_config">Opnameprofiel</string>
-    <string name="dvr_config_note">Met welk DVR-profiel nieuwe opnamen worden aangemaakt. Laat de serverinstelling staan tenzij je account aan een profiel gebonden is.</string>
+    <string name="dvr_config_note">Tvheadend onthoudt alleen welke profielen het account mag gebruiken, niet welk profiel het moet gebruiken. Kies je niets, dan gaan opnamen naar het standaardprofiel van de server.</string>
+    <string name="dvr_config_default">Standaardprofiel van de server</string>
 </resources>

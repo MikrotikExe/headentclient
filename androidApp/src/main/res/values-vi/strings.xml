@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">Đã lên lịch</string>
     <string name="dvr_rec_duplicate">Chương trình này đã được lên lịch ghi: %1$s, %2$s</string>
     <string name="field_dvr_config">Hồ sơ ghi hình</string>
-    <string name="dvr_config_note">Bản ghi mới được tạo bằng hồ sơ DVR nào. Giữ thiết lập của máy chủ trừ khi tài khoản bị giới hạn ở một hồ sơ cụ thể.</string>
+    <string name="dvr_config_note">Tvheadend chỉ lưu tài khoản được dùng những hồ sơ nào, không lưu nên dùng hồ sơ nào. Nếu không chọn, bản ghi sẽ vào hồ sơ mặc định.</string>
+    <string name="dvr_config_default">Hồ sơ mặc định của máy chủ</string>
 </resources>

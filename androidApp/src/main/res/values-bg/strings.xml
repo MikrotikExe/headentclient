@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">Планирано</string>
     <string name="dvr_rec_duplicate">За това предаване вече има планиран запис: %1$s, %2$s</string>
     <string name="field_dvr_config">Профил за запис</string>
-    <string name="dvr_config_note">С кой DVR профил се създават новите записи. Остави настройката на сървъра, освен ако профилът е зададен за акаунта.</string>
+    <string name="dvr_config_note">Tvheadend пази само кои профили може да ползва акаунтът, не и кой да ползва. Без избор записите отиват в подразбиращия се профил.</string>
+    <string name="dvr_config_default">Подразбиращ се профил на сървъра</string>
 </resources>

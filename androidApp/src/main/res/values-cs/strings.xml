@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">Naplánováno</string>
     <string name="dvr_rec_duplicate">Tento pořad už má naplánovanou nahrávku: %1$s, %2$s</string>
     <string name="field_dvr_config">Profil nahrávání</string>
-    <string name="dvr_config_note">Do kterého DVR profilu se zakládají nové nahrávky. Pokud účet nemá vyhrazený profil, nech nastavení serveru.</string>
+    <string name="dvr_config_note">Tvheadend si drží jen to, které profily účet smí použít, ne který má použít. Když žádný nevybereš, nahrává se do výchozího profilu serveru.</string>
+    <string name="dvr_config_default">Výchozí profil serveru</string>
 </resources>

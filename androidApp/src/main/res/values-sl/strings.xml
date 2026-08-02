@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">Načrtovano</string>
     <string name="dvr_rec_duplicate">Ta oddaja ima že načrtovano snemanje: %1$s, %2$s</string>
     <string name="field_dvr_config">Profil snemanja</string>
-    <string name="dvr_config_note">S katerim profilom DVR nastanejo novi posnetki. Pusti nastavitev strežnika, razen če je račun vezan na določen profil.</string>
+    <string name="dvr_config_note">Tvheadend hrani le, katere profile račun sme uporabiti, ne pa katerega naj. Brez izbire gredo posnetki v privzeti profil strežnika.</string>
+    <string name="dvr_config_default">Privzeti profil strežnika</string>
 </resources>

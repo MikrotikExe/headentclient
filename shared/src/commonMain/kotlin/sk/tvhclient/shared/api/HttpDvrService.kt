@@ -15,11 +15,6 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
 
     override suspend fun access(): DvrAccess = api.dvrAccess()
 
-    /** Prvy DVR profil zo servera (prazdny = predvolba pouzivatela). */
-    private suspend fun defaultConfigUuid(): String? = runCatching {
-        api.dvrConfigs().firstOrNull()?.uuid
-    }.getOrNull()
-
     /**
      * M486: HTTP API chce uuid profilu, appka si vsak uklada nazov (HTSP berie
      * nazov). Nazov preto prelozime na uuid; ak sa profil na serveri nenajde,
@@ -31,8 +26,10 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
     }.getOrNull()
 
     override suspend fun recordEvent(eventId: Long, configId: String?): DvrResult = try {
-        val cfg = if (!configId.isNullOrBlank()) configUuidByName(configId)
-        else defaultConfigUuid()
+        // M487: bez zvoleneho profilu neposielame nic a necháme rozhodnut server
+        // — rovnako ako HTSP cesta. Do M486 sa tu bral PRVY profil zo zoznamu,
+        // co je poradie z api/dvr/config/grid, nie predvolba servera.
+        val cfg = if (configId.isNullOrBlank()) null else configUuidByName(configId)
         val params = HashMap<String, String>()
         params["event_id"] = eventId.toString()
         if (!cfg.isNullOrBlank()) params["config_uuid"] = cfg

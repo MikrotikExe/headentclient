@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">ตั้งเวลาไว้</string>
     <string name="dvr_rec_duplicate">รายการนี้ตั้งเวลาบันทึกไว้แล้ว: %1$s, %2$s</string>
     <string name="field_dvr_config">โปรไฟล์การบันทึก</string>
-    <string name="dvr_config_note">การบันทึกใหม่จะสร้างด้วยโปรไฟล์ DVR ใด หากบัญชีไม่ได้ถูกจำกัดโปรไฟล์ ให้คงค่าของเซิร์ฟเวอร์ไว้</string>
+    <string name="dvr_config_note">Tvheadend เก็บเฉพาะว่าบัญชีใช้โปรไฟล์ใดได้บ้าง ไม่ได้เก็บว่าควรใช้อันไหน หากไม่เลือก การบันทึกจะไปที่โปรไฟล์เริ่มต้น</string>
+    <string name="dvr_config_default">โปรไฟล์เริ่มต้นของเซิร์ฟเวอร์</string>
 </resources>

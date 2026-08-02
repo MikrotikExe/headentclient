@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">Заказано</string>
     <string name="dvr_rec_duplicate">Ова емисија већ има заказано снимање: %1$s, %2$s</string>
     <string name="field_dvr_config">Профил снимања</string>
-    <string name="dvr_config_note">Са којим се DVR профилом праве нови снимци. Остави подешавање сервера осим ако налог није везан за одређени профил.</string>
+    <string name="dvr_config_note">Tvheadend памти само које профиле налог сме да користи, а не који треба. Без избора снимци иду у подразумевани профил сервера.</string>
+    <string name="dvr_config_default">Подразумевани профил сервера</string>
 </resources>

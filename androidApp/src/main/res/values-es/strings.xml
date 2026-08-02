@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">Programada</string>
     <string name="dvr_rec_duplicate">Este programa ya tiene una grabación programada: %1$s, %2$s</string>
     <string name="field_dvr_config">Perfil de grabación</string>
-    <string name="dvr_config_note">Con qué perfil de DVR se crean las grabaciones nuevas. Deja el valor del servidor salvo que tu cuenta esté limitada a un perfil concreto.</string>
+    <string name="dvr_config_note">Tvheadend solo guarda qué perfiles puede usar la cuenta, no cuál debe usar. Si no eliges ninguno, las grabaciones van al perfil predeterminado del servidor.</string>
+    <string name="dvr_config_default">Perfil predeterminado del servidor</string>
 </resources>

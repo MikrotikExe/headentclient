@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">已安排</string>
     <string name="dvr_rec_duplicate">该节目已安排录制：%1$s、%2$s</string>
     <string name="field_dvr_config">录制配置</string>
-    <string name="dvr_config_note">新录制使用哪个 DVR 配置创建。除非账号被限定到特定配置，否则保持服务器设置。</string>
+    <string name="dvr_config_note">Tvheadend 只记录账号可以使用哪些配置，而不是应该使用哪个。不选择时，录制会使用默认配置。</string>
+    <string name="dvr_config_default">服务器默认配置</string>
 </resources>

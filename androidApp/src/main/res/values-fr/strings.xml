@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">Programmé</string>
     <string name="dvr_rec_duplicate">Cette émission est déjà programmée à l\'enregistrement : %1$s, %2$s</string>
     <string name="field_dvr_config">Profil d\'enregistrement</string>
-    <string name="dvr_config_note">Le profil DVR utilisé pour les nouveaux enregistrements. Laisse le réglage du serveur si ton compte n\'est pas limité à un profil précis.</string>
+    <string name="dvr_config_note">Tvheadend retient uniquement les profils que le compte peut utiliser, pas celui qu\'il doit utiliser. Sans sélection, les enregistrements vont dans le profil par défaut du serveur.</string>
+    <string name="dvr_config_default">Profil par défaut du serveur</string>
 </resources>

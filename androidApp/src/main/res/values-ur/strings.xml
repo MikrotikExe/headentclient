@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">شیڈول شدہ</string>
     <string name="dvr_rec_duplicate">اس پروگرام کی ریکارڈنگ پہلے ہی شیڈول ہے: %1$s، %2$s</string>
     <string name="field_dvr_config">ریکارڈنگ پروفائل</string>
-    <string name="dvr_config_note">نئی ریکارڈنگز کس DVR پروفائل میں بنیں گی۔ اگر اکاؤنٹ کسی خاص پروفائل سے منسلک نہیں تو سرور کی ترتیب رہنے دیں۔</string>
+    <string name="dvr_config_note">Tvheadend صرف یہ رکھتا ہے کہ اکاؤنٹ کون سی پروفائلز استعمال کر سکتا ہے، یہ نہیں کہ کون سی کرنی چاہیے۔ انتخاب نہ ہونے پر ریکارڈنگ ڈیفالٹ پروفائل میں جاتی ہے۔</string>
+    <string name="dvr_config_default">سرور کی ڈیفالٹ پروفائل</string>
 </resources>

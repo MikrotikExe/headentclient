@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">زمان‌بندی‌شده</string>
     <string name="dvr_rec_duplicate">برای این برنامه قبلاً ضبط زمان‌بندی شده است: %1$s، %2$s</string>
     <string name="field_dvr_config">نمایه ضبط</string>
-    <string name="dvr_config_note">ضبط‌های جدید با کدام نمایه DVR ساخته شوند. اگر حساب به نمایه‌ای محدود نیست، تنظیم سرور را نگه دار.</string>
+    <string name="dvr_config_note">Tvheadend فقط نگه می‌دارد که حساب مجاز به کدام نمایه‌هاست، نه اینکه باید کدام را به‌کار ببرد. بدون انتخاب، ضبط‌ها در نمایه پیش‌فرض ساخته می‌شوند.</string>
+    <string name="dvr_config_default">نمایه پیش‌فرض سرور</string>
 </resources>

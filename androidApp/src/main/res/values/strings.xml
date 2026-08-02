@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">Scheduled</string>
     <string name="dvr_rec_duplicate">This programme is already set to record: %1$s, %2$s</string>
     <string name="field_dvr_config">Recording profile</string>
-    <string name="dvr_config_note">Which DVR profile new recordings are created with. Leave on the server default unless your account is restricted to a specific profile.</string>
+    <string name="dvr_config_note">Tvheadend only knows which profiles the account may use, not which one it should use. If you pick none, recordings go to the server’s default profile.</string>
+    <string name="dvr_config_default">Server default profile</string>
 </resources>

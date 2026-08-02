@@ -314,8 +314,11 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                     value = dvrConfig,
                     options = listOf("") + serverDvrConfigs.map { it.name }
                         .filter { it.isNotBlank() }.distinct(),
+                    // M487: pri DVR profile nejde o „podla nastavenia servera" —
+                    // TVH prazdny nazov vzdy prelozi na predvoleny profil, tak to
+                    // aj pomenujme
                     optionLabel = {
-                        if (it.isBlank()) stringResource(R.string.profile_server_default) else it
+                        if (it.isBlank()) stringResource(R.string.dvr_config_default) else it
                     },
                     onSelect = { dvrConfig = it }
                 )

@@ -375,5 +375,6 @@
     <string name="epg_scheduled_badge">مجدول</string>
     <string name="dvr_rec_duplicate">هذا البرنامج مجدول للتسجيل مسبقًا: %1$s، %2$s</string>
     <string name="field_dvr_config">ملف التسجيل</string>
-    <string name="dvr_config_note">ملف DVR الذي تُنشأ به التسجيلات الجديدة. اترك إعداد الخادم ما لم يكن حسابك مقيدًا بملف معين.</string>
+    <string name="dvr_config_note">يحتفظ Tvheadend فقط بالملفات المسموحة للحساب، لا بالملف الواجب استخدامه. بدون اختيار، تُنشأ التسجيلات في الملف الافتراضي.</string>
+    <string name="dvr_config_default">ملف الخادم الافتراضي</string>
 </resources>
