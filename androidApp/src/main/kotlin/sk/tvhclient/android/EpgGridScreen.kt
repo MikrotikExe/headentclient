@@ -895,11 +895,15 @@ private fun GridDetailContent(
     var canRecord by remember { mutableStateOf(false) }
     var recBusy by remember { mutableStateOf(false) }
     var recMsg by remember { mutableStateOf<String?>(null) }
+    var alreadyScheduled by remember { mutableStateOf(false) }
     LaunchedEffect(recEventId) {
-        canRecord = if (recEventId == null) false else {
-            val srv = sk.tvhclient.shared.Tvh.store.active()
-            srv != null && DvrController.access(srv).canRecord
-        }
+        val ep = (detail as? GridDetail.Epg)
+        val srv = sk.tvhclient.shared.Tvh.store.active()
+        canRecord = if (recEventId == null || srv == null) false
+        else DvrController.access(srv).canRecord
+        // M474: relacia, ktora uz nahravanie ma, tlacidlo neponuka
+        alreadyScheduled = if (ep == null || srv == null) false
+        else DvrController.isScheduled(srv, ep.row.channel.uuid, ep.ev.start, ep.ev.stop)
     }
 
     // Spolocne polia z oboch typov
@@ -1121,7 +1125,7 @@ private fun GridDetailContent(
 
             // M473: nahravanie — len pre EPG relaciu, ktora este neskoncila,
             // a len ak ma pouzivatel na serveri pravo nahravat
-            if (canRecord && recEventId != null && stop > nowSec) {
+            if (canRecord && recEventId != null && stop > nowSec && !alreadyScheduled) {
                 Spacer(Modifier.height(10.dp))
                 androidx.compose.material3.OutlinedButton(
                     onClick = {

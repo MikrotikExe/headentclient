@@ -1089,6 +1089,16 @@ class PlayerActivity : ComponentActivity() {
             ?.eventId
     }
 
+    /** M474: ma prave beziaca relacia uz naplanovanu nahravku? */
+    suspend fun currentEventScheduled(server: sk.tvhclient.shared.model.TvhServer?): Boolean {
+        val srv = server ?: return false
+        val ch = liveChannelsState.value.getOrNull(liveIndexState.value) ?: return false
+        val nowSec = System.currentTimeMillis() / 1000
+        val ev = epgUpcomingState.value[ch.uuid]
+            ?.firstOrNull { it.start <= nowSec && nowSec < it.stop } ?: return false
+        return DvrController.isScheduled(srv, ch.uuid, ev.start, ev.stop)
+    }
+
     /** M456: dopis EPG cache pri odchode, nech sa posledne zmeny nestratia. */
     private fun flushEpgPersist() {
         val srv = liveServer ?: return
@@ -4398,7 +4408,9 @@ private fun PlayerUi(
         if (showMoreSheet) {
             dvrEventId = dvrActivity?.currentEventId()
             val srv = sk.tvhclient.shared.Tvh.store.active()
-            dvrCanRecord = srv != null && DvrController.access(srv).canRecord
+            // M474: ak sa prave beziaca relacia uz nahrava, polozku neponukame
+            val already = dvrActivity?.currentEventScheduled(srv) == true
+            dvrCanRecord = srv != null && !already && DvrController.access(srv).canRecord
         }
     }
     // odpocet casovaca uspatia (aktualizuje sa kym je casovac aktivny)

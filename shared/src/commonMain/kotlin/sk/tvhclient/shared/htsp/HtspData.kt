@@ -174,6 +174,17 @@ object HtspData {
             )
         }
 
+    /**
+     * M474: naplanovane a prave beziace nahravky (state "scheduled"/"recording").
+     * Sluzi na to, aby appka neponukala nahravanie relacie, ktora uz nahravanie ma.
+     */
+    fun dvrScheduled(meta: HtspClient.Metadata): List<DvrEntry> =
+        meta.dvr.mapNotNull { d ->
+            val state = strOf(d, "state")
+            if (state != "scheduled" && state != "recording") return@mapNotNull null
+            mapDvrEntry(d)
+        }
+
     /** Dokončené DVR nahrávky (state == "completed"). */
     fun dvrFinished(meta: HtspClient.Metadata): List<DvrEntry> =
         meta.dvr.mapNotNull { d ->
