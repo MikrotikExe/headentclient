@@ -374,4 +374,6 @@
     <string name="epg_recording_badge">रिकॉर्ड हो रहा है</string>
     <string name="epg_scheduled_badge">निर्धारित</string>
     <string name="dvr_rec_duplicate">इस कार्यक्रम की रिकॉर्डिंग पहले से निर्धारित है: %1$s, %2$s</string>
+    <string name="field_dvr_config">रिकॉर्डिंग प्रोफ़ाइल</string>
+    <string name="dvr_config_note">नई रिकॉर्डिंग किस DVR प्रोफ़ाइल में बनें। यदि खाता किसी खास प्रोफ़ाइल से बंधा नहीं है, तो सर्वर की सेटिंग रहने दें।</string>
 </resources>

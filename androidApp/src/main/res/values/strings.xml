@@ -374,4 +374,6 @@
     <string name="epg_recording_badge">Recording now</string>
     <string name="epg_scheduled_badge">Scheduled</string>
     <string name="dvr_rec_duplicate">This programme is already set to record: %1$s, %2$s</string>
+    <string name="field_dvr_config">Recording profile</string>
+    <string name="dvr_config_note">Which DVR profile new recordings are created with. Leave on the server default unless your account is restricted to a specific profile.</string>
 </resources>

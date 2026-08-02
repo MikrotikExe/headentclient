@@ -75,6 +75,7 @@ object Backup {
         put("username", s.username)
         put("password", s.password)
         put("profile", s.profile)
+        put("dvrConfig", s.dvrConfig)   // M486
         put("authMode", s.authMode)
         put("connectionMode", s.connectionMode)
         put("htspPort", s.htspPort)
@@ -89,6 +90,7 @@ object Backup {
         username = o.optString("username", ""),
         password = o.optString("password", ""),
         profile = o.optString("profile", "pass"),
+        dvrConfig = o.optString("dvrConfig", ""),   // M486
         authMode = o.optString("authMode", "auto"),
         connectionMode = o.optString("connectionMode", "http"),
         htspPort = o.optInt("htspPort", 9982)

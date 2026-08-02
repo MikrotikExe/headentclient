@@ -374,4 +374,6 @@
     <string name="epg_recording_badge">Snemanje poteka</string>
     <string name="epg_scheduled_badge">Načrtovano</string>
     <string name="dvr_rec_duplicate">Ta oddaja ima že načrtovano snemanje: %1$s, %2$s</string>
+    <string name="field_dvr_config">Profil snemanja</string>
+    <string name="dvr_config_note">S katerim profilom DVR nastanejo novi posnetki. Pusti nastavitev strežnika, razen če je račun vezan na določen profil.</string>
 </resources>

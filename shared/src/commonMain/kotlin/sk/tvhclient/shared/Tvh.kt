@@ -111,6 +111,18 @@ object Tvh {
         return runCatching { TvhApi(server).streamProfiles() }.getOrDefault(emptyList())
     }
 
+    /**
+     * M486: DVR profily servera pre ponuku v nastaveniach. HTSP ma vlastny
+     * getDvrConfigs, HTTP pouzije api/dvr/config/grid.
+     */
+    suspend fun dvrConfigs(server: TvhServer): List<sk.tvhclient.shared.api.DvrConfig> =
+        if (server.connectionMode == "htsp")
+            sk.tvhclient.shared.htsp.HtspData.dvrConfigs(server)
+        else runCatching {
+            val api = TvhApi(server)
+            try { api.dvrConfigs() } finally { api.close() }
+        }.getOrDefault(emptyList())
+
     /** Dokoncene DVR: HTSP alebo HTTP. */
     suspend fun fetchDvrFinished(server: TvhServer, api: TvhApi): List<sk.tvhclient.shared.model.DvrEntry> =
         if (server.connectionMode == "htsp")

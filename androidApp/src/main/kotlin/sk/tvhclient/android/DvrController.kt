@@ -169,16 +169,23 @@ object DvrController {
         stop: Long = 0,
         title: String = ""
     ): DvrResult {
-        val r = ioResult { serviceFor(server).recordEvent(eventId) }
+        // M486: nahravaj do profilu zvoleneho v nastaveniach servera; prazdne
+        // = necha rozhodnut server (predvolba konta)
+        val cfg = server.dvrConfig.ifBlank { null }
+        val r = ioResult { serviceFor(server).recordEvent(eventId, cfg) }
         if (r.success) {
             invalidateScheduled(server.id)   // M474
             if (channelUuid.isNotBlank() && stop > start) {
                 val id = r.id.orEmpty()
+                // M485: relacia, ktora uz bezi, sa zacne nahravat okamzite —
+                // stav musi sediet, inak by detail hlasil „Naplanovane"
+                val nowSec = System.currentTimeMillis() / 1000
+                val live = nowSec in start until stop
                 pendingOps.getOrPut(server.id) { Pending() }.added.add(
                     sk.tvhclient.shared.model.DvrEntry(
                         uuid = id, dvrId = id, dispTitle = title,
                         channelUuid = channelUuid, start = start, stop = stop,
-                        status = "scheduled"
+                        status = if (live) "recording" else "scheduled"
                     )
                 )
             }

@@ -374,4 +374,6 @@
     <string name="epg_recording_badge">Γίνεται εγγραφή</string>
     <string name="epg_scheduled_badge">Προγραμματισμένο</string>
     <string name="dvr_rec_duplicate">Αυτό το πρόγραμμα έχει ήδη προγραμματισμένη εγγραφή: %1$s, %2$s</string>
+    <string name="field_dvr_config">Προφίλ εγγραφής</string>
+    <string name="dvr_config_note">Με ποιο προφίλ DVR δημιουργούνται οι νέες εγγραφές. Άφησε τη ρύθμιση του διακομιστή, εκτός αν ο λογαριασμός είναι δεμένος σε συγκεκριμένο προφίλ.</string>
 </resources>

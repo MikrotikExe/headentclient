@@ -374,4 +374,6 @@
     <string name="epg_recording_badge">Se înregistrează</string>
     <string name="epg_scheduled_badge">Programată</string>
     <string name="dvr_rec_duplicate">Acest program are deja o înregistrare programată: %1$s, %2$s</string>
+    <string name="field_dvr_config">Profil de înregistrare</string>
+    <string name="dvr_config_note">Cu ce profil DVR se creează înregistrările noi. Lasă setările serverului dacă contul nu e limitat la un anume profil.</string>
 </resources>

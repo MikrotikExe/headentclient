@@ -374,4 +374,6 @@
     <string name="epg_recording_badge">در حال ضبط</string>
     <string name="epg_scheduled_badge">زمان‌بندی‌شده</string>
     <string name="dvr_rec_duplicate">برای این برنامه قبلاً ضبط زمان‌بندی شده است: %1$s، %2$s</string>
+    <string name="field_dvr_config">نمایه ضبط</string>
+    <string name="dvr_config_note">ضبط‌های جدید با کدام نمایه DVR ساخته شوند. اگر حساب به نمایه‌ای محدود نیست، تنظیم سرور را نگه دار.</string>
 </resources>

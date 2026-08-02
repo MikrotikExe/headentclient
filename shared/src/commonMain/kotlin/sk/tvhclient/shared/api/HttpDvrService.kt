@@ -20,8 +20,19 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
         api.dvrConfigs().firstOrNull()?.uuid
     }.getOrNull()
 
+    /**
+     * M486: HTTP API chce uuid profilu, appka si vsak uklada nazov (HTSP berie
+     * nazov). Nazov preto prelozime na uuid; ak sa profil na serveri nenajde,
+     * radsej nepošleme nic a necháme rozhodnut server, nez aby sme nahravali
+     * do cudzieho profilu.
+     */
+    private suspend fun configUuidByName(name: String): String? = runCatching {
+        api.dvrConfigs().firstOrNull { it.name.equals(name, ignoreCase = true) }?.uuid
+    }.getOrNull()
+
     override suspend fun recordEvent(eventId: Long, configId: String?): DvrResult = try {
-        val cfg = configId ?: defaultConfigUuid()
+        val cfg = if (!configId.isNullOrBlank()) configUuidByName(configId)
+        else defaultConfigUuid()
         val params = HashMap<String, String>()
         params["event_id"] = eventId.toString()
         if (!cfg.isNullOrBlank()) params["config_uuid"] = cfg

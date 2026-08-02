@@ -52,6 +52,29 @@ object HtspData {
         }
     }.getOrDefault(emptyList())
 
+    /**
+     * M486: DVR profily (konfiguracie nahravania) cez HTSP `getDvrConfigs`.
+     * Vracia dvojice uuid/nazov; prazdny nazov ma predvoleny profil servera.
+     * Chyba = prazdny zoznam, volajuci potom ponuku profilu nezobrazi.
+     */
+    suspend fun dvrConfigs(server: TvhServer): List<sk.tvhclient.shared.api.DvrConfig> = runCatching {
+        val c = HtspClient(server.host, server.htspPort, server.username, server.password)
+        c.connect()
+        try {
+            val r = c.recvReply(c.send("getDvrConfigs"))
+            @Suppress("UNCHECKED_CAST")
+            val list = (r["dvrconfigs"] as? List<Any?>) ?: emptyList()
+            list.mapNotNull { p ->
+                val m = p as? Map<String, Any?> ?: return@mapNotNull null
+                val uuid = (m["uuid"] as? String) ?: ""
+                val name = (m["name"] as? String) ?: ""
+                sk.tvhclient.shared.api.DvrConfig(uuid, name)
+            }
+        } finally {
+            withContext(NonCancellable) { c.close() }
+        }
+    }.getOrDefault(emptyList())
+
     private data class Cache(val ts: Long, val meta: HtspClient.Metadata, val withEpg: Boolean)
     private val cache = HashMap<String, Cache>()
     private data class NowCache(val ts: Long, val map: Map<String, List<EpgEvent>>)

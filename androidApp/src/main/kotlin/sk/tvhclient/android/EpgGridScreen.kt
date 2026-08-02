@@ -1064,14 +1064,19 @@ private fun GridDetailContent(
             )
             // M483: tri stavy namiesto jedneho — prebiehajuca nahravka je cervena
             // (rovnako ako jej blok v mriezke), dokoncena a naplanovana su v akcente.
+            // M485: naplanovana nahravka relacie, ktora uz bezi, je „Nahrava sa" —
+            // stav sa cita zo zaznamu, nie len z toho, odkial sa detail otvoril
+            val exRec = existingRec
+            val epgRecordingNow = exRec != null && exRec.isRecordingNow
             val badgeRes: Int? = when {
                 detail is GridDetail.InProgress -> R.string.epg_recording_badge
                 detail is GridDetail.Dvr -> R.string.epg_recorded_badge
-                existingRec != null -> R.string.epg_scheduled_badge
+                epgRecordingNow -> R.string.epg_recording_badge
+                exRec != null -> R.string.epg_scheduled_badge
                 else -> null
             }
             if (detailModern && badgeRes != null) {
-                val live = detail is GridDetail.InProgress
+                val live = detail is GridDetail.InProgress || epgRecordingNow
                 val badgeColor = if (live) androidx.compose.ui.graphics.Color(0xFFE53935) else dcs.primary
                 val glyph = when {
                     live -> "\u25CF "
@@ -1202,7 +1207,10 @@ private fun GridDetailContent(
                                     )
                                 else -> r.error ?: context.getString(R.string.dvr_rec_failed)
                             }
-                            if (r.success) recReload++   // znovu zisti stav
+                            if (r.success) {
+                                recReload++          // znovu zisti stav
+                                onDvrChanged()       // M485: aj bloky v mriezke
+                            }
                         }
                     },
                     enabled = !recBusy,
@@ -1211,13 +1219,19 @@ private fun GridDetailContent(
                     modifier = Modifier.fillMaxWidth().dpadFocusable()
                 ) {
                     androidx.compose.material3.Icon(
-                        if (rec != null) Icons.Default.Close else Icons.Default.FiberManualRecord,
+                        when {
+                            // M485: beziacu nahravku „zastavujeme", nerusime
+                            epgRecordingNow -> Icons.Default.Stop
+                            rec != null -> Icons.Default.Close
+                            else -> Icons.Default.FiberManualRecord
+                        },
                         contentDescription = null
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
                         when {
                             recBusy -> stringResource(R.string.dvr_rec_working)
+                            epgRecordingNow -> stringResource(R.string.dvr_stop_button)
                             rec != null -> stringResource(R.string.dvr_rec_cancel_button)
                             else -> stringResource(R.string.dvr_rec_button)
                         },

@@ -374,4 +374,6 @@
     <string name="epg_recording_badge">录制中</string>
     <string name="epg_scheduled_badge">已安排</string>
     <string name="dvr_rec_duplicate">该节目已安排录制：%1$s、%2$s</string>
+    <string name="field_dvr_config">录制配置</string>
+    <string name="dvr_config_note">新录制使用哪个 DVR 配置创建。除非账号被限定到特定配置，否则保持服务器设置。</string>
 </resources>

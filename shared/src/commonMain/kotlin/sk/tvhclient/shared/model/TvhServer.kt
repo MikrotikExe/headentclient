@@ -12,6 +12,10 @@ data class TvhServer(
     val username: String = "",
     val password: String = "",
     val profile: String = "pass",
+    // M486: nazov DVR profilu (konfiguracie nahravania) na serveri; prazdne =
+    // necha rozhodnut server podla prav konta. Ukladame NAZOV, nie uuid —
+    // HTSP addDvrEntry berie nazov, HTTP si uuid dohlada podla nazvu.
+    val dvrConfig: String = "",
     // auto = ponuka basic aj digest (Ktor vyberie podla servera);
     // basic / digest = vynuti jednu; none = bez auth (verejny server)
     val authMode: String = "auto",

@@ -374,4 +374,6 @@
     <string name="epg_recording_badge">A gravar</string>
     <string name="epg_scheduled_badge">Agendada</string>
     <string name="dvr_rec_duplicate">Este programa já tem uma gravação agendada: %1$s, %2$s</string>
+    <string name="field_dvr_config">Perfil de gravação</string>
+    <string name="dvr_config_note">Com que perfil de DVR são criadas as novas gravações. Deixa a definição do servidor, a não ser que a conta esteja limitada a um perfil.</string>
 </resources>

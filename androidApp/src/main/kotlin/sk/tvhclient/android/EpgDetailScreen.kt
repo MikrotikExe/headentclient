@@ -31,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FiberManualRecord
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 
@@ -186,14 +187,20 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
                     enabled = !recording,
                     modifier = Modifier.fillMaxWidth().dpadFocusable()
                 ) {
+                    val recNow = rec != null && rec.isRecordingNow   // M485
                     Icon(
-                        if (rec != null) Icons.Default.Close else Icons.Default.FiberManualRecord,
+                        when {
+                            recNow -> Icons.Default.Stop
+                            rec != null -> Icons.Default.Close
+                            else -> Icons.Default.FiberManualRecord
+                        },
                         contentDescription = null
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
                         when {
                             recording -> stringResource(R.string.dvr_rec_working)
+                            recNow -> stringResource(R.string.dvr_stop_button)
                             rec != null -> stringResource(R.string.dvr_rec_cancel_button)
                             else -> stringResource(R.string.dvr_rec_button)
                         },

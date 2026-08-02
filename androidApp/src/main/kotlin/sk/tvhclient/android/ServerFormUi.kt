@@ -112,6 +112,8 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
     var username by remember { mutableStateOf(existing?.username ?: "") }
     var password by remember { mutableStateOf(existing?.password ?: "") }
     var profile by remember { mutableStateOf(existing?.profile ?: "pass") }
+    // M486: DVR profil (do ktoreho sa nahrava); prazdne = podla nastavenia servera
+    var dvrConfig by remember { mutableStateOf(existing?.dvrConfig ?: "") }
     var authMode by remember { mutableStateOf(existing?.authMode ?: "auto") }
     var connMode by remember { mutableStateOf(existing?.connectionMode ?: "htsp") }
     var htspPort by remember { mutableStateOf((existing?.htspPort ?: 9982).toString()) }
@@ -128,7 +130,7 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
 
     // M389: neulozene zmeny — porovnanie aktualnych poli s hodnotami pri otvoreni.
     // Pri odchode (BACK / Zrusit / prepnutie tabu cez guardLeave) sa vypyta potvrdenie.
-    fun formSig() = listOf(name, host, port, useHttps, username, password, profile, authMode, connMode, htspPort)
+    fun formSig() = listOf(name, host, port, useHttps, username, password, profile, dvrConfig, authMode, connMode, htspPort)
     val initSig = remember { formSig() }
     val dirty = formSig() != initSig
     var leaveAsk by remember { mutableStateOf(false) }
@@ -174,6 +176,7 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
             username = username.trim(),
             password = password,
             profile = profile.trim().ifBlank { "pass" },
+            dvrConfig = dvrConfig.trim(),
             authMode = authMode,
             connectionMode = connMode,
             htspPort = htspPort.toIntOrNull() ?: 9982
@@ -185,12 +188,14 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
     // novy hned ako su vyplnene adresa a prihlasenie. Debounce 800 ms, nech
     // sa nestriela dotaz pri kazdom pismene. Zlyhanie = ticho, ostane fallback.
     val serverProfiles by vm.profiles.collectAsState()
-    LaunchedEffect(Unit) { vm.clearProfiles() }
+    // M486: DVR profily sa tahaju rovnako ako stream profily
+    val serverDvrConfigs by vm.dvrConfigs.collectAsState()
+    LaunchedEffect(Unit) { vm.clearProfiles(); vm.clearDvrConfigs() }
     LaunchedEffect(host, port, username, password, useHttps, authMode, connMode) {
         // M476: profily sa nacitavaju aj pre HTSP — protokol ma vlastny
         // getProfiles (v16+), takze netreba HTTP port
         kotlinx.coroutines.delay(800)
-        buildServer()?.let { vm.loadProfiles(it) }
+        buildServer()?.let { vm.loadProfiles(it); vm.loadDvrConfigs(it) }
     }
 
     Scaffold(
@@ -295,6 +300,27 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                 // prehravacoch. Odporucany je pass (bez transkodovania).
                 Text(
                     stringResource(R.string.profile_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                )
+            }
+            // M486: profil nahravania. Ukazeme len ked server nejake vratil
+            // (alebo pri uprave uz uloženeho servera), rovnako ako stream profil.
+            // Prazdna volba = server rozhodne podla prav konta.
+            if (serverDvrConfigs.isNotEmpty() || (existing != null && dvrConfig.isNotBlank())) {
+                DropdownField(
+                    label = stringResource(R.string.field_dvr_config),
+                    value = dvrConfig,
+                    options = listOf("") + serverDvrConfigs.map { it.name }
+                        .filter { it.isNotBlank() }.distinct(),
+                    optionLabel = {
+                        if (it.isBlank()) stringResource(R.string.profile_server_default) else it
+                    },
+                    onSelect = { dvrConfig = it }
+                )
+                Text(
+                    stringResource(R.string.dvr_config_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)

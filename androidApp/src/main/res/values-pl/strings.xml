@@ -374,4 +374,6 @@
     <string name="epg_recording_badge">Nagrywanie</string>
     <string name="epg_scheduled_badge">Zaplanowane</string>
     <string name="dvr_rec_duplicate">Ten program ma już zaplanowane nagranie: %1$s, %2$s</string>
+    <string name="field_dvr_config">Profil nagrywania</string>
+    <string name="dvr_config_note">W którym profilu DVR powstają nowe nagrania. Zostaw ustawienie serwera, chyba że konto ma przypisany konkretny profil.</string>
 </resources>

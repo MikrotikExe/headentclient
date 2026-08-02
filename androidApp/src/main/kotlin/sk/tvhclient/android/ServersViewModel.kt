@@ -48,6 +48,22 @@ class ServersViewModel : ViewModel() {
 
     fun clearProfiles() { _profiles.value = emptyList() }
 
+    /**
+     * M486: DVR profily (konfiguracie nahravania) zo servera. Prazdny zoznam =
+     * nenacitane alebo server ich neponuka -> volba sa v nastaveniach neukaze.
+     */
+    private val _dvrConfigs = MutableStateFlow<List<sk.tvhclient.shared.api.DvrConfig>>(emptyList())
+    val dvrConfigs: StateFlow<List<sk.tvhclient.shared.api.DvrConfig>> = _dvrConfigs
+
+    fun loadDvrConfigs(server: TvhServer) {
+        viewModelScope.launch {
+            val list = withContext(Dispatchers.IO) { Tvh.dvrConfigs(server) }
+            if (list.isNotEmpty()) _dvrConfigs.value = list
+        }
+    }
+
+    fun clearDvrConfigs() { _dvrConfigs.value = emptyList() }
+
     fun refresh() {
         _servers.value = store.list()
         _activeId.value = store.activeId

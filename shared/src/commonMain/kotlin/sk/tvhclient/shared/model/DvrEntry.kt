@@ -46,6 +46,18 @@ data class DvrEntry(
     /** M483: id pre DVR prikazy (zrusit/zmazat). HTSP = ciselne id, HTTP = uuid. */
     val commandId: String get() = dvrId.ifBlank { uuid }
 
+    /**
+     * M485: nahrava sa prave teraz?
+     *
+     * HTSP posiela stav v `state`, HTTP v `status`/`sched_status` a dev buildy
+     * TVH pouzivaju aj "Running" — beriem vsetky varianty, aby detail relacie
+     * vedel odlisit beziacu nahravku od naplanovanej.
+     */
+    val isRecordingNow: Boolean get() =
+        status.equals("recording", ignoreCase = true) ||
+            status.equals("running", ignoreCase = true) ||
+            schedStatus.equals("recording", ignoreCase = true)
+
     val durationSec: Long
         get() = if (duration > 0) duration else (if (stop > start) stop - start else 0)
 

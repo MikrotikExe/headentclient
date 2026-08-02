@@ -374,4 +374,6 @@
     <string name="epg_recording_badge">Snima se</string>
     <string name="epg_scheduled_badge">Zakazano</string>
     <string name="dvr_rec_duplicate">Ova emisija već ima zakazano snimanje: %1$s, %2$s</string>
+    <string name="field_dvr_config">Profil snimanja</string>
+    <string name="dvr_config_note">S kojim se DVR profilom stvaraju nove snimke. Ostavi postavku poslužitelja osim ako je račun vezan uz određeni profil.</string>
 </resources>
