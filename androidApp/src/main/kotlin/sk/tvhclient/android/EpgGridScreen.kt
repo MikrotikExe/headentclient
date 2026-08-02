@@ -1184,8 +1184,16 @@ private fun GridDetailContent(
                         }
                     },
                     enabled = !recBusy,
-                    modifier = Modifier.dpadFocusable()
+                    // M483: rovnaka sirka a vnutorne usporiadanie ako prehravacie
+                    // tlacidla vyssie — predtym bolo tlacidlo uzke podla textu
+                    modifier = Modifier.fillMaxWidth().dpadFocusable()
                 ) {
+                    androidx.compose.material3.Icon(
+                        if (rec != null) androidx.compose.material.icons.Icons.Default.Close
+                        else androidx.compose.material.icons.Icons.Default.FiberManualRecord,
+                        contentDescription = null
+                    )
+                    Spacer(Modifier.width(8.dp))
                     Text(
                         when {
                             recBusy -> stringResource(R.string.dvr_rec_working)
@@ -1205,8 +1213,14 @@ private fun GridDetailContent(
                 androidx.compose.material3.OutlinedButton(
                     onClick = { confirmDvr = true },
                     enabled = !recBusy,
-                    modifier = Modifier.dpadFocusable()
+                    modifier = Modifier.fillMaxWidth().dpadFocusable()
                 ) {
+                    androidx.compose.material3.Icon(
+                        if (stopping) androidx.compose.material.icons.Icons.Default.Stop
+                        else androidx.compose.material.icons.Icons.Default.Delete,
+                        contentDescription = null
+                    )
+                    Spacer(Modifier.width(8.dp))
                     Text(
                         when {
                             recBusy -> stringResource(R.string.dvr_del_working)
