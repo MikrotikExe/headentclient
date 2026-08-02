@@ -119,6 +119,7 @@ import org.videolan.libvlc.util.VLCVideoLayout
 import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.htsp.HtspData
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * Live prehravac na libVLC. Dekoduje MPEG-2 + MP2/AC3/EAC3/DTS softverovo.
