@@ -268,13 +268,19 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                 value = password, onValueChange = { password = it },
                 modifier = Modifier.fillMaxWidth(), password = true
             )
-            run {   // M476: stream profil plati pre HTTP aj HTSP
+            // M478: volba profilu sa ukaze az ked zoznam naozaj prisiel zo servera.
+            // Predtym sa zobrazovala hned s nahradnym zoznamom (pass, matroska...),
+            // takze pouzivatel pri zakladani servera vyberal z profilov, ktore
+            // jeho server nemusi mat vobec. Pri uprave uz uloženeho servera ju
+            // ukazeme vzdy — profil je sucastou nastavenia a ma sa dat zmenit aj
+            // ked je server prave nedostupny.
+            if (serverProfiles.isNotEmpty() || existing != null) {
                 DropdownField(
                     label = stringResource(R.string.field_profile),
                     value = profile,
                     // M380: zoznam zo servera (vratane vlastnych transcode
-                    // profilov) tak, ako ho vratil; ak sa nenacital, fallback
-                    // na predvolene profily Tvheadendu (ChannelPrefs, M379).
+                    // profilov) tak, ako ho vratil; fallback len pri uprave
+                    // existujuceho servera, ked sa zoznam nepodarilo nacitat.
                     options = serverProfiles.ifEmpty {
                         ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
                     },
