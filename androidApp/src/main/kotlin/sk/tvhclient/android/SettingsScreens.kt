@@ -602,6 +602,18 @@ internal fun GeneralSettings(ctx: android.content.Context) {
             if (on) requestOverlay()
         }
     )
+    // M494: pokracovanie tam, kde pouzivatel skoncil (zivy kanal / nahravka)
+    var resumeLast by remember { mutableStateOf(ResumeLastPref.get(ctx)) }
+    SettingsSwitchRow(
+        label = stringResource(R.string.resume_last_enable),
+        checked = resumeLast,
+        onChange = { on -> resumeLast = on; ResumeLastPref.set(ctx, on) }
+    )
+    Text(
+        stringResource(R.string.resume_last_note),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
     Text(
         stringResource(R.string.autostart_note),
         style = MaterialTheme.typography.bodySmall,

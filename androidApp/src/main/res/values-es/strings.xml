@@ -380,4 +380,6 @@
     <string name="load_error">Error al cargar</string>
     <string name="err_timeout">El servidor no respondió a tiempo</string>
     <string name="sub_dvb">Subtítulos DVB</string>
+    <string name="resume_last_enable">Continuar donde lo dejé</string>
+    <string name="resume_last_note">Al iniciar la aplicación se reanuda el canal o la grabación que se reproducía al apagar el equipo.</string>
 </resources>

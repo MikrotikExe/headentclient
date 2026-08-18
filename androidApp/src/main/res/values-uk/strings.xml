@@ -380,4 +380,6 @@
     <string name="load_error">Помилка завантаження</string>
     <string name="err_timeout">Сервер не відповів вчасно</string>
     <string name="sub_dvb">Субтитри DVB</string>
+    <string name="resume_last_enable">Продовжити з того самого місця</string>
+    <string name="resume_last_note">Після запуску застосунка відновлюється канал або запис, що грав під час вимкнення приставки.</string>
 </resources>

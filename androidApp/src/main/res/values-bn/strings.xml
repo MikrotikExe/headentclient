@@ -380,4 +380,6 @@
     <string name="load_error">লোড করতে সমস্যা</string>
     <string name="err_timeout">সার্ভার সময়মতো সাড়া দেয়নি</string>
     <string name="sub_dvb">DVB সাবটাইটেল</string>
+    <string name="resume_last_enable">যেখানে শেষ করেছিলাম সেখান থেকে</string>
+    <string name="resume_last_note">অ্যাপ চালু হলে বাক্স বন্ধ করার সময় যে চ্যানেল বা রেকর্ডিং চলছিল তা আবার চালু হয়।</string>
 </resources>

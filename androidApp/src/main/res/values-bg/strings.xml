@@ -380,4 +380,6 @@
     <string name="load_error">Грешка при зареждане</string>
     <string name="err_timeout">Сървърът не отговори навреме</string>
     <string name="sub_dvb">DVB субтитри</string>
+    <string name="resume_last_enable">Продължи оттам, където спрях</string>
+    <string name="resume_last_note">След стартиране на приложението се възобновява каналът или записът, който вървеше при изключването.</string>
 </resources>

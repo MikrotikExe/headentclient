@@ -380,4 +380,6 @@
     <string name="load_error">Échec du chargement</string>
     <string name="err_timeout">Le serveur n\'a pas répondu à temps</string>
     <string name="sub_dvb">Sous-titres DVB</string>
+    <string name="resume_last_enable">Reprendre où je me suis arrêté</string>
+    <string name="resume_last_note">Au démarrage de l\'application, la chaîne ou l\'enregistrement en cours lors de l\'extinction du boîtier reprend.</string>
 </resources>

@@ -132,6 +132,25 @@ class MainActivity : ComponentActivity() {
         super.attachBaseContext(LocaleHelper.wrap(newBase))
     }
 
+    /**
+     * M494: po spusteni appky pokracuj tam, kde pouzivatel skoncil (len TV).
+     *
+     * Len pri STUDENOM starte — `savedInstanceState != null` znamena, ze sa
+     * aktivita len obnovuje (otocenie, navrat z pozadia) a otvarat prehravac
+     * znova by pouzivatela vyhodilo zo zoznamu. Rovnako sa preskoci navrat
+     * z prehravaca (open_epg), inak by sa hned otvoril spat a nedal by sa
+     * opustit.
+     */
+    private fun maybeResumeLastPlayback(savedInstanceState: Bundle?) {
+        if (savedInstanceState != null) return
+        if (intent?.getBooleanExtra("open_epg", false) == true) return
+        val um = getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
+        if (um?.currentModeType != android.content.res.Configuration.UI_MODE_TYPE_TELEVISION) return
+        if (!ResumeLastPref.get(this)) return
+        val i = LastPlayback.restoreIntent(this, sk.tvhclient.shared.Tvh.store.active()?.id) ?: return
+        runCatching { startActivity(i) }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Kresli pod systemove pruhy (edge-to-edge), aby pozadie appky vyplnilo celu obrazovku
@@ -150,6 +169,7 @@ class MainActivity : ComponentActivity() {
         if (intent?.getBooleanExtra("open_epg", false) == true) {
             TabController.openEpgGrid(fromPlayer = true, returnUuid = intent.getStringExtra("epg_return_uuid"))
         }
+        maybeResumeLastPlayback(savedInstanceState)   // M494
         setContent {
             val themeMode = ThemePref.stateOf(this).value
             val dark = when (themeMode) {

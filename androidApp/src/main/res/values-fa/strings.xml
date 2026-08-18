@@ -380,4 +380,6 @@
     <string name="load_error">بارگیری ناموفق بود</string>
     <string name="err_timeout">سرور به‌موقع پاسخ نداد</string>
     <string name="sub_dvb">زیرنویس DVB</string>
+    <string name="resume_last_enable">ادامه از جایی که مانده بودم</string>
+    <string name="resume_last_note">پس از اجرای برنامه، کانال یا ضبطی که هنگام خاموش کردن دستگاه پخش می‌شد ادامه می‌یابد.</string>
 </resources>

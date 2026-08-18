@@ -380,4 +380,6 @@
     <string name="load_error">Αποτυχία φόρτωσης</string>
     <string name="err_timeout">Ο διακομιστής δεν απάντησε έγκαιρα</string>
     <string name="sub_dvb">Υπότιτλοι DVB</string>
+    <string name="resume_last_enable">Συνέχεια από εκεί που σταμάτησα</string>
+    <string name="resume_last_note">Μετά την εκκίνηση της εφαρμογής συνεχίζει το κανάλι ή η εγγραφή που έπαιζε όταν έκλεισες το box.</string>
 </resources>

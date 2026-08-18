@@ -380,4 +380,6 @@
     <string name="load_error">加载失败</string>
     <string name="err_timeout">服务器未及时响应</string>
     <string name="sub_dvb">DVB 字幕</string>
+    <string name="resume_last_enable">从上次离开处继续</string>
+    <string name="resume_last_note">启动应用时，继续播放关机前正在看的频道或录制。</string>
 </resources>

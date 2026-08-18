@@ -1276,7 +1276,28 @@ class PlayerActivity : ComponentActivity() {
         return true
     }
 
+    /**
+     * M494: zapamataj, co sa prave prehrava (TV). Zapisuje sa pri starte a pri
+     * kazdom prepnuti kanala, aby po vypnuti a zapnuti boxu appka pokracovala
+     * tam, kde pouzivatel skoncil.
+     */
+    private fun rememberPlayback() {
+        if (!isTvDevice()) return
+        if (playKind == "radio") return          // radio ma vlastne pokracovanie
+        val srvId = (liveServer ?: Tvh.store.active())?.id ?: return
+        val du = dvrUuid
+        if (du != null) {
+            LastPlayback.setDvr(this, srvId, du, intent.getStringExtra(EXTRA_TITLE))
+        } else {
+            val uuid = liveUuids.getOrNull(liveIndex) ?: intent.getStringExtra(EXTRA_UUID)
+            LastPlayback.setLive(this, srvId, uuid, liveNames.getOrNull(liveIndex))
+        }
+    }
+
     private fun closePlayer() {
+        // M494: odchod z prehravaca = uz niet co obnovovat (pouzivatel skoncil
+        // na zozname, nie na kanali). Navrat na zivy kanal z archivu odchod nie je.
+        if (returnLiveUuid == null) LastPlayback.clear(this)
         if (radioHandoffIfPossible()) return
         val ru = returnLiveUuid
         if (ru != null) {
@@ -1324,6 +1345,7 @@ class PlayerActivity : ComponentActivity() {
         if (i < 0 || i >= liveUuids.size) return
         if (i == liveIndex) { if (poke) pokeControls(); return }  // ten isty kanal -> nenacitavaj znova
         refreshDvrState()   // M490: ina relacia -> iny stav nahravania
+        rememberPlayback()  // M494: obnovenie po restarte appky
         val srv = liveServer ?: return
         val uuid = liveUuids[i]
         // rodicovsky zamok: zamknuty kanal mimo 5-min okna -> vypytaj PIN
@@ -3105,6 +3127,7 @@ class PlayerActivity : ComponentActivity() {
             saveLastLive(server.id, channelUuid)
             hydrateEpgFromDisk(server)   // M275: nacitaj EPG z disku (prezije restart boxu)
         }
+        rememberPlayback()   // M494: uz pri starte, nie az po prvom prepnuti
         liveChannelsState.value = LivePlaylist.channels
         // M281: hned dopln now/next z cache (disk/proces) na viditelny zoznam, nech sa nazvy
         // relacii pod kanalmi ukazu okamzite aj po restarte (predtym cakali na sietovy refresh).
@@ -4662,6 +4685,11 @@ private fun PlayerUi(
     // Jednorazovy skok na zaciatok relacie v subore (prebiehajuca nahravka s predprogramovym
     // obsahom), aby "od zaciatku" hralo od zaciatku relacie a prehravacie hodiny od 0 sedeli.
     var initialSeekDone by remember { mutableStateOf(false) }
+    // M495: pretocenie DVR prebuduje medium s :start-time, takze player.position
+    // od tej chvile ukazuje poziciu v NOVOM mediu (zacina na mieste skoku), nie
+    // v celom subore. Prepocet suborovej pozicie na cas relacie je odvtedy
+    // neplatny — hodiny musia ist z wall-clocku od seedu.
+    var rebuiltBySeek by remember { mutableStateOf(false) }
 
     // Dlzka baru = uplynuty cas relacie (knownDurationMs, plynulo rastie 1s/s).
     // Nepouzivame player.length do skaly - VLC ju pre rastuci TS hlasi v hrubych
@@ -4715,6 +4743,7 @@ private fun PlayerUi(
                     val denom = (curOff + curLen).coerceAtLeast(1L)
                     posFraction = ((curOff + posTimeMs).toFloat() / denom).coerceIn(0f, 1f)
                     initialSeekDone = true
+                    rebuiltBySeek = true      // M495
                     onSeekSeedHandled()
                 }
                 // obnovenie po potvrdeni (ma prednost pred skokom na zaciatok relacie).
@@ -4752,17 +4781,28 @@ private fun PlayerUi(
                         // plynulo (<<5%), takze sa to nespusti a hodiny tikaju z wall-clocku.
                         // p > 0.02: ignoruj falosne nulove citanie pozicie (caste na rastucom TS
                         // aj tesne po znovu-otvoreni), nech hodiny neskocia na 0.
-                        if (initialSeekDone && curLen > 0 && p > 0.02f && player.isSeekable &&
-                            kotlin.math.abs(p - posFraction) > 0.05f) {
+                        // M495: len kym je medium povodne. Po pretoceni (prebudovane
+                        // s :start-time) by tento prepocet hodiny zresetoval takmer na
+                        // nulu a tikali by od zleho bodu — presne to sposobovalo, ze
+                        // dalsie pretocenie islo z davno prehratej pozicie.
+                        if (!rebuiltBySeek && initialSeekDone && curLen > 0 && p > 0.02f &&
+                            player.isSeekable && kotlin.math.abs(p - posFraction) > 0.05f) {
                             posTimeMs = (p * (curOff + curLen) - curOff).toLong()
                                 .coerceIn(0L, curBar)
                         }
-                        posFraction = p
+                        if (!rebuiltBySeek) posFraction = p
                     }
                     // Prehravacie hodiny: kym sa prehrava, pridavaj realny uplynuly cas.
                     if (lastPlayTickMs > 0L && player.isPlaying) {
                         val d = (nowMs - lastPlayTickMs).coerceIn(0L, 3000L)
                         posTimeMs = (posTimeMs + d).coerceIn(0L, curBar)
+                    }
+                    // M495: po prebudovani media je zlomok z player.position neplatny,
+                    // takze poloha na lište musi vychadzat z hodin (inak by ukazovatel
+                    // skocil na zaciatok a nesedel by s casom).
+                    if (rebuiltBySeek) {
+                        val denom = (curOff + curLen).coerceAtLeast(1L)
+                        posFraction = ((curOff + posTimeMs).toFloat() / denom).coerceIn(0f, 1f)
                     }
                     // Zrkadli playhead do Activity — potrebuju ho znovu-otvorenie
                     // in-progress streamu AJ pretacanie (seekRelative/dvojklik z neho

@@ -380,4 +380,6 @@
     <string name="load_error">โหลดไม่สำเร็จ</string>
     <string name="err_timeout">เซิร์ฟเวอร์ไม่ตอบกลับทันเวลา</string>
     <string name="sub_dvb">คำบรรยาย DVB</string>
+    <string name="resume_last_enable">ดูต่อจากที่ค้างไว้</string>
+    <string name="resume_last_note">เมื่อเปิดแอป ช่องหรือการบันทึกที่เล่นอยู่ตอนปิดกล่องจะเล่นต่อ</string>
 </resources>

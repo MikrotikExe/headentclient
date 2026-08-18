@@ -380,4 +380,6 @@
     <string name="load_error">Eroare la încărcare</string>
     <string name="err_timeout">Serverul nu a răspuns la timp</string>
     <string name="sub_dvb">Subtitrări DVB</string>
+    <string name="resume_last_enable">Continuă de unde am rămas</string>
+    <string name="resume_last_note">La pornirea aplicației se reia canalul sau înregistrarea care rula când ai oprit boxul.</string>
 </resources>
