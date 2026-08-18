@@ -4700,6 +4700,12 @@ private fun PlayerUi(
     // lava strana by sa nezmestila nad uroven zivej hrany pri starte).
     val lengthMsLive = androidx.compose.runtime.rememberUpdatedState(lengthMs)
     val offsetMsLive = androidx.compose.runtime.rememberUpdatedState(recordingOffsetMs)
+    // M495-fix: to iste plati pre seed z pretocenia. Ticker bezi v LaunchedEffect(Unit),
+    // takze si hodnotu parametra zapamata pri PRVEJ kompozicii a novu uz nikdy neuvidi —
+    // seed teda nikdy nedorazil, hodiny sa na ciel neprepli a resync ich zrazil takmer
+    // na nulu (odtial "0:59" hned po skoku na 40. minutu).
+    val seekSeedLive = androidx.compose.runtime.rememberUpdatedState(seekSeedMs)
+    val onSeekSeedHandledLive = androidx.compose.runtime.rememberUpdatedState(onSeekSeedHandled)
     // Pri prebiehajucej nahravke nedovol pretocit az na zivu hranu (koniec dostupnych dat).
     // Zapisane data zaostavaju za EPG casom (prava strana) o cca 20-30 s, takze rezerva
     // pocitana z EPG casu musi byt vacsia, inak playhead skoci do este nezapisanej zony,
@@ -4738,13 +4744,14 @@ private fun PlayerUi(
                 // je player.position po restarte neplatna, tak ju nasledny resync nesmie citat -
                 // seed da hodinam spravny bod a tikaju dalej z neho (initialSeekDone=true zaroven
                 // umlci jednorazovy skok na zaciatok relacie).
-                if (seekSeedMs >= 0L) {
-                    posTimeMs = seekSeedMs.coerceIn(0L, curBar)
+                val seed = seekSeedLive.value          // M495-fix: cerstva hodnota
+                if (seed >= 0L) {
+                    posTimeMs = seed.coerceIn(0L, curBar)
                     val denom = (curOff + curLen).coerceAtLeast(1L)
                     posFraction = ((curOff + posTimeMs).toFloat() / denom).coerceIn(0f, 1f)
                     initialSeekDone = true
                     rebuiltBySeek = true      // M495
-                    onSeekSeedHandled()
+                    onSeekSeedHandledLive.value()
                 }
                 // obnovenie po potvrdeni (ma prednost pred skokom na zaciatok relacie).
                 // POZOR: priame player.position pri pipe/feeder DVR nefunguje (a
