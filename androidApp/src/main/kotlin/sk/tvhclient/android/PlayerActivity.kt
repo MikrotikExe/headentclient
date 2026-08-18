@@ -730,6 +730,12 @@ class PlayerActivity : ComponentActivity() {
         skipFlushJob?.cancel(); skipFlushJob = null
         seekSpinnerJob?.cancel(); seekingState.value = false
         seekHintJob?.cancel(); seekHintState.value = 0
+        // M492: akumulator dvojkliku sa nulovat musi tiez — inak by po prepnuti
+        // media ostal vychodzi bod z predchadzajucej nahravky a prve pretocenie
+        // by skocilo uplne inam. Playhead vynuluj z rovnakeho dovodu.
+        seekCommitJob?.cancel(); seekCommitJob = null
+        seekAccumBaseMs = -1L
+        dvrPlayheadMsState.value = 0L
         pendingSkipMs = 0L
         tsAccumMs = 0L
         tsPauseStartedAt = 0L
@@ -4758,8 +4764,13 @@ private fun PlayerUi(
                         val d = (nowMs - lastPlayTickMs).coerceIn(0L, 3000L)
                         posTimeMs = (posTimeMs + d).coerceIn(0L, curBar)
                     }
-                    // zrkadli playhead do Activity (pre spolahlive znovu-otvorenie in-progress streamu)
-                    if (recordingLive) onPlayheadMs(posTimeMs)
+                    // Zrkadli playhead do Activity — potrebuju ho znovu-otvorenie
+                    // in-progress streamu AJ pretacanie (seekRelative/dvojklik z neho
+                    // beru vychodziu poziciu).
+                    // M492: bolo `if (recordingLive)`, takze pri DOKONCENEJ nahravke
+                    // z archivu playhead v Activity zamrzol na hodnote posledneho seeku
+                    // a kazde dalsie pretocenie islo od nej, nie od miesta, kde sa hra.
+                    onPlayheadMs(posTimeMs)
                 }
                 lastPlayTickMs = nowMs
                 // Koniec dostupnych dat in-progress nahravky (EOF) riesi reopenDvrLive (znovu
