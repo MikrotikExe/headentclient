@@ -380,6 +380,6 @@
     <string name="load_error">Napaka pri nalaganju</string>
     <string name="err_timeout">Strežnik ni odgovoril pravočasno</string>
     <string name="sub_dvb">Podnapisi DVB</string>
-    <string name="resume_last_enable">Nadaljuj, kjer sem končal</string>
-    <string name="resume_last_note">Po zagonu aplikacije se nadaljuje kanal ali posnetek, ki se je predvajal ob izklopu naprave.</string>
+    <string name="resume_last_enable">Zaženi z zadnjim kanalom</string>
+    <string name="resume_last_note">Po zagonu aplikacija naloži seznam kanalov in predvaja TV kanal ali radio, ki si ga gledal nazadnje. Posnetki se ne nadaljujejo.</string>
 </resources>

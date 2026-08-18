@@ -1283,15 +1283,10 @@ class PlayerActivity : ComponentActivity() {
      */
     private fun rememberPlayback() {
         if (!isTvDevice()) return
-        if (playKind == "radio") return          // radio ma vlastne pokracovanie
+        if (dvrUuid != null) return              // M497: archiv sa neobnovuje
         val srvId = (liveServer ?: Tvh.store.active())?.id ?: return
-        val du = dvrUuid
-        if (du != null) {
-            LastPlayback.setDvr(this, srvId, du, intent.getStringExtra(EXTRA_TITLE))
-        } else {
-            val uuid = liveUuids.getOrNull(liveIndex) ?: intent.getStringExtra(EXTRA_UUID)
-            LastPlayback.setLive(this, srvId, uuid, liveNames.getOrNull(liveIndex))
-        }
+        val uuid = liveUuids.getOrNull(liveIndex) ?: intent.getStringExtra(EXTRA_UUID)
+        LastPlayback.setLive(this, srvId, uuid, playKind)
     }
 
     private fun closePlayer() {

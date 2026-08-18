@@ -380,6 +380,6 @@
     <string name="load_error">لوڈنگ ناکام</string>
     <string name="err_timeout">سرور نے بروقت جواب نہیں دیا</string>
     <string name="sub_dvb">DVB ذیلی عنوانات</string>
-    <string name="resume_last_enable">جہاں چھوڑا تھا وہیں سے جاری رکھیں</string>
-    <string name="resume_last_note">ایپ چلنے پر وہ چینل یا ریکارڈنگ دوبارہ شروع ہوتی ہے جو ڈوبا بند کرتے وقت چل رہی تھی۔</string>
+    <string name="resume_last_enable">آخری چینل سے شروع کریں</string>
+    <string name="resume_last_note">ایپ چلنے پر چینل فہرست لوڈ ہوتی ہے اور وہی ٹی وی چینل یا ریڈیو چلتا ہے جو آپ نے آخر میں دیکھا تھا۔ ریکارڈنگز دوبارہ نہیں چلتیں۔</string>
 </resources>

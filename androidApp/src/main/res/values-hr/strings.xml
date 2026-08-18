@@ -380,6 +380,6 @@
     <string name="load_error">Greška pri učitavanju</string>
     <string name="err_timeout">Poslužitelj nije odgovorio na vrijeme</string>
     <string name="sub_dvb">DVB podnaslovi</string>
-    <string name="resume_last_enable">Nastavi gdje sam stao</string>
-    <string name="resume_last_note">Nakon pokretanja aplikacije nastavlja se kanal ili snimka koja se reproducirala kad si isključio uređaj.</string>
+    <string name="resume_last_enable">Pokreni s posljednjim kanalom</string>
+    <string name="resume_last_note">Nakon pokretanja aplikacija učitava popis kanala i pušta TV kanal ili radio koji si zadnji gledao. Snimke se ne nastavljaju.</string>
 </resources>

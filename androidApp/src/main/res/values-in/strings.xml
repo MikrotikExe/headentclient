@@ -380,6 +380,6 @@
     <string name="load_error">Gagal memuat</string>
     <string name="err_timeout">Server tidak merespons tepat waktu</string>
     <string name="sub_dvb">Subtitel DVB</string>
-    <string name="resume_last_enable">Lanjutkan dari tempat terakhir</string>
-    <string name="resume_last_note">Saat aplikasi dibuka, saluran atau rekaman yang sedang diputar ketika box dimatikan akan dilanjutkan.</string>
+    <string name="resume_last_enable">Mulai dengan saluran terakhir</string>
+    <string name="resume_last_note">Saat aplikasi dibuka, daftar saluran dimuat dan saluran TV atau radio yang terakhir ditonton diputar. Rekaman tidak dilanjutkan.</string>
 </resources>

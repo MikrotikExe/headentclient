@@ -380,6 +380,6 @@
     <string name="load_error">Falha ao carregar</string>
     <string name="err_timeout">O servidor não respondeu a tempo</string>
     <string name="sub_dvb">Legendas DVB</string>
-    <string name="resume_last_enable">Continuar onde parei</string>
-    <string name="resume_last_note">Ao iniciar a aplicação, retoma o canal ou a gravação que estava a reproduzir quando desligou a box.</string>
+    <string name="resume_last_enable">Iniciar com o último canal</string>
+    <string name="resume_last_note">Ao iniciar, a aplicação carrega a lista de canais e reproduz o canal de TV ou a rádio vistos por último. As gravações não são retomadas.</string>
 </resources>

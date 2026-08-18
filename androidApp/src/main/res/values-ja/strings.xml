@@ -380,6 +380,6 @@
     <string name="load_error">読み込みに失敗しました</string>
     <string name="err_timeout">サーバーが時間内に応答しませんでした</string>
     <string name="sub_dvb">DVB字幕</string>
-    <string name="resume_last_enable">前回の続きから再生</string>
-    <string name="resume_last_note">アプリ起動時に、本体を切ったときに再生していたチャンネルまたは録画を再開します。</string>
+    <string name="resume_last_enable">前回のチャンネルで起動</string>
+    <string name="resume_last_note">アプリ起動時にチャンネル一覧を読み込み、最後に見ていたTVチャンネルまたはラジオを再生します。録画は再開されません。</string>
 </resources>

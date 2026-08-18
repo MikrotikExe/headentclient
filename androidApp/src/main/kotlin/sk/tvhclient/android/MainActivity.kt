@@ -292,13 +292,11 @@ private fun TvHomeHost() {
     // autostart (play = "tv"): pocka sa na nacitanie kanalov, naplni sa
     // LivePlaylist a az potom sa otvori prehravac.
     androidx.compose.runtime.LaunchedEffect(Unit) {
-        val req = LastPlayback.pendingRestore
-        if (req != null) {
-            LastPlayback.pendingRestore = null
-            when (req.kind) {
-                "live" -> if (play.isEmpty()) { chVm.loadIfNeeded(); play = "tv" }
-                "dvr" -> req.intent?.let { runCatching { ctx.startActivity(it) } }
-            }
+        val kind = LastPlayback.pendingKind
+        if (kind != null && play.isEmpty()) {
+            LastPlayback.pendingKind = null
+            if (kind == "radio") { raVm.load(); play = "radio" }
+            else { chVm.loadIfNeeded(); play = "tv" }
         }
     }
     var showExit by remember { mutableStateOf(false) }
@@ -333,11 +331,11 @@ private fun TvHomeHost() {
                     if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
                 }
                 LivePlaylist.setChannels(full, grps)
-                // M496: ak obnovujeme posledne prehravanie, ma prednost ten kanal
-                val target = (LastPlayback.restoreLiveUuid ?: LastChannel.get(ctx, sid))
+                // M496: ak obnovujeme posledne vysielanie, ma prednost ten kanal
+                val target = (LastPlayback.pendingUuid ?: LastChannel.get(ctx, sid))
                     ?.takeIf { u -> LivePlaylist.channels.any { it.uuid == u } }
                     ?: LivePlaylist.channels.firstOrNull()?.uuid
-                LastPlayback.restoreLiveUuid = null
+                LastPlayback.pendingUuid = null
                 play = ""
                 if (target != null) {
                     LivePlaylist.setIndexForUuid(target)
@@ -361,9 +359,11 @@ private fun TvHomeHost() {
                         nowTitle = r.nowTitle ?: "", nowStart = r.nowStart, nowStop = r.nowStop
                     )
                 }, emptyList())
-                val target = LastRadio.get(ctx, sid)
+                // M497: obnovovana stanica ma prednost pred poslednou
+                val target = (LastPlayback.pendingUuid ?: LastRadio.get(ctx, sid))
                     ?.takeIf { u -> LivePlaylist.channels.any { it.uuid == u } }
                     ?: LivePlaylist.channels.firstOrNull()?.uuid
+                LastPlayback.pendingUuid = null
                 play = ""
                 if (target != null) {
                     LivePlaylist.setIndexForUuid(target)

@@ -380,6 +380,6 @@
     <string name="load_error">Błąd wczytywania</string>
     <string name="err_timeout">Serwer nie odpowiedział na czas</string>
     <string name="sub_dvb">Napisy DVB</string>
-    <string name="resume_last_enable">Kontynuuj tam, gdzie skończyłem</string>
-    <string name="resume_last_note">Po uruchomieniu aplikacji wraca kanał lub nagranie odtwarzane w chwili wyłączenia dekodera.</string>
+    <string name="resume_last_enable">Uruchom z ostatnim kanałem</string>
+    <string name="resume_last_note">Po uruchomieniu aplikacja wczytuje listę kanałów i odtwarza ostatnio oglądany kanał TV lub radio. Nagrania nie są wznawiane.</string>
 </resources>

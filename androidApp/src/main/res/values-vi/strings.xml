@@ -380,6 +380,6 @@
     <string name="load_error">Tải thất bại</string>
     <string name="err_timeout">Máy chủ không phản hồi kịp thời</string>
     <string name="sub_dvb">Phụ đề DVB</string>
-    <string name="resume_last_enable">Tiếp tục từ chỗ đang xem</string>
-    <string name="resume_last_note">Khi mở ứng dụng, kênh hoặc bản ghi đang phát lúc tắt đầu thu sẽ được phát tiếp.</string>
+    <string name="resume_last_enable">Bắt đầu với kênh cuối cùng</string>
+    <string name="resume_last_note">Khi mở ứng dụng, danh sách kênh được tải và kênh TV hoặc radio xem gần nhất sẽ phát. Bản ghi không được phát tiếp.</string>
 </resources>

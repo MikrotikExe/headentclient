@@ -380,6 +380,6 @@
     <string name="load_error">Yükleme başarısız</string>
     <string name="err_timeout">Sunucu zamanında yanıt vermedi</string>
     <string name="sub_dvb">DVB altyazıları</string>
-    <string name="resume_last_enable">Kaldığım yerden devam et</string>
-    <string name="resume_last_note">Uygulama açıldığında, cihazı kapattığında oynayan kanal veya kayıt kaldığı yerden devam eder.</string>
+    <string name="resume_last_enable">Son kanalla başlat</string>
+    <string name="resume_last_note">Uygulama açıldığında kanal listesi yüklenir ve en son izlediğin TV kanalı veya radyo çalmaya başlar. Kayıtlar devam ettirilmez.</string>
 </resources>

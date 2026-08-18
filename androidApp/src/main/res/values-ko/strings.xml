@@ -380,6 +380,6 @@
     <string name="load_error">불러오기 실패</string>
     <string name="err_timeout">서버가 제시간에 응답하지 않았습니다</string>
     <string name="sub_dvb">DVB 자막</string>
-    <string name="resume_last_enable">마지막으로 본 곳부터 계속</string>
-    <string name="resume_last_note">앱을 실행하면 셋톱박스를 끔 때 재생 중이던 채널이나 녹화가 이어서 재생됩니다.</string>
+    <string name="resume_last_enable">마지막 채널로 시작</string>
+    <string name="resume_last_note">앱을 실행하면 채널 목록을 불러오고 마지막으로 본 TV 채널이나 라디오를 재생합니다. 녹화는 이어서 재생되지 않습니다.</string>
 </resources>

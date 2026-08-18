@@ -380,6 +380,6 @@
     <string name="load_error">Грешка при учитавању</string>
     <string name="err_timeout">Сервер није одговорио на време</string>
     <string name="sub_dvb">DVB титлови</string>
-    <string name="resume_last_enable">Настави где сам стао</string>
-    <string name="resume_last_note">По покретању апликације наставља се канал или снимак који је ишао кад си искључио уређај.</string>
+    <string name="resume_last_enable">Покрени са последњим каналом</string>
+    <string name="resume_last_note">По покретању апликација учитава листу канала и пушта ТВ канал или радио који си последњи гледао. Снимци се не настављају.</string>
 </resources>

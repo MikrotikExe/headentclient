@@ -380,6 +380,6 @@
     <string name="load_error">Laden mislukt</string>
     <string name="err_timeout">Server reageerde niet op tijd</string>
     <string name="sub_dvb">DVB-ondertitels</string>
-    <string name="resume_last_enable">Doorgaan waar ik gebleven was</string>
-    <string name="resume_last_note">Na het starten van de app wordt de zender of opname hervat die liep toen je de box uitzette.</string>
+    <string name="resume_last_enable">Starten met de laatste zender</string>
+    <string name="resume_last_note">Na het starten van de app wordt de zenderlijst geladen en de laatst bekeken tv- of radiozender afgespeeld. Opnamen worden niet hervat.</string>
 </resources>

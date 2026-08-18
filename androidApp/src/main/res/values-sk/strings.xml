@@ -380,6 +380,6 @@
     <string name="load_error">Chyba načítania</string>
     <string name="err_timeout">Server neodpovedal včas</string>
     <string name="sub_dvb">DVB titulky</string>
-    <string name="resume_last_enable">Pokračovať tam, kde som skončil</string>
-    <string name="resume_last_note">Po spustení aplikácie sa vráti kanál alebo nahrávka, ktorá bežala pri vypnutí boxu.</string>
+    <string name="resume_last_enable">Spustiť posledný kanál</string>
+    <string name="resume_last_note">Po spustení aplikácie sa načíta zoznam kanálov a pustí sa TV kanál alebo rádio, ktoré si pozeral naposledy. Nahrávky sa neobnovujú.</string>
 </resources>

@@ -380,6 +380,6 @@
     <string name="load_error">लोड करने में त्रुटि</string>
     <string name="err_timeout">सर्वर ने समय पर जवाब नहीं दिया</string>
     <string name="sub_dvb">DVB उपशीर्षक</string>
-    <string name="resume_last_enable">जहाँ छोड़ा था वहीं से जारी रखें</string>
-    <string name="resume_last_note">ऐप खुलने पर वही चैनल या रिकॉर्डिंग फिर से चलती है जो बॉक्स बंद करते समय चल रही थी।</string>
+    <string name="resume_last_enable">आखिरी चैनल से शुरू करें</string>
+    <string name="resume_last_note">ऐप खुलने पर चैनल सूची लोड होती है और आखिरी बार देखा गया टीवी चैनल या रेडियो चलता है। रिकॉर्डिंग फिर से नहीं चलती।</string>
 </resources>

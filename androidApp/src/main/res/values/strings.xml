@@ -380,6 +380,6 @@
     <string name="load_error">Loading failed</string>
     <string name="err_timeout">Server did not respond in time</string>
     <string name="sub_dvb">DVB subtitles</string>
-    <string name="resume_last_enable">Continue where I left off</string>
-    <string name="resume_last_note">After starting the app, resume the channel or recording that was playing when you turned the box off.</string>
+    <string name="resume_last_enable">Start with the last channel</string>
+    <string name="resume_last_note">After the app starts, load the channel list and play the TV channel or radio station you were last watching. Recordings are not resumed.</string>
 </resources>

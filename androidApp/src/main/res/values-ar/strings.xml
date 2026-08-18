@@ -380,6 +380,6 @@
     <string name="load_error">فشل التحميل</string>
     <string name="err_timeout">لم يستجب الخادم في الوقت المناسب</string>
     <string name="sub_dvb">ترجمات DVB</string>
-    <string name="resume_last_enable">المتابعة من حيث توقفت</string>
-    <string name="resume_last_note">عند فتح التطبيق تُستأنف القناة أو التسجيل الذي كان يُشغّل عند إيقاف الجهاز.</string>
+    <string name="resume_last_enable">البدء بآخر قناة</string>
+    <string name="resume_last_note">عند بدء التطبيق تُحمّل قائمة القنوات وتُشغّل آخر قناة تلفزيون أو إذاعة شاهدتها. التسجيلات لا تُستأنف.</string>
 </resources>

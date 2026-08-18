@@ -380,6 +380,6 @@
     <string name="load_error">A betöltés nem sikerült</string>
     <string name="err_timeout">A kiszolgáló nem válaszolt időben</string>
     <string name="sub_dvb">DVB-feliratok</string>
-    <string name="resume_last_enable">Folytatás ott, ahol abbahagytam</string>
-    <string name="resume_last_note">Az alkalmazás indításakor folytatódik az a csatorna vagy felvétel, amely a box kikapcsolásakor szólt.</string>
+    <string name="resume_last_enable">Indítás az utolsó csatornával</string>
+    <string name="resume_last_note">Indítás után az alkalmazás betölti a csatornalistát, és elindítja a legutóbb nézett TV-csatornát vagy rádiót. A felvételek nem folytatódnak.</string>
 </resources>

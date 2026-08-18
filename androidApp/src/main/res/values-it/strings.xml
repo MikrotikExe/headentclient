@@ -380,6 +380,6 @@
     <string name="load_error">Caricamento non riuscito</string>
     <string name="err_timeout">Il server non ha risposto in tempo</string>
     <string name="sub_dvb">Sottotitoli DVB</string>
-    <string name="resume_last_enable">Riprendi da dove ho lasciato</string>
-    <string name="resume_last_note">All\'avvio dell\'app riprende il canale o la registrazione in riproduzione allo spegnimento del box.</string>
+    <string name="resume_last_enable">Avvia con l\'ultimo canale</string>
+    <string name="resume_last_note">All\'avvio l\'app carica l\'elenco dei canali e riproduce il canale TV o la radio guardati per ultimi. Le registrazioni non vengono riprese.</string>
 </resources>
