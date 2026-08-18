@@ -56,6 +56,39 @@ object LastPlayback {
             .apply()
     }
 
+    /** M496: poziadavka na obnovenie, ktoru vykona UI (nie Activity v onCreate). */
+    class Restore(val kind: String, val intent: android.content.Intent?)
+
+    @Volatile
+    var pendingRestore: Restore? = null
+
+    /**
+     * M496: uuid kanala, ktory sa ma pustit po nacitani zoznamu kanalov.
+     * Zivy kanal sa nesmie otvarat priamo — prehravac by nemal LivePlaylist a
+     * nedalo by sa prepinat.
+     */
+    @Volatile
+    var restoreLiveUuid: String? = null
+
+    /** Priprav obnovenie; vykona ho UI, ktore vie pockat na nacitanie kanalov. */
+    fun prepareRestore(c: Context, activeServerId: String?) {
+        if (activeServerId == null) return
+        val p = prefs(c)
+        val kind = p.getString(KEY_KIND, null) ?: return
+        if (p.getString(KEY_SERVER, null) != activeServerId) return
+        val uuid = p.getString(KEY_UUID, null)?.takeIf { it.isNotBlank() } ?: return
+        when (kind) {
+            "live" -> {
+                restoreLiveUuid = uuid
+                pendingRestore = Restore("live", null)
+            }
+            "dvr" -> {
+                val i = restoreIntent(c, activeServerId) ?: return
+                pendingRestore = Restore("dvr", i)
+            }
+        }
+    }
+
     /**
      * Intent na obnovenie prehravania, alebo null ak nie je co obnovit.
      *

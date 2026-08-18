@@ -147,8 +147,8 @@ class MainActivity : ComponentActivity() {
         val um = getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
         if (um?.currentModeType != android.content.res.Configuration.UI_MODE_TYPE_TELEVISION) return
         if (!ResumeLastPref.get(this)) return
-        val i = LastPlayback.restoreIntent(this, sk.tvhclient.shared.Tvh.store.active()?.id) ?: return
-        runCatching { startActivity(i) }
+        // M496: len priprav poziadavku — vykona ju UI, ktore vie pockat na kanaly
+        LastPlayback.prepareRestore(this, sk.tvhclient.shared.Tvh.store.active()?.id)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -285,6 +285,22 @@ private fun TvHomeHost() {
     }
     var lastTile by remember { mutableStateOf("channels") }
     var play by remember { mutableStateOf("") }
+    // M496: obnovenie posledneho prehravania po starte appky (TV).
+    // Zivy kanal sa NESMIE spustat priamo — prehravac dostava zoznam kanalov cez
+    // LivePlaylist, ktory pri studenom starte este nie je naplneny, takze by hral
+    // jediny kanal a CH+/- by nefungovalo. Preto ho pustime tou istou cestou ako
+    // autostart (play = "tv"): pocka sa na nacitanie kanalov, naplni sa
+    // LivePlaylist a az potom sa otvori prehravac.
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        val req = LastPlayback.pendingRestore
+        if (req != null) {
+            LastPlayback.pendingRestore = null
+            when (req.kind) {
+                "live" -> if (play.isEmpty()) { chVm.loadIfNeeded(); play = "tv" }
+                "dvr" -> req.intent?.let { runCatching { ctx.startActivity(it) } }
+            }
+        }
+    }
     var showExit by remember { mutableStateOf(false) }
 
     fun playUuid(uuid: String, title: String, kind: String = "tv") {
@@ -317,9 +333,11 @@ private fun TvHomeHost() {
                     if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
                 }
                 LivePlaylist.setChannels(full, grps)
-                val target = LastChannel.get(ctx, sid)
+                // M496: ak obnovujeme posledne prehravanie, ma prednost ten kanal
+                val target = (LastPlayback.restoreLiveUuid ?: LastChannel.get(ctx, sid))
                     ?.takeIf { u -> LivePlaylist.channels.any { it.uuid == u } }
                     ?: LivePlaylist.channels.firstOrNull()?.uuid
+                LastPlayback.restoreLiveUuid = null
                 play = ""
                 if (target != null) {
                     LivePlaylist.setIndexForUuid(target)
