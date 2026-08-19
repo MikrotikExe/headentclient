@@ -1420,6 +1420,10 @@ private fun ArcInfoDialog(e: DvrEntry, onDismiss: () -> Unit) {
     val desc = e.dispDescription.ifBlank { e.dispSubtitle }
     // Zavri az po novom celom stlaceni OK (cerstve DOWN repeatCount==0). Chvost dlheho OK (uvolnenie) sa ignoruje.
     var sawFreshDown by remember { mutableStateOf(false) }
+    // M498: Surface pohlcuje vsetky klavesy (OK zatvara dialog), takze focusovatelne
+    // tlacidlo sa k nim nikdy nedostane. Polozka mazania sa preto vybera SIPKOU DOLE
+    // a potvrdzuje OK — rovnako ako info prekrytie v prehravaci.
+    var delSel by remember { mutableStateOf(false) }
     val fr = remember { FocusRequester() }
     Dialog(onDismissRequest = onDismiss) {
         androidx.compose.material3.Surface(
@@ -1431,13 +1435,31 @@ private fun ArcInfoDialog(e: DvrEntry, onDismiss: () -> Unit) {
                 .focusable()
                 .onKeyEvent { ev ->
                     val k = ev.nativeKeyEvent
+                    // M498: sipky prepinaju vyber polozky mazania
+                    if (k.keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN) {
+                        if (k.action == android.view.KeyEvent.ACTION_DOWN &&
+                            DvrDeleteRequest.allowed) delSel = true
+                        return@onKeyEvent true
+                    }
+                    if (k.keyCode == android.view.KeyEvent.KEYCODE_DPAD_UP) {
+                        if (k.action == android.view.KeyEvent.ACTION_DOWN) delSel = false
+                        return@onKeyEvent true
+                    }
                     val ok = k.keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
                         k.keyCode == android.view.KeyEvent.KEYCODE_ENTER ||
                         k.keyCode == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
                     if (!ok) return@onKeyEvent false
                     when (k.action) {
                         android.view.KeyEvent.ACTION_DOWN -> { if (k.repeatCount == 0) sawFreshDown = true; true }
-                        android.view.KeyEvent.ACTION_UP -> { if (sawFreshDown) onDismiss(); true }
+                        android.view.KeyEvent.ACTION_UP -> {
+                            if (sawFreshDown) {
+                                // M498: OK na vybratej polozke = zmazat, inak zavriet
+                                val del = delSel
+                                onDismiss()
+                                if (del) DvrDeleteRequest.ask(e)
+                            }
+                            true
+                        }
                         else -> false
                     }
                 }
@@ -1462,13 +1484,22 @@ private fun ArcInfoDialog(e: DvrEntry, onDismiss: () -> Unit) {
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier
                             .clip(RoundedCornerShape(10.dp))
-                            .dpadFocusable(RoundedCornerShape(10.dp))
+                            // M498: vyber sa kresli sam — fokus tu nefunguje
+                            .background(
+                                if (delSel) MaterialTheme.colorScheme.error.copy(alpha = 0.18f)
+                                else androidx.compose.ui.graphics.Color.Transparent
+                            )
                             .clickable { onDismiss(); DvrDeleteRequest.ask(e) }
                             .padding(horizontal = 14.dp, vertical = 8.dp)
                     )
                 }
                 Spacer(Modifier.height(14.dp))
-                Text(stringResource(R.string.close) + "  (OK)", color = MaterialTheme.colorScheme.primary,
+                Text(
+                    // M498: napoveda podla toho, co OK prave spravi
+                    if (delSel) stringResource(R.string.dvr_delete_button) + "  (OK)"
+                    else stringResource(R.string.close) + "  (OK)",
+                    color = if (delSel) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold,
                     modifier = Modifier.align(Alignment.End))
             }
