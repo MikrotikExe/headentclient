@@ -192,9 +192,12 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                 is RadioState.Error -> ErrorStatus(   // M491
                     s.message.ifBlank { stringResource(R.string.load_error) },
                     onRetry = { vm.load() })
-                is RadioState.Loaded -> {
+                is RadioState.Loaded -> Column(Modifier.fillMaxSize()) {
+                    // M505-fix: pas filtrov a zoznam musia byt POD SEBOU. Rodic je
+                    // Box (deti sa prekryvaju), takze bez tohto Column sa pas vykreslil
+                    // pod zoznamom stanic a nebolo ho vidiet.
                     val q = query.trim().lowercase()
-                    // M505: pas filtrov sa ukaze len ked ma radio aspon jednu skupinu
+                    // pas sa ukaze len ked ma radio aspon jednu skupinu
                     val radioTags = s.categories.mapNotNull { it.tag }
                     if (q.isBlank() && radioTags.isNotEmpty()) {
                         // ulozeny tag uz na serveri nemusi existovat -> spadni na „vsetky"
