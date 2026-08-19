@@ -383,4 +383,5 @@
     <string name="resume_last_enable">Mit dem letzten Sender starten</string>
     <string name="resume_last_note">Nach dem Start der App wird die Senderliste geladen und der zuletzt gesehene TV-Sender oder Radiosender wiedergegeben. Aufnahmen werden nicht fortgesetzt.</string>
     <string name="profile_unknown_warn">Der Server bietet das Profil „%1$s“ nicht an — er verwendet stattdessen sein Standardprofil.</string>
+    <string name="profile_note_htsp">HTSP überträgt Elementarströme, es wird also nicht transkodiert. Belasse die Servereinstellung, sofern dein Konto nicht an ein bestimmtes Profil gebunden ist.</string>
 </resources>

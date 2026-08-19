@@ -383,4 +383,5 @@
     <string name="resume_last_enable">Indítás az utolsó csatornával</string>
     <string name="resume_last_note">Indítás után az alkalmazás betölti a csatornalistát, és elindítja a legutóbb nézett TV-csatornát vagy rádiót. A felvételek nem folytatódnak.</string>
     <string name="profile_unknown_warn">A kiszolgáló nem kínálja a(z) „%1$s” profilt — helyette az alapértelmezettet használja.</string>
+    <string name="profile_note_htsp">A HTSP elemi adatfolyamokat visz át, tehát nincs átkódolás. Hagyd a kiszolgáló beállítását, hacsak a fiók nincs egy adott profilhoz kötve.</string>
 </resources>

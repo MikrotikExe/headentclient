@@ -383,4 +383,5 @@
     <string name="resume_last_enable">البدء بآخر قناة</string>
     <string name="resume_last_note">عند بدء التطبيق تُحمّل قائمة القنوات وتُشغّل آخر قناة تلفزيون أو إذاعة شاهدتها. التسجيلات لا تُستأنف.</string>
     <string name="profile_unknown_warn">الخادم لا يوفر الملف «%1$s» — سيستخدم ملفه الافتراضي بدلاً منه.</string>
+    <string name="profile_note_htsp">ينقل HTSP تدفقات أولية، فلا يجري تحويل الترميز. اترك إعداد الخادم ما لم يكن حسابك مرتبطًا بملف معين.</string>
 </resources>

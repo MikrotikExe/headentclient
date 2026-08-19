@@ -383,4 +383,5 @@
     <string name="resume_last_enable">从上次的频道开始</string>
     <string name="resume_last_note">启动应用时加载频道列表，并播放上次观看的电视频道或广播。录制不会继续播放。</string>
     <string name="profile_unknown_warn">服务器没有“%1$s”配置——将改用默认配置。</string>
+    <string name="profile_note_htsp">HTSP 传输基本流，因此不会转码。除非账号被限定到特定配置，否则保持服务器设置。</string>
 </resources>

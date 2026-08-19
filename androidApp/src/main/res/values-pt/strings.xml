@@ -383,4 +383,5 @@
     <string name="resume_last_enable">Iniciar com o último canal</string>
     <string name="resume_last_note">Ao iniciar, a aplicação carrega a lista de canais e reproduz o canal de TV ou a rádio vistos por último. As gravações não são retomadas.</string>
     <string name="profile_unknown_warn">O servidor não oferece o perfil “%1$s” — usará o predefinido.</string>
+    <string name="profile_note_htsp">O HTSP transporta fluxos elementares, pelo que não há transcodificação. Deixa a definição do servidor, a não ser que a conta esteja ligada a um perfil.</string>
 </resources>

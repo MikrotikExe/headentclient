@@ -383,4 +383,5 @@
     <string name="resume_last_enable">Start with the last channel</string>
     <string name="resume_last_note">After the app starts, load the channel list and play the TV channel or radio station you were last watching. Recordings are not resumed.</string>
     <string name="profile_unknown_warn">The server does not offer the profile “%1$s” — it will use its default instead.</string>
+    <string name="profile_note_htsp">HTSP transfers elementary streams, so no transcoding takes place. Leave it on the server setting unless your account is tied to a specific profile.</string>
 </resources>

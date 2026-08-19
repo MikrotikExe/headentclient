@@ -321,8 +321,14 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                 // M382: nie kazdy profil sa da prehrat (kontajner/kodeky) —
                 // napr. Vorbis v MP4 je neštandardny a zvuk nejde ani v inych
                 // prehravacoch. Odporucany je pass (bez transkodovania).
+                // M503: pri HTSP ma poznamka inu podobu — „pass" je HTTP profil
+                // (MPEG-TS passthrough) a server ho v ponuke ani nema; HTSP
+                // prenasa elementarne streamy a profil urci konto na serveri.
                 Text(
-                    stringResource(R.string.profile_note),
+                    stringResource(
+                        if (connMode == "htsp") R.string.profile_note_htsp
+                        else R.string.profile_note
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)

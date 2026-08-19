@@ -383,4 +383,5 @@
     <string name="resume_last_enable">Mulai dengan saluran terakhir</string>
     <string name="resume_last_note">Saat aplikasi dibuka, daftar saluran dimuat dan saluran TV atau radio yang terakhir ditonton diputar. Rekaman tidak dilanjutkan.</string>
     <string name="profile_unknown_warn">Server tidak menyediakan profil “%1$s” — akan memakai profil bawaannya.</string>
+    <string name="profile_note_htsp">HTSP mengirim stream elementer, jadi tidak ada transcoding. Biarkan pengaturan server kecuali akun terikat pada profil tertentu.</string>
 </resources>
