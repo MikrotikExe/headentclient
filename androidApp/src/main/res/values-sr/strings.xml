@@ -382,4 +382,5 @@
     <string name="sub_dvb">DVB титлови</string>
     <string name="resume_last_enable">Покрени са последњим каналом</string>
     <string name="resume_last_note">По покретању апликација учитава листу канала и пушта ТВ канал или радио који си последњи гледао. Снимци се не настављају.</string>
+    <string name="profile_unknown_warn">Сервер не нуди профил „%1$s“ — уместо њега користи подразумевани.</string>
 </resources>

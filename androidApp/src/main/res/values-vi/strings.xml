@@ -382,4 +382,5 @@
     <string name="sub_dvb">Phụ đề DVB</string>
     <string name="resume_last_enable">Bắt đầu với kênh cuối cùng</string>
     <string name="resume_last_note">Khi mở ứng dụng, danh sách kênh được tải và kênh TV hoặc radio xem gần nhất sẽ phát. Bản ghi không được phát tiếp.</string>
+    <string name="profile_unknown_warn">Máy chủ không có hồ sơ “%1$s” — sẽ dùng hồ sơ mặc định thay thế.</string>
 </resources>

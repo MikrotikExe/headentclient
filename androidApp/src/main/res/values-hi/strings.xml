@@ -382,4 +382,5 @@
     <string name="sub_dvb">DVB उपशीर्षक</string>
     <string name="resume_last_enable">आखिरी चैनल से शुरू करें</string>
     <string name="resume_last_note">ऐप खुलने पर चैनल सूची लोड होती है और आखिरी बार देखा गया टीवी चैनल या रेडियो चलता है। रिकॉर्डिंग फिर से नहीं चलती।</string>
+    <string name="profile_unknown_warn">सर्वर पर प्रोफ़ाइल “%1$s” उपलब्ध नहीं है — वह अपनी डिफ़ॉल्ट प्रोफ़ाइल उपयोग करेगा।</string>
 </resources>

@@ -382,4 +382,5 @@
     <string name="sub_dvb">Subtitrări DVB</string>
     <string name="resume_last_enable">Pornește cu ultimul canal</string>
     <string name="resume_last_note">La pornire, aplicația încarcă lista de canale și redă canalul TV sau radioul urmărit ultima dată. Înregistrările nu se reiau.</string>
+    <string name="profile_unknown_warn">Serverul nu oferă profilul „%1$s” — va folosi profilul implicit.</string>
 </resources>

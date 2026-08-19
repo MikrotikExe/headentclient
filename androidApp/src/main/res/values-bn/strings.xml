@@ -382,4 +382,5 @@
     <string name="sub_dvb">DVB সাবটাইটেল</string>
     <string name="resume_last_enable">শেষ চ্যানেল দিয়ে শুরু</string>
     <string name="resume_last_note">অ্যাপ চালু হলে চ্যানেল তালিকা লোড হয় এবং শেষবার দেখা টিভি চ্যানেল বা রেডিও চালু হয়। রেকর্ডিং পুনরায় চালু হয় না।</string>
+    <string name="profile_unknown_warn">সার্ভারে “%1$s” প্রোফাইল নেই — এর বদলে ডিফল্ট প্রোফাইল ব্যবহৃত হবে।</string>
 </resources>

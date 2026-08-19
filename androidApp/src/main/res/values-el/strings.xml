@@ -382,4 +382,5 @@
     <string name="sub_dvb">Υπότιτλοι DVB</string>
     <string name="resume_last_enable">Εκκίνηση με το τελευταίο κανάλι</string>
     <string name="resume_last_note">Μετά την εκκίνηση, η εφαρμογή φορτώνει τη λίστα καναλιών και παίζει το τελευταίο κανάλι ή ραδιόφωνο. Οι εγγραφές δεν συνεχίζονται.</string>
+    <string name="profile_unknown_warn">Ο διακομιστής δεν προσφέρει το προφίλ «%1$s» — θα χρησιμοποιήσει το προεπιλεγμένο.</string>
 </resources>

@@ -382,4 +382,5 @@
     <string name="sub_dvb">คำบรรยาย DVB</string>
     <string name="resume_last_enable">เริ่มด้วยช่องล่าสุด</string>
     <string name="resume_last_note">เมื่อเปิดแอป ระบบจะโหลดรายการช่องและเล่นช่องทีวีหรือวิทยุที่ดูล่าสุด การบันทึกจะไม่ถูกเล่นต่อ</string>
+    <string name="profile_unknown_warn">เซิร์ฟเวอร์ไม่มีโปรไฟล์ “%1$s” — จะใช้โปรไฟล์เริ่มต้นแทน</string>
 </resources>

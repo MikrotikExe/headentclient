@@ -382,4 +382,5 @@
     <string name="sub_dvb">DVB ذیلی عنوانات</string>
     <string name="resume_last_enable">آخری چینل سے شروع کریں</string>
     <string name="resume_last_note">ایپ چلنے پر چینل فہرست لوڈ ہوتی ہے اور وہی ٹی وی چینل یا ریڈیو چلتا ہے جو آپ نے آخر میں دیکھا تھا۔ ریکارڈنگز دوبارہ نہیں چلتیں۔</string>
+    <string name="profile_unknown_warn">سرور پر پروفائل «%1$s» دستیاب نہیں — وہ اپنی ڈیفالٹ پروفائل استعمال کرے گا۔</string>
 </resources>

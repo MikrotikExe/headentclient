@@ -382,4 +382,5 @@
     <string name="sub_dvb">DVB-feliratok</string>
     <string name="resume_last_enable">Indítás az utolsó csatornával</string>
     <string name="resume_last_note">Indítás után az alkalmazás betölti a csatornalistát, és elindítja a legutóbb nézett TV-csatornát vagy rádiót. A felvételek nem folytatódnak.</string>
+    <string name="profile_unknown_warn">A kiszolgáló nem kínálja a(z) „%1$s” profilt — helyette az alapértelmezettet használja.</string>
 </resources>

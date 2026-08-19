@@ -382,4 +382,5 @@
     <string name="sub_dvb">DVB字幕</string>
     <string name="resume_last_enable">前回のチャンネルで起動</string>
     <string name="resume_last_note">アプリ起動時にチャンネル一覧を読み込み、最後に見ていたTVチャンネルまたはラジオを再生します。録画は再開されません。</string>
+    <string name="profile_unknown_warn">サーバーにプロファイル「%1$s」がありません — 代わりに既定のプロファイルを使用します。</string>
 </resources>

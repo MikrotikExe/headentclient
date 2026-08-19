@@ -382,4 +382,5 @@
     <string name="sub_dvb">DVB 字幕</string>
     <string name="resume_last_enable">从上次的频道开始</string>
     <string name="resume_last_note">启动应用时加载频道列表，并播放上次观看的电视频道或广播。录制不会继续播放。</string>
+    <string name="profile_unknown_warn">服务器没有“%1$s”配置——将改用默认配置。</string>
 </resources>

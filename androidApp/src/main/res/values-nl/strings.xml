@@ -382,4 +382,5 @@
     <string name="sub_dvb">DVB-ondertitels</string>
     <string name="resume_last_enable">Starten met de laatste zender</string>
     <string name="resume_last_note">Na het starten van de app wordt de zenderlijst geladen en de laatst bekeken tv- of radiozender afgespeeld. Opnamen worden niet hervat.</string>
+    <string name="profile_unknown_warn">De server biedt het profiel “%1$s” niet aan — hij gebruikt in plaats daarvan zijn standaardprofiel.</string>
 </resources>

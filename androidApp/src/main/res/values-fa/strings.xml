@@ -382,4 +382,5 @@
     <string name="sub_dvb">زیرنویس DVB</string>
     <string name="resume_last_enable">شروع با آخرین کانال</string>
     <string name="resume_last_note">پس از اجرا، فهرست کانال‌ها بارگیری می‌شود و آخرین کانال تلویزیونی یا رادیویی پخش می‌شود. ضبط‌ها ادامه نمی‌یابند.</string>
+    <string name="profile_unknown_warn">سرور نمایه «%1$s» را ارائه نمی‌دهد — به جای آن از نمایه پیش‌فرض خود استفاده می‌کند.</string>
 </resources>

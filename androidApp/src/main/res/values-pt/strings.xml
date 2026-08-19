@@ -382,4 +382,5 @@
     <string name="sub_dvb">Legendas DVB</string>
     <string name="resume_last_enable">Iniciar com o último canal</string>
     <string name="resume_last_note">Ao iniciar, a aplicação carrega a lista de canais e reproduz o canal de TV ou a rádio vistos por último. As gravações não são retomadas.</string>
+    <string name="profile_unknown_warn">O servidor não oferece o perfil “%1$s” — usará o predefinido.</string>
 </resources>

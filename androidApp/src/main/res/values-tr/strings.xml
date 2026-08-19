@@ -382,4 +382,5 @@
     <string name="sub_dvb">DVB altyazıları</string>
     <string name="resume_last_enable">Son kanalla başlat</string>
     <string name="resume_last_note">Uygulama açıldığında kanal listesi yüklenir ve en son izlediğin TV kanalı veya radyo çalmaya başlar. Kayıtlar devam ettirilmez.</string>
+    <string name="profile_unknown_warn">Sunucu “%1$s” profilini sunmuyor — bunun yerine varsayılanı kullanacak.</string>
 </resources>

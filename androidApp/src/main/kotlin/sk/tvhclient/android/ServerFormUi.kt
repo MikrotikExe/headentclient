@@ -289,12 +289,29 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                     // M479: prva moznost je prazdna = "podla nastavenia servera".
                     // Pri HTSP je to spravna predvolba (profil urci konto na serveri),
                     // pri HTTP je to tiez legitimne — server pouzije svoj default.
-                    options = listOf("") + serverProfiles.ifEmpty {
+                    // M501: ulozenu hodnotu ukaz aj vtedy, ked ju server v zozname
+                    // nema (napr. profil bol premenovany/zruseny). Inak sa v ponuke
+                    // zvyraznila prva polozka a vyzeralo to, ze je nastavene „podla
+                    // servera“, hoci sa posielal nazov, ktoremu server nerozumie a
+                    // ticho spadol na svoj predvoleny profil.
+                    options = (listOf("") + serverProfiles.ifEmpty {
                         ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
-                    },
+                    } + profile.trim()).distinct(),
                     optionLabel = { if (it.isBlank()) stringResource(R.string.profile_server_default) else it },
                     onSelect = { profile = it }
                 )
+                // M501: profil, ktory server neponuka, je takmer isto preklep alebo
+                // zvyšok po premenovani — server ho ignoruje a pouzije svoj default
+                if (serverProfiles.isNotEmpty() && profile.isNotBlank() &&
+                    profile.trim() !in serverProfiles
+                ) {
+                    Text(
+                        stringResource(R.string.profile_unknown_warn, profile.trim()),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                    )
+                }
                 // M382: nie kazdy profil sa da prehrat (kontajner/kodeky) —
                 // napr. Vorbis v MP4 je neštandardny a zvuk nejde ani v inych
                 // prehravacoch. Odporucany je pass (bez transkodovania).

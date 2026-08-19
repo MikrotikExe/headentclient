@@ -382,4 +382,5 @@
     <string name="sub_dvb">Subtitel DVB</string>
     <string name="resume_last_enable">Mulai dengan saluran terakhir</string>
     <string name="resume_last_note">Saat aplikasi dibuka, daftar saluran dimuat dan saluran TV atau radio yang terakhir ditonton diputar. Rekaman tidak dilanjutkan.</string>
+    <string name="profile_unknown_warn">Server tidak menyediakan profil “%1$s” — akan memakai profil bawaannya.</string>
 </resources>

@@ -382,4 +382,5 @@
     <string name="sub_dvb">Sottotitoli DVB</string>
     <string name="resume_last_enable">Avvia con l\'ultimo canale</string>
     <string name="resume_last_note">All\'avvio l\'app carica l\'elenco dei canali e riproduce il canale TV o la radio guardati per ultimi. Le registrazioni non vengono riprese.</string>
+    <string name="profile_unknown_warn">Il server non offre il profilo “%1$s” — userà invece quello predefinito.</string>
 </resources>

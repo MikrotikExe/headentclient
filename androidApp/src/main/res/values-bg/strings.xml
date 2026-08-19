@@ -382,4 +382,5 @@
     <string name="sub_dvb">DVB субтитри</string>
     <string name="resume_last_enable">Старт с последния канал</string>
     <string name="resume_last_note">След стартиране приложението зарежда списъка с канали и пуска ТВ канала или радиото, което си гледал последно. Записите не се възобновяват.</string>
+    <string name="profile_unknown_warn">Сървърът не предлага профила „%1$s“ — ще използва своя подразбиращ се.</string>
 </resources>

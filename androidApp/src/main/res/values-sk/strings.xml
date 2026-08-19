@@ -382,4 +382,5 @@
     <string name="sub_dvb">DVB titulky</string>
     <string name="resume_last_enable">Spustiť posledný kanál</string>
     <string name="resume_last_note">Po spustení aplikácie sa načíta zoznam kanálov a pustí sa TV kanál alebo rádio, ktoré si pozeral naposledy. Nahrávky sa neobnovujú.</string>
+    <string name="profile_unknown_warn">Server profil „%1$s“ neponuka — použije namiesto neho svoj predvolený.</string>
 </resources>

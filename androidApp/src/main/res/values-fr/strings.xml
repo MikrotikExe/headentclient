@@ -382,4 +382,5 @@
     <string name="sub_dvb">Sous-titres DVB</string>
     <string name="resume_last_enable">Démarrer sur la dernière chaîne</string>
     <string name="resume_last_note">Au démarrage, l\'application charge la liste des chaînes et lance la chaîne TV ou la radio regardée en dernier. Les enregistrements ne sont pas repris.</string>
+    <string name="profile_unknown_warn">Le serveur ne propose pas le profil « %1$s » — il utilisera son profil par défaut.</string>
 </resources>

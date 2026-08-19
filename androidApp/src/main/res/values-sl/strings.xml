@@ -382,4 +382,5 @@
     <string name="sub_dvb">Podnapisi DVB</string>
     <string name="resume_last_enable">Zaženi z zadnjim kanalom</string>
     <string name="resume_last_note">Po zagonu aplikacija naloži seznam kanalov in predvaja TV kanal ali radio, ki si ga gledal nazadnje. Posnetki se ne nadaljujejo.</string>
+    <string name="profile_unknown_warn">Strežnik ne ponuja profila „%1$s“ — namesto njega uporabi privzetega.</string>
 </resources>
