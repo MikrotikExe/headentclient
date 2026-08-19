@@ -8,6 +8,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,6 +18,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -74,6 +78,11 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
     val context = LocalContext.current
     val server = remember { Tvh.store.active() }
     val serverId = server?.id ?: ""
+    // M505: filter podla tagov (ako v Kanaloch); null = vsetky stanice.
+    // Obnovi sa posledna volba pre TENTO server.
+    var selectedTag by remember(serverId) {
+        mutableStateOf(LastTag.get(context, serverId, radio = true))
+    }
     val lastRadioUuid = remember(state) { LastRadio.get(context, server?.id) }
     val loader = remember(server?.id) { PiconImageLoader.get(context, server) }
 
@@ -185,8 +194,46 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                     onRetry = { vm.load() })
                 is RadioState.Loaded -> {
                     val q = query.trim().lowercase()
-                    val rows = if (q.isBlank()) s.rows
-                               else s.rows.filter { it.channel.name.lowercase().contains(q) }
+                    // M505: pas filtrov sa ukaze len ked ma radio aspon jednu skupinu
+                    val radioTags = s.categories.mapNotNull { it.tag }
+                    if (q.isBlank() && radioTags.isNotEmpty()) {
+                        // ulozeny tag uz na serveri nemusi existovat -> spadni na „vsetky"
+                        val validTag = selectedTag?.takeIf { u -> radioTags.any { it.uuid == u } }
+                        if (validTag != selectedTag) selectedTag = validTag
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        ) {
+                            item("all") {
+                                FilterChip(
+                                    selected = selectedTag == null,
+                                    onClick = {
+                                        selectedTag = null
+                                        LastTag.set(context, serverId, true, null)
+                                    },
+                                    label = { Text(stringResource(R.string.all_channels)) }
+                                )
+                            }
+                            items(radioTags, key = { it.uuid }) { tag ->
+                                FilterChip(
+                                    selected = selectedTag == tag.uuid,
+                                    onClick = {
+                                        selectedTag = tag.uuid
+                                        LastTag.set(context, serverId, true, tag.uuid)
+                                    },
+                                    label = { Text(tag.name) }
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    val base = when {
+                        q.isNotBlank() || selectedTag == null -> s.rows
+                        else -> s.categories.firstOrNull { it.tag?.uuid == selectedTag }?.rows
+                            ?: emptyList()
+                    }
+                    val rows = if (q.isBlank()) base
+                               else base.filter { it.channel.name.lowercase().contains(q) }
                     if (rows.isEmpty()) {
                         EmptyStatus(stringResource(R.string.radio_empty))
                     } else {

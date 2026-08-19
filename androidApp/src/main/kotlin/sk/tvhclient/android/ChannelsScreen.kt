@@ -74,6 +74,8 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     val viewMode by vm.viewMode.collectAsState()
     var viewMenu by remember { mutableStateOf(false) }
     var selectedTag by remember { mutableStateOf<String?>(null) } // tag uuid alebo null = vsetky
+    // M505: posledna volba skupiny sa obnovi (nastavuje sa nizsie, ked je znamy serverId)
+    var tagRestored by remember { mutableStateOf(false) }
     var favOnly by remember { mutableStateOf(false) }
     var epgFor by remember { mutableStateOf<ChannelRow?>(null) }
     var contextRow by remember { mutableStateOf<ChannelRow?>(null) }
@@ -126,6 +128,13 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     var recChoice by remember { mutableStateOf<Pair<ChannelRow, sk.tvhclient.shared.model.DvrEntry>?>(null) }
     val ctx = LocalContext.current
     val serverId = remember { Tvh.store.active()?.id }
+    // M505: obnov naposledy zvolenu skupinu kanalov pre tento server
+    LaunchedEffect(serverId) {
+        if (!tagRestored) {
+            tagRestored = true
+            selectedTag = LastTag.get(ctx, serverId, radio = false)
+        }
+    }
     // Scroll pozicie prezivaju odskok do EPG a spat (remember v scope obrazovky)
     val listStateMain = androidx.compose.foundation.lazy.rememberLazyListState()
     val listStateSearch = androidx.compose.foundation.lazy.rememberLazyListState()
@@ -175,6 +184,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
         epgDismissedGen = epgSignal
         TabController.epgFromPlayer = false
         selectedTag = null
+        LastTag.set(ctx, serverId, false, null)   // M505: reset = aj zabudnut
         favOnly = false
         contextRow = null
         recChoice = null
@@ -310,6 +320,8 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                 } else {
                     // Filtre podla tagov
                     val tags = s.categories.mapNotNull { it.tag }
+                    // M505: ulozena skupina uz na serveri nemusi byt -> spadni na „vsetky"
+                    if (selectedTag != null && tags.none { it.uuid == selectedTag }) selectedTag = null
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         item("fav") {
                             FilterChip(
@@ -321,14 +333,20 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                         item("all") {
                             FilterChip(
                                 selected = !favOnly && selectedTag == null,
-                                onClick = { favOnly = false; selectedTag = null },
+                                onClick = {
+                                    favOnly = false; selectedTag = null
+                                    LastTag.set(ctx, serverId, false, null)   // M505
+                                },
                                 label = { Text(stringResource(R.string.all_channels)) }
                             )
                         }
                         items(tags, key = { it.uuid }) { tag ->
                             FilterChip(
                                 selected = !favOnly && selectedTag == tag.uuid,
-                                onClick = { favOnly = false; selectedTag = tag.uuid },
+                                onClick = {
+                                    favOnly = false; selectedTag = tag.uuid
+                                    LastTag.set(ctx, serverId, false, tag.uuid)   // M505
+                                },
                                 label = { Text(tag.name) }
                             )
                         }

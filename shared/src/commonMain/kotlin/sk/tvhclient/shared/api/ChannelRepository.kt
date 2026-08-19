@@ -120,6 +120,34 @@ class ChannelRepository(
                 ch.tags.mapNotNull { tagNameOf[it] }
             )
 
+    /**
+     * M505: radio kanaly rozdelene do kategorii podla tagov — Radio zalozka tak
+     * moze filtrovat rovnako ako Kanaly. Kanaly bez tagu idu do kategorie s
+     * tag = null, aby sa nestratili (rovnako ako pri TV).
+     */
+    suspend fun radioCategories(force: Boolean = false): List<ChannelCategory> {
+        load(force)
+        val channels = cachedChannels ?: emptyList()
+        val tags = cachedTags ?: emptyList()
+        val tagNameOf = tags.associate { it.uuid to it.name }
+        val radio = channels.filter { isRadioChannel(it, tagNameOf) }
+        if (radio.isEmpty()) return emptyList()
+
+        fun rowOf(ch: Channel) = ChannelRow(ch, piconUrlFor(ch), null, 0, 0)
+        val byNumber = compareBy<Channel>({ it.number ?: Int.MAX_VALUE }, { it.name.lowercase() })
+
+        val out = mutableListOf<ChannelCategory>()
+        for (tag in tags) {
+            val rows = radio.filter { tag.uuid in it.tags }.sortedWith(byNumber).map(::rowOf)
+            if (rows.isNotEmpty()) out.add(ChannelCategory(tag, rows))
+        }
+        val untagged = radio.filter { ch -> tags.none { it.uuid in ch.tags } }
+        if (untagged.isNotEmpty()) {
+            out.add(ChannelCategory(null, untagged.sortedWith(byNumber).map(::rowOf)))
+        }
+        return out
+    }
+
     /** Zoznam radio kanalov (pre Radio zalozku). */
     suspend fun radioRows(force: Boolean = false): List<ChannelRow> {
         load(force)

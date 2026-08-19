@@ -8,12 +8,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import sk.tvhclient.shared.Tvh
+import sk.tvhclient.shared.api.ChannelCategory
 import sk.tvhclient.shared.api.ChannelRow
 
 sealed class RadioState {
     data object Loading : RadioState()
     data object NoServer : RadioState()
-    data class Loaded(val rows: List<ChannelRow>) : RadioState()
+    /** M505: `categories` = rozdelenie podla tagov pre filtrovanie v zalozke. */
+    data class Loaded(
+        val rows: List<ChannelRow>,
+        val categories: List<ChannelCategory> = emptyList()
+    ) : RadioState()
     data class Error(val message: String) : RadioState()
 }
 
@@ -47,15 +52,16 @@ class RadioViewModel : ViewModel() {
         _state.value = RadioState.Loading
         viewModelScope.launch {
             try {
-                val rows = withContext(Dispatchers.IO) {
+                val data = withContext(Dispatchers.IO) {
                     val api = Tvh.apiFor(server)
                     try {
-                        Tvh.channelRepository(server, api).radioRows()
+                        val repo = Tvh.channelRepository(server, api)
+                        repo.radioRows() to repo.radioCategories()   // M505
                     } finally {
                         api.close()
                     }
                 }
-                _state.value = RadioState.Loaded(rows)
+                _state.value = RadioState.Loaded(data.first, data.second)
                 loadedOnce = true
             } catch (e: Exception) {
                 _state.value = RadioState.Error(e.message ?: "")   // M491: prazdne = UI doplni preklad
