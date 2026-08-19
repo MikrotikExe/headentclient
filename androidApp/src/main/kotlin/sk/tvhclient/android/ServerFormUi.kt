@@ -111,7 +111,11 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
     var useHttps by remember { mutableStateOf(existing?.useHttps ?: false) }
     var username by remember { mutableStateOf(existing?.username ?: "") }
     var password by remember { mutableStateOf(existing?.password ?: "") }
-    var profile by remember { mutableStateOf(existing?.profile ?: "pass") }
+    // M502: novy server bez profilu = „podla nastavenia servera". „pass" je profil
+    // pre HTTP prenos (MPEG-TS passthrough) a ako predvolba nedavala zmysel — pri
+    // HTSP uz vobec, ten prenasa elementarne streamy. WelcomeScreen to ma spravne
+    // od M479, tento formular na to zabudol.
+    var profile by remember { mutableStateOf(existing?.profile ?: "") }
     // M486: DVR profil (do ktoreho sa nahrava); prazdne = podla nastavenia servera
     var dvrConfig by remember { mutableStateOf(existing?.dvrConfig ?: "") }
     var authMode by remember { mutableStateOf(existing?.authMode ?: "auto") }
@@ -175,7 +179,9 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
             useHttps = useHttps,
             username = username.trim(),
             password = password,
-            profile = profile.trim().ifBlank { "pass" },
+            // M502: prazdne necha rozhodnut server; NEprepisuj to na „pass" —
+            // prave to vracalo HTTP profil aj serverom nastavenym na HTSP
+            profile = profile.trim(),
             dvrConfig = dvrConfig.trim(),
             authMode = authMode,
             connectionMode = connMode,

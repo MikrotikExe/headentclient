@@ -11,7 +11,9 @@ data class TvhServer(
     val useHttps: Boolean = false,
     val username: String = "",
     val password: String = "",
-    val profile: String = "pass",
+    // M502: prazdne = profil urci server podla konta. „pass" sa doplna az pri
+    // stavbe HTTP URL, kde je nutny; HTSP ziadny profil posielat nemusi.
+    val profile: String = "",
     // M486: nazov DVR profilu (konfiguracie nahravania) na serveri; prazdne =
     // necha rozhodnut server podla prav konta. Ukladame NAZOV, nie uuid —
     // HTSP addDvrEntry berie nazov, HTTP si uuid dohlada podla nazvu.

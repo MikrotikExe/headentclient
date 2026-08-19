@@ -89,7 +89,7 @@ object Backup {
         useHttps = o.optBoolean("useHttps", false),
         username = o.optString("username", ""),
         password = o.optString("password", ""),
-        profile = o.optString("profile", "pass"),
+        profile = o.optString("profile", ""),   // M502
         dvrConfig = o.optString("dvrConfig", ""),   // M486
         authMode = o.optString("authMode", "auto"),
         connectionMode = o.optString("connectionMode", "http"),
