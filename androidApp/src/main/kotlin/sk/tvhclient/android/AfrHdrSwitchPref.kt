@@ -9,8 +9,12 @@ import android.content.Context
  * priamo zakazat nevie). Ked je tento prepinac VYPNUTY, AFR tvrde prepnutie
  * preskoci a poziada o zmenu frekvencie len plynulou cestou
  * (Surface.setFrameRate, bez re-syncu) — ziadna cierna obrazovka, ziadny
- * HDR flip; ci panel frekvenciu realne zmeni, rozhodne system. Default
- * ZAPNUTE = doterajsie spravanie (plnohodnotne AFR prepinanie rezimov).
+ * HDR flip; ci panel frekvenciu realne zmeni, rozhodne system.
+ *
+ * M500: default VYPNUTE. Tvrde prepnutie rezimu je na roznych boxoch
+ * nepredvidatelne (cierna obrazovka pri kazdej zmene frekvencie, flip do HDR aj
+ * pri SDR obsahu) a appka firmwaru do jeho HDR politiky nevidi. Kto to chce,
+ * zapne si to sam v Nastaveniach pri AFR.
  */
 object AfrHdrSwitchPref {
     private const val PREFS = "app_prefs"
@@ -18,7 +22,7 @@ object AfrHdrSwitchPref {
 
     fun get(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY, true)
+            .getBoolean(KEY, false)   // M500: predvolene vypnute
 
     fun set(context: Context, on: Boolean) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
