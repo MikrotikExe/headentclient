@@ -4740,7 +4740,12 @@ private fun PlayerUi(
                 // seed da hodinam spravny bod a tikaju dalej z neho (initialSeekDone=true zaroven
                 // umlci jednorazovy skok na zaciatok relacie).
                 val seed = seekSeedLive.value          // M495-fix: cerstva hodnota
-                if (seed >= 0L) {
+                // M495-fix2: pockaj na znamu dlzku. Ked ju prehravac este nepozna
+                // (curLen == 0 — pomale nacitanie media alebo zlyhany pokus),
+                // coerceIn(0, curBar) by ciel orezal na NULU a seed by sa navyse
+                // spotreboval — hodiny by tikali od zaciatku. Seed nechame cakat
+                // na dalsi tik; dovtedy ho nikto iny neprepise.
+                if (seed >= 0L && curLen > 0) {
                     posTimeMs = seed.coerceIn(0L, curBar)
                     val denom = (curOff + curLen).coerceAtLeast(1L)
                     posFraction = ((curOff + posTimeMs).toFloat() / denom).coerceIn(0f, 1f)
