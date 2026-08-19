@@ -1,14 +1,20 @@
 package sk.tvhclient.shared.model
 
 /**
- * Rozpoznanie radia. TVH v channel/grid radio priamo neoznacuje; plugin
- * (_bouquet_tags.py _is_radio_by_tags) ho urcuje podla nazvov tagov kanala.
- * Kanal je radio, ak ma tag ktoreho nazov zodpoveda radio tokenu.
+ * ZALOZNE rozpoznanie radia podla nazvov tagov (prebrane z Enigma2 pluginu,
+ * _bouquet_tags.py _is_radio_by_tags).
+ *
+ * M504: hlavna cesta je teraz typ sluzby z DVB tabuliek (Channel.isRadioByService),
+ * rovnako ako v Kodi. Tato heuristika sa pouzije len ked server typy neposkytne —
+ * je krehka, lebo zavisi od toho, ako si kto tagy pomenoval (nemecke „Hoerfunk"
+ * alebo turecke „Radyo" tu nenajde).
  */
 object RadioDetector {
+    // M504: doplnene dalsie jazyky — zaloha ma zabrat aspon v beznych pripadoch
     private val radioTokens = listOf(
         "radio", "radia", "radia fm", "radio fm",
-        "radiostanice", "radiostanica", "rozhlas"
+        "radiostanice", "radiostanica", "rozhlas",
+        "radyo", "hoerfunk", "horfunk", "rundfunk", "radioem"
     )
 
     private fun normalize(s: String): String {

@@ -197,12 +197,19 @@ object HtspData {
             val cid = longOf(ch, "channelId") ?: return@mapNotNull null
             @Suppress("UNCHECKED_CAST")
             val tagIds = (ch["tags"] as? List<Any?>)?.mapNotNull { (it as? Long)?.toString() } ?: emptyList()
+            // M504: `services` (HTSPv5+) nesie typ sluzby — podla neho sa rozlisi
+            // radio od TV rovnako ako v Kodi, nezavisle od pomenovania tagov.
+            @Suppress("UNCHECKED_CAST")
+            val svcTypes = (ch["services"] as? List<Any?>)?.mapNotNull { sv ->
+                (sv as? Map<String, Any?>)?.get("type") as? String
+            }?.filter { it.isNotBlank() } ?: emptyList()
             Channel(
                 uuid = cid.toString(),
                 name = strOf(ch, "channelName").ifBlank { cid.toString() },
                 number = longOf(ch, "channelNumber")?.toInt(),
                 iconPublicUrl = strOf(ch, "channelIcon").ifBlank { null },
                 tags = tagIds,
+                serviceTypes = svcTypes,   // M504
                 enabled = true
             )
         }

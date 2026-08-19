@@ -13,6 +13,7 @@ import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonObject
@@ -156,10 +157,38 @@ class TvhApi(private val server: TvhServer) {
         ConnectionResult.NetworkError(e.message ?: e::class.simpleName ?: "unknown")
     }
 
-    suspend fun channels(): List<Channel> =
-        apiGetAll("api/channel/grid", pageLimit = 1000).mapNotNull {
+    /**
+     * M504: kanaly + typy ich sluzieb.
+     *
+     * api/channel/grid vracia v `services` len UUID sluzieb, nie ich typ, preto
+     * si typy dotahujeme z api/mpegts/service/grid a parujeme podla UUID. HTSP
+     * to ma jednoduchsie — typ posiela priamo v channelAdd.
+     *
+     * Ak sa service grid nepodari nacitat (starsi server, obmedzene prava),
+     * typy ostanu prazdne a radio sa rozpozna zalohou podla nazvov tagov.
+     */
+    suspend fun channels(): List<Channel> {
+        val list = apiGetAll("api/channel/grid", pageLimit = 1000).mapNotNull {
             runCatching { decode<Channel>(it) }.getOrNull()
         }
+        if (list.none { it.services.isNotEmpty() }) return list
+        val typeOf = runCatching { serviceTypes() }.getOrDefault(emptyMap())
+        if (typeOf.isEmpty()) return list
+        return list.map { ch ->
+            val types = ch.services.mapNotNull { typeOf[it] }.filter { it.isNotBlank() }
+            if (types.isEmpty()) ch else ch.copy(serviceTypes = types)
+        }
+    }
+
+    /** M504: uuid sluzby -> jej typ ("SDTV", "HDTV", "Radio"...). */
+    private suspend fun serviceTypes(): Map<String, String> =
+        apiGetAll("api/mpegts/service/grid", pageLimit = 1000).mapNotNull { o ->
+            val uuid = (o["uuid"] as? JsonPrimitive)?.content ?: return@mapNotNull null
+            val type = (o["dvb_servicetype_str"] as? JsonPrimitive)?.content
+                ?: (o["svcname"] as? JsonPrimitive)?.content
+                ?: return@mapNotNull null
+            uuid to type
+        }.toMap()
 
     /**
      * M380: stream profily servera (api/profile/list). Vracia nazvy profilov

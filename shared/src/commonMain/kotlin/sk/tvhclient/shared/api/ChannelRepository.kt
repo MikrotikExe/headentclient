@@ -50,12 +50,8 @@ class ChannelRepository(
         val tags = cachedTags ?: emptyList()
         val epgNow = runCatching { epgNowProvider() }.getOrDefault(emptyMap())
 
-        // Tag uuid -> nazov, na rozpoznanie radia (RadioDetector).
         val tagNameOf = tags.associate { it.uuid to it.name }
-        fun isRadioCh(ch: Channel): Boolean =
-            sk.tvhclient.shared.model.RadioDetector.isRadio(
-                ch.tags.mapNotNull { tagNameOf[it] }
-            )
+        fun isRadioCh(ch: Channel): Boolean = isRadioChannel(ch, tagNameOf)
         // TV zoznam = vsetky okrem radia
         val tvChannels = channels.filterNot { isRadioCh(it) }
 
@@ -101,7 +97,7 @@ class ChannelRepository(
         val tagNameOf = tags.associate { it.uuid to it.name }
         val epgNow = runCatching { epgNowProvider() }.getOrDefault(emptyMap())
         return channels
-            .filterNot { sk.tvhclient.shared.model.RadioDetector.isRadio(it.tags.mapNotNull { t -> tagNameOf[t] }) }
+            .filterNot { isRadioChannel(it, tagNameOf) }
             .sortedWith(compareBy({ it.number ?: Int.MAX_VALUE }, { it.name.lowercase() }))
             .map { ch ->
                 val ev = epgNow[ch.uuid]
@@ -110,6 +106,20 @@ class ChannelRepository(
             }
     }
 
+    /**
+     * M504: je kanal radio?
+     *
+     * Prednost ma TYP SLUZBY z DVB tabuliek (rovnako to urcuje Kodi) — je to
+     * udaj od servera, nezavisly od toho, ako si kto pomenoval tagy. Az ked
+     * server typy neposkytne (starsi TVH, IPTV bez service info, obmedzene
+     * prava), pouzije sa zaloha podla nazvov tagov.
+     */
+    private fun isRadioChannel(ch: Channel, tagNameOf: Map<String, String>): Boolean =
+        ch.isRadioByService
+            ?: sk.tvhclient.shared.model.RadioDetector.isRadio(
+                ch.tags.mapNotNull { tagNameOf[it] }
+            )
+
     /** Zoznam radio kanalov (pre Radio zalozku). */
     suspend fun radioRows(force: Boolean = false): List<ChannelRow> {
         load(force)
@@ -117,7 +127,7 @@ class ChannelRepository(
         val tags = cachedTags ?: emptyList()
         val tagNameOf = tags.associate { it.uuid to it.name }
         return channels
-            .filter { sk.tvhclient.shared.model.RadioDetector.isRadio(it.tags.mapNotNull { t -> tagNameOf[t] }) }
+            .filter { isRadioChannel(it, tagNameOf) }
             .sortedWith(compareBy({ it.number ?: Int.MAX_VALUE }, { it.name.lowercase() }))
             .map { ch -> ChannelRow(ch, piconUrlFor(ch), null, 0, 0) }
     }

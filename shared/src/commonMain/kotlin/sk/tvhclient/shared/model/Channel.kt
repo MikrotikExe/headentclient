@@ -16,13 +16,25 @@ data class Channel(
     @SerialName("icon_public_url") val iconPublicUrl: String? = null,
     val tags: List<String> = emptyList(),
     val services: List<String> = emptyList(),
+    /**
+     * M504: TYPY sluzieb kanala z DVB tabuliek — "SDTV", "HDTV", "UHDTV",
+     * "Radio", "FM Radio", "MPEG2 Radio"... HTSP ich posiela v `channelAdd`
+     * (pole `services`, kazda ma `type`), HTTP ich treba dohladat v
+     * api/mpegts/service/grid. Prazdne = server ich neposkytol.
+     */
+    @SerialName("service_types") val serviceTypes: List<String> = emptyList(),
     @SerialName("enabled") val enabled: Boolean = true
 ) {
     /**
-     * Je kanal radio? TVH neoznacuje radio priamo v channel/grid, urcuje sa
-     * podla typu sluzby. Heuristika z pluginu: ak nazov/typ nesie radio
-     * znaky. Spolahlivejsie sa rozlisuje v M6 cez api/channel/grid filter,
-     * zatial ponechane ako placeholder.
+     * M504: je kanal radio podla typu sluzby? Rovnako to urcuje aj Kodi
+     * (pvr.hts): typ obsahujuci "radio" znamena rozhlas. Je to hodnota priamo
+     * z DVB tabuliek, nie odhad podla nazvu.
+     *
+     * null = server typy neposlal a musi sa pouzit zaloha (nazvy tagov).
      */
-    val isRadio: Boolean get() = false
+    val isRadioByService: Boolean?
+        get() {
+            if (serviceTypes.isEmpty()) return null
+            return serviceTypes.any { it.contains("radio", ignoreCase = true) }
+        }
 }
