@@ -463,7 +463,11 @@ class PlayerActivity : ComponentActivity() {
     private fun applyFeederDemux(media: Media, url: String) {
         val prof = Regex("[?&]profile=([^&]*)")
             .find(url)?.groupValues?.get(1)?.lowercase().orEmpty()
-        val isTs = prof.isEmpty() || prof == "pass" || prof == "htsp" || prof.endsWith("mpegts")
+        // M509: prazdny profil UZ NEZNAMENA TS. Od M502 je prazdna hodnota
+        // „podla nastavenia servera" a ten moze mat predvoleny hocijaky
+        // kontajner. Vnutit ts naslepo znamenalo cierny obraz pri matroske.
+        // Vnucujeme ho len tam, kde vieme, ze o TS naozaj ide.
+        val isTs = prof == "pass" || prof == "htsp" || prof.endsWith("mpegts")
         if (isTs) media.addOption(":demux=ts")
     }
 
@@ -586,7 +590,11 @@ class PlayerActivity : ComponentActivity() {
         val fd = feeder.start(lifecycleScope)
         val media = Media(libVlc, fd)
         media.setHWDecoderEnabled(!SwDecodePref.get(this), false)  // M447
-        media.addOption(":demux=ts")
+        // M509: NEvnucuj TS demuxer. Nahravka moze byt v lubovolnom kontajneri
+        // podla DVR profilu (matroska, mp4, webm) — natvrdo ts znamenalo, ze
+        // VLC subor nerozobral, nenasiel video stopu a appka zobrazila cierno s
+        // radiovym logom. Subor sa cita od zaciatku, takze si kontajner urci
+        // spolahlivo sam (EBML / ftyp / TS sync hlavicka).
         media.addOption(":file-caching=" + BufferPref.htspMs(this))
         applyDeinterlace(media)
         mediaPlayer.media = media
