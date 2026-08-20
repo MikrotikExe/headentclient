@@ -613,6 +613,15 @@ class PlayerActivity : ComponentActivity() {
             desiredSubName = null
             resetTimeshift()
             val fd = feeder.start(channelId, lifecycleScope, liveServer?.profile)   // M476
+            // M508: ked je timeshift zapnuty, Tvheadend zacne bufferovat UZ PRI
+            // starte subscription (timeshiftPeriod v subscribe), nie az pri pauze.
+            // Doteraz sa okno pretacania otvaralo az prvou pauzou, takze +/-30 s
+            // pred nou nerobilo nic — hoci buffer na serveri uz rastol.
+            if (timeshift) {
+                htspStartedAt = System.currentTimeMillis()
+                // ovladace pretacania patria do baru hned — buffer uz existuje
+                timeshiftEngagedState.value = true
+            }
             val media = Media(libVlc, fd)
             media.setHWDecoderEnabled(!SwDecodePref.get(this), false)  // M447
             media.addOption(":demux=ts")
@@ -680,6 +689,8 @@ class PlayerActivity : ComponentActivity() {
             if (htspStream) htspFeeder?.pause()         // zastav HTSP delivery (aj bez timeshiftu)
             if (htspLive) {
                 // prva pauza "zapne" timeshift: odtialto sa rata buffer aj cervene pocitadlo
+                // M508: pri zapnutom timeshifte je uz nastavene zo startu subscription;
+                // toto ostava pre pripad, ze sa buffer rozbehol az pauzou
                 if (htspStartedAt <= 0L) htspStartedAt = System.currentTimeMillis()
                 timeshiftEngagedState.value = true
                 // zapnutim timeshiftu pribudnu ovladace pretacania (tsrew pred play) a posunu sa
@@ -739,7 +750,9 @@ class PlayerActivity : ComponentActivity() {
         pendingSkipMs = 0L
         tsAccumMs = 0L
         tsPauseStartedAt = 0L
-        htspStartedAt = 0L   // timeshift sa "zapne" az prvou pauzou (Tvheadend pred tym nema buffer)
+        // M508: okno pretacania sa otvara startom subscription (viac nizsie); tu sa
+        // len nuluje pri prepnuti kanala — novy kanal = novy buffer od nuly
+        htspStartedAt = 0L
         timeshiftEngagedState.value = false
         timeshiftOffsetState.value = 0L
     }
