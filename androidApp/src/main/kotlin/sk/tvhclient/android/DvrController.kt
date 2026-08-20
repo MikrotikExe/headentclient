@@ -1,6 +1,5 @@
 package sk.tvhclient.android
 
-import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -128,14 +127,6 @@ object DvrController {
     }
 
     /**
-     * Ma uz relacia na tomto kanali naplanovanu nahravku? Porovnava sa kanal a
-     * casovy prekryv — DVR zaznam si eventId nedrzi, ale cas a kanal staci.
-     */
-    suspend fun isScheduled(
-        server: TvhServer, channelUuid: String, start: Long, stop: Long
-    ): Boolean = scheduledFor(server, channelUuid, start, stop) != null
-
-    /**
      * M475: naplanovana nahravka pre danu relaciu (null = ziadna). Vracia cely
      * zaznam, aby sa dala rovno zrusit — na to treba jej id/uuid.
      */
@@ -149,11 +140,6 @@ object DvrController {
     /** Po naplanovani nahravky zoznam zneplatni, nech sa hned prejavi v UI. */
     fun invalidateScheduled(serverId: String? = null) {
         if (serverId == null) schedCache.clear() else schedCache.remove(serverId)
-    }
-
-    /** Zabudne zistene prava (po zmene servera alebo prihlasenia). */
-    fun forget(serverId: String? = null) {
-        if (serverId == null) accessCache.clear() else accessCache.remove(serverId)
     }
 
     /**

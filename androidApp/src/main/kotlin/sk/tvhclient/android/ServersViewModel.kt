@@ -93,13 +93,6 @@ class ServersViewModel : ViewModel() {
 
     fun newId(): String = Tvh.newServerId()
 
-    fun test(server: TvhServer) {
-        _testState.value = TestState.Running
-        viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) { Tvh.testConnection(server) }
-            _testState.value = TestState.Done(result)
-        }
-    }
 
     // Server s funkcnym rezimom po poslednom testAuto (HTSP <-> HTTP fallback). Ulozi sa tento.
     var resolvedServer: TvhServer? = null

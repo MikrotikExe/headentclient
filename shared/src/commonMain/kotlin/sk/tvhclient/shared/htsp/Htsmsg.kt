@@ -65,7 +65,7 @@ internal object Htsmsg {
         return out.toByteArray()
     }
 
-    /** M454: to iste ako bin2int, ale z rozsahu pola bez kopie. */
+    /** M454: cislo z rozsahu pola bez kopie. */
     private fun bin2intRange(b: ByteArray, off: Int, len: Int): Long {
         var n = 0L
         for (i in (off + len - 1) downTo off) {
@@ -74,13 +74,6 @@ internal object Htsmsg {
         return n
     }
 
-    private fun bin2int(b: ByteArray): Long {
-        var n = 0L
-        for (i in b.indices.reversed()) {
-            n = (n shl 8) or (b[i].toLong() and 0xFF)
-        }
-        return n
-    }
 
     /** Deserializuje telo mapy (bez length prefixu). */
     fun deserializeMap(data: ByteArray): Map<String, Any?> {

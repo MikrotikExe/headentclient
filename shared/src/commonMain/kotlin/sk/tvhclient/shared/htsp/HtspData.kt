@@ -20,16 +20,6 @@ object HtspData {
 
     /** M471: prava z posledneho HTSP spojenia (accessUpdate), prelozene do
      *  spolocneho tvaru pre UI. */
-    fun accessOf(meta: HtspClient.Metadata): sk.tvhclient.shared.api.DvrAccess {
-        val a = meta.access ?: return sk.tvhclient.shared.api.DvrAccess.UNKNOWN
-        return sk.tvhclient.shared.api.DvrAccess(
-            canRecord = a.dvr,
-            canSeeFailed = a.failedDvr,
-            isAdmin = a.admin,
-            recordingLimit = a.connLimitDvr,
-            known = true
-        )
-    }
 
     /**
      * M476: zoznam stream profilov cez HTSP (`getProfiles`, HTSPv16+).
@@ -290,8 +280,6 @@ object HtspData {
     }
 
     /** Všetky EPG eventy (len ak meta načítané withEpg). */
-    fun events(meta: HtspClient.Metadata): List<EpgEvent> =
-        meta.events.mapNotNull { mapEvent(it) }
 
     private fun mapEvent(e: Map<String, Any?>): EpgEvent? {
         val cid = longOf(e, "channelId") ?: return null
