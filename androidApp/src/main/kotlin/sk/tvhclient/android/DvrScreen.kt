@@ -61,6 +61,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusGroup
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -1170,7 +1171,22 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                 item("all") { ArcRailItem(stringResource(R.string.dvr_all), entries.size, selKey == "all", iconKey = "all") { openSection("all") } }
                 items(cats, key = { it }) { c -> ArcRailItem(catLabel(c), byCat[c]?.size ?: 0, selKey == c, iconKey = c) { openSection(c) } }
             }
-            Column(Modifier.weight(0.74f).fillMaxHeight()) {
+            // M510: pri prechode na dalsiu uroven (kanal -> datum -> nahravka) zmizne
+            // prvok, na ktorom bol fokus, a Compose ho vrati na PRVY fokusovatelny
+            // prvok v strome — teda na „Posledne sledovane" v lavom menu. Fokus si
+            // preto vypytame spat do obsahovej casti, kde pouzivatel prave je.
+            val contentFr = remember { FocusRequester() }
+            LaunchedEffect(selKey, selChannel, selChannelDate, selSub, selSeries) {
+                if (selKey != "_search") {          // hladanie chce fokus v poli
+                    kotlinx.coroutines.delay(80)    // nech sa nova mriezka stihne zlozit
+                    runCatching { contentFr.requestFocus() }
+                }
+            }
+            Column(
+                Modifier.weight(0.74f).fillMaxHeight()
+                    .focusRequester(contentFr)
+                    .focusGroup()
+            ) {
                 when {
                     selKey == "_recent" -> {
                         ArcFolderHeader(stringResource(R.string.dvr_recent))
