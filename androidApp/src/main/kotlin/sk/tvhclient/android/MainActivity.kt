@@ -330,7 +330,8 @@ private fun TvHomeHost() {
                     val u = cat.rows.map { it.channel.uuid }.filter { it !in hidden }.toSet()
                     if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
                 }
-                LivePlaylist.setChannels(full, grps)
+                // M506: obnov naposledy zvolenu skupinu (rovnaka ako v zalozke Kanaly)
+                LivePlaylist.setChannels(full, grps, LastTag.get(ctx, sid, radio = false))
                 // M496: ak obnovujeme posledne vysielanie, ma prednost ten kanal
                 val target = (LastPlayback.pendingUuid ?: LastChannel.get(ctx, sid))
                     ?.takeIf { u -> LivePlaylist.channels.any { it.uuid == u } }
@@ -352,13 +353,22 @@ private fun TvHomeHost() {
             val st = raState
             if (st is RadioState.Loaded) {
                 val sid = sk.tvhclient.shared.Tvh.store.active()?.id
-                LivePlaylist.setChannels(st.rows.map { r ->
+                // M506: aj radio ma skupiny podla tagov — prehravac tak vie
+                // prepinat medzi nimi (podrzanie OK) rovnako ako pri TV.
+                val hiddenR = HiddenChannels.all(ctx, sid)
+                val fullR = st.rows.filter { it.channel.uuid !in hiddenR }.map { r ->
                     LivePlaylist.LiveChannel(
                         uuid = r.channel.uuid, name = r.channel.name,
                         number = r.channel.number ?: 0, piconUrl = r.piconUrl,
                         nowTitle = r.nowTitle ?: "", nowStart = r.nowStart, nowStop = r.nowStop
                     )
-                }, emptyList())
+                }
+                val grpsR = st.categories.mapNotNull { cat ->
+                    val t = cat.tag ?: return@mapNotNull null
+                    val u = cat.rows.map { it.channel.uuid }.filter { it !in hiddenR }.toSet()
+                    if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
+                }
+                LivePlaylist.setChannels(fullR, grpsR, LastTag.get(ctx, sid, radio = true))
                 // M497: obnovovana stanica ma prednost pred poslednou
                 val target = (LastPlayback.pendingUuid ?: LastRadio.get(ctx, sid))
                     ?.takeIf { u -> LivePlaylist.channels.any { it.uuid == u } }
@@ -458,7 +468,12 @@ private fun TvHomeHost() {
                                     val u = cat.rows.map { it.channel.uuid }.filter { it !in hidden }.toSet()
                                     if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
                                 }
-                                LivePlaylist.setChannels(full, grps)
+                                // M506: obnov skupinu, ale len ak zvoleny kanal do nej
+                                // patri — inak by pouzivatel klikol na kanal a v
+                                // zozname na CH+/- by ho nemal
+                                val saved = LastTag.get(ctx, sid2, radio = false)
+                                    ?.takeIf { k -> grps.firstOrNull { it.key == k }?.uuids?.contains(uuid) == true }
+                                LivePlaylist.setChannels(full, grps, saved)
                             }
                             LivePlaylist.setIndexForUuid(uuid)
                             playUuid(uuid, title)

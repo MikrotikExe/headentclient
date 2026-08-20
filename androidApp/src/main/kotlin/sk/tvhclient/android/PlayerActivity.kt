@@ -1509,6 +1509,12 @@ class PlayerActivity : ComponentActivity() {
             }
         }
         LivePlaylist.activeGroupKey = key
+        // M506: zapamataj volbu skupiny — po restarte appky sa obnovi. Oblubene a
+        // „Vsetky" sa neukladaju ako tag: FAV je vlastny rezim a ALL je prazdno.
+        LastTag.set(
+            this, srvId, playKind == "radio",
+            if (key == LivePlaylist.GROUP_ALL || key == LivePlaylist.GROUP_FAV) null else key
+        )
         LivePlaylist.channels = filtered
         liveChannelsState.value = filtered
         liveUuids = filtered.map { it.uuid }

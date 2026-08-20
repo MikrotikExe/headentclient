@@ -46,12 +46,20 @@ object LivePlaylist {
         activeGroupKey = GROUP_ALL
     }
 
-    /** Naplni zoznam aj skupiny a resetuje filter na Vsetky. */
-    fun setChannels(full: List<LiveChannel>, grps: List<Group>) {
+    /**
+     * Naplni zoznam aj skupiny.
+     *
+     * M506: [restoreKey] = naposledy zvolena skupina (z LastTag). Ak sa medzi
+     * skupinami najde, filter sa na nu nastavi — inak sa zacina od „Vsetky".
+     * Vdaka tomu prehravac po restarte appky nabehne v tej istej skupine, v akej
+     * pouzivatel skoncil, rovnako ako zoznam Kanaly.
+     */
+    fun setChannels(full: List<LiveChannel>, grps: List<Group>, restoreKey: String? = null) {
         allChannels = full
         groups = grps
-        activeGroupKey = GROUP_ALL
-        channels = full
+        val g = restoreKey?.let { k -> grps.firstOrNull { it.key == k } }
+        activeGroupKey = g?.key ?: GROUP_ALL
+        channels = if (g != null) full.filter { it.uuid in g.uuids } else full
     }
 
     // M271: procesova cache EPG (uuid -> relacie) + cas poslednej uspesnej obnovy.
