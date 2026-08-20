@@ -94,6 +94,20 @@ class ServersViewModel : ViewModel() {
     fun newId(): String = Tvh.newServerId()
 
 
+    /**
+     * Otestuje server PRESNE tak, ako je nastaveny vo formulari (tlacidlo
+     * „Otestovat pripojenie"). Na rozdiel od [testAuto] neskusa fallback medzi
+     * HTSP a HTTP a rezim nemeni — pouzivatel chce vediet, ci funguje to, co
+     * prave zadal. Vola sa referenciou `vm::test`.
+     */
+    fun test(server: TvhServer) {
+        _testState.value = TestState.Running
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) { Tvh.testConnection(server) }
+            _testState.value = TestState.Done(result)
+        }
+    }
+
     // Server s funkcnym rezimom po poslednom testAuto (HTSP <-> HTTP fallback). Ulozi sa tento.
     var resolvedServer: TvhServer? = null
         private set
