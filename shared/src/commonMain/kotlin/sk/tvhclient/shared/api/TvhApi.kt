@@ -216,9 +216,23 @@ class TvhApi(private val server: TvhServer) {
      * EPG práve bežiacich programov: dict channelUuid -> event.
      * Vzor get_epg_now z pluginu (mode=now).
      */
+    /**
+     * M511: parametre EPG dotazu + jazykova preferencia.
+     *
+     * `lang` urcuje, ktoru jazykovu mutaciu nazvu/popisu server vrati. Bez neho
+     * pouzije jazyk nastaveny pre konto, inak systemovu predvolbu — a klient tak
+     * moze dostat inu verziu, nez ma napr. Kodi.
+     */
+    private fun epgArgs(vararg pairs: Pair<String, String>): Map<String, String> {
+        val m = LinkedHashMap<String, String>()
+        pairs.forEach { m[it.first] = it.second }
+        sk.tvhclient.shared.ClientIdent.lang3.takeIf { it.isNotBlank() }?.let { m["lang"] = it }
+        return m
+    }
+
     suspend fun epgNow(limit: Int = 5000): Map<String, EpgEvent> {
         val data = runCatching {
-            apiGet("api/epg/events/grid", mapOf("mode" to "now", "limit" to limit.toString()))
+            apiGet("api/epg/events/grid", epgArgs("mode" to "now", "limit" to limit.toString()))
         }.getOrNull() ?: return emptyMap()
         val out = mutableMapOf<String, EpgEvent>()
         (data["entries"] as? JsonArray)?.forEach { el ->
@@ -236,7 +250,7 @@ class TvhApi(private val server: TvhServer) {
      */
     suspend fun epgForChannel(channelUuid: String, limit: Int = 500): List<EpgEvent> {
         val data = runCatching {
-            apiGet("api/epg/events/grid", mapOf(
+            apiGet("api/epg/events/grid", epgArgs(
                 "channel" to channelUuid,
                 "limit" to limit.toString(),
                 "sort" to "start",

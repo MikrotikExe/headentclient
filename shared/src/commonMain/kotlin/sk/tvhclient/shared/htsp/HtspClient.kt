@@ -202,11 +202,15 @@ class HtspClient(
     }
 
     private suspend fun hello() {
-        val s = send("hello", mapOf(
-            "htspversion" to 35L,
-            "clientname" to sk.tvhclient.shared.ClientIdent.userAgent,
-            "clientversion" to sk.tvhclient.shared.ClientIdent.version   // M470
-        ))
+        // M511: `language` — bez neho server pouzije svoju predvolbu a klient moze
+        // dostat inu jazykovu mutaciu EPG (napr. OTA namiesto XMLTV). Kodi ju posiela.
+        val args = HashMap<String, Any?>()
+        args["htspversion"] = 35L
+        args["clientname"] = sk.tvhclient.shared.ClientIdent.userAgent
+        args["clientversion"] = sk.tvhclient.shared.ClientIdent.version   // M470
+        sk.tvhclient.shared.ClientIdent.lang2.takeIf { it.isNotBlank() }
+            ?.let { args["language"] = it }
+        val s = send("hello", args)
         val r = recvReply(s)
         serverVersion = r["htspversion"] as? Long
         serverSwVersion = r["serverversion"] as? String
@@ -244,6 +248,9 @@ class HtspClient(
         args["channelId"] = channelId
         if (numFollowing > 0) args["numFollowing"] = numFollowing.toLong()
         if (maxTime > 0) args["maxTime"] = maxTime
+        // M511: jazykova preferencia aj pri per-kanalovom dotaze
+        sk.tvhclient.shared.ClientIdent.lang2.takeIf { it.isNotBlank() }
+            ?.let { args["language"] = it }
         val s = send("getEvents", args)
         val r = recvReply(s)
         @Suppress("UNCHECKED_CAST")
@@ -263,6 +270,9 @@ class HtspClient(
         if (withEpg && epgMaxDays > 0) {
             args["epgMaxTime"] = nowSec + epgMaxDays * 86400L
         }
+        // M511: aj pri async dumpe EPG
+        sk.tvhclient.shared.ClientIdent.lang2.takeIf { it.isNotBlank() }
+            ?.let { args["language"] = it }
         send("enableAsyncMetadata", args, withSeq = false)
 
         val channels = ArrayList<Map<String, Any?>>()

@@ -36,6 +36,17 @@ class TvhApplication : Application() {
         sk.tvhclient.shared.ClientIdent.version =
             runCatching { packageManager.getPackageInfo(packageName, 0).versionName }
                 .getOrNull() ?: "?"
+        // M511: jazykova preferencia pre EPG — Tvheadend podla nej vybera jazykovu
+        // mutaciu udalosti (OTA vs XMLTV). Bez nej dostaneme serverovu predvolbu.
+        runCatching {
+            val loc = java.util.Locale.getDefault()
+            val l2 = loc.language.lowercase()
+            if (l2.isNotBlank()) {
+                // RFC 2616 zoznam: vlastny jazyk, anglictina ako zaloha
+                sk.tvhclient.shared.ClientIdent.lang2 = if (l2 == "en") "en" else "$l2,en"
+                sk.tvhclient.shared.ClientIdent.lang3 = loc.isO3Language.lowercase()
+            }
+        }
         CrashLogger.install(this)   // diagnostika pádov (M353)
         initSecureStorage(this)
         ClockPref.apply(this)       // format hodin do zdielaneho modulu (M423)
