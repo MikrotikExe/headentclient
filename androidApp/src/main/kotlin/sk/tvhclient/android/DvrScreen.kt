@@ -1246,8 +1246,12 @@ private fun ColumnScope.ArcRecGrid(list: List<DvrEntry>, loaded: DvrState.Loaded
     var infoEntry by remember { mutableStateOf<DvrEntry?>(null) }
     LazyVerticalGrid(GridCells.Fixed(4), Modifier.fillMaxWidth().weight(1f).padding(8.dp)) {
         gridItems(list, key = { it.uuid }) { e ->
-            ArcRecCard(e, loaded.channelPicons[e.channelName], loader, context, progressTick,
-                onFocus = { focused = e }, onClick = { playDvr(context, e) }, onLong = { infoEntry = e })
+            // M514-fix: aj mriezka nahravok — po vybere datumu ma fokus pristat
+            // na prvej relacii, nie odskocit na „Posledne sledovane"
+            Box(Modifier.arcAutoFocus(e.uuid == list.firstOrNull()?.uuid)) {
+                ArcRecCard(e, loaded.channelPicons[e.channelName], loader, context, progressTick,
+                    onFocus = { focused = e }, onClick = { playDvr(context, e) }, onLong = { infoEntry = e })
+            }
         }
     }
     val f = if (focused != null && list.contains(focused)) focused else list.firstOrNull()
