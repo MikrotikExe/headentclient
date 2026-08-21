@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  M512: sifrovane ulozisko (tvh_secure_prefs) sa NESMIE zalohovat.
+
+  Kluc, ktorym je zasifrovane, zije v Android Keystore a zalohovat sa neda —
+  po obnove na inom zariadeni (alebo po preinstalovani) by teda existoval
+  zasifrovany subor bez kluca a appka by pri starte spadla s AEADBadTagException.
+  Rovnaka uvaha plati aj pre EPG cache: je to len docasna kopia zo servera.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="tvh_secure_prefs.xml" />
+        <exclude domain="file" path="epg_cache" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="tvh_secure_prefs.xml" />
+    </device-transfer>
+</data-extraction-rules>

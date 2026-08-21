@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- M512: to iste pre Android 11 a starsie (fullBackupContent). -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="tvh_secure_prefs.xml" />
+    <exclude domain="file" path="epg_cache" />
+</full-backup-content>
