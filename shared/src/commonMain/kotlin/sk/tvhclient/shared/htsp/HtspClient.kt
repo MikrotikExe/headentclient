@@ -321,7 +321,14 @@ class HtspClient(
         timeshiftPeriodSec: Int = 0,
         profile: String? = null,
         onTs: suspend (ByteArray) -> Unit,
-        onStatus: (shiftUs: Long, full: Boolean) -> Unit = { _, _ -> },
+        /**
+         * M508-fix2: stav timeshift buffera (`timeshiftStatus`, raz za sekundu).
+         *  - [shift] = AKTUALNA POZICIA voci zivemu (0 = na zivo), nie dlzka buffera
+         *  - [startPts] / [endPts] = PTS prveho a posledneho snimku v buffri;
+         *    z ich rozdielu vychadza, kolko sa da naozaj pretocit
+         * Vsetko v 90 kHz tikoch (subscribe posiela "90khz").
+         */
+        onStatus: (shift: Long, full: Boolean, startPts: Long, endPts: Long) -> Unit = { _, _, _, _ -> },
         onStop: (String?) -> Unit = {},
         onSubtitles: (List<TsMuxer.SubtitleInfo>) -> Unit = {},
         onSubtitlePage: (DvbSubtitleDecoder.DecodedPage, Long) -> Unit = { _, _ -> }
@@ -395,7 +402,10 @@ class HtspClient(
                     "timeshiftStatus" -> {
                         val shift = (m["shift"] as? Long) ?: 0L
                         val full = ((m["full"] as? Long) ?: 0L) != 0L
-                        onStatus(shift, full)
+                        // start/end su nepovinne — ked chybaju, volajuci pouzije zalohu
+                        val st = (m["start"] as? Long) ?: 0L
+                        val en = (m["end"] as? Long) ?: 0L
+                        onStatus(shift, full, st, en)
                     }
                     "subscriptionStop" -> {
                         onStop(m["subscriptionError"] as? String)

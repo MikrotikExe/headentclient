@@ -33,7 +33,19 @@ class HtspTsFeeder(
     private var scope: CoroutineScope? = null
 
     /** Posledny posun za zivym v 90kHz tikoch (z timeshiftStatus). 0 = zive. */
+    /** Aktualna pozicia voci zivemu (90 kHz tiky); 0 = na zivo. */
     @Volatile var shiftTicks: Long = 0L
+
+    /**
+     * M508-fix2: DLZKA timeshift buffera v 90 kHz tikoch (end - start).
+     *
+     * Toto je jediny spolahlivy udaj o tom, kolko sa da pretocit dozadu.
+     * Odhad podla uplynuteho casu neplati, ked ma server timeshift „On-demand" —
+     * vtedy sa buffer zacne tvorit az ked oň klient poziada (pauza/skok), takze
+     * skok tesne po naladeni kanala by siel do prazdna a obraz zamrzne.
+     * 0 = server rozsah nehlasi (starsi TVH, radio) -> plati zaloha.
+     */
+    @Volatile var bufferTicks: Long = 0L
         private set
 
 
@@ -122,7 +134,10 @@ class HtspTsFeeder(
                             }
                         }
                     },
-                    onStatus = { shift, _ -> shiftTicks = shift },
+                    onStatus = { shift, _, startPts, endPts ->
+                        shiftTicks = shift
+                        if (endPts > startPts) bufferTicks = endPts - startPts
+                    },
                     onSubtitles = { subs -> subtitleStreams = subs },
                     onSubtitlePage = { page, targetMs -> onSubtitlePage?.invoke(page, targetMs) }
                 )
