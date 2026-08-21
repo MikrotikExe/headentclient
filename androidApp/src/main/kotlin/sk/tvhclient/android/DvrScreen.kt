@@ -61,7 +61,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -1154,14 +1153,9 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
             style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
         )
-        // M510-fix: kym sa fokus presuva na novu uroven, lavy pas ho NESMIE prijat.
-        // Bez toho ho Compose najprv hodi na prvu polozku pasu („Posledne sledovane")
-        // a az potom sa vrati do obsahu — a prave ten medzikrok bolo vidiet ako bliknutie.
-        var focusLocked by remember { mutableStateOf(false) }
         Row(Modifier.fillMaxSize()) {
             LazyColumn(
                 Modifier.fillMaxHeight().weight(0.26f)
-                    .focusProperties { canFocus = !focusLocked }
                     .background(
                         if (isModernUi()) {
                             if (isLightTheme()) MaterialTheme.colorScheme.surfaceContainerLow
@@ -1183,15 +1177,20 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
             val contentFr = remember { FocusRequester() }
             LaunchedEffect(selKey, selChannel, selChannelDate, selSub, selSeries) {
                 if (selKey != "_search") {          // hladanie chce fokus v poli
-                    kotlinx.coroutines.delay(80)    // nech sa nova mriezka stihne zlozit
+                    kotlinx.coroutines.delay(32)    // jeden snimok, nech je mriezka zlozena
                     runCatching { contentFr.requestFocus() }
                 }
-                focusLocked = false                 // M510-fix: pas moze zas prijat fokus
             }
             Column(
                 Modifier.weight(0.74f).fillMaxHeight()
                     .focusRequester(contentFr)
                     .focusGroup()
+                    // M510-fix2: KLUC k odstraneniu prebliku. Ked zmizne polozka s
+                    // fokusom, Compose ho posunie na najblizsieho fokusovatelneho
+                    // PREDKA — cize sem. Bez toho hlada od zaciatku stromu a najde
+                    // „Posledne sledovane" v lavom pase, co bolo vidiet ako bliknutie.
+                    // Odtialto ho uz LaunchedEffect nizsie posunie do novej mriezky.
+                    .focusable()
             ) {
                 when {
                     selKey == "_recent" -> {
@@ -1209,14 +1208,14 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                     }
                     selKey == "_channels" && selChannel == null -> {
                         ArcFolderHeader(stringResource(R.string.dvr_by_channel))
-                        ArcChannelGrid(channels, entries, loaded, loader, context) { focusLocked = true; selChannel = it }
+                        ArcChannelGrid(channels, entries, loaded, loader, context) { selChannel = it }
                     }
                     selKey == "_channels" && selChannelDate == null -> {
                         val chEnt = entries.filter { it.channelName == selChannel }
                         val byDate = chEnt.groupBy { dateKey(it.start) }
                         val dks = byDate.keys.sortedDescending()
                         ArcFolderHeader(selChannel ?: "")
-                        ArcFolderGrid(dks.map { dk -> Triple(dk, byDate[dk]?.firstOrNull()?.let { formatDateFull(it.start) } ?: dk, byDate[dk]?.size ?: 0) }, iconKeyFor = { "dates" }) { focusLocked = true; selChannelDate = it }
+                        ArcFolderGrid(dks.map { dk -> Triple(dk, byDate[dk]?.firstOrNull()?.let { formatDateFull(it.start) } ?: dk, byDate[dk]?.size ?: 0) }, iconKeyFor = { "dates" }) { selChannelDate = it }
                     }
                     selKey == "_channels" -> {
                         val list = entries.filter { it.channelName == selChannel && dateKey(it.start) == selChannelDate }
@@ -1237,7 +1236,7 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                                 val bySub = inCat.groupBy { DvrClassifier.subgenreOf(it, cat, consensus) }
                                 val order = DvrClassifier.subOrderFor(cat).filter { bySub.containsKey(it) }
                                 ArcFolderHeader(catLabel(cat))
-                                ArcFolderGrid(order.map { sb -> Triple(sb, subLabel(sb), bySub[sb]?.size ?: 0) }, iconKeyFor = { sb -> cat + "|" + sb }) { focusLocked = true; selSub = it }
+                                ArcFolderGrid(order.map { sb -> Triple(sb, subLabel(sb), bySub[sb]?.size ?: 0) }, iconKeyFor = { sb -> cat + "|" + sb }) { selSub = it }
                             }
                             else -> {
                                 val scope = if (hasSub) inCat.filter { DvrClassifier.subgenreOf(it, cat, consensus) == selSub } else inCat
@@ -1245,7 +1244,7 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                                     val bySeries = scope.groupBy { DvrClassifier.seriesCanonicalTitle(it.title) }
                                     val titles = bySeries.keys.sortedBy { it.lowercase() }
                                     ArcFolderHeader(if (hasSub) subLabel(selSub ?: "") else catLabel(cat))
-                                    ArcFolderGrid(titles.map { t -> Triple(t, t, bySeries[t]?.size ?: 0) }, glyph = "\uD83D\uDCFA", iconKeyFor = { "series" }) { focusLocked = true; selSeries = it }
+                                    ArcFolderGrid(titles.map { t -> Triple(t, t, bySeries[t]?.size ?: 0) }, glyph = "\uD83D\uDCFA", iconKeyFor = { "series" }) { selSeries = it }
                                 } else if (seriesLike) {
                                     val eps = scope.filter { DvrClassifier.seriesCanonicalTitle(it.title) == selSeries }
                                         .sortedByDescending { it.start }
