@@ -1170,28 +1170,7 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                 item("all") { ArcRailItem(stringResource(R.string.dvr_all), entries.size, selKey == "all", iconKey = "all") { openSection("all") } }
                 items(cats, key = { it }) { c -> ArcRailItem(catLabel(c), byCat[c]?.size ?: 0, selKey == c, iconKey = c) { openSection(c) } }
             }
-            // M510: pri prechode na dalsiu uroven (kanal -> datum -> nahravka) zmizne
-            // prvok, na ktorom bol fokus, a Compose ho vrati na PRVY fokusovatelny
-            // prvok v strome — teda na „Posledne sledovane" v lavom menu. Fokus si
-            // preto vypytame spat do obsahovej casti, kde pouzivatel prave je.
-            val contentFr = remember { FocusRequester() }
-            LaunchedEffect(selKey, selChannel, selChannelDate, selSub, selSeries) {
-                if (selKey != "_search") {          // hladanie chce fokus v poli
-                    kotlinx.coroutines.delay(32)    // jeden snimok, nech je mriezka zlozena
-                    runCatching { contentFr.requestFocus() }
-                }
-            }
-            Column(
-                Modifier.weight(0.74f).fillMaxHeight()
-                    .focusRequester(contentFr)
-                    .focusGroup()
-                    // M510-fix2: KLUC k odstraneniu prebliku. Ked zmizne polozka s
-                    // fokusom, Compose ho posunie na najblizsieho fokusovatelneho
-                    // PREDKA — cize sem. Bez toho hlada od zaciatku stromu a najde
-                    // „Posledne sledovane" v lavom pase, co bolo vidiet ako bliknutie.
-                    // Odtialto ho uz LaunchedEffect nizsie posunie do novej mriezky.
-                    .focusable()
-            ) {
+            Column(Modifier.weight(0.74f).fillMaxHeight()) {
                 when {
                     selKey == "_recent" -> {
                         ArcFolderHeader(stringResource(R.string.dvr_recent))
@@ -1276,11 +1255,31 @@ private fun ColumnScope.ArcRecGrid(list: List<DvrEntry>, loaded: DvrState.Loaded
     infoEntry?.let { ent -> ArcInfoDialog(ent) { infoEntry = null } }
 }
 
+
+/**
+ * M514: prva dlazdica novej mriezky si vypyta fokus hned pri svojom vzniku.
+ *
+ * Ked pouzivatel vyberie zlozku, stara mriezka zmizne aj s prvkom, na ktorom
+ * stal fokus. Compose ho vtedy hlada od zaciatku stromu a najde „Posledne
+ * sledovane" v lavom pase — to bolo vidiet ako kratke bliknutie. Ziadat fokus
+ * az z vonkajsieho LaunchedEffectu je neskoro (bliknutie uz prebehlo); musi si
+ * ho vypytat sama dlazdica v tej istej kompozicii, v ktorej sa objavi.
+ */
+@Composable
+private fun Modifier.arcAutoFocus(active: Boolean): Modifier {
+    if (!active) return this
+    val fr = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { fr.requestFocus() } }
+    return this.focusRequester(fr)
+}
+
 @Composable
 private fun ColumnScope.ArcChannelGrid(channels: List<String>, entries: List<DvrEntry>, loaded: DvrState.Loaded, loader: coil.ImageLoader, context: Context, onClick: (String) -> Unit) {
     LazyVerticalGrid(GridCells.Fixed(4), Modifier.fillMaxWidth().weight(1f).padding(8.dp)) {
         gridItems(channels, key = { it }) { ch ->
-            ArcChannelCard(ch, loaded.channelPicons[ch], entries.count { it.channelName == ch }, loader, context) { onClick(ch) }
+            Box(Modifier.arcAutoFocus(ch == channels.firstOrNull())) {   // M514
+                ArcChannelCard(ch, loaded.channelPicons[ch], entries.count { it.channelName == ch }, loader, context) { onClick(ch) }
+            }
         }
     }
 }
@@ -1294,7 +1293,9 @@ private fun ColumnScope.ArcFolderGrid(
 ) {
     LazyVerticalGrid(GridCells.Fixed(4), Modifier.fillMaxWidth().weight(1f).padding(8.dp)) {
         gridItems(items, key = { it.first }) { tr ->
-            ArcFolderCard(glyph, tr.second, tr.third, iconKey = iconKeyFor?.invoke(tr.first)) { onClick(tr.first) }
+            Box(Modifier.arcAutoFocus(tr.first == items.firstOrNull()?.first)) {   // M514
+                ArcFolderCard(glyph, tr.second, tr.third, iconKey = iconKeyFor?.invoke(tr.first)) { onClick(tr.first) }
+            }
         }
     }
 }
