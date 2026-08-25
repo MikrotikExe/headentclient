@@ -5666,6 +5666,7 @@ private fun PlayerUi(
                                 barCtrl("audio")
                                 barCtrl("subs")
                                 if (has("profile")) barCtrl("profile")
+                                if (has("rec")) barCtrl("rec")     // M490-fix: aj trojriadkovy bar
                                 barCtrl("sleep")
                                 if (lockVisible) barCtrl("lock")
                             }
