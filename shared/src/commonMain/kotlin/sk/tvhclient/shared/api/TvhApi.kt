@@ -315,13 +315,25 @@ class TvhApi(private val server: TvhServer) {
             (o[key] as? kotlinx.serialization.json.JsonArray)
                 ?.mapNotNull { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
                 ?: emptyList()
-        fun flag(key: String): Boolean =
-            (o[key] as? kotlinx.serialization.json.JsonPrimitive)?.content == "true"
+        /**
+         * M517: `api/access/whoami` vracia prava ako CISLA (`"dvr":1,"admin":0`),
+         * nie ako zoznam retazcov ani ako "true"/"false". Doteraz sa citali len
+         * ako zoznam, takze pri HTTP pripojeni vysiel `canRecord` vzdy na false
+         * a tlacidlo nahravania sa vobec nezobrazilo. Beriem oba tvary — starsie
+         * verzie TVH posielaju zoznam, novsie cislo.
+         */
+        fun flag(key: String): Boolean {
+            val p = o[key] as? kotlinx.serialization.json.JsonPrimitive ?: return false
+            val c = p.content
+            return c == "true" || (c.toIntOrNull() ?: 0) != 0
+        }
         val dvrRights = strList("dvr")
         DvrAccess(
-            // "basic"/"htsp"/"all"/"all_rw" = moze nahravat; prazdny zoznam = nie
-            canRecord = dvrRights.any { it in setOf("basic", "htsp", "all", "all_rw") },
-            canSeeFailed = dvrRights.contains("failed"),
+            // zoznam (starsie TVH) alebo priznak cislom (novsie)
+            canRecord = if (dvrRights.isNotEmpty())
+                dvrRights.any { it in setOf("basic", "htsp", "all", "all_rw") }
+            else flag("dvr"),
+            canSeeFailed = dvrRights.contains("failed") || flag("dvr"),
             isAdmin = flag("admin"),
             recordingLimit = 0,
             known = true
