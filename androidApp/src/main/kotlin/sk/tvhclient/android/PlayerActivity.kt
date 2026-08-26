@@ -59,6 +59,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.MusicNote
@@ -6544,6 +6545,22 @@ private fun PlayerUi(
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // M516: ikona ku kazdej polozke — bez nej bol zoznam holy text,
+                            // kym klasicky bar ikony ma
+                            androidx.compose.material3.Icon(
+                                when (modernMoreIdList.getOrNull(idx)) {
+                                    "list" -> Icons.Default.List
+                                    "sleep" -> Icons.Default.Timer
+                                    "profile" -> Icons.Default.Tune
+                                    "rec" -> if (dvrActivity?.dvrExistingState?.value != null)
+                                        Icons.Default.Stop else Icons.Default.FiberManualRecord
+                                    else -> Icons.Default.Info
+                                },
+                                contentDescription = null,
+                                tint = if (sel) playerFg() else playerFgDim(),
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(Modifier.width(16.dp))
                             Text(label, color = playerFg())
                         }
                     }
