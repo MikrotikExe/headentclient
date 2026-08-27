@@ -120,7 +120,15 @@ object DvrController {
             }
                 }.getOrNull()
             }
-        } ?: emptyList()
+        }
+        // M518: NEUKLADAJ neuspech do cache.
+        //
+        // `null` = vyprsal 8 s limit alebo volanie zlyhalo. Doteraz sa v takom
+        // pripade ulozil prazdny zoznam a appka celu minutu verila, ze ziadne
+        // nahravky neexistuju — tlacidlo sa preto raz ukazalo ako „Zrusit" a
+        // inokedy ako „Nahrat", podla toho, ci sa nacitanie prave podarilo.
+        // Pri neuspechu radsej vratime posledny znamy stav a skusime nabuduce.
+        if (list == null) return overlay(server.id, schedCache[server.id]?.list ?: emptyList())
         schedCache[server.id] = Sched(now, list)
         reconcile(server.id, list)          // M484
         return overlay(server.id, list)
