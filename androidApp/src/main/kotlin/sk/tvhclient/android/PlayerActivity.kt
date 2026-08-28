@@ -224,10 +224,28 @@ class PlayerActivity : ComponentActivity() {
      * pod rukou a dpad by aktivoval nieco ine.
      */
     fun refreshDvrState() {
+        // M521: zahod stav PREDCHADZAJUCEHO kanala hned, este pred nacitanim.
+        // Nacitanie zoznamu nahravok trva cez HTTP sekundy (u velkych serverov
+        // je to vyse tisic zaznamov) a dovtedy tlacidlo ukazovalo stav kanala,
+        // z ktoreho pouzivatel prave odisiel — raz „Zrusit" tam, kde sa nenahrava,
+        // inokedy „Nahrat" tam, kde nahravka bezi.
+        dvrExistingState.value = null
+        dvrEventIdState.value = currentEventId()   // z lokalnej EPG cache, synchronne
+        // M521-fix: prebiehajucu nahravku vezmi z toho isteho zdroja, z ktoreho sa
+        // kreslia cervene bodky v zozname kanalov (fetchDvrInProgress). Je to mapa
+        // uz nacitanych BEZIACICH nahravok — dostupna okamzite a spolahliva —
+        // kym DvrController.scheduledFor() tahal cely zoznam naplanovanych
+        // (u velkeho servera vyse tisic zaznamov) a kym dobehol, tlacidlo ukazovalo
+        // nespravny stav.
+        liveChannelsState.value.getOrNull(liveIndexState.value)?.let { ch ->
+            recInProgressByChan.value.let { it[ch.uuid] ?: it[ch.name] }
+                ?.let { dvrExistingState.value = it }
+        }
         lifecycleScope.launch {
             val srv = Tvh.store.active()
             var eid = currentEventId()
-            var rec = currentEventRecording(srv)
+            // najprv rychly a spolahlivy zdroj, az potom pomaly zoznam naplanovanych
+            var rec = runningRecordingHere() ?: currentEventRecording(srv)
             // M520: ak sa EPG pre tento kanal este nestihlo nacitat, prehravac
             // nepozna beziacu relaciu — a bez nej sa tlacidlo nahravania vobec
             // nezobrazi. Prave preto sa objavovalo raz ano, raz nie, podla toho,
@@ -1234,6 +1252,12 @@ class PlayerActivity : ComponentActivity() {
         val ev = epgUpcomingState.value[ch.uuid]
             ?.firstOrNull { it.start <= nowSec && nowSec < it.stop } ?: return null
         return ch.uuid to ev
+    }
+
+    /** M521-fix: beziaca nahravka na prave sledovanom kanali z mapy cervených bodiek. */
+    fun runningRecordingHere(): sk.tvhclient.shared.model.DvrEntry? {
+        val ch = liveChannelsState.value.getOrNull(liveIndexState.value) ?: return null
+        return recInProgressByChan.value.let { it[ch.uuid] ?: it[ch.name] }
     }
 
     suspend fun currentEventRecording(

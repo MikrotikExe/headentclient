@@ -163,7 +163,13 @@ object DvrController {
         // vypis LEN zaznamy pre tento kanal — ukaze, ci kanal nahravky vobec ma
         // a preco sa casy neprekryli (padding, iny cas, prazdne uuid)
         val sameCh = all.filter { it.channelUuid == channelUuid }
-        android.util.Log.d("tvhdvr", "   pre tento kanal zaznamov=${sameCh.size}")
+        val prazdne = all.count { it.channelUuid.isBlank() }
+        android.util.Log.d("tvhdvr", "   pre tento kanal zaznamov=${sameCh.size} " +
+            "| zaznamov s prazdnym kanalom=$prazdne z ${all.size}")
+        all.take(3).forEach {
+            android.util.Log.d("tvhdvr", "   vzorka: kanalUuid='${it.channelUuid}' " +
+                "meno='${it.channelName}' ${it.start}-${it.stop} ${it.title}")
+        }
         sameCh.take(5).forEach {
             android.util.Log.d("tvhdvr", "   zaznam: ${it.start}-${it.stop} " +
                 "real=${it.startReal}-${it.stopReal} stav=${it.status}/${it.schedStatus} ${it.title}")
