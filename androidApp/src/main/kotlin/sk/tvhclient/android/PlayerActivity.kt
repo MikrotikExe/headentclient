@@ -226,8 +226,35 @@ class PlayerActivity : ComponentActivity() {
     fun refreshDvrState() {
         lifecycleScope.launch {
             val srv = Tvh.store.active()
-            dvrEventIdState.value = currentEventId()
-            dvrExistingState.value = currentEventRecording(srv)
+            var eid = currentEventId()
+            var rec = currentEventRecording(srv)
+            // M520: ak sa EPG pre tento kanal este nestihlo nacitat, prehravac
+            // nepozna beziacu relaciu — a bez nej sa tlacidlo nahravania vobec
+            // nezobrazi. Prave preto sa objavovalo raz ano, raz nie, podla toho,
+            // ci uz EPG doslo. Dohladame si ju teda priamo zo servera.
+            if (eid == null && srv != null) {
+                val uuid = liveChannelsState.value.getOrNull(liveIndexState.value)?.uuid
+                if (uuid != null) {
+                    val evs = withContext(Dispatchers.IO) {
+                        runCatching {
+                            val api = Tvh.apiFor(srv)
+                            try { Tvh.fetchEpgForChannel(srv, api, uuid) } finally { api.close() }
+                        }.getOrDefault(emptyList())
+                    }
+                    if (evs.isNotEmpty()) {
+                        // doplnime do cache, nech to dalsie otvorenie uz nemusi tahat
+                        epgUpcomingState.value = epgUpcomingState.value + (uuid to evs)
+                        val nowSec = System.currentTimeMillis() / 1000
+                        val cur = evs.firstOrNull { it.start <= nowSec && nowSec < it.stop }
+                        eid = cur?.eventId
+                        if (rec == null && cur != null) {
+                            rec = DvrController.scheduledFor(srv, uuid, cur.start, cur.stop)
+                        }
+                    }
+                }
+            }
+            dvrEventIdState.value = eid
+            dvrExistingState.value = rec
             dvrCanRecordState.value = srv != null && DvrController.access(srv).canRecord
         }
     }
