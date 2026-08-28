@@ -40,7 +40,15 @@ object DvrController {
             withTimeoutOrNull(8_000L) {
                 runCatching { serviceFor(server).access() }.getOrNull()
             }
-        } ?: DvrAccess.UNKNOWN
+        }
+        // M519: NEUKLADAJ neuspech natrvalo.
+        //
+        // Cache prav nema expiraciu, takze ked prve zistenie zlyhalo alebo
+        // nestihlo 8 s limit, ulozilo sa UNKNOWN a appka az do restartu verila,
+        // ze nahravat sa neda — tlacidlo sa preto raz zobrazilo a inokedy nie,
+        // podla toho, ci sa prve volanie po starte podarilo. Neuspech si preto
+        // nepamatame a pri dalsom pokuse sa prava zistia znova.
+        if (a == null || !a.known) return DvrAccess.UNKNOWN
         accessCache[server.id] = a
         return a
     }
