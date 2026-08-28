@@ -160,11 +160,13 @@ object DvrController {
         }
         android.util.Log.d("tvhdvr", "scheduledFor: kanal=$channelUuid rel=$start-$stop " +
             "zoznam=${all.size} najdene=${hit?.title ?: "NIC"}")
-        if (hit == null && all.isNotEmpty()) {
-            all.take(3).forEach {
-                android.util.Log.d("tvhdvr", "   kandidat: kanal=${it.channelUuid} " +
-                    "${it.start}-${it.stop} ${it.title}")
-            }
+        // vypis LEN zaznamy pre tento kanal — ukaze, ci kanal nahravky vobec ma
+        // a preco sa casy neprekryli (padding, iny cas, prazdne uuid)
+        val sameCh = all.filter { it.channelUuid == channelUuid }
+        android.util.Log.d("tvhdvr", "   pre tento kanal zaznamov=${sameCh.size}")
+        sameCh.take(5).forEach {
+            android.util.Log.d("tvhdvr", "   zaznam: ${it.start}-${it.stop} " +
+                "real=${it.startReal}-${it.stopReal} stav=${it.status}/${it.schedStatus} ${it.title}")
         }
         return hit
     }
