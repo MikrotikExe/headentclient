@@ -3061,7 +3061,17 @@ class PlayerActivity : ComponentActivity() {
                         ((minOf(nowSec, dvrProgStopSec) - dvrProgStartSec) * 1000).coerceIn(1000L, progDurMs)
                     else
                         maxOf(dvrDurationMs, if (::mediaPlayer.isInitialized) mediaPlayer.length else 0L)
-                    if (live > dvrDurationMs) { dvrDurationMs = live; dvrDurationState.value = live }
+                    // M528: pri DOKONCENEJ nahravke ma prednost skutocna dlzka suboru,
+                    // ktoru zisti libVLC. Cyklus dlzku doteraz len zvacsoval, takze ked
+                    // bola nahravka zastavena skor, ostala planovana dlzka relacie —
+                    // 15-minutova nahravka sa tvarila ako hodinova.
+                    val realLen = if (::mediaPlayer.isInitialized) mediaPlayer.length else 0L
+                    if (!dvrRecording && realLen > 1000L && realLen != dvrDurationMs) {
+                        dvrDurationMs = realLen
+                        dvrDurationState.value = realLen
+                    } else if (live > dvrDurationMs) {
+                        dvrDurationMs = live; dvrDurationState.value = live
+                    }
                     if (haveBounds && nowSec >= dvrProgStopSec) break  // relacia skoncila
                     kotlinx.coroutines.delay(1000)
                 }

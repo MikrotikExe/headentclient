@@ -1084,7 +1084,12 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
     val state by vm.state.collectAsState()
     val server = remember { Tvh.store.active() }
     val loader = remember(server?.id) { PiconImageLoader.get(context, server) }
-    LaunchedEffect(Unit) { vm.loadIfNeeded() }
+    // M528: pri kazdom otvoreni archivu si vyziadaj cerstvy zoznam.
+    // `loadIfNeeded` sa vrati hned, ked uz data ma, takze prave dokoncena
+    // nahravka sa objavila az po restarte appky. `refresh` drzi stare data
+    // a dotiahne nove bez blikania. TV archiv navyse nema tlacidlo obnovy
+    // (to je len v telefonnej verzii), takze inak sa obnovit ani neda.
+    LaunchedEffect(Unit) { vm.loadIfNeeded(); vm.refresh() }
     LaunchedEffect(Unit) {
         if (!DvrClassifier.hasCorpus())
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { loadCorpusFromAssets(context) }
