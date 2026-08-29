@@ -285,6 +285,18 @@ private fun TvHomeHost() {
     }
     var lastTile by remember { mutableStateOf("channels") }
     var play by remember { mutableStateOf("") }
+    // M531: poistka proti zaseknutiu uvodnej obrazovky.
+    //
+    // Kym `play` caka na nacitanie, su dlazdice hluche. Ked nacitanie uviazne v
+    // stave „nacitava sa" (napr. server neodpovie a stav sa uz nezmeni), ostala
+    // obrazovka zablokovana az do restartu appky. Po 20 s cakanie zrusime, nech
+    // sa da appka opat ovladat.
+    LaunchedEffect(play) {
+        if (play.isNotEmpty()) {
+            kotlinx.coroutines.delay(20_000)
+            play = ""
+        }
+    }
     // M496: obnovenie posledneho prehravania po starte appky (TV).
     // Zivy kanal sa NESMIE spustat priamo — prehravac dostava zoznam kanalov cez
     // LivePlaylist, ktory pri studenom starte este nie je naplneny, takze by hral
@@ -478,8 +490,8 @@ private fun TvHomeHost() {
                             LivePlaylist.setIndexForUuid(uuid)
                             playUuid(uuid, title)
                         },
-                        onChannels = { lastTile = "channels"; chVm.loadIfNeeded(); if (play.isEmpty()) play = "tv" },
-                        onRadio = { lastTile = "radio"; raVm.load(); if (play.isEmpty()) play = "radio" },
+                        onChannels = { lastTile = "channels"; chVm.loadIfNeeded(); play = "tv" },   // M531
+                        onRadio = { lastTile = "radio"; raVm.load(); play = "radio" },   // M531
                         onTvProgram = { lastTile = "epg"; section = "epg" },
                         onArchive = { lastTile = "archive"; section = "archive" },
                         onSettings = { lastTile = "settings"; section = "settings" },
@@ -487,8 +499,8 @@ private fun TvHomeHost() {
                 } else {
                 TvHomeScreen(   // pocas pending (play) zostava viditelny launcher, kym naskoci prehravac
                     focusKey = lastTile,
-                    onChannels = { lastTile = "channels"; chVm.loadIfNeeded(); if (play.isEmpty()) play = "tv" },
-                    onRadio = { lastTile = "radio"; raVm.load(); if (play.isEmpty()) play = "radio" },
+                    onChannels = { lastTile = "channels"; chVm.loadIfNeeded(); play = "tv" },   // M531
+                    onRadio = { lastTile = "radio"; raVm.load(); play = "radio" },   // M531
                     onTvProgram = { lastTile = "epg"; section = "epg" },
                     onArchive = { lastTile = "archive"; section = "archive" },
                     onSettings = { lastTile = "settings"; section = "settings" },
