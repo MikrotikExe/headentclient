@@ -5063,26 +5063,17 @@ private fun PlayerUi(
 
     // Kym je zoznam kanalov otvoreny, obnovuj EPG (now/next) aby relacie
     // postupne prechadzali na dalsie
-    LaunchedEffect(showChannelList) {
-        if (showChannelList) {
+    // M522: obnovuj EPG a nahravaci priznak (cervena bodka), kym je otvoreny plny
+    // zoznam kanalov ALEBO vodorovny pas. Doteraz to platilo len pre plny zoznam,
+    // takze v pase sa bodky objavovali neskoro alebo vobec — a stav tlacidla
+    // nahravania v „Viac" bol podla toho tiez nespolahlivy.
+    // Jeden efekt namiesto dvoch: PlayerUi je tesne pod 64 KB limitom metody.
+    LaunchedEffect(showChannelList || controlsVisible) {
+        if (showChannelList || controlsVisible) {
             onRefreshEpgInitial()   // M270: prve nacitanie so spinnerom (len ak je cache prazdna/zastarana)
             while (true) {
                 kotlinx.coroutines.delay(60_000)
                 onRefreshEpg()      // periodicky refresh bez spinnera
-            }
-        }
-    }
-
-    // M522: to iste pre VODOROVNY PAS (1x OK). Doteraz sa nahravaci priznak
-    // (cervena bodka) osviezoval len pri plnom zozname kanalov (podrzanie OK),
-    // takze v pase sa bodky objavovali neskoro alebo vobec — a stav tlacidla
-    // nahravania v „Viac" bol podla toho tiez nespolahlivy.
-    LaunchedEffect(controlsVisible) {
-        if (controlsVisible && !showChannelList) {
-            onRefreshEpgInitial()
-            while (true) {
-                kotlinx.coroutines.delay(60_000)
-                onRefreshEpg()
             }
         }
     }

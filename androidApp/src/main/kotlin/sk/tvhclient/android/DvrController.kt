@@ -48,8 +48,6 @@ object DvrController {
         // ze nahravat sa neda — tlacidlo sa preto raz zobrazilo a inokedy nie,
         // podla toho, ci sa prve volanie po starte podarilo. Neuspech si preto
         // nepamatame a pri dalsom pokuse sa prava zistia znova.
-        android.util.Log.d("tvhdvr", "access: mode=${server.connectionMode} " +
-            "vysledok=${if (a == null) "TIMEOUT/CHYBA" else "canRecord=${a.canRecord} known=${a.known}"}")
         if (a == null || !a.known) return DvrAccess.UNKNOWN
         accessCache[server.id] = a
         return a
@@ -138,8 +136,6 @@ object DvrController {
         // nahravky neexistuju — tlacidlo sa preto raz ukazalo ako „Zrusit" a
         // inokedy ako „Nahrat", podla toho, ci sa nacitanie prave podarilo.
         // Pri neuspechu radsej vratime posledny znamy stav a skusime nabuduce.
-        android.util.Log.d("tvhdvr", "scheduled: mode=${server.connectionMode} " +
-            "polozky=${list?.size ?: -1}" + if (list == null) " (TIMEOUT/CHYBA)" else "")
         if (list == null) return overlay(server.id, schedCache[server.id]?.list ?: emptyList())
         schedCache[server.id] = Sched(now, list)
         reconcile(server.id, list)          // M484
@@ -152,29 +148,9 @@ object DvrController {
      */
     suspend fun scheduledFor(
         server: TvhServer, channelUuid: String, start: Long, stop: Long
-    ): sk.tvhclient.shared.model.DvrEntry? {
-        val all = scheduled(server)
-        val hit = all.firstOrNull { r ->
-            val sameChannel = r.channelUuid.isNotBlank() && r.channelUuid == channelUuid
-            sameChannel && r.start < stop && start < r.stop
-        }
-        android.util.Log.d("tvhdvr", "scheduledFor: kanal=$channelUuid rel=$start-$stop " +
-            "zoznam=${all.size} najdene=${hit?.title ?: "NIC"}")
-        // vypis LEN zaznamy pre tento kanal — ukaze, ci kanal nahravky vobec ma
-        // a preco sa casy neprekryli (padding, iny cas, prazdne uuid)
-        val sameCh = all.filter { it.channelUuid == channelUuid }
-        val prazdne = all.count { it.channelUuid.isBlank() }
-        android.util.Log.d("tvhdvr", "   pre tento kanal zaznamov=${sameCh.size} " +
-            "| zaznamov s prazdnym kanalom=$prazdne z ${all.size}")
-        all.take(3).forEach {
-            android.util.Log.d("tvhdvr", "   vzorka: kanalUuid='${it.channelUuid}' " +
-                "meno='${it.channelName}' ${it.start}-${it.stop} ${it.title}")
-        }
-        sameCh.take(5).forEach {
-            android.util.Log.d("tvhdvr", "   zaznam: ${it.start}-${it.stop} " +
-                "real=${it.startReal}-${it.stopReal} stav=${it.status}/${it.schedStatus} ${it.title}")
-        }
-        return hit
+    ): sk.tvhclient.shared.model.DvrEntry? = scheduled(server).firstOrNull { r ->
+        val sameChannel = r.channelUuid.isNotBlank() && r.channelUuid == channelUuid
+        sameChannel && r.start < stop && start < r.stop
     }
 
     /** Po naplanovani nahravky zoznam zneplatni, nech sa hned prejavi v UI. */
