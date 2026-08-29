@@ -5073,6 +5073,20 @@ private fun PlayerUi(
         }
     }
 
+    // M522: to iste pre VODOROVNY PAS (1x OK). Doteraz sa nahravaci priznak
+    // (cervena bodka) osviezoval len pri plnom zozname kanalov (podrzanie OK),
+    // takze v pase sa bodky objavovali neskoro alebo vobec — a stav tlacidla
+    // nahravania v „Viac" bol podla toho tiez nespolahlivy.
+    LaunchedEffect(controlsVisible) {
+        if (controlsVisible && !showChannelList) {
+            onRefreshEpgInitial()
+            while (true) {
+                kotlinx.coroutines.delay(60_000)
+                onRefreshEpg()
+            }
+        }
+    }
+
     Box(
         Modifier
             .fillMaxSize()
