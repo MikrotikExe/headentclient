@@ -1019,6 +1019,10 @@ class PlayerActivity : ComponentActivity() {
                 }
             val recMap = recList.associateBy { it.channelUuid.ifBlank { it.channelName } }
             recInProgressByChan.value = recMap
+            // M526: mapa dorazila az teraz — prepocitaj stav tlacidla nahravania.
+            // Pri PRVOM nacitani bezi refreshDvrState skor, nez je mapa k dispozicii,
+            // takze tlacitko ostalo prazdne az do prveho prepnutia kanala.
+            refreshDvrState()
             if (srv.connectionMode == "htsp") {
                 val map = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                     Tvh.fetchEpgUpcoming(srv)
@@ -1121,6 +1125,7 @@ class PlayerActivity : ComponentActivity() {
                 }
             val recMap = recList.associateBy { it.channelUuid.ifBlank { it.channelName } }
             recInProgressByChan.value = recMap
+            refreshDvrState()   // M526: to iste aj pri rychlom osvezeni
             val cur = liveChannelsState.value
             if (cur.isNotEmpty()) {
                 val updated = cur.map { it.copy(recording = (it.uuid in recMap || it.name in recMap)) }
