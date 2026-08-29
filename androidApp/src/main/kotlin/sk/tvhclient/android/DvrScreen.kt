@@ -1152,12 +1152,21 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
     DvrDeleteDialog(vm)   // M483: mazanie nahravky (dlhe OK -> info -> Zmazat)
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        Text(
-            stringResource(R.string.dvr_archive).uppercase(),
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
-        )
+        // M530: nadpis vlavo, rucna obnova vpravo hore. Archiv sa obnovuje aj sam
+        // pri otvoreni (M528), ale ked appka ostane otvorena, prave dokoncena
+        // nahravka sa inak neobjavi.
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                stringResource(R.string.dvr_archive).uppercase(),
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f).padding(horizontal = 20.dp, vertical = 12.dp)
+            )
+            ArcReloadButton { vm.refresh() }
+        }
         Row(Modifier.fillMaxSize()) {
             LazyColumn(
                 Modifier.fillMaxHeight().weight(0.26f)
@@ -1174,15 +1183,6 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                 item("_channels") { ArcRailItem(stringResource(R.string.dvr_by_channel), null, selKey == "_channels", iconKey = "channels") { openSection("_channels") } }
                 item("all") { ArcRailItem(stringResource(R.string.dvr_all), entries.size, selKey == "all", iconKey = "all") { openSection("all") } }
                 items(cats, key = { it }) { c -> ArcRailItem(catLabel(c), byCat[c]?.size ?: 0, selKey == c, iconKey = c) { openSection(c) } }
-                // M530: rucna obnova zoznamu. Archiv sa obnovuje aj sam pri otvoreni
-                // (M528), ale ked appka ostane otvorena, prave dokoncena nahravka sa
-                // inak neobjavi. V lavom pase preto, ze v hornom rohu by sa na nu
-                // dpadom dostavalo ťazko.
-                item("_reload") {
-                    ArcRailItem(stringResource(R.string.dvr_reload), null, false, iconKey = "reload") {
-                        vm.refresh()
-                    }
-                }
             }
             Column(Modifier.weight(0.74f).fillMaxHeight()) {
                 when {
@@ -1546,6 +1546,78 @@ private fun ArcInfoDialog(e: DvrEntry, onDismiss: () -> Unit) {
         }
     }
     LaunchedEffect(Unit) { fr.requestFocus() }
+}
+
+/**
+ * M530: tlacidlo obnovy v pravom hornom rohu archivu.
+ *
+ * Vzhlad sa riadi zvolenym rozhranim, nech nepovsi z celku:
+ *  - MODERNY: obla karta s farebnym ikonovym cipom, ako polozky laveho pasu
+ *  - KLASICKY: plochy obrys, ako ostatne klasicke ovladace
+ */
+@Composable
+private fun ArcReloadButton(onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val cs = MaterialTheme.colorScheme
+    val modern = isModernUi()
+    val light = isLightTheme()
+    val shape = RoundedCornerShape(if (modern) 13.dp else 8.dp)
+    Row(
+        Modifier
+            .padding(end = 20.dp)
+            .clip(shape)
+            .background(
+                when {
+                    focused && modern -> cs.primaryContainer.copy(alpha = if (light) 0.45f else 0.5f)
+                    focused -> cs.primary.copy(alpha = 0.22f)
+                    modern -> cs.surfaceVariant.copy(alpha = if (light) 0.35f else 0.25f)
+                    else -> androidx.compose.ui.graphics.Color.Transparent
+                }
+            )
+            .then(
+                // klasicky rezim: obrys namiesto vyplne
+                if (!modern) Modifier.border(
+                    1.dp,
+                    if (focused) cs.primary else cs.outline.copy(alpha = 0.5f),
+                    shape
+                ) else Modifier
+            )
+            .onFocusChanged { focused = it.isFocused }
+            .focusable()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (modern) {
+            // ikonovy cip ako v lavom pase
+            val chip = mgChipFor("dates")
+            Box(
+                Modifier.size(26.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(androidx.compose.ui.graphics.Color(if (light) chip.bgL else chip.bgD)),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.material3.Icon(
+                    Icons.Default.Refresh, contentDescription = null,
+                    tint = androidx.compose.ui.graphics.Color(if (light) chip.fgL else chip.fgD),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        } else {
+            androidx.compose.material3.Icon(
+                Icons.Default.Refresh, contentDescription = null,
+                tint = if (focused) cs.primary else cs.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        Text(
+            stringResource(R.string.dvr_reload),
+            color = if (focused) cs.primary else cs.onSurface,
+            fontWeight = FontWeight.SemiBold,
+            style = MaterialTheme.typography.titleSmall
+        )
+    }
 }
 
 @Composable

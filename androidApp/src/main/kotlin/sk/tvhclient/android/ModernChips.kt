@@ -39,7 +39,6 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Piano
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Pool
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.RecordVoiceOver
@@ -85,7 +84,6 @@ internal val mgPalette = listOf(
 )
 
 internal fun mgChipFor(key: String): MgChipColors = when (key) {
-    "reload" -> mgPalette[3]      // M530
     "recent" -> mgPalette[6]
     "search" -> mgPalette[5]
     "all" -> mgPalette[7]
@@ -178,7 +176,6 @@ internal fun mgIconFor(rawKey: String): androidx.compose.ui.graphics.vector.Imag
     mgSubIcon(rawKey.substringAfter('|', ""))?.let { return it }
     mgSubIcon(rawKey)?.let { return it }
     val key = rawKey.substringBefore('|'); return when {
-    key == "reload" -> Icons.Filled.Refresh      // M530
     key == "recent" -> Icons.Filled.PlayArrow
     key == "search" -> Icons.Filled.Search
     key == "all" -> Icons.Filled.VideoLibrary
