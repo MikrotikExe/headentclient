@@ -24,17 +24,28 @@ Jetpack Compose and libVLC.
 
 - Live TV from your Tvheadend server (HTTP and HTSP)
 - EPG grid (TV guide) with fast scrolling and instant now/next from cache
-- Recordings (DVR): playback, resume, and a categorized archive
+- **Recording (DVR):** schedule and cancel from the guide, a programme detail or
+  the player; stop running recordings and delete finished ones from the archive
+- **Recording indicators:** badges for recording / recorded / scheduled, and a red
+  dot on channels currently being recorded
+- **DVR profile per server** — choose which recording profile the server uses,
+  or leave it to the server
+- Recording playback with resume and a categorized archive
 - Seeking inside recordings and the archive — drag the bar or skip ±10 s (accumulating taps)
+- Timeshift on live TV over HTSP (pause and skip within the server's buffer)
 - Audio tracks labeled by language (not generic "Track 1 / 2 / 3")
 - DVB subtitle support with a dedicated renderer
 - Compact, scrollable audio/subtitle picker (tuned for TV remotes)
-- Radio channels
+- **Radio channels**, told apart from TV by DVB service type (as Kodi does),
+  with tag filtering and a remembered group
+- **Start with the last channel (TV)** — resumes the channel or radio station you
+  were last watching, with the full channel list and groups loaded
 - Picons (channel logos)
 - Channel switching by number, channel list, zapping
 - Optional parental lock with PIN (configurable grace period, scope: channels / settings)
 - Deinterlacing (automatic or manual: Bob, Yadif, Yadif 2x, X)
 - Audio output options: passthrough to TV/AVR on Android TV, OpenSL ES mode on phones
+- Optional automatic frame-rate switching (HDR mode changes off by default)
 - Optional modern UI mode (home screen, player and navy/teal theme) — classic look remains the default
 - Multiple servers, backup & restore of settings
 - Optimized for Android TV / set-top boxes (D-pad remote) and phones
@@ -45,6 +56,9 @@ Jetpack Compose and libVLC.
 
 - A running [Tvheadend](https://tvheadend.org/) server you have access to
 - Android 6.0 (API 23) or newer; Android TV or phone
+
+Recording requires an account with DVR rights on the server. Timeshift is an
+HTSP feature and is not available over the HTTP path.
 
 ## Localization
 
