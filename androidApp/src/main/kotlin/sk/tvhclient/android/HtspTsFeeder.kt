@@ -33,9 +33,6 @@ class HtspTsFeeder(
     private var scope: CoroutineScope? = null
 
     /** Posledny posun za zivym v 90kHz tikoch (z timeshiftStatus). 0 = zive. */
-    /** Aktualna pozicia voci zivemu (90 kHz tiky); 0 = na zivo. */
-    @Volatile var shiftTicks: Long = 0L
-
     /**
      * M508-fix2: DLZKA timeshift buffera v 90 kHz tikoch (end - start).
      *
@@ -134,8 +131,7 @@ class HtspTsFeeder(
                             }
                         }
                     },
-                    onStatus = { shift, _, startPts, endPts ->
-                        shiftTicks = shift
+                    onStatus = { _, _, startPts, endPts ->
                         if (endPts > startPts) bufferTicks = endPts - startPts
                     },
                     onSubtitles = { subs -> subtitleStreams = subs },

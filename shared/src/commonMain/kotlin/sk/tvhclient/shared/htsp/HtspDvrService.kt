@@ -68,22 +68,6 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
         }
     } catch (e: Throwable) { DvrResult.fail(e.message) }
 
-    override suspend fun recordTime(
-        channelId: String, start: Long, stop: Long, title: String, configId: String?
-    ): DvrResult = try {
-        val chId = channelId.toLongOrNull()
-            ?: return DvrResult.fail("Neplatné ID kanála")
-        withClient { c ->
-            val args = HashMap<String, Any?>()
-            args["channelId"] = chId
-            args["start"] = start
-            args["stop"] = stop
-            args["title"] = title
-            if (!configId.isNullOrBlank()) args["configName"] = configId
-            reply(c.recvReply(c.send("addDvrEntry", args)))
-        }
-    } catch (e: Throwable) { DvrResult.fail(e.message) }
-
     override suspend fun cancel(id: String): DvrResult = try {
         val n = id.toLongOrNull() ?: return DvrResult.fail("Neplatné ID nahrávky")
         withClient { c -> reply(c.recvReply(c.send("cancelDvrEntry", mapOf("id" to n)))) }

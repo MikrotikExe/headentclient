@@ -33,12 +33,6 @@ interface DvrService {
     /** Naplanuje nahravku podla EPG udalosti. */
     suspend fun recordEvent(eventId: Long, configId: String? = null): DvrResult
 
-    /** Naplanuje nahravku podla kanala a casu (ak nie je EPG udalost). */
-    suspend fun recordTime(
-        channelId: String, start: Long, stop: Long,
-        title: String, configId: String? = null
-    ): DvrResult
-
     /** Zrusi naplanovanu/beziacu nahravku, zaznam ostane. */
     suspend fun cancel(id: String): DvrResult
 

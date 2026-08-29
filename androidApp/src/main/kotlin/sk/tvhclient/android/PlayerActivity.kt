@@ -4488,6 +4488,16 @@ private fun MediaPlayer.trackLanguages(): Map<Int, String?> {
     return out
 }
 
+/**
+ * M527: nazov stopy, ked ju libVLC nepomenovala ani neuviedla jazyk.
+ * Beri text z prekladov — tieto funkcie nie su @Composable, takze
+ * stringResource tu nejde a citame ho cez ulozeny kontext aplikacie.
+ */
+private fun trackFallbackName(resId: Int, id: Int): String =
+    runCatching {
+        sk.tvhclient.shared.storage.AppContextHolder.context.getString(resId) + " " + id
+    }.getOrDefault("#$id")
+
 private fun MediaPlayer.audioTrackItems(): List<TrackItem> {
     val descs = audioTracks ?: return emptyList()
     val langs = trackLanguages()
@@ -4498,7 +4508,9 @@ private fun MediaPlayer.audioTrackItems(): List<TrackItem> {
         val name = when {
             disp != null -> disp
             !base.isNullOrBlank() -> base
-            else -> "Audio ${d.id}"
+            // M527: nazov stopy z prekladov — natvrdo pisany text sa zobrazoval
+        // po slovensky aj v inojazycnom rozhrani
+        else -> trackFallbackName(R.string.track_audio, d.id)
         }
         TrackItem(d.id, name)
     }
@@ -4515,7 +4527,7 @@ private fun MediaPlayer.spuTrackItems(): List<TrackItem> {
         val name = when {
             disp != null -> disp
             !base.isNullOrBlank() -> base
-            else -> "Titulky ${d.id}"
+            else -> trackFallbackName(R.string.track_subtitles, d.id)   // M527
         }
         TrackItem(d.id, name)
     }

@@ -39,25 +39,6 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
         DvrResult.fail(httpMessage(e.httpCode))
     } catch (e: Throwable) { DvrResult.fail(e.message) }
 
-    override suspend fun recordTime(
-        channelId: String, start: Long, stop: Long, title: String, configId: String?
-    ): DvrResult = try {
-        // conf je JSON objekt; nazov je jazykova mapa, ako to caka Tvheadend
-        val safeTitle = title.replace("\\", "\\\\").replace("\"", "\\\"")
-        val conf = buildString {
-            append("{\"start\":").append(start)
-            append(",\"stop\":").append(stop)
-            append(",\"channel\":\"").append(channelId).append("\"")
-            append(",\"title\":{\"eng\":\"").append(safeTitle).append("\"}")
-            if (!configId.isNullOrBlank()) append(",\"config_name\":\"").append(configId).append("\"")
-            append("}")
-        }
-        api.apiPost("api/dvr/entry/create", mapOf("conf" to conf))
-        DvrResult.OK
-    } catch (e: TvhHttpException) {
-        DvrResult.fail(httpMessage(e.httpCode))
-    } catch (e: Throwable) { DvrResult.fail(e.message) }
-
     override suspend fun cancel(id: String): DvrResult = try {
         api.apiPost("api/dvr/entry/cancel", mapOf("uuid" to id))
         DvrResult.OK
