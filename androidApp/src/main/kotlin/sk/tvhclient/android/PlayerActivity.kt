@@ -5075,8 +5075,11 @@ private fun PlayerUi(
     // takze v pase sa bodky objavovali neskoro alebo vobec — a stav tlacidla
     // nahravania v „Viac" bol podla toho tiez nespolahlivy.
     // Jeden efekt namiesto dvoch: PlayerUi je tesne pod 64 KB limitom metody.
-    LaunchedEffect(showChannelList || controlsVisible) {
-        if (showChannelList || controlsVisible) {
+    // M525: aj MODERNY PAS (modernOvVisible) — ten sa neriadi `controlsVisible`,
+    // takze podmienka z M522 sa nan vobec nevztahovala a cervene bodky v nom
+    // nabiehali az potom, co ich stiahol velky zoznam kanalov.
+    LaunchedEffect(showChannelList || controlsVisible || modernOvVisible) {
+        if (showChannelList || controlsVisible || modernOvVisible) {
             onRefreshEpgInitial()   // M270: prve nacitanie so spinnerom (len ak je cache prazdna/zastarana)
             while (true) {
                 kotlinx.coroutines.delay(60_000)
