@@ -1084,13 +1084,16 @@ class PlayerActivity : ComponentActivity() {
      *  prazdna/zastarana a nacitanie trva dlhsie nez prah (350 ms) — pri rychlom serveri
      *  ani pri prepinani/periodickom refreshe sa neobjavi. */
     private fun refreshOverlayEpgInitial() {
+        // M524: nahravaci priznak (cervena bodka) osviez VZDY, nezavisle od EPG.
+        // Doteraz sa maly DVR dotaz robil len ked bola EPG cache cerstva; ked bola
+        // zastarana, appka stahovala cele EPG a bodky sa objavili az po nom —
+        // alebo vobec, kym pouzivatel neotvoril velky zoznam kanalov.
+        refreshRecordingOnly()
         lifecycleScope.launch {
             // M271: ak mame cerstve EPG (cache z nedavneho otvorenia), nesťahuj znova —
             // odpadne otravne nacitavanie pri kazdom reopene. Fetch len ked je stale.
             if (!epgIsStale()) {
-                // M281: EPG je cerstve (now/next uz mame z cache), ale nahravaci priznak
-                // (cervena bodka) sa meni casto — osvez len ten malym DVR dotazom, bez EPG.
-                refreshRecordingOnly()
+                // M281/M524: EPG je cerstve; nahravaci priznak sa uz osviezil vyssie
                 return@launch
             }
             val spinJob = launch {
