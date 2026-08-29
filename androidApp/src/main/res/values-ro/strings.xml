@@ -384,4 +384,5 @@
     <string name="resume_last_note">La pornire, aplicația încarcă lista de canale și redă canalul TV sau radioul urmărit ultima dată. Înregistrările nu se reiau.</string>
     <string name="profile_unknown_warn">Serverul nu oferă profilul „%1$s” — va folosi profilul implicit.</string>
     <string name="profile_note_htsp">HTSP transportă fluxuri elementare, deci nu se transcodează. Lasă setarea serverului dacă contul nu e legat de un anume profil.</string>
+    <string name="dvr_reload">Reîmprospătează</string>
 </resources>

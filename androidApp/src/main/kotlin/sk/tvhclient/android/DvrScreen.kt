@@ -1174,6 +1174,15 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                 item("_channels") { ArcRailItem(stringResource(R.string.dvr_by_channel), null, selKey == "_channels", iconKey = "channels") { openSection("_channels") } }
                 item("all") { ArcRailItem(stringResource(R.string.dvr_all), entries.size, selKey == "all", iconKey = "all") { openSection("all") } }
                 items(cats, key = { it }) { c -> ArcRailItem(catLabel(c), byCat[c]?.size ?: 0, selKey == c, iconKey = c) { openSection(c) } }
+                // M530: rucna obnova zoznamu. Archiv sa obnovuje aj sam pri otvoreni
+                // (M528), ale ked appka ostane otvorena, prave dokoncena nahravka sa
+                // inak neobjavi. V lavom pase preto, ze v hornom rohu by sa na nu
+                // dpadom dostavalo ťazko.
+                item("_reload") {
+                    ArcRailItem(stringResource(R.string.dvr_reload), null, false, iconKey = "reload") {
+                        vm.refresh()
+                    }
+                }
             }
             Column(Modifier.weight(0.74f).fillMaxHeight()) {
                 when {

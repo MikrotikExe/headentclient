@@ -384,4 +384,5 @@
     <string name="resume_last_note">All\'avvio l\'app carica l\'elenco dei canali e riproduce il canale TV o la radio guardati per ultimi. Le registrazioni non vengono riprese.</string>
     <string name="profile_unknown_warn">Il server non offre il profilo “%1$s” — userà invece quello predefinito.</string>
     <string name="profile_note_htsp">HTSP trasporta flussi elementari, quindi non c\'è transcodifica. Lascia l\'impostazione del server se il tuo account non è vincolato a un profilo.</string>
+    <string name="dvr_reload">Aggiorna</string>
 </resources>

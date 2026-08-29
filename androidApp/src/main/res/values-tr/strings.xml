@@ -384,4 +384,5 @@
     <string name="resume_last_note">Uygulama açıldığında kanal listesi yüklenir ve en son izlediğin TV kanalı veya radyo çalmaya başlar. Kayıtlar devam ettirilmez.</string>
     <string name="profile_unknown_warn">Sunucu “%1$s” profilini sunmuyor — bunun yerine varsayılanı kullanacak.</string>
     <string name="profile_note_htsp">HTSP temel akışları taşır, dolayısıyla yeniden kodlama olmaz. Hesabın belirli bir profile bağlı değilse sunucu ayarında bırak.</string>
+    <string name="dvr_reload">Yenile</string>
 </resources>

@@ -384,4 +384,5 @@
     <string name="resume_last_note">เมื่อเปิดแอป ระบบจะโหลดรายการช่องและเล่นช่องทีวีหรือวิทยุที่ดูล่าสุด การบันทึกจะไม่ถูกเล่นต่อ</string>
     <string name="profile_unknown_warn">เซิร์ฟเวอร์ไม่มีโปรไฟล์ “%1$s” — จะใช้โปรไฟล์เริ่มต้นแทน</string>
     <string name="profile_note_htsp">HTSP ส่งสตรีมดิบ จึงไม่มีการทรานส์โค้ด หากบัญชีไม่ได้ผูกกับโปรไฟล์ใด ให้คงค่าของเซิร์ฟเวอร์ไว้</string>
+    <string name="dvr_reload">รีเฟรช</string>
 </resources>

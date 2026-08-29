@@ -384,4 +384,5 @@
     <string name="resume_last_note">Au démarrage, l\'application charge la liste des chaînes et lance la chaîne TV ou la radio regardée en dernier. Les enregistrements ne sont pas repris.</string>
     <string name="profile_unknown_warn">Le serveur ne propose pas le profil « %1$s » — il utilisera son profil par défaut.</string>
     <string name="profile_note_htsp">HTSP transporte des flux élémentaires, donc aucun transcodage n\'a lieu. Laisse le réglage du serveur si ton compte n\'est pas lié à un profil précis.</string>
+    <string name="dvr_reload">Actualiser</string>
 </resources>

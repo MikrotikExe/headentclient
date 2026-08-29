@@ -384,4 +384,5 @@
     <string name="resume_last_note">Po zagonu aplikacija naloži seznam kanalov in predvaja TV kanal ali radio, ki si ga gledal nazadnje. Posnetki se ne nadaljujejo.</string>
     <string name="profile_unknown_warn">Strežnik ne ponuja profila „%1$s“ — namesto njega uporabi privzetega.</string>
     <string name="profile_note_htsp">HTSP prenaša elementarne tokove, zato ni prekodiranja. Pusti nastavitev strežnika, razen če je račun vezan na določen profil.</string>
+    <string name="dvr_reload">Osveži</string>
 </resources>
