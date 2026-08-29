@@ -1416,7 +1416,6 @@ class PlayerActivity : ComponentActivity() {
     private fun switchToIndex(i: Int, poke: Boolean = true) {
         if (i < 0 || i >= liveUuids.size) return
         if (i == liveIndex) { if (poke) pokeControls(); return }  // ten isty kanal -> nenacitavaj znova
-        refreshDvrState()   // M490: ina relacia -> iny stav nahravania
         rememberPlayback()  // M494: obnovenie po restarte appky
         val srv = liveServer ?: return
         val uuid = liveUuids[i]
@@ -1435,6 +1434,11 @@ class PlayerActivity : ComponentActivity() {
         }
         liveIndex = i
         liveIndexState.value = i
+        // M523: AZ TU, ked uz index ukazuje na NOVY kanal. Volanie na zaciatku
+        // switchToIndex citalo este stary index, takze tlacidlo nahravania
+        // zobrazovalo stav kanala, z ktoreho pouzivatel prave odisiel — na
+        // nahravanom kanali „Nahrat" a na nenahravanom „Zrusit nahravanie".
+        refreshDvrState()
         val name = liveNames.getOrElse(i) { "" }
         liveTitleState.value = name
         liveUuidState.value = uuid
