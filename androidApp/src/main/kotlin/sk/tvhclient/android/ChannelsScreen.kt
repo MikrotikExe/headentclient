@@ -141,7 +141,10 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     val searchFocus = remember { FocusRequester() }
 
     LaunchedEffect(Unit) { vm.loadIfNeeded() }
-    LaunchedEffect(Unit) { dvrVm.loadIfNeeded() }
+    // M529: `loadIfNeeded` sa pri opatovnom otvoreni vrati hned, ked uz data ma —
+    // prave zalozena nahravka sa preto v zozname neprejavila. `refresh` drzi stare
+    // data a dotiahne nove bez blikania.
+    LaunchedEffect(Unit) { dvrVm.loadIfNeeded(); dvrVm.refresh() }
 
     // Zoznam kanalov pre zapping a zoznam v prehravaci (CH+/CH-, overlay).
     // Skryte kanaly sem nepatria (v prehravaci sa nezobrazuju).
@@ -266,7 +269,8 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                     contentDescription = stringResource(R.string.tv_guide)
                 )
             }
-            androidx.compose.material3.IconButton(onClick = { vm.load(true) }) {
+            // M529: obnov aj zoznam nahravok, nech sa prekresli cervena bodka
+            androidx.compose.material3.IconButton(onClick = { vm.load(true); dvrVm.refresh() }) {
                 androidx.compose.material3.Icon(
                     Icons.Default.Refresh,
                     contentDescription = stringResource(R.string.retry)
