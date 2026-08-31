@@ -361,8 +361,19 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                     }
                     val rows = when {
                         favOnly -> s.allRows.filter { it.channel.uuid in favs }
+                        // M533: „Vsetky" musi byt zotriedene podla CISLA kanala.
+                        // Doteraz sa kategorie len spojili za sebou, takze poradie
+                        // urcovalo poradie tagov — kanal s inym tagom skoncil mimo
+                        // svojho miesta (napr. 155 a 156 az za 167).
                         selectedTag == null ->
-                            s.categories.flatMap { it.rows }.distinctBy { it.channel.uuid }
+                            s.categories.flatMap { it.rows }
+                                .distinctBy { it.channel.uuid }
+                                .sortedWith(
+                                    compareBy(
+                                        { it.channel.number ?: Int.MAX_VALUE },
+                                        { it.channel.name.lowercase() }
+                                    )
+                                )
                         else ->
                             s.categories.firstOrNull { it.tag?.uuid == selectedTag }?.rows ?: emptyList()
                     }
