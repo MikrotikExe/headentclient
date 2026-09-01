@@ -4292,9 +4292,13 @@ class PlayerActivity : ComponentActivity() {
             val oldMp = mediaPlayer
             val oldLib = libVlc
             runCatching { oldMp.setEventListener(null) }
-            // Stary surface ostava staremu prehravacu; Compose ho po zvyseni
-            // videoSurfaceGen odstrani z hierarchie (surfaceDestroyed ako pri
-            // odchode na pozadie). Novy prehravac dostane novy SurfaceView.
+            // M539-fix3: surface odpojit od stareho prehravaca TU, este PRED jeho stop().
+            // detachViews caka, kym stary vout surface pusti — kym vstupne vlakno zije,
+            // je to okamzite (overene v M539-fix). Ak by uz bezal stop(), vstupne vlakno
+            // visi na audio dekoderi, vout uz surface nikdy nepusti a cakanie (aj to,
+            // ktore robi Compose pri odstraneni SurfaceView) by zablokovalo hlavne
+            // vlakno — presne to sa stalo v M539-fix2 (zamrznuty snimok, po minute ANR).
+            runCatching { oldMp.detachViews() }
             val appCtx = applicationContext
             val worker = Thread({
                 val t0 = android.os.SystemClock.elapsedRealtime()
