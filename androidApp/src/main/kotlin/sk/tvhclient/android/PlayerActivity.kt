@@ -5135,8 +5135,18 @@ private fun PlayerUi(
     // aby nechcene stlacenie Spat hned neukoncilo prehravanie.
     // M280-fix: LEN na TV (zariadenia bez PiP). Na mobile/tablete (pipSupported) sa
     // potvrdenie nezobrazuje vobec — BACK tam riesi PiP / bezne spravanie.
+    // M537: „TV" sa NESMIE odvodzovat z !pipSupported — TV boxy s PiP (Homatics,
+    // Shield, Raspberry Pi; pozri M429) potvrdenie nedostali a BACK ukoncil
+    // prehravanie hned. Rozhoduje rezim UI (leanback): na TV sa potvrdenie
+    // zobrazi vzdy, okrem pripadu, ked ma prednost auto-PiP handler vyssie
+    // (zapnuty auto-PiP na boxe s PiP -> BACK = miniatura, ako doteraz).
+    val isTvUi = remember {
+        (ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager)
+            ?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
+    }
+    val exitConfirmOnBack = !pipSupported || (isTvUi && !autoPipEnabled)
     androidx.activity.compose.BackHandler(
-        enabled = !pipSupported && !seekable && !controlsVisible && menu == null
+        enabled = exitConfirmOnBack && !seekable && !controlsVisible && menu == null
                   && !showChannelList && !showOptions && !returnLiveOnBack && !showInfo
     ) { onRequestExit() }
 
