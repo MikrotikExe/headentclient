@@ -538,7 +538,7 @@ class PlayerActivity : ComponentActivity() {
         applyDeinterlace(media)
         mediaPlayer.media = media
         media.release()
-        mediaPlayer.play()
+        startPlayback()   // M539-fix2
     }
 
     /** Cache: vyzaduje live HTTP na tomto serveri feeder (digest-only)? */
@@ -616,7 +616,7 @@ class PlayerActivity : ComponentActivity() {
         val media = buildMedia(url)
         mediaPlayer.media = media
         media.release()
-        mediaPlayer.play()
+        startPlayback()   // M539-fix2
     }
 
     /**
@@ -648,7 +648,7 @@ class PlayerActivity : ComponentActivity() {
         applyDeinterlace(media)
         mediaPlayer.media = media
         media.release()
-        mediaPlayer.play()
+        startPlayback()   // M539-fix2
     }
 
     /**
@@ -678,7 +678,7 @@ class PlayerActivity : ComponentActivity() {
             applyDeinterlace(media)
                 mediaPlayer.media = media
             media.release()
-            mediaPlayer.play()
+            startPlayback()   // M539-fix2
             true
         } catch (e: Throwable) {
             htspFeeder?.stop()
@@ -951,7 +951,7 @@ class PlayerActivity : ComponentActivity() {
                 m.addOption(":start-time=${fileMs / 1000}")
                 mediaPlayer.media = m
                 m.release()
-                mediaPlayer.play()
+                startPlayback()   // M539-fix2
             }
         }
         // playhead hned na cielovu poziciu + seed pre hodiny (po restarte je player.position
@@ -3192,6 +3192,12 @@ class PlayerActivity : ComponentActivity() {
                 onAttach = { layout ->
                     videoLayout = layout
                     mediaPlayer.attachViews(layout, null, false, false)
+                    // M539-fix2: novy prehravac cakal na svoj (novy) surface — spusti ho teraz
+                    awaitingSurface = false
+                    if (pendingPlayAfterAttach) {
+                        pendingPlayAfterAttach = false
+                        layout.post { runCatching { if (!playerTornDown) mediaPlayer.play() } }
+                    }
                     // vlastny titulkovy overlay nad videom (DVB titulky dekódujeme sami,
                     // do libVLC nejdu) — synchronizovany na cas prehravaca
                     subOverlay?.let { old ->
@@ -3915,7 +3921,7 @@ class PlayerActivity : ComponentActivity() {
                     m.addOption(":start-time=$startSec")
                     mediaPlayer.media = m
                     m.release()
-                    mediaPlayer.play()
+                    startPlayback()   // M539-fix2
                 }
             }
         }, 2500)
@@ -3958,7 +3964,7 @@ class PlayerActivity : ComponentActivity() {
                         val m = buildMedia(url)       // bezne HTTP
                         mediaPlayer.media = m
                         m.release()
-                        mediaPlayer.play()
+                        startPlayback()   // M539-fix2
                     }
                 }
             }
@@ -4286,9 +4292,9 @@ class PlayerActivity : ComponentActivity() {
             val oldMp = mediaPlayer
             val oldLib = libVlc
             runCatching { oldMp.setEventListener(null) }
-            // Surface musi uvolnit stary prehravac na hlavnom vlakne (rovnako ako
-            // onStop pri odchode na pozadie), inak by ho novy nemohol pripojit.
-            runCatching { oldMp.detachViews() }
+            // Stary surface ostava staremu prehravacu; Compose ho po zvyseni
+            // videoSurfaceGen odstrani z hierarchie (surfaceDestroyed ako pri
+            // odchode na pozadie). Novy prehravac dostane novy SurfaceView.
             val appCtx = applicationContext
             val worker = Thread({
                 val t0 = android.os.SystemClock.elapsedRealtime()
@@ -4303,7 +4309,19 @@ class PlayerActivity : ComponentActivity() {
         }
         createPlayer()
         resetStallState()
-        videoLayout?.let { runCatching { mediaPlayer.attachViews(it, null, false, false) } }
+        // M539-fix2: novy SurfaceView pre novy prehravac; play() az po jeho pripojeni
+        awaitingSurface = true
+        pendingPlayAfterAttach = false
+        videoSurfaceGen.value = videoSurfaceGen.value + 1
+    }
+
+    /** M539-fix2: po vymene prehravaca este nie je pripojeny novy surface — play() sa
+     *  odlozi do onAttach (prehravanie bez okna by nemalo video). Inak hned. */
+    private var awaitingSurface = false
+    private var pendingPlayAfterAttach = false
+    private fun startPlayback() {
+        if (awaitingSurface) { pendingPlayAfterAttach = true; return }
+        mediaPlayer.play()
     }
 
     /** Znovu spusti aktualny zivy kanal tou istou cestou (HTSP / feeder / HTTP). */
@@ -4608,6 +4626,8 @@ class PlayerActivity : ComponentActivity() {
     }
 
     companion object {
+        /** M539-fix2: generacia video surface (kluc AndroidView) — zvysenie = novy SurfaceView. */
+        val videoSurfaceGen = androidx.compose.runtime.mutableStateOf(0)
         // M539: hlidac zaseknuteho vystupu (sekundove vzorky)
         private const val STALL_GUARD = 2
         private const val STALL_RECREATE = 4
@@ -4672,6 +4692,46 @@ private fun exitConfirmOnBack(pipSupported: Boolean, autoPipEnabled: Boolean): B
             ?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
     }
     return isTvUi && !autoPipEnabled
+}
+
+
+/**
+ * M539-fix2: video surface prehravaca. `PlayerActivity.videoSurfaceGen` meni kluc —
+ * po vymene MediaPlayera (zaseknuty zvuk po standby) dostane novy prehravac
+ * uplne novy SurfaceView. Zdielanie stareho surface s novym prehravacom
+ * skoncilo zamrznutym obrazom: stary vout ho este drzal ako producenta a novy
+ * MediaCodec sa nan nepripojil. onStart (prve spustenie prehravania) bezi len
+ * pri prvom surface.
+ */
+@Composable
+private fun VideoSurface(
+    modifier: Modifier,
+    onAttach: (VLCVideoLayout) -> Unit,
+    onStart: () -> Unit
+) {
+    var started by remember { mutableStateOf(false) }
+    val gen = PlayerActivity.videoSurfaceGen.value
+    androidx.compose.runtime.key(gen) {
+        AndroidView(
+            modifier = modifier,
+            factory = { ctx ->
+                val layout = VLCVideoLayout(ctx)
+                layout.layoutParams = FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+                onAttach(layout)
+                // M264: branu (rodicovsky zamok pri otvoreni) spusti az po pripojeni surface
+                // na cistom looper tiku. Zapis pinPromptState priamo v Compose layout faze
+                // sa pri studenom starte (prve otvorenie) niekedy stratil -> PIN sa nevypytal.
+                if (!started) {
+                    started = true
+                    layout.post { onStart() }
+                }
+                layout
+            }
+        )
+    }
 }
 
 /** Jedna stopa (audio alebo titulky) z libVLC. */
@@ -5428,26 +5488,16 @@ private fun PlayerUi(
             }
     ) {
         val inPreview = showChannelList && isTvGest && liveChannels.isNotEmpty() && previewRect != null
-        AndroidView(
+        // M539-fix2: AndroidView je v samostatnej composable (mensia PlayerUi + vymena surface)
+        VideoSurface(
             modifier = if (inPreview) {
                 val r = previewRect!!
                 Modifier
                     .absoluteOffset { IntOffset(r.left.roundToInt(), r.top.roundToInt()) }
                     .size(with(density) { r.width.toDp() }, with(density) { r.height.toDp() })
             } else Modifier.fillMaxSize(),
-            factory = { ctx ->
-                val layout = VLCVideoLayout(ctx)
-                layout.layoutParams = FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-                onAttach(layout)
-                // M264: branu (rodicovsky zamok pri otvoreni) spusti az po pripojeni surface
-                // na cistom looper tiku. Zapis pinPromptState priamo v Compose layout faze
-                // sa pri studenom starte (prve otvorenie) niekedy stratil -> PIN sa nevypytal.
-                layout.post { onStart() }
-                layout
-            }
+            onAttach = onAttach,
+            onStart = onStart
         )
 
         // Audio-only (rozhlas): namiesto ciernej zobraz vycentrovane logo
