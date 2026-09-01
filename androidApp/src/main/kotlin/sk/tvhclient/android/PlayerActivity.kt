@@ -4031,13 +4031,33 @@ class PlayerActivity : ComponentActivity() {
         super.onStart()
         // navrat z pozadia: znova pripoj video na surface a obnov prehravanie
         if (::mediaPlayer.isInitialized) {
+            val curUuid = liveUuids.getOrNull(liveIndex)
+            val locked = wasPlaying && !seekablePlayback && !pinPromptState.value &&
+                ParentalLock.channelLockedProtected(this, liveServer?.id ?: Tvh.store.active()?.id, curUuid)
+            // M540: navrat po standby (obrazovka zhasla, kym sme boli zastaveni) — na
+            // Amlogicu je stary AudioTrack po prebudeni mrtvy (M539). Namiesto 5 s
+            // cakania na hlidac rovno novy prehravac a znovunaladenie; PIN plati dalej.
+            if (wasPlaying && !seekablePlayback && !playerTornDown && isTvDevice() &&
+                WakeTracker.screenWentOffSince(stoppedAt)
+            ) {
+                CrashLogger.report(this, "PlayerActivity.wake", "resume after standby -> new player")
+                recreatePlayer()
+                if (locked) {
+                    ParentalLock.clearGrace(this)
+                    requestPin(
+                        onOk = { replayCurrentLive() },
+                        onCancel = { finish() },
+                        channelIndex = liveIndex
+                    )
+                } else {
+                    replayCurrentLive()
+                }
+                return
+            }
             videoLayout?.let { runCatching { mediaPlayer.attachViews(it, null, false, false) } }
             // rodicovsky zamok: ak sa vraciame z pozadia na zamknuty ZIVY kanal,
             // vyziadaj PIN znova (kazdy navrat do prehravaca = PIN, ako pri starte).
-            val curUuid = liveUuids.getOrNull(liveIndex)
-            if (wasPlaying && !seekablePlayback && !pinPromptState.value &&
-                ParentalLock.channelLockedProtected(this, liveServer?.id ?: Tvh.store.active()?.id, curUuid)
-            ) {
+            if (locked) {
                 runCatching { if (mediaPlayer.isPlaying) mediaPlayer.pause() }
                 ParentalLock.clearGrace(this)   // M263: rovnako ako pri starte
                 requestPin(
@@ -4067,7 +4087,11 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    /** M540: kedy sme naposledy isli do pozadia (elapsedRealtime). */
+    private var stoppedAt = 0L
+
     override fun onStop() {
+        stoppedAt = android.os.SystemClock.elapsedRealtime()
         saveDvrProgress()
         // PiP okno nechaj hrat LEN ak sme realne v PiP (vlastny priznak z callbacku, nie zivy
         // isInPictureInPictureMode - ten pri zatvarani PiP casto este hlasi true) a appka len ide

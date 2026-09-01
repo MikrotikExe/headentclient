@@ -43,14 +43,17 @@ class RadioViewModel : ViewModel() {
         load()
     }
 
+    private var loadJob: kotlinx.coroutines.Job? = null   // M540
+
     fun load() {
         val server = Tvh.store.active()
         if (server == null) {
             _state.value = RadioState.NoServer
             return
         }
+        if (loadJob?.isActive == true) return   // M540: uz bezi (TV start vola load() dvakrat)
         _state.value = RadioState.Loading
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             try {
                 val data = withContext(Dispatchers.IO) {
                     val api = Tvh.apiFor(server)

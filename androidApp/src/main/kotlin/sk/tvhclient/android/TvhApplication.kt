@@ -13,6 +13,10 @@ class TvhApplication : Application() {
     private val screenOnReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent?) {
             val a = intent?.action ?: return
+            if (a == Intent.ACTION_SCREEN_OFF) {
+                WakeTracker.lastScreenOffAt = android.os.SystemClock.elapsedRealtime()   // M540
+                return
+            }
             if (a != Intent.ACTION_SCREEN_ON && a != Intent.ACTION_USER_PRESENT) return
             if (!AutostartPref.isWakeEnabled(context)) return
             // M535: beziacu ulohu len presun dopredu (nezhadzuj prehravac), inak start
@@ -52,6 +56,7 @@ class TvhApplication : Application() {
         // SCREEN_ON sa od Androidu 8 nedá registrovať v manifeste — len za behu.
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)   // M540: kedy box zaspal (prehravac vymeni zvukovy vystup)
             addAction(Intent.ACTION_USER_PRESENT)
         }
         runCatching { registerReceiver(screenOnReceiver, filter) }
@@ -59,4 +64,17 @@ class TvhApplication : Application() {
             registerReceiver(timeFormatReceiver, IntentFilter(Intent.ACTION_TIME_CHANGED))
         }
     }
+}
+
+/**
+ * M540: cas posledneho zhasnutia obrazovky (standby). PlayerActivity podla neho
+ * v onStart rozlisi navrat z pozadia po standby (AudioTrack je po nom na Amlogicu
+ * mrtvy -> rovno novy prehravac, bez cakania na hlidac) od bezneho navratu
+ * (TV program, PiP, ina appka).
+ */
+object WakeTracker {
+    @Volatile var lastScreenOffAt = 0L
+    /** Zhasla obrazovka od (alebo tesne pred) danym casom? */
+    fun screenWentOffSince(sinceElapsed: Long): Boolean =
+        lastScreenOffAt > 0L && lastScreenOffAt >= sinceElapsed - 3000L
 }

@@ -56,6 +56,11 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
     private var api: TvhApi? = null
     private var loadedOnce = false
     private var reloadToken = -1
+    // M540: prave beziace nacitanie. Na TV volali loadIfNeeded() dva LaunchedEffect-y
+    // naraz (prednacitanie + obnova posledneho kanala, M496) -> druhy load() zavrel
+    // HTTP klienta prvemu (`api?.close()`), prvy skoncil chybou „Parent job is
+    // Completed" (v diag logu pri kazdom starte) a data sa stahovali dvakrat.
+    private var loadJob: kotlinx.coroutines.Job? = null
 
     fun setQuery(q: String) { _query.value = q }
 
@@ -74,16 +79,22 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = ChannelsState.NoServer
             return
         }
+        // M540: bez force sa do beziaceho nacitania nezasahuje; s force sa stare zrusi
+        if (loadJob?.isActive == true) {
+            if (!force) return
+            loadJob?.cancel()
+        }
         _state.value = ChannelsState.Loading
         if (force && server.connectionMode == "htsp") {
             sk.tvhclient.shared.htsp.HtspData.clear(server.id)
         }
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             try {
                 val result = withContext(Dispatchers.IO) {
                     val a = Tvh.apiFor(server)
-                    api?.close()
+                    val old = api
                     api = a
+                    old?.close()
                     val repo = Tvh.channelRepository(server, a)
                     val cats = repo.load(force)
                     val all = repo.allRows(false)
@@ -96,6 +107,8 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
                 if (server.connectionMode == "htsp") {
                     loadHtspNowNext(server)
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e   // M540: zrusene force-reloadom — ziadna chyba, stav nastavi novy load
             } catch (e: Exception) {
                 CrashLogger.report(getApplication(), "ChannelsViewModel.load", e)
                 _state.value = ChannelsState.Error(
