@@ -390,4 +390,6 @@
     <string name="fav_reorder">จัดเรียงรายการโปรด</string>
     <string name="fav_reorder_hint">จัดเรียง: OK จับ/วาง · ▲▼ ย้าย · BACK เสร็จ</string>
     <string name="fav_reorder_grabbed">กำลังย้าย: %1$s</string>
+    <string name="ch_unhide_player">แสดงช่อง</string>
+    <string name="fav_reorder_row">▲▼ ย้าย · OK วาง</string>
 </resources>

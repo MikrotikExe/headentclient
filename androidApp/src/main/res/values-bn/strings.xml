@@ -390,4 +390,6 @@
     <string name="fav_reorder">পছন্দের ক্রম সাজান</string>
     <string name="fav_reorder_hint">সাজানো: OK ধরুন/ছাড়ুন · ▲▼ সরান · BACK শেষ</string>
     <string name="fav_reorder_grabbed">সরানো হচ্ছে: %1$s</string>
+    <string name="ch_unhide_player">চ্যানেল দেখান</string>
+    <string name="fav_reorder_row">▲▼ সরান · OK ছাড়ুন</string>
 </resources>

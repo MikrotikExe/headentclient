@@ -390,4 +390,6 @@
     <string name="fav_reorder">Ταξινόμηση αγαπημένων</string>
     <string name="fav_reorder_hint">Ταξινόμηση: OK πιάσε/άφησε · ▲▼ μετακίνηση · ΠΙΣΩ τέλος</string>
     <string name="fav_reorder_grabbed">Μετακίνηση: %1$s</string>
+    <string name="ch_unhide_player">Εμφάνιση καναλιού</string>
+    <string name="fav_reorder_row">▲▼ μετακίνηση · OK άφησε</string>
 </resources>

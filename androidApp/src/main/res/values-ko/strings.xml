@@ -390,4 +390,6 @@
     <string name="fav_reorder">즐겨찾기 정렬</string>
     <string name="fav_reorder_hint">정렬: OK 잡기/놓기 · ▲▼ 이동 · 뒤로 완료</string>
     <string name="fav_reorder_grabbed">이동 중: %1$s</string>
+    <string name="ch_unhide_player">채널 표시</string>
+    <string name="fav_reorder_row">▲▼ 이동 · OK 놓기</string>
 </resources>

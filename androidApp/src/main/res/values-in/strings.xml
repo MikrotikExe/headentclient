@@ -390,4 +390,6 @@
     <string name="fav_reorder">Urutkan favorit</string>
     <string name="fav_reorder_hint">Urutkan: OK ambil/lepas · ▲▼ pindah · BACK selesai</string>
     <string name="fav_reorder_grabbed">Memindahkan: %1$s</string>
+    <string name="ch_unhide_player">Tampilkan saluran</string>
+    <string name="fav_reorder_row">▲▼ pindah · OK lepas</string>
 </resources>

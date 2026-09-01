@@ -390,4 +390,6 @@
     <string name="fav_reorder">Favorieten ordenen</string>
     <string name="fav_reorder_hint">Ordenen: OK pakken/loslaten · ▲▼ verplaatsen · TERUG klaar</string>
     <string name="fav_reorder_grabbed">Verplaatsen: %1$s</string>
+    <string name="ch_unhide_player">Zender tonen</string>
+    <string name="fav_reorder_row">▲▼ verplaatsen · OK loslaten</string>
 </resources>

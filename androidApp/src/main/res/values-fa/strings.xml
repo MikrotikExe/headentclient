@@ -390,4 +390,6 @@
     <string name="fav_reorder">مرتب‌سازی علاقه‌مندی‌ها</string>
     <string name="fav_reorder_hint">مرتب‌سازی: OK گرفتن/رها کردن · ▲▼ جابه‌جایی · بازگشت پایان</string>
     <string name="fav_reorder_grabbed">جابه‌جایی: %1$s</string>
+    <string name="ch_unhide_player">نمایش کانال</string>
+    <string name="fav_reorder_row">▲▼ جابه‌جایی · OK رها کردن</string>
 </resources>

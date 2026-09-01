@@ -390,4 +390,6 @@
     <string name="fav_reorder">Uporządkuj ulubione</string>
     <string name="fav_reorder_hint">Porządkowanie: OK chwyć/upuść · ▲▼ przesuń · WSTECZ gotowe</string>
     <string name="fav_reorder_grabbed">Przenoszenie: %1$s</string>
+    <string name="ch_unhide_player">Pokaż kanał</string>
+    <string name="fav_reorder_row">▲▼ przesuń · OK upuść</string>
 </resources>

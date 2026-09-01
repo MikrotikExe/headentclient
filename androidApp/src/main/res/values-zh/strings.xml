@@ -390,4 +390,6 @@
     <string name="fav_reorder">重新排序收藏</string>
     <string name="fav_reorder_hint">排序：OK 抓取/放下 · ▲▼ 移动 · 返回 完成</string>
     <string name="fav_reorder_grabbed">正在移动：%1$s</string>
+    <string name="ch_unhide_player">显示频道</string>
+    <string name="fav_reorder_row">▲▼ 移动 · OK 放下</string>
 </resources>

@@ -390,4 +390,6 @@
     <string name="fav_reorder">Rasporedi omiljene</string>
     <string name="fav_reorder_hint">Raspored: OK uhvati/pusti · ▲▼ pomeri · NAZAD gotovo</string>
     <string name="fav_reorder_grabbed">Pomeranje: %1$s</string>
+    <string name="ch_unhide_player">Prikaži kanal</string>
+    <string name="fav_reorder_row">▲▼ pomeri · OK pusti</string>
 </resources>

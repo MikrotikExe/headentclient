@@ -1891,8 +1891,11 @@ class PlayerActivity : ComponentActivity() {
         // M541: usporiadanie oblubenych (len v skupine Oblubene, len D-pad)
         if (LivePlaylist.activeGroupKey == LivePlaylist.GROUP_FAV && liveChannelsState.value.size > 1) keys.add("reorder")
         if (ParentalLock.isEnabled(this)) keys.add("lock")
-        // M541: v skupine Skryte kanaly namiesto „Skryt" ponukni „Odkryt"
-        keys.add(if (LivePlaylist.activeGroupKey == LivePlaylist.GROUP_HIDDEN) "unhide" else "hide")
+        // M541-fix: skryty kanal (kdekolvek, nie len v skupine Skryte) -> „Odkryt kanal"
+        val sidH = (liveServer ?: Tvh.store.active())?.id
+        val hiddenCh = LivePlaylist.activeGroupKey == LivePlaylist.GROUP_HIDDEN ||
+            HiddenChannels.isHidden(this, sidH, ch.uuid)
+        keys.add(if (hiddenCh) "unhide" else "hide")
         return keys
     }
 
@@ -1940,10 +1943,15 @@ class PlayerActivity : ComponentActivity() {
                         LivePlaylist.allChannels = (LivePlaylist.allChannels + ch)
                             .sortedWith(compareBy({ if (it.number > 0) it.number else Int.MAX_VALUE }, { it.name.lowercase() }))
                     }
-                    if (LivePlaylist.hiddenChannels.isEmpty()) applyGroup(LivePlaylist.GROUP_ALL)
-                    else {
-                        applyGroup(LivePlaylist.GROUP_HIDDEN)
-                        navChannelIndexState.value = idx.coerceIn(0, (liveUuids.size - 1).coerceAtLeast(0))
+                    if (LivePlaylist.activeGroupKey == LivePlaylist.GROUP_HIDDEN) {
+                        if (LivePlaylist.hiddenChannels.isEmpty()) applyGroup(LivePlaylist.GROUP_ALL)
+                        else {
+                            applyGroup(LivePlaylist.GROUP_HIDDEN)
+                            navChannelIndexState.value = idx.coerceIn(0, (liveUuids.size - 1).coerceAtLeast(0))
+                        }
+                    } else if (LivePlaylist.activeGroupKey == LivePlaylist.GROUP_ALL) {
+                        applyGroup(LivePlaylist.GROUP_ALL)   // odkryty kanal sa objavi na svojom mieste
+                        navChannelIndexState.value = liveUuids.indexOf(ch.uuid).coerceAtLeast(0)
                     }
                 }
             }
@@ -1998,13 +2006,31 @@ class PlayerActivity : ComponentActivity() {
         reorderMode = false
         reorderGrabbed = false
         activeGroupLabelState.value = groupLabelFor(LivePlaylist.activeGroupKey)
+        liveChannelsState.value = LivePlaylist.channels   // M541-fix: zrus dekoraciu
     }
 
     private fun updateReorderLabel() {
         activeGroupLabelState.value = if (reorderGrabbed) {
-            val name = liveChannelsState.value.getOrNull(navChannelIndexState.value)?.name ?: ""
+            val name = LivePlaylist.channels.getOrNull(navChannelIndexState.value)?.name ?: ""
             getString(R.string.fav_reorder_grabbed, name)
         } else getString(R.string.fav_reorder_hint)
+        decorateGrabbedRow()
+    }
+
+    /**
+     * M541-fix: uchopeny kanal musi byt v zozname na prvy pohlad odlisny od len
+     * oznaceneho. Bez zasahu do PlayerUi (64 KB limit) to riesime datami: riadok
+     * dostane pred nazov „↕" a namiesto relacie napovedu „▲▼ presunut · OK polozit".
+     * Zobrazovaci stav (liveChannelsState) je kopia; LivePlaylist.channels ostava ciste.
+     */
+    private fun decorateGrabbedRow() {
+        val base = LivePlaylist.channels
+        if (!reorderMode || !reorderGrabbed) { liveChannelsState.value = base; return }
+        val g = navChannelIndexState.value
+        val hint = getString(R.string.fav_reorder_row)
+        liveChannelsState.value = base.mapIndexed { i, ch ->
+            if (i == g) ch.copy(name = "\u2195 " + ch.name, nowTitle = hint) else ch
+        }
     }
 
     /** Posun uchopeneho kanala o [dir] (+1 dole / -1 hore) v poradi oblubenych. */
@@ -3709,7 +3735,7 @@ class PlayerActivity : ComponentActivity() {
                                         else androidx.compose.ui.res.stringResource(R.string.fav_add)
                                     }
                                     "hide" -> androidx.compose.ui.res.stringResource(R.string.ch_hide)
-                                    "unhide" -> androidx.compose.ui.res.stringResource(R.string.ch_unhide)     // M541
+                                    "unhide" -> androidx.compose.ui.res.stringResource(R.string.ch_unhide_player)  // M541-fix
                                     "reorder" -> androidx.compose.ui.res.stringResource(R.string.fav_reorder)  // M541
                                     else -> key
                                 }

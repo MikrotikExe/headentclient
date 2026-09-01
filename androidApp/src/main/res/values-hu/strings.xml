@@ -390,4 +390,6 @@
     <string name="fav_reorder">Kedvencek rendezése</string>
     <string name="fav_reorder_hint">Rendezés: OK megfog/letesz · ▲▼ mozgat · VISSZA kész</string>
     <string name="fav_reorder_grabbed">Mozgatás: %1$s</string>
+    <string name="ch_unhide_player">Csatorna megjelenítése</string>
+    <string name="fav_reorder_row">▲▼ mozgat · OK letesz</string>
 </resources>

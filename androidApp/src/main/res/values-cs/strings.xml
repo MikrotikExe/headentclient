@@ -390,4 +390,6 @@
     <string name="fav_reorder">Uspořádat oblíbené</string>
     <string name="fav_reorder_hint">Uspořádání: OK uchopit/položit · ▲▼ přesunout · BACK hotovo</string>
     <string name="fav_reorder_grabbed">Přesouvám: %1$s</string>
+    <string name="ch_unhide_player">Odkrýt kanál</string>
+    <string name="fav_reorder_row">▲▼ přesunout · OK položit</string>
 </resources>

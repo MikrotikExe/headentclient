@@ -390,4 +390,6 @@
     <string name="fav_reorder">पसंदीदा क्रमबद्ध करें</string>
     <string name="fav_reorder_hint">क्रम: OK पकड़ें/छोड़ें · ▲▼ हटाएँ · BACK पूर्ण</string>
     <string name="fav_reorder_grabbed">स्थानांतरण: %1$s</string>
+    <string name="ch_unhide_player">चैनल दिखाएँ</string>
+    <string name="fav_reorder_row">▲▼ हटाएँ · OK छोड़ें</string>
 </resources>

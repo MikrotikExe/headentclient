@@ -390,4 +390,6 @@
     <string name="fav_reorder">Uredi priljubljene</string>
     <string name="fav_reorder_hint">Urejanje: OK primi/spusti · ▲▼ premakni · NAZAJ končano</string>
     <string name="fav_reorder_grabbed">Premikanje: %1$s</string>
+    <string name="ch_unhide_player">Prikaži kanal</string>
+    <string name="fav_reorder_row">▲▼ premakni · OK spusti</string>
 </resources>

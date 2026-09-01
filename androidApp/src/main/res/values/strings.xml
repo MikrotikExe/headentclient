@@ -390,4 +390,6 @@
     <string name="fav_reorder">Reorder favorites</string>
     <string name="fav_reorder_hint">Reorder: OK grab/drop · ▲▼ move · BACK done</string>
     <string name="fav_reorder_grabbed">Moving: %1$s</string>
+    <string name="ch_unhide_player">Unhide channel</string>
+    <string name="fav_reorder_row">▲▼ move · OK drop</string>
 </resources>

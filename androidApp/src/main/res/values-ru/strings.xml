@@ -390,4 +390,6 @@
     <string name="fav_reorder">Упорядочить избранное</string>
     <string name="fav_reorder_hint">Порядок: OK взять/отпустить · ▲▼ переместить · НАЗАД готово</string>
     <string name="fav_reorder_grabbed">Перемещение: %1$s</string>
+    <string name="ch_unhide_player">Показать канал</string>
+    <string name="fav_reorder_row">▲▼ переместить · OK отпустить</string>
 </resources>

@@ -390,4 +390,6 @@
     <string name="fav_reorder">Упорядкувати улюблені</string>
     <string name="fav_reorder_hint">Порядок: OK взяти/відпустити · ▲▼ перемістити · НАЗАД готово</string>
     <string name="fav_reorder_grabbed">Переміщення: %1$s</string>
+    <string name="ch_unhide_player">Показати канал</string>
+    <string name="fav_reorder_row">▲▼ перемістити · OK відпустити</string>
 </resources>

@@ -390,4 +390,6 @@
     <string name="fav_reorder">پسندیدہ ترتیب دیں</string>
     <string name="fav_reorder_hint">ترتیب: OK پکڑیں/چھوڑیں · ▲▼ منتقل کریں · BACK مکمل</string>
     <string name="fav_reorder_grabbed">منتقلی: %1$s</string>
+    <string name="ch_unhide_player">چینل دکھائیں</string>
+    <string name="fav_reorder_row">▲▼ منتقل کریں · OK چھوڑیں</string>
 </resources>

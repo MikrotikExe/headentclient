@@ -390,4 +390,6 @@
     <string name="fav_reorder">Favoriten sortieren</string>
     <string name="fav_reorder_hint">Sortieren: OK greifen/ablegen · ▲▼ verschieben · BACK fertig</string>
     <string name="fav_reorder_grabbed">Verschiebe: %1$s</string>
+    <string name="ch_unhide_player">Sender einblenden</string>
+    <string name="fav_reorder_row">▲▼ verschieben · OK ablegen</string>
 </resources>

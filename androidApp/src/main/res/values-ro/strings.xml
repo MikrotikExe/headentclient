@@ -390,4 +390,6 @@
     <string name="fav_reorder">Reordonează favoritele</string>
     <string name="fav_reorder_hint">Reordonare: OK apucă/lasă · ▲▼ mută · ÎNAPOI gata</string>
     <string name="fav_reorder_grabbed">Se mută: %1$s</string>
+    <string name="ch_unhide_player">Afișează canalul</string>
+    <string name="fav_reorder_row">▲▼ mută · OK lasă</string>
 </resources>

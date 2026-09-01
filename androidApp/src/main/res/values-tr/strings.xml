@@ -390,4 +390,6 @@
     <string name="fav_reorder">Favorileri sırala</string>
     <string name="fav_reorder_hint">Sıralama: OK tut/bırak · ▲▼ taşı · GERİ bitti</string>
     <string name="fav_reorder_grabbed">Taşınıyor: %1$s</string>
+    <string name="ch_unhide_player">Kanalı göster</string>
+    <string name="fav_reorder_row">▲▼ taşı · OK bırak</string>
 </resources>

@@ -390,4 +390,6 @@
     <string name="fav_reorder">お気に入りを並べ替え</string>
     <string name="fav_reorder_hint">並べ替え: OK つかむ/置く · ▲▼ 移動 · 戻る 完了</string>
     <string name="fav_reorder_grabbed">移動中: %1$s</string>
+    <string name="ch_unhide_player">チャンネルを表示</string>
+    <string name="fav_reorder_row">▲▼ 移動 · OK 置く</string>
 </resources>

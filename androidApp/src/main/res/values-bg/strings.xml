@@ -390,4 +390,6 @@
     <string name="fav_reorder">Подреди любимите</string>
     <string name="fav_reorder_hint">Подреждане: OK хвани/пусни · ▲▼ премести · НАЗАД готово</string>
     <string name="fav_reorder_grabbed">Преместване: %1$s</string>
+    <string name="ch_unhide_player">Покажи канала</string>
+    <string name="fav_reorder_row">▲▼ премести · OK пусни</string>
 </resources>

@@ -390,4 +390,6 @@
     <string name="fav_reorder">Réorganiser les favoris</string>
     <string name="fav_reorder_hint">Réorganiser : OK saisir/déposer · ▲▼ déplacer · RETOUR terminer</string>
     <string name="fav_reorder_grabbed">Déplacement : %1$s</string>
+    <string name="ch_unhide_player">Afficher la chaîne</string>
+    <string name="fav_reorder_row">▲▼ déplacer · OK déposer</string>
 </resources>

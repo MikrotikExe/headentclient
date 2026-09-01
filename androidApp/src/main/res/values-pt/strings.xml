@@ -390,4 +390,6 @@
     <string name="fav_reorder">Reordenar favoritos</string>
     <string name="fav_reorder_hint">Reordenar: OK pegar/soltar · ▲▼ mover · VOLTAR concluir</string>
     <string name="fav_reorder_grabbed">A mover: %1$s</string>
+    <string name="ch_unhide_player">Mostrar canal</string>
+    <string name="fav_reorder_row">▲▼ mover · OK soltar</string>
 </resources>
