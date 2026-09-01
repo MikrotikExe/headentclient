@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">De server biedt het profiel “%1$s” niet aan — hij gebruikt in plaats daarvan zijn standaardprofiel.</string>
     <string name="profile_note_htsp">HTSP verstuurt elementaire streams, dus er wordt niet getranscodeerd. Laat de serverinstelling staan tenzij je account aan een profiel gebonden is.</string>
     <string name="dvr_reload">Vernieuwen</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">Verborgen zenders</string>
+    <string name="fav_reorder">Favorieten ordenen</string>
+    <string name="fav_reorder_hint">Ordenen: OK pakken/loslaten · ▲▼ verplaatsen · TERUG klaar</string>
+    <string name="fav_reorder_grabbed">Verplaatsen: %1$s</string>
 </resources>

@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">Сервер не пропонує профіль «%1$s» — буде використано профіль за замовчуванням.</string>
     <string name="profile_note_htsp">HTSP передає елементарні потоки, тому транскодування немає. Залиш налаштування сервера, якщо обліковий запис не прив’язаний до певного профілю.</string>
     <string name="dvr_reload">Оновити</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">Приховані канали</string>
+    <string name="fav_reorder">Упорядкувати улюблені</string>
+    <string name="fav_reorder_hint">Порядок: OK взяти/відпустити · ▲▼ перемістити · НАЗАД готово</string>
+    <string name="fav_reorder_grabbed">Переміщення: %1$s</string>
 </resources>

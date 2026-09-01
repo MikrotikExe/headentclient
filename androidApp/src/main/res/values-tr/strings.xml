@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">Sunucu “%1$s” profilini sunmuyor — bunun yerine varsayılanı kullanacak.</string>
     <string name="profile_note_htsp">HTSP temel akışları taşır, dolayısıyla yeniden kodlama olmaz. Hesabın belirli bir profile bağlı değilse sunucu ayarında bırak.</string>
     <string name="dvr_reload">Yenile</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">Gizli kanallar</string>
+    <string name="fav_reorder">Favorileri sırala</string>
+    <string name="fav_reorder_hint">Sıralama: OK tut/bırak · ▲▼ taşı · GERİ bitti</string>
+    <string name="fav_reorder_grabbed">Taşınıyor: %1$s</string>
 </resources>

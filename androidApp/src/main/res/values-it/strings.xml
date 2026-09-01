@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">Il server non offre il profilo “%1$s” — userà invece quello predefinito.</string>
     <string name="profile_note_htsp">HTSP trasporta flussi elementari, quindi non c\'è transcodifica. Lascia l\'impostazione del server se il tuo account non è vincolato a un profilo.</string>
     <string name="dvr_reload">Aggiorna</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">Canali nascosti</string>
+    <string name="fav_reorder">Riordina preferiti</string>
+    <string name="fav_reorder_hint">Riordina: OK prendi/rilascia · ▲▼ sposta · INDIETRO fine</string>
+    <string name="fav_reorder_grabbed">Spostamento: %1$s</string>
 </resources>

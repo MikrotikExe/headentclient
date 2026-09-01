@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">The server does not offer the profile “%1$s” — it will use its default instead.</string>
     <string name="profile_note_htsp">HTSP transfers elementary streams, so no transcoding takes place. Leave it on the server setting unless your account is tied to a specific profile.</string>
     <string name="dvr_reload">Refresh</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">Hidden channels</string>
+    <string name="fav_reorder">Reorder favorites</string>
+    <string name="fav_reorder_hint">Reorder: OK grab/drop · ▲▼ move · BACK done</string>
+    <string name="fav_reorder_grabbed">Moving: %1$s</string>
 </resources>

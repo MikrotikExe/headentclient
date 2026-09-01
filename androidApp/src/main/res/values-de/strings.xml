@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">Der Server bietet das Profil „%1$s“ nicht an — er verwendet stattdessen sein Standardprofil.</string>
     <string name="profile_note_htsp">HTSP überträgt Elementarströme, es wird also nicht transkodiert. Belasse die Servereinstellung, sofern dein Konto nicht an ein bestimmtes Profil gebunden ist.</string>
     <string name="dvr_reload">Aktualisieren</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">Ausgeblendete Sender</string>
+    <string name="fav_reorder">Favoriten sortieren</string>
+    <string name="fav_reorder_hint">Sortieren: OK greifen/ablegen · ▲▼ verschieben · BACK fertig</string>
+    <string name="fav_reorder_grabbed">Verschiebe: %1$s</string>
 </resources>

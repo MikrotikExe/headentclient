@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">서버에 “%1$s” 프로필이 없습니다 — 대신 기본 프로필을 사용합니다.</string>
     <string name="profile_note_htsp">HTSP는 기본 스트림을 전송하므로 트랜스코딩이 없습니다. 계정이 특정 프로필로 제한되지 않았다면 서버 설정을 그대로 두세요.</string>
     <string name="dvr_reload">새로 고침</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">숨긴 채널</string>
+    <string name="fav_reorder">즐겨찾기 정렬</string>
+    <string name="fav_reorder_hint">정렬: OK 잡기/놓기 · ▲▼ 이동 · 뒤로 완료</string>
+    <string name="fav_reorder_grabbed">이동 중: %1$s</string>
 </resources>

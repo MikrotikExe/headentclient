@@ -30,6 +30,21 @@ object LivePlaylist {
 
     const val GROUP_ALL = ""
     const val GROUP_FAV = "\u0000fav"
+    /** M541: pseudo-skupina skrytych kanalov (len v prehravaci, aby sa dali odkryt). */
+    const val GROUP_HIDDEN = "\u0000hidden"
+
+    /** M541: poradie oblubenych (uuid) — v skupine Oblubene sa kanaly cisluju 1..n podla neho. */
+    @Volatile
+    var favOrder: List<String> = emptyList()
+    /** M541: skryte kanaly (nie su v allChannels ani v skupinach). */
+    @Volatile
+    var hiddenChannels: List<LiveChannel> = emptyList()
+
+    /** M541: oblubene v ulozenom poradi, precislovane 1..n. */
+    fun favChannels(): List<LiveChannel> {
+        val byUuid = allChannels.associateBy { it.uuid }
+        return favOrder.mapNotNull { byUuid[it] }.mapIndexed { i, ch -> ch.copy(number = i + 1) }
+    }
 
     @Volatile
     var allChannels: List<LiveChannel> = emptyList()
@@ -43,6 +58,8 @@ object LivePlaylist {
         allChannels = emptyList()
         channels = emptyList()
         groups = emptyList()
+        favOrder = emptyList()
+        hiddenChannels = emptyList()
         activeGroupKey = GROUP_ALL
     }
 
@@ -54,9 +71,19 @@ object LivePlaylist {
      * Vdaka tomu prehravac po restarte appky nabehne v tej istej skupine, v akej
      * pouzivatel skoncil, rovnako ako zoznam Kanaly.
      */
-    fun setChannels(full: List<LiveChannel>, grps: List<Group>, restoreKey: String? = null) {
+    fun setChannels(
+        full: List<LiveChannel>, grps: List<Group>, restoreKey: String? = null,
+        favs: List<String> = emptyList(), hidden: List<LiveChannel> = emptyList()
+    ) {
         allChannels = full
         groups = grps
+        favOrder = favs
+        hiddenChannels = hidden
+        // M541: aj Oblubene sa pamataju ako skupina
+        if (restoreKey == GROUP_FAV) {
+            val f = favChannels()
+            if (f.isNotEmpty()) { activeGroupKey = GROUP_FAV; channels = f; return }
+        }
         val g = restoreKey?.let { k -> grps.firstOrNull { it.key == k } }
         activeGroupKey = g?.key ?: GROUP_ALL
         channels = if (g != null) full.filter { it.uuid in g.uuids } else full

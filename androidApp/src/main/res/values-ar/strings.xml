@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">الخادم لا يوفر الملف «%1$s» — سيستخدم ملفه الافتراضي بدلاً منه.</string>
     <string name="profile_note_htsp">ينقل HTSP تدفقات أولية، فلا يجري تحويل الترميز. اترك إعداد الخادم ما لم يكن حسابك مرتبطًا بملف معين.</string>
     <string name="dvr_reload">تحديث</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">القنوات المخفية</string>
+    <string name="fav_reorder">ترتيب المفضلة</string>
+    <string name="fav_reorder_hint">الترتيب: OK إمساك/إفلات · ▲▼ نقل · رجوع تم</string>
+    <string name="fav_reorder_grabbed">نقل: %1$s</string>
 </resources>

@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">सर्वर पर प्रोफ़ाइल “%1$s” उपलब्ध नहीं है — वह अपनी डिफ़ॉल्ट प्रोफ़ाइल उपयोग करेगा।</string>
     <string name="profile_note_htsp">HTSP एलिमेंट्री स्ट्रीम भेजता है, इसलिए ट्रांसकोडिंग नहीं होती। यदि खाता किसी खास प्रोफ़ाइल से बंधा नहीं, तो सर्वर की सेटिंग रहने दें।</string>
     <string name="dvr_reload">रिफ़्रेश करें</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">छिपे चैनल</string>
+    <string name="fav_reorder">पसंदीदा क्रमबद्ध करें</string>
+    <string name="fav_reorder_hint">क्रम: OK पकड़ें/छोड़ें · ▲▼ हटाएँ · BACK पूर्ण</string>
+    <string name="fav_reorder_grabbed">स्थानांतरण: %1$s</string>
 </resources>

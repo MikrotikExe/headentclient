@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">Serverul nu oferă profilul „%1$s” — va folosi profilul implicit.</string>
     <string name="profile_note_htsp">HTSP transportă fluxuri elementare, deci nu se transcodează. Lasă setarea serverului dacă contul nu e legat de un anume profil.</string>
     <string name="dvr_reload">Reîmprospătează</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">Canale ascunse</string>
+    <string name="fav_reorder">Reordonează favoritele</string>
+    <string name="fav_reorder_hint">Reordonare: OK apucă/lasă · ▲▼ mută · ÎNAPOI gata</string>
+    <string name="fav_reorder_grabbed">Se mută: %1$s</string>
 </resources>

@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">Server profil „%1$s“ neponuka — použije namiesto neho svoj predvolený.</string>
     <string name="profile_note_htsp">HTSP prenáša elementárne streamy, takže sa netranskóduje. Ak konto nemá vyhradený profil, nechaj podľa nastavenia servera.</string>
     <string name="dvr_reload">Obnoviť</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">Skryté kanály</string>
+    <string name="fav_reorder">Usporiadať obľúbené</string>
+    <string name="fav_reorder_hint">Usporiadanie: OK uchopiť/položiť · ▲▼ presunúť · BACK hotovo</string>
+    <string name="fav_reorder_grabbed">Presúvam: %1$s</string>
 </resources>

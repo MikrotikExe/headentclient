@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">A kiszolgáló nem kínálja a(z) „%1$s” profilt — helyette az alapértelmezettet használja.</string>
     <string name="profile_note_htsp">A HTSP elemi adatfolyamokat visz át, tehát nincs átkódolás. Hagyd a kiszolgáló beállítását, hacsak a fiók nincs egy adott profilhoz kötve.</string>
     <string name="dvr_reload">Frissítés</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">Rejtett csatornák</string>
+    <string name="fav_reorder">Kedvencek rendezése</string>
+    <string name="fav_reorder_hint">Rendezés: OK megfog/letesz · ▲▼ mozgat · VISSZA kész</string>
+    <string name="fav_reorder_grabbed">Mozgatás: %1$s</string>
 </resources>

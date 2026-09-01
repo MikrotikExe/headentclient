@@ -55,6 +55,8 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.FiberManualRecord
@@ -1565,31 +1567,42 @@ class PlayerActivity : ComponentActivity() {
     private fun groupLabelFor(key: String): String = when (key) {
         LivePlaylist.GROUP_ALL -> getString(R.string.all_channels)
         LivePlaylist.GROUP_FAV -> getString(R.string.favorites)
+        LivePlaylist.GROUP_HIDDEN -> getString(R.string.hidden_channels)   // M541
         else -> LivePlaylist.groups.firstOrNull { it.key == key }?.label
             ?: getString(R.string.all_channels)
     }
 
-    /** Poradie skupin pre cyklenie: Vsetky, Oblubene (ak su nejake), potom tagy. */
+    /** Poradie skupin pre cyklenie: Vsetky, Oblubene (ak su nejake), tagy,
+     *  na konci Skryte kanaly (M541, len ak nejake su). */
     private fun groupKeys(): List<String> {
         val keys = mutableListOf(LivePlaylist.GROUP_ALL)
-        val srvId = (liveServer ?: Tvh.store.active())?.id
-        val hasFav = srvId != null && Favorites.all(this, srvId).isNotEmpty()
-        if (hasFav) keys.add(LivePlaylist.GROUP_FAV)
+        if (LivePlaylist.favChannels().isNotEmpty()) keys.add(LivePlaylist.GROUP_FAV)
         LivePlaylist.groups.forEach { keys.add(it.key) }
+        if (LivePlaylist.hiddenChannels.isNotEmpty()) keys.add(LivePlaylist.GROUP_HIDDEN)
         return keys
+    }
+
+    /** M541: aktualizuj poradie oblubenych v LivePlaylist z ulozenych preferencii. */
+    private fun refreshFavOrder() {
+        val srvId = (liveServer ?: Tvh.store.active())?.id ?: return
+        LivePlaylist.favOrder = Favorites.list(this, srvId)
     }
 
     /** Prestavi live zoznam na zvolenu skupinu; CH+/-, karty aj zoznam potom idu v ramci nej. */
     private fun applyGroup(key: String) {
         val all = LivePlaylist.allChannels
-        if (all.isEmpty()) return
+        if (all.isEmpty() && key != LivePlaylist.GROUP_HIDDEN) return
         val srvId = (liveServer ?: Tvh.store.active())?.id
-        val allow: Set<String>? = when (key) {
-            LivePlaylist.GROUP_ALL -> null
-            LivePlaylist.GROUP_FAV -> if (srvId != null) Favorites.all(this, srvId) else emptySet()
-            else -> LivePlaylist.groups.firstOrNull { it.key == key }?.uuids ?: return
+        // M541: Oblubene = ulozene poradie, cislovane 1..n; Skryte = vlastny zoznam
+        val filteredRaw: List<LivePlaylist.LiveChannel> = when (key) {
+            LivePlaylist.GROUP_ALL -> all
+            LivePlaylist.GROUP_FAV -> LivePlaylist.favChannels()
+            LivePlaylist.GROUP_HIDDEN -> LivePlaylist.hiddenChannels
+            else -> {
+                val allow = LivePlaylist.groups.firstOrNull { it.key == key }?.uuids ?: return
+                all.filter { it.uuid in allow }
+            }
         }
-        val filteredRaw = if (allow == null) all else all.filter { it.uuid in allow }
         if (filteredRaw.isEmpty()) return   // prazdna skupina -> necham stav
         // Dopln "teraz" z procesovej EPG cache — nech prepnutie tagu nikdy nestrati program,
         // aj keby allChannels este nebol obohateny.
@@ -1603,11 +1616,11 @@ class PlayerActivity : ComponentActivity() {
             }
         }
         LivePlaylist.activeGroupKey = key
-        // M506: zapamataj volbu skupiny — po restarte appky sa obnovi. Oblubene a
-        // „Vsetky" sa neukladaju ako tag: FAV je vlastny rezim a ALL je prazdno.
+        // M506: zapamataj volbu skupiny — po restarte appky sa obnovi. „Vsetky" je
+        // prazdno; M541: Oblubene sa pamataju tiez (LastTag.FAV), Skryte nikdy.
         LastTag.set(
             this, srvId, playKind == "radio",
-            if (key == LivePlaylist.GROUP_ALL || key == LivePlaylist.GROUP_FAV) null else key
+            if (key == LivePlaylist.GROUP_ALL || key == LivePlaylist.GROUP_HIDDEN) null else LastTag.fromGroupKey(key)
         )
         LivePlaylist.channels = filtered
         liveChannelsState.value = filtered
@@ -1875,8 +1888,11 @@ class PlayerActivity : ComponentActivity() {
         if (recInProgressByChan.value.let { it[ch.uuid] ?: it[ch.name] } != null) keys.add("fromstart")
         // M368: oblubene a skrytie kanala aj na TV (predtym len na telefone)
         keys.add("fav")
+        // M541: usporiadanie oblubenych (len v skupine Oblubene, len D-pad)
+        if (LivePlaylist.activeGroupKey == LivePlaylist.GROUP_FAV && liveChannelsState.value.size > 1) keys.add("reorder")
         if (ParentalLock.isEnabled(this)) keys.add("lock")
-        keys.add("hide")
+        // M541: v skupine Skryte kanaly namiesto „Skryt" ponukni „Odkryt"
+        keys.add(if (LivePlaylist.activeGroupKey == LivePlaylist.GROUP_HIDDEN) "unhide" else "hide")
         return keys
     }
 
@@ -1903,12 +1919,45 @@ class PlayerActivity : ComponentActivity() {
             "lock" -> toggleLockAt(idx)                           // uz riesi PIN + grace okno
             "fav" -> {
                 val sid = (liveServer ?: Tvh.store.active())?.id
-                if (sid != null) Favorites.toggle(this, sid, ch.uuid)
+                if (sid != null) {
+                    Favorites.toggle(this, sid, ch.uuid)
+                    refreshFavOrder()   // M541
+                    // M541: v skupine Oblubene sa zoznam zmenil (odobrany kanal / precislovanie)
+                    if (LivePlaylist.activeGroupKey == LivePlaylist.GROUP_FAV) {
+                        if (LivePlaylist.favChannels().isEmpty()) applyGroup(LivePlaylist.GROUP_ALL) else applyGroup(LivePlaylist.GROUP_FAV)
+                        navChannelIndexState.value = navChannelIndexState.value.coerceIn(0, (liveUuids.size - 1).coerceAtLeast(0))
+                    }
+                }
+            }
+            "reorder" -> enterReorderMode()   // M541
+            "unhide" -> {
+                // M541: odkryt kanal — spat medzi vsetky kanaly (podla cisla), von zo Skrytych
+                val sid = (liveServer ?: Tvh.store.active())?.id
+                if (sid != null) {
+                    HiddenChannels.setHidden(this, sid, ch.uuid, false)
+                    LivePlaylist.hiddenChannels = LivePlaylist.hiddenChannels.filter { it.uuid != ch.uuid }
+                    if (LivePlaylist.allChannels.none { it.uuid == ch.uuid }) {
+                        LivePlaylist.allChannels = (LivePlaylist.allChannels + ch)
+                            .sortedWith(compareBy({ if (it.number > 0) it.number else Int.MAX_VALUE }, { it.name.lowercase() }))
+                    }
+                    if (LivePlaylist.hiddenChannels.isEmpty()) applyGroup(LivePlaylist.GROUP_ALL)
+                    else {
+                        applyGroup(LivePlaylist.GROUP_HIDDEN)
+                        navChannelIndexState.value = idx.coerceIn(0, (liveUuids.size - 1).coerceAtLeast(0))
+                    }
+                }
             }
             "hide" -> {
                 val sid = (liveServer ?: Tvh.store.active())?.id
                 if (sid != null) {
                     HiddenChannels.setHidden(this, sid, ch.uuid, true)
+                    // M541: presun do zoznamu skrytych (pseudo-skupina), von zo vsetkych.
+                    // Povodne cislo vezmi z allChannels (v Oblubenych je `ch.number` poradie 1..n).
+                    val orig = LivePlaylist.allChannels.firstOrNull { it.uuid == ch.uuid } ?: ch
+                    LivePlaylist.allChannels = LivePlaylist.allChannels.filter { it.uuid != ch.uuid }
+                    if (LivePlaylist.hiddenChannels.none { it.uuid == ch.uuid }) {
+                        LivePlaylist.hiddenChannels = LivePlaylist.hiddenChannels + orig
+                    }
                     // Skryty kanal hned odstranit zo zap zoznamu (ak prave nehra);
                     // posun liveIndex, aby CH+/- dalej sedeli.
                     if (idx != liveIndex) {
@@ -1916,12 +1965,96 @@ class PlayerActivity : ComponentActivity() {
                         if (idx in cur.indices) {
                             cur.removeAt(idx)
                             liveChannelsState.value = cur
+                            LivePlaylist.channels = cur
+                            liveUuids = cur.map { it.uuid }
+                            liveNames = cur.map { it.name }
                             if (idx < liveIndex) liveIndex--
+                            liveIndexState.value = liveIndex
+                            navChannelIndexState.value = navChannelIndexState.value.coerceIn(0, (cur.size - 1).coerceAtLeast(0))
                         }
                     }
                 }
             }
         }
+    }
+
+    // ===== M541: rezim usporiadania oblubenych (D-pad) =====
+    // Zapina sa z menu kanala v skupine Oblubene. OK uchopi/polozi kanal pod
+    // kurzorom, sipky HORE/DOLE uchopeny kanal posuvaju (poradie sa uklada hned a
+    // zoznam sa precisluje), BACK rezim ukonci. Napoveda je v pilulke skupiny
+    // (channelGroupLabel) — ziadny novy UI kod v PlayerUi (64 KB limit metody).
+    private var reorderMode = false
+    private var reorderGrabbed = false
+
+    private fun enterReorderMode() {
+        if (LivePlaylist.activeGroupKey != LivePlaylist.GROUP_FAV) return
+        reorderMode = true
+        reorderGrabbed = false
+        updateReorderLabel()
+    }
+
+    private fun exitReorderMode() {
+        if (!reorderMode) return
+        reorderMode = false
+        reorderGrabbed = false
+        activeGroupLabelState.value = groupLabelFor(LivePlaylist.activeGroupKey)
+    }
+
+    private fun updateReorderLabel() {
+        activeGroupLabelState.value = if (reorderGrabbed) {
+            val name = liveChannelsState.value.getOrNull(navChannelIndexState.value)?.name ?: ""
+            getString(R.string.fav_reorder_grabbed, name)
+        } else getString(R.string.fav_reorder_hint)
+    }
+
+    /** Posun uchopeneho kanala o [dir] (+1 dole / -1 hore) v poradi oblubenych. */
+    private fun moveGrabbed(dir: Int) {
+        val sid = (liveServer ?: Tvh.store.active())?.id ?: return
+        val from = navChannelIndexState.value
+        val to = from + dir
+        val order = Favorites.list(this, sid)
+        if (from !in order.indices || to !in order.indices) return
+        // zobrazovany zoznam Oblubenych = favOrder v tom istom poradi (favChannels),
+        // ale kanaly, ktore server uz nema, v nom chybaju -> mapuj cez uuid
+        val uuid = liveChannelsState.value.getOrNull(from)?.uuid ?: return
+        val target = liveChannelsState.value.getOrNull(to)?.uuid ?: return
+        val fi = order.indexOf(uuid); val ti = order.indexOf(target)
+        if (fi < 0 || ti < 0) return
+        Favorites.move(this, sid, fi, ti)
+        refreshFavOrder()
+        applyGroup(LivePlaylist.GROUP_FAV)   // precisluje 1..n a prepocita liveIndex
+        navChannelIndexState.value = liveUuids.indexOf(uuid).coerceAtLeast(0)
+        updateReorderLabel()
+    }
+
+    /** Klavesy v rezime usporiadania. Vracia true, ak bola udalost spracovana. */
+    private fun handleReorderKey(kc: Int, down: Boolean, isOk: Boolean): Boolean {
+        if (!reorderMode) return false
+        val n = liveUuids.size
+        if (isOk) {
+            if (okLongFired) return true
+            if (!down && n > 0) {
+                reorderGrabbed = !reorderGrabbed
+                updateReorderLabel()
+            }
+            return true
+        }
+        if (!down) return true
+        when (kc) {
+            android.view.KeyEvent.KEYCODE_DPAD_UP -> {
+                if (reorderGrabbed) moveGrabbed(-1)
+                else if (n > 0) navChannelIndexState.value = (navChannelIndexState.value - 1 + n) % n
+                return true
+            }
+            android.view.KeyEvent.KEYCODE_DPAD_DOWN -> {
+                if (reorderGrabbed) moveGrabbed(+1)
+                else if (n > 0) navChannelIndexState.value = (navChannelIndexState.value + 1) % n
+                return true
+            }
+            android.view.KeyEvent.KEYCODE_BACK -> { exitReorderMode(); return true }
+            android.view.KeyEvent.KEYCODE_DPAD_LEFT, android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> return true
+        }
+        return false
     }
 
     // --- Info o relacii (detail) v prehravaci ---
@@ -2032,6 +2165,7 @@ class PlayerActivity : ComponentActivity() {
     private fun openChannelList() {
         // M371: otvor aj s 1 kanalom, ak su skupiny na prepnutie (napr. Oblubene s 1 kanalom),
         // inak by sa filtrovany zoznam uz nedal otvorit ani prepnut spat.
+        refreshFavOrder()   // M541: oblubene sa mohli zmenit v zozname Kanaly
         if (liveUuids.size < 2 && groupKeys().size <= 1) return
         groupPickerState.value = false
         searchActiveState.value = false
@@ -2042,6 +2176,7 @@ class PlayerActivity : ComponentActivity() {
         openChannelListState.value = openChannelListState.value + 1
     }
     private fun closeChannelList() {
+        exitReorderMode()   // M541
         groupPickerState.value = false
         searchActiveState.value = false
         closeChannelListState.value = closeChannelListState.value + 1
@@ -2540,6 +2675,16 @@ class PlayerActivity : ComponentActivity() {
                     android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
                     android.view.KeyEvent.KEYCODE_VOLUME_MUTE -> return super.dispatchKeyEvent(event)
                 }
+                return true
+            }
+            // M541: rezim usporiadania oblubenych ma prednost pred beznou navigaciou
+            if (reorderMode) {
+                when (kc) {
+                    android.view.KeyEvent.KEYCODE_VOLUME_UP,
+                    android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
+                    android.view.KeyEvent.KEYCODE_VOLUME_MUTE -> return super.dispatchKeyEvent(event)
+                }
+                if (handleReorderKey(kc, down, isOk)) return true
                 return true
             }
             if (isOk) {
@@ -3564,6 +3709,8 @@ class PlayerActivity : ComponentActivity() {
                                         else androidx.compose.ui.res.stringResource(R.string.fav_add)
                                     }
                                     "hide" -> androidx.compose.ui.res.stringResource(R.string.ch_hide)
+                                    "unhide" -> androidx.compose.ui.res.stringResource(R.string.ch_unhide)     // M541
+                                    "reorder" -> androidx.compose.ui.res.stringResource(R.string.fav_reorder)  // M541
                                     else -> key
                                 }
                                 val rowSel = i == cSel
@@ -3585,6 +3732,8 @@ class PlayerActivity : ComponentActivity() {
                                                 "fromstart" -> androidx.compose.material.icons.Icons.Default.PlayArrow
                                                 "fav" -> androidx.compose.material.icons.Icons.Default.Star
                                                 "hide" -> androidx.compose.material.icons.Icons.Default.VisibilityOff
+                                                "unhide" -> androidx.compose.material.icons.Icons.Default.Visibility   // M541
+                                                "reorder" -> androidx.compose.material.icons.Icons.Default.SwapVert    // M541
                                                 else -> androidx.compose.material.icons.Icons.Default.Lock
                                             },
                                             contentDescription = null,

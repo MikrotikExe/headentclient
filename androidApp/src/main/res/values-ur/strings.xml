@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">سرور پر پروفائل «%1$s» دستیاب نہیں — وہ اپنی ڈیفالٹ پروفائل استعمال کرے گا۔</string>
     <string name="profile_note_htsp">HTSP بنیادی اسٹریمز بھیجتا ہے، اس لیے ٹرانس کوڈنگ نہیں ہوتی۔ اگر اکاؤنٹ کسی خاص پروفائل سے منسلک نہیں تو سرور کی ترتیب رہنے دیں۔</string>
     <string name="dvr_reload">تازہ کریں</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">پوشیدہ چینلز</string>
+    <string name="fav_reorder">پسندیدہ ترتیب دیں</string>
+    <string name="fav_reorder_hint">ترتیب: OK پکڑیں/چھوڑیں · ▲▼ منتقل کریں · BACK مکمل</string>
+    <string name="fav_reorder_grabbed">منتقلی: %1$s</string>
 </resources>

@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">Poslužitelj ne nudi profil „%1$s“ — umjesto njega koristi zadani.</string>
     <string name="profile_note_htsp">HTSP prenosi elementarne tokove pa nema transkodiranja. Ostavi postavku poslužitelja osim ako je račun vezan uz određeni profil.</string>
     <string name="dvr_reload">Osvježi</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">Skriveni kanali</string>
+    <string name="fav_reorder">Rasporedi favorite</string>
+    <string name="fav_reorder_hint">Raspored: OK uhvati/pusti · ▲▼ pomakni · NATRAG gotovo</string>
+    <string name="fav_reorder_grabbed">Pomicanje: %1$s</string>
 </resources>

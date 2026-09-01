@@ -105,7 +105,7 @@ fun ModernTvHomeScreen(
     val sid = remember { Tvh.store.active()?.id ?: "default" }
     val server = remember { Tvh.store.active() }
     val piconLoader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
-    val favUuids = remember(rows) { Favorites.all(ctx, sid) }
+    val favUuids = remember(rows) { Favorites.list(ctx, sid) }   // M541: v poradi
     val lastUuid = remember(rows) { LastChannel.get(ctx, sid) }
 
     // hero kanal: posledny sledovany -> prvy obluбeny -> prvy v zozname
@@ -116,7 +116,7 @@ fun ModernTvHomeScreen(
     }
     // rad: oblubene (v poradi zoznamu), fallback prvych 8 kanalov
     val railRows: List<ChannelRow> = remember(rows, favUuids) {
-        val favs = rows.filter { it.channel.uuid in favUuids }
+        val favs = favUuids.mapNotNull { u -> rows.firstOrNull { it.channel.uuid == u } }   // M541: poradie oblubenych
         if (favs.isNotEmpty()) favs.take(12) else rows.take(8)
     }
 

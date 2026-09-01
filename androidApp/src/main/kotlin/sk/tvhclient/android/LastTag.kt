@@ -13,6 +13,17 @@ import android.content.Context
  */
 object LastTag {
     private const val PREFS = "app_prefs"
+    /** M541: „Oblubene" ako zapamatana skupina. V preferenciach bez NUL znaku
+     *  (LivePlaylist.GROUP_FAV je "\u0000fav" — NUL do XML SharedPreferences nepatri). */
+    const val FAV = "fav"
+
+    /** Ulozena hodnota -> kluc skupiny pre LivePlaylist (FAV -> GROUP_FAV). */
+    fun toGroupKey(saved: String?): String? =
+        if (saved == FAV) LivePlaylist.GROUP_FAV else saved
+
+    /** Kluc skupiny z prehravaca -> hodnota na ulozenie (GROUP_FAV -> FAV). */
+    fun fromGroupKey(key: String): String =
+        if (key == LivePlaylist.GROUP_FAV) FAV else key
 
     private fun key(serverId: String, radio: Boolean) =
         "lasttag_" + (if (radio) "radio_" else "tv_") + serverId

@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">سرور نمایه «%1$s» را ارائه نمی‌دهد — به جای آن از نمایه پیش‌فرض خود استفاده می‌کند.</string>
     <string name="profile_note_htsp">HTSP جریان‌های پایه را منتقل می‌کند، پس تبدیل کدک انجام نمی‌شود. اگر حساب به نمایه‌ای محدود نیست، تنظیم سرور را نگه دار.</string>
     <string name="dvr_reload">بازآوری</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">کانال‌های پنهان</string>
+    <string name="fav_reorder">مرتب‌سازی علاقه‌مندی‌ها</string>
+    <string name="fav_reorder_hint">مرتب‌سازی: OK گرفتن/رها کردن · ▲▼ جابه‌جایی · بازگشت پایان</string>
+    <string name="fav_reorder_grabbed">جابه‌جایی: %1$s</string>
 </resources>

@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">服务器没有“%1$s”配置——将改用默认配置。</string>
     <string name="profile_note_htsp">HTSP 传输基本流，因此不会转码。除非账号被限定到特定配置，否则保持服务器设置。</string>
     <string name="dvr_reload">刷新</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">隐藏的频道</string>
+    <string name="fav_reorder">重新排序收藏</string>
+    <string name="fav_reorder_hint">排序：OK 抓取/放下 · ▲▼ 移动 · 返回 完成</string>
+    <string name="fav_reorder_grabbed">正在移动：%1$s</string>
 </resources>

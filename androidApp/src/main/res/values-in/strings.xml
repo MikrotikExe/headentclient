@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">Server tidak menyediakan profil “%1$s” — akan memakai profil bawaannya.</string>
     <string name="profile_note_htsp">HTSP mengirim stream elementer, jadi tidak ada transcoding. Biarkan pengaturan server kecuali akun terikat pada profil tertentu.</string>
     <string name="dvr_reload">Segarkan</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">Saluran tersembunyi</string>
+    <string name="fav_reorder">Urutkan favorit</string>
+    <string name="fav_reorder_hint">Urutkan: OK ambil/lepas · ▲▼ pindah · BACK selesai</string>
+    <string name="fav_reorder_grabbed">Memindahkan: %1$s</string>
 </resources>

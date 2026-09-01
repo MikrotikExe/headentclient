@@ -132,7 +132,8 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     LaunchedEffect(serverId) {
         if (!tagRestored) {
             tagRestored = true
-            selectedTag = LastTag.get(ctx, serverId, radio = false)
+            val t = LastTag.get(ctx, serverId, radio = false)
+            if (t == LastTag.FAV) favOnly = true else selectedTag = t   // M541: aj Oblubene
         }
     }
     // Scroll pozicie prezivaju odskok do EPG a spat (remember v scope obrazovky)
@@ -174,7 +175,18 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                 val u = cat.rows.map { it.channel.uuid }.filter { it !in hidden }.toSet()
                 if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
             }
-            LivePlaylist.setChannels(full, grps)
+            // M541: skryte kanaly a poradie oblubenych aj pre prehravac na telefone
+            val hiddenList = st.allRows.filter { it.channel.uuid in hidden }.map { r ->
+                LivePlaylist.LiveChannel(
+                    uuid = r.channel.uuid, name = r.channel.name,
+                    number = r.channel.number ?: 0, piconUrl = r.piconUrl,
+                    nowTitle = "", nowStart = 0, nowStop = 0
+                )
+            }
+            LivePlaylist.setChannels(
+                full, grps,
+                favs = srv?.id?.let { Favorites.list(ctx, it) } ?: emptyList(), hidden = hiddenList
+            )
         }
     }
 
@@ -330,7 +342,10 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                         item("fav") {
                             FilterChip(
                                 selected = favOnly,
-                                onClick = { favOnly = true },
+                                onClick = {
+                                    favOnly = true
+                                    LastTag.set(ctx, serverId, false, LastTag.FAV)   // M541
+                                },
                                 label = { Text("\u2605 " + stringResource(R.string.favorites)) }
                             )
                         }
@@ -357,10 +372,12 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                     }
                     Spacer(Modifier.height(8.dp))
                     val favs = remember(favTick, serverId) {
-                        if (serverId != null) Favorites.all(ctx, serverId) else emptySet()
+                        if (serverId != null) Favorites.list(ctx, serverId) else emptyList()
                     }
                     val rows = when {
-                        favOnly -> s.allRows.filter { it.channel.uuid in favs }
+                        // M541: v poradi oblubenych a cislovane 1..n
+                        favOnly -> favs.mapNotNull { u -> s.allRows.firstOrNull { it.channel.uuid == u } }
+                            .mapIndexed { i, r -> r.copy(channel = r.channel.copy(number = i + 1)) }
                         // M533: „Vsetky" musi byt zotriedene podla CISLA kanala.
                         // Doteraz sa kategorie len spojili za sebou, takze poradie
                         // urcovalo poradie tagov — kanal s inym tagom skoncil mimo

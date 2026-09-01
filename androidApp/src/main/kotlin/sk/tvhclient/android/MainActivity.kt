@@ -339,8 +339,19 @@ private fun TvHomeHost() {
                     val u = cat.rows.map { it.channel.uuid }.filter { it !in hidden }.toSet()
                     if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
                 }
+                // M541: skryte kanaly zvlast (pseudo-skupina v prehravaci na odkrytie)
+                val hiddenList = st.allRows.filter { it.channel.uuid in hidden }.map { r ->
+                    LivePlaylist.LiveChannel(
+                        uuid = r.channel.uuid, name = r.channel.name,
+                        number = r.channel.number ?: 0, piconUrl = r.piconUrl,
+                        nowTitle = r.nowTitle ?: "", nowStart = r.nowStart, nowStop = r.nowStop
+                    )
+                }
                 // M506: obnov naposledy zvolenu skupinu (rovnaka ako v zalozke Kanaly)
-                LivePlaylist.setChannels(full, grps, LastTag.get(ctx, sid, radio = false))
+                LivePlaylist.setChannels(
+                    full, grps, LastTag.toGroupKey(LastTag.get(ctx, sid, radio = false)),
+                    favs = if (sid != null) Favorites.list(ctx, sid) else emptyList(), hidden = hiddenList
+                )
                 // M496: ak obnovujeme posledne vysielanie, ma prednost ten kanal
                 val target = (LastPlayback.pendingUuid ?: LastChannel.get(ctx, sid))
                     ?.takeIf { u -> LivePlaylist.channels.any { it.uuid == u } }
@@ -377,7 +388,10 @@ private fun TvHomeHost() {
                     val u = cat.rows.map { it.channel.uuid }.filter { it !in hiddenR }.toSet()
                     if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
                 }
-                LivePlaylist.setChannels(fullR, grpsR, LastTag.get(ctx, sid, radio = true))
+                LivePlaylist.setChannels(
+                    fullR, grpsR, LastTag.toGroupKey(LastTag.get(ctx, sid, radio = true)),
+                    favs = if (sid != null) Favorites.list(ctx, sid) else emptyList()
+                )
                 // M497: obnovovana stanica ma prednost pred poslednou
                 val target = (LastPlayback.pendingUuid ?: LastRadio.get(ctx, sid))
                     ?.takeIf { u -> LivePlaylist.channels.any { it.uuid == u } }
@@ -480,9 +494,20 @@ private fun TvHomeHost() {
                                 // M506: obnov skupinu, ale len ak zvoleny kanal do nej
                                 // patri — inak by pouzivatel klikol na kanal a v
                                 // zozname na CH+/- by ho nemal
-                                val saved = LastTag.get(ctx, sid2, radio = false)
-                                    ?.takeIf { k -> grps.firstOrNull { it.key == k }?.uuids?.contains(uuid) == true }
-                                LivePlaylist.setChannels(full, grps, saved)
+                                val favs2 = if (sid2 != null) Favorites.list(ctx, sid2) else emptyList()
+                                val hiddenList2 = st.allRows.filter { it.channel.uuid in hidden }.map { r ->
+                                    LivePlaylist.LiveChannel(
+                                        uuid = r.channel.uuid, name = r.channel.name,
+                                        number = r.channel.number ?: 0, piconUrl = r.piconUrl,
+                                        nowTitle = r.nowTitle ?: "", nowStart = r.nowStart, nowStop = r.nowStop
+                                    )
+                                }
+                                val saved = LastTag.toGroupKey(LastTag.get(ctx, sid2, radio = false))
+                                    ?.takeIf { k ->
+                                        (k == LivePlaylist.GROUP_FAV && uuid in favs2) ||   // M541
+                                            grps.firstOrNull { it.key == k }?.uuids?.contains(uuid) == true
+                                    }
+                                LivePlaylist.setChannels(full, grps, saved, favs = favs2, hidden = hiddenList2)
                             }
                             LivePlaylist.setIndexForUuid(uuid)
                             playUuid(uuid, title)

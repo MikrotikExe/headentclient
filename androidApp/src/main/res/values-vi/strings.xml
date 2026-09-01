@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">Máy chủ không có hồ sơ “%1$s” — sẽ dùng hồ sơ mặc định thay thế.</string>
     <string name="profile_note_htsp">HTSP truyền luồng nguyên bản nên không chuyển mã. Giữ thiết lập của máy chủ trừ khi tài khoản bị giới hạn ở một hồ sơ cụ thể.</string>
     <string name="dvr_reload">Làm mới</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">Kênh ẩn</string>
+    <string name="fav_reorder">Sắp xếp yêu thích</string>
+    <string name="fav_reorder_hint">Sắp xếp: OK nắm/thả · ▲▼ di chuyển · BACK xong</string>
+    <string name="fav_reorder_grabbed">Đang di chuyển: %1$s</string>
 </resources>

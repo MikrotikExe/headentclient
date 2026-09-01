@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">Ο διακομιστής δεν προσφέρει το προφίλ «%1$s» — θα χρησιμοποιήσει το προεπιλεγμένο.</string>
     <string name="profile_note_htsp">Το HTSP μεταφέρει στοιχειώδεις ροές, οπότε δεν γίνεται ανακωδικοποίηση. Άφησε τη ρύθμιση του διακομιστή, εκτός αν ο λογαριασμός είναι δεμένος σε συγκεκριμένο προφίλ.</string>
     <string name="dvr_reload">Ανανέωση</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">Κρυφά κανάλια</string>
+    <string name="fav_reorder">Ταξινόμηση αγαπημένων</string>
+    <string name="fav_reorder_hint">Ταξινόμηση: OK πιάσε/άφησε · ▲▼ μετακίνηση · ΠΙΣΩ τέλος</string>
+    <string name="fav_reorder_grabbed">Μετακίνηση: %1$s</string>
 </resources>

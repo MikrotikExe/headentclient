@@ -385,4 +385,9 @@
     <string name="profile_unknown_warn">サーバーにプロファイル「%1$s」がありません — 代わりに既定のプロファイルを使用します。</string>
     <string name="profile_note_htsp">HTSPはエレメンタリストリームを伝送するため、トランスコードは行われません。アカウントが特定のプロファイルに限定されていなければサーバーの設定のままで構いません。</string>
     <string name="dvr_reload">更新</string>
+    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <string name="hidden_channels">非表示のチャンネル</string>
+    <string name="fav_reorder">お気に入りを並べ替え</string>
+    <string name="fav_reorder_hint">並べ替え: OK つかむ/置く · ▲▼ 移動 · 戻る 完了</string>
+    <string name="fav_reorder_grabbed">移動中: %1$s</string>
 </resources>
