@@ -2062,7 +2062,7 @@ class PlayerActivity : ComponentActivity() {
         }
         sleepDeadlineState.value = System.currentTimeMillis() + minutes * 60_000L
         sleepHandler.postDelayed({
-            runCatching { if (::mediaPlayer.isInitialized && mediaPlayer.isPlaying) mediaPlayer.stop() }
+            // M535: stop() uz nie na hlavnom vlakne — zastavi ho teardown pri finish()
             finish()
         }, minutes * 60_000L)
         Toast.makeText(this, getString(R.string.sleep_set, minutes), Toast.LENGTH_SHORT).show()
@@ -2958,7 +2958,7 @@ class PlayerActivity : ComponentActivity() {
     private fun saveDvrProgress() {
         val uuid = dvrUuid ?: return
         val sid = dvrServerId ?: return
-        if (!::mediaPlayer.isInitialized) return
+        if (!::mediaPlayer.isInitialized || playerTornDown) return   // M535: player uz moze byt uvolneny
         val dur = if (dvrDurationMs > 0) dvrDurationMs else mediaPlayer.length
         if (dur <= 0) return
         if (reachedEnd && !dvrRecording) {
@@ -4158,13 +4158,73 @@ class PlayerActivity : ComponentActivity() {
         super.onStop()
         if (::mediaPlayer.isInitialized) {
             if (isFinishing) {
-                runCatching { mediaPlayer.stop() }
-            } else if (mediaPlayer.isPlaying) {
+                // M535: stop() sa NESMIE volat na hlavnom vlakne — pozri teardownPlayerAsync
+                teardownPlayerAsync()
+                return
+            }
+            if (mediaPlayer.isPlaying) {
                 mediaPlayer.pause()
             }
             // uvolni surface, nech sa po navrate da znova pripojit (inak cierna obrazovka)
             runCatching { mediaPlayer.detachViews() }
         }
+    }
+
+    /**
+     * M535: ukoncenie libVLC mimo hlavneho vlakna.
+     *
+     * `MediaPlayer.stop()` je synchronne: caka, kym skonci vstupne vlakno libVLC,
+     * a to zas caka na dekodery. Na Strongu (Amlogic) po prebudeni zo standby
+     * a krátko po boote AudioTrack neodobera data — audio dekoder visi v zapise
+     * do neho a neda sa prerusit, takze stop() na hlavnom vlakne nikdy neskoncil:
+     * po 5 s ANR, systemove „Activity destroy timeout" a appku zabil system
+     * (bugreport 1. 9. 2026, pat identickych stackov). Zavretie prehravaca preto
+     * odovzda cely libVLC objekt pracovnemu vlaknu; aktivita sa zavrie hned.
+     * Ak libVLC visi, visi len to vlakno na pozadi a zapise sa WARN do
+     * diagnostickeho logu. Feedery sa zastavia ako prve — zavretie pipe ukonci
+     * demux okamzite, takze v beznom pripade stop() trva par desiatok ms.
+     */
+    private var playerTornDown = false
+    private val playerDestroyedLatch = java.util.concurrent.CountDownLatch(1)
+    private fun teardownPlayerAsync() {
+        if (playerTornDown) return
+        playerTornDown = true
+        htspFeeder?.stop(); htspFeeder = null
+        httpFeeder?.stop(); httpFeeder = null
+        if (!::mediaPlayer.isInitialized) {
+            if (::libVlc.isInitialized) runCatching { libVlc.release() }
+            return
+        }
+        val mp = mediaPlayer
+        val lib = if (::libVlc.isInitialized) libVlc else null
+        val appCtx = applicationContext
+        runCatching { mp.setEventListener(null) }
+        val destroyed = playerDestroyedLatch
+        val worker = Thread({
+            val t0 = android.os.SystemClock.elapsedRealtime()
+            runCatching { mp.stop() }
+            // release() az po onDestroy — dovtedy sa na (uz zastaveny) prehravac
+            // mozu este obratit UI slucky/handlery a volanie na uvolneny objekt
+            // by hodilo IllegalStateException.
+            runCatching { destroyed.await(5, java.util.concurrent.TimeUnit.SECONDS) }
+            runCatching { mp.detachViews() }
+            runCatching { mp.release() }
+            runCatching { lib?.release() }
+            val ms = android.os.SystemClock.elapsedRealtime() - t0
+            if (ms > 3000) {
+                CrashLogger.report(appCtx, "PlayerActivity.teardown", "libVLC stop/release took $ms ms")
+            }
+        }, "HeadentClient:vlcRelease")
+        worker.isDaemon = true
+        worker.start()
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            if (worker.isAlive) {
+                CrashLogger.report(
+                    appCtx, "PlayerActivity.teardown",
+                    "libVLC stop hangs >8 s (audio output stalled after standby/boot?) — left in background"
+                )
+            }
+        }, 8_000)
     }
 
     // --- Doplnenie stop po starte (audio jazyky / DVB titulky) ---
@@ -4383,22 +4443,15 @@ class PlayerActivity : ComponentActivity() {
         pipReceiver?.let { runCatching { unregisterReceiver(it) } }
         pipReceiver = null
         subOverlay?.stopTicker()   // zastav titulkovy ticker skor nez uvolnis mediaPlayer
-        if (::mediaPlayer.isInitialized) {
-            mediaPlayer.stop()
-            mediaPlayer.detachViews()
-            mediaPlayer.release()
-        }
-        htspFeeder?.stop()
-        htspFeeder = null
-        httpFeeder?.stop()
-        httpFeeder = null
         stopTimeshiftTicker()
         skipFlushJob?.cancel()
         cancelTrackRefresh()
         trackReparseHandler.removeCallbacksAndMessages(null)
-        if (::libVlc.isInitialized) {
-            libVlc.release()
-        }
+        // M535: stop/release libVLC na pracovnom vlakne (bezne uz prebehlo v onStop
+        // pri isFinishing; tu je poistka pre destroy bez predchadzajuceho stop,
+        // napr. zabitie systemom pri nedostatku pamate).
+        teardownPlayerAsync()
+        playerDestroyedLatch.countDown()   // pracovne vlakno smie release()
     }
 
     companion object {

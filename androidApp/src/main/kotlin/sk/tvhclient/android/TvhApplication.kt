@@ -15,9 +15,8 @@ class TvhApplication : Application() {
             val a = intent?.action ?: return
             if (a != Intent.ACTION_SCREEN_ON && a != Intent.ACTION_USER_PRESENT) return
             if (!AutostartPref.isWakeEnabled(context)) return
-            val launch = Intent(context, MainActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-            runCatching { context.startActivity(launch) }
+            // M535: beziacu ulohu len presun dopredu (nezhadzuj prehravac), inak start
+            AutostartLaunch.bringToFrontOrStart(context)
         }
     }
 
