@@ -520,6 +520,7 @@ class PlayerActivity : ComponentActivity() {
     /** M255 — live cez HTTP na digest-only serveri: stiahnut cez feeder (rovnako
      *  ako DVR), lebo libVLC digest cez URL nezvlada. Pre live netreba seek. */
     private fun playLiveViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String) {
+        ensureHealthyPlayer()   // M539
         htspFeeder?.stop(); htspFeeder = null
         httpFeeder?.stop()
         htspStream = false
@@ -604,6 +605,7 @@ class PlayerActivity : ComponentActivity() {
 
     /** Bezne HTTP prehravanie (zastavi pripadny HTSP feed). */
     private fun playHttp(url: String) {
+        ensureHealthyPlayer()   // M539
         htspFeeder?.stop(); htspFeeder = null
         httpFeeder?.stop(); httpFeeder = null
         htspStream = false
@@ -624,6 +626,7 @@ class PlayerActivity : ComponentActivity() {
      * libVLC nezvladne. startByte = pripadny offset pre resume cez HTTP Range.
      */
     private fun playDvrViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String, startByte: Long = 0L) {
+        ensureHealthyPlayer()   // M539
         htspFeeder?.stop(); htspFeeder = null
         httpFeeder?.stop()
         htspStream = false
@@ -655,6 +658,7 @@ class PlayerActivity : ComponentActivity() {
      */
     private fun playHtspLive(server: sk.tvhclient.shared.model.TvhServer, channelId: Long, timeshift: Boolean): Boolean {
         return try {
+            ensureHealthyPlayer()   // M539
             htspFeeder?.stop()
             httpFeeder?.stop(); httpFeeder = null
             val feeder = HtspTsFeeder(server, if (timeshift) 3600 else 0)
@@ -942,6 +946,7 @@ class PlayerActivity : ComponentActivity() {
                 }
                 playDvrViaFeeder(srv, url, targetByte)
             } else {
+                ensureHealthyPlayer()   // M539
                 val m = buildMedia(url)
                 m.addOption(":start-time=${fileMs / 1000}")
                 mediaPlayer.media = m
@@ -3091,106 +3096,8 @@ class PlayerActivity : ComponentActivity() {
             (durationMs <= 0 || durationMs - saved.posMs > 60_000)
         ) saved.posMs else 0L
 
-        val options = arrayListOf(
-            "--network-caching=" + BufferPref.ms(this),
-            if (VlcVerbosePref.get(this)) "-vv" else "--quiet",  // M448
-            "--no-stats",
-            "--http-user-agent=" + userAgent()
-        )
-        // Korekcia synchronizacie zvuku ako init volba (jellyfin pristup). Aplikuje
-        // Predvolene 0 = vypnute (nic nemeni). Zaporna = zvuk skor, kladna = neskor.
-        // Deinterlacing (globalne, nech plati uz na prvom otvoreni; per-medium
-        // sa nastavi znova pri kazdom prepnuti kanala)
-        val (dEn, dMode) = deinterlaceSpec()
-        options.add("--deinterlace=$dEn")
-        if (dMode != null) options.add("--deinterlace-mode=$dMode")
-        libVlc = LibVLC(this, options)
-        mediaPlayer = MediaPlayer(libVlc)
-        // Zvukovy vystup z nastaveni. Modul (telefon: AudioTrack/OpenSL ES) aj
-        // zariadenie (TV: passthrough/pcm/stereo) sa musia nastavit pred prehravanim;
-        // menia sa az pri (znovu)otvoreni prehravaca.
-        AudioModulePref.module(this)?.let { aout -> runCatching { mediaPlayer.setAudioOutput(aout) } }
-        AudioOutputPref.deviceId(this)?.let { dev -> runCatching { mediaPlayer.setAudioOutputDevice(dev) } }
-
-        mediaPlayer.setEventListener { event ->
-            when (event.type) {
-                MediaPlayer.Event.EncounteredError -> {
-                    // zivé vysielanie: skus znovu pripojit (vypadok siete)
-                    if (!seekablePlayback) {
-                        scheduleReconnect()
-                    } else if (dvrRecording) {
-                        // DVR seek/feeder zlyhal -> znovu otvor stream na aktualnom playheade
-                        // (reopenDvrLive ma backoff a po vycerpani pokusov vycisti spinner),
-                        // nech to neostane zaseknute na "Opatovne pripajanie"
-                        reopenDvrLive()
-                    } else {
-                        reconnectingState.value = false
-                        Toast.makeText(
-                            this,
-                            getString(R.string.playback_error, "VLC"),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                }
-                MediaPlayer.Event.Playing -> {
-                    isPlayingState.value = true; refreshPipIfActive()
-                    if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }  // M392-fix2
-                    maybeApplyAfr()  // AFR (M346): prepni Hz displeja podla fps streamu
-                    keepScreenOn(true)  // pocas prehravania nedovol setric/ambient na boxoch
-                    cancelReconnect()  // uspesne pripojenie -> vynuluj pokusy
-                    dvrReopenAttempts = 0  // uspesne pokracovanie -> vynuluj pokusy o znovu-otvorenie
-                    seekSpinnerJob?.cancel(); seekingState.value = false  // resync po skoku dobehol
-                    // po nabehnuti zisti ci stream ma video; ak nie -> rozhlas (logo)
-                    videoCheckHandler.removeCallbacksAndMessages(null)
-                    videoCheckHandler.postDelayed({
-                        val n = runCatching { mediaPlayer.videoTracksCount }.getOrNull()
-                        if (n != null && n >= 0) hasVideoState.value = n > 0
-                    }, 1500)
-                    // doplnenie audio jazykov / DVB titulkov, ktore libVLC doparsuje az po starte
-                    scheduleTrackRefresh()
-                    maybeReparseForTracks()
-                }
-                MediaPlayer.Event.Buffering -> {
-                    if (event.buffering >= 100f) { seekSpinnerJob?.cancel(); seekingState.value = false }
-                }
-                MediaPlayer.Event.Paused -> { isPlayingState.value = false; keepScreenOn(false); refreshPipIfActive() }
-                MediaPlayer.Event.Stopped -> { isPlayingState.value = false; keepScreenOn(false); refreshPipIfActive() }
-                MediaPlayer.Event.Vout -> { if (event.voutCount > 0) hasVideoState.value = true }
-                MediaPlayer.Event.ESSelected -> {
-                    // M392-fix2: libVLC si prave sam zvolil stopu (napr. default titulky
-                    // v matroske) — presad zelanie pouzivatela (vypnute / konkretny jazyk)
-                    if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }
-                }
-                MediaPlayer.Event.ESAdded,
-                MediaPlayer.Event.ESDeleted -> {
-                    // libVLC priebezne registruje stopy (DVB titulky / audio jazyky sa
-                    // objavia az par sekund po starte) -> obnov otvorene track menu
-                    trackListVersionState.value = trackListVersionState.value + 1
-                    // ak pouzivatel zvolil titulkovy jazyk, ktory este nebol k dispozicii,
-                    // nastav ho hned ako jeho stopa pribudne (mimo libVLC callbacku)
-                    if (htspStream) lifecycleScope.launch { applyDesiredSpu() }
-                    // M392: HTTP live po zmene profilu — obnov povodnu volbu titulkov
-                    if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }
-                }
-                MediaPlayer.Event.EndReached -> {
-                    isPlayingState.value = false
-                    if (!seekablePlayback) {
-                        // zivý stream "skoncil" = vypadok -> znovu pripojit
-                        scheduleReconnect()
-                    } else if (dvrRecording &&
-                        (dvrProgStopSec <= 0 || System.currentTimeMillis() / 1000 < dvrProgStopSec)) {
-                        // prebiehajuca nahravka dobehla na koniec zapisanych dat -> znovu otvor
-                        // stream (novy GET prinesie novsie data), nie koniec prehravania
-                        saveDvrProgress()
-                        reopenDvrLive()
-                    } else {
-                        reachedEnd = true
-                        keepScreenOn(false)
-                        saveDvrProgress()
-                    }
-                }
-            }
-        }
+        createPlayer()   // M539: libVLC + MediaPlayer + listener (znovupouzitelne pri obnove po zaseknuti zvuku)
+        startStallWatch()
 
         // DVR: priame dvrfile URL (s creds). Live: profil servera (M383 — per-kanal
         // override zruseny, profil sa da prepnut priamo v prehravaci).
@@ -4003,6 +3910,7 @@ class PlayerActivity : ComponentActivity() {
                     val from = httpFeeder?.bytesWritten ?: 0L
                     playDvrViaFeeder(srv, url, from)
                 } else {
+                    ensureHealthyPlayer()   // M539
                     val m = buildMedia(url)
                     m.addOption(":start-time=$startSec")
                     mediaPlayer.media = m
@@ -4046,6 +3954,7 @@ class PlayerActivity : ComponentActivity() {
                         liveNeedsFeeder = true
                         playLiveViaFeeder(srv, url)
                     } else {
+                        ensureHealthyPlayer()   // M539
                         val m = buildMedia(url)       // bezne HTTP
                         mediaPlayer.media = m
                         m.release()
@@ -4170,6 +4079,227 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+
+    // ------------------------------------------------------------------
+    // M539: vytvorenie prehravaca + obnova po zaseknutom zvukovom vystupe
+    // ------------------------------------------------------------------
+
+    /** Vytvori LibVLC + MediaPlayer, nastavi zvukovy vystup a event listener.
+     *  Volane z onCreate a z recreatePlayer(). */
+    private fun createPlayer() {
+        val options = arrayListOf(
+            "--network-caching=" + BufferPref.ms(this),
+            if (VlcVerbosePref.get(this)) "-vv" else "--quiet",  // M448
+            "--no-stats",
+            "--http-user-agent=" + userAgent()
+        )
+        // Korekcia synchronizacie zvuku ako init volba (jellyfin pristup). Aplikuje
+        // Predvolene 0 = vypnute (nic nemeni). Zaporna = zvuk skor, kladna = neskor.
+        // Deinterlacing (globalne, nech plati uz na prvom otvoreni; per-medium
+        // sa nastavi znova pri kazdom prepnuti kanala)
+        val (dEn, dMode) = deinterlaceSpec()
+        options.add("--deinterlace=$dEn")
+        if (dMode != null) options.add("--deinterlace-mode=$dMode")
+        libVlc = LibVLC(this, options)
+        mediaPlayer = MediaPlayer(libVlc)
+        // Zvukovy vystup z nastaveni. Modul (telefon: AudioTrack/OpenSL ES) aj
+        // zariadenie (TV: passthrough/pcm/stereo) sa musia nastavit pred prehravanim;
+        // menia sa az pri (znovu)otvoreni prehravaca.
+        AudioModulePref.module(this)?.let { aout -> runCatching { mediaPlayer.setAudioOutput(aout) } }
+        AudioOutputPref.deviceId(this)?.let { dev -> runCatching { mediaPlayer.setAudioOutputDevice(dev) } }
+
+        mediaPlayer.setEventListener { event ->
+            when (event.type) {
+                MediaPlayer.Event.EncounteredError -> {
+                    // zivé vysielanie: skus znovu pripojit (vypadok siete)
+                    if (!seekablePlayback) {
+                        scheduleReconnect()
+                    } else if (dvrRecording) {
+                        // DVR seek/feeder zlyhal -> znovu otvor stream na aktualnom playheade
+                        // (reopenDvrLive ma backoff a po vycerpani pokusov vycisti spinner),
+                        // nech to neostane zaseknute na "Opatovne pripajanie"
+                        reopenDvrLive()
+                    } else {
+                        reconnectingState.value = false
+                        Toast.makeText(
+                            this,
+                            getString(R.string.playback_error, "VLC"),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+                MediaPlayer.Event.Playing -> {
+                    isPlayingState.value = true; refreshPipIfActive()
+                    stallPlayingSeen = true; stallSamples = 0   // M539
+                    if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }  // M392-fix2
+                    maybeApplyAfr()  // AFR (M346): prepni Hz displeja podla fps streamu
+                    keepScreenOn(true)  // pocas prehravania nedovol setric/ambient na boxoch
+                    cancelReconnect()  // uspesne pripojenie -> vynuluj pokusy
+                    dvrReopenAttempts = 0  // uspesne pokracovanie -> vynuluj pokusy o znovu-otvorenie
+                    seekSpinnerJob?.cancel(); seekingState.value = false  // resync po skoku dobehol
+                    // po nabehnuti zisti ci stream ma video; ak nie -> rozhlas (logo)
+                    videoCheckHandler.removeCallbacksAndMessages(null)
+                    videoCheckHandler.postDelayed({
+                        val n = runCatching { mediaPlayer.videoTracksCount }.getOrNull()
+                        if (n != null && n >= 0) hasVideoState.value = n > 0
+                    }, 1500)
+                    // doplnenie audio jazykov / DVB titulkov, ktore libVLC doparsuje az po starte
+                    scheduleTrackRefresh()
+                    maybeReparseForTracks()
+                }
+                MediaPlayer.Event.Buffering -> {
+                    if (event.buffering >= 100f) { seekSpinnerJob?.cancel(); seekingState.value = false }
+                }
+                MediaPlayer.Event.Paused -> { isPlayingState.value = false; keepScreenOn(false); refreshPipIfActive() }
+                MediaPlayer.Event.Stopped -> { isPlayingState.value = false; keepScreenOn(false); refreshPipIfActive() }
+                MediaPlayer.Event.Vout -> { if (event.voutCount > 0) hasVideoState.value = true }
+                MediaPlayer.Event.ESSelected -> {
+                    // M392-fix2: libVLC si prave sam zvolil stopu (napr. default titulky
+                    // v matroske) — presad zelanie pouzivatela (vypnute / konkretny jazyk)
+                    if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }
+                }
+                MediaPlayer.Event.ESAdded,
+                MediaPlayer.Event.ESDeleted -> {
+                    // libVLC priebezne registruje stopy (DVB titulky / audio jazyky sa
+                    // objavia az par sekund po starte) -> obnov otvorene track menu
+                    trackListVersionState.value = trackListVersionState.value + 1
+                    // ak pouzivatel zvolil titulkovy jazyk, ktory este nebol k dispozicii,
+                    // nastav ho hned ako jeho stopa pribudne (mimo libVLC callbacku)
+                    if (htspStream) lifecycleScope.launch { applyDesiredSpu() }
+                    // M392: HTTP live po zmene profilu — obnov povodnu volbu titulkov
+                    if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }
+                }
+                MediaPlayer.Event.EndReached -> {
+                    isPlayingState.value = false
+                    if (!seekablePlayback) {
+                        // zivý stream "skoncil" = vypadok -> znovu pripojit
+                        scheduleReconnect()
+                    } else if (dvrRecording &&
+                        (dvrProgStopSec <= 0 || System.currentTimeMillis() / 1000 < dvrProgStopSec)) {
+                        // prebiehajuca nahravka dobehla na koniec zapisanych dat -> znovu otvor
+                        // stream (novy GET prinesie novsie data), nie koniec prehravania
+                        saveDvrProgress()
+                        reopenDvrLive()
+                    } else {
+                        reachedEnd = true
+                        keepScreenOn(false)
+                        saveDvrProgress()
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * M539: hlidac zaseknuteho vystupu.
+     *
+     * Na Strongu (Amlogic) po prebudeni zo standby a krátko po boote AudioTrack
+     * neodobera data: kanal hra bez zvuku, `time` sa nehybe, a kazde
+     * stop()/set_media (prepnutie kanala, reconnect, zavretie) by na hlavnom
+     * vlakne cakalo na audio dekoder donekonecna (ANR; bugreport 1. 9. 2026).
+     * libVLC drzi aout v input_resource a znovu ho pouziva pre dalsie vstupy,
+     * takze prepnutie kanala na tom istom MediaPlayeri mrtvy AudioTrack nevymeni.
+     * Jedina cesta je novy MediaPlayer (novy aout) — stary sa uvolni na pozadi.
+     *
+     * Kazdu sekundu: ak hra (Playing uz prislo) a `time` sa nezmenil, pocitame
+     * vzorky. >= STALL_GUARD -> outputStalled() a kazde dalsie spustenie media ide
+     * cez novy prehravac (ensureHealthyPlayer). >= STALL_RECREATE -> automaticka
+     * obnova a znovunaladenie aktualneho kanala (max STALL_MAX_RECREATES za sebou;
+     * pocitadlo sa nuluje, ked cas zacne bezat).
+     */
+    private val stallHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var stallLastTime = Long.MIN_VALUE
+    private var stallSamples = 0
+    private var stallPlayingSeen = false
+    private var stallRecreates = 0
+    private val stallTick = object : Runnable {
+        override fun run() {
+            if (playerTornDown || !::mediaPlayer.isInitialized) return
+            val mp = mediaPlayer
+            val playing = runCatching { mp.isPlaying }.getOrDefault(false)
+            val t = runCatching { mp.time }.getOrDefault(-1L)
+            if (playing && stallPlayingSeen && t == stallLastTime) {
+                stallSamples++
+            } else {
+                stallSamples = 0
+                if (t != stallLastTime && t > 0) stallRecreates = 0
+            }
+            stallLastTime = t
+            if (stallSamples >= STALL_RECREATE && !seekablePlayback && !reconnectingState.value &&
+                stallRecreates < STALL_MAX_RECREATES
+            ) {
+                stallRecreates++
+                stallSamples = 0
+                CrashLogger.report(
+                    this@PlayerActivity, "PlayerActivity.stall",
+                    "output stalled ${STALL_RECREATE}s at time=$t -> new player #$stallRecreates"
+                )
+                recreatePlayer()
+                replayCurrentLive()
+            }
+            stallHandler.postDelayed(this, 1000)
+        }
+    }
+    private fun startStallWatch() {
+        stallHandler.removeCallbacksAndMessages(null)
+        stallHandler.postDelayed(stallTick, 1000)
+    }
+    private fun resetStallState() {
+        stallLastTime = Long.MIN_VALUE; stallSamples = 0; stallPlayingSeen = false
+    }
+    /** Vystup nereaguje (cas sa pri prehravani nehybe) — stop() by zablokoval hlavne vlakno. */
+    private fun outputStalled(): Boolean = stallPlayingSeen && stallSamples >= STALL_GUARD
+
+    /** Pred kazdym novym mediom: ak je vystup zaseknuty, vymen prehravac (bez cakania). */
+    private fun ensureHealthyPlayer() {
+        if (!::mediaPlayer.isInitialized) return
+        if (!outputStalled()) return
+        CrashLogger.report(this, "PlayerActivity.stall", "media change on stalled output -> new player")
+        recreatePlayer()
+    }
+
+    /** Vymeni libVLC + MediaPlayer za nove; stare uvolni na pracovnom vlakne. */
+    private fun recreatePlayer() {
+        if (::mediaPlayer.isInitialized) {
+            val oldMp = mediaPlayer
+            val oldLib = libVlc
+            runCatching { oldMp.setEventListener(null) }
+            // Surface musi uvolnit stary prehravac na hlavnom vlakne (rovnako ako
+            // onStop pri odchode na pozadie), inak by ho novy nemohol pripojit.
+            runCatching { oldMp.detachViews() }
+            val appCtx = applicationContext
+            val worker = Thread({
+                val t0 = android.os.SystemClock.elapsedRealtime()
+                runCatching { oldMp.stop() }
+                runCatching { oldMp.release() }
+                runCatching { oldLib.release() }
+                val ms = android.os.SystemClock.elapsedRealtime() - t0
+                if (ms > 3000) CrashLogger.report(appCtx, "PlayerActivity.recreate", "old libVLC released after $ms ms")
+            }, "HeadentClient:vlcRelease")
+            worker.isDaemon = true
+            worker.start()
+        }
+        createPlayer()
+        resetStallState()
+        videoLayout?.let { runCatching { mediaPlayer.attachViews(it, null, false, false) } }
+    }
+
+    /** Znovu spusti aktualny zivy kanal tou istou cestou (HTSP / feeder / HTTP). */
+    private fun replayCurrentLive() {
+        val srv = liveServer
+        val cid = liveUuids.getOrNull(liveIndex)?.toLongOrNull()
+        val url = currentStreamUrl
+        runCatching {
+            if (htspStream && srv != null && cid != null) {
+                playHtspLive(srv, cid, htspLive)
+            } else if (liveNeedsFeeder == true && srv != null && url != null) {
+                playLiveViaFeeder(srv, url)
+            } else if (url != null) {
+                playHttp(url)
+            }
+        }
+    }
+
     /**
      * M535: ukoncenie libVLC mimo hlavneho vlakna.
      *
@@ -4189,6 +4319,7 @@ class PlayerActivity : ComponentActivity() {
     private fun teardownPlayerAsync() {
         if (playerTornDown) return
         playerTornDown = true
+        stallHandler.removeCallbacksAndMessages(null)   // M539
         htspFeeder?.stop(); htspFeeder = null
         httpFeeder?.stop(); httpFeeder = null
         if (!::mediaPlayer.isInitialized) {
@@ -4455,6 +4586,10 @@ class PlayerActivity : ComponentActivity() {
     }
 
     companion object {
+        // M539: hlidac zaseknuteho vystupu (sekundove vzorky)
+        private const val STALL_GUARD = 2
+        private const val STALL_RECREATE = 5
+        private const val STALL_MAX_RECREATES = 4
         const val EXTRA_UUID = "channel_uuid"
         const val EXTRA_TITLE = "channel_title"
         const val EXTRA_RETURN_UUID = "return_live_uuid"
