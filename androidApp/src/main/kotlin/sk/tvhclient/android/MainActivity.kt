@@ -4,8 +4,6 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.compose.foundation.focusGroup
 import androidx.activity.ComponentActivity
-import androidx.activity.enableEdgeToEdge
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.BackHandler
@@ -156,16 +154,15 @@ class MainActivity : ComponentActivity() {
         // Kresli pod systemove pruhy (edge-to-edge), aby pozadie appky vyplnilo celu obrazovku
         // vratane oblasti navigacneho pruhu / okolo klavesnice (inak tam vznikal cierny pruh).
         // Pruhy su priehladne -> presviti cez ne pozadie okna (surface), takze vyzeraju vo farbe povrchu.
-        // enableEdgeToEdge je moderna nahrada za setDecorFitsSystemWindows + window.statusBarColor
-        // (tie su od Androidu 15 / SDK 35 zastarale a ignorovane).
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.auto(
-                android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT
-            ),
-            navigationBarStyle = SystemBarStyle.auto(
-                android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT
-            )
-        )
+        //
+        // M538: povodne enableEdgeToEdge() z androidx.activity. Jeho vnutorna trieda
+        // EdgeToEdgeApi28 nastavuje LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES, co Play
+        // Console hlasi ako zastarane API (SDK 35) — v nasom kode to nikdy nebolo, ale
+        // kniznica sa do APK zabali cela. Rovnaky vysledok dosiahneme bez nej: priehladne
+        // pruhy, vypnuty kontrastny scrim a rezim vyrezu su atributy temy (Theme.Headent,
+        // values / values-v28 / values-v29 / values-v35), tu ostava len vypnutie
+        // fitSystemWindows. R8 potom nepouzitu EdgeToEdge triedu z APK odstrani.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         if (intent?.getBooleanExtra("open_epg", false) == true) {
             TabController.openEpgGrid(fromPlayer = true, returnUuid = intent.getStringExtra("epg_return_uuid"))
         }

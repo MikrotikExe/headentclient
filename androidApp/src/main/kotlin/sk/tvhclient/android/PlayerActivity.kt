@@ -4499,6 +4499,24 @@ class PlayerActivity : ComponentActivity() {
     }
 }
 
+/**
+ * M537: ma BACK pri cistom zivom prehravani ukazat potvrdenie ukoncenia?
+ * Zariadenia bez PiP (telefony bez PiP, Strong): vzdy. TV/leanback s PiP
+ * (Homatics, Shield, RPi): ano, pokial nema prednost auto-PiP handler
+ * (zapnuty auto-PiP -> BACK = miniatura). Telefon s PiP: nie.
+ * Samostatna composable, aby nerastla PlayerUi (64 KB limit metody).
+ */
+@Composable
+private fun exitConfirmOnBack(pipSupported: Boolean, autoPipEnabled: Boolean): Boolean {
+    if (!pipSupported) return true
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val isTvUi = remember {
+        (ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager)
+            ?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
+    }
+    return isTvUi && !autoPipEnabled
+}
+
 /** Jedna stopa (audio alebo titulky) z libVLC. */
 internal data class TrackItem(val id: Int, val name: String)
 
@@ -5140,13 +5158,9 @@ private fun PlayerUi(
     // prehravanie hned. Rozhoduje rezim UI (leanback): na TV sa potvrdenie
     // zobrazi vzdy, okrem pripadu, ked ma prednost auto-PiP handler vyssie
     // (zapnuty auto-PiP na boxe s PiP -> BACK = miniatura, ako doteraz).
-    val isTvUi = remember {
-        (ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager)
-            ?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
-    }
-    val exitConfirmOnBack = !pipSupported || (isTvUi && !autoPipEnabled)
+    // (M537-fix: vypocet je v samostatnej composable — PlayerUi je na 64 KB limite metody.)
     androidx.activity.compose.BackHandler(
-        enabled = exitConfirmOnBack && !seekable && !controlsVisible && menu == null
+        enabled = exitConfirmOnBack(pipSupported, autoPipEnabled) && !seekable && !controlsVisible && menu == null
                   && !showChannelList && !showOptions && !returnLiveOnBack && !showInfo
     ) { onRequestExit() }
 

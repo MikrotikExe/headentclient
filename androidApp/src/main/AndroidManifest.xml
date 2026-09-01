@@ -33,7 +33,7 @@
         android:banner="@drawable/tv_banner"
         android:usesCleartextTraffic="true"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.NoActionBar">
+        android:theme="@style/Theme.Headent">
 
         <activity
             android:name=".MainActivity"

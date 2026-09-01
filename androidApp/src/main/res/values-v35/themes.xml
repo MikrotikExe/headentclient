@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- M538: Android 15+ — edge-to-edge je vynutene systemom, farby pruhov sa ignoruju
+         a okno sa kresli do vyrezu predvolene (rezim „always"); shortEdges je zastarany,
+         preto tu nie je. -->
+    <style name="Theme.Headent" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+    </style>
+</resources>

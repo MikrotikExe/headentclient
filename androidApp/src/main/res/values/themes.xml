@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- M538: tema appky (MainActivity a spol.). Edge-to-edge bez androidx.activity
+         EdgeToEdge: priehladne systemove pruhy, pozadie okna kresli appka. -->
+    <style name="Theme.Headent" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>
