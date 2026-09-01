@@ -3166,6 +3166,11 @@ class PlayerActivity : ComponentActivity() {
                     else -> lightColorScheme()
                 }
             ) {
+            // M539-fix4: cela PlayerUi je klucovana na generaciu prehravaca — po vymene
+            // MediaPlayera (zaseknuty zvuk) sa zlozi nanovo s novym `player`. Bez toho
+            // bezali LaunchedEffect-y (napr. auto-vyber audio stopy) so starym, uz
+            // uvolnenym objektom -> IllegalStateException „can't get VLCObject instance".
+            androidx.compose.runtime.key(videoSurfaceGen.value) {
             PlayerUi(
                 title = liveTitleState.value,
                 player = mediaPlayer,
@@ -3439,6 +3444,7 @@ class PlayerActivity : ComponentActivity() {
                 onClose = { closePlayer() },
                 returnLiveOnBack = returnLiveUuid != null
             )
+            }
             // Vyber pri archivovanom kanali (nazivo / od zaciatku) — overlay v style prehravaca
             if (archiveChoiceIdxState.value >= 0) {
                 val aCh = liveChannelsState.value.getOrNull(archiveChoiceIdxState.value)
@@ -4303,10 +4309,13 @@ class PlayerActivity : ComponentActivity() {
             val worker = Thread({
                 val t0 = android.os.SystemClock.elapsedRealtime()
                 runCatching { oldMp.stop() }
+                // M539-fix4: release() az o chvilu — stara kompozicia sa este moze
+                // rozkladat a jej korutiny sa stareho objektu dotknut
+                runCatching { Thread.sleep(500) }
                 runCatching { oldMp.release() }
                 runCatching { oldLib.release() }
                 val ms = android.os.SystemClock.elapsedRealtime() - t0
-                if (ms > 3000) CrashLogger.report(appCtx, "PlayerActivity.recreate", "old libVLC released after $ms ms")
+                if (ms > 3500) CrashLogger.report(appCtx, "PlayerActivity.recreate", "old libVLC released after $ms ms")
             }, "HeadentClient:vlcRelease")
             worker.isDaemon = true
             worker.start()
@@ -4323,7 +4332,12 @@ class PlayerActivity : ComponentActivity() {
      *  odlozi do onAttach (prehravanie bez okna by nemalo video). Inak hned. */
     private var awaitingSurface = false
     private var pendingPlayAfterAttach = false
+    /** M539-fix4: prve spustenie prehravania (onStart z VideoSurface) prebehlo. */
+    internal var initialStartDone = false
     private fun startPlayback() {
+        // M539-fix4: nove medium = nove pocitanie; Playing musi prist znova, inak by
+        // bezny start kanala (demux uz cita, zvuk este nie) vyzeral ako zaseknutie
+        resetStallState()
         if (awaitingSurface) { pendingPlayAfterAttach = true; return }
         mediaPlayer.play()
     }
@@ -4633,8 +4647,8 @@ class PlayerActivity : ComponentActivity() {
         /** M539-fix2: generacia video surface (kluc AndroidView) — zvysenie = novy SurfaceView. */
         val videoSurfaceGen = androidx.compose.runtime.mutableStateOf(0)
         // M539: hlidac zaseknuteho vystupu (sekundove vzorky)
-        private const val STALL_GUARD = 2
-        private const val STALL_RECREATE = 4
+        private const val STALL_GUARD = 3
+        private const val STALL_RECREATE = 5
         private const val STALL_MAX_RECREATES = 4
         const val EXTRA_UUID = "channel_uuid"
         const val EXTRA_TITLE = "channel_title"
@@ -4713,7 +4727,9 @@ private fun VideoSurface(
     onAttach: (VLCVideoLayout) -> Unit,
     onStart: () -> Unit
 ) {
-    var started by remember { mutableStateOf(false) }
+    // M539-fix4: priznak prveho spustenia je v aktivite (remember by sa pri
+    // rekompozicii cez key(videoSurfaceGen) vynuloval a onStart by bezal znova)
+    val act = androidx.compose.ui.platform.LocalContext.current as? PlayerActivity
     val gen = PlayerActivity.videoSurfaceGen.value
     androidx.compose.runtime.key(gen) {
         AndroidView(
@@ -4728,8 +4744,8 @@ private fun VideoSurface(
                 // M264: branu (rodicovsky zamok pri otvoreni) spusti az po pripojeni surface
                 // na cistom looper tiku. Zapis pinPromptState priamo v Compose layout faze
                 // sa pri studenom starte (prve otvorenie) niekedy stratil -> PIN sa nevypytal.
-                if (!started) {
-                    started = true
+                if (act == null || !act.initialStartDone) {
+                    act?.initialStartDone = true
                     layout.post { onStart() }
                 }
                 layout
