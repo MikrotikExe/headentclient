@@ -232,6 +232,9 @@ internal fun playerControlOrder(canZap: Boolean, seekable: Boolean = false, pip:
     add("close")
     if (pip) add("pip")
     if (canZap) { add("list"); add("epg") }
+    // M554: teletext a info vľavo (pravá skupina bola prepchatá)
+    if (teletext) add("txt")
+    add("info")
     // stred (transport)
     if (timeshift) add("tsrew")
     if (canZap) add("prev")
@@ -243,8 +246,7 @@ internal fun playerControlOrder(canZap: Boolean, seekable: Boolean = false, pip:
     add("audio"); add("subs")
     if (profile) add("profile")
     if (record) add("rec")   // M490: nahrat / zrusit nahravku beziacej relacie
-    if (teletext) add("txt")   // M553: teletext
-    add("sleep"); add("info")
+    add("sleep")
 }
 
 internal fun fmtMs(ms: Long): String {

@@ -6493,6 +6493,8 @@ private fun PlayerUi(
                             if (has("pip")) barCtrl("pip")
                             if (has("list") && liveChannels.isNotEmpty()) barCtrl("list")
                             if (has("epg")) barCtrl("epg")
+                            if (has("txt")) barCtrl("txt")     // M554: vľavo
+                            barCtrl("info")                    // M554: vľavo
                         }
                         // stred: prepinanie + play/stop
                         Row(
@@ -6517,9 +6519,7 @@ private fun PlayerUi(
                             barCtrl("subs")
                             if (has("profile")) barCtrl("profile")
                             if (has("rec")) barCtrl("rec")     // M490
-                            if (has("txt")) barCtrl("txt")     // M553
                             barCtrl("sleep")
-                            barCtrl("info")
                             if (lockVisible) barCtrl("lock")
                         }
                     }
