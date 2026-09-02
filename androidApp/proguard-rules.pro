@@ -35,8 +35,16 @@
 -dontwarn org.videolan.**
 
 # --- Ktor + okhttp engine --------------------------------------------------
--keep class io.ktor.** { *; }
--keepclassmembers class io.ktor.** { *; }
+# Ziadne blanket keep: Ktor aj okhttp si nesu vlastne consumer keep pravidla
+# v AAR/JAR (META-INF/proguard), R8 ich aplikuje automaticky. Nas kod vola
+# Ktor len priamo (bez reflexie), takze R8 moze zvysok bezpecne zahodit.
+# Engine vytvarame explicitne HttpClient(OkHttp), ServiceLoader lookup drzime
+# len pre istotu (jedna mala trieda).
+-keep class * implements io.ktor.client.HttpClientEngineContainer { *; }
+# Ktor pouziva kotlinx-atomicfu -> AtomicFieldUpdater hlada volatile polia
+# podla mena; nesmu sa premenovat (odporucane pravidlo Ktor pre R8).
+-keepclassmembers class io.ktor.** { volatile <fields>; }
+-keepclassmembernames class io.ktor.** { volatile <fields>; }
 -dontwarn io.ktor.**
 -dontwarn org.slf4j.**
 -dontwarn okhttp3.**
