@@ -392,4 +392,10 @@
     <string name="fav_reorder_grabbed">移動中: %1$s</string>
     <string name="ch_unhide_player">チャンネルを表示</string>
     <string name="fav_reorder_row">▲▼ 移動 · OK 置く</string>
+    <!-- M553: teletext -->
+    <string name="teletext">テレテキスト</string>
+    <string name="ttx_hint">0–9 ページ · ▲▼ ページ · ◀▶ サブページ · OK 透過 · 戻る 閉じる</string>
+    <string name="ttx_loading">テレテキストを読み込み中…</string>
+    <string name="ttx_none">このチャンネルはテレテキストを放送していません</string>
+    <string name="ttx_searching">ページ %1$s を検索中…</string>
 </resources>

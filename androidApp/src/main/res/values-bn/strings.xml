@@ -392,4 +392,10 @@
     <string name="fav_reorder_grabbed">সরানো হচ্ছে: %1$s</string>
     <string name="ch_unhide_player">চ্যানেল দেখান</string>
     <string name="fav_reorder_row">▲▼ সরান · OK ছাড়ুন</string>
+    <!-- M553: teletext -->
+    <string name="teletext">টেলিটেক্সট</string>
+    <string name="ttx_hint">0–9 পাতা · ▲▼ পাতা · ◀▶ উপপাতা · OK স্বচ্ছ · BACK বন্ধ</string>
+    <string name="ttx_loading">টেলিটেক্সট লোড হচ্ছে…</string>
+    <string name="ttx_none">এই চ্যানেল টেলিটেক্সট সম্প্রচার করে না</string>
+    <string name="ttx_searching">পাতা %1$s খোঁজা হচ্ছে…</string>
 </resources>

@@ -392,4 +392,10 @@
     <string name="fav_reorder_grabbed">กำลังย้าย: %1$s</string>
     <string name="ch_unhide_player">แสดงช่อง</string>
     <string name="fav_reorder_row">▲▼ ย้าย · OK วาง</string>
+    <!-- M553: teletext -->
+    <string name="teletext">เทเลเท็กซ์</string>
+    <string name="ttx_hint">0–9 หน้า · ▲▼ หน้า · ◀▶ หน้าย่อย · OK โปร่งใส · BACK ปิด</string>
+    <string name="ttx_loading">กำลังโหลดเทเลเท็กซ์…</string>
+    <string name="ttx_none">ช่องนี้ไม่ออกอากาศเทเลเท็กซ์</string>
+    <string name="ttx_searching">กำลังค้นหาหน้า %1$s…</string>
 </resources>

@@ -392,4 +392,10 @@
     <string name="fav_reorder_grabbed">正在移动：%1$s</string>
     <string name="ch_unhide_player">显示频道</string>
     <string name="fav_reorder_row">▲▼ 移动 · OK 放下</string>
+    <!-- M553: teletext -->
+    <string name="teletext">图文电视</string>
+    <string name="ttx_hint">0–9 页面 · ▲▼ 页面 · ◀▶ 子页面 · OK 透明 · 返回 关闭</string>
+    <string name="ttx_loading">正在加载图文电视…</string>
+    <string name="ttx_none">此频道不播出图文电视</string>
+    <string name="ttx_searching">正在查找第 %1$s 页…</string>
 </resources>

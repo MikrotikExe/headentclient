@@ -392,4 +392,10 @@
     <string name="fav_reorder_grabbed">स्थानांतरण: %1$s</string>
     <string name="ch_unhide_player">चैनल दिखाएँ</string>
     <string name="fav_reorder_row">▲▼ हटाएँ · OK छोड़ें</string>
+    <!-- M553: teletext -->
+    <string name="teletext">टेलीटेक्स्ट</string>
+    <string name="ttx_hint">0–9 पेज · ▲▼ पेज · ◀▶ उपपेज · OK पारदर्शी · BACK बंद</string>
+    <string name="ttx_loading">टेलीटेक्स्ट लोड हो रहा है…</string>
+    <string name="ttx_none">यह चैनल टेलीटेक्स्ट प्रसारित नहीं करता</string>
+    <string name="ttx_searching">पेज %1$s खोजा जा रहा है…</string>
 </resources>

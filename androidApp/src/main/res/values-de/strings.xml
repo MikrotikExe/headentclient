@@ -392,4 +392,10 @@
     <string name="fav_reorder_grabbed">Verschiebe: %1$s</string>
     <string name="ch_unhide_player">Sender einblenden</string>
     <string name="fav_reorder_row">▲▼ verschieben · OK ablegen</string>
+    <!-- M553: teletext -->
+    <string name="teletext">Teletext</string>
+    <string name="ttx_hint">0–9 Seite · ▲▼ Seite · ◀▶ Unterseite · OK transparent · BACK schließen</string>
+    <string name="ttx_loading">Teletext wird geladen…</string>
+    <string name="ttx_none">Dieser Sender sendet keinen Teletext</string>
+    <string name="ttx_searching">Suche Seite %1$s…</string>
 </resources>

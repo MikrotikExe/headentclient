@@ -392,4 +392,10 @@
     <string name="fav_reorder_grabbed">Đang di chuyển: %1$s</string>
     <string name="ch_unhide_player">Hiện kênh</string>
     <string name="fav_reorder_row">▲▼ di chuyển · OK thả</string>
+    <!-- M553: teletext -->
+    <string name="teletext">Teletext</string>
+    <string name="ttx_hint">0–9 trang · ▲▼ trang · ◀▶ trang phụ · OK trong suốt · BACK đóng</string>
+    <string name="ttx_loading">Đang tải teletext…</string>
+    <string name="ttx_none">Kênh này không phát teletext</string>
+    <string name="ttx_searching">Đang tìm trang %1$s…</string>
 </resources>

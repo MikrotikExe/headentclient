@@ -392,4 +392,10 @@
     <string name="fav_reorder_grabbed">Przenoszenie: %1$s</string>
     <string name="ch_unhide_player">Pokaż kanał</string>
     <string name="fav_reorder_row">▲▼ przesuń · OK upuść</string>
+    <!-- M553: teletext -->
+    <string name="teletext">Telegazeta</string>
+    <string name="ttx_hint">0–9 strona · ▲▼ strona · ◀▶ podstrona · OK przezroczystość · WSTECZ zamknij</string>
+    <string name="ttx_loading">Ładowanie telegazety…</string>
+    <string name="ttx_none">Ten kanał nie nadaje telegazety</string>
+    <string name="ttx_searching">Szukam strony %1$s…</string>
 </resources>

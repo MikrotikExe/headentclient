@@ -392,4 +392,10 @@
     <string name="fav_reorder_grabbed">Přesouvám: %1$s</string>
     <string name="ch_unhide_player">Odkrýt kanál</string>
     <string name="fav_reorder_row">▲▼ přesunout · OK položit</string>
+    <!-- M553: teletext -->
+    <string name="teletext">Teletext</string>
+    <string name="ttx_hint">0–9 strana · ▲▼ strana · ◀▶ podstránka · OK průhlednost · BACK zavřít</string>
+    <string name="ttx_loading">Načítám teletext…</string>
+    <string name="ttx_none">Kanál nevysílá teletext</string>
+    <string name="ttx_searching">Hledám stranu %1$s…</string>
 </resources>

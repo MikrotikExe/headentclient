@@ -392,4 +392,10 @@
     <string name="fav_reorder_grabbed">Taşınıyor: %1$s</string>
     <string name="ch_unhide_player">Kanalı göster</string>
     <string name="fav_reorder_row">▲▼ taşı · OK bırak</string>
+    <!-- M553: teletext -->
+    <string name="teletext">Teletekst</string>
+    <string name="ttx_hint">0–9 sayfa · ▲▼ sayfa · ◀▶ alt sayfa · OK saydamlık · GERİ kapat</string>
+    <string name="ttx_loading">Teletekst yükleniyor…</string>
+    <string name="ttx_none">Bu kanal teletekst yayınlamıyor</string>
+    <string name="ttx_searching">%1$s. sayfa aranıyor…</string>
 </resources>

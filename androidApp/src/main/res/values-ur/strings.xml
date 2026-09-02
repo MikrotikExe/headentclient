@@ -392,4 +392,10 @@
     <string name="fav_reorder_grabbed">منتقلی: %1$s</string>
     <string name="ch_unhide_player">چینل دکھائیں</string>
     <string name="fav_reorder_row">▲▼ منتقل کریں · OK چھوڑیں</string>
+    <!-- M553: teletext -->
+    <string name="teletext">ٹیلی ٹیکسٹ</string>
+    <string name="ttx_hint">0–9 صفحہ · ▲▼ صفحہ · ◀▶ ذیلی صفحہ · OK شفافیت · BACK بند کریں</string>
+    <string name="ttx_loading">ٹیلی ٹیکسٹ لوڈ ہو رہا ہے…</string>
+    <string name="ttx_none">یہ چینل ٹیلی ٹیکسٹ نشر نہیں کرتا</string>
+    <string name="ttx_searching">صفحہ %1$s تلاش کیا جا رہا ہے…</string>
 </resources>

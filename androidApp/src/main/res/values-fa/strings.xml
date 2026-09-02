@@ -392,4 +392,10 @@
     <string name="fav_reorder_grabbed">جابه‌جایی: %1$s</string>
     <string name="ch_unhide_player">نمایش کانال</string>
     <string name="fav_reorder_row">▲▼ جابه‌جایی · OK رها کردن</string>
+    <!-- M553: teletext -->
+    <string name="teletext">تله‌تکست</string>
+    <string name="ttx_hint">0–9 صفحه · ▲▼ صفحه · ◀▶ زیرصفحه · OK شفافیت · بازگشت بستن</string>
+    <string name="ttx_loading">در حال بارگیری تله‌تکست…</string>
+    <string name="ttx_none">این کانال تله‌تکست پخش نمی‌کند</string>
+    <string name="ttx_searching">در حال یافتن صفحه %1$s…</string>
 </resources>

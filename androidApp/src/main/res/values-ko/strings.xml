@@ -392,4 +392,10 @@
     <string name="fav_reorder_grabbed">이동 중: %1$s</string>
     <string name="ch_unhide_player">채널 표시</string>
     <string name="fav_reorder_row">▲▼ 이동 · OK 놓기</string>
+    <!-- M553: teletext -->
+    <string name="teletext">텔레텍스트</string>
+    <string name="ttx_hint">0–9 페이지 · ▲▼ 페이지 · ◀▶ 하위 페이지 · OK 투명 · 뒤로 닫기</string>
+    <string name="ttx_loading">텔레텍스트 불러오는 중…</string>
+    <string name="ttx_none">이 채널은 텔레텍스트를 방송하지 않습니다</string>
+    <string name="ttx_searching">%1$s 페이지 찾는 중…</string>
 </resources>

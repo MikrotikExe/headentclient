@@ -392,4 +392,10 @@
     <string name="fav_reorder_grabbed">Mozgatás: %1$s</string>
     <string name="ch_unhide_player">Csatorna megjelenítése</string>
     <string name="fav_reorder_row">▲▼ mozgat · OK letesz</string>
+    <!-- M553: teletext -->
+    <string name="teletext">Teletext</string>
+    <string name="ttx_hint">0–9 oldal · ▲▼ oldal · ◀▶ aloldal · OK átlátszó · VISSZA bezár</string>
+    <string name="ttx_loading">Teletext betöltése…</string>
+    <string name="ttx_none">Ez a csatorna nem sugároz teletextet</string>
+    <string name="ttx_searching">%1$s. oldal keresése…</string>
 </resources>

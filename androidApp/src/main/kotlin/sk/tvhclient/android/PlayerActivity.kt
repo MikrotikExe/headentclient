@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.Voicemail
 import androidx.compose.ui.draw.scale
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.SkipNext
@@ -326,6 +327,7 @@ class PlayerActivity : ComponentActivity() {
         add("list"); add("sleep"); add("info")
         if (profileSwitchAvailable()) add("profile")
         if (dvrRecordVisible()) add("rec")   // M490
+        if (teletextVisible()) add("teletext")   // M553
     }
     private fun modernMoreActivate() {
         val id = modernMoreIds().getOrNull(modernMoreIdx.value) ?: return
@@ -336,6 +338,7 @@ class PlayerActivity : ComponentActivity() {
             "info" -> { closeModernOverlay(); toggleInfo() }
             "profile" -> { closeModernOverlay(); openProfileMenu() }
             "rec" -> { closeModernOverlay(); toggleRecordCurrent() }   // M490
+            "teletext" -> openTeletext()   // M553
         }
     }
 
@@ -387,6 +390,129 @@ class PlayerActivity : ComponentActivity() {
     private var subOverlay: SubtitleOverlayView? = null
     /** M552: teletext aktuálneho kanála (HTSP: dáta z feedera, HTTP: vlastná odbočka). */
     val teletext: TeletextSession by lazy { TeletextSession(this) }
+
+    // ===== M553: teletext UI (stav + ovládanie; vykreslenie v TeletextOverlay) =====
+    val teletextOpenState = androidx.compose.runtime.mutableStateOf(false)
+    private val ttxPageState = androidx.compose.runtime.mutableStateOf(0x100)
+    private val ttxSubState = androidx.compose.runtime.mutableStateOf(-1)
+    private val ttxEntryState = androidx.compose.runtime.mutableStateOf("")
+    private val ttxTransparentState = androidx.compose.runtime.mutableStateOf(false)
+    private val ttxRevealState = androidx.compose.runtime.mutableStateOf(false)
+    private val ttxLastPage = HashMap<String, Int>()   // kanál -> posledná strana
+    private val ttxEntryHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val ttxEntryTimeout = Runnable { ttxEntryState.value = "" }
+
+    private fun isHtspLiveServer(): Boolean = liveServer?.connectionMode == "htsp"
+
+    /** Položka Teletext sa ponúka len pri živom kanáli: HTSP keď kanál stopu má, HTTP vždy
+     *  (či vysiela, sa zistí až z PMT po otvorení). */
+    fun teletextVisible(): Boolean {
+        if (seekablePlayback || liveUuidState.value == null) return false
+        return if (isHtspLiveServer()) teletext.availableState.value else true
+    }
+
+    fun openTeletext() {
+        val uuid = liveUuidState.value ?: return
+        ttxPageState.value = ttxLastPage[uuid] ?: 0x100
+        ttxSubState.value = -1
+        ttxEntryState.value = ""
+        ttxRevealState.value = false
+        teletextOpenState.value = true
+        closeModernOverlay()
+        if (!isHtspLiveServer()) liveServer?.let { teletext.startHttp(it, uuid, lifecycleScope) }
+    }
+
+    fun closeTeletext() {
+        if (!teletextOpenState.value) return
+        teletextOpenState.value = false
+        ttxEntryHandler.removeCallbacks(ttxEntryTimeout)
+        liveUuidState.value?.let { ttxLastPage[it] = ttxPageState.value }
+        teletext.stopHttp()
+    }
+
+    private fun ttxGoto(page: Int) {
+        if (page < 0x100 || page > 0x8FF) return
+        ttxPageState.value = page
+        ttxSubState.value = -1
+        ttxEntryState.value = ""
+        ttxRevealState.value = false
+    }
+
+    /** Ďalšia/predošlá strana: najbližšia už prijatá, inak ±1 (hex číslovanie 100..8FF, len desiatkové). */
+    private fun ttxStep(dir: Int) {
+        val cur = ttxPageState.value
+        val known = teletext.decoder.knownPages().filter { isDecimalPage(it) }
+        val next = if (dir > 0) known.firstOrNull { it > cur } else known.lastOrNull { it < cur }
+        if (next != null) { ttxGoto(next); return }
+        var p = cur
+        repeat(0x800) {
+            p += dir
+            if (p < 0x100) p = 0x8FF
+            if (p > 0x8FF) p = 0x100
+            if (isDecimalPage(p)) { ttxGoto(p); return }
+        }
+    }
+
+    private fun isDecimalPage(p: Int): Boolean = ((p shr 4) and 0xF) <= 9 && (p and 0xF) <= 9
+
+    private fun ttxSubStep(dir: Int) {
+        val subs = teletext.decoder.subpages(ttxPageState.value)
+        if (subs.size < 2) return
+        val curPage = teletext.decoder.page(ttxPageState.value, ttxSubState.value)
+        val curSub = curPage?.subpage ?: subs.last()
+        val i = subs.indexOf(curSub)
+        val ni = ((if (i < 0) 0 else i) + dir + subs.size) % subs.size
+        ttxSubState.value = subs[ni]
+    }
+
+    private fun ttxDigit(d: Int) {
+        ttxEntryHandler.removeCallbacks(ttxEntryTimeout)
+        var e = ttxEntryState.value
+        if (e.isEmpty() && (d < 1 || d > 8)) return   // strana 100..899
+        e += d
+        if (e.length >= 3) { ttxGoto(e.toInt(16)); return }
+        ttxEntryState.value = e
+        ttxEntryHandler.postDelayed(ttxEntryTimeout, 4000)
+    }
+
+    private fun ttxFastext(link: Int) {
+        val pg = teletext.decoder.page(ttxPageState.value, ttxSubState.value) ?: return
+        val target = pg.links.getOrNull(link) ?: return
+        if (target > 0) ttxGoto(target)
+    }
+
+    /** Klávesy pri otvorenom teletexte. Hlasitosť prepúšťa systému, ostatné spotrebuje. */
+    private fun handleTeletextKey(kc: Int, down: Boolean, event: android.view.KeyEvent): Boolean {
+        when (kc) {
+            android.view.KeyEvent.KEYCODE_VOLUME_UP, android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
+            android.view.KeyEvent.KEYCODE_VOLUME_MUTE, android.view.KeyEvent.KEYCODE_MUTE -> return false
+        }
+        if (!down) return true
+        when (kc) {
+            in android.view.KeyEvent.KEYCODE_0..android.view.KeyEvent.KEYCODE_9 ->
+                ttxDigit(kc - android.view.KeyEvent.KEYCODE_0)
+            in android.view.KeyEvent.KEYCODE_NUMPAD_0..android.view.KeyEvent.KEYCODE_NUMPAD_9 ->
+                ttxDigit(kc - android.view.KeyEvent.KEYCODE_NUMPAD_0)
+            android.view.KeyEvent.KEYCODE_DPAD_UP, android.view.KeyEvent.KEYCODE_CHANNEL_UP,
+            android.view.KeyEvent.KEYCODE_PAGE_UP -> ttxStep(+1)
+            android.view.KeyEvent.KEYCODE_DPAD_DOWN, android.view.KeyEvent.KEYCODE_CHANNEL_DOWN,
+            android.view.KeyEvent.KEYCODE_PAGE_DOWN -> ttxStep(-1)
+            android.view.KeyEvent.KEYCODE_DPAD_LEFT -> ttxSubStep(-1)
+            android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> ttxSubStep(+1)
+            android.view.KeyEvent.KEYCODE_DPAD_CENTER, android.view.KeyEvent.KEYCODE_ENTER,
+            android.view.KeyEvent.KEYCODE_NUMPAD_ENTER ->
+                if (event.repeatCount == 0) ttxTransparentState.value = !ttxTransparentState.value
+            android.view.KeyEvent.KEYCODE_PROG_RED -> ttxFastext(0)
+            android.view.KeyEvent.KEYCODE_PROG_GREEN -> ttxFastext(1)
+            android.view.KeyEvent.KEYCODE_PROG_YELLOW -> ttxFastext(2)
+            android.view.KeyEvent.KEYCODE_PROG_BLUE -> ttxFastext(3)
+            android.view.KeyEvent.KEYCODE_INFO, android.view.KeyEvent.KEYCODE_MENU ->
+                ttxRevealState.value = !ttxRevealState.value   // odkryť skryté (conceal) znaky
+            android.view.KeyEvent.KEYCODE_BACK, android.view.KeyEvent.KEYCODE_ESCAPE,
+            android.view.KeyEvent.KEYCODE_TV_TELETEXT -> closeTeletext()
+        }
+        return true
+    }
     private var wasPlaying: Boolean = false
     // Picture-in-Picture (obraz v obraze)
     private val inPipState = androidx.compose.runtime.mutableStateOf(false)
@@ -525,7 +651,7 @@ class PlayerActivity : ComponentActivity() {
      *  ako DVR), lebo libVLC digest cez URL nezvlada. Pre live netreba seek. */
     private fun playLiveViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String) {
         ensureHealthyPlayer()   // M539
-        teletext.reset()        // M552
+        closeTeletext(); teletext.reset()        // M552/M553
         htspFeeder?.stop(); htspFeeder = null
         httpFeeder?.stop()
         htspStream = false
@@ -610,7 +736,7 @@ class PlayerActivity : ComponentActivity() {
     /** Bezne HTTP prehravanie (zastavi pripadny HTSP feed). */
     private fun playHttp(url: String) {
         ensureHealthyPlayer()   // M539
-        teletext.reset()        // M552
+        closeTeletext(); teletext.reset()        // M552/M553
         htspFeeder?.stop(); htspFeeder = null
         httpFeeder?.stop(); httpFeeder = null
         htspStream = false
@@ -632,7 +758,7 @@ class PlayerActivity : ComponentActivity() {
      */
     private fun playDvrViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String, startByte: Long = 0L) {
         ensureHealthyPlayer()   // M539
-        teletext.reset()        // M552 (archív: teletext zatiaľ len pri živom)
+        closeTeletext(); teletext.reset()        // M552/M553 (archív: teletext zatiaľ len pri živom)
         htspFeeder?.stop(); htspFeeder = null
         httpFeeder?.stop()
         htspStream = false
@@ -673,7 +799,7 @@ class PlayerActivity : ComponentActivity() {
             feeder.onSubtitlePage = { page, ms -> subOverlay?.onPage(page, ms) }
             subOverlay?.reset()
             // M552: teletext — stopa TELETEXT ide do vlastného dekodéra, nie do libVLC
-            teletext.reset()
+            closeTeletext(); teletext.reset()
             feeder.onTeletextAvailable = { a -> teletext.setHtspAvailable(a) }
             feeder.onTeletext = { es -> teletext.feedHtsp(es) }
             // novy kanal = novy zoznam titulkov, vynuluj zvoleny jazyk
@@ -736,7 +862,7 @@ class PlayerActivity : ComponentActivity() {
     }
     private fun showControlsFocused() {
         hideZapBar()  // M446
-        val order = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable(), dvrRecordVisible())
+        val order = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable(), dvrRecordVisible(), teletextVisible())
         controlNavState.value = order.indexOf("play").coerceAtLeast(0)
         pokeControls()
     }
@@ -2454,6 +2580,7 @@ class PlayerActivity : ComponentActivity() {
             "info" -> { toggleInfo(); pokeControls() }
             "sleep" -> openSleepMenu()
             "rec" -> { toggleRecordCurrent(); pokeControls() }   // M490
+            "txt" -> openTeletext()   // M553
         }
     }
 
@@ -2504,6 +2631,16 @@ class PlayerActivity : ComponentActivity() {
                 }
             }
             return super.dispatchKeyEvent(event)
+        }
+
+        // M553: otvorený teletext berie všetky klávesy okrem hlasitosti
+        if (teletextOpenState.value) {
+            if (handleTeletextKey(kc, down, event)) return true
+            return super.dispatchKeyEvent(event)
+        }
+        // M553: kláves TEXT na diaľkovom otvorí teletext priamo
+        if (kc == android.view.KeyEvent.KEYCODE_TV_TELETEXT && down && teletextVisible()) {
+            openTeletext(); return true
         }
 
         // 0) PIN rodicovskeho zamku -> cislice zadavame my; na TV aj D-pad mriezka
@@ -3042,7 +3179,7 @@ class PlayerActivity : ComponentActivity() {
             // ovladanie zobrazene -> vlavo/vpravo naviguju panel, OK aktivuje
             // zvyrazneny prvok (hore/dole prepinaju kanal vyssie)
             if (controlsShown) {
-                val order = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable(), dvrRecordVisible())
+                val order = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable(), dvrRecordVisible(), teletextVisible())
                 val n = order.size
                 if (seekablePlayback) {
                     val onSeek = order.getOrNull(controlNavState.value) == "seek"
@@ -3370,7 +3507,7 @@ class PlayerActivity : ComponentActivity() {
         val canZap = directUrl == null && liveUuids.size > 1
         seekablePlayback = directUrl != null
         // predvolene zvyraznenie ovladacieho panela = play (nie krizik)
-        controlNavState.value = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable(), dvrRecordVisible()).indexOf("play").coerceAtLeast(0)
+        controlNavState.value = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable(), dvrRecordVisible(), teletextVisible()).indexOf("play").coerceAtLeast(0)
         currentStreamUrl = streamUrl
 
         setContent {
@@ -3668,6 +3805,21 @@ class PlayerActivity : ComponentActivity() {
             )
             }
             // Vyber pri archivovanom kanali (nazivo / od zaciatku) — overlay v style prehravaca
+            // M553: teletext — nad prehrávačom, mimo PlayerUi
+            if (teletextOpenState.value) {
+                TeletextOverlay(
+                    session = teletext,
+                    pageNumber = ttxPageState.value,
+                    subpage = ttxSubState.value,
+                    entry = ttxEntryState.value,
+                    transparent = ttxTransparentState.value,
+                    reveal = ttxRevealState.value,
+                    isHttp = !isHtspLiveServer(),
+                    onClose = { closeTeletext() },
+                    onStep = { d -> ttxStep(d) },
+                    onToggleTransparent = { ttxTransparentState.value = !ttxTransparentState.value }
+                )
+            }
             if (archiveChoiceIdxState.value >= 0) {
                 val aCh = liveChannelsState.value.getOrNull(archiveChoiceIdxState.value)
                 if (aCh != null) {
@@ -5953,7 +6105,7 @@ private fun PlayerUi(
         ) {
             Box(Modifier.fillMaxSize().systemBarsPadding()) {
                 val order = playerControlOrder(onPrevChannel != null, seekable, pipButton, timeshiftEngaged, profileSwitch,
-                    dvrActivity?.dvrRecordVisible() == true)
+                    dvrActivity?.dvrRecordVisible() == true, dvrActivity?.teletextVisible() == true)
                 // fokusove zvyraznenie len na TV (D-pad); na telefone (dotyk) ziadne "vybrate" tlacidlo
                 val isTvDevice = remember {
                     val um = ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
@@ -6245,6 +6397,11 @@ private fun PlayerUi(
                                 icon = Icons.Default.Timer, selected = selCtrl == "sleep", scale = bk,
                                 onClick = onOpenSleep
                             )
+                            // M553: teletext (len živý kanál; HTSP ak stopu má)
+                            "txt" -> CircleButton(
+                                icon = Icons.AutoMirrored.Filled.Article, selected = selCtrl == "txt", scale = bk,
+                                onClick = { dvrActivity?.openTeletext() }
+                            )
                             "audio" -> CircleButton(
                                 icon = Icons.Default.MusicNote, selected = selCtrl == "audio", scale = bk,
                                 onClick = { menu = if (menu == "audio") null else "audio" }
@@ -6316,6 +6473,7 @@ private fun PlayerUi(
                                 barCtrl("subs")
                                 if (has("profile")) barCtrl("profile")
                                 if (has("rec")) barCtrl("rec")     // M490-fix: aj trojriadkovy bar
+                                if (has("txt")) barCtrl("txt")     // M553
                                 barCtrl("sleep")
                                 if (lockVisible) barCtrl("lock")
                             }
@@ -6359,6 +6517,7 @@ private fun PlayerUi(
                             barCtrl("subs")
                             if (has("profile")) barCtrl("profile")
                             if (has("rec")) barCtrl("rec")     // M490
+                            if (has("txt")) barCtrl("txt")     // M553
                             barCtrl("sleep")
                             barCtrl("info")
                             if (lockVisible) barCtrl("lock")
@@ -7155,6 +7314,7 @@ private fun PlayerUi(
                         if (dvrActivity?.dvrExistingState?.value != null)
                             R.string.dvr_rec_cancel_button else R.string.dvr_rec_button
                     )
+                    "teletext" -> stringResource(R.string.teletext)   // M553
                     else -> stringResource(R.string.pm_info)
                 }
             }
