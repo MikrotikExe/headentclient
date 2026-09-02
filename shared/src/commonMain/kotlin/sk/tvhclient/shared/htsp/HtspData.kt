@@ -135,11 +135,12 @@ object HtspData {
         val client = HtspClient(server.host, server.htspPort, server.username, server.password)
         client.connect()
         val out = HashMap<String, List<EpgEvent>>()
+        var failed = 0
         try {
             for (cid in channelIds) {
                 val evs = try {
                     client.getEvents(cid, numFollowing = 5, maxTime = 0)
-                } catch (e: Exception) { noteEpgError(e); continue }
+                } catch (e: Exception) { noteEpgError(e); failed++; continue }
                 val mapped = evs.mapNotNull { mapEvent(it) }
                     .filter { it.stop > nowSec }
                     .sortedBy { it.start }
@@ -148,7 +149,11 @@ object HtspData {
         } finally {
             client.close()
         }
-        nowCache[server.id] = NowCache(nowSec, out)
+        // M551: prazdny alebo neuplny vysledok (getEvents zlyhalo) sa NEcachuje —
+        // inak sa 10 minut vracala prazdna mapa a EPG v prehravaci sa "zaseklo"
+        // (videne po prepnuti servera z HTTP na HTSP rezim pocas behu appky).
+        if (out.isNotEmpty() && failed == 0) nowCache[server.id] = NowCache(nowSec, out)
+        else nowCache.remove(server.id)
         return out
     }
 
