@@ -17,6 +17,12 @@ import sk.tvhclient.shared.model.TvhServer
  * Streaming a picony ostávajú HTTP (HTSP tu rieši len dáta).
  */
 object HtspData {
+    /** M550-fix: posledna chyba per-kanaloveho getEvents (inak sa potichu preskakuje) —
+     *  appka si ju vie vypytat a zapisat do diagnostickeho logu. */
+    var lastEpgError: String? = null
+    private fun noteEpgError(e: Throwable) {
+        lastEpgError = (e::class.simpleName ?: "Throwable") + ": " + (e.message ?: "")
+    }
 
     /** M471: prava z posledneho HTSP spojenia (accessUpdate), prelozene do
      *  spolocneho tvaru pre UI. */
@@ -133,7 +139,7 @@ object HtspData {
             for (cid in channelIds) {
                 val evs = try {
                     client.getEvents(cid, numFollowing = 5, maxTime = 0)
-                } catch (e: Exception) { continue }
+                } catch (e: Exception) { noteEpgError(e); continue }
                 val mapped = evs.mapNotNull { mapEvent(it) }
                     .filter { it.stop > nowSec }
                     .sortedBy { it.start }
@@ -342,7 +348,7 @@ object HtspData {
                         .filter { it.channelUuid == cid.toString() }
                         .distinctBy { it.eventId ?: "${'$'}{it.start}-${'$'}{it.title}" }
                         .sortedBy { it.start }
-                } catch (e: Exception) { emptyList() }
+                } catch (e: Exception) { noteEpgError(e); emptyList() }
                 onChannel(cid.toString(), evs)
             }
         } finally {

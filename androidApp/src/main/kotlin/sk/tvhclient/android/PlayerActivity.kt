@@ -1030,10 +1030,17 @@ class PlayerActivity : ComponentActivity() {
             // takze tlacitko ostalo prazdne az do prveho prepnutia kanala.
             refreshDvrState()
             if (srv.connectionMode == "htsp") {
+                sk.tvhclient.shared.htsp.HtspData.lastEpgError = null
                 val map = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                     Tvh.fetchEpgUpcoming(srv)
                 }
                 if (map.isNotEmpty()) epgUpcomingState.value = map
+                // M550-fix: diagnostika — prazdne HTSP EPG doteraz zapadlo bez stopy
+                if (map.isEmpty()) CrashLogger.report(
+                    this, "PlayerActivity.epg",
+                    "HTSP EPG empty for ${cur.size} channels; lastEpgError=" +
+                        (sk.tvhclient.shared.htsp.HtspData.lastEpgError ?: "none")
+                )
                 val enrichHtsp: (LivePlaylist.LiveChannel) -> LivePlaylist.LiveChannel = { ch ->
                     val ev = map[ch.uuid]?.firstOrNull { it.start <= nowS && nowS < it.stop }
                     val b = if (ev != null) ch.copy(nowTitle = ev.title, nowStart = ev.start, nowStop = ev.stop) else ch
@@ -1079,6 +1086,7 @@ class PlayerActivity : ComponentActivity() {
             LivePlaylist.epgUpcoming = epgUpcomingState.value
             persistEpg(epgUpcomingState.value)   // M275: na disk, nech prezije restart boxu
         } catch (e: Exception) {
+            CrashLogger.report(this, "PlayerActivity.epg", e)   // M550-fix: diagnostika
         }
     }
 
