@@ -24,9 +24,12 @@
 }
 -keepclasseswithmembers class **$$serializer { *; }
 
-# Vsetky nase zdielane modely/api (male, radsej drzime cele kvoli serializacii)
--keep class sk.tvhclient.shared.** { *; }
--keepclassmembers class sk.tvhclient.shared.** { *; }
+# Nase @Serializable modely (shared/model/*) pokryvaju genericke pravidla vyssie:
+# kotlinx.serialization je compile-time (nazvy poli su konstanty v $$serializer),
+# takze samotne triedy a ich polia mozu byt obfuskovane. Ziadne polymorfne
+# ani reflexne pouzitie v shared module nie je -> blanket keep nie je potrebny.
+# Pre istotu drzime len mena @Serializable tried (citatelnejsi mapping/diag log).
+-keepnames @kotlinx.serialization.Serializable class sk.tvhclient.shared.**
 
 # --- libVLC (org.videolan) -------------------------------------------------
 # Pouziva JNI native callbacky — triedy/metody referencovane z native kodu
