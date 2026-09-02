@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.ClosedCaption
@@ -190,6 +191,9 @@ internal fun ModernMoreSheet(
     /** M475: true = nahravka uz existuje, polozka ponuka jej zrusenie */
     recordIsCancel: Boolean = false,
     onRecord: () -> Unit = {},
+    // M559: teletext (len zivy kanal, HTSP ak ma stopu)
+    teletextVisible: Boolean = false,
+    onTeletext: () -> Unit = {},
     onSleep: () -> Unit,
     onLockToggle: () -> Unit,
     onInfo: () -> Unit,
@@ -239,6 +243,9 @@ internal fun ModernMoreSheet(
                     ),
                     onRecord
                 )
+            }
+            if (teletextVisible) {
+                ModernSheetRow(Icons.AutoMirrored.Filled.Article, stringResource(R.string.teletext), onTeletext)   // M559
             }
             ModernSheetRow(Icons.Default.Timer, stringResource(R.string.sleep_timer), onSleep)
             if (lockVisible) {

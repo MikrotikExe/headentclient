@@ -3819,7 +3819,10 @@ class PlayerActivity : ComponentActivity() {
                     isHttp = !isHtspLiveServer(),
                     onClose = { closeTeletext() },
                     onStep = { d -> ttxStep(d) },
-                    onToggleTransparent = { ttxTransparentState.value = !ttxTransparentState.value }
+                    onToggleTransparent = { ttxTransparentState.value = !ttxTransparentState.value },
+                    touchUi = !isTvDevice(),                 // M559: dotykove ovladanie na telefone
+                    onSubStep = { d -> ttxSubStep(d) },
+                    onDigit = { d -> ttxDigit(d) }
                 )
             }
             if (archiveChoiceIdxState.value >= 0) {
@@ -6549,6 +6552,8 @@ private fun PlayerUi(
                     showMoreSheet = false
                     dvrActivity?.toggleRecordCurrent()
                 },
+                teletextVisible = dvrActivity?.teletextVisible() == true,   // M559
+                onTeletext = { showMoreSheet = false; dvrActivity?.openTeletext() },
                 onSleep = { showMoreSheet = false; onOpenSleep() },
                 onLockToggle = {
                     orientationLocked = !orientationLocked

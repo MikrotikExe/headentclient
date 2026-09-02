@@ -7,7 +7,11 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,6 +21,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,8 +63,12 @@ fun TeletextOverlay(
     isHttp: Boolean,
     onClose: () -> Unit,
     onStep: (Int) -> Unit,            // dotyk: horná polovica +1, dolná −1
-    onToggleTransparent: () -> Unit   // dotyk: dlhé podržanie
+    onToggleTransparent: () -> Unit,  // dotyk: dlhé podržanie
+    touchUi: Boolean = false,         // M559: telefón — spodná lišta s tlačidlami a číselník
+    onSubStep: (Int) -> Unit = {},
+    onDigit: (Int) -> Unit = {}
 ) {
+    var keypad by remember { mutableStateOf(false) }   // M559
     // prekreslenie pri každej prijatej stránke
     @Suppress("UNUSED_VARIABLE") val ver = session.pageVersion.value
     val page = session.decoder.page(pageNumber, subpage)
@@ -150,15 +161,70 @@ fun TeletextOverlay(
                     }
                 }
             }
-            Box(
-                Modifier.fillMaxWidth().height(34.dp).background(Color(0xD90B1220))
-                    .clickable { onClose() },
-                contentAlignment = Alignment.Center
+            if (touchUi) {
+                // M559: dotyková lišta — číselník, podstránky, priehľadnosť, zavrieť
+                Row(
+                    Modifier.fillMaxWidth().height(48.dp).background(Color(0xD90B1220)),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TouchKey(if (keypad) "▾ 123" else "123", accent = keypad) { keypad = !keypad }
+                    TouchKey("◀") { onSubStep(-1) }
+                    TouchKey("▶") { onSubStep(+1) }
+                    TouchKey("◐", accent = transparent) { onToggleTransparent() }
+                    TouchKey("✕") { onClose() }
+                }
+            } else {
+                Box(
+                    Modifier.fillMaxWidth().height(34.dp).background(Color(0xD90B1220))
+                        .clickable { onClose() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(hint, color = Color(0xFFCBD5E1), fontSize = 13.sp, maxLines = 1)
+                }
+            }
+        }
+        // M559: číselník (telefón) — vpravo dole nad lištou
+        if (touchUi && keypad) {
+            Column(
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 12.dp, bottom = 56.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xF2111827))
+                    .padding(6.dp)
             ) {
-                Text(hint, color = Color(0xFFCBD5E1), fontSize = 13.sp, maxLines = 1)
+                for (row in listOf(listOf(1, 2, 3), listOf(4, 5, 6), listOf(7, 8, 9), listOf(-1, 0, -2))) {
+                    Row {
+                        for (d in row) {
+                            when (d) {
+                                -1 -> Spacer(Modifier.size(56.dp))
+                                -2 -> Box(
+                                    Modifier.size(56.dp).clickable { keypad = false },
+                                    contentAlignment = Alignment.Center
+                                ) { Text("▾", color = Color(0xFFCBD5E1), fontSize = 20.sp) }
+                                else -> Box(
+                                    Modifier.size(56.dp).padding(3.dp).clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFF1E293B)).clickable { onDigit(d) },
+                                    contentAlignment = Alignment.Center
+                                ) { Text(d.toString(), color = Color.White, fontSize = 20.sp) }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
+}
+
+@Composable
+private fun TouchKey(label: String, accent: Boolean = false, onClick: () -> Unit) {
+    Box(
+        Modifier.height(36.dp).widthIn(min = 56.dp).clip(RoundedCornerShape(18.dp))
+            .background(if (accent) Color(0xFF1D9E75) else Color(0xFF1E293B))
+            .clickable { onClick() }.padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center
+    ) { Text(label, color = Color.White, fontSize = 14.sp) }
 }
 
 private val TXT_COLORS = arrayOf(
