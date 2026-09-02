@@ -7332,8 +7332,9 @@ private fun PlayerUi(
             ) {
                 Column(
                     Modifier
-                        // M558: bez max sirky sa riadky (fillMaxWidth) roztiahli na celu obrazovku
-                        .widthIn(min = 300.dp, max = 380.dp)
+                        // M558: bez max sirky sa riadky (fillMaxWidth) roztiahli na celu obrazovku;
+                        // rovnaka sirka ako TrackMenu (Zvuk/Titulky/Profil)
+                        .widthIn(min = 280.dp, max = 460.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(playerScrim())
                         .padding(8.dp)

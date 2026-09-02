@@ -58,10 +58,12 @@ internal fun TrackMenu(
     LaunchedEffect(nav) {
         if (nav >= 0) runCatching { listState.animateScrollToItem(nav) }
     }
+    // M558-fix: farby podla rezimu (moderny = tmavomodry panel / teal akcent, klasik nezmeneny)
+    val modern = isModernUi()
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color(0x99000000))
+            .background(if (modern) playerScrimSoft() else Color(0x99000000))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
@@ -73,12 +75,12 @@ internal fun TrackMenu(
                 // uzky ohraniceny dialog (nie cez celu sirku TV); riadky vnutri su posuvatelne
                 .widthIn(min = 280.dp, max = 460.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xEE202020))
+                .background(if (modern) playerScrim() else Color(0xEE202020))
                 .padding(8.dp)
         ) {
             Text(
                 header,
-                color = Color.White,
+                color = if (modern) playerFg() else Color.White,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(12.dp)
             )
@@ -87,7 +89,7 @@ internal fun TrackMenu(
             if (items.isEmpty() && !allowOff) {
                 Text(
                     stringResource(R.string.track_none),
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = if (modern) playerFgDim() else Color.White.copy(alpha = 0.7f),
                     modifier = Modifier.padding(12.dp)
                 )
             } else {
@@ -111,20 +113,24 @@ internal fun TrackMenu(
 
 @Composable
 internal fun TrackRow(label: String, selected: Boolean, highlighted: Boolean = false, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val modern = isModernUi()   // M558-fix
     Row(
         modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(if (highlighted) Color(0x553B82F6) else Color.Transparent)
+            .background(
+                if (!highlighted) Color.Transparent
+                else if (modern) playerAccent().copy(alpha = 0.35f) else Color(0x553B82F6)
+            )
             .clickable { onClick() }
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             if (selected) "\u2713  " else "    ",
-            color = MaterialTheme.colorScheme.primary
+            color = if (modern) playerAccent() else MaterialTheme.colorScheme.primary
         )
-        Text(label, color = Color.White)
+        Text(label, color = if (modern) playerFg() else Color.White)
     }
 }
 
