@@ -5861,7 +5861,11 @@ private fun PlayerUi(
                         // Gesta zachovaj po ploche; zakaz ich len v oblasti spodneho baru
                         // (ovladanie/slider), ked je viditelny - tam pretacas cez slider.
                         val inBar = controlsVisible && down.position.y > size.height * 0.6f
-                        if (mode == 0 && !showChannelList && !inBar && (kotlin.math.abs(dx) > slop || kotlin.math.abs(dy) > slop)) {
+                        // M565: gesta prehravaca (hlasitost, jas, seek, vysunutie zoznamu) su vypnute,
+                        // kym je otvorene akekolvek menu — tento detektor nerespektuje consume()
+                        // deti (awaitFirstDown(requireUnconsumed = false)), takze ho treba vypnut tu
+                        val overlayOpen = showChannelList || showMoreSheet || menu != null || showOptions
+                        if (mode == 0 && !overlayOpen && !inBar && (kotlin.math.abs(dx) > slop || kotlin.math.abs(dy) > slop)) {
                             mode = if (kotlin.math.abs(dx) >= kotlin.math.abs(dy)) {
                                 if (seekable || timeshiftEngaged) 1 else 0   // seek len ked je co pretacat
                             } else if (isTvGest) {
