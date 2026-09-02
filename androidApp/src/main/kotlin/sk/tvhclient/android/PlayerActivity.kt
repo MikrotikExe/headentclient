@@ -7364,6 +7364,7 @@ private fun PlayerUi(
                                     "profile" -> Icons.Default.Tune
                                     "rec" -> if (dvrActivity?.dvrExistingState?.value != null)
                                         Icons.Default.Stop else Icons.Default.FiberManualRecord
+                                    "teletext" -> Icons.AutoMirrored.Filled.Article   // M553-fix3
                                     else -> Icons.Default.Info
                                 },
                                 contentDescription = null,
