@@ -1023,6 +1023,7 @@ class PlayerActivity : ComponentActivity() {
         val cur = liveChannelsState.value
         if (cur.isEmpty()) return
         val nowS = System.currentTimeMillis() / 1000
+        epgPartial = false   // M551-fix
         try {
             // prebiehajuce nahravky -> ktore kanaly sa prave nahravaju (cervena bodka/kazeta + vyber archiv)
             val recList: List<sk.tvhclient.shared.model.DvrEntry> =
@@ -1040,16 +1041,24 @@ class PlayerActivity : ComponentActivity() {
             refreshDvrState()
             if (srv.connectionMode == "htsp") {
                 sk.tvhclient.shared.htsp.HtspData.lastEpgError = null
+                sk.tvhclient.shared.htsp.HtspData.lastEpgFailed = 0
                 val map = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                     Tvh.fetchEpgUpcoming(srv)
                 }
-                if (map.isNotEmpty()) epgUpcomingState.value = map
-                // M550-fix: diagnostika — prazdne HTSP EPG doteraz zapadlo bez stopy
-                if (map.isEmpty()) CrashLogger.report(
-                    this, "PlayerActivity.epg",
-                    "HTSP EPG empty for ${cur.size} channels; lastEpgError=" +
-                        (sk.tvhclient.shared.htsp.HtspData.lastEpgError ?: "none")
-                )
+                // M551-fix: neuplny vysledok (getEvents pre niektore kanaly zlyhalo) sa
+                // zobrazi, ale NEpovazuje sa za cerstvy — inak by chybajuce kanaly ostali
+                // bez EPG 3 hodiny (epgIsStale). Naplanuje sa opakovanie o 20 s (max 3x).
+                val failed = sk.tvhclient.shared.htsp.HtspData.lastEpgFailed
+                epgPartial = map.isEmpty() || failed > 0
+                if (map.isNotEmpty()) epgUpcomingState.value = epgUpcomingState.value + map
+                if (epgPartial) {
+                    CrashLogger.report(
+                        this, "PlayerActivity.epg",
+                        "HTSP EPG incomplete: ${map.size}/${cur.size} channels, failed=$failed, lastEpgError=" +
+                            (sk.tvhclient.shared.htsp.HtspData.lastEpgError ?: "none")
+                    )
+                    scheduleEpgRetry()
+                } else epgRetries = 0
                 val enrichHtsp: (LivePlaylist.LiveChannel) -> LivePlaylist.LiveChannel = { ch ->
                     val ev = map[ch.uuid]?.firstOrNull { it.start <= nowS && nowS < it.stop }
                     val b = if (ev != null) ch.copy(nowTitle = ev.title, nowStart = ev.start, nowStop = ev.stop) else ch
@@ -1089,13 +1098,26 @@ class PlayerActivity : ComponentActivity() {
                 if (LivePlaylist.allChannels.isNotEmpty())
                     LivePlaylist.allChannels = LivePlaylist.allChannels.map(enrichHttp)
             }
-            epgLastOkMs = System.currentTimeMillis()
+            if (!epgPartial) epgLastOkMs = System.currentTimeMillis()   // M551-fix: neuplne = stale
             // M271: zapis do procesovej cache, nech reopen prehravaca nesťahuje znova
             LivePlaylist.epgLastOkMs = epgLastOkMs
             LivePlaylist.epgUpcoming = epgUpcomingState.value
             persistEpg(epgUpcomingState.value)   // M275: na disk, nech prezije restart boxu
         } catch (e: Exception) {
             CrashLogger.report(this, "PlayerActivity.epg", e)   // M550-fix: diagnostika
+        }
+    }
+
+    // M551-fix: neuplne HTSP EPG -> opakovany pokus na pozadi
+    private var epgPartial = false
+    private var epgRetries = 0
+    private var epgRetryJob: kotlinx.coroutines.Job? = null
+    private fun scheduleEpgRetry() {
+        if (epgRetries >= 3 || epgRetryJob?.isActive == true) return
+        epgRetries++
+        epgRetryJob = lifecycleScope.launch {
+            kotlinx.coroutines.delay(20_000)
+            refreshOverlayEpg()
         }
     }
 

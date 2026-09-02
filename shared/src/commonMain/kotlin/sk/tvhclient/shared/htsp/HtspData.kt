@@ -20,6 +20,8 @@ object HtspData {
     /** M550-fix: posledna chyba per-kanaloveho getEvents (inak sa potichu preskakuje) —
      *  appka si ju vie vypytat a zapisat do diagnostickeho logu. */
     var lastEpgError: String? = null
+    /** M551-fix: koľko kanálov pri poslednom epgUpcomingMap zlyhalo (getEvents vyhodilo výnimku). */
+    @kotlin.concurrent.Volatile var lastEpgFailed: Int = 0
     private fun noteEpgError(e: Throwable) {
         lastEpgError = (e::class.simpleName ?: "Throwable") + ": " + (e.message ?: "")
     }
@@ -154,6 +156,7 @@ object HtspData {
         // (videne po prepnuti servera z HTTP na HTSP rezim pocas behu appky).
         if (out.isNotEmpty() && failed == 0) nowCache[server.id] = NowCache(nowSec, out)
         else nowCache.remove(server.id)
+        lastEpgFailed = failed
         return out
     }
 
