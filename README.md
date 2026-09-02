@@ -40,8 +40,12 @@ Jetpack Compose and libVLC.
   with tag filtering and a remembered group
 - **Start with the last channel (TV)** — resumes the channel or radio station you
   were last watching, with the full channel list and groups loaded
-- **Favourites in your order** — numbered 1…n inside the Favourites group and
-  reorderable with the remote; the group is remembered after a restart
+- **Teletext** (EN 300 706) decoded by the app itself, over HTSP and HTTP — colour,
+  mosaic graphics, subpages, Fastext links and all European character sets;
+  remote or touch controls
+- **Favourites in your order** — numbered 1…n inside the Favourites group,
+  reorderable with the remote on TV and by dragging on the phone; the group is
+  remembered after a restart and used by the player
 - **Hidden channels** can be brought back from the *Hidden channels* group in the player
 - Picons (channel logos)
 - Channel switching by number, channel list, zapping

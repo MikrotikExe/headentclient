@@ -76,8 +76,6 @@ class TeletextDecoder {
 
     fun subpages(number: Int): List<Int> = pages[number]?.keys?.sorted() ?: emptyList()
 
-    fun hasPage(number: Int): Boolean = pages[number]?.isNotEmpty() == true
-
     fun knownPages(): List<Int> = pages.keys.sorted()
 
     // ------------------------------------------------------------------ vstup

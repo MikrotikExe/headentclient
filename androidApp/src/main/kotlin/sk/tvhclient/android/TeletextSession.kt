@@ -41,15 +41,12 @@ class TeletextSession(private val ctx: Context) {
     val httpNoTeletext = mutableStateOf(false)
 
     private var httpJob: Job? = null
-    private var loggedFirstPage = false
     private var mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
     init {
-        decoder.onPageUpdated = { number ->
-            if (!loggedFirstPage) {
-                loggedFirstPage = true
-                CrashLogger.report(ctx, "Teletext", "first page received: ${number.toString(16)} (packets=${decoder.packetsSeen})")
-            }
+        decoder.onPageUpdated = { _ ->
+            // M567 (audit): diagnosticky log prvej stranky odstraneny — v beznej prevadzke
+            // len zaplnal diagnosticky zaznam pri kazdom kanali
             mainHandler.post { pageVersion.value++ ; if (!availableState.value) availableState.value = true }
         }
     }
@@ -58,7 +55,6 @@ class TeletextSession(private val ctx: Context) {
     fun reset() {
         stopHttp()
         decoder.clear()
-        loggedFirstPage = false
         availableState.value = false
         httpNoTeletext.value = false
         pageVersion.value++
