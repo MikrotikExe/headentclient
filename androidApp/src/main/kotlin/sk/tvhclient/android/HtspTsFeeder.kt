@@ -54,6 +54,13 @@ class HtspTsFeeder(
     /** Callback pre hotovú titulkovú stránku (vlastný renderer). page + cieľový čas v ms. */
     @Volatile var onSubtitlePage: ((sk.tvhclient.shared.htsp.DvbSubtitleDecoder.DecodedPage, Long) -> Unit)? = null
 
+    /** M552: kanál vysiela teletext (zo subscriptionStart). */
+    @Volatile var hasTeletext: Boolean = false
+        private set
+    /** M552: PES payload teletextu pre TeletextSession. */
+    @Volatile var onTeletext: ((ByteArray) -> Unit)? = null
+    @Volatile var onTeletextAvailable: ((Boolean) -> Unit)? = null
+
     /** Spusti feed pre kanal a vrati read FileDescriptor pre libVLC. */
     /**
      * M476: `profile` sa odovzdava do HTSP subscribe. HTSP profily podporuje od
@@ -135,7 +142,9 @@ class HtspTsFeeder(
                         if (endPts > startPts) bufferTicks = endPts - startPts
                     },
                     onSubtitles = { subs -> subtitleStreams = subs },
-                    onSubtitlePage = { page, targetMs -> onSubtitlePage?.invoke(page, targetMs) }
+                    onSubtitlePage = { page, targetMs -> onSubtitlePage?.invoke(page, targetMs) },
+                    onTeletextAvailable = { a -> hasTeletext = a; onTeletextAvailable?.invoke(a) },   // M552
+                    onTeletext = { es -> onTeletext?.invoke(es) }
                 )
             } catch (_: Throwable) {
                 // zrusenie / zlomeny pipe / chyba spojenia

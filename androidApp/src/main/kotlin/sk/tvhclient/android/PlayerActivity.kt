@@ -385,6 +385,8 @@ class PlayerActivity : ComponentActivity() {
     // pre opatovne pripojenie videa po navrate z pozadia
     private var videoLayout: VLCVideoLayout? = null
     private var subOverlay: SubtitleOverlayView? = null
+    /** M552: teletext aktuálneho kanála (HTSP: dáta z feedera, HTTP: vlastná odbočka). */
+    val teletext: TeletextSession by lazy { TeletextSession(this) }
     private var wasPlaying: Boolean = false
     // Picture-in-Picture (obraz v obraze)
     private val inPipState = androidx.compose.runtime.mutableStateOf(false)
@@ -523,6 +525,7 @@ class PlayerActivity : ComponentActivity() {
      *  ako DVR), lebo libVLC digest cez URL nezvlada. Pre live netreba seek. */
     private fun playLiveViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String) {
         ensureHealthyPlayer()   // M539
+        teletext.reset()        // M552
         htspFeeder?.stop(); htspFeeder = null
         httpFeeder?.stop()
         htspStream = false
@@ -607,6 +610,7 @@ class PlayerActivity : ComponentActivity() {
     /** Bezne HTTP prehravanie (zastavi pripadny HTSP feed). */
     private fun playHttp(url: String) {
         ensureHealthyPlayer()   // M539
+        teletext.reset()        // M552
         htspFeeder?.stop(); htspFeeder = null
         httpFeeder?.stop(); httpFeeder = null
         htspStream = false
@@ -628,6 +632,7 @@ class PlayerActivity : ComponentActivity() {
      */
     private fun playDvrViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String, startByte: Long = 0L) {
         ensureHealthyPlayer()   // M539
+        teletext.reset()        // M552 (archív: teletext zatiaľ len pri živom)
         htspFeeder?.stop(); htspFeeder = null
         httpFeeder?.stop()
         htspStream = false
@@ -667,6 +672,10 @@ class PlayerActivity : ComponentActivity() {
             // vlastne titulky: dekódovanu stranku posli do overlay-u (synchronizuje sa na cas)
             feeder.onSubtitlePage = { page, ms -> subOverlay?.onPage(page, ms) }
             subOverlay?.reset()
+            // M552: teletext — stopa TELETEXT ide do vlastného dekodéra, nie do libVLC
+            teletext.reset()
+            feeder.onTeletextAvailable = { a -> teletext.setHtspAvailable(a) }
+            feeder.onTeletext = { es -> teletext.feedHtsp(es) }
             // novy kanal = novy zoznam titulkov, vynuluj zvoleny jazyk
             selectedSubEsState.value = -1
             desiredSubName = null
@@ -4837,6 +4846,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        teletext.stopHttp()   // M552
         releaseStreamLocks()  // M452
         flushEpgPersist()     // M456
         clearAfr()

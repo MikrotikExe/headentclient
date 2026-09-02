@@ -331,7 +331,11 @@ class HtspClient(
         onStatus: (shift: Long, full: Boolean, startPts: Long, endPts: Long) -> Unit = { _, _, _, _ -> },
         onStop: (String?) -> Unit = {},
         onSubtitles: (List<TsMuxer.SubtitleInfo>) -> Unit = {},
-        onSubtitlePage: (DvbSubtitleDecoder.DecodedPage, Long) -> Unit = { _, _ -> }
+        onSubtitlePage: (DvbSubtitleDecoder.DecodedPage, Long) -> Unit = { _, _ -> },
+        /** M552: kanál má teletextovú stopu (zo subscriptionStart). */
+        onTeletextAvailable: (Boolean) -> Unit = {},
+        /** M552: PES payload teletextu (stopa TELETEXT do libVLC nejde, dekóduje ju appka). */
+        onTeletext: (ByteArray) -> Unit = {}
     ) {
         seq += 1
         val subId = seq
@@ -346,6 +350,7 @@ class HtspClient(
         send("subscribe", args, withSeq = false)
 
         var muxer: TsMuxer? = null
+        var teletextEs = -1   // M552
         try {
             while (true) {
                 val m = recv()
@@ -366,6 +371,9 @@ class HtspClient(
                             val sri = (sm["rate"] as? Long)?.toInt() ?: 0   // es_sri = sample-rate index
                             TsMuxer.Stream(idx, typ, lang, comp, anc, ch, sri)
                         }
+                        // M552: teletext — prvá stopa typu TELETEXT
+                        teletextEs = streams.firstOrNull { it.type == "TELETEXT" }?.index ?: -1
+                        onTeletextAvailable(teletextEs >= 0)
                         val existing = muxer
                         if (existing == null) {
                             val mx = TsMuxer(streams)
@@ -385,6 +393,7 @@ class HtspClient(
                         val streamIdx = (m["stream"] as? Long)?.toInt() ?: continue
                         val pts = m["pts"] as? Long
                         val dts = m["dts"] as? Long
+                        if (streamIdx == teletextEs) { onTeletext(es); continue }   // M552
                         if (streamIdx == subDecodeEs) {
                             // vybrana titulkova stopa: dekóduj a renderuj sami (do libVLC nejde)
                             val page = if (pts != null) subDecoder.decode(pts, es) else null
