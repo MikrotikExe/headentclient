@@ -7486,53 +7486,13 @@ private fun PlayerUi(
             )
         }
 
-        // Dialog: obnovit prehravanie od poslednej pozicie?
+        // Dialog: obnovit prehravanie od poslednej pozicie? (M559-fix: vytiahnute z PlayerUi — limit 64 kB)
         if (askResume) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(playerScrimSoft())
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    Modifier
-                        .widthIn(min = 260.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(playerScrim())
-                        .padding(20.dp)
-                ) {
-                    Text(
-                        androidx.compose.ui.res.stringResource(R.string.resume_question),
-                        color = playerFg(),
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Text(
-                        fmtMs(resumeMs),
-                        color = playerFgDim(),
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Row(
-                        Modifier.align(Alignment.End),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        TextChip(androidx.compose.ui.res.stringResource(R.string.no),
-                            selected = resumeSel == 0) {
-                            askResume = false
-                        }
-                        TextChip(androidx.compose.ui.res.stringResource(R.string.yes),
-                            selected = resumeSel == 1) {
-                            pendingResumeMs = resumeMs
-                            askResume = false
-                        }
-                    }
-                }
-            }
+            ResumeDialog(
+                resumeMs = resumeMs, resumeSel = resumeSel,
+                onNo = { askResume = false },
+                onYes = { pendingResumeMs = resumeMs; askResume = false }
+            )
         }
 
         // Rodicovsky zamok: zadanie PIN (cislice z dialkoveho riesi Activity)
@@ -7621,6 +7581,49 @@ private fun PlayerUi(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/** M559-fix: dialog „Obnoviť prehrávanie“ — samostatný composable (PlayerUi je na limite veľkosti metódy). */
+@Composable
+private fun ResumeDialog(resumeMs: Long, resumeSel: Int, onNo: () -> Unit, onYes: () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(playerScrimSoft())
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            Modifier
+                .widthIn(min = 260.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(playerScrim())
+                .padding(20.dp)
+        ) {
+            Text(
+                androidx.compose.ui.res.stringResource(R.string.resume_question),
+                color = playerFg(),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                fmtMs(resumeMs),
+                color = playerFgDim(),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+            Spacer(Modifier.height(16.dp))
+            Row(
+                Modifier.align(Alignment.End),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                TextChip(androidx.compose.ui.res.stringResource(R.string.no), selected = resumeSel == 0) { onNo() }
+                TextChip(androidx.compose.ui.res.stringResource(R.string.yes), selected = resumeSel == 1) { onYes() }
             }
         }
     }
