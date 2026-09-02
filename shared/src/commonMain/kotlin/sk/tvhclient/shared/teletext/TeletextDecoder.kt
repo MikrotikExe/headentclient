@@ -145,7 +145,9 @@ class TeletextDecoder {
             (if ((h[6] and 0x4) != 0) FLAG_INTERRUPTED else 0) or
             (if ((h[6] and 0x8) != 0) FLAG_INHIBIT else 0) or
             (if ((h[7] and 0x1) != 0) FLAG_SERIAL else 0)
-        val charset = (h[7] shr 1) and 0x7
+        // C12 C13 C14 (bity 1..3 bajtu 8) — v tabuľke národných sád je C12 NAJVYŠŠÍ bit
+        // (M553-fix: opačné poradie dávalo pre češtinu/slovenčinu (110) taliančinu (011)).
+        val charset = (((h[7] shr 1) and 1) shl 2) or (((h[7] shr 2) and 1) shl 1) or ((h[7] shr 3) and 1)
         // nová stránka: bez erase preberá riadky z uloženej verzie (prenášajú sa len zmenené)
         val prev = if (!erase) page(number, subpage) else null
         val rows = Array(25) { i -> if (prev != null && i > 0) prev.rows[i].copyOf() else ByteArray(40) { 0x20 } }

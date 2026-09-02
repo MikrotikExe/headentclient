@@ -118,11 +118,16 @@ fun TeletextOverlay(
                     // --- hlavička (riadok 0): stĺpce 0..7 = číslo strany, 8..39 = text z vysielania
                     val hdrRow: Array<TeletextCell>? = cells?.get(0)
                     drawTextRun(label + subLabel, 0, 0, cw, ch, sx, textTop, Color.White, null, 1f, style, measurer)
-                    // živá („rolujúca“) hlavička s hodinami má prednosť pred uloženou
-                    if (header.isNotEmpty()) {
+                    // M553-fix: nájdená strana zobrazí VLASTNÚ hlavičku (stĺpce 8..31), len hodiny
+                    // (posledných 8 stĺpcov) sa berú zo živej hlavičky; kým sa strana hľadá,
+                    // beží celá „rolujúca“ hlavička práve vysielaných strán (ako na TV).
+                    if (hdrRow != null) {
+                        drawRow(hdrRow, 0, 8, cw, ch, sx, textTop, transparent, style, measurer, toCol = 32)
+                        if (header.length >= 32) {
+                            drawTextRun(header.substring(24, 32), 32, 0, cw, ch, sx, textTop, Color.White, null, 1f, style, measurer)
+                        }
+                    } else if (header.isNotEmpty()) {
                         drawTextRun(header, 8, 0, cw, ch, sx, textTop, Color.White, null, 1f, style, measurer)
-                    } else if (hdrRow != null) {
-                        drawRow(hdrRow, 0, 8, cw, ch, sx, textTop, transparent, style, measurer)
                     }
                     // --- riadky 1..24
                     if (cells != null) {
@@ -163,13 +168,14 @@ private val TXT_COLORS = arrayOf(
 /** Jeden riadok buniek od stĺpca [fromCol]; spája susedné bunky s rovnakými atribútmi. */
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawRow(
     row: Array<TeletextCell>, r: Int, fromCol: Int,
-    cw: Float, ch: Float, sx: Float, textTop: Float, transparent: Boolean, style: TextStyle, measurer: TextMeasurer
+    cw: Float, ch: Float, sx: Float, textTop: Float, transparent: Boolean, style: TextStyle, measurer: TextMeasurer,
+    toCol: Int = 40
 ) {
     var c = fromCol
-    while (c < 40 && c < row.size) {
+    while (c < toCol && c < row.size) {
         val first = row[c]
         var e = c + 1
-        while (e < row.size && e < 40) {
+        while (e < row.size && e < toCol) {
             val n = row[e]
             if (n.fg != first.fg || n.bg != first.bg || n.doubleHeight != first.doubleHeight ||
                 (n.mosaic >= 0) != (first.mosaic >= 0) || n.separated != first.separated) break
