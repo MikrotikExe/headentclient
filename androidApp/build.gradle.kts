@@ -4,8 +4,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 plugins {
+    // M550 (AGP 9): Kotlin je v AGP zabudovany, plugin org.jetbrains.kotlin.android
+    // sa uz neaplikuje (s novym DSL je nekompatibilny).
     alias(libs.plugins.androidApplication)
-    alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.kotlinCompose)
 }
 
@@ -91,9 +92,8 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    // M550: kotlinOptions {} je v AGP 9 zrusene; jvmTarget sa preberá
+    // z compileOptions.targetCompatibility (17).
 
     buildTypes {
         release {
