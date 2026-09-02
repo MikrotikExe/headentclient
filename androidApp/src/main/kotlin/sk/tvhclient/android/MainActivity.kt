@@ -268,6 +268,12 @@ private fun TvHomeHost() {
     val epgMap by chVm.epgMap.collectAsState()
     val raState by raVm.state.collectAsState()
     LaunchedEffect(Unit) { chVm.loadIfNeeded(); raVm.load() }   // prednacitaj kanaly aj radia
+    // M557: zmena konfiguracie servera (napr. HTTP <-> HTSP) zvysi dataReload — kanaly sa
+    // musia nacitat znova HNED, nie az pri otvoreni zoznamu. Domovska obrazovka (Sledovat,
+    // rad oblubenych) inak drzala kanaly so starymi identifikatormi (HTSP channelId vs
+    // HTTP uuid) a prehravac s nimi nevedel spustit stream.
+    val reloadTok = TabController.dataReload.value
+    LaunchedEffect(reloadTok) { if (reloadTok > 0) { chVm.loadIfNeeded(); raVm.load() } }
 
     // sekcia: "", "epg", "archive", "settings"; play: "", "tv", "radio"
     var section by remember { mutableStateOf("") }

@@ -70,9 +70,20 @@ class ServersViewModel : ViewModel() {
     }
 
     fun save(server: TvhServer) {
+        val old = store.list().firstOrNull { it.id == server.id }
         store.upsert(server)
         // zmena konfiguracie servera (napr. sposob pripojenia) -> stara cache je neplatna
         sk.tvhclient.shared.htsp.HtspData.clear(server.id)
+        // M557: iny sposob pripojenia = ine identifikatory kanalov (HTSP channelId vs HTTP
+        // uuid) -> procesovy playlist prehravaca a zapamatane "posledne sledovane" su neplatne
+        if (old != null && old.connectionMode != server.connectionMode) {
+            LivePlaylist.reset()
+            runCatching {
+                val ctx = sk.tvhclient.shared.storage.AppContextHolder.context
+                LastPlayback.clear(ctx)
+                LastChannel.clear(ctx, server.id)
+            }
+        }
         refresh()
         TabController.dataReload.value++
     }
