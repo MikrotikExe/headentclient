@@ -1180,7 +1180,7 @@ class PlayerActivity : ComponentActivity() {
                 if (epgPartial) {
                     CrashLogger.report(
                         this, "PlayerActivity.epg",
-                        "HTSP EPG incomplete: ${map.size}/${cur.size} channels, failed=$failed, empty=${sk.tvhclient.shared.htsp.HtspData.lastEpgEmpty}, lastEpgError=" +
+                        "HTSP EPG incomplete: ${map.size}/${cur.size} channels, failed=$failed, withoutEpg=${sk.tvhclient.shared.htsp.HtspData.lastEpgEmpty.size}, lastEpgError=" +
                             (sk.tvhclient.shared.htsp.HtspData.lastEpgError ?: "none")
                     )
                     scheduleEpgRetry()
@@ -1229,6 +1229,8 @@ class PlayerActivity : ComponentActivity() {
             LivePlaylist.epgLastOkMs = epgLastOkMs
             LivePlaylist.epgUpcoming = epgUpcomingState.value
             persistEpg(epgUpcomingState.value)   // M275: na disk, nech prezije restart boxu
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e   // M551-fix3: odchod z prehravaca pocas nacitania nie je chyba
         } catch (e: Exception) {
             CrashLogger.report(this, "PlayerActivity.epg", e)   // M550-fix: diagnostika
         }

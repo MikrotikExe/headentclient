@@ -130,18 +130,18 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
                 CrashLogger.report(getApplication(), "ChannelsViewModel.nowNext", e)   // M551-fix2
                 emptyMap()
             }
-            // M551-fix2: diagnostika chýbajúceho now/next (doteraz potichu)
+            // M551-fix2/fix3: diagnostika — kanály bez udalostí na serveri (empty) sú normálny
+            // stav (kanály bez EPG), loguje sa len počet; opakuje sa len pri skutočnej chybe
             val empty = sk.tvhclient.shared.htsp.HtspData.lastEpgEmpty
             val failed = sk.tvhclient.shared.htsp.HtspData.lastEpgFailed
-            if (empty.isNotEmpty() || failed > 0) {
+            if (failed > 0 || map.isEmpty()) {
                 CrashLogger.report(
                     getApplication(), "ChannelsViewModel.nowNext",
-                    "HTSP now/next: ${map.size} ok, empty=${empty}, failed=$failed, lastEpgError=" +
+                    "HTSP now/next: ${map.size} ok, ${empty.size} without EPG, failed=$failed, lastEpgError=" +
                         (sk.tvhclient.shared.htsp.HtspData.lastEpgError ?: "none")
                 )
             }
-            // M551-fix2: neúplný výsledok -> o 20 s skúsiť znova (max 3×), výsledok zlúčiť
-            if ((empty.isNotEmpty() || failed > 0) && nowNextRetries < 3) {
+            if ((failed > 0 || map.isEmpty()) && nowNextRetries < 3) {
                 nowNextRetries++
                 viewModelScope.launch {
                     kotlinx.coroutines.delay(20_000)
