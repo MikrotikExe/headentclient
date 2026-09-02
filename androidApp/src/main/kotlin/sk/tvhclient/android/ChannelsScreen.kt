@@ -161,7 +161,10 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
 
     // Zoznam kanalov pre zapping a zoznam v prehravaci (CH+/CH-, overlay).
     // Skryte kanaly sem nepatria (v prehravaci sa nezobrazuju).
-    LaunchedEffect(state, epgMap, hiddenTick) {
+    // M566: aj pri zmene zvoleneho tagu / Oblubenych / poradia oblubenych — prehravac dostane
+    // rovnaku skupinu, aku ma pouzivatel zvolenu v zozname (CH+/- a zoznam v prehravaci
+    // prepinaju len v nej), nie vzdy „Vsetky"
+    LaunchedEffect(state, epgMap, hiddenTick, favOnly, selectedTag, favTick) {
         val srv = Tvh.store.active()
         (state as? ChannelsState.Loaded)?.let { st ->
             val nowS = System.currentTimeMillis() / 1000
@@ -195,10 +198,14 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                     nowTitle = "", nowStart = 0, nowStop = 0
                 )
             }
-            LivePlaylist.setChannels(
-                full, grps,
-                favs = srv?.id?.let { Favorites.list(ctx, it) } ?: emptyList(), hidden = hiddenList
-            )
+            val favList = srv?.id?.let { Favorites.list(ctx, it) } ?: emptyList()
+            // M566: skupina prehravaca = aktualny vyber v zozname (Oblubene / tag / Vsetky)
+            val restore = when {
+                favOnly && favList.isNotEmpty() -> LivePlaylist.GROUP_FAV
+                selectedTag != null && grps.any { it.key == selectedTag } -> selectedTag
+                else -> null
+            }
+            LivePlaylist.setChannels(full, grps, restore, favs = favList, hidden = hiddenList)
         }
     }
 
