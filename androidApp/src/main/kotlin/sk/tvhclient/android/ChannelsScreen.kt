@@ -2,6 +2,7 @@ package sk.tvhclient.android
 
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +10,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.zIndex
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Voicemail
 import androidx.compose.material3.Icon
@@ -402,7 +410,13 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                         LastChannel.get(ctx, serverId)?.takeIf { u -> rows.any { it.channel.uuid == u } }
                             ?: rows.firstOrNull()?.channel?.uuid
                     }
-                    ChannelView(viewMode, rows, listStateMain, nowTick, epgMap, recordingFor, onRecordingTap = { r, rec -> recChoice = r to rec }, focusUuid = focusUuid, onTopUp = { runCatching { searchFocus.requestFocus() } }, onShowEpg = { contextRow = it }, lockTick = lockTick, hiddenTick = hiddenTick)
+                    // M560: v skupine Oblubene na dotykovom zariadeni sa da poradie menit tahanim
+                    // za rukovat; uklada sa hned (Favorites.move, rovnake data ako TV rezim)
+                    val moveFav: ((Int, Int) -> Unit)? =
+                        if (favOnly && serverId != null && !isTvDeviceCtx(ctx)) { from, to ->
+                            Favorites.move(ctx, serverId, from, to); favTick++
+                        } else null
+                    ChannelView(viewMode, rows, listStateMain, nowTick, epgMap, recordingFor, onRecordingTap = { r, rec -> recChoice = r to rec }, focusUuid = focusUuid, onTopUp = { runCatching { searchFocus.requestFocus() } }, onShowEpg = { contextRow = it }, lockTick = lockTick, hiddenTick = hiddenTick, onMove = moveFav)
                 }
             }
         }
@@ -731,10 +745,11 @@ private fun ChannelView(
     onTopUp: () -> Unit = {},
     onShowEpg: (ChannelRow) -> Unit,
     lockTick: Int = 0,
-    hiddenTick: Int = 0
+    hiddenTick: Int = 0,
+    onMove: ((Int, Int) -> Unit)? = null   // M560: presun tahanim (len Oblubene, dotyk)
 ) {
     when (mode) {
-        ChannelViewMode.LIST -> ChannelList(rows, listState, nowSec, epgMap, recordingFor, onRecordingTap, focusUuid, onTopUp, onShowEpg, lockTick, hiddenTick)
+        ChannelViewMode.LIST -> ChannelList(rows, listState, nowSec, epgMap, recordingFor, onRecordingTap, focusUuid, onTopUp, onShowEpg, lockTick, hiddenTick, onMove)
         ChannelViewMode.GRID -> ChannelGrid(rows, nowSec, epgMap, columns = 2, recordingFor, onRecordingTap, onShowEpg)
         ChannelViewMode.TILES -> ChannelGrid(rows, nowSec, epgMap, columns = 4, recordingFor, onRecordingTap, onShowEpg)
     }
@@ -854,7 +869,8 @@ private fun ChannelList(
     onTopUp: () -> Unit = {},
     onShowEpg: (ChannelRow) -> Unit,
     lockTick: Int = 0,
-    hiddenTick: Int = 0
+    hiddenTick: Int = 0,
+    onMove: ((Int, Int) -> Unit)? = null
 ) {
     val context = LocalContext.current
     val server = remember { Tvh.store.active() }
@@ -864,6 +880,12 @@ private fun ChannelList(
         EmptyStatus(stringResource(R.string.no_channels))
         return
     }
+    // M560: stav tahania — uuid tahaneho riadka + posun prsta voci jeho aktualnej pozicii.
+    // Riadky su klucovane uuid, takze pri vymene poradia sa composable (aj bezici gesture)
+    // presunie s riadkom; posun sa po kazdej vymene zmensi o vysku riadka.
+    var dragUuid by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    var dragOffset by remember { androidx.compose.runtime.mutableStateOf(0f) }
+    val dragScope = androidx.compose.runtime.rememberCoroutineScope()
     // Pociatocny focus na posledny zvoleny (alebo prvy) kanal -> nech sa pri
     // starte neoznaci vyhladavacie pole a nevyskoci klavesnica.
     val firstFocus = remember { FocusRequester() }
@@ -919,9 +941,74 @@ private fun ChannelList(
                     else -> false
                 }
             }
-            ChannelItem(row, loader, context, nowSec, epgMap[row.channel.uuid],
-                recordingFor(row), onRecordingTap, onShowEpg,
-                itemModifier = keyMod, lockTick = lockTick, hiddenTick = hiddenTick)
+            if (onMove == null) {
+                ChannelItem(row, loader, context, nowSec, epgMap[row.channel.uuid],
+                    recordingFor(row), onRecordingTap, onShowEpg,
+                    itemModifier = keyMod, lockTick = lockTick, hiddenTick = hiddenTick)
+            } else {
+                // M560: riadok + rukovat na tahanie; tahany riadok nadvihnuty (posun, tien, okraj)
+                val dragging = dragUuid == row.channel.uuid
+                val accent = MaterialTheme.colorScheme.primary
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .then(if (dragging) Modifier else Modifier.animateItem())
+                        .zIndex(if (dragging) 1f else 0f)
+                        .graphicsLayer {
+                            translationY = if (dragging) dragOffset else 0f
+                            shadowElevation = if (dragging) 24f else 0f
+                            shape = RoundedCornerShape(8.dp); clip = dragging
+                        }
+                        .then(if (dragging) Modifier.border(2.dp, accent, RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface) else Modifier),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(Modifier.weight(1f)) {
+                        ChannelItem(row, loader, context, nowSec, epgMap[row.channel.uuid],
+                            recordingFor(row), onRecordingTap, onShowEpg,
+                            itemModifier = keyMod, lockTick = lockTick, hiddenTick = hiddenTick)
+                    }
+                    Icon(
+                        Icons.Default.DragHandle, contentDescription = null,
+                        tint = if (dragging) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .padding(horizontal = 10.dp)
+                            .size(28.dp)
+                            .pointerInput(row.channel.uuid) {
+                                detectDragGestures(
+                                    onDragStart = { dragUuid = row.channel.uuid; dragOffset = 0f },
+                                    onDragEnd = { dragUuid = null; dragOffset = 0f },
+                                    onDragCancel = { dragUuid = null; dragOffset = 0f },
+                                    onDrag = { change, delta ->
+                                        change.consume()
+                                        dragOffset += delta.y
+                                        val info = listState.layoutInfo
+                                        val me = info.visibleItemsInfo.firstOrNull { it.key == row.channel.uuid }
+                                            ?: return@detectDragGestures
+                                        val cur = me.index
+                                        val h = me.size.toFloat().coerceAtLeast(1f)
+                                        // vymena so susedom, ked je riadok prevlecený cez polovicu jeho vysky
+                                        if (dragOffset > h / 2f && cur < rows.lastIndex) {
+                                            onMove(cur, cur + 1); dragOffset -= h
+                                        } else if (dragOffset < -h / 2f && cur > 0) {
+                                            onMove(cur, cur - 1); dragOffset += h
+                                        }
+                                        // autoscroll pri okrajoch zoznamu
+                                        val y = me.offset + dragOffset + h / 2f
+                                        val vpStart = info.viewportStartOffset.toFloat()
+                                        val vpEnd = info.viewportEndOffset.toFloat()
+                                        val edge = h
+                                        val scrollBy = when {
+                                            y < vpStart + edge -> -(vpStart + edge - y) * 0.3f
+                                            y > vpEnd - edge -> (y - (vpEnd - edge)) * 0.3f
+                                            else -> 0f
+                                        }
+                                        if (scrollBy != 0f) dragScope.launch { listState.scrollBy(scrollBy) }
+                                    }
+                                )
+                            }
+                    )
+                }
+            }
         }
     }
 }
@@ -1092,4 +1179,10 @@ private fun ChannelItem(
                 .padding(horizontal = 14.dp, vertical = 4.dp)
         )
     }
+}
+
+/** M560: TV (leanback) zariadenie — tahanie prstom nema zmysel, poradie oblubenych sa tam meni v prehravaci. */
+internal fun isTvDeviceCtx(ctx: android.content.Context): Boolean {
+    val um = ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
+    return um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
 }
