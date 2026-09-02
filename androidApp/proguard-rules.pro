@@ -62,7 +62,12 @@
 -dontwarn com.google.errorprone.annotations.**
 -dontwarn javax.annotation.**
 -dontwarn com.google.api.**
--keep class com.google.crypto.tink.** { *; }
+# Ziadny blanket keep pre Tink (velka kniznica, drzali sme ju celu). Jedine, co
+# Tink potrebuje pri R8, je protobuf-lite: GeneratedMessageLite hlada polia
+# sprav cez reflexiu podla mena -> polia potomkov sa nesmu premenovat.
+-keepclassmembers class * extends com.google.crypto.tink.shaded.protobuf.GeneratedMessageLite {
+    <fields>;
+}
 -dontwarn com.google.crypto.tink.**
 
 # --- Kotlin metadata / reflexia --------------------------------------------
