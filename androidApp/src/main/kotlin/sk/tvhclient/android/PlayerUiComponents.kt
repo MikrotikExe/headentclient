@@ -27,6 +27,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -64,6 +67,7 @@ internal fun TrackMenu(
         Modifier
             .fillMaxSize()
             .background(if (modern) playerScrimSoft() else Color(0x99000000))
+            .consumeAllPointer()   // M563
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
@@ -265,5 +269,19 @@ internal fun fmtMs(ms: Long): String {
         "$h:" + m.toString().padStart(2, '0') + ":" + s.toString().padStart(2, '0')
     } else {
         "$m:" + s.toString().padStart(2, '0')
+    }
+}
+
+/**
+ * M563: spotrebuje vsetky dotykove udalosti (aj tahanie), aby gesta prehravaca pod
+ * overlayom (hlasitost/jas svihnutim, otvorenie zoznamu, prepnutie kanala) nereagovali,
+ * kym je otvorene menu. Samotny klik riesi clickable za tymto modifikatorom.
+ */
+internal fun Modifier.consumeAllPointer(): Modifier = this.pointerInput(Unit) {
+    awaitEachGesture {
+        do {
+            val event = awaitPointerEvent(androidx.compose.ui.input.pointer.PointerEventPass.Main)
+            event.changes.forEach { if (it.positionChanged()) it.consume() }
+        } while (event.changes.any { it.pressed })
     }
 }

@@ -208,6 +208,7 @@ internal fun ModernMoreSheet(
         Modifier
             .fillMaxSize()
             .background(Color(0x8C000000))
+            .consumeAllPointer()   // M563: gesta (hlasitost, zoznam, prepnutie kanala) nesmu ist pod panel
             .clickable { onDismiss() },
         contentAlignment = Alignment.BottomCenter
     ) {
@@ -215,8 +216,9 @@ internal fun ModernMoreSheet(
             Modifier
                 // M561: na sirku (a s viac polozkami) sa panel nezmestil a nedal sa posuvat;
                 // obmedzena sirka (na sirku nie cez celu obrazovku), max 85 % vysky, rolovanie
-                .fillMaxWidth()
+                // M563: widthIn MUSI byt pred fillMaxWidth (inak fillMaxWidth vynuti celu sirku)
                 .widthIn(max = 520.dp)
+                .fillMaxWidth()
                 .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.85f).dp)
                 .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
                 .background(playerScrim())

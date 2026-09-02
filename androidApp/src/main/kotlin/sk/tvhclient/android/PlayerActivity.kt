@@ -7329,6 +7329,7 @@ private fun PlayerUi(
                 Modifier
                     .fillMaxSize()
                     .background(playerScrimSoft())
+                    .consumeAllPointer()   // M563
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -7396,6 +7397,7 @@ private fun PlayerUi(
                 Modifier
                     .fillMaxSize()
                     .background(playerScrimSoft())
+                    .consumeAllPointer()   // M563
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null

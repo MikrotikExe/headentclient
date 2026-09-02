@@ -416,7 +416,8 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                         if (favOnly && serverId != null && !isTvDeviceCtx(ctx)) { from, to ->
                             Favorites.move(ctx, serverId, from, to); favTick++
                         } else null
-                    ChannelView(viewMode, rows, listStateMain, nowTick, epgMap, recordingFor, onRecordingTap = { r, rec -> recChoice = r to rec }, focusUuid = focusUuid, onTopUp = { runCatching { searchFocus.requestFocus() } }, onShowEpg = { contextRow = it }, lockTick = lockTick, hiddenTick = hiddenTick, onMove = moveFav)
+                    val favMarks = remember(favs, favOnly) { if (favOnly) emptySet() else favs.toSet() }   // M564
+                    ChannelView(viewMode, rows, listStateMain, nowTick, epgMap, recordingFor, onRecordingTap = { r, rec -> recChoice = r to rec }, focusUuid = focusUuid, onTopUp = { runCatching { searchFocus.requestFocus() } }, onShowEpg = { contextRow = it }, lockTick = lockTick, hiddenTick = hiddenTick, onMove = moveFav, favUuids = favMarks)
                 }
             }
         }
@@ -746,12 +747,13 @@ private fun ChannelView(
     onShowEpg: (ChannelRow) -> Unit,
     lockTick: Int = 0,
     hiddenTick: Int = 0,
-    onMove: ((Int, Int) -> Unit)? = null   // M560: presun tahanim (len Oblubene, dotyk)
+    onMove: ((Int, Int) -> Unit)? = null,   // M560: presun tahanim (len Oblubene, dotyk)
+    favUuids: Set<String> = emptySet()      // M564: hviezdicka pri oblubenych mimo skupiny Oblubene
 ) {
     when (mode) {
-        ChannelViewMode.LIST -> ChannelList(rows, listState, nowSec, epgMap, recordingFor, onRecordingTap, focusUuid, onTopUp, onShowEpg, lockTick, hiddenTick, onMove)
-        ChannelViewMode.GRID -> ChannelGrid(rows, nowSec, epgMap, columns = 2, recordingFor, onRecordingTap, onShowEpg)
-        ChannelViewMode.TILES -> ChannelGrid(rows, nowSec, epgMap, columns = 4, recordingFor, onRecordingTap, onShowEpg)
+        ChannelViewMode.LIST -> ChannelList(rows, listState, nowSec, epgMap, recordingFor, onRecordingTap, focusUuid, onTopUp, onShowEpg, lockTick, hiddenTick, onMove, favUuids)
+        ChannelViewMode.GRID -> ChannelGrid(rows, nowSec, epgMap, columns = 2, recordingFor, onRecordingTap, onShowEpg, favUuids)
+        ChannelViewMode.TILES -> ChannelGrid(rows, nowSec, epgMap, columns = 4, recordingFor, onRecordingTap, onShowEpg, favUuids)
     }
 }
 
@@ -764,7 +766,8 @@ private fun ChannelGrid(
     columns: Int,
     recordingFor: (ChannelRow) -> sk.tvhclient.shared.model.DvrEntry?,
     onRecordingTap: (ChannelRow, sk.tvhclient.shared.model.DvrEntry) -> Unit,
-    onShowEpg: (ChannelRow) -> Unit
+    onShowEpg: (ChannelRow) -> Unit,
+    favUuids: Set<String> = emptySet()   // M564
 ) {
     val context = LocalContext.current
     val server = remember { Tvh.store.active() }
@@ -824,6 +827,12 @@ private fun ChannelGrid(
                                 .background(Color(0xFFE53935))
                         )
                     }
+                    if (row.channel.uuid in favUuids) {   // M564
+                        androidx.compose.material3.Icon(
+                            Icons.Filled.Star, contentDescription = null, tint = Color(0xFFFBBF24),
+                            modifier = Modifier.align(Alignment.TopStart).padding(2.dp).size(12.dp)
+                        )
+                    }
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
@@ -870,7 +879,8 @@ private fun ChannelList(
     onShowEpg: (ChannelRow) -> Unit,
     lockTick: Int = 0,
     hiddenTick: Int = 0,
-    onMove: ((Int, Int) -> Unit)? = null
+    onMove: ((Int, Int) -> Unit)? = null,
+    favUuids: Set<String> = emptySet()
 ) {
     val context = LocalContext.current
     val server = remember { Tvh.store.active() }
@@ -944,7 +954,8 @@ private fun ChannelList(
             if (onMove == null) {
                 ChannelItem(row, loader, context, nowSec, epgMap[row.channel.uuid],
                     recordingFor(row), onRecordingTap, onShowEpg,
-                    itemModifier = keyMod, lockTick = lockTick, hiddenTick = hiddenTick)
+                    itemModifier = keyMod, lockTick = lockTick, hiddenTick = hiddenTick,
+                    favorite = row.channel.uuid in favUuids)
             } else {
                 // M560: riadok + rukovat na tahanie; tahany riadok nadvihnuty (posun, tien, okraj)
                 val dragging = dragUuid == row.channel.uuid
@@ -965,7 +976,8 @@ private fun ChannelList(
                     Box(Modifier.weight(1f)) {
                         ChannelItem(row, loader, context, nowSec, epgMap[row.channel.uuid],
                             recordingFor(row), onRecordingTap, onShowEpg,
-                            itemModifier = keyMod, lockTick = lockTick, hiddenTick = hiddenTick)
+                            itemModifier = keyMod, lockTick = lockTick, hiddenTick = hiddenTick,
+                            favorite = row.channel.uuid in favUuids)
                     }
                     Icon(
                         Icons.Default.DragHandle, contentDescription = null,
@@ -1026,7 +1038,8 @@ private fun ChannelItem(
     onShowEpg: (ChannelRow) -> Unit,
     itemModifier: Modifier = Modifier,
     lockTick: Int = 0,
-    hiddenTick: Int = 0
+    hiddenTick: Int = 0,
+    favorite: Boolean = false   // M564
 ) {
     val (curTitle, curStart, curStop) = currentNow(row, epgList, nowSec)
     val locked = remember(lockTick, row.channel.uuid) {
@@ -1062,6 +1075,7 @@ private fun ChannelItem(
             },
             onLongClick = { onShowEpg(row) },
             modifier = itemModifier,
+            favorite = favorite,   // M564
         )
         return
     }
@@ -1125,6 +1139,13 @@ private fun ChannelItem(
                             .size(9.dp)
                             .clip(androidx.compose.foundation.shape.CircleShape)
                             .background(Color(0xFFE53935))
+                    )
+                }
+                if (favorite) {
+                    Spacer(Modifier.width(6.dp))
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Filled.Star, contentDescription = null,
+                        tint = Color(0xFFFBBF24), modifier = Modifier.size(16.dp)   // M564
                     )
                 }
                 if (locked) {

@@ -181,8 +181,11 @@ fun TeletextOverlay(
                     // M559-fix2: ◀ ▶ = strana ±1 (podstránky má málo strán; tie idú švihnutím
                     // do strany po stránke), inak tlačidlá "nič nerobili"
                     TouchKey(if (keypad) "▾ 123" else "123", accent = keypad) { keypad = !keypad }
-                    TouchKey("◀") { onStep(-1) }
-                    TouchKey("▶") { onStep(+1) }
+                    // M563: − / + = strana, ◀ ▶ = podstránka (ako na TV), švihnutie tiež podstránka
+                    TouchKey("−") { onStep(-1) }
+                    TouchKey("+") { onStep(+1) }
+                    TouchKey("◀") { onSubStep(-1) }
+                    TouchKey("▶") { onSubStep(+1) }
                     TouchKey("◐", accent = transparent) { onToggleTransparent() }
                     TouchKey("✕") { onClose() }
                 }
@@ -232,9 +235,9 @@ fun TeletextOverlay(
 @Composable
 private fun TouchKey(label: String, accent: Boolean = false, onClick: () -> Unit) {
     Box(
-        Modifier.height(36.dp).widthIn(min = 56.dp).clip(RoundedCornerShape(18.dp))
+        Modifier.height(36.dp).widthIn(min = 40.dp).clip(RoundedCornerShape(18.dp))
             .background(if (accent) Color(0xFF1D9E75) else Color(0xFF1E293B))
-            .clickable { onClick() }.padding(horizontal = 14.dp),
+            .clickable { onClick() }.padding(horizontal = 10.dp),
         contentAlignment = Alignment.Center
     ) { Text(label, color = Color.White, fontSize = 14.sp) }
 }

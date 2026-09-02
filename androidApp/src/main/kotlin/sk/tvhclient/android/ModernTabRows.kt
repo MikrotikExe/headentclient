@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -62,6 +63,7 @@ internal fun ModernChannelTabRow(
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
     highlighted: Boolean = false,
+    favorite: Boolean = false,   // M564: hviezdicka pri oblubenom kanali (mimo skupiny Oblubene)
 ) {
     val cs = MaterialTheme.colorScheme
     val ctx = androidx.compose.ui.platform.LocalContext.current
@@ -103,6 +105,11 @@ internal fun ModernChannelTabRow(
                 if (recording) {
                     Spacer(Modifier.width(6.dp))
                     Box(Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFE53935)))
+                }
+                if (favorite) {
+                    Spacer(Modifier.width(6.dp))
+                    Icon(Icons.Filled.Star, contentDescription = null,
+                        tint = Color(0xFFFBBF24), modifier = Modifier.size(14.dp))   // M564
                 }
                 if (locked) {
                     Spacer(Modifier.width(6.dp))
