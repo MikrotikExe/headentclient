@@ -7332,7 +7332,8 @@ private fun PlayerUi(
             ) {
                 Column(
                     Modifier
-                        .widthIn(min = 300.dp)
+                        // M558: bez max sirky sa riadky (fillMaxWidth) roztiahli na celu obrazovku
+                        .widthIn(min = 300.dp, max = 380.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(playerScrim())
                         .padding(8.dp)
