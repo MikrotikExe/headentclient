@@ -66,6 +66,8 @@ jobs:
           cp androidApp/build/outputs/apk/release/androidApp-release.apk /tmp/rel-apks/ 2>/dev/null \
             || cp androidApp/build/outputs/apk/release/*-release.apk /tmp/rel-apks/
           cp -f /tmp/rel-apks/*.apk androidApp/build/outputs/apk/release/
+          # M544: mapping.txt k release buildu (splity a univerzalny maju rovnaky kod)
+          cp androidApp/build/outputs/mapping/release/mapping.txt "mapping-${REL_TAG#v}.txt" || true
 
       - name: Priprav artefakty (nazov + sha256)
         run: |
@@ -122,3 +124,4 @@ jobs:
           files: |
             HeadentClient-*.apk
             HeadentClient-*.apk.sha256
+            mapping-*.txt

@@ -1875,6 +1875,19 @@ class PlayerActivity : ComponentActivity() {
         else doToggle()
     }
 
+    /**
+     * M544: callbacky pre PlayerUi, ktore sa odovzdavaju PODMIENENE (`if (...) cb else null`),
+     * su pevne polia aktivity, nie lambdy vytvorene v kompozicii. Compose lambdu v
+     * argumente memoizuje do slotu; pri prepnuti podmienky (htspStreamState, canZap)
+     * vnutri `key(videoSurfaceGen)` sa sloty posunuli a pri rekompozicii sa v slote
+     * ocakavanom pre Function1 nasla ina lambda -> ClassCastException
+     * „$$ExternalSyntheticLambda7 cannot be cast to Function1" (Pixel 9, 1.0.5).
+     * Pole ziadny slot nezabera, takze sa nema co posunut.
+     */
+    private val pickHtspSpuCb: (Int) -> Unit = { id -> onPickHtspSpu(id) }
+    private val prevChannelCb: () -> Unit = { switchLive(-1) }
+    private val nextChannelCb: () -> Unit = { switchLive(+1) }
+
     // --- Kontextove menu kanala v prehravaci (long-press OK / dlhy klik) ---
     private val ctxMenuIdxState = androidx.compose.runtime.mutableStateOf(-1)  // index kanala, -1 = zatvorene
     private val ctxMenuSelState = androidx.compose.runtime.mutableStateOf(0)    // zvyraznena polozka
@@ -3362,7 +3375,7 @@ class PlayerActivity : ComponentActivity() {
                     htspSpuItemsList()
                 } else null,
                 htspSpuCurrentId = selectedSubEsState.value,
-                onPickHtspSpu = if (htspStreamState.value) ({ id -> onPickHtspSpu(id) }) else null,
+                onPickHtspSpu = if (htspStreamState.value) pickHtspSpuCb else null,   // M544: bez lambdy v kompozicii
                 onPickHttpSpu = { id -> httpSpuUserPick(id) },
                 onAttach = { layout ->
                     videoLayout = layout
@@ -3522,8 +3535,8 @@ class PlayerActivity : ComponentActivity() {
                             else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_USER
                     }
                 },
-                onPrevChannel = if (canZap) ({ switchLive(-1) }) else null,
-                onNextChannel = if (canZap) ({ switchLive(+1) }) else null,
+                onPrevChannel = if (canZap) prevChannelCb else null,   // M544
+                onNextChannel = if (canZap) nextChannelCb else null,   // M544
                 onTogglePlay = { togglePlayPause() },
                 timeshiftEngaged = timeshiftEngagedState.value,
                 modernOvVisible = modernOvState.value,

@@ -69,4 +69,11 @@ jobs:
         with:
           name: HeadentClient-aab
           path: androidApp/build/outputs/bundle/release/*.aab
+      # M544: R8 mapping — na rozlustenie obfuskovanych stackov z diagnostickeho logu
+      # (a na nahratie do Play Console k danemu buildu)
+      - name: Upload R8 mapping
+        uses: actions/upload-artifact@v5
+        with:
+          name: HeadentClient-mapping
+          path: androidApp/build/outputs/mapping/release/mapping.txt
 
