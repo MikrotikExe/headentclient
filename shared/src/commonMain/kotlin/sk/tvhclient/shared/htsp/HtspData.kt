@@ -22,6 +22,8 @@ object HtspData {
     var lastEpgError: String? = null
     /** M551-fix: koľko kanálov pri poslednom epgUpcomingMap zlyhalo (getEvents vyhodilo výnimku). */
     @kotlin.concurrent.Volatile var lastEpgFailed: Int = 0
+    /** M551-fix2: kanály, pre ktoré getEvents nevrátilo žiadnu aktuálnu/nasledujúcu udalosť. */
+    @kotlin.concurrent.Volatile var lastEpgEmpty: List<Long> = emptyList()
     private fun noteEpgError(e: Throwable) {
         lastEpgError = (e::class.simpleName ?: "Throwable") + ": " + (e.message ?: "")
     }
@@ -138,19 +140,29 @@ object HtspData {
         client.connect()
         val out = HashMap<String, List<EpgEvent>>()
         var failed = 0
+        val empty = ArrayList<Long>()
         try {
             for (cid in channelIds) {
-                val evs = try {
+                var mapped = try {
                     client.getEvents(cid, numFollowing = 5, maxTime = 0)
+                        .mapNotNull { mapEvent(it) }.filter { it.stop > nowSec }
                 } catch (e: Exception) { noteEpgError(e); failed++; continue }
-                val mapped = evs.mapNotNull { mapEvent(it) }
-                    .filter { it.stop > nowSec }
-                    .sortedBy { it.start }
-                if (mapped.isNotEmpty()) out[cid.toString()] = mapped
+                // M551-fix2: niektoré kanály vrátia bez maxTime nič (server nemá "now"
+                // ukazovateľ, napr. medzera v EPG) — druhý pokus s časovým oknom ako
+                // v dennom programe, ktorý pre ten istý kanál udalosti vracia.
+                if (mapped.isEmpty()) {
+                    mapped = try {
+                        client.getEvents(cid, numFollowing = 5, maxTime = nowSec + 86400)
+                            .mapNotNull { mapEvent(it) }.filter { it.stop > nowSec }
+                    } catch (e: Exception) { noteEpgError(e); failed++; continue }
+                }
+                if (mapped.isNotEmpty()) out[cid.toString()] = mapped.sortedBy { it.start }
+                else empty.add(cid)
             }
         } finally {
             client.close()
         }
+        lastEpgEmpty = empty
         // M551: prazdny alebo neuplny vysledok (getEvents zlyhalo) sa NEcachuje —
         // inak sa 10 minut vracala prazdna mapa a EPG v prehravaci sa "zaseklo"
         // (videne po prepnuti servera z HTTP na HTSP rezim pocas behu appky).

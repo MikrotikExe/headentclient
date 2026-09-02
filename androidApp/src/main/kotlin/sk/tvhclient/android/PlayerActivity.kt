@@ -1180,7 +1180,7 @@ class PlayerActivity : ComponentActivity() {
                 if (epgPartial) {
                     CrashLogger.report(
                         this, "PlayerActivity.epg",
-                        "HTSP EPG incomplete: ${map.size}/${cur.size} channels, failed=$failed, lastEpgError=" +
+                        "HTSP EPG incomplete: ${map.size}/${cur.size} channels, failed=$failed, empty=${sk.tvhclient.shared.htsp.HtspData.lastEpgEmpty}, lastEpgError=" +
                             (sk.tvhclient.shared.htsp.HtspData.lastEpgError ?: "none")
                     )
                     scheduleEpgRetry()

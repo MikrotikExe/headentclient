@@ -119,13 +119,37 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private fun loadHtspNowNext(server: sk.tvhclient.shared.model.TvhServer) {
+    private var nowNextRetries = 0
+    private fun loadHtspNowNext(server: sk.tvhclient.shared.model.TvhServer, retry: Boolean = false) {
+        if (!retry) nowNextRetries = 0
         viewModelScope.launch {
+            sk.tvhclient.shared.htsp.HtspData.lastEpgError = null
             val map = try {
                 withContext(Dispatchers.IO) { Tvh.fetchEpgUpcoming(server) }
-            } catch (e: Exception) { emptyMap() }
+            } catch (e: Exception) {
+                CrashLogger.report(getApplication(), "ChannelsViewModel.nowNext", e)   // M551-fix2
+                emptyMap()
+            }
+            // M551-fix2: diagnostika chýbajúceho now/next (doteraz potichu)
+            val empty = sk.tvhclient.shared.htsp.HtspData.lastEpgEmpty
+            val failed = sk.tvhclient.shared.htsp.HtspData.lastEpgFailed
+            if (empty.isNotEmpty() || failed > 0) {
+                CrashLogger.report(
+                    getApplication(), "ChannelsViewModel.nowNext",
+                    "HTSP now/next: ${map.size} ok, empty=${empty}, failed=$failed, lastEpgError=" +
+                        (sk.tvhclient.shared.htsp.HtspData.lastEpgError ?: "none")
+                )
+            }
+            // M551-fix2: neúplný výsledok -> o 20 s skúsiť znova (max 3×), výsledok zlúčiť
+            if ((empty.isNotEmpty() || failed > 0) && nowNextRetries < 3) {
+                nowNextRetries++
+                viewModelScope.launch {
+                    kotlinx.coroutines.delay(20_000)
+                    loadHtspNowNext(server, retry = true)
+                }
+            }
             if (map.isNotEmpty()) {
-                _epgMap.value = map
+                _epgMap.value = _epgMap.value + map
                 // M278: ulozit na disk (live cache), nech now/next prezije restart/obnovu
                 viewModelScope.launch(Dispatchers.IO) {
                     runCatching {
