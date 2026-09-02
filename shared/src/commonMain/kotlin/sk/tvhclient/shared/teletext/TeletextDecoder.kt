@@ -19,7 +19,7 @@ class TeletextDecoder {
         val subpage: Int,         // hex, 0 ak bez podstránok
         val rows: Array<ByteArray>,
         val rowPresent: BooleanArray,
-        val charset: Int,         // národná sada (C12–C14), 0..7
+        val charset: Int,         // designácia znakovej sady: región×8 + národná voľba (TeletextCharset)
         val flags: Int,           // C4..C14 bity ako v hlavičke
         val links: IntArray,      // Fastext: 6 čísel stránok (hex) alebo -1
         val receivedAt: Long
@@ -30,9 +30,15 @@ class TeletextDecoder {
     }
 
     private class Building(
-        val number: Int, val subpage: Int, val charset: Int, val flags: Int,
+        val number: Int, val subpage: Int, val natOpt: Int, val flags: Int,
         val rows: Array<ByteArray>, val rowPresent: BooleanArray, val links: IntArray
-    )
+    ) {
+        /** M555: X/28/0 — úplná designácia znakovej sady stránky (región + národná voľba), -1 = nie je. */
+        var x28Set: Int = -1
+    }
+
+    /** M555: M/29/0 — predvolená designácia sady pre magazín (index 0..7, mag 8 = 0), -1 = nie je. */
+    private val magSet = IntArray(8) { -1 }
 
     // stránky: number -> (subpage -> Page). Copy-on-write snapshot: zapisuje jedno
     // vlákno (dekodér), čítá UI — bez zámku (common kód, žiadne synchronized).
@@ -57,6 +63,7 @@ class TeletextDecoder {
     fun clear() {
         pages = emptyMap()
         for (i in building.indices) building[i] = null
+        for (i in magSet.indices) magSet[i] = -1
         lastHeader = ""; lastHeaderPage = -1
     }
 
@@ -116,7 +123,9 @@ class TeletextDecoder {
             packet == 0 -> header(mag, d)
             packet in 1..24 -> row(mag, packet, d)
             packet == 27 -> fastext(mag, d)
-            // 26/28/29/30/31: rozšírenia (Level 1.5+), broadcast service data — ignorujeme
+            packet == 28 -> x28(mag, d)          // M555: znaková sada stránky
+            packet == 29 -> m29(mag, d)          // M555: znaková sada magazínu
+            // 26/30/31: rozšírenia (Level 1.5+), broadcast service data — ignorujeme
         }
     }
 
@@ -147,7 +156,8 @@ class TeletextDecoder {
             (if ((h[7] and 0x1) != 0) FLAG_SERIAL else 0)
         // C12 C13 C14 (bity 1..3 bajtu 8) — v tabuľke národných sád je C12 NAJVYŠŠÍ bit
         // (M553-fix: opačné poradie dávalo pre češtinu/slovenčinu (110) taliančinu (011)).
-        val charset = (((h[7] shr 1) and 1) shl 2) or (((h[7] shr 2) and 1) shl 1) or ((h[7] shr 3) and 1)
+        val natOpt = (((h[7] shr 1) and 1) shl 2) or (((h[7] shr 2) and 1) shl 1) or ((h[7] shr 3) and 1)
+        val charset = TeletextCharset.compose(magSet[idx], natOpt)
         // nová stránka: bez erase preberá riadky z uloženej verzie (prenášajú sa len zmenené)
         val prev = if (!erase) page(number, subpage) else null
         val rows = Array(25) { i -> if (prev != null && i > 0) prev.rows[i].copyOf() else ByteArray(40) { 0x20 } }
@@ -157,7 +167,7 @@ class TeletextDecoder {
         for (i in 0 until 8) rows[0][i] = 0x20
         for (i in 8 until 40) rows[0][i] = parity(d[2 + i])
         present[0] = true
-        building[idx] = Building(number, subpage, charset, flags, rows, present, links)
+        building[idx] = Building(number, subpage, natOpt, flags, rows, present, links)
         lastHeader = headerText(d, charset); lastHeaderPage = number
     }
 
@@ -193,10 +203,48 @@ class TeletextDecoder {
         }
     }
 
+    /** X/28/0 formát 1: triplet 1, bity 8–14 = designácia G0 sady (región ×8 + národná voľba). */
+    private fun x28(mag: Int, d: ByteArray) {
+        val b = building[mag and 7] ?: return
+        if (unham(d[2]) != 0) return              // len designation code 0
+        val t1 = unham24(d, 3) ?: return
+        b.x28Set = (t1 shr 7) and 0x7F
+    }
+
+    /** M/29/0: rovnaký formát, platí pre celý magazín (kým nepríde X/28/0 stránky). */
+    private fun m29(mag: Int, d: ByteArray) {
+        if (unham(d[2]) != 0) return
+        val t1 = unham24(d, 3) ?: return
+        magSet[mag and 7] = (t1 shr 7) and 0x7F
+    }
+
+    /**
+     * Hamming 24/18 (EN 300 706 8.3): 3 bajty (už s obrátenými bitmi) → 18 dátových bitov.
+     * Kontrolné bity na pozíciách 1,2,4,8,16 (+24 celková parita). Bez opravy chýb —
+     * pri nesúlade kontrol vráti null (paket sa opakuje pravidelne).
+     */
+    private fun unham24(d: ByteArray, off: Int): Int? {
+        val t = (d[off].toInt() and 0xFF) or ((d[off + 1].toInt() and 0xFF) shl 8) or ((d[off + 2].toInt() and 0xFF) shl 16)
+        var ref = -1
+        for (k in 0 until 5) {
+            var c = 0
+            for (pos in 1..23) if ((pos and (1 shl k)) != 0 && ((t shr (pos - 1)) and 1) == 1) c = c xor 1
+            if (ref < 0) ref = c else if (c != ref) return null
+        }
+        var data = 0; var n = 0
+        for (pos in 1..23) {
+            if (pos == 1 || pos == 2 || pos == 4 || pos == 8 || pos == 16) continue
+            data = data or (((t shr (pos - 1)) and 1) shl n); n++
+        }
+        return data
+    }
+
     private fun commit(idx: Int) {
         val b = building[idx] ?: return
         building[idx] = null
-        val pg = Page(b.number, b.subpage, b.rows, b.rowPresent, b.charset, b.flags, b.links, now())
+        // M555: sada stránky: X/28/0 > (M/29/0 región + C12–C14) > (región 0 + C12–C14)
+        val charset = if (b.x28Set >= 0) b.x28Set else TeletextCharset.compose(magSet[idx], b.natOpt)
+        val pg = Page(b.number, b.subpage, b.rows, b.rowPresent, charset, b.flags, b.links, now())
         val m = LinkedHashMap(pages[b.number] ?: emptyMap())
         m.remove(b.subpage)
         m[b.subpage] = pg
@@ -343,25 +391,111 @@ object TeletextRenderer {
     }
 }
 
-/** G0 Latin + národné podmnožiny (EN 300 706 tab. 36), výber podľa C12–C14 (región 0). */
+/**
+ * M555 — znakové sady G0 podľa EN 300 706 tab. 32/36 a nelatinské G0 (tab. 37–42).
+ * Hodnota sady = región (bity 6..3, z X/28/0 alebo M/29/0, inak 0) × 8 + národná voľba
+ * (bity 2..0, C12–C14 z hlavičky alebo z X/28/0). Pokryté všetky európske teletexty:
+ * latinka s 13 národnými podmnožinami, cyrilika (srbská/chorvátska, ruská/bulharská,
+ * ukrajinská), gréčtina, hebrejčina. Arabčina (tvary písmen podľa kontextu, RTL) sa
+ * zobrazí v latinke.
+ */
 object TeletextCharset {
-    private val POS = intArrayOf(0x23, 0x24, 0x40, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x7B, 0x7C, 0x7D, 0x7E)
-    private val NATIONAL = arrayOf(
-        "#¤@←½→↑#‐¼‖¾÷",   // 0 English
-        "#\$§ÄÖÜ^_°äöüß",   // 1 German
-        "#¤ÉÄÖÅÜ_éäöåü",   // 2 Swedish / Finnish / Hungarian
-        "£\$é°ç→↑#ùàòèì",   // 3 Italian
-        "éïàëêùî#èâôûç",   // 4 French
-        "ç\$¡áéíóú¿üñèà",   // 5 Portuguese / Spanish
-        "#ůčťžýířéáěúš",   // 6 Czech / Slovak
-        "#ńąƵŚŁćóężśłź"    // 7 (rezervované; použijeme poľštinu z regiónu 1)
-    )
+    fun compose(regionSet: Int, natOpt: Int): Int =
+        if (regionSet >= 0) (regionSet and 0x78) or (natOpt and 7) else (natOpt and 7)
 
-    fun g0(c: Int, charset: Int): Char {
+    // národné podmnožiny latinky — pozície 0x23 0x24 0x40 0x5B 0x5C 0x5D 0x5E 0x5F 0x60 0x7B 0x7C 0x7D 0x7E
+    private val POS = intArrayOf(0x23, 0x24, 0x40, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x7B, 0x7C, 0x7D, 0x7E)
+    private const val L_ENGLISH = 0
+    private const val L_GERMAN = 1
+    private const val L_SWEDISH = 2
+    private const val L_ITALIAN = 3
+    private const val L_FRENCH = 4
+    private const val L_PORTUGUESE = 5
+    private const val L_CZECH = 6
+    private const val L_POLISH = 7
+    private const val L_TURKISH = 8
+    private const val L_SERBIAN_LAT = 9
+    private const val L_RUMANIAN = 10
+    private const val L_ESTONIAN = 11
+    private const val L_LETTISH = 12
+    private val NATIONAL = arrayOf(
+        "£\$@←½→↑#‐¼‖¾÷",   // English
+        "#\$§ÄÖÜ^_°äöüß",   // German
+        "#¤ÉÄÖÅÜ_éäöåü",     // Swedish / Finnish / Hungarian
+        "£\$é°ç→↑#ùàòèì",   // Italian
+        "éïàëêùî#èâôûç",     // French
+        "ç\$¡áéíóú¿üñèà",   // Portuguese / Spanish
+        "#ůčťžýířéáěúš",     // Czech / Slovak
+        "#ńąŻŚŁćóężśłź",     // Polish
+        "₺ğİŞÖÇÜĞışöçü",     // Turkish
+        "#ËČĆŽĐŠëčćžđš",     // Serbian / Croatian / Slovenian (latinka)
+        "#¤ŢÂŞĂÎıţâşăî",     // Rumanian
+        "#õŠÄÖŽÜÕšäöžü",     // Estonian
+        "#\$ŠėęŽčūšąųžį"    // Lettish / Lithuanian
+    )
+    private const val G_CYR_SERBIAN = 100
+    private const val G_CYR_RUSSIAN = 101
+    private const val G_CYR_UKRAINIAN = 102
+    private const val G_GREEK = 103
+    private const val G_HEBREW = 104
+
+    /** Tab. 32: región (bity 14..11) × národná voľba (10..8) → latinská podmnožina alebo nelatinská sada. */
+    private fun resolve(set: Int): Int {
+        val region = (set shr 3) and 0xF
+        val n = set and 7
+        return when (region) {
+            0 -> intArrayOf(L_ENGLISH, L_GERMAN, L_SWEDISH, L_ITALIAN, L_FRENCH, L_PORTUGUESE, L_CZECH, L_ENGLISH)[n]
+            1 -> intArrayOf(L_POLISH, L_GERMAN, L_SWEDISH, L_ITALIAN, L_FRENCH, L_ENGLISH, L_CZECH, L_ENGLISH)[n]
+            2 -> intArrayOf(L_ENGLISH, L_GERMAN, L_SWEDISH, L_ITALIAN, L_FRENCH, L_PORTUGUESE, L_TURKISH, L_ENGLISH)[n]
+            3 -> intArrayOf(L_ENGLISH, L_ENGLISH, L_ENGLISH, L_ENGLISH, L_ENGLISH, L_SERBIAN_LAT, L_ENGLISH, L_RUMANIAN)[n]
+            4 -> intArrayOf(G_CYR_SERBIAN, L_GERMAN, L_ESTONIAN, L_LETTISH, G_CYR_RUSSIAN, G_CYR_UKRAINIAN, L_CZECH, L_ENGLISH)[n]
+            6 -> if (n == 7) G_GREEK else if (n == 6) L_TURKISH else L_ENGLISH
+            8 -> if (n == 4) L_FRENCH else L_ENGLISH          // 7 = arabčina -> latinka
+            10 -> if (n == 5) G_HEBREW else L_ENGLISH          // 7 = arabčina -> latinka
+            else -> L_ENGLISH
+        }
+    }
+
+    // nelatinské G0: 0x40..0x7E (63 znakov); 0x20..0x3F ako ASCII okrem uvedených výnimiek
+    private const val CYR_RU_UP = "ЮАБЦДЕФГХИЙКЛМНОПЯРСТУЖВЬЪЗШЭЩЧЫ"
+    private const val CYR_RU_LO = "юабцдефгхийклмнопярстужвьъзшэщч"
+    private const val CYR_UA_UP = "ЮАБЦДЕФГХИЙКЛМНОПЯРСТУЖВЬІЗШЄЩЧЇ"
+    private const val CYR_UA_LO = "юабцдефгхийклмнопярстужвьізшєщч"
+    private const val CYR_SR_UP = "ЧАБЦДЕФГХИЈКЛМНОПЌРСТУВЃЉЊЗЂЖЋШЅ"
+    private const val CYR_SR_LO = "чабцдефгхијклмнопќрстувѓљњзђжћш"
+    private const val GREEK_UP = "ΐΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩΪΫάέήίΰ"
+    private const val GREEK_LO = "ΰαβγδεζηθικλμνξοπρςστυφχψωϊϋόύώ"
+    private const val HEBREW_LO = "אבגדהוזחטיךכלםמןנסעףפץצקרשת"
+
+    fun g0(c: Int, set: Int): Char {
         if (c < 0x20 || c > 0x7F) return ' '
         if (c == 0x7F) return '█'
-        val idx = POS.indexOf(c)
-        if (idx >= 0) return NATIONAL[charset and 7][idx]
-        return c.toChar()
+        val r = resolve(set)
+        if (r < 100) {
+            val idx = POS.indexOf(c)
+            if (idx >= 0) return NATIONAL[r][idx]
+            return c.toChar()
+        }
+        return when (r) {
+            G_CYR_RUSSIAN -> nonLatin(c, CYR_RU_UP, CYR_RU_LO, 'ы')
+            G_CYR_UKRAINIAN -> nonLatin(c, CYR_UA_UP, CYR_UA_LO, 'ї')
+            G_CYR_SERBIAN -> nonLatin(c, CYR_SR_UP, CYR_SR_LO, null)
+            G_GREEK -> when (c) {
+                0x3C -> '«'; 0x3E -> '»'
+                else -> nonLatin(c, GREEK_UP, GREEK_LO, null)
+            }
+            G_HEBREW -> when {
+                c in 0x60..0x7A -> HEBREW_LO[c - 0x60]
+                else -> { val idx = POS.indexOf(c); if (idx >= 0) NATIONAL[L_ENGLISH][idx] else c.toChar() }
+            }
+            else -> c.toChar()
+        }
+    }
+
+    private fun nonLatin(c: Int, up: String, lo: String, amp: Char?): Char = when {
+        c == 0x26 && amp != null -> amp
+        c in 0x40..0x5F -> up.getOrElse(c - 0x40) { c.toChar() }
+        c in 0x60..0x7E -> lo.getOrElse(c - 0x60) { c.toChar() }
+        else -> c.toChar()
     }
 }
