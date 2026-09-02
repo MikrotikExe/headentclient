@@ -117,10 +117,14 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     // Indikator nahravania parujeme na kanal podla UUID (nie nazvu) — inak by
     // pri duplicitnych nazvoch/LCN (napr. regionalne "ITV1 HD" 103) svietilo na
     // vsetkych. Nazov je len fallback pre stare servery bez UUID v DVR zazname.
-    val recordingFor: (ChannelRow) -> sk.tvhclient.shared.model.DvrEntry? = remember(dvrState) {
+    val recordingFor: (ChannelRow) -> sk.tvhclient.shared.model.DvrEntry? = remember(dvrState, state) {
         val recs = (dvrState as? DvrState.Loaded)?.recording ?: emptyList()
         val byUuid = recs.filter { it.channelUuid.isNotBlank() }.associateBy { it.channelUuid }
-        val byName = recs.filter { it.channelUuid.isBlank() }.associateBy { it.channelName }
+        // M556: fallback podla nazvu aj pre zaznamy, ktorych channelUuid nesedi na ZIADEN
+        // kanal v zozname — po prepnuti HTSP <-> HTTP nesie stary DVR stav ine kluce
+        // (HTSP channelId vs HTTP hex uuid) a bodky zmizli, kym sa DVR nenacitalo znova.
+        val known = (state as? ChannelsState.Loaded)?.allRows?.map { it.channel.uuid }?.toSet() ?: emptySet()
+        val byName = recs.filter { it.channelUuid.isBlank() || it.channelUuid !in known }.associateBy { it.channelName }
         val resolver: (ChannelRow) -> sk.tvhclient.shared.model.DvrEntry? =
             { row -> byUuid[row.channel.uuid] ?: byName[row.channel.name] }
         resolver

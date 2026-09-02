@@ -89,6 +89,7 @@ class DvrViewModel : ViewModel() {
                 )
                 loadedOnce = true
             } catch (e: Exception) {
+                runCatching { CrashLogger.report(sk.tvhclient.shared.storage.AppContextHolder.context, "DvrViewModel.load", e) }   // M556: doteraz potichu
                 if (_state.value !is DvrState.Loaded) {
                     _state.value = DvrState.Error(e.message ?: "")   // M491: prazdne = UI doplni preklad
                 }
