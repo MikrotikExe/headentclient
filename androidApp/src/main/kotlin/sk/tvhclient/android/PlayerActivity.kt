@@ -7357,7 +7357,7 @@ private fun PlayerUi(
                             Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(if (sel) Color(0x553B82F6) else Color.Transparent)
+                                .background(if (sel) playerAccent().copy(alpha = 0.35f) else Color.Transparent)   // M562
                                 .clickable { onMorePick(idx) }
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -7404,7 +7404,8 @@ private fun PlayerUi(
             ) {
                 Column(
                     Modifier
-                        .widthIn(min = 300.dp)
+                        // M562: rovnaka sirka ako menu Viac / TrackMenu (bez max sa riadky roztiahli)
+                        .widthIn(min = 280.dp, max = 460.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(playerScrim())
                         .padding(8.dp)
@@ -7422,7 +7423,7 @@ private fun PlayerUi(
                             Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(if (sel) Color(0x553B82F6) else Color.Transparent)
+                                .background(if (sel) (if (isModernUi()) playerAccent().copy(alpha = 0.35f) else Color(0x553B82F6)) else Color.Transparent)   // M562
                                 .clickable { onOptionsSelect(idx) }
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -7601,7 +7602,7 @@ private fun ResumeDialog(resumeMs: Long, resumeSel: Int, onNo: () -> Unit, onYes
     ) {
         Column(
             Modifier
-                .widthIn(min = 260.dp)
+                .widthIn(min = 260.dp, max = 460.dp)   // M562
                 .clip(RoundedCornerShape(12.dp))
                 .background(playerScrim())
                 .padding(20.dp)
