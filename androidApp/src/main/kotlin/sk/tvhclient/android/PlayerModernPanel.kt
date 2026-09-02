@@ -11,6 +11,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -208,12 +213,17 @@ internal fun ModernMoreSheet(
     ) {
         Column(
             Modifier
+                // M561: na sirku (a s viac polozkami) sa panel nezmestil a nedal sa posuvat;
+                // obmedzena sirka (na sirku nie cez celu obrazovku), max 85 % vysky, rolovanie
                 .fillMaxWidth()
+                .widthIn(max = 520.dp)
+                .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.85f).dp)
                 .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
                 .background(playerScrim())
                 .clickable(enabled = false) {}   // pohlti klik, nech nezavrie panel
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             Spacer(Modifier.height(10.dp))
             Box(

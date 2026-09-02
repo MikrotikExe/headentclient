@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -125,6 +126,15 @@ fun TeletextOverlay(
                                 onLongPress = { onToggleTransparent() }
                             )
                         }
+                        .pointerInput(Unit) {
+                            // M559-fix2: švihnutie doľava/doprava = podstránka ±1
+                            var acc = 0f
+                            detectHorizontalDragGestures(
+                                onDragStart = { acc = 0f },
+                                onHorizontalDrag = { _, dx -> acc += dx },
+                                onDragEnd = { if (acc > 80f) onSubStep(-1) else if (acc < -80f) onSubStep(+1) }
+                            )
+                        }
                 ) {
                     if (!transparent) drawRect(Color.Black, Offset.Zero, Size(pageW, pageH))
                     // --- hlavička (riadok 0): stĺpce 0..7 = číslo strany, 8..39 = text z vysielania
@@ -168,9 +178,11 @@ fun TeletextOverlay(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // M559-fix2: ◀ ▶ = strana ±1 (podstránky má málo strán; tie idú švihnutím
+                    // do strany po stránke), inak tlačidlá "nič nerobili"
                     TouchKey(if (keypad) "▾ 123" else "123", accent = keypad) { keypad = !keypad }
-                    TouchKey("◀") { onSubStep(-1) }
-                    TouchKey("▶") { onSubStep(+1) }
+                    TouchKey("◀") { onStep(-1) }
+                    TouchKey("▶") { onStep(+1) }
                     TouchKey("◐", accent = transparent) { onToggleTransparent() }
                     TouchKey("✕") { onClose() }
                 }
