@@ -92,7 +92,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 
 private const val PX_PER_MIN = 4          // sirka 1 minuty v dp
-private const val HOUR_W = 60 * PX_PER_MIN // 240 dp
 private const val DAY_MIN = 24 * 60
 private const val PICON_COL = 64           // minimalna sirka stlpca kanala (uzke obrazovky)
 // M377: siroke obrazovky (TV/tablet >=600dp) — stlpec kanala nesie picon + cislo + nazov

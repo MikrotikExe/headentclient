@@ -41,7 +41,4 @@ interface DvrService {
 }
 
 /** M472: DVR profil (konfiguracia nahravania) na serveri. */
-data class DvrConfig(val uuid: String, val name: String) {
-    /** Prazdny nazov = predvoleny profil. */
-    val displayName: String get() = if (name.isBlank()) "Predvolený" else name
-}
+data class DvrConfig(val uuid: String, val name: String)

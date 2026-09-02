@@ -573,7 +573,6 @@ class PlayerActivity : ComponentActivity() {
                 }.getOrNull()
             }
             if (fixed != null && looksLikeRestUuid(fixed)) {
-                android.util.Log.i("HCDiag", "M390 heal " + pathId + " -> " + fixed)
                 LivePlaylist.channels = LivePlaylist.channels.map { if (it.uuid == pathId) it.copy(uuid = fixed) else it }
                 LivePlaylist.allChannels = LivePlaylist.allChannels.map { if (it.uuid == pathId) it.copy(uuid = fixed) else it }
                 liveUuids = liveUuids.map { if (it == pathId) fixed else it }

@@ -17,7 +17,6 @@ object StreamUrlBuilder {
 
     private const val STREAM_CH = "stream/channel/%s"
     private const val STREAM_CHID = "stream/channelid/%s"
-    private const val STREAM_SVC = "stream/service/%s"
 
     private fun encode(s: String): String = buildString {
         for (c in s) {
