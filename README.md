@@ -40,6 +40,9 @@ Jetpack Compose and libVLC.
   with tag filtering and a remembered group
 - **Start with the last channel (TV)** — resumes the channel or radio station you
   were last watching, with the full channel list and groups loaded
+- **Favourites in your order** — numbered 1…n inside the Favourites group and
+  reorderable with the remote; the group is remembered after a restart
+- **Hidden channels** can be brought back from the *Hidden channels* group in the player
 - Picons (channel logos)
 - Channel switching by number, channel list, zapping
 - Optional parental lock with PIN (configurable grace period, scope: channels / settings)
@@ -48,7 +51,8 @@ Jetpack Compose and libVLC.
 - Optional automatic frame-rate switching (HDR mode changes off by default)
 - Optional modern UI mode (home screen, player and navy/teal theme) — classic look remains the default
 - Multiple servers, backup & restore of settings
-- Optimized for Android TV / set-top boxes (D-pad remote) and phones
+- Optimized for Android TV / set-top boxes (D-pad remote) and phones, including
+  recovery from standby on Amlogic boxes (sound comes back, no freezes)
 - Localized into 31 languages (see below)
 - No ads, no tracking, no telemetry
 
