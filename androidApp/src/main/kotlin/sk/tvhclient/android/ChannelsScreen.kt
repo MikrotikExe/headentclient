@@ -413,9 +413,14 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                         else ->
                             s.categories.firstOrNull { it.tag?.uuid == selectedTag }?.rows ?: emptyList()
                     }
+                    // M571: skok na naposledy sledovany kanal je vec dialkoveho ovladaca —
+                    // na TV na nom musi byt fokus. Na dotykovom zariadeni to pouzivatel vidi
+                    // ako „zoznam sa otvara niekde v strede / na konci", preto tam zacina hore.
                     val focusUuid = remember(rows, serverId) {
-                        LastChannel.get(ctx, serverId)?.takeIf { u -> rows.any { it.channel.uuid == u } }
-                            ?: rows.firstOrNull()?.channel?.uuid
+                        if (isTvDeviceCtx(ctx))
+                            LastChannel.get(ctx, serverId)?.takeIf { u -> rows.any { it.channel.uuid == u } }
+                                ?: rows.firstOrNull()?.channel?.uuid
+                        else null
                     }
                     // M560: v skupine Oblubene na dotykovom zariadeni sa da poradie menit tahanim
                     // za rukovat; uklada sa hned (Favorites.move, rovnake data ako TV rezim)
