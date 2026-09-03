@@ -96,10 +96,15 @@ fun TeletextOverlay(
                 val density = LocalDensity.current
                 val availH = with(density) { maxHeight.toPx() } * 0.96f
                 val availW = with(density) { maxWidth.toPx() } * 0.96f
-                // M553-fix2: mriežka 40×25 sa roztiahne na celú obrazovku (ako VLC / TV v 16:9),
-                // nie 4:3 v strede — bunky nie sú viazané pomerom, text sa natiahne na šírku bunky
-                val ch = availH / 25f
-                val cw = availW / 40f
+                // M553-fix2: mriežka 40×25 sa roztiahne na obrazovku (ako VLC / TV v 16:9),
+                // nie 4:3 v strede — bunky nie sú viazané pomerom, text sa natiahne na šírku bunky.
+                // M569: pomer bunky je ohraničený, aby na telefóne na šírku (20:9) nebol
+                // teletext neúmerne roztiahnutý; na 16:9 TV vychádza 1.11 -> plná šírka ostáva
+                var ch = availH / 25f
+                var cw = availW / 40f
+                val ratio = cw / ch
+                if (ratio > 1.15f) cw = ch * 1.15f       // príliš široká obrazovka -> stránka v strede
+                else if (ratio < 0.75f) ch = cw / 0.75f  // úzka (na výšku) -> stránka nižšia
                 val pageW = cw * 40f
                 val pageH = ch * 25f
                 val fontPx = ch / 1.15f
