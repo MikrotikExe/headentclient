@@ -58,7 +58,7 @@ android {
         if (universalRequested && !buildingBundle) {
             ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
         }
-        versionCode = 46
+        versionCode = 47
         versionName = "1.0.6"
         buildConfigField(
             "String",
