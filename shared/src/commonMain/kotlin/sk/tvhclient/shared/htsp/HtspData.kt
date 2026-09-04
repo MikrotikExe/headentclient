@@ -133,20 +133,43 @@ object HtspData {
     suspend fun epgUpcomingMap(server: TvhServer, nowSec: Long): Map<String, List<EpgEvent>> {
         val nc = nowCache[server.id]
         if (nc != null && nowSec - nc.ts < 600) return nc.map
+        // M572: pocitadla plati vzdy len pre prave bezhiace kolo — ked kolo skoncilo
+        // vynimkou (napr. nedostupny server), v zazname sa inak zopakovalo cislo
+        // zo starsieho kola ("0 ok, failed=552")
+        lastEpgFailed = 0
+        lastEpgEmpty = emptyList()
         val meta = metadata(server, withEpg = false, nowSec = nowSec)
         val channelIds = meta.channels.mapNotNull { longOf(it, "channelId") }
         if (channelIds.isEmpty()) return emptyMap()
-        val client = HtspClient(server.host, server.htspPort, server.username, server.password)
+        var client = HtspClient(server.host, server.htspPort, server.username, server.password)
         client.connect()
         val out = HashMap<String, List<EpgEvent>>()
         var failed = 0
         val empty = ArrayList<Long>()
+        // M572: now/next ide po jednom spojeni cez stovky getEvents. Ked spojenie
+        // medzitym umre (Broken pipe / server odpoji klienta), doterajsi kod isiel
+        // dalej a kazdy zvysny kanal len pripocital chybu — v zazname to vyzeralo
+        // ako "failed=552". Teraz sa po troch chybach za sebou spojenie obnovi
+        // (najviac dvakrat) a ked sa obnovit neda, kolo sa ukonci hned.
+        var streak = 0
+        var reconnects = 0
         try {
             for (cid in channelIds) {
                 var mapped = try {
                     client.getEvents(cid, numFollowing = 5, maxTime = 0)
                         .mapNotNull { mapEvent(it) }.filter { it.stop > nowSec }
-                } catch (e: Exception) { noteEpgError(e); failed++; continue }
+                } catch (e: Exception) {
+                    noteEpgError(e); failed++; streak++
+                    if (streak >= 3) {
+                        if (reconnects >= 2) break
+                        reconnects++; streak = 0
+                        runCatching { client.close() }
+                        val fresh = HtspClient(server.host, server.htspPort, server.username, server.password)
+                        try { fresh.connect(); client = fresh }
+                        catch (e2: Exception) { noteEpgError(e2); runCatching { fresh.close() }; break }
+                    }
+                    continue
+                }
                 // M551-fix2: niektoré kanály vrátia bez maxTime nič (server nemá "now"
                 // ukazovateľ, napr. medzera v EPG) — druhý pokus s časovým oknom ako
                 // v dennom programe, ktorý pre ten istý kanál udalosti vracia.
@@ -154,8 +177,9 @@ object HtspData {
                     mapped = try {
                         client.getEvents(cid, numFollowing = 5, maxTime = nowSec + 86400)
                             .mapNotNull { mapEvent(it) }.filter { it.stop > nowSec }
-                    } catch (e: Exception) { noteEpgError(e); failed++; continue }
+                    } catch (e: Exception) { noteEpgError(e); failed++; streak++; continue }
                 }
+                streak = 0
                 if (mapped.isNotEmpty()) out[cid.toString()] = mapped.sortedBy { it.start }
                 else empty.add(cid)
             }

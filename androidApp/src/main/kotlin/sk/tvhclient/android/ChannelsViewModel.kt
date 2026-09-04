@@ -141,10 +141,14 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
                         (sk.tvhclient.shared.htsp.HtspData.lastEpgError ?: "none")
                 )
             }
+            // M572: opakovanie s narastajucim odstupom (20 s, 60 s, 180 s). Pri
+            // nedostupnej sieti / neznamom mene servera nema zmysel klepat kazdych
+            // 20 sekund — pouzivatel to videl ako opakovane chyby v zazname.
             if ((failed > 0 || map.isEmpty()) && nowNextRetries < 3) {
                 nowNextRetries++
+                val wait = when (nowNextRetries) { 1 -> 20_000L; 2 -> 60_000L; else -> 180_000L }
                 viewModelScope.launch {
-                    kotlinx.coroutines.delay(20_000)
+                    kotlinx.coroutines.delay(wait)
                     loadHtspNowNext(server, retry = true)
                 }
             }
