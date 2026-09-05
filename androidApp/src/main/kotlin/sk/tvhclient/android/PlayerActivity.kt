@@ -2822,11 +2822,27 @@ class PlayerActivity : ComponentActivity() {
                     return true
                 }
                 android.view.KeyEvent.KEYCODE_INFO -> { toggleInfo(); return true }
-            }
-            // media RW/FF -> timeshift skok (ak je HTSP zivy)
-            if (htspLive) when (kc) {
-                android.view.KeyEvent.KEYCODE_MEDIA_REWIND -> { timeshiftSkip(-30); pokeControls(); return true }
-                android.view.KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> { timeshiftSkip(+30); pokeControls(); return true }
+                // M577 (issue #11): medialne klavesy dialkoveho — STOP zastavi prehravanie
+                // (ako Spat bez PiP a bez potvrdenia), PLAY/PAUSE/PLAY_PAUSE ovladaju pauzu,
+                // RW/FF skacu v nahravke aj v timeshifte, NEXT/PREV = dalsi/predosly kanal
+                // (v nahravke skok o minutu)
+                android.view.KeyEvent.KEYCODE_MEDIA_STOP -> { LastPlayback.clear(this); finish(); return true }
+                android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> { togglePlayPause(); pokeControls(); return true }
+                android.view.KeyEvent.KEYCODE_MEDIA_PLAY -> { if (!isPlayingState.value) { togglePlayPause(); pokeControls() }; return true }
+                android.view.KeyEvent.KEYCODE_MEDIA_PAUSE -> { if (isPlayingState.value) { togglePlayPause(); pokeControls() }; return true }
+                android.view.KeyEvent.KEYCODE_MEDIA_REWIND -> { scrubSeek(-30); pokeControls(); return true }
+                android.view.KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> { scrubSeek(+30); pokeControls(); return true }
+                android.view.KeyEvent.KEYCODE_MEDIA_NEXT, android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
+                    val fwd = kc == android.view.KeyEvent.KEYCODE_MEDIA_NEXT
+                    if (seekablePlayback) { seekRelative(if (fwd) 60_000L else -60_000L); pokeControls(); return true }
+                    // zivy kanal: rovnake spracovanie ako CH+/CH- (zoznam, PIN, zap bar)
+                    val mapped = android.view.KeyEvent(
+                        event.downTime, event.eventTime, event.action,
+                        if (fwd) android.view.KeyEvent.KEYCODE_CHANNEL_UP else android.view.KeyEvent.KEYCODE_CHANNEL_DOWN,
+                        event.repeatCount
+                    )
+                    return dispatchKeyEvent(mapped)
+                }
             }
         }
 
