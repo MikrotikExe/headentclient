@@ -4259,8 +4259,12 @@ class PlayerActivity : ComponentActivity() {
             android.graphics.drawable.Icon.createWithResource(this, android.R.drawable.ic_menu_close_clear_cancel),
             closeLabel, closeLabel, closePi
         )
+        // M576-fix: telefon/tablet ma systemovy krizik v PiP okne vzdy -> nasa akcia by bola
+        // druhe X vedla neho; na TV ostava (system tam vlastne ovladanie okna nema alebo ho
+        // skryva v ponuke PiP)
+        val actions = if (isTvDevice()) listOf(action, closeAction) else listOf(action)
         return android.app.PictureInPictureParams.Builder()
-            .setActions(listOf(action, closeAction))
+            .setActions(actions)
             .setAspectRatio(android.util.Rational(16, 9))
             .build()
     }
