@@ -56,7 +56,6 @@ class BootReceiver : BroadcastReceiver() {
             action == "android.intent.action.QUICKBOOT_POWERON" ||
             action == "com.htc.intent.action.QUICKBOOT_POWERON"
         if (!boot) return
-        TvHomeChannel.regrantPosters(context)   // M580: obrazky dlazdic riadku na domovskej obrazovke
         if (!AutostartPref.isEnabled(context)) return
         AutostartLaunch.bringToFrontOrStart(context)   // M535
     }

@@ -9,7 +9,6 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.net.Uri
-import androidx.core.content.FileProvider
 import androidx.core.graphics.drawable.toBitmap
 import androidx.tvprovider.media.tv.ChannelLogoUtils
 import androidx.tvprovider.media.tv.PreviewChannel
@@ -33,7 +32,7 @@ import java.util.Locale
  * medzi spusteniami appky sa EPG v riadku samo neobnovuje.
  *
  * Obrazky dlazdic si launcher stahuje sam, picony za heslom servera by nenacital —
- * preto sa kreslia lokalne do cache a launcheru sa pustia cez FileProvider.
+ * preto sa kreslia lokalne do cache a launcheru sa pustia cez [TvHomeImageProvider].
  *
  * Len TV (UI_MODE_TYPE_TELEVISION) a Android 8+ (preview channels). Google TV home
  * riadky appiek zobrazuje inak/menej; na Android TV home (boxy) je to plny riadok.
@@ -43,12 +42,6 @@ object TvHomeChannel {
     private const val CHANNEL_KEY = "headent-favorites"
     private const val TILE_W = 640
     private const val TILE_H = 360
-    private val LAUNCHERS = listOf(
-        "com.google.android.tvlauncher",          // Android TV home
-        "com.google.android.apps.tv.launcherx",   // Google TV home
-        "com.google.android.tvrecommendations",
-        "com.android.tv"
-    )
 
     fun supported(ctx: Context): Boolean {
         if (android.os.Build.VERSION.SDK_INT < 26) return false
@@ -116,8 +109,10 @@ object TvHomeChannel {
                 .setInternalProviderId(row.channel.uuid)
                 .setLive(true)
                 .setWeight(1000 - i)
-            if (line1.isNotEmpty()) b.setEpisodeTitle(line1)
-            if (line2.isNotEmpty()) b.setDescription(line2)
+            // M580-fix: launcher pri type „kanal" ukazuje pod nazvom len popis (nie episodeTitle)
+            // -> Teraz aj Dalej idu do jedneho popisu
+            val desc = listOf(line1, line2).filter { it.isNotEmpty() }.joinToString("   ")
+            if (desc.isNotEmpty()) b.setDescription(desc)
             if (curStart > 0 && curStop > 0) { b.setStartTimeUtcMillis(curStart * 1000); b.setEndTimeUtcMillis(curStop * 1000) }
             if (poster != null) b.setPosterArtUri(poster)
             val values = b.build().toContentValues()
@@ -130,21 +125,6 @@ object TvHomeChannel {
             r.exceptionOrNull()?.let { CrashLogger.report(app, "TvHomeChannel", it) }
         }
         for ((uuid, id) in existing) if (uuid !in keep) runCatching { resolver.delete(TvContractCompat.buildPreviewProgramUri(id), null, null) }
-    }
-
-    /**
-     * M580: opravnenia na obrazky dlazdic (grantUriPermission) nepreziju restart boxu,
-     * programy v TV provideri ano — launcher by po restarte ukazal dlazdice bez obrazkov.
-     * BootReceiver ich preto po starte znova udeli (bez zapisu do providera).
-     */
-    fun regrantPosters(app: Context) {
-        if (!supported(app)) return
-        val dir = File(app.cacheDir, "tvhome")
-        val files = dir.listFiles() ?: return
-        for (f in files) {
-            val uri = runCatching { FileProvider.getUriForFile(app, app.packageName + ".fileprovider", f) }.getOrNull() ?: continue
-            for (pkg in LAUNCHERS) runCatching { app.grantUriPermission(pkg, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-        }
     }
 
     /** Odstrani cely riadok (napr. pri odstraneni servera). */
@@ -211,7 +191,7 @@ object TvHomeChannel {
     /**
      * 16:9 dlazdica: picon (uz stiahnuty v Coil cache, [PiconImageLoader]) v strede na
      * tmavom podklade; bez piconu ikona appky. Ulozi sa do cache/tvhome/<uuid>.png a
-     * vrati content:// URI cez FileProvider s pravom citania pre launchery.
+     * vrati content:// URI z [TvHomeImageProvider].
      */
     private suspend fun posterUri(app: Context, server: sk.tvhclient.shared.model.TvhServer, row: ChannelRow): Uri? {
         val logo: Bitmap? = row.piconUrl?.let { FavoriteShortcuts.loadPicon(app, server, it) }
@@ -236,10 +216,7 @@ object TvHomeChannel {
         }
         file.outputStream().use { out.compress(Bitmap.CompressFormat.PNG, 100, it) }
         out.recycle()
-        val uri = FileProvider.getUriForFile(app, app.packageName + ".fileprovider", file)
-        for (pkg in LAUNCHERS) {
-            runCatching { app.grantUriPermission(pkg, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-        }
-        return uri
+        // M580-fix: vlastny exportovany provider — bez grantov, prezije restart
+        return TvHomeImageProvider.uriFor(app, file)
     }
 }

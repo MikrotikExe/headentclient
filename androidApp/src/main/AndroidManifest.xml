@@ -87,6 +87,12 @@
             android:name=".RadioPlayerService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
+        <!-- M580-fix: obrazky dlazdic riadku na domovskej obrazovke TV (len PNG z cache/tvhome) -->
+        <provider
+            android:name=".TvHomeImageProvider"
+            android:authorities="${applicationId}.tvhome"
+            android:exported="true"
+            android:grantUriPermissions="false" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
