@@ -153,23 +153,30 @@ object HtspData {
         // (najviac dvakrat) a ked sa obnovit neda, kolo sa ukonci hned.
         var streak = 0
         var reconnects = 0
+        /** Zaznamena chybu; vrati false, ked uz nema zmysel pokracovat (spojenie sa
+         *  nedalo obnovit alebo sa obnovovalo prilis casto). */
+        suspend fun onFailure(e: Exception): Boolean {
+            // M572-fix: zrusenie coroutine (odchod z obrazovky) nie je chyba EPG —
+            // nesmie spustit obnovu spojenia, ide dalej do finally
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            noteEpgError(e); failed++; streak++
+            if (streak < 3) return true
+            if (reconnects >= 2) return false
+            reconnects++; streak = 0
+            runCatching { client.close() }
+            val fresh = HtspClient(server.host, server.htspPort, server.username, server.password)
+            return try { fresh.connect(); client = fresh; true }
+            catch (e2: Exception) {
+                if (e2 is kotlinx.coroutines.CancellationException) throw e2
+                noteEpgError(e2); runCatching { fresh.close() }; false
+            }
+        }
         try {
             for (cid in channelIds) {
                 var mapped = try {
                     client.getEvents(cid, numFollowing = 5, maxTime = 0)
                         .mapNotNull { mapEvent(it) }.filter { it.stop > nowSec }
-                } catch (e: Exception) {
-                    noteEpgError(e); failed++; streak++
-                    if (streak >= 3) {
-                        if (reconnects >= 2) break
-                        reconnects++; streak = 0
-                        runCatching { client.close() }
-                        val fresh = HtspClient(server.host, server.htspPort, server.username, server.password)
-                        try { fresh.connect(); client = fresh }
-                        catch (e2: Exception) { noteEpgError(e2); runCatching { fresh.close() }; break }
-                    }
-                    continue
-                }
+                } catch (e: Exception) { if (onFailure(e)) continue else break }
                 // M551-fix2: niektoré kanály vrátia bez maxTime nič (server nemá "now"
                 // ukazovateľ, napr. medzera v EPG) — druhý pokus s časovým oknom ako
                 // v dennom programe, ktorý pre ten istý kanál udalosti vracia.
@@ -177,7 +184,7 @@ object HtspData {
                     mapped = try {
                         client.getEvents(cid, numFollowing = 5, maxTime = nowSec + 86400)
                             .mapNotNull { mapEvent(it) }.filter { it.stop > nowSec }
-                    } catch (e: Exception) { noteEpgError(e); failed++; streak++; continue }
+                    } catch (e: Exception) { if (onFailure(e)) continue else break }
                 }
                 streak = 0
                 if (mapped.isNotEmpty()) out[cid.toString()] = mapped.sortedBy { it.start }

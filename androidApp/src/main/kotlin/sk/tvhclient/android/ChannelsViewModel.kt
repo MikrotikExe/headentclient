@@ -144,7 +144,8 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
             // M572: opakovanie s narastajucim odstupom (20 s, 60 s, 180 s). Pri
             // nedostupnej sieti / neznamom mene servera nema zmysel klepat kazdych
             // 20 sekund — pouzivatel to videl ako opakovane chyby v zazname.
-            if ((failed > 0 || map.isEmpty()) && nowNextRetries < 3) {
+            // Server, ktory EPG legitimne nema (failed=0, vsetky kanaly prazdne), sa neopakuje.
+            if ((failed > 0 || (map.isEmpty() && empty.isEmpty())) && nowNextRetries < 3) {
                 nowNextRetries++
                 val wait = when (nowNextRetries) { 1 -> 20_000L; 2 -> 60_000L; else -> 180_000L }
                 viewModelScope.launch {
