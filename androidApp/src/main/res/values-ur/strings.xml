@@ -165,6 +165,8 @@
     <string name="menu_program">پروگرام (EPG)</string>
     <string name="fav_add">پسندیدہ میں شامل کریں</string>
     <string name="fav_remove">پسندیدہ سے ہٹائیں</string>
+    <string name="fav_added">پسندیدہ میں شامل کیا گیا: %1$s</string>
+    <string name="fav_removed">پسندیدہ سے ہٹا دیا گیا: %1$s</string>
     <string name="ch_hide">پلیئر سے چھپائیں</string>
     <string name="ch_unhide">پلیئر میں دکھائیں</string>
     <string name="login_connect">سائن اِن</string>

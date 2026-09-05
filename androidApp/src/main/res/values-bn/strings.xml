@@ -165,6 +165,8 @@
     <string name="menu_program">অনুষ্ঠান (EPG)</string>
     <string name="fav_add">প্রিয়তে যোগ করুন</string>
     <string name="fav_remove">প্রিয় থেকে সরান</string>
+    <string name="fav_added">পছন্দের তালিকায় যোগ করা হয়েছে: %1$s</string>
+    <string name="fav_removed">পছন্দের তালিকা থেকে সরানো হয়েছে: %1$s</string>
     <string name="ch_hide">প্লেয়ার থেকে লুকান</string>
     <string name="ch_unhide">প্লেয়ারে দেখান</string>
     <string name="login_connect">সাইন ইন</string>

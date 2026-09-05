@@ -2089,6 +2089,27 @@ class PlayerActivity : ComponentActivity() {
     }
     private fun closeChannelContextMenu() { ctxMenuIdxState.value = -1 }
 
+    /**
+     * Pridanie/odobratie kanala z oblubenych (kontextova ponuka, M579: klaves ZALOZKA
+     * na ovladaci). [announce] ukaze potvrdenie — pri klavese bez ponuky by inak
+     * pouzivatel nevidel, co sa stalo.
+     */
+    private fun toggleFavoriteAt(idx: Int, announce: Boolean) {
+        val ch = liveChannelsState.value.getOrNull(idx) ?: return
+        val sid = (liveServer ?: Tvh.store.active())?.id ?: return
+        Favorites.toggle(this, sid, ch.uuid)
+        val nowFav = Favorites.isFav(this, sid, ch.uuid)
+        refreshFavOrder()   // M541
+        // M541: v skupine Oblubene sa zoznam zmenil (odobrany kanal / precislovanie)
+        if (LivePlaylist.activeGroupKey == LivePlaylist.GROUP_FAV) {
+            if (LivePlaylist.favChannels().isEmpty()) applyGroup(LivePlaylist.GROUP_ALL) else applyGroup(LivePlaylist.GROUP_FAV)
+            navChannelIndexState.value = navChannelIndexState.value.coerceIn(0, (liveUuids.size - 1).coerceAtLeast(0))
+        }
+        if (announce) {
+            Toast.makeText(this, getString(if (nowFav) R.string.fav_added else R.string.fav_removed, ch.name), Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun activateCtxMenu(key: String) {
         val idx = ctxMenuIdxState.value
         val ch = liveChannelsState.value.getOrNull(idx)
@@ -2102,18 +2123,7 @@ class PlayerActivity : ComponentActivity() {
                 else if (idx != liveIndex) switchToIndex(idx)     // ak kanal este nehra a nie je archiv -> aspon prepni nazivo
             }
             "lock" -> toggleLockAt(idx)                           // uz riesi PIN + grace okno
-            "fav" -> {
-                val sid = (liveServer ?: Tvh.store.active())?.id
-                if (sid != null) {
-                    Favorites.toggle(this, sid, ch.uuid)
-                    refreshFavOrder()   // M541
-                    // M541: v skupine Oblubene sa zoznam zmenil (odobrany kanal / precislovanie)
-                    if (LivePlaylist.activeGroupKey == LivePlaylist.GROUP_FAV) {
-                        if (LivePlaylist.favChannels().isEmpty()) applyGroup(LivePlaylist.GROUP_ALL) else applyGroup(LivePlaylist.GROUP_FAV)
-                        navChannelIndexState.value = navChannelIndexState.value.coerceIn(0, (liveUuids.size - 1).coerceAtLeast(0))
-                    }
-                }
-            }
+            "fav" -> toggleFavoriteAt(idx, announce = false)
             "reorder" -> enterReorderMode()   // M541
             "unhide" -> {
                 // M541: odkryt kanal — spat medzi vsetky kanaly (podla cisla), von zo Skrytych
@@ -2832,6 +2842,15 @@ class PlayerActivity : ComponentActivity() {
                 android.view.KeyEvent.KEYCODE_MEDIA_PAUSE -> { if (isPlayingState.value) { togglePlayPause(); pokeControls() }; return true }
                 android.view.KeyEvent.KEYCODE_MEDIA_REWIND -> { scrubSeek(-30); pokeControls(); return true }
                 android.view.KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> { scrubSeek(+30); pokeControls(); return true }
+                // M579: ZALOZKA (Google TV ovladace) = pridat/odobrat prave hrajuci kanal
+                // z oblubenych; TV klaves = z nahravky spat na zivy kanal, inak zoznam kanalov
+                android.view.KeyEvent.KEYCODE_BOOKMARK -> {
+                    if (!seekablePlayback && liveIndex >= 0 && !channelListOpen) { toggleFavoriteAt(liveIndex, announce = true); return true }
+                }
+                android.view.KeyEvent.KEYCODE_TV -> {
+                    if (seekablePlayback && returnLiveUuid != null) { closePlayer(); return true }
+                    if (!seekablePlayback && !channelListOpen) { openChannelList(); return true }
+                }
                 android.view.KeyEvent.KEYCODE_MEDIA_NEXT, android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
                     val fwd = kc == android.view.KeyEvent.KEYCODE_MEDIA_NEXT
                     if (seekablePlayback) { seekRelative(if (fwd) 60_000L else -60_000L); pokeControls(); return true }

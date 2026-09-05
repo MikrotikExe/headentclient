@@ -165,6 +165,8 @@
     <string name="menu_program">Programma (EPG)</string>
     <string name="fav_add">Aan favorieten toevoegen</string>
     <string name="fav_remove">Uit favorieten verwijderen</string>
+    <string name="fav_added">Toegevoegd aan favorieten: %1$s</string>
+    <string name="fav_removed">Verwijderd uit favorieten: %1$s</string>
     <string name="ch_hide">Verbergen in speler</string>
     <string name="ch_unhide">Tonen in speler</string>
     <string name="login_connect">Inloggen</string>

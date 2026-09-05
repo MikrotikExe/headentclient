@@ -165,6 +165,8 @@
     <string name="menu_program">برنامه (EPG)</string>
     <string name="fav_add">افزودن به علاقه‌مندی‌ها</string>
     <string name="fav_remove">حذف از علاقه‌مندی‌ها</string>
+    <string name="fav_added">به علاقه‌مندی‌ها اضافه شد: %1$s</string>
+    <string name="fav_removed">از علاقه‌مندی‌ها حذف شد: %1$s</string>
     <string name="ch_hide">پنهان کردن از پخش‌کننده</string>
     <string name="ch_unhide">نمایش در پخش‌کننده</string>
     <string name="login_connect">ورود</string>

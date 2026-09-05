@@ -165,6 +165,8 @@
     <string name="menu_program">البرنامج (EPG)</string>
     <string name="fav_add">إضافة إلى المفضلة</string>
     <string name="fav_remove">إزالة من المفضلة</string>
+    <string name="fav_added">تمت الإضافة إلى المفضلة: %1$s</string>
+    <string name="fav_removed">تمت الإزالة من المفضلة: %1$s</string>
     <string name="ch_hide">إخفاء من المشغّل</string>
     <string name="ch_unhide">إظهار في المشغّل</string>
     <string name="login_connect">تسجيل الدخول</string>

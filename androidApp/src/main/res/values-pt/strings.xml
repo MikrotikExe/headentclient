@@ -165,6 +165,8 @@
     <string name="menu_program">Programa (EPG)</string>
     <string name="fav_add">Adicionar aos favoritos</string>
     <string name="fav_remove">Remover dos favoritos</string>
+    <string name="fav_added">Adicionado aos favoritos: %1$s</string>
+    <string name="fav_removed">Removido dos favoritos: %1$s</string>
     <string name="ch_hide">Ocultar do leitor</string>
     <string name="ch_unhide">Mostrar no leitor</string>
     <string name="login_connect">Iniciar sessão</string>

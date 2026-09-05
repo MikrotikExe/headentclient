@@ -165,6 +165,8 @@
     <string name="menu_program">Program (EPG)</string>
     <string name="fav_add">Tambah ke favorit</string>
     <string name="fav_remove">Hapus dari favorit</string>
+    <string name="fav_added">Ditambahkan ke favorit: %1$s</string>
+    <string name="fav_removed">Dihapus dari favorit: %1$s</string>
     <string name="ch_hide">Sembunyikan dari pemutar</string>
     <string name="ch_unhide">Tampilkan di pemutar</string>
     <string name="login_connect">Masuk</string>

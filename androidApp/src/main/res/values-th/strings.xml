@@ -165,6 +165,8 @@
     <string name="menu_program">รายการ (EPG)</string>
     <string name="fav_add">เพิ่มในรายการโปรด</string>
     <string name="fav_remove">นำออกจากรายการโปรด</string>
+    <string name="fav_added">เพิ่มในรายการโปรดแล้ว: %1$s</string>
+    <string name="fav_removed">นำออกจากรายการโปรดแล้ว: %1$s</string>
     <string name="ch_hide">ซ่อนจากเครื่องเล่น</string>
     <string name="ch_unhide">แสดงในเครื่องเล่น</string>
     <string name="login_connect">ลงชื่อเข้าใช้</string>

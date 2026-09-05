@@ -165,6 +165,8 @@
     <string name="menu_program">Chương trình (EPG)</string>
     <string name="fav_add">Thêm vào yêu thích</string>
     <string name="fav_remove">Xóa khỏi yêu thích</string>
+    <string name="fav_added">Đã thêm vào mục yêu thích: %1$s</string>
+    <string name="fav_removed">Đã xóa khỏi mục yêu thích: %1$s</string>
     <string name="ch_hide">Ẩn khỏi trình phát</string>
     <string name="ch_unhide">Hiện trong trình phát</string>
     <string name="login_connect">Đăng nhập</string>
