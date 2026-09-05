@@ -259,6 +259,7 @@
     <string name="ui_mode_modern">Modern</string>
     <string name="mh_live">LIVE</string>
     <string name="mh_next">Next:</string>
+    <string name="tv_home_now">Now:</string>
     <string name="mh_watch">Watch</string>
     <string name="mh_home">Home</string>
     <string name="mh_all_channels">All channels</string>

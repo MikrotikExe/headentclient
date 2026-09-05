@@ -331,9 +331,9 @@ private fun TvHomeHost() {
         }
     }
     // M573: skratky oblubenych podla aktualneho zoznamu kanalov
-    LaunchedEffect(chState) {
+    LaunchedEffect(chState, epgMap) {
         (chState as? ChannelsState.Loaded)?.let {
-            FavoriteShortcuts.rowsLoaded(ctx, sk.tvhclient.shared.Tvh.store.active()?.id, it.allRows)
+            FavoriteShortcuts.rowsLoaded(ctx, sk.tvhclient.shared.Tvh.store.active()?.id, it.allRows, epgMap)   // M573 / M580
         }
     }
     var showExit by remember { mutableStateOf(false) }

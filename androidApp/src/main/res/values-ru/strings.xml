@@ -312,6 +312,7 @@
     <string name="mh_home">Главная</string>
     <string name="mh_live">В ЭФИРЕ</string>
     <string name="mh_next">Далее:</string>
+    <string name="tv_home_now">Сейчас:</string>
     <string name="mh_watch">Смотреть</string>
     <string name="mtv_hint_all">Удерживайте OK · Опции канала</string>
     <string name="mtv_hint_nav">◀▶ Обзор · OK Переключить · ▼ Управление</string>

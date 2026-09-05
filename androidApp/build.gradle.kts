@@ -137,6 +137,7 @@ dependencies {
     }
     implementation(project(":shared"))
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.tvprovider)   // M580: riadok oblubenych na domovskej obrazovke Android TV
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)

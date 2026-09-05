@@ -312,6 +312,7 @@
     <string name="mh_home">Kezdőlap</string>
     <string name="mh_live">ÉLŐ</string>
     <string name="mh_next">Következik:</string>
+    <string name="tv_home_now">Most:</string>
     <string name="mh_watch">Megnézés</string>
     <string name="mtv_hint_all">Tartsa nyomva az OK-t · Csatornaopciók</string>
     <string name="mtv_hint_nav">◀▶ Böngészés · OK Váltás · ▼ Vezérlők</string>

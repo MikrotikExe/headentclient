@@ -312,6 +312,7 @@
     <string name="mh_home">主页</string>
     <string name="mh_live">直播</string>
     <string name="mh_next">接下来：</string>
+    <string name="tv_home_now">现在：</string>
     <string name="mh_watch">观看</string>
     <string name="mtv_hint_all">长按 OK · 频道选项</string>
     <string name="mtv_hint_nav">◀▶ 浏览 · OK 切换 · ▼ 控制</string>

@@ -312,6 +312,7 @@
     <string name="mh_home">Ana sayfa</string>
     <string name="mh_live">CANLI</string>
     <string name="mh_next">Sonraki:</string>
+    <string name="tv_home_now">Şimdi:</string>
     <string name="mh_watch">İzle</string>
     <string name="mtv_hint_all">OK tuşunu basılı tutun · Kanal seçenekleri</string>
     <string name="mtv_hint_nav">◀▶ Gezin · OK Değiştir · ▼ Kontroller</string>

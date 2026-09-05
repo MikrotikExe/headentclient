@@ -312,6 +312,7 @@
     <string name="mh_home">Начало</string>
     <string name="mh_live">НА ЖИВО</string>
     <string name="mh_next">Следва:</string>
+    <string name="tv_home_now">Сега:</string>
     <string name="mh_watch">Гледай</string>
     <string name="mtv_hint_all">Задръжте OK · Опции на канала</string>
     <string name="mtv_hint_nav">◀▶ Преглед · OK Превключване · ▼ Контроли</string>

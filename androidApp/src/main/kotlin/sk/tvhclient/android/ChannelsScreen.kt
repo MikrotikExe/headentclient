@@ -167,7 +167,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     LaunchedEffect(state, epgMap, hiddenTick, favOnly, selectedTag, favTick) {
         val srv = Tvh.store.active()
         (state as? ChannelsState.Loaded)?.let { st ->
-            FavoriteShortcuts.rowsLoaded(ctx, srv?.id, st.allRows)   // M573
+            FavoriteShortcuts.rowsLoaded(ctx, srv?.id, st.allRows, epgMap)   // M573 / M580
             val nowS = System.currentTimeMillis() / 1000
             val hidden = HiddenChannels.all(ctx, srv?.id)
             val full = st.allRows.filter { it.channel.uuid !in hidden }.map { r ->

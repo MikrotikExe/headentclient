@@ -312,6 +312,7 @@
     <string name="mh_home">الرئيسية</string>
     <string name="mh_live">مباشر</string>
     <string name="mh_next">التالي:</string>
+    <string name="tv_home_now">الآن:</string>
     <string name="mh_watch">مشاهدة</string>
     <string name="mtv_hint_all">اضغط مطولاً على OK · خيارات القناة</string>
     <string name="mtv_hint_nav">◀▶ تصفح · OK تبديل · ▼ عناصر التحكم</string>

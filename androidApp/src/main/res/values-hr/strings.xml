@@ -312,6 +312,7 @@
     <string name="mh_home">Početna</string>
     <string name="mh_live">UŽIVO</string>
     <string name="mh_next">Slijedi:</string>
+    <string name="tv_home_now">Sada:</string>
     <string name="mh_watch">Gledaj</string>
     <string name="mtv_hint_all">Držite OK · Opcije kanala</string>
     <string name="mtv_hint_nav">◀▶ Pregled · OK Promijeni · ▼ Kontrole</string>

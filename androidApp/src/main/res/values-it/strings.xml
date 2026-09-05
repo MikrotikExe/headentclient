@@ -312,6 +312,7 @@
     <string name="mh_home">Home</string>
     <string name="mh_live">LIVE</string>
     <string name="mh_next">Dopo:</string>
+    <string name="tv_home_now">Ora:</string>
     <string name="mh_watch">Guarda</string>
     <string name="mtv_hint_all">Tieni premuto OK · Opzioni canale</string>
     <string name="mtv_hint_nav">◀▶ Sfoglia · OK Cambia · ▼ Controlli</string>

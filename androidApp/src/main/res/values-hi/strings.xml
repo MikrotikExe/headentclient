@@ -312,6 +312,7 @@
     <string name="mh_home">होम</string>
     <string name="mh_live">लाइव</string>
     <string name="mh_next">आगे:</string>
+    <string name="tv_home_now">अभी:</string>
     <string name="mh_watch">देखें</string>
     <string name="mtv_hint_all">OK दबाए रखें · चैनल विकल्प</string>
     <string name="mtv_hint_nav">◀▶ ब्राउज़ · OK बदलें · ▼ नियंत्रण</string>

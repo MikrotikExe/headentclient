@@ -312,6 +312,7 @@
     <string name="mh_home">Start</string>
     <string name="mh_live">LIVE</string>
     <string name="mh_next">Hierna:</string>
+    <string name="tv_home_now">Nu:</string>
     <string name="mh_watch">Kijken</string>
     <string name="mtv_hint_all">Houd OK ingedrukt · Kanaalopties</string>
     <string name="mtv_hint_nav">◀▶ Bladeren · OK Wisselen · ▼ Bediening</string>

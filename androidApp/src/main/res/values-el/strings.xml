@@ -312,6 +312,7 @@
     <string name="mh_home">Αρχική</string>
     <string name="mh_live">ΖΩΝΤΑΝΑ</string>
     <string name="mh_next">Επόμενο:</string>
+    <string name="tv_home_now">Τώρα:</string>
     <string name="mh_watch">Παρακολούθηση</string>
     <string name="mtv_hint_all">Κρατήστε OK · Επιλογές καναλιού</string>
     <string name="mtv_hint_nav">◀▶ Περιήγηση · OK Αλλαγή · ▼ Χειριστήρια</string>

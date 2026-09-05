@@ -26,6 +26,8 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.api.ChannelRow
+import sk.tvhclient.shared.model.EpgEvent
+import sk.tvhclient.shared.model.TvhServer
 
 /**
  * M573 (issue #7) — oblubene kanaly ako dynamicke skratky aplikacie (ShortcutManager).
@@ -50,14 +52,18 @@ object FavoriteShortcuts {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var job: Job? = null
     @Volatile private var rows: Map<String, ChannelRow> = emptyMap()
+    /** M580: now/next EPG pre riadok na domovskej obrazovke TV. */
+    @Volatile private var epg: Map<String, List<EpgEvent>> = emptyMap()
+    @Volatile private var lastTvSignature: String? = null
     /** Podpis naposledy zverejneneho obsahu (server + uuid:nazov v poradi). */
     @Volatile private var lastSignature: String? = null
     /** Zverejnene so vsetkymi piconmi? Ak nie, pri dalsom nacitani sa skusi znova. */
     @Volatile private var lastComplete = false
 
     /** Zoznam TV kanalov sa nacital — zapamataj a zverejni skratky. */
-    fun rowsLoaded(ctx: Context, serverId: String?, all: List<ChannelRow>) {
+    fun rowsLoaded(ctx: Context, serverId: String?, all: List<ChannelRow>, epgMap: Map<String, List<EpgEvent>> = emptyMap()) {
         rows = all.associateBy { it.channel.uuid }
+        if (epgMap.isNotEmpty()) epg = epgMap
         schedule(ctx.applicationContext, serverId)
     }
 
@@ -82,7 +88,9 @@ object FavoriteShortcuts {
         val server = Tvh.store.active()?.takeIf { it.id == serverId } ?: return
         val favs = Favorites.list(app, serverId)
         val snapshot = rows
-        val picked = favs.mapNotNull { snapshot[it] }.take(minOf(MAX, ShortcutManagerCompat.getMaxShortcutCountPerActivity(app)))
+        val favRows = favs.mapNotNull { snapshot[it] }
+        publishTvHome(app, favRows.take(MAX))   // M580 (nezavisle od limitu skratiek)
+        val picked = favRows.take(minOf(MAX, ShortcutManagerCompat.getMaxShortcutCountPerActivity(app)))
         if (picked.isEmpty()) {
             if (lastSignature != "") { ShortcutManagerCompat.removeAllDynamicShortcuts(app); lastSignature = ""; lastComplete = true }
             return
@@ -91,18 +99,10 @@ object FavoriteShortcuts {
         // picony netreba nacitavat, ked sa nic nezmenilo (a minule boli vsetky)
         val sig = picked.joinToString("|", prefix = serverId) { it.channel.uuid + ":" + it.channel.name + ":" + (it.piconUrl ?: "") }
         if (sig == lastSignature && lastComplete) return
-        val loader = PiconImageLoader.get(app, server)
         val list = ArrayList<ShortcutInfoCompat>(picked.size)
         var complete = true
         picked.forEachIndexed { i, row ->
-            val picon: Bitmap? = row.piconUrl?.let { url ->
-                try {
-                    val res = loader.execute(
-                        ImageRequest.Builder(app).data(url).allowHardware(false).size(ICON_PX).build()
-                    )
-                    (res.drawable as? BitmapDrawable)?.bitmap ?: res.drawable?.toBitmap(ICON_PX, ICON_PX)
-                } catch (e: CancellationException) { throw e } catch (_: Throwable) { null }
-            }
+            val picon: Bitmap? = row.piconUrl?.let { loadPicon(app, server, it) }
             if (picon == null && row.piconUrl != null) complete = false
             val icon = when {
                 picon == null -> IconCompat.createWithResource(app, R.mipmap.ic_launcher)
@@ -123,6 +123,40 @@ object FavoriteShortcuts {
         ShortcutManagerCompat.setDynamicShortcuts(app, list)
         lastSignature = sig
         lastComplete = complete
+    }
+
+    /** Picon cez Coil (cache + siet); null ked sa nenacita. */
+    suspend fun loadPicon(app: Context, server: TvhServer, url: String): Bitmap? {
+        val loader = PiconImageLoader.get(app, server)
+        return try {
+            val res = loader.execute(
+                ImageRequest.Builder(app).data(url).allowHardware(false).size(ICON_PX).build()
+            )
+            (res.drawable as? BitmapDrawable)?.bitmap ?: res.drawable?.toBitmap(ICON_PX, ICON_PX)
+        } catch (e: CancellationException) { throw e } catch (_: Throwable) { null }
+    }
+
+    /**
+     * M580: riadok na domovskej obrazovke Android TV. Podpis zahrna aj aktualne
+     * relacie, aby sa text „Teraz / Potom" prepisal pri kazdom novom now/next.
+     */
+    private suspend fun publishTvHome(app: Context, picked: List<ChannelRow>) {
+        if (!TvHomeChannel.supported(app)) return
+        val e = epg
+        val nowSec = System.currentTimeMillis() / 1000
+        val sig = picked.joinToString("|") { r ->
+            val ev = e[r.channel.uuid].orEmpty()
+            val cur = ev.firstOrNull { it.start <= nowSec && it.stop > nowSec }
+            val curStop = cur?.stop ?: r.nowStop
+            val next = ev.firstOrNull { it.start >= (if (curStop > 0) curStop else nowSec) }
+            r.channel.uuid + ":" + r.channel.name + ":" + (cur?.title ?: r.nowTitle.orEmpty()) + ":" + curStop + ":" + (next?.title ?: "")
+        }
+        if (sig == lastTvSignature) return
+        currentCoroutineContext().ensureActive()
+        val ok = try { TvHomeChannel.publish(app, picked, e); true }
+            catch (ce: CancellationException) { throw ce }
+            catch (t: Throwable) { CrashLogger.report(app, "TvHomeChannel", t); false }
+        if (ok) lastTvSignature = sig
     }
 
     /**

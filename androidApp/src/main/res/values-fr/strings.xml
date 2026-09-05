@@ -312,6 +312,7 @@
     <string name="mh_home">Accueil</string>
     <string name="mh_live">DIRECT</string>
     <string name="mh_next">Ensuite :</string>
+    <string name="tv_home_now">Maintenant :</string>
     <string name="mh_watch">Regarder</string>
     <string name="mtv_hint_all">Maintenez OK · Options de la chaîne</string>
     <string name="mtv_hint_nav">◀▶ Parcourir · OK Changer · ▼ Commandes</string>
