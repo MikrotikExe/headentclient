@@ -125,6 +125,24 @@ object HtspData {
         return c?.meta ?: meta
     }
 
+    /**
+     * M581: pripojenie s opakovanim. Na mobilnej sieti (LTE) obcas zlyha DNS preklad mena
+     * servera (UnresolvedAddressException) hoci o sekundu prejde — bez opakovania kolo
+     * now/next skoncilo v polovici a EPG bolo stiahnute len z casti. Tri pokusy: 0 s, 1 s, 3 s.
+     */
+    private suspend fun connectWithRetry(server: TvhServer): HtspClient {
+        var last: Throwable? = null
+        val delays = longArrayOf(0L, 1_000L, 3_000L)
+        for (d in delays) {
+            if (d > 0) kotlinx.coroutines.delay(d)
+            val c = HtspClient(server.host, server.htspPort, server.username, server.password)
+            try { c.connect(); return c }
+            catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (e: Throwable) { last = e; runCatching { c.close() } }
+        }
+        throw last ?: IllegalStateException("connect failed")
+    }
+
     /** now/next mapa: pre kazdy kanal aktualne beziaci program. Cez getEvents
      *  na jednom otvorenom spojeni — async dump je tu nepouzitelny, lebo
      *  posiela najprv tisice DVR zaznamov a eventy sa nestihnu. */
@@ -141,8 +159,7 @@ object HtspData {
         val meta = metadata(server, withEpg = false, nowSec = nowSec)
         val channelIds = meta.channels.mapNotNull { longOf(it, "channelId") }
         if (channelIds.isEmpty()) return emptyMap()
-        var client = HtspClient(server.host, server.htspPort, server.username, server.password)
-        client.connect()
+        var client = connectWithRetry(server)
         val out = HashMap<String, List<EpgEvent>>()
         var failed = 0
         val empty = ArrayList<Long>()
@@ -164,11 +181,10 @@ object HtspData {
             if (reconnects >= 2) return false
             reconnects++; streak = 0
             runCatching { client.close() }
-            val fresh = HtspClient(server.host, server.htspPort, server.username, server.password)
-            return try { fresh.connect(); client = fresh; true }
+            return try { client = connectWithRetry(server); true }
             catch (e2: Exception) {
                 if (e2 is kotlinx.coroutines.CancellationException) throw e2
-                noteEpgError(e2); runCatching { fresh.close() }; false
+                noteEpgError(e2); false
             }
         }
         try {
