@@ -226,6 +226,7 @@
     <string name="set_leave_no">Παραμονή</string>
     <string name="pip_play">Αναπαραγωγή</string>
     <string name="pip_pause">Παύση</string>
+    <string name="pip_close">Κλείσιμο</string>
     <string name="reconnecting">Επανασύνδεση…</string>
     <string name="reconnect_failed">Δεν ήταν δυνατή η επανασύνδεση στη ροή</string>
     <string name="error_connection_title">Σφάλμα σύνδεσης</string>

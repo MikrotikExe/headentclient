@@ -226,6 +226,7 @@
     <string name="set_leave_no">रुकें</string>
     <string name="pip_play">चलाएँ</string>
     <string name="pip_pause">रोकें</string>
+    <string name="pip_close">बंद करें</string>
     <string name="reconnecting">फिर से कनेक्ट हो रहा है…</string>
     <string name="reconnect_failed">स्ट्रीम से फिर से कनेक्ट नहीं हो सका</string>
     <string name="error_connection_title">कनेक्शन त्रुटि</string>

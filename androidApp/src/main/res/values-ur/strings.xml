@@ -226,6 +226,7 @@
     <string name="set_leave_no">رکیں</string>
     <string name="pip_play">چلائیں</string>
     <string name="pip_pause">وقفہ</string>
+    <string name="pip_close">بند کریں</string>
     <string name="reconnecting">دوبارہ منسلک ہو رہا ہے…</string>
     <string name="reconnect_failed">اسٹریم سے دوبارہ منسلک نہیں ہو سکا</string>
     <string name="error_connection_title">کنکشن کی خرابی</string>

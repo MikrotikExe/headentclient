@@ -226,6 +226,7 @@
     <string name="set_leave_no">머무르기</string>
     <string name="pip_play">재생</string>
     <string name="pip_pause">일시정지</string>
+    <string name="pip_close">닫기</string>
     <string name="reconnecting">다시 연결하는 중…</string>
     <string name="reconnect_failed">스트림에 다시 연결할 수 없습니다</string>
     <string name="error_connection_title">연결 오류</string>

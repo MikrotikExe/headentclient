@@ -226,6 +226,7 @@
     <string name="set_leave_no">Rester</string>
     <string name="pip_play">Lecture</string>
     <string name="pip_pause">Pause</string>
+    <string name="pip_close">Fermer</string>
     <string name="reconnecting">Reconnexion…</string>
     <string name="reconnect_failed">Impossible de se reconnecter au flux</string>
     <string name="error_connection_title">Erreur de connexion</string>

@@ -226,6 +226,7 @@
     <string name="set_leave_no">Rămâi</string>
     <string name="pip_play">Redare</string>
     <string name="pip_pause">Pauză</string>
+    <string name="pip_close">Închide</string>
     <string name="reconnecting">Reconectare…</string>
     <string name="reconnect_failed">Nu s-a putut reconecta la flux</string>
     <string name="error_connection_title">Eroare de conexiune</string>

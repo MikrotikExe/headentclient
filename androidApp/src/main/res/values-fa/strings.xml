@@ -226,6 +226,7 @@
     <string name="set_leave_no">ماندن</string>
     <string name="pip_play">پخش</string>
     <string name="pip_pause">مکث</string>
+    <string name="pip_close">بستن</string>
     <string name="reconnecting">در حال اتصال مجدد…</string>
     <string name="reconnect_failed">اتصال مجدد به جریان ممکن نشد</string>
     <string name="error_connection_title">خطای اتصال</string>

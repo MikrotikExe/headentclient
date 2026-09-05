@@ -226,6 +226,7 @@
     <string name="set_leave_no">Ở lại</string>
     <string name="pip_play">Phát</string>
     <string name="pip_pause">Tạm dừng</string>
+    <string name="pip_close">Đóng</string>
     <string name="reconnecting">Đang kết nối lại…</string>
     <string name="reconnect_failed">Không thể kết nối lại với luồng</string>
     <string name="error_connection_title">Lỗi kết nối</string>

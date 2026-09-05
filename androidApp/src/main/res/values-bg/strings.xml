@@ -226,6 +226,7 @@
     <string name="set_leave_no">Оставане</string>
     <string name="pip_play">Възпроизвеждане</string>
     <string name="pip_pause">Пауза</string>
+    <string name="pip_close">Затвори</string>
     <string name="reconnecting">Повторно свързване…</string>
     <string name="reconnect_failed">Неуспешно повторно свързване към потока</string>
     <string name="error_connection_title">Грешка във връзката</string>

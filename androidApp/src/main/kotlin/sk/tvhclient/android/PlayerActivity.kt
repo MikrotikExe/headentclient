@@ -536,6 +536,7 @@ class PlayerActivity : ComponentActivity() {
     private val maxReconnectAttempts = 8
     private var pipReceiver: android.content.BroadcastReceiver? = null
     private val PIP_ACTION = "sk.tvhclient.android.PIP_TOGGLE"
+    private val PIP_CLOSE_ACTION = "sk.tvhclient.android.PIP_CLOSE"   // M576
     private var liveServer: sk.tvhclient.shared.model.TvhServer? = null
     private val liveTitleState = androidx.compose.runtime.mutableStateOf("")
     private val liveUuidState = androidx.compose.runtime.mutableStateOf<String?>(null)
@@ -4210,8 +4211,21 @@ class PlayerActivity : ComponentActivity() {
             android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT
         )
         val action = android.app.RemoteAction(icon, label, label, pi)
+        // M576 (issue #11): akcia Zavriet — na TV je PiP okno mimo dosahu dialkoveho,
+        // jedina cesta k nemu je systemova ponuka PiP (dlhe Home); tam sa tato akcia
+        // zobrazi a okno sa da zavriet jednym potvrdenim. Na telefone je priamo v okne.
+        val closeLabel = getString(R.string.pip_close)
+        val closePi = android.app.PendingIntent.getBroadcast(
+            this, 2,
+            android.content.Intent(PIP_CLOSE_ACTION).setPackage(packageName),
+            android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val closeAction = android.app.RemoteAction(
+            android.graphics.drawable.Icon.createWithResource(this, android.R.drawable.ic_menu_close_clear_cancel),
+            closeLabel, closeLabel, closePi
+        )
         return android.app.PictureInPictureParams.Builder()
-            .setActions(listOf(action))
+            .setActions(listOf(action, closeAction))
             .setAspectRatio(android.util.Rational(16, 9))
             .build()
     }
@@ -4385,10 +4399,13 @@ class PlayerActivity : ComponentActivity() {
             if (pipReceiver == null) {
                 pipReceiver = object : android.content.BroadcastReceiver() {
                     override fun onReceive(c: android.content.Context?, i: android.content.Intent?) {
-                        if (i?.action == PIP_ACTION) togglePlayPause()
+                        when (i?.action) {
+                            PIP_ACTION -> togglePlayPause()
+                            PIP_CLOSE_ACTION -> { LastPlayback.clear(this@PlayerActivity); finish() }   // M576
+                        }
                     }
                 }
-                val filter = android.content.IntentFilter(PIP_ACTION)
+                val filter = android.content.IntentFilter(PIP_ACTION).apply { addAction(PIP_CLOSE_ACTION) }
                 if (android.os.Build.VERSION.SDK_INT >= 33) {
                     registerReceiver(pipReceiver, filter, android.content.Context.RECEIVER_NOT_EXPORTED)
                 } else {

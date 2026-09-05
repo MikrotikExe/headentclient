@@ -226,6 +226,7 @@
     <string name="set_leave_no">Tetap</string>
     <string name="pip_play">Putar</string>
     <string name="pip_pause">Jeda</string>
+    <string name="pip_close">Tutup</string>
     <string name="reconnecting">Menyambung ulang…</string>
     <string name="reconnect_failed">Tidak dapat menyambung ulang ke streaming</string>
     <string name="error_connection_title">Kesalahan koneksi</string>

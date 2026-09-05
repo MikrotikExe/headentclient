@@ -226,6 +226,7 @@
     <string name="set_leave_no">Остани</string>
     <string name="pip_play">Пусти</string>
     <string name="pip_pause">Пауза</string>
+    <string name="pip_close">Затвори</string>
     <string name="reconnecting">Поновно повезивање…</string>
     <string name="reconnect_failed">Није могуће поново се повезати на стрим</string>
     <string name="error_connection_title">Грешка везе</string>

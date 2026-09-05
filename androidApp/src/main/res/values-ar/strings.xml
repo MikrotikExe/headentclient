@@ -226,6 +226,7 @@
     <string name="set_leave_no">البقاء</string>
     <string name="pip_play">تشغيل</string>
     <string name="pip_pause">إيقاف مؤقت</string>
+    <string name="pip_close">إغلاق</string>
     <string name="reconnecting">جارٍ إعادة الاتصال…</string>
     <string name="reconnect_failed">تعذّرت إعادة الاتصال بالبث</string>
     <string name="error_connection_title">خطأ في الاتصال</string>

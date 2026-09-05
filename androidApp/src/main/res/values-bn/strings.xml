@@ -226,6 +226,7 @@
     <string name="set_leave_no">থাকুন</string>
     <string name="pip_play">চালান</string>
     <string name="pip_pause">বিরতি</string>
+    <string name="pip_close">বন্ধ করুন</string>
     <string name="reconnecting">পুনরায় সংযোগ করা হচ্ছে…</string>
     <string name="reconnect_failed">স্ট্রিমে পুনরায় সংযোগ করা যায়নি</string>
     <string name="error_connection_title">সংযোগ ত্রুটি</string>

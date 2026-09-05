@@ -226,6 +226,7 @@
     <string name="set_leave_no">Zostań</string>
     <string name="pip_play">Odtwórz</string>
     <string name="pip_pause">Pauza</string>
+    <string name="pip_close">Zamknij</string>
     <string name="reconnecting">Ponowne łączenie…</string>
     <string name="reconnect_failed">Nie można ponownie połączyć ze strumieniem</string>
     <string name="error_connection_title">Błąd połączenia</string>

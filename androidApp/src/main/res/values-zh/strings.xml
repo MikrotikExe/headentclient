@@ -226,6 +226,7 @@
     <string name="set_leave_no">留下</string>
     <string name="pip_play">播放</string>
     <string name="pip_pause">暂停</string>
+    <string name="pip_close">关闭</string>
     <string name="reconnecting">正在重新连接…</string>
     <string name="reconnect_failed">无法重新连接到流</string>
     <string name="error_connection_title">连接错误</string>

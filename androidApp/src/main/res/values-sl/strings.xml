@@ -226,6 +226,7 @@
     <string name="set_leave_no">Ostani</string>
     <string name="pip_play">Predvajaj</string>
     <string name="pip_pause">Premor</string>
+    <string name="pip_close">Zapri</string>
     <string name="reconnecting">Ponovno povezovanje…</string>
     <string name="reconnect_failed">Ponovna povezava s pretokom ni uspela</string>
     <string name="error_connection_title">Napaka povezave</string>

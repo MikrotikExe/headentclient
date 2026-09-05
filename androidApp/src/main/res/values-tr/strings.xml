@@ -226,6 +226,7 @@
     <string name="set_leave_no">Kal</string>
     <string name="pip_play">Oynat</string>
     <string name="pip_pause">Duraklat</string>
+    <string name="pip_close">Kapat</string>
     <string name="reconnecting">Yeniden bağlanılıyor…</string>
     <string name="reconnect_failed">Akışa yeniden bağlanılamadı</string>
     <string name="error_connection_title">Bağlantı hatası</string>

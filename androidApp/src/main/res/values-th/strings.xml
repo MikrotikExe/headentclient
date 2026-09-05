@@ -226,6 +226,7 @@
     <string name="set_leave_no">อยู่ต่อ</string>
     <string name="pip_play">เล่น</string>
     <string name="pip_pause">หยุดชั่วคราว</string>
+    <string name="pip_close">ปิด</string>
     <string name="reconnecting">กำลังเชื่อมต่อใหม่…</string>
     <string name="reconnect_failed">ไม่สามารถเชื่อมต่อสตรีมใหม่ได้</string>
     <string name="error_connection_title">ข้อผิดพลาดการเชื่อมต่อ</string>

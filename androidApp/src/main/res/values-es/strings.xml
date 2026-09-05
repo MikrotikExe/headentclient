@@ -226,6 +226,7 @@
     <string name="set_leave_no">Quedarse</string>
     <string name="pip_play">Reproducir</string>
     <string name="pip_pause">Pausa</string>
+    <string name="pip_close">Cerrar</string>
     <string name="reconnecting">Reconectando…</string>
     <string name="reconnect_failed">No se pudo volver a conectar al stream</string>
     <string name="error_connection_title">Error de conexión</string>

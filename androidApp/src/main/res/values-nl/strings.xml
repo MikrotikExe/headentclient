@@ -226,6 +226,7 @@
     <string name="set_leave_no">Blijven</string>
     <string name="pip_play">Afspelen</string>
     <string name="pip_pause">Pauze</string>
+    <string name="pip_close">Sluiten</string>
     <string name="reconnecting">Opnieuw verbinden…</string>
     <string name="reconnect_failed">Kan niet opnieuw verbinden met de stream</string>
     <string name="error_connection_title">Verbindingsfout</string>
