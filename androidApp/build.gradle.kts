@@ -44,6 +44,11 @@ android {
     // Vtedy sa vypnu splity a vznikne jeden APK s oboma ARM ABI (androidApp-release.apk).
     // Bezny build (push, ladenie) stavia len splity — univerzalny nezdrziava CI.
     val universalRequested = project.hasProperty("universalApk")
+    // M574: build pre emulator Android Studio (x86_64 obraz Android TV / Google TV):
+    //   gradle :androidApp:assembleDebug -PemulatorAbi
+    // Bezne splity maju len ARM, takze by sa APK do emulatora nedal nainstalovat.
+    // libVLC nesie aj x86_64 kniznice, staci ich pustit do splitu.
+    val emulatorRequested = project.hasProperty("emulatorAbi")
 
     defaultConfig {
         applicationId = "sk.tvhclient"
@@ -83,7 +88,8 @@ android {
         abi {
             isEnable = !buildingBundle && !universalRequested
             reset()
-            include("armeabi-v7a", "arm64-v8a")
+            if (emulatorRequested) include("armeabi-v7a", "arm64-v8a", "x86_64")
+            else include("armeabi-v7a", "arm64-v8a")
             isUniversalApk = false
         }
     }
