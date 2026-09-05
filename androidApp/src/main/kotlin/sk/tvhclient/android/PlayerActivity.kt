@@ -4299,7 +4299,81 @@ class PlayerActivity : ComponentActivity() {
     private fun refreshPipIfActive() {
         if (android.os.Build.VERSION.SDK_INT >= 26 && isInPictureInPictureMode) {
             runCatching { setPictureInPictureParams(buildPipParams()) }
+            updatePipMediaState()
         }
+    }
+
+    // ---- M578: medialne klavesy v PiP cez MediaSession ----
+    // Plavajuce PiP okno nedostava klavesy (na TV sa nan neda ani zamerat), ale medialne
+    // tlacidla dialkoveho system doruci aktivnej MediaSession bez ohladu na fokus. Pocas
+    // PiP preto drzime aktivnu session: STOP okno zavrie, PLAY/PAUSE prepina pauzu a
+    // DLHE podrzanie PLAY/PAUSE zavrie tiez — pre ovladace, ktore maju len to jedno
+    // tlacidlo (issue #11). Mimo PiP sa klavesy spracuvaju v dispatchKeyEvent ako doteraz.
+    private var pipSession: android.media.session.MediaSession? = null
+
+    private fun startPipMediaSession() {
+        if (pipSession != null) return
+        val ms = runCatching { android.media.session.MediaSession(this, "headent-pip") }.getOrNull() ?: return
+        ms.setCallback(object : android.media.session.MediaSession.Callback() {
+            override fun onStop() { closeFromPip() }
+            override fun onPlay() { if (!isPlayingState.value) togglePlayPause() }
+            override fun onPause() { if (isPlayingState.value) togglePlayPause() }
+            override fun onMediaButtonEvent(mediaButtonIntent: android.content.Intent): Boolean {
+                val ke = if (android.os.Build.VERSION.SDK_INT >= 33)
+                    mediaButtonIntent.getParcelableExtra(android.content.Intent.EXTRA_KEY_EVENT, android.view.KeyEvent::class.java)
+                else @Suppress("DEPRECATION") mediaButtonIntent.getParcelableExtra<android.view.KeyEvent>(android.content.Intent.EXTRA_KEY_EVENT)
+                ke ?: return super.onMediaButtonEvent(mediaButtonIntent)
+                when (ke.keyCode) {
+                    android.view.KeyEvent.KEYCODE_MEDIA_STOP -> { if (ke.action == android.view.KeyEvent.ACTION_DOWN) closeFromPip(); return true }
+                    android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+                    android.view.KeyEvent.KEYCODE_HEADSETHOOK -> {
+                        when {
+                            ke.action == android.view.KeyEvent.ACTION_DOWN && ke.repeatCount == 1 -> { pipLongFired = true; closeFromPip() }
+                            ke.action == android.view.KeyEvent.ACTION_UP -> {
+                                if (!pipLongFired) togglePlayPause()
+                                pipLongFired = false
+                            }
+                        }
+                        return true
+                    }
+                }
+                return super.onMediaButtonEvent(mediaButtonIntent)
+            }
+        })
+        pipSession = ms
+        updatePipMediaState()
+        runCatching { ms.isActive = true }
+    }
+
+    private var pipLongFired = false
+
+    private fun updatePipMediaState() {
+        val ms = pipSession ?: return
+        val playing = isPlayingState.value
+        val st = android.media.session.PlaybackState.Builder()
+            .setActions(
+                android.media.session.PlaybackState.ACTION_STOP or
+                android.media.session.PlaybackState.ACTION_PLAY or
+                android.media.session.PlaybackState.ACTION_PAUSE or
+                android.media.session.PlaybackState.ACTION_PLAY_PAUSE
+            )
+            .setState(
+                if (playing) android.media.session.PlaybackState.STATE_PLAYING else android.media.session.PlaybackState.STATE_PAUSED,
+                android.media.session.PlaybackState.PLAYBACK_POSITION_UNKNOWN, 1f
+            )
+            .build()
+        runCatching { ms.setPlaybackState(st) }
+    }
+
+    private fun stopPipMediaSession() {
+        pipSession?.let { runCatching { it.isActive = false; it.release() } }
+        pipSession = null
+        pipLongFired = false
+    }
+
+    private fun closeFromPip() {
+        LastPlayback.clear(this)
+        finish()
     }
 
     /** Zrusi naplanovane znovupripojenie a skryje indikator. */
@@ -4412,6 +4486,7 @@ class PlayerActivity : ComponentActivity() {
             launchEpgActivity()
         }
         if (isInPictureInPictureMode) {
+            startPipMediaSession()   // M578
             if (pipReceiver == null) {
                 pipReceiver = object : android.content.BroadcastReceiver() {
                     override fun onReceive(c: android.content.Context?, i: android.content.Intent?) {
@@ -4430,6 +4505,7 @@ class PlayerActivity : ComponentActivity() {
                 }
             }
         } else {
+            stopPipMediaSession()   // M578
             pipReceiver?.let { runCatching { unregisterReceiver(it) } }
             pipReceiver = null
             // PiP okno zatvorene pouzivatelom kym bola appka na pozadi: aktivita je uz STOPnuta
@@ -5060,6 +5136,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        stopPipMediaSession() // M578
         teletext.stopHttp()   // M552
         releaseStreamLocks()  // M452
         flushEpgPersist()     // M456
