@@ -1892,7 +1892,9 @@ class PlayerActivity : ComponentActivity() {
      *  v nastaveniach VYPNUTY — vtedy je jedina cesta do PiP rucna. Pri
      *  zapnutom Auto-PiP je tlacidlo zbytocne (BACK spravi PiP sam).
      *  pipSupported zaroven vylucuje TV (nemaju FEATURE_PICTURE_IN_PICTURE). */
-    private fun pipButtonVisible(): Boolean = pipSupported && !AutoPipPref.get(this)
+    // M575: na TV sa tlacidlo neponuka ani ked box PiP hlasi — okno sa dialkovym
+    // ovladacom neda ovladat (issue #11)
+    private fun pipButtonVisible(): Boolean = pipSupported && !isTvDevice() && !AutoPipPref.get(this)
 
     private val pipSupported: Boolean by lazy {
         android.os.Build.VERSION.SDK_INT >= 26 &&
