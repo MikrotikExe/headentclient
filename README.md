@@ -43,6 +43,10 @@ Jetpack Compose and libVLC.
 - **Teletext** (EN 300 706) decoded by the app itself, over HTSP and HTTP — colour,
   mosaic graphics, subpages, Fastext links and all European character sets;
   remote or touch controls
+- **Favourites as launcher shortcuts** — favourite channels are published as app
+  shortcuts with their picon (long-press the app icon on a phone; launchers such as
+  Projectivity show them as tiles on Android TV); `headentclient://channel/<uuid>`
+  deep links open the player on any channel.
 - **Favourites in your order** — numbered 1…n inside the Favourites group,
   reorderable with the remote on TV and by dragging on the phone; the group is
   remembered after a restart and used by the player

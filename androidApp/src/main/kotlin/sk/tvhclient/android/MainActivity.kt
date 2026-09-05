@@ -163,6 +163,9 @@ class MainActivity : ComponentActivity() {
         // values / values-v28 / values-v29 / values-v35), tu ostava len vypnutie
         // fitSystemWindows. R8 potom nepouzitu EdgeToEdge triedu z APK odstrani.
         WindowCompat.setDecorFitsSystemWindows(window, false)
+        // M573: headentclient://channel/<uuid> — len pri studenom starte; pri obnove
+        // aktivity (zmena jazyka, hustoty…) by sa inak prehravac otvoril znova
+        if (savedInstanceState == null) DeepLink.handle(intent)
         if (intent?.getBooleanExtra("open_epg", false) == true) {
             TabController.openEpgGrid(fromPlayer = true, returnUuid = intent.getStringExtra("epg_return_uuid"))
         }
@@ -209,6 +212,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        DeepLink.handle(intent)   // M573
         if (intent.getBooleanExtra("open_epg", false)) {
             TabController.openEpgGrid(fromPlayer = true, returnUuid = intent.getStringExtra("epg_return_uuid"))
         }
@@ -314,6 +318,24 @@ private fun TvHomeHost() {
             else { chVm.loadIfNeeded(); play = "tv" }
         }
     }
+    // M573: deep link na kanal (skratka oblubeneho) ide tou istou cestou — pocka
+    // na kanaly, naplni LivePlaylist a pusti prave ten kanal
+    val deepUuid = DeepLink.pending.value
+    androidx.compose.runtime.LaunchedEffect(deepUuid) {
+        if (deepUuid != null) {
+            DeepLink.pending.value = null
+            LastPlayback.pendingUuid = deepUuid
+            section = ""
+            chVm.loadIfNeeded()
+            play = "tv"
+        }
+    }
+    // M573: skratky oblubenych podla aktualneho zoznamu kanalov
+    LaunchedEffect(chState) {
+        (chState as? ChannelsState.Loaded)?.let {
+            FavoriteShortcuts.rowsLoaded(ctx, sk.tvhclient.shared.Tvh.store.active()?.id, it.allRows)
+        }
+    }
     var showExit by remember { mutableStateOf(false) }
 
     fun playUuid(uuid: String, title: String, kind: String = "tv") {
@@ -358,6 +380,22 @@ private fun TvHomeHost() {
                     full, grps, LastTag.toGroupKey(LastTag.get(ctx, sid, radio = false)),
                     favs = if (sid != null) Favorites.list(ctx, sid) else emptyList(), hidden = hiddenList
                 )
+                // M573: kanal z deep linku (skratka oblubeneho) — ak nie je v obnovenej
+                // skupine, prepni na Vsetky; ak ho server nema (skryty / zmazany), nehraj
+                // nic namiesto nahodneho prveho kanala
+                val want = LastPlayback.pendingUuid
+                if (want != null && LivePlaylist.channels.none { it.uuid == want }) {
+                    if (full.any { it.uuid == want }) {
+                        LivePlaylist.setChannels(
+                            full, grps, null,
+                            favs = if (sid != null) Favorites.list(ctx, sid) else emptyList(), hidden = hiddenList
+                        )
+                    } else {
+                        LastPlayback.pendingUuid = null
+                        play = ""
+                        return@LaunchedEffect
+                    }
+                }
                 // M496: ak obnovujeme posledne vysielanie, ma prednost ten kanal
                 val target = (LastPlayback.pendingUuid ?: LastChannel.get(ctx, sid))
                     ?.takeIf { u -> LivePlaylist.channels.any { it.uuid == u } }
@@ -740,6 +778,52 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
     // EPG kláves -> prepni na Kanaly (bez resetu, nech zostane mriezka otvorena)
     val epgSig by TabController.epgGrid
     LaunchedEffect(epgSig) { if (epgSig > 0) tab = chIdx }
+
+    // M573: deep link na kanal (skratka oblubeneho na telefone). Prehravac potrebuje
+    // naplneny LivePlaylist, preto sa pocka na nacitanie kanalov (rovnaky ViewModel
+    // ako zalozka Kanaly) a az potom sa spusti.
+    val deepUuid = DeepLink.pending.value
+    val deepVm: ChannelsViewModel = viewModel()
+    val deepState by deepVm.state.collectAsState()
+    LaunchedEffect(deepUuid, deepState) {
+        if (deepUuid == null) return@LaunchedEffect
+        when (val st = deepState) {
+            is ChannelsState.Loaded -> {
+                DeepLink.pending.value = null
+                val sid = sk.tvhclient.shared.Tvh.store.active()?.id
+                val hidden = HiddenChannels.all(homeCtx, sid)
+                val row = st.allRows.firstOrNull { it.channel.uuid == deepUuid && it.channel.uuid !in hidden }
+                    ?: return@LaunchedEffect   // neznamy alebo skryty kanal -> nic
+                val full = st.allRows.filter { it.channel.uuid !in hidden }.map { r ->
+                    LivePlaylist.LiveChannel(
+                        uuid = r.channel.uuid, name = r.channel.name,
+                        number = r.channel.number ?: 0, piconUrl = r.piconUrl,
+                        nowTitle = r.nowTitle ?: "", nowStart = r.nowStart, nowStop = r.nowStop
+                    )
+                }
+                val grps = st.categories.mapNotNull { cat ->
+                    val t = cat.tag ?: return@mapNotNull null
+                    val u = cat.rows.map { it.channel.uuid }.filter { it !in hidden }.toSet()
+                    if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
+                }
+                LivePlaylist.setChannels(
+                    full, grps, LastTag.toGroupKey(LastTag.get(homeCtx, sid, radio = false)),
+                    favs = if (sid != null) Favorites.list(homeCtx, sid) else emptyList()
+                )
+                LivePlaylist.setIndexForUuid(deepUuid)
+                LastChannel.set(homeCtx, sid, deepUuid)
+                runCatching {
+                    homeCtx.startActivity(Intent(homeCtx, PlayerActivity::class.java).apply {
+                        putExtra(PlayerActivity.EXTRA_UUID, deepUuid)
+                        putExtra(PlayerActivity.EXTRA_TITLE, row.channel.name)
+                        putExtra(PlayerActivity.EXTRA_KIND, "tv")
+                    })
+                }
+            }
+            is ChannelsState.Error, is ChannelsState.NoServer -> DeepLink.pending.value = null
+            else -> deepVm.loadIfNeeded()
+        }
+    }
 
     // Spat: z ineho tabu spat na Kanaly; na Kanaloch -> potvrdenie ukoncenia.
     // (Vnutorne obrazovky maju vlastny BackHandler, ten ma prednost.)

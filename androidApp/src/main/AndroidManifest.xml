@@ -51,6 +51,14 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
+            <!-- M573: deep link na kanal (skratky oblubenych, launchery, adb):
+                 headentclient://channel/<uuid> -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="headentclient" android:host="channel" />
+            </intent-filter>
         </activity>
 
         <activity

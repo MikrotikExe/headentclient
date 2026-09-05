@@ -44,5 +44,6 @@ object Favorites {
     private fun save(context: Context, serverId: String, order: List<String>) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putString(key(serverId), order.joinToString(",")).apply()
+        FavoriteShortcuts.onFavoritesChanged(context, serverId)   // M573
     }
 }
