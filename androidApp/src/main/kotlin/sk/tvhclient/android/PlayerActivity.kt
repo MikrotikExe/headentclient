@@ -1201,7 +1201,9 @@ class PlayerActivity : ComponentActivity() {
                     try {
                         val repo = Tvh.channelRepository(srv, api)
                         repo.load(true)
-                        repo.allRows(false).associateBy { it.channel.uuid }
+                        // M586: aj radia — inak zoznam v prehravaci pri rozhlase
+                        // ostal bez „prave hra" (allRows radia vynechava)
+                        (repo.allRows(false) + repo.radioRows(false)).associateBy { it.channel.uuid }
                     } finally {
                         api.close()
                     }

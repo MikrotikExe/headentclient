@@ -38,6 +38,21 @@ class ChannelRepository(
     private var cachedChannels: List<Channel>? = null
     private var cachedTags: List<ChannelTag>? = null
     private var cacheTs: Long = 0
+    // M586: now/next (HTTP) sa v ramci jedneho nacitania pyta raz — zalozka Radia
+    // si pyta rows aj categories, TV zoznam allRows; bez tejto pamate by to boli
+    // tri rovnake HTTP dotazy za sebou. Plati rovnaky TTL ako pre kanaly.
+    private var cachedEpgNow: Map<String, EpgEvent>? = null
+    private var epgNowTs: Long = 0
+
+    private suspend fun epgNow(): Map<String, EpgEvent> {
+        val now = nowSec()
+        val c = cachedEpgNow
+        if (c != null && (now - epgNowTs) < cacheTtlSec) return c
+        val fresh = runCatching { epgNowProvider() }.getOrDefault(emptyMap())
+        // prazdna odpoved (HTSP) sa nekesuje ako platna — nabuduce sa skusi znova
+        if (fresh.isNotEmpty()) { cachedEpgNow = fresh; epgNowTs = now }
+        return fresh
+    }
 
     suspend fun load(force: Boolean = false): List<ChannelCategory> {
         val now = nowSec()
@@ -45,10 +60,11 @@ class ChannelRepository(
             cachedChannels = channelsProvider().filter { it.enabled }
             cachedTags = tagsProvider().filter { it.enabled }.sortedBy { it.index }
             cacheTs = now
+            if (force) { cachedEpgNow = null; epgNowTs = 0 }   // M586: rucne obnovenie = cerstve now/next
         }
         val channels = cachedChannels ?: emptyList()
         val tags = cachedTags ?: emptyList()
-        val epgNow = runCatching { epgNowProvider() }.getOrDefault(emptyMap())
+        val epgNow = epgNow()
 
         val tagNameOf = tags.associate { it.uuid to it.name }
         fun isRadioCh(ch: Channel): Boolean = isRadioChannel(ch, tagNameOf)
@@ -95,7 +111,7 @@ class ChannelRepository(
         val channels = cachedChannels ?: emptyList()
         val tags = cachedTags ?: emptyList()
         val tagNameOf = tags.associate { it.uuid to it.name }
-        val epgNow = runCatching { epgNowProvider() }.getOrDefault(emptyMap())
+        val epgNow = epgNow()
         return channels
             .filterNot { isRadioChannel(it, tagNameOf) }
             .sortedWith(compareBy({ it.number ?: Int.MAX_VALUE }, { it.name.lowercase() }))
@@ -133,7 +149,12 @@ class ChannelRepository(
         val radio = channels.filter { isRadioChannel(it, tagNameOf) }
         if (radio.isEmpty()) return emptyList()
 
-        fun rowOf(ch: Channel) = ChannelRow(ch, piconUrlFor(ch), null, 0, 0)
+        val epgNow = epgNow()   // M586
+        fun rowOf(ch: Channel): ChannelRow {
+            val ev = epgNow[ch.uuid]
+            return ChannelRow(ch, piconUrlFor(ch), ev?.title?.ifBlank { null },
+                ev?.start ?: 0, ev?.stop ?: 0)
+        }
         val byNumber = compareBy<Channel>({ it.number ?: Int.MAX_VALUE }, { it.name.lowercase() })
 
         val out = mutableListOf<ChannelCategory>()
@@ -154,9 +175,17 @@ class ChannelRepository(
         val channels = cachedChannels ?: emptyList()
         val tags = cachedTags ?: emptyList()
         val tagNameOf = tags.associate { it.uuid to it.name }
+        // M586: rovnako ako allRows doplni „prave hra" (HTTP: now/next pride v dumpe
+        // kanalov). Doteraz radio dostavalo vzdy null, takze zalozka Radia aj zoznam
+        // v prehravaci ostali bez programu.
+        val epgNow = epgNow()
         return channels
             .filter { isRadioChannel(it, tagNameOf) }
             .sortedWith(compareBy({ it.number ?: Int.MAX_VALUE }, { it.name.lowercase() }))
-            .map { ch -> ChannelRow(ch, piconUrlFor(ch), null, 0, 0) }
+            .map { ch ->
+                val ev = epgNow[ch.uuid]
+                ChannelRow(ch, piconUrlFor(ch), ev?.title?.ifBlank { null },
+                    ev?.start ?: 0, ev?.stop ?: 0)
+            }
     }
 }

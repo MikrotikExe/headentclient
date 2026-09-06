@@ -314,7 +314,7 @@ private fun TvHomeHost() {
         val kind = LastPlayback.pendingKind
         if (kind != null && play.isEmpty()) {
             LastPlayback.pendingKind = null
-            if (kind == "radio") { raVm.load(); play = "radio" }
+            if (kind == "radio") { raVm.load(); chVm.loadIfNeeded(); play = "radio" }
             else { chVm.loadIfNeeded(); play = "tv" }
         }
     }
@@ -420,26 +420,26 @@ private fun TvHomeHost() {
                 // M506: aj radio ma skupiny podla tagov — prehravac tak vie
                 // prepinat medzi nimi (podrzanie OK) rovnako ako pri TV.
                 val hiddenR = HiddenChannels.all(ctx, sid)
-                val fullR = st.rows.filter { it.channel.uuid !in hiddenR }.map { r ->
-                    LivePlaylist.LiveChannel(
+                // M586: „prave hra" pre radia zo spolocnej now/next mapy (HTSP) —
+                // prehravac tak ma program hned, nie az po vlastnom dotiahnuti EPG
+                val nowSecR = System.currentTimeMillis() / 1000
+                fun radioCh(r: sk.tvhclient.shared.api.ChannelRow): LivePlaylist.LiveChannel {
+                    val ev = epgMap[r.channel.uuid]?.firstOrNull { nowSecR in it.start until it.stop }
+                    return LivePlaylist.LiveChannel(
                         uuid = r.channel.uuid, name = r.channel.name,
                         number = r.channel.number ?: 0, piconUrl = r.piconUrl,
-                        nowTitle = r.nowTitle ?: "", nowStart = r.nowStart, nowStop = r.nowStop
+                        nowTitle = ev?.title ?: r.nowTitle ?: "",
+                        nowStart = ev?.start ?: r.nowStart, nowStop = ev?.stop ?: r.nowStop
                     )
                 }
+                val fullR = st.rows.filter { it.channel.uuid !in hiddenR }.map { radioCh(it) }
                 val grpsR = st.categories.mapNotNull { cat ->
                     val t = cat.tag ?: return@mapNotNull null
                     val u = cat.rows.map { it.channel.uuid }.filter { it !in hiddenR }.toSet()
                     if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
                 }
                 // M582: skryte radia zvlast (pseudo-skupina v prehravaci na odkrytie) — parita s TV
-                val hiddenListR = st.rows.filter { it.channel.uuid in hiddenR }.map { r ->
-                    LivePlaylist.LiveChannel(
-                        uuid = r.channel.uuid, name = r.channel.name,
-                        number = r.channel.number ?: 0, piconUrl = r.piconUrl,
-                        nowTitle = r.nowTitle ?: "", nowStart = r.nowStart, nowStop = r.nowStop
-                    )
-                }
+                val hiddenListR = st.rows.filter { it.channel.uuid in hiddenR }.map { radioCh(it) }
                 LivePlaylist.setChannels(
                     fullR, grpsR, LastTag.toGroupKey(LastTag.get(ctx, sid, radio = true)),
                     favs = if (sid != null) Favorites.list(ctx, sid) else emptyList(), hidden = hiddenListR
@@ -499,7 +499,13 @@ private fun TvHomeHost() {
             androidx.activity.compose.BackHandler { epgBack() }
             val st = chState
             if (st is ChannelsState.Loaded) {
-                EpgGridScreen(allRows = st.allRows, categories = st.categories, seed = epgMap, onBack = { epgBack() })
+                EpgGridScreen(
+                    allRows = st.allRows, categories = st.categories, seed = epgMap,
+                    onBack = { epgBack() },
+                    // M587: rozhlasove stanice ako dalsia skupina vo filtri mriezky
+                    radioRows = (raState as? RadioState.Loaded)?.rows ?: emptyList(),
+                    radioCategories = (raState as? RadioState.Loaded)?.categories ?: emptyList()
+                )
             } else {
                 CenterLoading()
             }
@@ -565,7 +571,7 @@ private fun TvHomeHost() {
                             playUuid(uuid, title)
                         },
                         onChannels = { lastTile = "channels"; chVm.loadIfNeeded(); play = "tv" },   // M531
-                        onRadio = { lastTile = "radio"; raVm.load(); play = "radio" },   // M531
+                        onRadio = { lastTile = "radio"; raVm.load(); chVm.loadIfNeeded(); play = "radio" },   // M531
                         onTvProgram = { lastTile = "epg"; section = "epg" },
                         onArchive = { lastTile = "archive"; section = "archive" },
                         onSettings = { lastTile = "settings"; section = "settings" },
@@ -574,7 +580,7 @@ private fun TvHomeHost() {
                 TvHomeScreen(   // pocas pending (play) zostava viditelny launcher, kym naskoci prehravac
                     focusKey = lastTile,
                     onChannels = { lastTile = "channels"; chVm.loadIfNeeded(); play = "tv" },   // M531
-                    onRadio = { lastTile = "radio"; raVm.load(); play = "radio" },   // M531
+                    onRadio = { lastTile = "radio"; raVm.load(); chVm.loadIfNeeded(); play = "radio" },   // M531
                     onTvProgram = { lastTile = "epg"; section = "epg" },
                     onArchive = { lastTile = "archive"; section = "archive" },
                     onSettings = { lastTile = "settings"; section = "settings" },

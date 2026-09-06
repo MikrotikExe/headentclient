@@ -121,6 +121,9 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     }
     // Zdielany DvrViewModel — vieme ktore kanaly sa prave nahravaju
     val dvrVm: DvrViewModel = viewModel()
+    // M587: rozhlas ako dalsia skupina v mriezke TV programu (zdielany VM, activity scope)
+    val raVm: RadioViewModel = viewModel()
+    val raState by raVm.state.collectAsState()
     val dvrState by dvrVm.state.collectAsState()
     // Indikator nahravania parujeme na kanal podla UUID (nie nazvu) — inak by
     // pri duplicitnych nazvoch/LCN (napr. regionalne "ITV1 HD" 103) svietilo na
@@ -245,6 +248,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
         return
     }
 
+    LaunchedEffect(showGrid) { if (showGrid) raVm.loadIfNeeded() }   // M587
     val st0 = state
     if (showGrid) {
         if (st0 is ChannelsState.Loaded) {
@@ -273,6 +277,19 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                     } else {
                         epgDismissedGen = epgSignal
                     }
+                },
+                // M587: polozka „Rádiá" vo filtri; spustenie ide rovnakou cestou ako
+                // zo zalozky Radia (mini prehravac na telefone, PIN, LastRadio)
+                radioRows = (raState as? RadioState.Loaded)?.rows ?: emptyList(),
+                radioCategories = (raState as? RadioState.Loaded)?.categories ?: emptyList(),
+                onPlayRadio = { row, ev ->
+                    val all = (raState as? RadioState.Loaded)?.rows ?: listOf(row)
+                    playRadio(
+                        ctx, all, row,
+                        epgTitle = ev?.title ?: row.nowTitle ?: "",
+                        epgStart = ev?.start ?: row.nowStart,
+                        epgStop = ev?.stop ?: row.nowStop
+                    )
                 }
             )
         } else {

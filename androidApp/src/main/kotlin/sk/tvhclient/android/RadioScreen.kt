@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed as gridItemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.CalendarViewDay
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.foundation.border
@@ -100,6 +101,7 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
 
     var contextRow by remember { mutableStateOf<ChannelRow?>(null) }
     var epgFor by remember { mutableStateOf<ChannelRow?>(null) }
+    var showGrid by remember { mutableStateOf(false) }   // M587: mriezka TV programu pre radia
     var favTick by remember { mutableStateOf(0) }
     var lockTick by remember { mutableStateOf(0) }
     var hiddenTick by remember { mutableStateOf(0) }
@@ -107,6 +109,10 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
     var viewMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { vm.loadIfNeeded() }
+    // M586: „prave hra" pri staniciach berieme z ChannelsViewModel (radia su v TVH
+    // tiez kanaly a HTSP now/next sa tiahne pre vsetky naraz). Doteraz to nikto
+    // z tejto zalozky nespustil — kto otvoril Radia bez Kanalov, videl len nazvy.
+    LaunchedEffect(Unit) { chVm.loadIfNeeded() }
 
     // D-pad fokus: pociatocny fokus na prve radio + presmerovanie pri reselect (znovu kliknutie na Radia)
     val firstFocus = remember { FocusRequester() }
@@ -156,6 +162,34 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
         return
     }
 
+    // M587: mriezka TV programu pre rozhlasove stanice (rovnaka ako pri kanaloch,
+    // len so stanicami a ich skupinami). Spustenie ide cez playRadio, nech je
+    // spravanie rovnake ako zo zoznamu (mini prehravac, PIN, LastRadio).
+    val stGrid = state
+    if (showGrid) {
+        if (stGrid is RadioState.Loaded) {
+            EpgGridScreen(
+                allRows = emptyList(),
+                categories = emptyList(),
+                seed = radioEpg,
+                onBack = { showGrid = false },
+                radioRows = stGrid.rows,
+                radioCategories = stGrid.categories,
+                radioOnly = true,
+                onPlayRadio = { row, ev ->
+                    playRadio(
+                        context, stGrid.rows, row,
+                        epgTitle = ev?.title ?: row.nowTitle ?: "",
+                        epgStart = ev?.start ?: row.nowStart,
+                        epgStop = ev?.stop ?: row.nowStop
+                    )
+                }
+            )
+            return
+        }
+        showGrid = false
+    }
+
     Column(Modifier.fillMaxSize().padding(12.dp)) {
         val searchFocus = remember { androidx.compose.ui.focus.FocusRequester() }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -167,6 +201,9 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                 onUp = onGoToNav,
                 modifier = Modifier.weight(1f)
             )
+            IconButton(onClick = { showGrid = true }) {   // M587
+                Icon(Icons.Default.CalendarViewDay, contentDescription = stringResource(R.string.tv_guide))
+            }
             IconButton(onClick = { vm.load() }) {
                 Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.retry))
             }
@@ -628,8 +665,9 @@ private fun RadioTile(
     }
 }
 
-/** Spusti rozhlasovu stanicu cez EXTRA_UUID a naplni LivePlaylist (zapping + zoznam v prehravaci). */
-private fun playRadio(
+/** Spusti rozhlasovu stanicu cez EXTRA_UUID a naplni LivePlaylist (zapping + zoznam v prehravaci).
+ *  M587: internal — pouziva to aj mriezka TV programu (polozka „Rádiá"). */
+internal fun playRadio(
     context: android.content.Context,
     allRows: List<ChannelRow>,
     row: ChannelRow,

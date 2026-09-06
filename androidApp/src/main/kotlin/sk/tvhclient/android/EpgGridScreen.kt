@@ -228,6 +228,9 @@ private fun mergeRecordings(
 // Sentinel pre polozku „Obľúbené" vo filtri EPG (odlisi od tag uuid a od null=Vsetky).
 private const val EPG_FILTER_FAV = "\u0000fav"
 
+// M587: sentinel pre polozku „Rádiá" — mriezka prepne na rozhlasove stanice.
+private const val EPG_FILTER_RADIO = "\u0000radio"
+
 // Zapamatanie vybranej skupiny EPG per server pocas behu appky (default null = Vsetky).
 private object EpgGroupFilter {
     private val sel = HashMap<String, String?>()
@@ -241,7 +244,15 @@ fun EpgGridScreen(
     allRows: List<ChannelRow>,
     categories: List<sk.tvhclient.shared.api.ChannelCategory>,
     seed: Map<String, List<EpgEvent>>,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    // M587: rozhlasove stanice v mriezke. Zo zalozky Radia sa otvara rovno v rezime
+    // radia (radioOnly), z TV programu je to polozka „Rádiá" vo filtri skupin.
+    radioRows: List<ChannelRow> = emptyList(),
+    radioCategories: List<sk.tvhclient.shared.api.ChannelCategory> = emptyList(),
+    radioOnly: Boolean = false,
+    // Telefon v modernom rezime pusta radio cez mini prehravac — zalozka Radia
+    // odovzda vlastne spustenie, aby sa spravanie z mriezky nelisilo od zoznamu.
+    onPlayRadio: ((ChannelRow, EpgEvent?) -> Unit)? = null
 ) {
     BackHandler { onBack() }
     val context = LocalContext.current
@@ -251,15 +262,34 @@ fun EpgGridScreen(
     // Filter podla skupiny (tagu). null = Vsetky, EPG_FILTER_FAV = Oblubene, inak tag uuid.
     // Vyber sa pamata pocas behu appky per server (EpgGroupFilter), default Vsetky.
     val sid = server?.id
-    var selectedGroup by remember(sid) { mutableStateOf(EpgGroupFilter.get(sid)) }
-    val rows = remember(allRows, categories, selectedGroup) {
+    var selectedGroup by remember(sid) {
+        mutableStateOf(if (radioOnly) null else EpgGroupFilter.get(sid))
+    }
+    // M587: zdroj riadkov — bud TV kanaly, alebo rozhlas (zalozka Radia / polozka „Rádiá")
+    // tag, ktory ma aj TV kanaly aj radia (napr. „Slovenske"), sa neberie ako
+    // rozhlasovy — inak by jeho vyber v TV programe prepol mriezku na stanice
+    val radioTagUuids = remember(radioCategories, categories) {
+        val tv = categories.mapNotNull { it.tag?.uuid }.toSet()
+        radioCategories.mapNotNull { it.tag?.uuid }.filterNot { it in tv }.toSet()
+    }
+    val radioMode = radioOnly || selectedGroup == EPG_FILTER_RADIO ||
+        (selectedGroup != null && selectedGroup in radioTagUuids)
+    // M587: v rezime „len radia" (zo zalozky Radia) sa volba NEUKLADA do spolocnej
+    // pamate skupin — inak by sa TV program pri kanaloch otvoril v skupine radii
+    fun pickGroup(g: String?) {
+        selectedGroup = g
+        if (!radioOnly) EpgGroupFilter.set(sid, g)
+    }
+    val baseRows = if (radioMode) radioRows else allRows
+    val baseCats = if (radioMode) radioCategories else categories
+    val rows = remember(baseRows, baseCats, selectedGroup, radioMode) {
         when (val g = selectedGroup) {
-            null -> allRows
+            null, EPG_FILTER_RADIO -> baseRows
             EPG_FILTER_FAV -> {
                 val favs = if (sid != null) Favorites.all(context, sid) else emptySet()
-                allRows.filter { it.channel.uuid in favs }
+                baseRows.filter { it.channel.uuid in favs }
             }
-            else -> categories.firstOrNull { it.tag?.uuid == g }?.rows ?: allRows
+            else -> baseCats.firstOrNull { it.tag?.uuid == g }?.rows ?: baseRows
         }
     }
     // Zoznam kanalov pre zapping a zoznam v prehravaci (CH+/CH-, overlay)
@@ -575,9 +605,11 @@ fun EpgGridScreen(
                     // Filter podla skupiny: pilulka (lievik + aktualny filter), otvori zoznam.
                     // Rovnaky mechanizmus na TV (D-pad + OK) aj telefone (klik). BACK zavrie.
                     val filterLabel = when (val g = selectedGroup) {
-                        null -> stringResource(R.string.all_channels)
+                        null -> if (radioOnly) stringResource(R.string.tab_radio)
+                                else stringResource(R.string.all_channels)
                         EPG_FILTER_FAV -> stringResource(R.string.favorites)
-                        else -> categories.firstOrNull { it.tag?.uuid == g }?.tag?.name
+                        EPG_FILTER_RADIO -> stringResource(R.string.tab_radio)   // M587
+                        else -> (categories + radioCategories).firstOrNull { it.tag?.uuid == g }?.tag?.name
                             ?: stringResource(R.string.all_channels)
                     }
                     var filterMenu by remember { mutableStateOf(false) }
@@ -619,18 +651,27 @@ fun EpgGridScreen(
                             androidx.compose.material3.DropdownMenuItem(
                                 text = { Text(stringResource(R.string.all_channels)) },
                                 trailingIcon = { if (selectedGroup == null) androidx.compose.material3.Icon(Icons.Default.Check, null) },
-                                onClick = { selectedGroup = null; EpgGroupFilter.set(sid, null); filterMenu = false }
+                                onClick = { pickGroup(null); filterMenu = false }
                             )
                             androidx.compose.material3.DropdownMenuItem(
                                 text = { Text("\u2605 " + stringResource(R.string.favorites)) },
                                 trailingIcon = { if (selectedGroup == EPG_FILTER_FAV) androidx.compose.material3.Icon(Icons.Default.Check, null) },
-                                onClick = { selectedGroup = EPG_FILTER_FAV; EpgGroupFilter.set(sid, EPG_FILTER_FAV); filterMenu = false }
+                                onClick = { pickGroup(EPG_FILTER_FAV); filterMenu = false }
                             )
-                            categories.mapNotNull { it.tag }.forEach { tag ->
+                            baseCats.mapNotNull { it.tag }.forEach { tag ->
                                 androidx.compose.material3.DropdownMenuItem(
                                     text = { Text(tag.name) },
                                     trailingIcon = { if (selectedGroup == tag.uuid) androidx.compose.material3.Icon(Icons.Default.Check, null) },
-                                    onClick = { selectedGroup = tag.uuid; EpgGroupFilter.set(sid, tag.uuid); filterMenu = false }
+                                    onClick = { pickGroup(tag.uuid); filterMenu = false }
+                                )
+                            }
+                            // M587: prepnutie na rozhlasove stanice (len v TV programe,
+                            // zalozka Radia uz mriezku radii zobrazuje)
+                            if (!radioOnly && radioRows.isNotEmpty()) {
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.tab_radio)) },
+                                    trailingIcon = { if (selectedGroup == EPG_FILTER_RADIO) androidx.compose.material3.Icon(Icons.Default.Check, null) },
+                                    onClick = { pickGroup(EPG_FILTER_RADIO); filterMenu = false }
                                 )
                             }
                         }
@@ -858,9 +899,13 @@ fun EpgGridScreen(
                     onBack = { detail = null },
                     onPlay = {
                         when (d) {
-                            is GridDetail.Epg -> playLive(context, d.row, d.ev)
+                            is GridDetail.Epg ->
+                                if (radioMode && onPlayRadio != null) onPlayRadio(d.row, d.ev)
+                                else playLive(context, d.row, d.ev, radioMode)   // M587
                             is GridDetail.Dvr -> playDvr(context, d.rec)
-                            is GridDetail.InProgress -> playLiveChannel(context, d.row)
+                            is GridDetail.InProgress ->
+                                if (radioMode && onPlayRadio != null) onPlayRadio(d.row, null)
+                                else playLiveChannel(context, d.row, radioMode)
                         }
                     },
                     onPlayFromStart = (d as? GridDetail.InProgress)?.let { ip ->
@@ -1796,23 +1841,25 @@ private fun GridBlock(
     }
 }
 
-private fun playLive(context: android.content.Context, row: ChannelRow, ev: EpgEvent) {
+private fun playLive(context: android.content.Context, row: ChannelRow, ev: EpgEvent, radio: Boolean = false) {
     val intent = android.content.Intent(context, PlayerActivity::class.java).apply {
         putExtra(PlayerActivity.EXTRA_UUID, row.channel.uuid)
         putExtra(PlayerActivity.EXTRA_TITLE, row.channel.name)
         putExtra(PlayerActivity.EXTRA_PROG_START, ev.start)
         putExtra(PlayerActivity.EXTRA_PROG_STOP, ev.stop)
         putExtra(PlayerActivity.EXTRA_PROG_TITLE, ev.title)
+        if (radio) putExtra(PlayerActivity.EXTRA_KIND, "radio")   // M587
     }
     LivePlaylist.setIndexForUuid(row.channel.uuid)
     context.startActivity(intent)
 }
 
 /** Live prehratie kanala bez konkretnej relacie (pre prebiehajucu nahravku). */
-private fun playLiveChannel(context: android.content.Context, row: ChannelRow) {
+private fun playLiveChannel(context: android.content.Context, row: ChannelRow, radio: Boolean = false) {
     val intent = android.content.Intent(context, PlayerActivity::class.java).apply {
         putExtra(PlayerActivity.EXTRA_UUID, row.channel.uuid)
         putExtra(PlayerActivity.EXTRA_TITLE, row.channel.name)
+        if (radio) putExtra(PlayerActivity.EXTRA_KIND, "radio")   // M587
     }
     LivePlaylist.setIndexForUuid(row.channel.uuid)
     context.startActivity(intent)
