@@ -13,6 +13,7 @@ captures/
 # Kotlin / KMP
 *.hprof
 kotlin-js-store/
+.kotlin/
 
 # macOS / Xcode
 .DS_Store
