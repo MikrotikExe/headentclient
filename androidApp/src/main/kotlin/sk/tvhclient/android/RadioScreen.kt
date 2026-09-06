@@ -29,6 +29,16 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.zIndex
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.ViewModule
@@ -104,6 +114,11 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
     var jumpTarget by remember { mutableStateOf(-1) }
     val listState = rememberLazyListState()
     val gridState = rememberLazyGridState()
+    // M583: presun oblubenych tahanim za rukovat (len chip Oblubene, dotyk) — ako v Kanaloch (M560)
+    var dragUuid by remember { mutableStateOf<String?>(null) }
+    var dragOffset by remember { mutableStateOf(0f) }
+    val dragScope = rememberCoroutineScope()
+    val touchDevice = remember { !context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK) }
     // Po nacitani daj fokus na prvu polozku (nech sa da hned ist sipkou dole)
     LaunchedEffect(state) {
         if (state is RadioState.Loaded) {
@@ -291,16 +306,97 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                                             else -> false
                                         }
                                     }
-                                    RadioRow(
-                                        row, rows, loader, context,
-                                        modifier = keyMod,
-                                        onContext = { contextRow = it },
-                                        epgList = radioEpg[row.channel.uuid],
-                                        nowSec = nowTick,
-                                        highlighted = row.channel.uuid == lastRadioUuid,
-                                        favorite = row.channel.uuid in favMarks,   // M582
-                                        hiddenTick = hiddenTick,
-                                    )
+                                    val canDrag = favOnly && touchDevice && q.isBlank() && rows.size > 1
+                                    if (!canDrag) {
+                                        RadioRow(
+                                            row, rows, loader, context,
+                                            modifier = keyMod,
+                                            onContext = { contextRow = it },
+                                            epgList = radioEpg[row.channel.uuid],
+                                            nowSec = nowTick,
+                                            highlighted = row.channel.uuid == lastRadioUuid,
+                                            favorite = row.channel.uuid in favMarks,   // M582
+                                            hiddenTick = hiddenTick,
+                                        )
+                                    } else {
+                                        // M583: riadok + rukovat na tahanie; tahany riadok nadvihnuty (posun, tien, okraj)
+                                        val dragging = dragUuid == row.channel.uuid
+                                        val accent = MaterialTheme.colorScheme.primary
+                                        Row(
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .then(if (dragging) Modifier else Modifier.animateItem())
+                                                .zIndex(if (dragging) 1f else 0f)
+                                                .graphicsLayer {
+                                                    translationY = if (dragging) dragOffset else 0f
+                                                    shadowElevation = if (dragging) 24f else 0f
+                                                    shape = RoundedCornerShape(8.dp); clip = dragging
+                                                }
+                                                .then(if (dragging) Modifier.border(2.dp, accent, RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.surface) else Modifier),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(Modifier.weight(1f)) {
+                                                RadioRow(
+                                                    row, rows, loader, context,
+                                                    modifier = keyMod,
+                                                    onContext = { contextRow = it },
+                                                    epgList = radioEpg[row.channel.uuid],
+                                                    nowSec = nowTick,
+                                                    highlighted = row.channel.uuid == lastRadioUuid,
+                                                    hiddenTick = hiddenTick,
+                                                )
+                                            }
+                                            Icon(
+                                                Icons.Default.DragHandle, contentDescription = null,
+                                                tint = if (dragging) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier
+                                                    .padding(horizontal = 10.dp)
+                                                    .size(28.dp)
+                                                    .pointerInput(row.channel.uuid) {
+                                                        detectDragGestures(
+                                                            onDragStart = { dragUuid = row.channel.uuid; dragOffset = 0f },
+                                                            onDragEnd = { dragUuid = null; dragOffset = 0f },
+                                                            onDragCancel = { dragUuid = null; dragOffset = 0f },
+                                                            onDrag = { change, delta ->
+                                                                change.consume()
+                                                                dragOffset += delta.y
+                                                                val info = listState.layoutInfo
+                                                                val me = info.visibleItemsInfo.firstOrNull { it.key == row.channel.uuid }
+                                                                    ?: return@detectDragGestures
+                                                                val cur = me.index
+                                                                val h = me.size.toFloat().coerceAtLeast(1f)
+                                                                // vymena so susedom, ked je riadok prevleceny cez polovicu jeho vysky
+                                                                val swapWith = when {
+                                                                    dragOffset > h / 2f && cur < info.totalItemsCount - 1 -> cur + 1
+                                                                    dragOffset < -h / 2f && cur > 0 -> cur - 1
+                                                                    else -> -1
+                                                                }
+                                                                // sused z aktualneho layoutu (kluc = uuid), nie z `rows`
+                                                                // zachytenych pri prvej kompozicii — po prvom presune by boli stare
+                                                                val other = info.visibleItemsInfo.firstOrNull { it.index == swapWith }?.key as? String
+                                                                if (swapWith >= 0 && other != null) {
+                                                                    // podla uuid — zoznam oblubenych je spolocny s TV kanalmi
+                                                                    Favorites.moveUuid(context, serverId, row.channel.uuid, other)
+                                                                    favTick++
+                                                                    dragOffset += if (swapWith > cur) -h else h
+                                                                }
+                                                                // autoscroll pri okrajoch zoznamu
+                                                                val y = me.offset + dragOffset + h / 2f
+                                                                val vpStart = info.viewportStartOffset.toFloat()
+                                                                val vpEnd = info.viewportEndOffset.toFloat()
+                                                                val edge = h
+                                                                val scrollBy = when {
+                                                                    y < vpStart + edge -> -(vpStart + edge - y) * 0.3f
+                                                                    y > vpEnd - edge -> (y - (vpEnd - edge)) * 0.3f
+                                                                    else -> 0f
+                                                                }
+                                                                if (scrollBy != 0f) dragScope.launch { listState.scrollBy(scrollBy) }
+                                                            }
+                                                        )
+                                                    }
+                                            )
+                                        }
+                                    }
                                 }
                             }
                             ChannelViewMode.GRID, ChannelViewMode.TILES -> {

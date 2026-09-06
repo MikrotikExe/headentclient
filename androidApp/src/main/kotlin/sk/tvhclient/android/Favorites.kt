@@ -41,6 +41,19 @@ object Favorites {
         save(context, serverId, l)
     }
 
+    /**
+     * M583: presun podla uuid. Zoznam oblubenych je pre server SPOLOCNY pre TV aj
+     * radia, ale zalozky zobrazuju len svoju cast — index vo filtrovanom zozname
+     * nie je index v ulozenom poradi. [uuid] sa vlozi na miesto [targetUuid]
+     * (rovnako ako to robi prehravac pri usporiadani D-padom).
+     */
+    fun moveUuid(context: Context, serverId: String, uuid: String, targetUuid: String) {
+        val l = list(context, serverId)
+        val from = l.indexOf(uuid); val to = l.indexOf(targetUuid)
+        if (from < 0 || to < 0) return
+        move(context, serverId, from, to)
+    }
+
     private fun save(context: Context, serverId: String, order: List<String>) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putString(key(serverId), order.joinToString(",")).apply()

@@ -427,7 +427,11 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                     // za rukovat; uklada sa hned (Favorites.move, rovnake data ako TV rezim)
                     val moveFav: ((Int, Int) -> Unit)? =
                         if (favOnly && serverId != null && !isTvDeviceCtx(ctx)) { from, to ->
-                            Favorites.move(ctx, serverId, from, to); favTick++
+                            // M583: podla uuid — zoznam oblubenych je spolocny s radiami,
+                            // index v zobrazenom (TV) zozname nie je index v ulozenom poradi
+                            val a = rows.getOrNull(from)?.channel?.uuid
+                            val b = rows.getOrNull(to)?.channel?.uuid
+                            if (a != null && b != null) { Favorites.moveUuid(ctx, serverId, a, b); favTick++ }
                         } else null
                     val favMarks = remember(favs, favOnly) { if (favOnly) emptySet() else favs.toSet() }   // M564
                     ChannelView(viewMode, rows, listStateMain, nowTick, epgMap, recordingFor, onRecordingTap = { r, rec -> recChoice = r to rec }, focusUuid = focusUuid, onTopUp = { runCatching { searchFocus.requestFocus() } }, onShowEpg = { contextRow = it }, lockTick = lockTick, hiddenTick = hiddenTick, onMove = moveFav, favUuids = favMarks)
@@ -909,6 +913,9 @@ private fun ChannelList(
     var dragUuid by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
     var dragOffset by remember { androidx.compose.runtime.mutableStateOf(0f) }
     val dragScope = androidx.compose.runtime.rememberCoroutineScope()
+    // M583: onMove teraz mapuje indexy na uuid cez aktualne `rows`; pointerInput
+    // (klucovany uuid) by inak drzal lambdu z prvej kompozicie so starymi riadkami
+    val moveNow by androidx.compose.runtime.rememberUpdatedState(onMove)
     // Pociatocny focus na posledny zvoleny (alebo prvy) kanal -> nech sa pri
     // starte neoznaci vyhladavacie pole a nevyskoci klavesnica.
     val firstFocus = remember { FocusRequester() }
@@ -1013,9 +1020,9 @@ private fun ChannelList(
                                         val h = me.size.toFloat().coerceAtLeast(1f)
                                         // vymena so susedom, ked je riadok prevlecený cez polovicu jeho vysky
                                         if (dragOffset > h / 2f && cur < rows.lastIndex) {
-                                            onMove(cur, cur + 1); dragOffset -= h
+                                            moveNow?.invoke(cur, cur + 1); dragOffset -= h
                                         } else if (dragOffset < -h / 2f && cur > 0) {
-                                            onMove(cur, cur - 1); dragOffset += h
+                                            moveNow?.invoke(cur, cur - 1); dragOffset += h
                                         }
                                         // autoscroll pri okrajoch zoznamu
                                         val y = me.offset + dragOffset + h / 2f
