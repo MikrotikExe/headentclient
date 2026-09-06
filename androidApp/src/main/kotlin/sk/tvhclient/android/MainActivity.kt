@@ -432,9 +432,17 @@ private fun TvHomeHost() {
                     val u = cat.rows.map { it.channel.uuid }.filter { it !in hiddenR }.toSet()
                     if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
                 }
+                // M582: skryte radia zvlast (pseudo-skupina v prehravaci na odkrytie) — parita s TV
+                val hiddenListR = st.rows.filter { it.channel.uuid in hiddenR }.map { r ->
+                    LivePlaylist.LiveChannel(
+                        uuid = r.channel.uuid, name = r.channel.name,
+                        number = r.channel.number ?: 0, piconUrl = r.piconUrl,
+                        nowTitle = r.nowTitle ?: "", nowStart = r.nowStart, nowStop = r.nowStop
+                    )
+                }
                 LivePlaylist.setChannels(
                     fullR, grpsR, LastTag.toGroupKey(LastTag.get(ctx, sid, radio = true)),
-                    favs = if (sid != null) Favorites.list(ctx, sid) else emptyList()
+                    favs = if (sid != null) Favorites.list(ctx, sid) else emptyList(), hidden = hiddenListR
                 )
                 // M497: obnovovana stanica ma prednost pred poslednou
                 val target = (LastPlayback.pendingUuid ?: LastRadio.get(ctx, sid))

@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed as gridItemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.ViewModule
@@ -80,9 +81,10 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
     val serverId = server?.id ?: ""
     // M505: filter podla tagov (ako v Kanaloch); null = vsetky stanice.
     // Obnovi sa posledna volba pre TENTO server.
-    var selectedTag by remember(serverId) {
-        mutableStateOf(LastTag.get(context, serverId, radio = true))
-    }
+    // M582: „Oblubene" ako skupina (LastTag.FAV), rovnako ako v Kanaloch
+    val savedTag = remember(serverId) { LastTag.get(context, serverId, radio = true) }
+    var selectedTag by remember(serverId) { mutableStateOf(savedTag?.takeIf { it != LastTag.FAV }) }
+    var favOnly by remember(serverId) { mutableStateOf(savedTag == LastTag.FAV) }
     val lastRadioUuid = remember(state) { LastRadio.get(context, server?.id) }
     val loader = remember(server?.id) { PiconImageLoader.get(context, server) }
 
@@ -199,7 +201,12 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                     val q = query.trim().lowercase()
                     // pas sa ukaze len ked ma radio aspon jednu skupinu
                     val radioTags = s.categories.mapNotNull { it.tag }
-                    if (q.isBlank() && radioTags.isNotEmpty()) {
+                    // M582: zoznam oblubenych v poradi (ako v Kanaloch); pas filtrov sa ukaze
+                    // aj bez tagov, ked su nejake oblubene radia
+                    val favs = remember(favTick, serverId) { Favorites.list(context, serverId) }
+                    val favUuids = remember(favs) { favs.toSet() }
+                    val radioFavs = remember(favs, s) { favs.filter { u -> s.rows.any { it.channel.uuid == u } } }
+                    if (q.isBlank() && (radioTags.isNotEmpty() || radioFavs.isNotEmpty())) {
                         // ulozeny tag uz na serveri nemusi existovat -> spadni na „vsetky"
                         val validTag = selectedTag?.takeIf { u -> radioTags.any { it.uuid == u } }
                         if (validTag != selectedTag) selectedTag = validTag
@@ -207,11 +214,21 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.padding(horizontal = 12.dp)
                         ) {
+                            if (radioFavs.isNotEmpty()) item("fav") {
+                                FilterChip(
+                                    selected = favOnly,
+                                    onClick = {
+                                        favOnly = true
+                                        LastTag.set(context, serverId, true, LastTag.FAV)
+                                    },
+                                    label = { Text("\u2605 " + stringResource(R.string.favorites)) }
+                                )
+                            }
                             item("all") {
                                 FilterChip(
-                                    selected = selectedTag == null,
+                                    selected = !favOnly && selectedTag == null,
                                     onClick = {
-                                        selectedTag = null
+                                        favOnly = false; selectedTag = null
                                         LastTag.set(context, serverId, true, null)
                                     },
                                     label = { Text(stringResource(R.string.all_channels)) }
@@ -219,9 +236,9 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                             }
                             items(radioTags, key = { it.uuid }) { tag ->
                                 FilterChip(
-                                    selected = selectedTag == tag.uuid,
+                                    selected = !favOnly && selectedTag == tag.uuid,
                                     onClick = {
-                                        selectedTag = tag.uuid
+                                        favOnly = false; selectedTag = tag.uuid
                                         LastTag.set(context, serverId, true, tag.uuid)
                                     },
                                     label = { Text(tag.name) }
@@ -230,11 +247,17 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                         }
                         Spacer(Modifier.height(8.dp))
                     }
+                    // Oblubene bez radii (vsetky odobrane) -> spat na Vsetky
+                    if (favOnly && radioFavs.isEmpty() && q.isBlank()) { favOnly = false }
                     val base = when {
-                        q.isNotBlank() || selectedTag == null -> s.rows
+                        q.isNotBlank() -> s.rows
+                        favOnly -> radioFavs.mapNotNull { u -> s.rows.firstOrNull { it.channel.uuid == u } }
+                            .mapIndexed { i, r -> r.copy(channel = r.channel.copy(number = i + 1)) }
+                        selectedTag == null -> s.rows
                         else -> s.categories.firstOrNull { it.tag?.uuid == selectedTag }?.rows
                             ?: emptyList()
                     }
+                    val favMarks = if (favOnly) emptySet() else favUuids
                     val rows = if (q.isBlank()) base
                                else base.filter { it.channel.name.lowercase().contains(q) }
                     if (rows.isEmpty()) {
@@ -275,6 +298,8 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                                         epgList = radioEpg[row.channel.uuid],
                                         nowSec = nowTick,
                                         highlighted = row.channel.uuid == lastRadioUuid,
+                                        favorite = row.channel.uuid in favMarks,   // M582
+                                        hiddenTick = hiddenTick,
                                     )
                                 }
                             }
@@ -289,7 +314,9 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                                         RadioTile(
                                             row, rows, loader, context,
                                             modifier = if (idx == 0) Modifier.focusRequester(firstFocus) else Modifier,
-                                            onContext = { contextRow = it }
+                                            onContext = { contextRow = it },
+                                            favorite = row.channel.uuid in favMarks,   // M582
+                                            hiddenTick = hiddenTick,
                                         )
                                     }
                                 }
@@ -349,7 +376,12 @@ private fun RadioRow(
     epgList: List<sk.tvhclient.shared.model.EpgEvent>? = null,
     nowSec: Long = 0L,
     highlighted: Boolean = false,
+    favorite: Boolean = false,   // M582
+    hiddenTick: Int = 0,
 ) {
+    val hidden = remember(hiddenTick, row.channel.uuid) {
+        HiddenChannels.isHidden(context, Tvh.store.active()?.id, row.channel.uuid)
+    }
     if (isModernUi()) {
         // moderny riadok: karta s "co prave hra", progresom a minutami;
         // posledne pocuvana stanica ma teal zvyraznenie. Klasik nizsie nedotknuty.
@@ -371,12 +403,13 @@ private fun RadioRow(
             nowSec = nowSec,
             recording = false,
             locked = false,
-            hidden = false,
+            hidden = hidden,
             loader = loader,
             onClick = { playRadio(context, allRows, row, nt ?: "", ns, ne) },
             onLongClick = { onContext(row) },
             modifier = modifier,
             highlighted = highlighted,
+            favorite = favorite,   // M582
         )
         return
     }
@@ -411,8 +444,20 @@ private fun RadioRow(
                 Text("$it", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary)
             }
-            Text(row.channel.name, style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(row.channel.name, style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                if (favorite) {   // M582
+                    Spacer(Modifier.width(6.dp))
+                    Icon(Icons.Filled.Star, contentDescription = null,
+                        tint = androidx.compose.ui.graphics.Color(0xFFFBBF24), modifier = Modifier.size(16.dp))
+                }
+                if (hidden) {
+                    Spacer(Modifier.width(6.dp))
+                    Text("\uD83D\uDEAB", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
         // Sipka -> otvori menu
         Text(
@@ -435,8 +480,13 @@ private fun RadioTile(
     loader: coil.ImageLoader,
     context: android.content.Context,
     modifier: Modifier = Modifier,
-    onContext: (ChannelRow) -> Unit
+    onContext: (ChannelRow) -> Unit,
+    favorite: Boolean = false,   // M582
+    hiddenTick: Int = 0,
 ) {
+    val hidden = remember(hiddenTick, row.channel.uuid) {
+        HiddenChannels.isHidden(context, Tvh.store.active()?.id, row.channel.uuid)
+    }
     Column(
         modifier
             .fillMaxWidth()
@@ -463,6 +513,14 @@ private fun RadioTile(
                 )
             } else {
                 Text("\uD83D\uDCFB")
+            }
+            if (favorite) {   // M582
+                Icon(Icons.Filled.Star, contentDescription = null, tint = androidx.compose.ui.graphics.Color(0xFFFBBF24),
+                    modifier = Modifier.align(Alignment.TopStart).padding(2.dp).size(12.dp))
+            }
+            if (hidden) {
+                Text("\uD83D\uDEAB", style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(2.dp))
             }
         }
         Spacer(Modifier.height(4.dp))

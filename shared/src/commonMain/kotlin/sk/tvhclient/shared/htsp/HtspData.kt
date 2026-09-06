@@ -2,11 +2,13 @@ package sk.tvhclient.shared.htsp
 
 import sk.tvhclient.shared.model.Channel
 import sk.tvhclient.shared.model.ChannelTag
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import sk.tvhclient.shared.model.DvrEntry
 import sk.tvhclient.shared.model.EpgEvent
 import sk.tvhclient.shared.model.TvhServer
+import sk.tvhclient.shared.currentTimeSeconds
 
 /**
  * HTSP dátový zdroj: pripojí sa cez 9982, stiahne metadáta (enableAsyncMetadata)
@@ -125,20 +127,40 @@ object HtspData {
         return c?.meta ?: meta
     }
 
+    /** M581-fix: posledna funkcna IP podla mena servera (host -> ip, cas). */
+    private val hostIp = HashMap<String, Pair<String, Long>>()
+
+    private fun isIpLiteral(h: String): Boolean =
+        h.all { it.isDigit() || it == '.' } || h.contains(':')
+
     /**
      * M581: pripojenie s opakovanim. Na mobilnej sieti (LTE) obcas zlyha DNS preklad mena
-     * servera (UnresolvedAddressException) hoci o sekundu prejde — bez opakovania kolo
-     * now/next skoncilo v polovici a EPG bolo stiahnute len z casti. Tri pokusy: 0 s, 1 s, 3 s.
+     * servera (UnresolvedAddressException) — a nie len na sekundu. Kazdy pokus ide najprv
+     * cez meno; ked zlyha a mame zapamatanu IP z predosleho uspesneho spojenia (M581-fix,
+     * platna 6 h), skusi sa rovno IP. Tri kola: 0 s, 1 s, 3 s.
      */
     private suspend fun connectWithRetry(server: TvhServer): HtspClient {
         var last: Throwable? = null
         val delays = longArrayOf(0L, 1_000L, 3_000L)
+        val nowMs = currentTimeSeconds() * 1000
+        val cached = hostIp[server.host]?.takeIf { nowMs - it.second < 6 * 3600_000L }?.first
         for (d in delays) {
             if (d > 0) kotlinx.coroutines.delay(d)
-            val c = HtspClient(server.host, server.htspPort, server.username, server.password)
-            try { c.connect(); return c }
-            catch (e: kotlinx.coroutines.CancellationException) { throw e }
-            catch (e: Throwable) { last = e; runCatching { c.close() } }
+            val hosts = if (cached != null && cached != server.host) listOf(server.host, cached) else listOf(server.host)
+            for (h in hosts) {
+                val c = HtspClient(h, server.htspPort, server.username, server.password)
+                try {
+                    c.connect()
+                    if (h == server.host && !isIpLiteral(h)) {
+                        // spojenie cez meno preslo -> zapamataj IP na horsie casy
+                        withContext(Dispatchers.Default) { sk.tvhclient.shared.net.resolveHostBlocking(h) }
+                            ?.let { hostIp[h] = it to nowMs }
+                    }
+                    return c
+                }
+                catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                catch (e: Throwable) { last = e; runCatching { c.close() } }
+            }
         }
         throw last ?: IllegalStateException("connect failed")
     }

@@ -126,6 +126,8 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
             sk.tvhclient.shared.htsp.HtspData.lastEpgError = null
             val map = try {
                 withContext(Dispatchers.IO) { Tvh.fetchEpgUpcoming(server) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e   // M581-fix: odchod z obrazovky nie je chyba, do zaznamu nepatri
             } catch (e: Exception) {
                 CrashLogger.report(getApplication(), "ChannelsViewModel.nowNext", e)   // M551-fix2
                 emptyMap()
