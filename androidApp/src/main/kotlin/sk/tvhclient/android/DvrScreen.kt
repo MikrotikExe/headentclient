@@ -3,49 +3,42 @@ package sk.tvhclient.android
 import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.background
 import androidx.compose.animation.animateContentSize
-import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.window.Dialog
-import androidx.compose.foundation.focusable
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.items as gridItems
-import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.foundation.border
 import androidx.compose.material.icons.automirrored.filled.ViewList
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -59,14 +52,19 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import sk.tvhclient.shared.Tvh
@@ -76,6 +74,7 @@ import sk.tvhclient.shared.formatTimeHm
 import sk.tvhclient.shared.model.DvrClassifier
 import sk.tvhclient.shared.model.DvrEntry
 import sk.tvhclient.shared.model.ImdbLookup
+import androidx.compose.foundation.lazy.grid.items as gridItems
 
 // Navigacia v archive (read-only zlozky)
 private sealed class DvrNav {
@@ -636,6 +635,29 @@ private fun RecordingList(
     }
 }
 
+private fun isMediaPlayKey(code: Int): Boolean = when (code) {
+    android.view.KeyEvent.KEYCODE_MEDIA_PLAY,
+    android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> true
+    else -> false
+}
+
+private fun handleMediaPlayKey(k: android.view.KeyEvent, onPlay: () -> Unit): Boolean = when (k.action) {
+    android.view.KeyEvent.ACTION_DOWN -> {
+        if (k.repeatCount == 0) {
+            onPlay()
+            true
+        } else true
+    }
+    android.view.KeyEvent.ACTION_UP -> true
+    else -> false
+}
+
+private fun Modifier.playOnMediaKey(onPlay: () -> Unit): Modifier = this.onPreviewKeyEvent { ev ->
+    val k = ev.nativeKeyEvent
+    if (!isMediaPlayKey(k.keyCode)) return@onPreviewKeyEvent false
+    handleMediaPlayKey(k, onPlay)
+}
+
 /** Spusti prehravanie DVR nahravky. */
 internal fun playDvr(context: Context, entry: DvrEntry) {
     val srv = Tvh.store.active() ?: return
@@ -672,6 +694,7 @@ private fun RecordingCard(entry: DvrEntry, context: Context, progressTick: Int) 
                     .dpadFocusable(RoundedCornerShape(14.dp))
                 else Modifier.dpadFocusable()
             )
+            .playOnMediaKey { playDvr(context, entry) }
             // M483: dlhe podrzanie = ponuka zmazat nahravku
             .combinedClickable(
                 onClick = { playDvr(context, entry) },
@@ -764,6 +787,7 @@ private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int) {
                     .dpadFocusable(RoundedCornerShape(14.dp))
                 else Modifier.dpadFocusable()
             )
+            .playOnMediaKey { playDvr(context, entry) }
             // M483: dlhe podrzanie = ponuka zmazat nahravku
             .combinedClickable(
                 onClick = { playDvr(context, entry) },
@@ -1722,9 +1746,10 @@ private fun ArcRecCard(e: DvrEntry, picon: String?, loader: coil.ImageLoader, co
             .dpadFocusable(RoundedCornerShape(10.dp))
             .onPreviewKeyEvent { ev ->
                 val k = ev.nativeKeyEvent
+                if (isMediaPlayKey(k.keyCode)) return@onPreviewKeyEvent handleMediaPlayKey(k) { onClick() }
                 val ok = k.keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
-                    k.keyCode == android.view.KeyEvent.KEYCODE_ENTER ||
-                    k.keyCode == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
+                        k.keyCode == android.view.KeyEvent.KEYCODE_ENTER ||
+                        k.keyCode == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
                 if (!ok) return@onPreviewKeyEvent false
                 when (k.action) {
                     android.view.KeyEvent.ACTION_DOWN -> when (k.repeatCount) {
