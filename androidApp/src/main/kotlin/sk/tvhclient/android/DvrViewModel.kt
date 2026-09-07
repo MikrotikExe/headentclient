@@ -37,6 +37,15 @@ class DvrViewModel : ViewModel() {
     private var loadedOnce = false
     private var reloadToken = -1
 
+    // M589: prebiehajuce obnovenie (tlacidlo „Obnovit") — bez toho sa pri nezmenenom
+    // archive nic viditelne nedialo a vyzeralo to, ze tlacidlo nefunguje.
+    private val _refreshing = MutableStateFlow(false)
+    val refreshing: StateFlow<Boolean> = _refreshing
+    // pocitadlo neuspesnych obnoveni (data ostavaju stare) — obrazovka na to
+    // upozorni hlaskou, inak by tichy neuspech vyzeral ako uspech
+    private val _refreshFailed = MutableStateFlow(0)
+    val refreshFailed: StateFlow<Int> = _refreshFailed
+
     /** Nacita len ak este nemame data, alebo ak sa zmenil server (reload token). */
     fun loadIfNeeded() {
         val tok = TabController.dataReload.value
@@ -48,16 +57,19 @@ class DvrViewModel : ViewModel() {
 
     /** Vynutene obnovenie (napr. tlacidlo) — bez blikania, drzi stare data. */
     fun refresh() {
+        if (_refreshing.value) return   // M589: dvojklik nespusti druhe nacitanie
         Tvh.store.active()?.let { sk.tvhclient.shared.htsp.HtspData.clear(it.id) }
-        load(showLoading = false)
+        load(showLoading = false, refreshing = true)
     }
 
-    fun load(showLoading: Boolean = true) {
+    fun load(showLoading: Boolean = true, refreshing: Boolean = false) {
         val server = Tvh.store.active()
         if (server == null) {
             _state.value = DvrState.NoServer
+            _refreshing.value = false
             return
         }
+        if (refreshing) _refreshing.value = true
         if (showLoading && _state.value !is DvrState.Loaded) {
             _state.value = DvrState.Loading
         }
@@ -106,12 +118,17 @@ class DvrViewModel : ViewModel() {
                 )
                 loadedOnce = true
             } catch (e: kotlinx.coroutines.CancellationException) {
+                _refreshing.value = false   // M589
                 throw e   // M588: odchod z obrazovky / novy load nie je chyba
             } catch (e: Exception) {
                 runCatching { CrashLogger.report(sk.tvhclient.shared.storage.AppContextHolder.context, "DvrViewModel.load", e) }   // M556: doteraz potichu
                 if (_state.value !is DvrState.Loaded) {
                     _state.value = DvrState.Error(e.message ?: "")   // M491: prazdne = UI doplni preklad
+                } else if (refreshing) {
+                    _refreshFailed.value = _refreshFailed.value + 1   // M589: stare data ostavaju
                 }
+            } finally {
+                if (refreshing) _refreshing.value = false   // M589
             }
         }
     }

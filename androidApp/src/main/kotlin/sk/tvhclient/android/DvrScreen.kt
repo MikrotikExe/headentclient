@@ -165,6 +165,19 @@ internal fun DvrDeleteDialog(vm: DvrViewModel) {
 fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
     val state by vm.state.collectAsState()
     val context = LocalContext.current
+    // M589: obnovenie drzi stare data, takze pri nezmenenom archive nebolo nic vidno —
+    // tlacidlo sa pocas nacitania meni na kruzok a neuspech sa oznami hlaskou
+    val refreshing by vm.refreshing.collectAsState()
+    val refreshFailed by vm.refreshFailed.collectAsState()
+    var seenRefreshFail by remember { mutableStateOf(refreshFailed) }
+    LaunchedEffect(refreshFailed) {
+        if (refreshFailed != seenRefreshFail) {
+            seenRefreshFail = refreshFailed
+            android.widget.Toast.makeText(
+                context, context.getString(R.string.load_error), android.widget.Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
     var nav by remember { mutableStateOf<DvrNav>(DvrNav.Root) }
     var search by remember { mutableStateOf("") }
     var viewMode by remember { mutableStateOf(DvrViewPref.get(context)) }
@@ -264,9 +277,18 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
                 focusRequester = searchFocus,
                 modifier = Modifier.weight(1f)
             )
-            androidx.compose.material3.IconButton(onClick = { vm.refresh() }) {
-                androidx.compose.material3.Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.retry),
-                    tint = MaterialTheme.colorScheme.onSurface)
+            androidx.compose.material3.IconButton(
+                onClick = { vm.refresh() },
+                enabled = !refreshing   // M589
+            ) {
+                if (refreshing) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp), strokeWidth = 2.dp
+                    )
+                } else {
+                    androidx.compose.material3.Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.retry),
+                        tint = MaterialTheme.colorScheme.onSurface)
+                }
             }
             Box {
                 androidx.compose.material3.IconButton(onClick = { viewMenu = true }) {
@@ -1106,6 +1128,7 @@ private fun subLabel(key: String): String {
 fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
     val context = LocalContext.current
     val state by vm.state.collectAsState()
+    val refreshingTv by vm.refreshing.collectAsState()   // M589
     val server = remember { Tvh.store.active() }
     val loader = remember(server?.id) { PiconImageLoader.get(context, server) }
     // M528: pri kazdom otvoreni archivu si vyziadaj cerstvy zoznam.
@@ -1189,7 +1212,7 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                 style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f).padding(horizontal = 20.dp, vertical = 12.dp)
             )
-            ArcReloadButton { vm.refresh() }
+            ArcReloadButton(loading = refreshingTv) { vm.refresh() }
         }
         Row(Modifier.fillMaxSize()) {
             LazyColumn(
@@ -1580,7 +1603,7 @@ private fun ArcInfoDialog(e: DvrEntry, onDismiss: () -> Unit) {
  *  - KLASICKY: plochy obrys, ako ostatne klasicke ovladace
  */
 @Composable
-private fun ArcReloadButton(onClick: () -> Unit) {
+private fun ArcReloadButton(loading: Boolean = false, onClick: () -> Unit) {   // M589
     var focused by remember { mutableStateOf(false) }
     val cs = MaterialTheme.colorScheme
     val modern = isModernUi()
@@ -1612,7 +1635,11 @@ private fun ArcReloadButton(onClick: () -> Unit) {
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (modern) {
+        if (loading) {   // M589: viditelny priebeh aj na TV
+            androidx.compose.material3.CircularProgressIndicator(
+                modifier = Modifier.size(if (modern) 26.dp else 18.dp), strokeWidth = 2.dp
+            )
+        } else if (modern) {
             // ikonovy cip ako v lavom pase
             val chip = mgChipFor("dates")
             Box(
