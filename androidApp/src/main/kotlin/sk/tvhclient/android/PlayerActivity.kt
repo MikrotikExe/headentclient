@@ -840,6 +840,8 @@ class PlayerActivity : ComponentActivity() {
     private fun launchEpgActivity() {
         val i = android.content.Intent(this, MainActivity::class.java).apply {
             putExtra("open_epg", true)
+            // M591: z prehravaca radia sa ma otvorit program STANIC, nie TV kanalov
+            if (playKind == "radio") putExtra("epg_radio", true)
             // zapamataj aktualny zivy kanal, nech BACK z EPG vrati do prehravaca nan
             if (!seekablePlayback) liveUuids.getOrNull(liveIndex)?.let { putExtra("epg_return_uuid", it) }
         }

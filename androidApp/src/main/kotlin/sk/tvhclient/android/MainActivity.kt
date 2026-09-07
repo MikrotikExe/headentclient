@@ -88,15 +88,18 @@ object TabController {
     val epgGrid = mutableStateOf(0)
     var epgFromPlayer = false
     var epgReturnUuid: String? = null
+    // M591: mriezka sa ma otvorit rovno pri rozhlasovych staniciach (z prehravaca radia)
+    var epgRadio = false
     // Otvorenie mriezky aj pri cerstvom mounte Kanalov (napr. z modernej Domov
     // obrazovky) — bez tohto by baseline signal zhltol a otvoril sa len zoznam.
     var epgColdOpen = false
     // M397: jednorazovy priznak "otvor mriezku hned" — hosty ho konzumuju uz
     // pocas kompozicie, takze sa nestihne mihnut uvodna obrazovka
     var epgPending = false
-    fun openEpgGrid(fromPlayer: Boolean = false, returnUuid: String? = null) {
+    fun openEpgGrid(fromPlayer: Boolean = false, returnUuid: String? = null, radio: Boolean = false) {
         epgFromPlayer = fromPlayer
         epgReturnUuid = returnUuid
+        epgRadio = radio   // M591
         epgPending = true
         epgGrid.value = epgGrid.value + 1
     }
@@ -167,7 +170,10 @@ class MainActivity : ComponentActivity() {
         // aktivity (zmena jazyka, hustoty…) by sa inak prehravac otvoril znova
         if (savedInstanceState == null) DeepLink.handle(intent)
         if (intent?.getBooleanExtra("open_epg", false) == true) {
-            TabController.openEpgGrid(fromPlayer = true, returnUuid = intent.getStringExtra("epg_return_uuid"))
+            TabController.openEpgGrid(
+                fromPlayer = true, returnUuid = intent.getStringExtra("epg_return_uuid"),
+                radio = intent.getBooleanExtra("epg_radio", false)   // M591
+            )
         }
         maybeResumeLastPlayback(savedInstanceState)   // M494
         setContent {
@@ -214,7 +220,10 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         DeepLink.handle(intent)   // M573
         if (intent.getBooleanExtra("open_epg", false)) {
-            TabController.openEpgGrid(fromPlayer = true, returnUuid = intent.getStringExtra("epg_return_uuid"))
+            TabController.openEpgGrid(
+                fromPlayer = true, returnUuid = intent.getStringExtra("epg_return_uuid"),
+                radio = intent.getBooleanExtra("epg_radio", false)   // M591
+            )
         }
     }
 
@@ -502,6 +511,8 @@ private fun TvHomeHost() {
                 EpgGridScreen(
                     allRows = st.allRows, categories = st.categories, seed = epgMap,
                     onBack = { epgBack() },
+                    startInRadio = TabController.epgRadio,   // M591
+
                     // M587: rozhlasove stanice ako dalsia skupina vo filtri mriezky
                     radioRows = (raState as? RadioState.Loaded)?.rows ?: emptyList(),
                     radioCategories = (raState as? RadioState.Loaded)?.categories ?: emptyList()

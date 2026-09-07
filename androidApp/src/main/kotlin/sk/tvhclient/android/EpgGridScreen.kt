@@ -250,6 +250,9 @@ fun EpgGridScreen(
     radioRows: List<ChannelRow> = emptyList(),
     radioCategories: List<sk.tvhclient.shared.api.ChannelCategory> = emptyList(),
     radioOnly: Boolean = false,
+    // M591: otvorit rovno pri staniciach (TV program z prehravaca radia), ale
+    // s moznostou prepnut sa filtrom spat na TV kanaly
+    startInRadio: Boolean = false,
     // Telefon v modernom rezime pusta radio cez mini prehravac — zalozka Radia
     // odovzda vlastne spustenie, aby sa spravanie z mriezky nelisilo od zoznamu.
     onPlayRadio: ((ChannelRow, EpgEvent?) -> Unit)? = null
@@ -263,7 +266,13 @@ fun EpgGridScreen(
     // Vyber sa pamata pocas behu appky per server (EpgGroupFilter), default Vsetky.
     val sid = server?.id
     var selectedGroup by remember(sid) {
-        mutableStateOf(if (radioOnly) null else EpgGroupFilter.get(sid))
+        mutableStateOf(
+            when {
+                radioOnly -> null
+                startInRadio -> EPG_FILTER_RADIO   // M591
+                else -> EpgGroupFilter.get(sid)
+            }
+        )
     }
     // M587: zdroj riadkov — bud TV kanaly, alebo rozhlas (zalozka Radia / polozka „Rádiá")
     // tag, ktory ma aj TV kanaly aj radia (napr. „Slovenske"), sa neberie ako
