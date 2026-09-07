@@ -512,6 +512,7 @@ private fun TvHomeHost() {
                     allRows = st.allRows, categories = st.categories, seed = epgMap,
                     onBack = { epgBack() },
                     startInRadio = TabController.epgRadio,   // M591
+                    focusUuid = TabController.epgReturnUuid,   // M592
 
                     // M587: rozhlasove stanice ako dalsia skupina vo filtri mriezky
                     radioRows = (raState as? RadioState.Loaded)?.rows ?: emptyList(),

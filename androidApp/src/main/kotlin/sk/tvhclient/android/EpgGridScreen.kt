@@ -253,6 +253,8 @@ fun EpgGridScreen(
     // M591: otvorit rovno pri staniciach (TV program z prehravaca radia), ale
     // s moznostou prepnut sa filtrom spat na TV kanaly
     startInRadio: Boolean = false,
+    // M592: kanal/stanica, na ktorej ma mriezka zacat (co prave hra v prehravaci)
+    focusUuid: String? = null,
     // Telefon v modernom rezime pusta radio cez mini prehravac — zalozka Radia
     // odovzda vlastne spustenie, aby sa spravanie z mriezky nelisilo od zoznamu.
     onPlayRadio: ((ChannelRow, EpgEvent?) -> Unit)? = null
@@ -555,6 +557,18 @@ fun EpgGridScreen(
         }
         pendingCursorEdge = null
         selectRowAt(selRow.coerceIn(0, rows.lastIndex), anchorTime)
+    }
+    // M592: mriezka otvorena z prehravaca zacne na kanali, ktory prave hra —
+    // doteraz vzdy skocila na prvy kanal v zozname a pouzivatel ho musel hladat.
+    // Plati raz po otvoreni; dalsiu navigaciu uz riadi kurzor.
+    var didFocusPlaying by remember { mutableStateOf(false) }
+    LaunchedEffect(rows, focusUuid) {
+        if (didFocusPlaying || focusUuid == null || rows.isEmpty()) return@LaunchedEffect
+        val idx = rows.indexOfFirst { it.channel.uuid == focusUuid }
+        if (idx < 0) return@LaunchedEffect
+        didFocusPlaying = true
+        if (isTv) selectRowAt(idx, anchorTime) else selRow = idx
+        runCatching { listState.scrollToItem(idx) }
     }
     // Fokus na mriezku po otvoreni (TV)
     LaunchedEffect(Unit) {
