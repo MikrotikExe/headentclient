@@ -269,6 +269,8 @@ fun EpgGridScreen(
     // tag, ktory ma aj TV kanaly aj radia (napr. „Slovenske"), sa neberie ako
     // rozhlasovy — inak by jeho vyber v TV programe prepol mriezku na stanice
     val radioTagUuids = remember(radioCategories, categories) {
+        // tag, ktory ma aj TV kanaly (napr. server ma tag „Rádio" s par TV kanalmi),
+        // ostava TV skupinou — mriezka sa nim neprepne na stanice
         val tv = categories.mapNotNull { it.tag?.uuid }.toSet()
         radioCategories.mapNotNull { it.tag?.uuid }.filterNot { it in tv }.toSet()
     }
@@ -608,7 +610,7 @@ fun EpgGridScreen(
                         null -> if (radioOnly) stringResource(R.string.tab_radio)
                                 else stringResource(R.string.all_channels)
                         EPG_FILTER_FAV -> stringResource(R.string.favorites)
-                        EPG_FILTER_RADIO -> stringResource(R.string.tab_radio)   // M587
+                        EPG_FILTER_RADIO -> "\uD83D\uDCFB " + stringResource(R.string.tab_radio)   // M587
                         else -> (categories + radioCategories).firstOrNull { it.tag?.uuid == g }?.tag?.name
                             ?: stringResource(R.string.all_channels)
                     }
@@ -658,20 +660,21 @@ fun EpgGridScreen(
                                 trailingIcon = { if (selectedGroup == EPG_FILTER_FAV) androidx.compose.material3.Icon(Icons.Default.Check, null) },
                                 onClick = { pickGroup(EPG_FILTER_FAV); filterMenu = false }
                             )
+                            // M587-fix: rozhlas je hned za Oblubenymi a ma ikonu — na
+                            // serveri moze existovat aj TAG s nazvom „Rádio" (s TV kanalmi),
+                            // dve rovnake polozky pod sebou by boli matuce
+                            if (!radioOnly && radioRows.isNotEmpty()) {
+                                androidx.compose.material3.DropdownMenuItem(
+                                    text = { Text("\uD83D\uDCFB " + stringResource(R.string.tab_radio)) },
+                                    trailingIcon = { if (selectedGroup == EPG_FILTER_RADIO) androidx.compose.material3.Icon(Icons.Default.Check, null) },
+                                    onClick = { pickGroup(EPG_FILTER_RADIO); filterMenu = false }
+                                )
+                            }
                             baseCats.mapNotNull { it.tag }.forEach { tag ->
                                 androidx.compose.material3.DropdownMenuItem(
                                     text = { Text(tag.name) },
                                     trailingIcon = { if (selectedGroup == tag.uuid) androidx.compose.material3.Icon(Icons.Default.Check, null) },
                                     onClick = { pickGroup(tag.uuid); filterMenu = false }
-                                )
-                            }
-                            // M587: prepnutie na rozhlasove stanice (len v TV programe,
-                            // zalozka Radia uz mriezku radii zobrazuje)
-                            if (!radioOnly && radioRows.isNotEmpty()) {
-                                androidx.compose.material3.DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.tab_radio)) },
-                                    trailingIcon = { if (selectedGroup == EPG_FILTER_RADIO) androidx.compose.material3.Icon(Icons.Default.Check, null) },
-                                    onClick = { pickGroup(EPG_FILTER_RADIO); filterMenu = false }
                                 )
                             }
                         }
