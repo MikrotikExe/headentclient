@@ -66,6 +66,8 @@ class RadioViewModel : ViewModel() {
                 }
                 _state.value = RadioState.Loaded(data.first, data.second)
                 loadedOnce = true
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e   // M588: zrusenie (odchod z obrazovky) nie je chyba stanic
             } catch (e: Exception) {
                 _state.value = RadioState.Error(e.message ?: "")   // M491: prazdne = UI doplni preklad
             }

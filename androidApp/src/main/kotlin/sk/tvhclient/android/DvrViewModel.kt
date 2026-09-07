@@ -63,7 +63,7 @@ class DvrViewModel : ViewModel() {
         }
         viewModelScope.launch {
             try {
-                val result = withContext(Dispatchers.IO) {
+                suspend fun fetch(): List<Any> = withContext(Dispatchers.IO) {
                     val api = Tvh.apiFor(server)
                     try {
                         val e = Tvh.fetchDvrFinished(server, api)
@@ -80,6 +80,23 @@ class DvrViewModel : ViewModel() {
                         api.close()
                     }
                 }
+                // M588: server obcas zavrie necinne spojenie („Software caused connection
+                // abort" / reset) alebo telefon prepne Wi-Fi<->LTE. Prvy taky pad sa
+                // potichu zopakuje — do zaznamu ide az druhy neuspech.
+                val result = try {
+                    fetch()
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    // len sietove pady (Ktor ich balí do vlastnych typov — hladame
+                    // IOException v retazci pricin), nie napr. zle prihlasenie
+                    val io = generateSequence(e as Throwable) { it.cause }
+                        .any { it is java.io.IOException }
+                    if (!io) throw e
+                    sk.tvhclient.shared.htsp.HtspData.clear(server.id)
+                    kotlinx.coroutines.delay(1000)
+                    fetch()
+                }
                 @Suppress("UNCHECKED_CAST")
                 _state.value = DvrState.Loaded(
                     result[0] as List<DvrEntry>,
@@ -88,6 +105,8 @@ class DvrViewModel : ViewModel() {
                     result[3] as List<DvrEntry>
                 )
                 loadedOnce = true
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e   // M588: odchod z obrazovky / novy load nie je chyba
             } catch (e: Exception) {
                 runCatching { CrashLogger.report(sk.tvhclient.shared.storage.AppContextHolder.context, "DvrViewModel.load", e) }   // M556: doteraz potichu
                 if (_state.value !is DvrState.Loaded) {
