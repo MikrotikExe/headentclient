@@ -26,6 +26,20 @@ object HtspData {
     @kotlin.concurrent.Volatile var lastEpgFailed: Int = 0
     /** M551-fix2: kanály, pre ktoré getEvents nevrátilo žiadnu aktuálnu/nasledujúcu udalosť. */
     @kotlin.concurrent.Volatile var lastEpgEmpty: List<Long> = emptyList()
+    /**
+     * M595: pocet BEZIACICH HTSP prenosov (zivy kanal / timeshift). Tvheadend ma
+     * na pouzivatela limit spojeni (bezne 1); ked appka pocas prehravania otvori
+     * DRUHE spojenie (now/next, denny program, archiv), server ho odmietne —
+     * „multiple connections are not allowed for user X (limit 1…)" — a v horsom
+     * pripade zhodi to, ktore prehrava. Pouzivatel to vidi tak, ze sa mu kanal
+     * alebo nahravka po chvili zastavi. Kym prenos bezi, doplnkove HTSP dotazy
+     * sa preto preskocia a pouzije sa to, co uz mame v cache.
+     */
+    @kotlin.concurrent.Volatile private var streamCount: Int = 0
+    val streaming: Boolean get() = streamCount > 0
+    fun streamStarted() { streamCount++ }
+    fun streamStopped() { if (streamCount > 0) streamCount-- }
+
     private fun noteEpgError(e: Throwable) {
         lastEpgError = (e::class.simpleName ?: "Throwable") + ": " + (e.message ?: "")
     }
@@ -94,6 +108,8 @@ object HtspData {
         if (c != null && nowSec - c.ts < ttl && (!withEpg || c.withEpg)) {
             return c.meta
         }
+        // M595: pocas prehravania neotvarat druhe spojenie — radsej starsia cache
+        if (streaming && c != null && (!withEpg || c.withEpg)) return c.meta
         val client = HtspClient(server.host, server.htspPort, server.username, server.password)
         client.connect()
         val meta = try {
@@ -173,6 +189,10 @@ object HtspData {
     suspend fun epgUpcomingMap(server: TvhServer, nowSec: Long): Map<String, List<EpgEvent>> {
         val nc = nowCache[server.id]
         if (nc != null && nowSec - nc.ts < 600) return nc.map
+        // M595: kym bezi prenos, now/next nepytame — druhe spojenie by server s
+        // limitom 1 odmietol a mohol by zhodit aj prehravanie. Volajuci ma
+        // opakovanie s odstupom, takze sa to dotiahne po skonceni prehravania.
+        if (streaming) return nc?.map ?: emptyMap()
         // M572: pocitadla plati vzdy len pre prave bezhiace kolo — ked kolo skoncilo
         // vynimkou (napr. nedostupny server), v zazname sa inak zopakovalo cislo
         // zo starsieho kola ("0 ok, failed=552")

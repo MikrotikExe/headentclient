@@ -68,8 +68,13 @@ class HtspTsFeeder(
      * posielala len na HTTP ceste — cez HTSP sa preto vzdy hralo so serverovou
      * predvolbou. Prazdny/`null` = nechaj rozhodnut server (povodne spravanie).
      */
+    // M595: kym bezi prenos, appka neotvara dalsie HTSP spojenia (server ich moze
+    // mat na pouzivatela obmedzene na jedno a prehravanie by zhodil)
+    private var streamMarked = false
+
     fun start(channelId: Long, scope: CoroutineScope, profile: String? = null): FileDescriptor {
         this.scope = scope
+        if (!streamMarked) { streamMarked = true; sk.tvhclient.shared.htsp.HtspData.streamStarted() }   // M595
         val pipe = ParcelFileDescriptor.createPipe()
         val read = pipe[0]
         val write = pipe[1]
@@ -184,6 +189,7 @@ class HtspTsFeeder(
     }
 
     fun stop() {
+        if (streamMarked) { streamMarked = false; sk.tvhclient.shared.htsp.HtspData.streamStopped() }   // M595
         job?.cancel()
         job = null
         // M481: ukonci zapisovacie vlakno BEZ blokovania.
