@@ -1013,13 +1013,34 @@ class PlayerActivity : ComponentActivity() {
 
     /** Pretacanie pre DVR (live TS sa pretacat neda). TS subor nenese dlzku,
      *  preto pouzivame dlzku z DVR entry a poziciu ako zlomok (na TS spolahlive). */
+    // M594: zotavenie po pretoceni za realny koniec suboru
+    private var lastSeekAtMs = 0L
+    private var lastSeekTargetMs = 0L
+    private var seekRecoverTries = 0
+    private fun justSeeked(): Boolean =
+        lastSeekAtMs > 0L && android.os.SystemClock.elapsedRealtime() - lastSeekAtMs < 15_000L
+
+    /** Vrati true, ak sa po pretoceni podarilo ustupit spat a skusit znova. */
+    private fun recoverAfterSeek(): Boolean {
+        if (!seekablePlayback || dvrRecording || !justSeeked() || seekRecoverTries >= 2) return false
+        seekRecoverTries++
+        val back = (lastSeekTargetMs - 30_000L * seekRecoverTries).coerceAtLeast(0L)
+        CrashLogger.report(this, "PlayerActivity.dvrSeek",
+            "seek past end of file, retry #$seekRecoverTries at ${back / 1000}s")
+        seekDvrAbsolute(back)
+        return true
+    }
+
     /** Absolutny seek na program-relativny cas (spodna lista / D-pad). Cez seekDvrTo,
      *  takze funguje aj pre feeder/pipe (player.position tam nic nerobi). */
     private fun seekDvrAbsolute(targetMs: Long) {
         if (!::mediaPlayer.isInitialized || !seekablePlayback) return
         val dur = if (dvrDurationMs > 0) dvrDurationMs else mediaPlayer.length
         if (dur <= 0) return
-        val maxMs = if (dvrRecording) (dur - 45_000L).coerceAtLeast(0L) else dur
+        // M594: aj dokoncena nahravka dostane rezervu — trvanie sa berie z EPG a subor
+        // byva o cosi kratsi (nahravanie skoncilo skor). Skok na uplny koniec potom
+        // trafil EOF a prehravac ostal stat.
+        val maxMs = if (dvrRecording) (dur - 45_000L).coerceAtLeast(0L) else (dur - 5_000L).coerceAtLeast(0L)
         val curMs = dvrPlayheadMsState.value.coerceIn(0L, dur)
         val tgt = targetMs.coerceIn(0L, maxMs)
         if (kotlin.math.abs(tgt - curMs) < 1000L) return
@@ -1032,7 +1053,7 @@ class PlayerActivity : ComponentActivity() {
         if (dur <= 0) return
         // Pri prebiehajucej nahravke nechaj rezervu ~45 s od zivej hrany (zapisane data
         // zaostavaju za EPG casom; mensia rezerva = EOF a zamrznutie TS).
-        val maxMs = if (dvrRecording) (dur - 45_000L).coerceAtLeast(0L) else dur
+        val maxMs = if (dvrRecording) (dur - 45_000L).coerceAtLeast(0L) else (dur - 5_000L).coerceAtLeast(0L)   // M594
         // Aktualna pozicia = nas playhead (spolahlivy pre obe cesty; player.position je
         // pre rastuci TS aj pre pipe nestabilna).
         val curMs = dvrPlayheadMsState.value.coerceIn(0L, dur)
@@ -1090,6 +1111,10 @@ class PlayerActivity : ComponentActivity() {
                 startPlayback()   // M539-fix2
             }
         }
+        // M594: cas a ciel posledneho pretocenia — ked hned po nom pride koniec/chyba,
+        // je to trafeny EOF (subor kratsi nez trvanie z EPG) a nie skutocny koniec
+        lastSeekAtMs = android.os.SystemClock.elapsedRealtime()
+        lastSeekTargetMs = targetMs
         // playhead hned na cielovu poziciu + seed pre hodiny (po restarte je player.position
         // neplatna, hodiny ju nesmu citat - prevezmu seed a tikaju dalej z neho)
         dvrPlayheadMsState.value = targetMs
@@ -4682,6 +4707,9 @@ class PlayerActivity : ComponentActivity() {
                         // (reopenDvrLive ma backoff a po vycerpani pokusov vycisti spinner),
                         // nech to neostane zaseknute na "Opatovne pripajanie"
                         reopenDvrLive()
+                    } else if (recoverAfterSeek()) {
+                        // M594: dokoncena nahravka — chyba hned po pretoceni znamena
+                        // ciel za koncom suboru; ustup a skus znova namiesto zastavenia
                     } else {
                         reconnectingState.value = false
                         Toast.makeText(
@@ -4693,6 +4721,7 @@ class PlayerActivity : ComponentActivity() {
                 }
                 MediaPlayer.Event.Playing -> {
                     isPlayingState.value = true; refreshPipIfActive()
+                    seekRecoverTries = 0   // M594
                     stallPlayingSeen = true; stallSamples = 0   // M539
                     if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }  // M392-fix2
                     maybeApplyAfr()  // AFR (M346): prepni Hz displeja podla fps streamu
@@ -4743,6 +4772,8 @@ class PlayerActivity : ComponentActivity() {
                         // stream (novy GET prinesie novsie data), nie koniec prehravania
                         saveDvrProgress()
                         reopenDvrLive()
+                    } else if (recoverAfterSeek()) {
+                        // M594: skok trafil koniec suboru — ustup a hraj dalej
                     } else {
                         reachedEnd = true
                         keepScreenOn(false)
