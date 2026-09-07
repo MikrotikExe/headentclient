@@ -255,6 +255,10 @@ fun EpgGridScreen(
     startInRadio: Boolean = false,
     // M592: kanal/stanica, na ktorej ma mriezka zacat (co prave hra v prehravaci)
     focusUuid: String? = null,
+    // M593-fix: pocitadlo otvoreni mriezky. Ked obrazovka ostane v kompozicii
+    // (navrat do prehravaca a znovu TV program), bez neho by sa skok na hrany
+    // kanal uz nezopakoval a mriezka ostala na predchadzajucom kanali.
+    openToken: Int = 0,
     // Telefon v modernom rezime pusta radio cez mini prehravac — zalozka Radia
     // odovzda vlastne spustenie, aby sa spravanie z mriezky nelisilo od zoznamu.
     onPlayRadio: ((ChannelRow, EpgEvent?) -> Unit)? = null
@@ -561,14 +565,29 @@ fun EpgGridScreen(
     // M592: mriezka otvorena z prehravaca zacne na kanali, ktory prave hra —
     // doteraz vzdy skocila na prvy kanal v zozname a pouzivatel ho musel hladat.
     // Plati raz po otvoreni; dalsiu navigaciu uz riadi kurzor.
-    var didFocusPlaying by remember { mutableStateOf(false) }
-    LaunchedEffect(rows, focusUuid) {
+    var didFocusPlaying by remember(openToken) { mutableStateOf(false) }   // M593-fix
+    var didLeavePlaying by remember(openToken) { mutableStateOf(false) }   // M593
+    LaunchedEffect(rows, focusUuid, openToken) {
         if (didFocusPlaying || focusUuid == null || rows.isEmpty()) return@LaunchedEffect
         val idx = rows.indexOfFirst { it.channel.uuid == focusUuid }
         if (idx < 0) return@LaunchedEffect
         didFocusPlaying = true
-        if (isTv) selectRowAt(idx, anchorTime) else selRow = idx
+        if (isTv) {
+            selectRowAt(idx, anchorTime)
+        } else {
+            // M593: dotyk kurzor nema — oznacime aspon prave beziacu relaciu kanala,
+            // nech je zjavne, odkial sa pouzivatel v mriezke posuva
+            selRow = idx
+            selStart = cellAt(navCells(idx), now)?.start
+        }
         runCatching { listState.scrollToItem(idx) }
+    }
+    // M593-fix: pri kazdom otvoreni z prehravaca sa obnovi aj spravna skupina
+    // (radio / TV kanaly), nie len prvykrat
+    LaunchedEffect(openToken) {
+        if (openToken > 0 && !radioOnly) {
+            selectedGroup = if (startInRadio) EPG_FILTER_RADIO else EpgGroupFilter.get(sid)
+        }
     }
     // Fokus na mriezku po otvoreni (TV)
     LaunchedEffect(Unit) {
@@ -902,7 +921,11 @@ fun EpgGridScreen(
                         hScroll = hScroll,
                         loader = loader,
                         selectedStart = if (idx == selRow) selStart else null,
-                        onClick = { ev -> detail = GridDetail.Epg(row, ev) },
+                        playing = uuid == focusUuid && !didLeavePlaying,   // M593
+                        onClick = { ev ->
+                            if (!isTv) didLeavePlaying = true   // M593: po vybere relacie znacka zmizne
+                            detail = GridDetail.Epg(row, ev)
+                        },
                         onDvr = { e -> detail = GridDetail.Dvr(row, e) },
                         onInProgress = { rec -> detail = GridDetail.InProgress(row, rec) },
                         onFocusDetail = { lastFocused = it }
@@ -1431,6 +1454,7 @@ private fun EpgGridRow(
     hScroll: androidx.compose.foundation.ScrollState,
     loader: coil.ImageLoader,
     selectedStart: Long? = null,
+    playing: Boolean = false,   // M593: kanal/stanica, ktora prave hra v prehravaci
     onClick: (EpgEvent) -> Unit,
     onDvr: (sk.tvhclient.shared.model.DvrEntry) -> Unit,
     onInProgress: (sk.tvhclient.shared.model.DvrEntry) -> Unit,
@@ -1468,8 +1492,22 @@ private fun EpgGridRow(
                     .then(
                         if (modern) Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (isLightTheme()) cs.surfaceContainerLowest else cs.surfaceContainer)
-                            .border(1.dp, cs.outlineVariant, RoundedCornerShape(12.dp))
+                            .background(
+                                when {
+                                    // M593: hrany kanal je v mriezke otvorenej z prehravaca zvyrazneny
+                                    playing -> cs.primaryContainer.copy(alpha = if (isLightTheme()) 0.5f else 0.4f)
+                                    isLightTheme() -> cs.surfaceContainerLowest
+                                    else -> cs.surfaceContainer
+                                }
+                            )
+                            .border(
+                                if (playing) 2.dp else 1.dp,
+                                if (playing) cs.primary else cs.outlineVariant,
+                                RoundedCornerShape(12.dp)
+                            )
+                        else if (playing) Modifier   // M593: klasicky rezim — len obrys
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(2.dp, cs.primary, RoundedCornerShape(8.dp))
                         else Modifier
                     )
                     .padding(start = 4.dp, end = 6.dp),
@@ -1529,8 +1567,21 @@ private fun EpgGridRow(
                     .then(
                         if (modern) Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (isLightTheme()) cs.surfaceContainerLowest else cs.surfaceContainer)
-                            .border(1.dp, cs.outlineVariant, RoundedCornerShape(12.dp))
+                            .background(
+                                when {
+                                    playing -> cs.primaryContainer.copy(alpha = if (isLightTheme()) 0.5f else 0.4f)   // M593
+                                    isLightTheme() -> cs.surfaceContainerLowest
+                                    else -> cs.surfaceContainer
+                                }
+                            )
+                            .border(
+                                if (playing) 2.dp else 1.dp,
+                                if (playing) cs.primary else cs.outlineVariant,
+                                RoundedCornerShape(12.dp)
+                            )
+                        else if (playing) Modifier   // M593
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(2.dp, cs.primary, RoundedCornerShape(8.dp))
                         else Modifier
                     )
                     .padding(bottom = 3.dp),

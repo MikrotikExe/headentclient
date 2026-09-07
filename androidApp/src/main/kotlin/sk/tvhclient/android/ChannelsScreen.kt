@@ -282,6 +282,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                 // zo zalozky Radia (mini prehravac na telefone, PIN, LastRadio)
                 startInRadio = TabController.epgRadio,   // M591
                 focusUuid = TabController.epgReturnUuid,   // M592
+                openToken = TabController.epgGrid.value,   // M593-fix
                 radioRows = (raState as? RadioState.Loaded)?.rows ?: emptyList(),
                 radioCategories = (raState as? RadioState.Loaded)?.categories ?: emptyList(),
                 onPlayRadio = { row, ev ->
