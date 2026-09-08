@@ -2054,15 +2054,18 @@ class PlayerActivity : ComponentActivity() {
                     (if (::mediaPlayer.isInitialized) mediaPlayer.length else 0L)
                 if (dur > 0) {
                     val held = android.os.SystemClock.uptimeMillis() - startedAt
-                    // rychlost v sekundach zaznamu za sekundu realneho casu
+                    // M598-fix5: rychlost sa odvija aj od DLZKY nahravky — pri sesthodinovom
+                    // zazname by pevnych 10 minut za sekundu znamenalo skoro minutu drzania.
+                    // Preto sa berie vacsia z dvoch hodnot: pevna rychlost a percento dlzky
+                    // za sekundu (1 % / 2,5 % / 5 % / 10 %). Strop: cela nahravka najskor za ~6 s.
+                    val durSec = dur / 1000.0
                     val rate = when {
-                        held < 1_500L -> 60.0
-                        held < 3_000L -> 150.0
-                        held < 5_000L -> 300.0
-                        else -> 600.0
+                        held < 1_500L -> maxOf(60.0, durSec * 0.01)
+                        held < 3_000L -> maxOf(150.0, durSec * 0.025)
+                        held < 5_000L -> maxOf(300.0, durSec * 0.05)
+                        else -> maxOf(600.0, durSec * 0.10)
                     }
-                    val capRate = (dur / 1000.0) / 8.0     // cela nahravka najskor za ~8 s
-                    val r = minOf(rate, capRate)
+                    val r = minOf(rate, durSec / 6.0)
                     val deltaMs = (r * 50.0).toFloat()      // posun za jeden 50 ms krok
                     scrubFractionState.value =
                         (scrubFractionState.value + dir * deltaMs / dur).coerceIn(0f, 1f)
