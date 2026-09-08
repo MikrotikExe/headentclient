@@ -402,4 +402,7 @@
     <string name="ttx_loading">Nalaganje teleteksta…</string>
     <string name="ttx_none">Ta kanal ne oddaja teleteksta</string>
     <string name="ttx_searching">Iščem stran %1$s…</string>
+    <string name="one_ok_title">Seznam kanalov</string>
+    <string name="one_ok_enable">Preklop kanala z enim OK</string>
+    <string name="one_ok_note">Na seznamu kanalov v predvajalniku en pritisk na OK zažene kanal takoj čez cel zaslon. Brez te možnosti prvi OK kanal samo preklopi za odprtim seznamom, drugi pa seznam zapre. Dolg pritisk na OK še vedno odpre meni kanala.</string>
 </resources>

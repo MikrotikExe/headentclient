@@ -1086,6 +1086,16 @@ internal fun RemoteSettings(
         onChange = { v -> on = v; RemoteDebugPref.setEnabled(ctx, v) }
     )
     }
+    // M596: prepnutie kanala jednym OK (moderny aj klasicky rezim)
+    SettingsGroup(stringResource(R.string.one_ok_title), classicTitle = true) {
+        var oneOk by remember { mutableStateOf(OneOkPref.get(ctx)) }
+        SettingsSwitchRow(
+            label = stringResource(R.string.one_ok_enable),
+            note = stringResource(R.string.one_ok_note),
+            checked = oneOk,
+            onChange = { v -> oneOk = v; OneOkPref.set(ctx, v) }
+        )
+    }
 }
 
 @Composable

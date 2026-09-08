@@ -402,4 +402,7 @@
     <string name="ttx_loading">Teletekst yükleniyor…</string>
     <string name="ttx_none">Bu kanal teletekst yayınlamıyor</string>
     <string name="ttx_searching">%1$s. sayfa aranıyor…</string>
+    <string name="one_ok_title">Kanal listesi</string>
+    <string name="one_ok_enable">Tek OK ile kanal değiştir</string>
+    <string name="one_ok_note">Oynatıcının kanal listesinde OK\'a bir kez basmak kanalı doğrudan tam ekran başlatır. Bu seçenek olmadan ilk OK yalnızca açık listenin arkasında kanalı değiştirir, listeyi ikinci basış kapatır. OK\'a uzun basmak yine kanal menüsünü açar.</string>
 </resources>

@@ -402,4 +402,7 @@
     <string name="ttx_loading">Teletekst laden…</string>
     <string name="ttx_none">Deze zender zendt geen teletekst uit</string>
     <string name="ttx_searching">Pagina %1$s zoeken…</string>
+    <string name="one_ok_title">Zenderlijst</string>
+    <string name="one_ok_enable">Zender wisselen met één OK</string>
+    <string name="one_ok_note">In de zenderlijst van de speler start één druk op OK de zender meteen schermvullend. Zonder deze optie schakelt de eerste OK alleen de zender achter de open lijst en sluit pas de tweede de lijst. OK ingedrukt houden opent nog steeds het zendermenu.</string>
 </resources>

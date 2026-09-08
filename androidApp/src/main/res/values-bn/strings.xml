@@ -402,4 +402,7 @@
     <string name="ttx_loading">টেলিটেক্সট লোড হচ্ছে…</string>
     <string name="ttx_none">এই চ্যানেল টেলিটেক্সট সম্প্রচার করে না</string>
     <string name="ttx_searching">পাতা %1$s খোঁজা হচ্ছে…</string>
+    <string name="one_ok_title">চ্যানেল তালিকা</string>
+    <string name="one_ok_enable">এক OK-তেই চ্যানেল বদল</string>
+    <string name="one_ok_note">প্লেয়ারের চ্যানেল তালিকায় একবার OK চাপলেই চ্যানেল সরাসরি পূর্ণ পর্দায় চালু হয়। এই বিকল্প ছাড়া প্রথম OK শুধু খোলা তালিকার পেছনে চ্যানেল বদলায় এবং দ্বিতীয়টি তালিকা বন্ধ করে। OK চেপে ধরলে এখনও চ্যানেল মেনু খোলে।</string>
 </resources>

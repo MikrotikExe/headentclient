@@ -402,4 +402,7 @@
     <string name="ttx_loading">Loading teletext…</string>
     <string name="ttx_none">This channel does not broadcast teletext</string>
     <string name="ttx_searching">Looking for page %1$s…</string>
+    <string name="one_ok_title">Channel list</string>
+    <string name="one_ok_enable">Switch channel with a single OK</string>
+    <string name="one_ok_note">In the player\'s channel list, one press of OK starts the channel full screen right away. Without it, the first OK only switches the channel behind the open list and a second one closes the list. Holding OK still opens the channel menu.</string>
 </resources>

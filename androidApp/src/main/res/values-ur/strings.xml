@@ -402,4 +402,7 @@
     <string name="ttx_loading">ٹیلی ٹیکسٹ لوڈ ہو رہا ہے…</string>
     <string name="ttx_none">یہ چینل ٹیلی ٹیکسٹ نشر نہیں کرتا</string>
     <string name="ttx_searching">صفحہ %1$s تلاش کیا جا رہا ہے…</string>
+    <string name="one_ok_title">چینل کی فہرست</string>
+    <string name="one_ok_enable">ایک OK سے چینل بدلیں</string>
+    <string name="one_ok_note">پلیئر کی چینل فہرست میں OK ایک بار دبانے سے چینل فوراً پوری اسکرین پر چلتا ہے۔ اس آپشن کے بغیر پہلا OK صرف کھلی فہرست کے پیچھے چینل بدلتا ہے اور دوسرا فہرست بند کرتا ہے۔ OK دبائے رکھنے سے اب بھی چینل مینو کھلتا ہے۔</string>
 </resources>

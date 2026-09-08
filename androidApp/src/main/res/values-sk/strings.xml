@@ -402,4 +402,7 @@
     <string name="ttx_loading">Načítavam teletext…</string>
     <string name="ttx_none">Kanál nevysiela teletext</string>
     <string name="ttx_searching">Hľadám stranu %1$s…</string>
+    <string name="one_ok_title">Zoznam kanálov</string>
+    <string name="one_ok_enable">Prepnúť kanál jedným OK</string>
+    <string name="one_ok_note">V zozname kanálov v prehrávači spustí jedno stlačenie OK kanál rovno na celú obrazovku. Bez tejto voľby prvé OK kanál len prepne (zoznam ostane cez obraz) a až druhé ho zavrie. Podržanie OK naďalej otvára ponuku kanála.</string>
 </resources>

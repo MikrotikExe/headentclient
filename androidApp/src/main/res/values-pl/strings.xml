@@ -402,4 +402,7 @@
     <string name="ttx_loading">Ładowanie telegazety…</string>
     <string name="ttx_none">Ten kanał nie nadaje telegazety</string>
     <string name="ttx_searching">Szukam strony %1$s…</string>
+    <string name="one_ok_title">Lista kanałów</string>
+    <string name="one_ok_enable">Przełączanie kanału jednym OK</string>
+    <string name="one_ok_note">Na liście kanałów w odtwarzaczu jedno naciśnięcie OK uruchamia kanał od razu na pełnym ekranie. Bez tej opcji pierwsze OK tylko przełącza kanał za otwartą listą, a dopiero drugie zamyka listę. Przytrzymanie OK nadal otwiera menu kanału.</string>
 </resources>

@@ -402,4 +402,7 @@
     <string name="ttx_loading">Učitavanje teleteksta…</string>
     <string name="ttx_none">Ovaj kanal ne emitira teletekst</string>
     <string name="ttx_searching">Tražim stranicu %1$s…</string>
+    <string name="one_ok_title">Popis kanala</string>
+    <string name="one_ok_enable">Promjena kanala jednim OK</string>
+    <string name="one_ok_note">Na popisu kanala u playeru jedan pritisak na OK pokreće kanal odmah preko cijelog zaslona. Bez te opcije prvi OK samo mijenja kanal iza otvorenog popisa, a tek drugi zatvara popis. Dugi pritisak na OK i dalje otvara izbornik kanala.</string>
 </resources>

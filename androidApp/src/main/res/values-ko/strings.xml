@@ -402,4 +402,7 @@
     <string name="ttx_loading">텔레텍스트 불러오는 중…</string>
     <string name="ttx_none">이 채널은 텔레텍스트를 방송하지 않습니다</string>
     <string name="ttx_searching">%1$s 페이지 찾는 중…</string>
+    <string name="one_ok_title">채널 목록</string>
+    <string name="one_ok_enable">OK 한 번으로 채널 전환</string>
+    <string name="one_ok_note">재생기의 채널 목록에서 OK를 한 번만 누르면 채널이 바로 전체 화면으로 재생됩니다. 이 옵션이 없으면 첫 번째 OK는 열린 목록 뒤에서 채널만 바꾸고 두 번째 OK가 목록을 닫습니다. OK를 길게 누르면 여전히 채널 메뉴가 열립니다.</string>
 </resources>

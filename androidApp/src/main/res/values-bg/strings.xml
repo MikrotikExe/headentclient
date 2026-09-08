@@ -402,4 +402,7 @@
     <string name="ttx_loading">Зареждане на телетекст…</string>
     <string name="ttx_none">Този канал не излъчва телетекст</string>
     <string name="ttx_searching">Търсене на страница %1$s…</string>
+    <string name="one_ok_title">Списък с канали</string>
+    <string name="one_ok_enable">Смяна на канал с едно OK</string>
+    <string name="one_ok_note">В списъка с канали в плейъра едно натискане на OK пуска канала веднага на цял екран. Без тази опция първото OK само сменя канала зад отворения списък, а второто го затваря. Задържането на OK продължава да отваря менюто на канала.</string>
 </resources>

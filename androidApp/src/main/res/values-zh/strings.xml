@@ -402,4 +402,7 @@
     <string name="ttx_loading">正在加载图文电视…</string>
     <string name="ttx_none">此频道不播出图文电视</string>
     <string name="ttx_searching">正在查找第 %1$s 页…</string>
+    <string name="one_ok_title">频道列表</string>
+    <string name="one_ok_enable">一次 OK 切换频道</string>
+    <string name="one_ok_note">在播放器的频道列表中，按一次 OK 即可直接全屏播放该频道。未启用时，第一次 OK 只会在列表后面切换频道，第二次才关闭列表。长按 OK 仍会打开频道菜单。</string>
 </resources>

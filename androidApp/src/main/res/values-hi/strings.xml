@@ -402,4 +402,7 @@
     <string name="ttx_loading">टेलीटेक्स्ट लोड हो रहा है…</string>
     <string name="ttx_none">यह चैनल टेलीटेक्स्ट प्रसारित नहीं करता</string>
     <string name="ttx_searching">पेज %1$s खोजा जा रहा है…</string>
+    <string name="one_ok_title">चैनल सूची</string>
+    <string name="one_ok_enable">एक ही OK से चैनल बदलें</string>
+    <string name="one_ok_note">प्लेयर की चैनल सूची में OK एक बार दबाने पर चैनल सीधे पूरी स्क्रीन पर चलता है। इस विकल्प के बिना पहला OK केवल खुली सूची के पीछे चैनल बदलता है और दूसरा सूची बंद करता है। OK देर तक दबाने पर चैनल मेन्यू अब भी खुलता है।</string>
 </resources>

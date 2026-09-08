@@ -402,4 +402,7 @@
     <string name="ttx_loading">A carregar teletexto…</string>
     <string name="ttx_none">Este canal não emite teletexto</string>
     <string name="ttx_searching">À procura da página %1$s…</string>
+    <string name="one_ok_title">Lista de canais</string>
+    <string name="one_ok_enable">Mudar de canal com um só OK</string>
+    <string name="one_ok_note">Na lista de canais do reprodutor, uma única pressão em OK abre o canal logo em ecrã inteiro. Sem esta opção, o primeiro OK apenas muda de canal por trás da lista aberta e só o segundo a fecha. Manter OK premido continua a abrir o menu do canal.</string>
 </resources>

@@ -402,4 +402,7 @@
     <string name="ttx_loading">Teletext betöltése…</string>
     <string name="ttx_none">Ez a csatorna nem sugároz teletextet</string>
     <string name="ttx_searching">%1$s. oldal keresése…</string>
+    <string name="one_ok_title">Csatornalista</string>
+    <string name="one_ok_enable">Csatornaváltás egyetlen OK gombbal</string>
+    <string name="one_ok_note">A lejátszó csatornalistájában egyetlen OK azonnal teljes képernyőn indítja a csatornát. Enélkül az első OK csak átvált a nyitott lista mögött, és csak a második zárja be a listát. Az OK nyomva tartása továbbra is a csatorna menüjét nyitja meg.</string>
 </resources>

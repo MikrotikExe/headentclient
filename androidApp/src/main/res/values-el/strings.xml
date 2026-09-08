@@ -402,4 +402,7 @@
     <string name="ttx_loading">Φόρτωση teletext…</string>
     <string name="ttx_none">Αυτό το κανάλι δεν μεταδίδει teletext</string>
     <string name="ttx_searching">Αναζήτηση σελίδας %1$s…</string>
+    <string name="one_ok_title">Λίστα καναλιών</string>
+    <string name="one_ok_enable">Αλλαγή καναλιού με ένα OK</string>
+    <string name="one_ok_note">Στη λίστα καναλιών του player, ένα πάτημα OK ξεκινά το κανάλι αμέσως σε πλήρη οθόνη. Χωρίς αυτή την επιλογή, το πρώτο OK απλώς αλλάζει κανάλι πίσω από την ανοιχτή λίστα και μόνο το δεύτερο την κλείνει. Το παρατεταμένο OK εξακολουθεί να ανοίγει το μενού του καναλιού.</string>
 </resources>

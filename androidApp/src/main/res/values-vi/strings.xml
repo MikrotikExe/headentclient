@@ -402,4 +402,7 @@
     <string name="ttx_loading">Đang tải teletext…</string>
     <string name="ttx_none">Kênh này không phát teletext</string>
     <string name="ttx_searching">Đang tìm trang %1$s…</string>
+    <string name="one_ok_title">Danh sách kênh</string>
+    <string name="one_ok_enable">Chuyển kênh chỉ với một lần OK</string>
+    <string name="one_ok_note">Trong danh sách kênh của trình phát, OK chuyển kênh ngay khi nhấn, không chờ nhả nút và không hỏi về bản ghi. Giữ OK vẫn mở menu của kênh.</string>
 </resources>

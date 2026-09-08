@@ -402,4 +402,7 @@
     <string name="ttx_loading">Se încarcă teletextul…</string>
     <string name="ttx_none">Acest canal nu difuzează teletext</string>
     <string name="ttx_searching">Caut pagina %1$s…</string>
+    <string name="one_ok_title">Lista de canale</string>
+    <string name="one_ok_enable">Schimbă canalul cu un singur OK</string>
+    <string name="one_ok_note">În lista de canale din player, o apăsare pe OK pornește canalul direct pe tot ecranul. Fără această opțiune, primul OK doar schimbă canalul în spatele listei deschise, iar al doilea închide lista. Apăsarea lungă pe OK deschide în continuare meniul canalului.</string>
 </resources>

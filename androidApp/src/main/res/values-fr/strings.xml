@@ -402,4 +402,7 @@
     <string name="ttx_loading">Chargement du télétexte…</string>
     <string name="ttx_none">Cette chaîne ne diffuse pas de télétexte</string>
     <string name="ttx_searching">Recherche de la page %1$s…</string>
+    <string name="one_ok_title">Liste des chaînes</string>
+    <string name="one_ok_enable">Changer de chaîne avec un seul OK</string>
+    <string name="one_ok_note">Dans la liste des chaînes du lecteur, une seule pression sur OK lance la chaîne directement en plein écran. Sans cette option, le premier OK ne fait que changer de chaîne derrière la liste ouverte et seul le second la ferme. Un appui long sur OK ouvre toujours le menu de la chaîne.</string>
 </resources>

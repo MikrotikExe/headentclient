@@ -402,4 +402,7 @@
     <string name="ttx_loading">در حال بارگیری تله‌تکست…</string>
     <string name="ttx_none">این کانال تله‌تکست پخش نمی‌کند</string>
     <string name="ttx_searching">در حال یافتن صفحه %1$s…</string>
+    <string name="one_ok_title">فهرست شبکه‌ها</string>
+    <string name="one_ok_enable">تعویض شبکه با یک بار OK</string>
+    <string name="one_ok_note">در فهرست شبکه‌های پخش‌کننده، یک بار فشردن OK شبکه را بی‌درنگ به‌صورت تمام‌صفحه اجرا می‌کند. بدون این گزینه، OK نخست فقط شبکه را پشت فهرست باز عوض می‌کند و دومی فهرست را می‌بندد. نگه داشتن OK همچنان منوی شبکه را باز می‌کند.</string>
 </resources>

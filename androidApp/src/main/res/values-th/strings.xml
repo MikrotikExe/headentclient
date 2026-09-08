@@ -402,4 +402,7 @@
     <string name="ttx_loading">กำลังโหลดเทเลเท็กซ์…</string>
     <string name="ttx_none">ช่องนี้ไม่ออกอากาศเทเลเท็กซ์</string>
     <string name="ttx_searching">กำลังค้นหาหน้า %1$s…</string>
+    <string name="one_ok_title">รายการช่อง</string>
+    <string name="one_ok_enable">เปลี่ยนช่องด้วย OK ครั้งเดียว</string>
+    <string name="one_ok_note">ในรายการช่องของเครื่องเล่น การกด OK เพียงครั้งเดียวจะเปิดช่องแบบเต็มจอทันที หากไม่เปิดตัวเลือกนี้ การกด OK ครั้งแรกจะเปลี่ยนช่องอยู่ด้านหลังรายการที่เปิดค้างไว้ และครั้งที่สองจึงปิดรายการ การกด OK ค้างไว้ยังคงเปิดเมนูของช่อง</string>
 </resources>

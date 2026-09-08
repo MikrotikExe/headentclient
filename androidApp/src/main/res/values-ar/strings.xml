@@ -402,4 +402,7 @@
     <string name="ttx_loading">جارٍ تحميل التلتكست…</string>
     <string name="ttx_none">هذه القناة لا تبث التلتكست</string>
     <string name="ttx_searching">جارٍ البحث عن الصفحة %1$s…</string>
+    <string name="one_ok_title">قائمة القنوات</string>
+    <string name="one_ok_enable">تبديل القناة بضغطة OK واحدة</string>
+    <string name="one_ok_note">في قائمة القنوات داخل المشغّل، ضغطة واحدة على OK تشغّل القناة مباشرة بملء الشاشة. بدون هذا الخيار، تبدّل الضغطة الأولى القناة خلف القائمة المفتوحة فقط، والثانية هي التي تغلق القائمة. الضغط المطوّل على OK لا يزال يفتح قائمة القناة.</string>
 </resources>

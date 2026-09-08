@@ -2972,15 +2972,29 @@ class PlayerActivity : ComponentActivity() {
             if (isOk) {
                 // pocas drzania otvaracieho OK (a jeho opakovani) nereaguj
                 if (okLongFired) return true
+                // M596: rezim „jedno OK" — kratsie ochranne okno a prepnutie hned
+                // pri stlaceni (bez cakania na uvolnenie a bez otazky na archiv)
+                val oneOk = OneOkPref.get(this)
                 // debounce po otvoreni: niektore ovladace (IR/CEC) poslu po dlhom
                 // stlaceni este ghost DOWN/UP par — ten by okamzite potvrdil kanal
                 // a zoznam zavrel; vsetko OK do 400 ms od otvorenia sa zahodi
-                if (android.os.SystemClock.uptimeMillis() - channelListOpenedAt < 400L) return true
+                val guardMs = if (oneOk) 150L else 400L
+                if (android.os.SystemClock.uptimeMillis() - channelListOpenedAt < guardMs) return true
                 if (down) {
                     // podrzanie OK v zozname = kontextove menu kanala (Info / od zaciatku / zamok)
                     if (event.isLongPress && n > 0) {
                         okLongFired = true               // OK-up sa potom prehltne (nevyberie kanal)
                         openChannelContextMenu(navChannelIndexState.value)
+                        return true
+                    }
+                    if (oneOk && n > 0 && event.repeatCount == 0) {
+                        // M596-fix: jedno OK = kanal sa spusti rovno na celu obrazovku.
+                        // Bez volby sa prvym OK kanal len prepne (zoznam ostane cez obraz)
+                        // a az druhe OK zoznam zavrie.
+                        okLongFired = true
+                        val idx = navChannelIndexState.value
+                        closeChannelList()
+                        if (idx != liveIndex) switchToIndex(idx, poke = false)
                     }
                     return true                          // na DOWN nevyberaj (cakame na uvolnenie)
                 } else if (n > 0) {

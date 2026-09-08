@@ -402,4 +402,7 @@
     <string name="ttx_loading">Teletext wird geladen…</string>
     <string name="ttx_none">Dieser Sender sendet keinen Teletext</string>
     <string name="ttx_searching">Suche Seite %1$s…</string>
+    <string name="one_ok_title">Kanalliste</string>
+    <string name="one_ok_enable">Kanal mit einem OK umschalten</string>
+    <string name="one_ok_note">In der Kanalliste des Players startet ein Druck auf OK den Kanal sofort im Vollbild. Ohne diese Option schaltet das erste OK nur den Kanal hinter der offenen Liste um, erst das zweite schließt die Liste. Langes Drücken von OK öffnet weiterhin das Kanalmenü.</string>
 </resources>
