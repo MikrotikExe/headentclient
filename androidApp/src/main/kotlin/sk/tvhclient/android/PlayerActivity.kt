@@ -2025,12 +2025,30 @@ class PlayerActivity : ComponentActivity() {
     // ju celu trva aspon ~8 sekund drzania, takze sa da zastavit tam, kde treba.
     // Obraz sa pocas posuvania NEprestavuje — pretoci sa raz po pusteni (M597).
     private var scrubHoldJob: kotlinx.coroutines.Job? = null
+    // M598-fix4: niektore dialkove (IR/CEC) namiesto opakovania posielaju rychlu sériu
+    // stlacenie/uvolnenie. Ked medzera medzi nimi nie je ani stvrt sekundy, berieme to
+    // ako POKRACOVANIE toho isteho pretacania — nezacina sa odznova a rychlost sa drzi.
+    private var lastScrubUpMs = 0L
+    private var lastScrubDir = 0
+    private var scrubHoldSince = 0L
+
+    /** true = predchadzajuce pretacanie pokracuje (rovnaky smer, kratka medzera). */
+    private fun scrubContinues(dir: Int): Boolean =
+        dir == lastScrubDir && android.os.SystemClock.uptimeMillis() - lastScrubUpMs < 250L
 
     private fun startScrubHold(dir: Int) {
         scrubHoldJob?.cancel()
+        // M598-fix4: kym sipku DRZIM, sa nesmie spustit automaticke potvrdenie z klepnutia.
+        // Inak po 2 s drzania (~2 min zaznamu) prehravac pretocil, prestavba streamu
+        // sekla a plynule posuvanie sa tym ukoncilo — pouzivatel musel stlacat znovu.
+        cancelScrubAuto()
+        val continuing = scrubContinues(dir)
+        lastScrubDir = dir
+        if (!continuing) scrubHoldSince = android.os.SystemClock.uptimeMillis()
         scrubHoldJob = lifecycleScope.launch {
-            val startedAt = android.os.SystemClock.uptimeMillis()
-            kotlinx.coroutines.delay(400)          // do 0,4 s je to este klik, nie drzanie
+            val startedAt = scrubHoldSince
+            // do 0,4 s je to este klik, nie drzanie; pri pokracovani sa neceka
+            if (!continuing) kotlinx.coroutines.delay(400)
             while (isActive) {   // CoroutineScope.isActive vnutri launch
                 val dur = if (dvrDurationMs > 0) dvrDurationMs else
                     (if (::mediaPlayer.isInitialized) mediaPlayer.length else 0L)
@@ -2060,6 +2078,7 @@ class PlayerActivity : ComponentActivity() {
         if (scrubHoldJob == null) return
         scrubHoldJob?.cancel()
         scrubHoldJob = null
+        lastScrubUpMs = android.os.SystemClock.uptimeMillis()   // M598-fix4
         scheduleScrubAuto()
     }
 
@@ -3397,8 +3416,9 @@ class PlayerActivity : ComponentActivity() {
                         android.view.KeyEvent.KEYCODE_DPAD_LEFT -> if (down) {
                             if (onSeek) {
                                 if (event.repeatCount == 0) {   // M598-fix2: klik + plynule drzanie
-                                    scrubFractionState.value = (scrubFractionState.value - stepFrac).coerceIn(0f, 1f)
-                                    scheduleScrubAuto()   // M597
+                                    if (!scrubContinues(-1)) {   // M598-fix4
+                                        scrubFractionState.value = (scrubFractionState.value - stepFrac).coerceIn(0f, 1f)
+                                    }
                                     startScrubHold(-1)
                                 }
                             } else {
@@ -3411,8 +3431,9 @@ class PlayerActivity : ComponentActivity() {
                         android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> if (down) {
                             if (onSeek) {
                                 if (event.repeatCount == 0) {   // M598-fix2: klik + plynule drzanie
-                                    scrubFractionState.value = (scrubFractionState.value + stepFrac).coerceIn(0f, 1f)
-                                    scheduleScrubAuto()   // M597
+                                    if (!scrubContinues(+1)) {   // M598-fix4
+                                        scrubFractionState.value = (scrubFractionState.value + stepFrac).coerceIn(0f, 1f)
+                                    }
                                     startScrubHold(+1)
                                 }
                             } else {
@@ -3487,14 +3508,20 @@ class PlayerActivity : ComponentActivity() {
                 }
                 android.view.KeyEvent.KEYCODE_DPAD_LEFT -> if (down) {
                     if (seekablePlayback) {
-                        if (event.repeatCount == 0) { beginScrub(-1); startScrubHold(-1) }   // M598-fix2
+                        if (event.repeatCount == 0) {
+                            if (!scrubContinues(-1)) beginScrub(-1)   // M598-fix4
+                            startScrubHold(-1)
+                        }
                         return true
                     }
                     if (modernTvActive()) openModernOverlay() else showControlsFocused(); return true
                 }
                 android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> if (down) {
                     if (seekablePlayback) {
-                        if (event.repeatCount == 0) { beginScrub(+1); startScrubHold(+1) }   // M598-fix2
+                        if (event.repeatCount == 0) {
+                            if (!scrubContinues(+1)) beginScrub(+1)   // M598-fix4
+                            startScrubHold(+1)
+                        }
                         return true
                     }
                     if (modernTvActive()) openModernOverlay() else showControlsFocused(); return true
