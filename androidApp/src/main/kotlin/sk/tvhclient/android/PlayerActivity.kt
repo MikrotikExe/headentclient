@@ -2009,6 +2009,40 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * M598: sipka pri skrytom ovladani v archive. Doteraz hned pretocila (-15 s / +30 s)
+     * — obraz sekol pri kazdom stlaceni aj pri drzani, hoci pouzivatel este len hladal
+     * miesto. Teraz sa otvori lista s kurzorom, kurzor sa posunie o krok a samotne
+     * pretocenie sa vykona az po ustaleni (M597) alebo po OK.
+     */
+    // M598: pri DRZANI sipky chodia opakovania velmi husto — bez obmedzenia by
+    // kurzor preletel cez celu nahravku. Krok je stale 30 s, ale najviac 8x za sekundu.
+    private var lastScrubMoveMs = 0L
+    private fun scrubThrottled(repeat: Boolean): Boolean {
+        val now = android.os.SystemClock.uptimeMillis()
+        if (repeat && now - lastScrubMoveMs < 120L) return false
+        lastScrubMoveMs = now
+        return true
+    }
+
+    private fun beginScrub(dir: Int) {
+        val order = playerControlOrder(
+            !seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(),
+            timeshiftEngagedState.value, profileSwitchAvailable(), dvrRecordVisible(), teletextVisible()
+        )
+        val seekIdx = order.indexOf("seek")
+        if (seekIdx < 0) { showControlsFocused(); return }
+        val wasOnSeek = controlsShown && controlNavState.value == seekIdx
+        controlNavState.value = seekIdx
+        if (!wasOnSeek) initScrub()
+        val dur = if (dvrDurationMs > 0) dvrDurationMs else
+            (if (::mediaPlayer.isInitialized) mediaPlayer.length else 0L)
+        val stepFrac = if (dur > 0) 30_000f / dur else 0.02f
+        scrubFractionState.value = (scrubFractionState.value + dir * stepFrac).coerceIn(0f, 1f)
+        scheduleScrubAuto()
+        pokeControls()
+    }
+
     private fun initScrub() {
         // zlomok v ramci DOSIAHNUTELNEHO rozsahu baru (rovnaka skala ako seekbar) z
         // playheadu prehravacich hodin - nie z player.position (na rastucom TS nespolahliva).
@@ -3313,8 +3347,10 @@ class PlayerActivity : ComponentActivity() {
                         }
                         android.view.KeyEvent.KEYCODE_DPAD_LEFT -> if (down) {
                             if (onSeek) {
-                                scrubFractionState.value = (scrubFractionState.value - stepFrac).coerceIn(0f, 1f)
-                                scheduleScrubAuto()   // M597
+                                if (scrubThrottled(event.repeatCount > 0)) {   // M598
+                                    scrubFractionState.value = (scrubFractionState.value - stepFrac).coerceIn(0f, 1f)
+                                    scheduleScrubAuto()   // M597
+                                }
                             } else {
                                 cancelScrubAuto()
                                 controlNavState.value = (controlNavState.value - 1 + n) % n
@@ -3324,8 +3360,10 @@ class PlayerActivity : ComponentActivity() {
                         }
                         android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> if (down) {
                             if (onSeek) {
-                                scrubFractionState.value = (scrubFractionState.value + stepFrac).coerceIn(0f, 1f)
-                                scheduleScrubAuto()   // M597
+                                if (scrubThrottled(event.repeatCount > 0)) {   // M598
+                                    scrubFractionState.value = (scrubFractionState.value + stepFrac).coerceIn(0f, 1f)
+                                    scheduleScrubAuto()   // M597
+                                }
                             } else {
                                 cancelScrubAuto()
                                 controlNavState.value = (controlNavState.value + 1) % n
@@ -3397,11 +3435,17 @@ class PlayerActivity : ComponentActivity() {
                     if (down) return true
                 }
                 android.view.KeyEvent.KEYCODE_DPAD_LEFT -> if (down) {
-                    if (seekablePlayback) { seekRelative(-15_000); pokeControls(); return true }
+                    if (seekablePlayback) {
+                        if (scrubThrottled(event.repeatCount > 0)) beginScrub(-1)   // M598
+                        return true
+                    }
                     if (modernTvActive()) openModernOverlay() else showControlsFocused(); return true
                 }
                 android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> if (down) {
-                    if (seekablePlayback) { seekRelative(+30_000); pokeControls(); return true }
+                    if (seekablePlayback) {
+                        if (scrubThrottled(event.repeatCount > 0)) beginScrub(+1)   // M598
+                        return true
+                    }
                     if (modernTvActive()) openModernOverlay() else showControlsFocused(); return true
                 }
                 // hore/dole sem prides len ak sa neda zapovat (napr. DVR) -> otvor panel
