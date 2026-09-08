@@ -1985,13 +1985,17 @@ class PlayerActivity : ComponentActivity() {
 
     private fun cancelScrubAuto() { scrubAutoJob?.cancel(); scrubAutoJob = null }
 
-    /** Vykona pretocenie na poziciu, ktoru ukazuje kurzor na lište. */
-    private fun commitScrub() {
+    /** Vykona pretocenie na poziciu, ktoru ukazuje kurzor na lište.
+     *  M597-fix: ked kurzor skoncil prakticky tam, kde sa uz hra (posun tam a spat),
+     *  sa NEpretaca — prestavba streamu by obraz zbytocne sekla. */
+    private fun commitScrub(minDeltaMs: Long = 0L) {
         cancelScrubAuto()
         if (!::mediaPlayer.isInitialized || !seekablePlayback) return
         val bar = if (dvrRecording) (dvrDurationMs - 45_000L).coerceAtLeast(1L) else dvrDurationMs
         if (bar <= 0) return
         val progMs = (scrubFractionState.value.coerceIn(0f, 1f) * bar).toLong()
+        if (minDeltaMs > 0L &&
+            kotlin.math.abs(progMs - dvrPlayheadMsState.value) < minDeltaMs) return
         seekDvrAbsolute(progMs)
     }
 
@@ -2000,7 +2004,7 @@ class PlayerActivity : ComponentActivity() {
         cancelScrubAuto()
         scrubAutoJob = lifecycleScope.launch {
             kotlinx.coroutines.delay(2000)
-            commitScrub()
+            commitScrub(minDeltaMs = 5_000L)   // M597-fix: bez skutocneho posunu ziadna prestavba
             pokeControls()
         }
     }
