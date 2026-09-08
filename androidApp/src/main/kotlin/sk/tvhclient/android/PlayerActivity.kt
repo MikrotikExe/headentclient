@@ -114,6 +114,7 @@ import androidx.lifecycle.lifecycleScope
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.videolan.libvlc.LibVLC
@@ -2030,7 +2031,7 @@ class PlayerActivity : ComponentActivity() {
         scrubHoldJob = lifecycleScope.launch {
             val startedAt = android.os.SystemClock.uptimeMillis()
             kotlinx.coroutines.delay(400)          // do 0,4 s je to este klik, nie drzanie
-            while (kotlinx.coroutines.isActive) {
+            while (isActive) {   // CoroutineScope.isActive vnutri launch
                 val dur = if (dvrDurationMs > 0) dvrDurationMs else
                     (if (::mediaPlayer.isInitialized) mediaPlayer.length else 0L)
                 if (dur > 0) {
