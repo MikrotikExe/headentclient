@@ -1978,6 +1978,33 @@ class PlayerActivity : ComponentActivity() {
 
     // DVR scrub focus: nahlad pozicie pri vybere casu sipkami (potvrdenie OK)
     private val scrubFractionState = androidx.compose.runtime.mutableStateOf(0f)
+    // M597: po posune sipkami sa pretocenie potvrdi samo po 2 s necinnosti — OK
+    // funguje ako doteraz (potvrdi hned). Bez toho sa posun stratil, ked pouzivatel
+    // OK nestlacil, a prejavil sa az pri dalsom stlaceni sipky.
+    private var scrubAutoJob: kotlinx.coroutines.Job? = null
+
+    private fun cancelScrubAuto() { scrubAutoJob?.cancel(); scrubAutoJob = null }
+
+    /** Vykona pretocenie na poziciu, ktoru ukazuje kurzor na lište. */
+    private fun commitScrub() {
+        cancelScrubAuto()
+        if (!::mediaPlayer.isInitialized || !seekablePlayback) return
+        val bar = if (dvrRecording) (dvrDurationMs - 45_000L).coerceAtLeast(1L) else dvrDurationMs
+        if (bar <= 0) return
+        val progMs = (scrubFractionState.value.coerceIn(0f, 1f) * bar).toLong()
+        seekDvrAbsolute(progMs)
+    }
+
+    /** Naplanuje automaticke potvrdenie posunu (M597). */
+    private fun scheduleScrubAuto() {
+        cancelScrubAuto()
+        scrubAutoJob = lifecycleScope.launch {
+            kotlinx.coroutines.delay(2000)
+            commitScrub()
+            pokeControls()
+        }
+    }
+
     private fun initScrub() {
         // zlomok v ramci DOSIAHNUTELNEHO rozsahu baru (rovnaka skala ako seekbar) z
         // playheadu prehravacich hodin - nie z player.position (na rastucom TS nespolahliva).
@@ -3269,26 +3296,34 @@ class PlayerActivity : ComponentActivity() {
                     val stepFrac = if (dur > 0) 30_000f / dur else 0.02f
                     when (kc) {
                         android.view.KeyEvent.KEYCODE_DPAD_UP -> if (down) {
+                            cancelScrubAuto()   // M597
                             controlNavState.value = (controlNavState.value - 1 + n) % n
                             if (order.getOrNull(controlNavState.value) == "seek") initScrub()
                             pokeControls(); return true
                         }
                         android.view.KeyEvent.KEYCODE_DPAD_DOWN -> if (down) {
+                            cancelScrubAuto()   // M597
                             controlNavState.value = (controlNavState.value + 1) % n
                             if (order.getOrNull(controlNavState.value) == "seek") initScrub()
                             pokeControls(); return true
                         }
                         android.view.KeyEvent.KEYCODE_DPAD_LEFT -> if (down) {
-                            if (onSeek) scrubFractionState.value = (scrubFractionState.value - stepFrac).coerceIn(0f, 1f)
-                            else {
+                            if (onSeek) {
+                                scrubFractionState.value = (scrubFractionState.value - stepFrac).coerceIn(0f, 1f)
+                                scheduleScrubAuto()   // M597
+                            } else {
+                                cancelScrubAuto()
                                 controlNavState.value = (controlNavState.value - 1 + n) % n
                                 if (order.getOrNull(controlNavState.value) == "seek") initScrub()
                             }
                             pokeControls(); return true
                         }
                         android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> if (down) {
-                            if (onSeek) scrubFractionState.value = (scrubFractionState.value + stepFrac).coerceIn(0f, 1f)
-                            else {
+                            if (onSeek) {
+                                scrubFractionState.value = (scrubFractionState.value + stepFrac).coerceIn(0f, 1f)
+                                scheduleScrubAuto()   // M597
+                            } else {
+                                cancelScrubAuto()
                                 controlNavState.value = (controlNavState.value + 1) % n
                                 if (order.getOrNull(controlNavState.value) == "seek") initScrub()
                             }
@@ -3299,13 +3334,7 @@ class PlayerActivity : ComponentActivity() {
                         android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
                             if (down && event.repeatCount == 0) {
                                 if (onSeek) {
-                                    if (::mediaPlayer.isInitialized) {
-                                        // scrubFrac je zlomok dosiahnutelneho rozsahu baru;
-                                        // seek cez seekDvrTo (funguje aj pre feeder/pipe)
-                                        val bar = if (dvrRecording) (dvrDurationMs - 45_000L).coerceAtLeast(1L) else dvrDurationMs
-                                        val progMs = (scrubFractionState.value.coerceIn(0f, 1f) * bar).toLong()
-                                        seekDvrAbsolute(progMs)
-                                    }
+                                    commitScrub()   // M597: OK potvrdi hned (rovnaka cesta)
                                     pokeControls()
                                 } else activateControl(order.getOrNull(controlNavState.value))
                             }
