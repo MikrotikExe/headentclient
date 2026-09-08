@@ -301,6 +301,17 @@ private fun TvHomeHost() {
     }
     var lastTile by remember { mutableStateOf("channels") }
     var play by remember { mutableStateOf("") }
+    // M599: cakajuce spustenie (obnova posledneho kanala po starte, autostart) sa ZRUSI,
+    // ked pouzivatel medzitym odide inam — do archivu, TV programu, nastaveni. Inak sa
+    // po dotiahnuti kanalov otvoril prehravac cez rozrobenu obrazovku: appka sa sekala,
+    // na slabsich boxoch aj spadla.
+    LaunchedEffect(section) {
+        if (section.isNotEmpty() && play.isNotEmpty()) {
+            play = ""
+            LastPlayback.pendingUuid = null
+            LastPlayback.pendingKind = null
+        }
+    }
     // M531: poistka proti zaseknutiu uvodnej obrazovky.
     //
     // Kym `play` caka na nacitanie, su dlazdice hluche. Ked nacitanie uviazne v
@@ -321,7 +332,7 @@ private fun TvHomeHost() {
     // LivePlaylist a az potom sa otvori prehravac.
     androidx.compose.runtime.LaunchedEffect(Unit) {
         val kind = LastPlayback.pendingKind
-        if (kind != null && play.isEmpty()) {
+        if (kind != null && play.isEmpty() && section.isEmpty()) {   // M599
             LastPlayback.pendingKind = null
             if (kind == "radio") { raVm.load(); chVm.loadIfNeeded(); play = "radio" }
             else { chVm.loadIfNeeded(); play = "tv" }
