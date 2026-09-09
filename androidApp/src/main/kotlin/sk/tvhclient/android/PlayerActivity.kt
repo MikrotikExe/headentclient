@@ -3124,10 +3124,16 @@ class PlayerActivity : ComponentActivity() {
                         // a az druhe OK zoznam zavrie.
                         okLongFired = true
                         val idx = navChannelIndexState.value
-                        // M600: najprv prepni, az potom zatvor zoznam — novy stream sa
-                        // rozbieha, kym je obraz prekryty, takze nepreblikne maly nahlad
-                        if (idx != liveIndex) switchToIndex(idx, poke = false)
+                        // M600-fix: zoznam zatvor a s prepnutim POCKAJ, kym sa video
+                        // vrati z nahladoveho obdlznika na celu obrazovku. Novy stream
+                        // inak nabehol este do maleho okna a divak videl stvorcek v rohu.
+                        // (Cierne prekrytie nepomohlo — SurfaceView sa kresli POD oknom
+                        // aplikacie, takze ho Compose prvky neprekryju.)
                         closeChannelList()
+                        if (idx != liveIndex) lifecycleScope.launch {
+                            kotlinx.coroutines.delay(320)
+                            switchToIndex(idx, poke = false)
+                        }
                     }
                     return true                          // na DOWN nevyberaj (cakame na uvolnenie)
                 } else if (n > 0) {
@@ -6263,20 +6269,6 @@ private fun PlayerUi(
             }
     ) {
         val inPreview = showChannelList && isTvGest && liveChannels.isNotEmpty() && previewRect != null
-        // M600: pri zatvoreni zoznamu sa video vracia z nahladoveho obdlznika na celu
-        // obrazovku. Zmena velkosti povrchu trva libVLC par snimkov, takze na chvilu
-        // preblikol maly obraz v rohu. Prekryjeme ho ciernou, kym sa rozmer neustali.
-        var wasPreview by remember { androidx.compose.runtime.mutableStateOf(false) }
-        var resizeCover by remember { androidx.compose.runtime.mutableStateOf(false) }
-        LaunchedEffect(inPreview) {
-            if (inPreview) { wasPreview = true; resizeCover = false }
-            else if (wasPreview) {
-                wasPreview = false
-                resizeCover = true
-                kotlinx.coroutines.delay(450)
-                resizeCover = false
-            }
-        }
         // M539-fix2: AndroidView je v samostatnej composable (mensia PlayerUi + vymena surface)
         VideoSurface(
             modifier = if (inPreview) {
@@ -6288,10 +6280,6 @@ private fun PlayerUi(
             onAttach = onAttach,
             onStart = onStart
         )
-
-        if (resizeCover) {   // M600
-            Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black))
-        }
 
         // Audio-only (rozhlas): namiesto ciernej zobraz vycentrovane logo
         if (!hasVideo) {
