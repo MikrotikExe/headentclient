@@ -289,7 +289,10 @@ private fun TvHomeHost() {
     LaunchedEffect(reloadTok) { if (reloadTok > 0) { chVm.loadIfNeeded(); raVm.load() } }
 
     // sekcia: "", "epg", "archive", "settings"; play: "", "tv", "radio"
-    var section by remember { mutableStateOf("") }
+    // M601: ked prehravac ziada TV program (aj z rozhlasu), zacneme rovno v mriezke.
+    // Doteraz sa signal spracoval az v tele kompozicie, takze pri starte hosta
+    // (napr. po prehravani rozhlasu, ked sa obrazovka skladala nanovo) preblikol uvod.
+    var section by remember { mutableStateOf(if (TabController.epgPending) "epg" else "") }
     // Prehravac ziada TV program (open_epg intent) -> otvor mriezku aj v TV launcheri (M323)
     val epgSigTv by TabController.epgGrid
     // M397: signal konzumujeme UZ POCAS kompozicie — LaunchedEffect bezal az po
