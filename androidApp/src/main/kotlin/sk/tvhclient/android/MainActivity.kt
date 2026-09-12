@@ -513,7 +513,10 @@ private fun TvHomeHost() {
                         LivePlaylist.setIndexForUuid(uuid)
                         val title = LivePlaylist.channels.firstOrNull { it.uuid == uuid }?.name ?: ""
                         pendingEpgDismiss = true
-                        playUuid(uuid, title)
+                        // M604: navrat z programu do prehravaca ROZHLASU musi ist ako
+                        // radio — inak sa stanica pustila ako TV kanal (bez rozhlasoveho
+                        // rozhrania a zoznamu stanic)
+                        playUuid(uuid, title, if (TabController.epgRadio) "radio" else "tv")
                     } else {
                         section = ""
                     }

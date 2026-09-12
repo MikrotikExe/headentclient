@@ -850,6 +850,16 @@ class PlayerActivity : ComponentActivity() {
     }
 
     private fun openEpgInApp() {
+        // M601-fix: radio nejde do PiP — autoPipIfPossible urobi handoff na pozadie
+        // (a aktivitu ukonci), ale vratil true, takze sa TV program otvoril az po
+        // 1,2 s poistke; medzitym bol vidiet uvod. Program otvor hned, handoff
+        // (moderny rezim) pride po nom; v klasiku ostane prehravac pod programom
+        // ako doteraz.
+        if (playKind == "radio") {
+            launchEpgActivity()
+            radioHandoffIfPossible()
+            return
+        }
         // na telefonoch: vstup do PiP, aby video bezalo v plavajucom okne nad EPG
         if (autoPipIfPossible()) {
             pendingEpgAfterPip = true
