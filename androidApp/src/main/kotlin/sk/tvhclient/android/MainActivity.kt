@@ -463,7 +463,8 @@ private fun TvHomeHost() {
                     if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
                 }
                 // M582: skryte radia zvlast (pseudo-skupina v prehravaci na odkrytie) — parita s TV
-                val hiddenListR = st.rows.filter { it.channel.uuid in hiddenR }.map { radioCh(it) }
+                // M602-fix: aj skryte sa cisluju 1…n (doteraz ostali serverove cisla)
+                val hiddenListR = RadioNumberingPref.apply(ctx, st.rows.filter { it.channel.uuid in hiddenR }).map { radioCh(it) }
                 LivePlaylist.setChannels(
                     fullR, grpsR, LastTag.toGroupKey(LastTag.get(ctx, sid, radio = true)),
                     favs = if (sid != null) Favorites.list(ctx, sid) else emptyList(), hidden = hiddenListR

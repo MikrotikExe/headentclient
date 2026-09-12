@@ -3129,11 +3129,15 @@ class PlayerActivity : ComponentActivity() {
                         openChannelContextMenu(navChannelIndexState.value)
                         return true
                     }
-                    if (oneOk && n > 0 && event.repeatCount == 0) {
+                    return true                          // na DOWN nevyberaj (cakame na uvolnenie)
+                } else if (n > 0) {
+                    if (oneOk) {
                         // M596-fix: jedno OK = kanal sa spusti rovno na celu obrazovku.
                         // Bez volby sa prvym OK kanal len prepne (zoznam ostane cez obraz)
                         // a az druhe OK zoznam zavrie.
-                        okLongFired = true
+                        // M596-fix2: prepina sa az pri UVOLNENI — prepnutie hned pri
+                        // stlaceni zhltlo aj podrzanie OK, takze sa kontextove menu
+                        // (odkryt / info / od zaciatku) v tomto rezime nedalo otvorit.
                         val idx = navChannelIndexState.value
                         // M600-fix: zoznam zatvor a s prepnutim POCKAJ, kym sa video
                         // vrati z nahladoveho obdlznika na celu obrazovku. Novy stream
@@ -3145,9 +3149,8 @@ class PlayerActivity : ComponentActivity() {
                             kotlinx.coroutines.delay(320)
                             switchToIndex(idx, poke = false)
                         }
+                        return true
                     }
-                    return true                          // na DOWN nevyberaj (cakame na uvolnenie)
-                } else if (n > 0) {
                     // uvolnenie OK (kratky klik) = vyber/prepnutie kanala
                     if (navChannelIndexState.value == liveIndexState.value) {
                         closeChannelList()
