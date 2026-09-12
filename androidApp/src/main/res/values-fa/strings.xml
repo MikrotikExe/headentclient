@@ -407,4 +407,12 @@
     <string name="one_ok_note">در فهرست شبکه‌های پخش‌کننده، یک بار فشردن OK شبکه را بی‌درنگ به‌صورت تمام‌صفحه اجرا می‌کند. بدون این گزینه، OK نخست فقط شبکه را پشت فهرست باز عوض می‌کند و دومی فهرست را می‌بندد. نگه داشتن OK همچنان منوی شبکه را باز می‌کند.</string>
     <string name="radio_number_title">شماره‌گذاری ایستگاه‌های رادیویی از ۱</string>
     <string name="radio_number_note">ایستگاه‌ها به‌جای شماره‌های سرور، به ترتیب نمایش ۱، ۲، ۳… شماره‌گذاری می‌شوند. برای زبانه رادیو، راهنمای برنامه و فهرست ایستگاه‌های پخش‌کننده اعمال می‌شود.</string>
+    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <string name="tile_list_group">صفحهٔ اصلی (TV)</string>
+    <string name="tile_list_title">کاشی کانال‌های تلویزیون فهرست را باز می‌کند</string>
+    <string name="tile_list_note">به‌جای شروع آخرین کانال، ابتدا فهرست کانال‌ها نشان داده می‌شود؛ کانال پس از انتخاب شروع می‌شود.</string>
+    <string name="dvr_ask_title">پرسیدن نمایهٔ ضبط</string>
+    <string name="dvr_ask_note">هنگام ضبط، نمایهٔ ضبط Tvheadend را انتخاب کنید (پوشه، مدت نگهداری). فقط زمانی نمایش داده می‌شود که سرور بیش از یک نمایه ارائه دهد.</string>
+    <string name="dvr_pick_title">ضبط در نمایه</string>
+    <string name="dvr_pick_last">آخرین استفاده‌شده</string>
 </resources>

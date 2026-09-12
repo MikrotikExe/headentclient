@@ -407,4 +407,12 @@
     <string name="one_ok_note">في قائمة القنوات داخل المشغّل، ضغطة واحدة على OK تشغّل القناة مباشرة بملء الشاشة. بدون هذا الخيار، تبدّل الضغطة الأولى القناة خلف القائمة المفتوحة فقط، والثانية هي التي تغلق القائمة. الضغط المطوّل على OK لا يزال يفتح قائمة القناة.</string>
     <string name="radio_number_title">ترقيم محطات الراديو من 1</string>
     <string name="radio_number_note">تُرقَّم المحطات 1، 2، 3… حسب الترتيب المعروض بدلاً من أرقام الخادم. يسري ذلك على تبويب الراديو ودليل البرامج وقائمة المحطات في المشغّل.</string>
+    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <string name="tile_list_group">الشاشة الرئيسية (TV)</string>
+    <string name="tile_list_title">بلاطة قنوات التلفزيون تفتح القائمة</string>
+    <string name="tile_list_note">بدلاً من تشغيل آخر قناة، تُعرض قائمة القنوات أولاً؛ تبدأ القناة بعد الاختيار.</string>
+    <string name="dvr_ask_title">السؤال عن ملف تعريف التسجيل</string>
+    <string name="dvr_ask_note">عند التسجيل اختر ملف تعريف التسجيل في Tvheadend (المجلد، مدة الاحتفاظ). يظهر فقط عندما يوفر الخادم أكثر من ملف تعريف واحد.</string>
+    <string name="dvr_pick_title">التسجيل في ملف التعريف</string>
+    <string name="dvr_pick_last">آخر ما استُخدم</string>
 </resources>

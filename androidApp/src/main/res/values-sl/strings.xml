@@ -407,4 +407,12 @@
     <string name="one_ok_note">Na seznamu kanalov v predvajalniku en pritisk na OK zažene kanal takoj čez cel zaslon. Brez te možnosti prvi OK kanal samo preklopi za odprtim seznamom, drugi pa seznam zapre. Dolg pritisk na OK še vedno odpre meni kanala.</string>
     <string name="radio_number_title">Oštevilči radijske postaje od 1</string>
     <string name="radio_number_note">Postaje so oštevilčene 1, 2, 3… po prikazanem vrstnem redu namesto s številkami s strežnika. Velja za zavihek Radio, vodnik in seznam postaj v predvajalniku.</string>
+    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <string name="tile_list_group">Začetni zaslon (TV)</string>
+    <string name="tile_list_title">Ploščica TV-kanali odpre seznam</string>
+    <string name="tile_list_note">Namesto zagona zadnjega kanala se najprej prikaže seznam kanalov; kanal se zažene po izbiri.</string>
+    <string name="dvr_ask_title">Vprašaj za profil snemanja</string>
+    <string name="dvr_ask_note">Pri snemanju izberi Tvheadend profil snemanja (mapa, hramba). Prikaže se le, če strežnik ponuja več kot en profil.</string>
+    <string name="dvr_pick_title">Snemaj v profil</string>
+    <string name="dvr_pick_last">nazadnje uporabljen</string>
 </resources>

@@ -407,4 +407,12 @@
     <string name="one_ok_note">プレーヤーのチャンネル一覧で、OKを1回押すだけでチャンネルがすぐ全画面で再生されます。この設定がない場合、最初のOKは一覧の後ろでチャンネルを切り替えるだけで、2回目で一覧が閉じます。OKの長押しは引き続きチャンネルメニューを開きます。</string>
     <string name="radio_number_title">ラジオ局を1から番号付け</string>
     <string name="radio_number_note">局にはサーバーの番号ではなく、表示順に 1、2、3… の番号が付きます。ラジオタブ、番組表、プレーヤーの局一覧に適用されます。</string>
+    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <string name="tile_list_group">ホーム画面 (TV)</string>
+    <string name="tile_list_title">TVチャンネルのタイルで一覧を開く</string>
+    <string name="tile_list_note">最後のチャンネルを再生する代わりに、先にチャンネル一覧を表示します。選択後にチャンネルが始まります。</string>
+    <string name="dvr_ask_title">録画プロファイルを確認する</string>
+    <string name="dvr_ask_note">録画時に Tvheadend の録画プロファイル（保存先フォルダー、保持期間）を選びます。サーバーに複数のプロファイルがある場合のみ表示されます。</string>
+    <string name="dvr_pick_title">プロファイルに録画</string>
+    <string name="dvr_pick_last">前回使用</string>
 </resources>

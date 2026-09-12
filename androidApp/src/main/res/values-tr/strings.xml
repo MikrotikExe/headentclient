@@ -407,4 +407,12 @@
     <string name="one_ok_note">Oynatıcının kanal listesinde OK\'a bir kez basmak kanalı doğrudan tam ekran başlatır. Bu seçenek olmadan ilk OK yalnızca açık listenin arkasında kanalı değiştirir, listeyi ikinci basış kapatır. OK\'a uzun basmak yine kanal menüsünü açar.</string>
     <string name="radio_number_title">Radyo istasyonlarını 1\'den numaralandır</string>
     <string name="radio_number_note">İstasyonlar sunucudaki numaralar yerine gösterilen sıraya göre 1, 2, 3… olarak numaralandırılır. Radyo sekmesi, rehber ve oynatıcıdaki istasyon listesi için geçerlidir.</string>
+    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <string name="tile_list_group">Ana ekran (TV)</string>
+    <string name="tile_list_title">TV Kanalları kutucuğu listeyi açar</string>
+    <string name="tile_list_note">Son kanalı başlatmak yerine önce kanal listesi gösterilir; kanal seçildikten sonra başlar.</string>
+    <string name="dvr_ask_title">Kayıt profilini sor</string>
+    <string name="dvr_ask_note">Kaydederken Tvheadend kayıt profilini seç (klasör, saklama). Yalnızca sunucu birden fazla profil sunuyorsa gösterilir.</string>
+    <string name="dvr_pick_title">Profile kaydet</string>
+    <string name="dvr_pick_last">son kullanılan</string>
 </resources>

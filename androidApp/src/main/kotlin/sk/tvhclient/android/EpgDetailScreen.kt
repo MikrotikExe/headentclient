@@ -155,18 +155,20 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
             val rec = existingRec
             if (canRecord && event.eventId != null && event.stop > nowSec) {
                 Spacer(Modifier.height(4.dp))
-                OutlinedButton(
-                    onClick = {
-                        val s = server ?: return@OutlinedButton
-                        val eid = event.eventId ?: return@OutlinedButton
-                        recording = true
-                        recMessage = null
-                        scope.launch {
-                            val r = if (rec != null) DvrController.cancel(s, rec)
-                            else DvrController.recordEvent(
-                                s, eid, event.channelUuid ?: "",
-                                event.start, event.stop, event.title
-                            )
+                // M606: volitelny vyber DVR profilu pred nahravanim
+                var askProfiles by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<List<String>>(emptyList()) }
+                fun doRecord(profile: String?) {
+                    val s = server ?: return
+                    val eid = event.eventId ?: return
+                    recording = true
+                    recMessage = null
+                    scope.launch {
+                        if (profile != null) DvrAskPref.setLastUsed(ctx, s.id, profile)
+                        val r = if (rec != null) DvrController.cancel(s, rec)
+                        else DvrController.recordEvent(
+                            s, eid, event.channelUuid ?: "",
+                            event.start, event.stop, event.title, profile
+                        )
                             val dup = if (r.success || rec != null) null
                             else DvrController.duplicateOf(s, event.title)
                             recording = false
@@ -184,6 +186,27 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
                                 )
                             }
                             if (r.success) recReload++
+                    }
+                }
+                if (askProfiles.isNotEmpty()) {
+                    val s = server
+                    DvrProfilePickDialog(
+                        options = askProfiles,
+                        subtitle = event.title,
+                        lastUsed = s?.let { DvrAskPref.lastUsed(ctx, it.id) },
+                        selected = -1,
+                        onPick = { name -> askProfiles = emptyList(); doRecord(name) },
+                        onDismiss = { askProfiles = emptyList() },
+                        dpad = true
+                    )
+                }
+                OutlinedButton(
+                    onClick = {
+                        val s = server ?: return@OutlinedButton
+                        if (rec != null) { doRecord(null); return@OutlinedButton }
+                        scope.launch {
+                            val opts = DvrProfileAsk.options(ctx, s)
+                            if (opts.isEmpty()) doRecord(null) else askProfiles = opts
                         }
                     },
                     enabled = !recording,

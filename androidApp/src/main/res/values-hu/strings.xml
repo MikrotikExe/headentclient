@@ -407,4 +407,12 @@
     <string name="one_ok_note">A lejátszó csatornalistájában egyetlen OK azonnal teljes képernyőn indítja a csatornát. Enélkül az első OK csak átvált a nyitott lista mögött, és csak a második zárja be a listát. Az OK nyomva tartása továbbra is a csatorna menüjét nyitja meg.</string>
     <string name="radio_number_title">Rádióállomások számozása 1-től</string>
     <string name="radio_number_note">Az állomások a megjelenített sorrendben 1, 2, 3… számot kapnak a szerver számai helyett. A Rádió lapra, a műsorújságra és a lejátszó állomáslistájára vonatkozik.</string>
+    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <string name="tile_list_group">Kezdőképernyő (TV)</string>
+    <string name="tile_list_title">A TV-csatornák csempe a listát nyitja meg</string>
+    <string name="tile_list_note">Az utolsó csatorna indítása helyett előbb a csatornalista jelenik meg; a csatorna a választás után indul.</string>
+    <string name="dvr_ask_title">Kérdezzen rá a felvételi profilra</string>
+    <string name="dvr_ask_note">Felvételkor a Tvheadend felvételi profil kiválasztása (mappa, megőrzés). Csak akkor jelenik meg, ha a kiszolgáló egynél több profilt kínál.</string>
+    <string name="dvr_pick_title">Felvétel profilba</string>
+    <string name="dvr_pick_last">utoljára használt</string>
 </resources>

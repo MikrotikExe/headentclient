@@ -278,13 +278,42 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    // M606: dialog vyberu DVR profilu (zoznam moznosti; prazdny = zatvoreny) + kurzor
+    private val dvrAskState = androidx.compose.runtime.mutableStateOf<List<String>>(emptyList())
+    private val dvrAskSelState = androidx.compose.runtime.mutableStateOf(0)
+
     /** Nahrat prave beziacu relaciu, alebo zrusit uz naplanovanu nahravku. */
     fun toggleRecordCurrent() {
         val srv = Tvh.store.active() ?: return
         lifecycleScope.launch {
             val existing = dvrExistingState.value ?: currentEventRecording(srv)
+            if (existing == null) {
+                // M606: volitelny vyber profilu — az potom nahravanie
+                val opts = DvrProfileAsk.options(this@PlayerActivity, srv)
+                if (opts.isNotEmpty()) {
+                    dvrAskSelState.value = 0
+                    dvrAskState.value = opts
+                    return@launch
+                }
+            }
+            recordCurrent(null)
+        }
+    }
+
+    /** M606: vyber v dialogu profilov (OK / klik) alebo zrusenie (BACK). */
+    private fun resolveDvrAsk(name: String?) {
+        dvrAskState.value = emptyList()
+        if (name == null) return
+        Tvh.store.active()?.let { DvrAskPref.setLastUsed(this, it.id, name) }
+        lifecycleScope.launch { recordCurrent(name) }
+    }
+
+    private suspend fun recordCurrent(profile: String?) {
+        val srv = Tvh.store.active() ?: return
+        run {
+            val existing = dvrExistingState.value ?: currentEventRecording(srv)
             val eid = dvrEventIdState.value ?: currentEventId()
-            if (existing == null && eid == null) return@launch
+            if (existing == null && eid == null) return
             val hint = currentLiveEvent()
             val r = if (existing != null) DvrController.cancel(srv, existing)
             else DvrController.recordEvent(
@@ -292,7 +321,8 @@ class PlayerActivity : ComponentActivity() {
                 hint?.first ?: "",
                 hint?.second?.start ?: 0L,
                 hint?.second?.stop ?: 0L,
-                hint?.second?.title ?: ""
+                hint?.second?.title ?: "",
+                profile
             )
             // M484: pri duplikate dohladaj, kde uz nahravka je
             val dup = if (r.success || existing != null) null
@@ -2557,6 +2587,9 @@ class PlayerActivity : ComponentActivity() {
     // Kedy sa zoznam otvoril — OK eventy tesne po otvoreni (zvysky otvaracieho
     // dlheho stlacenia, ghost DOWN/UP pary z IR/CEC ovladacov) sa ignoruju (M330-fix2)
     private var channelListOpenedAt = 0L
+    /** M605: dlazdica „TV kanaly" otvorila prehravac len so zoznamom; kym sa nic
+     *  nespustilo (liveIndex < 0), BACK zo zoznamu vrati na uvod. */
+    private var listFirst = false
 
     private fun openChannelList() {
         // M371: otvor aj s 1 kanalom, ak su skupiny na prepnutie (napr. Oblubene s 1 kanalom),
@@ -2901,6 +2934,25 @@ class PlayerActivity : ComponentActivity() {
             return true
         }
 
+        // 0a2) M606: vyber DVR profilu -> hore/dole + OK + BACK riesime my
+        if (dvrAskState.value.isNotEmpty()) {
+            if (down) {
+                val n = dvrAskState.value.size
+                when (kc) {
+                    android.view.KeyEvent.KEYCODE_DPAD_UP ->
+                        { dvrAskSelState.value = (dvrAskSelState.value - 1 + n) % n; return true }
+                    android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
+                        { dvrAskSelState.value = (dvrAskSelState.value + 1) % n; return true }
+                    android.view.KeyEvent.KEYCODE_DPAD_CENTER,
+                    android.view.KeyEvent.KEYCODE_ENTER,
+                    android.view.KeyEvent.KEYCODE_NUMPAD_ENTER ->
+                        { if (event.repeatCount == 0) resolveDvrAsk(dvrAskState.value.getOrNull(dvrAskSelState.value)); return true }
+                    android.view.KeyEvent.KEYCODE_BACK ->
+                        { resolveDvrAsk(null); return true }
+                }
+            }
+            return true
+        }
         // 0b) Vyber pri archivovanom kanali -> sipky vlavo/vpravo + OK + BACK riesime my
         if (archiveChoiceIdxState.value >= 0) {
             if (down) {
@@ -3187,8 +3239,12 @@ class PlayerActivity : ComponentActivity() {
                         { navChannelIndexState.value = (navChannelIndexState.value - 7).coerceIn(0, n - 1); return true }
                     android.view.KeyEvent.KEYCODE_DPAD_RIGHT ->
                         { navChannelIndexState.value = (navChannelIndexState.value + 7).coerceIn(0, n - 1); return true }
-                    android.view.KeyEvent.KEYCODE_BACK ->
-                        { closeChannelList(); return true }
+                    android.view.KeyEvent.KEYCODE_BACK -> {
+                        // M605: zoznam bez spusteneho kanala -> BACK = spat na uvod,
+                        // nie cierny prehravac
+                        if (listFirst && liveIndex < 0) { finish(); return true }
+                        closeChannelList(); return true
+                    }
                 }
             }
             when (kc) {
@@ -3770,9 +3826,14 @@ class PlayerActivity : ComponentActivity() {
         // M281: hned dopln now/next z cache (disk/proces) na viditelny zoznam, nech sa nazvy
         // relacii pod kanalmi ukazu okamzite aj po restarte (predtym cakali na sietovy refresh).
         applyCachedEpgToChannels()
+        // M605: zoznam najprv — kurzor na poslednom kanali, ale nic nehra (index -1),
+        // nech sa v zozname nic nezvyrazni ako „hrajuce" a OK na tom istom kanali ho spusti
+        listFirst = intent.getBooleanExtra(EXTRA_LIST_FIRST, false) && liveUuids.size > 1
+        val listFirstIndex = liveIndex
+        if (listFirst) { liveIndex = -1 }
         liveIndexState.value = liveIndex
-        liveTitleState.value = channelTitle
-        liveUuidState.value = channelUuid
+        liveTitleState.value = if (listFirst) "" else channelTitle
+        liveUuidState.value = if (listFirst) null else channelUuid
         liveProgStartState.value = progStart
         liveProgStopState.value = progStop
         liveProgTitleState.value = progTitle
@@ -3909,7 +3970,14 @@ class PlayerActivity : ComponentActivity() {
                     // rodicovsky zamok: pri KAZDOM otvoreni prehravaca so zamknutym kanalom
                     // vypytaj PIN (bez ohladu na grace okno). Grace ("nepytat X min") plati len
                     // pri prepinani v ramci otvoreneho prehravaca (zoznam / pozadie / cislice).
-                    if (ParentalLock.channelLockedProtected(this, server.id, channelUuid)) {
+                    if (listFirst) {
+                        // M605: nic nespustaj, otvor rovno zoznam s kurzorom na poslednom kanali
+                        htspInitDone = false
+                        window.decorView.post {
+                            openChannelList()
+                            navChannelIndexState.value = listFirstIndex.coerceAtLeast(0)
+                        }
+                    } else if (ParentalLock.channelLockedProtected(this, server.id, channelUuid)) {
                         // M263: zrus stare grace okno, nech zamknuty kanal v tomto sedeni
                         // naozaj vyzaduje PIN (aj keby sa pouzivatel cez vyzvu prepol prec a vratil sa).
                         ParentalLock.clearGrace(this)
@@ -4093,6 +4161,17 @@ class PlayerActivity : ComponentActivity() {
                     touchUi = !isTvDevice(),                 // M559: dotykove ovladanie na telefone
                     onSubStep = { d -> ttxSubStep(d) },
                     onDigit = { d -> ttxDigit(d) }
+                )
+            }
+            if (dvrAskState.value.isNotEmpty()) {
+                // M606: vyber DVR profilu pred nahravanim
+                DvrProfilePickDialog(
+                    options = dvrAskState.value,
+                    subtitle = liveProgTitleState.value,
+                    lastUsed = Tvh.store.active()?.let { DvrAskPref.lastUsed(this@PlayerActivity, it.id) },
+                    selected = dvrAskSelState.value,
+                    onPick = { resolveDvrAsk(it) },
+                    onDismiss = { resolveDvrAsk(null) }
                 )
             }
             if (archiveChoiceIdxState.value >= 0) {
@@ -5437,6 +5516,8 @@ class PlayerActivity : ComponentActivity() {
         const val EXTRA_RETURN_TITLE = "return_live_title"
         const val EXTRA_URL = "stream_url"
         const val EXTRA_KIND = "play_kind"
+        /** M605: otvor prehravac so zoznamom kanalov a BEZ streamu — kanal sa spusti az po vybere. */
+        const val EXTRA_LIST_FIRST = "list_first"
         const val EXTRA_DURATION_MS = "duration_ms"
         const val EXTRA_PROG_START = "prog_start"
         const val EXTRA_PROG_STOP = "prog_stop"

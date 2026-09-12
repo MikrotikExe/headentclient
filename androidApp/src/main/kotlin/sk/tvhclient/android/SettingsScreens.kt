@@ -473,6 +473,18 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
         }
     }
     }
+    // M605: dlazdica TV kanaly otvori najprv zoznam (len TV)
+    if (ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)) {
+        SettingsGroup(stringResource(R.string.tile_list_group), classicTitle = true) {
+            var listFirst by remember { mutableStateOf(TileListPref.get(ctx)) }
+            SettingsSwitchRow(
+                label = stringResource(R.string.tile_list_title),
+                note = stringResource(R.string.tile_list_note),
+                checked = listFirst,
+                onChange = { v -> listFirst = v; TileListPref.set(ctx, v) }
+            )
+        }
+    }
     // M602: cislovanie radii od 1
     SettingsGroup(stringResource(R.string.tab_radio), classicTitle = true) {
         var fromOne by remember { mutableStateOf(RadioNumberingPref.get(ctx)) }
@@ -885,6 +897,20 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
             }
         )
     }
+
+    // M606: vyber DVR profilu pri kazdej nahravke (predvolene vypnute)
+    SettingsGroupDivider()
+    var dvrAsk by remember { mutableStateOf(DvrAskPref.get(ctx)) }
+    SettingsSwitchRow(
+        label = stringResource(R.string.dvr_ask_title),
+        note = stringResource(R.string.dvr_ask_note),
+        checked = dvrAsk,
+        onChange = { on ->
+            dvrAsk = on
+            DvrAskPref.set(ctx, on)
+            TabController.settingsDirty.value = true
+        }
+    )
 
     // Timeshift (pauza/pretacanie zivej TV) — len pri HTSP pripojeni (9982); pri HTTP nema zmysel
     val htspMode = remember { sk.tvhclient.shared.Tvh.store.active()?.connectionMode == "htsp" }

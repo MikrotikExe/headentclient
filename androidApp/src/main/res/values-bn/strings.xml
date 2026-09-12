@@ -407,4 +407,12 @@
     <string name="one_ok_note">প্লেয়ারের চ্যানেল তালিকায় একবার OK চাপলেই চ্যানেল সরাসরি পূর্ণ পর্দায় চালু হয়। এই বিকল্প ছাড়া প্রথম OK শুধু খোলা তালিকার পেছনে চ্যানেল বদলায় এবং দ্বিতীয়টি তালিকা বন্ধ করে। OK চেপে ধরলে এখনও চ্যানেল মেনু খোলে।</string>
     <string name="radio_number_title">রেডিও স্টেশন ১ থেকে নম্বর করুন</string>
     <string name="radio_number_note">সার্ভারের নম্বরের বদলে প্রদর্শিত ক্রমে স্টেশনগুলো ১, ২, ৩… নম্বর পায়। রেডিও ট্যাব, গাইড ও প্লেয়ারের স্টেশন তালিকায় প্রযোজ্য।</string>
+    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <string name="tile_list_group">হোম স্ক্রিন (TV)</string>
+    <string name="tile_list_title">TV চ্যানেল টাইল তালিকা খোলে</string>
+    <string name="tile_list_note">শেষ চ্যানেল চালু করার বদলে প্রথমে চ্যানেল তালিকা দেখানো হয়; বেছে নেওয়ার পরে চ্যানেল চালু হয়।</string>
+    <string name="dvr_ask_title">রেকর্ডিং প্রোফাইল জিজ্ঞাসা করুন</string>
+    <string name="dvr_ask_note">রেকর্ড করার সময় Tvheadend রেকর্ডিং প্রোফাইল বেছে নিন (ফোল্ডার, সংরক্ষণকাল)। সার্ভার একাধিক প্রোফাইল দিলে তবেই দেখানো হয়।</string>
+    <string name="dvr_pick_title">প্রোফাইলে রেকর্ড করুন</string>
+    <string name="dvr_pick_last">সর্বশেষ ব্যবহৃত</string>
 </resources>

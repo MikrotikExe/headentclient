@@ -407,4 +407,12 @@
     <string name="one_ok_note">Nell\'elenco canali del lettore, una sola pressione di OK avvia il canale subito a schermo intero. Senza questa opzione il primo OK cambia solo canale dietro l\'elenco aperto e il secondo lo chiude. Tenendo premuto OK si apre ancora il menu del canale.</string>
     <string name="radio_number_title">Numera le radio da 1</string>
     <string name="radio_number_note">Le stazioni sono numerate 1, 2, 3… nell\'ordine mostrato invece dei numeri del server. Vale per la scheda Radio, la guida e l\'elenco delle stazioni nel lettore.</string>
+    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <string name="tile_list_group">Schermata iniziale (TV)</string>
+    <string name="tile_list_title">Il riquadro Canali TV apre l’elenco</string>
+    <string name="tile_list_note">Invece di avviare l’ultimo canale, viene mostrato prima l’elenco dei canali; il canale parte dopo la scelta.</string>
+    <string name="dvr_ask_title">Chiedi il profilo di registrazione</string>
+    <string name="dvr_ask_note">Durante la registrazione scegli il profilo di registrazione Tvheadend (cartella, conservazione). Mostrato solo se il server offre più profili.</string>
+    <string name="dvr_pick_title">Registra nel profilo</string>
+    <string name="dvr_pick_last">ultimo usato</string>
 </resources>

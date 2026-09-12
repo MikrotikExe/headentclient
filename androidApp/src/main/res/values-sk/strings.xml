@@ -407,4 +407,12 @@
     <string name="one_ok_note">V zozname kanálov v prehrávači spustí jedno stlačenie OK kanál rovno na celú obrazovku. Bez tejto voľby prvé OK kanál len prepne (zoznam ostane cez obraz) a až druhé ho zavrie. Podržanie OK naďalej otvára ponuku kanála.</string>
     <string name="radio_number_title">Číslovať rádiá od 1</string>
     <string name="radio_number_note">Stanice sa číslujú 1, 2, 3… podľa zobrazeného poradia namiesto čísel zo servera. Platí pre záložku Rádio, TV program aj zoznam staníc v prehrávači.</string>
+    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <string name="tile_list_group">Úvodná obrazovka (TV)</string>
+    <string name="tile_list_title">Dlaždica TV kanály otvorí zoznam</string>
+    <string name="tile_list_note">Namiesto spustenia posledného kanála sa najprv zobrazí zoznam kanálov; kanál sa spustí až po výbere.</string>
+    <string name="dvr_ask_title">Pýtať sa na profil nahrávania</string>
+    <string name="dvr_ask_note">Pri nahrávaní vybrať profil nahrávania Tvheadendu (priečinok, doba uchovania). Zobrazí sa, len keď server ponúka viac než jeden profil.</string>
+    <string name="dvr_pick_title">Nahrať do profilu</string>
+    <string name="dvr_pick_last">naposledy použitý</string>
 </resources>

@@ -361,12 +361,16 @@ private fun TvHomeHost() {
     }
     var showExit by remember { mutableStateOf(false) }
 
-    fun playUuid(uuid: String, title: String, kind: String = "tv") {
+    // M605: dlazdica „TV kanaly" s volbou „najprv zoznam" — prehravac sa otvori so
+    // zoznamom a bez streamu; plati len pre dlazdicu (nie obnova po starte / skratky)
+    var tileListFirst by remember { mutableStateOf(false) }
+    fun playUuid(uuid: String, title: String, kind: String = "tv", listFirst: Boolean = false) {
         runCatching {
             ctx.startActivity(Intent(ctx, PlayerActivity::class.java).apply {
                 putExtra(PlayerActivity.EXTRA_UUID, uuid)
                 putExtra(PlayerActivity.EXTRA_TITLE, title)
                 putExtra(PlayerActivity.EXTRA_KIND, kind)
+                if (listFirst) putExtra(PlayerActivity.EXTRA_LIST_FIRST, true)
             })
         }
     }
@@ -425,9 +429,11 @@ private fun TvHomeHost() {
                     ?: LivePlaylist.channels.firstOrNull()?.uuid
                 LastPlayback.pendingUuid = null
                 play = ""
+                val listFirst = tileListFirst   // M605
+                tileListFirst = false
                 if (target != null) {
                     LivePlaylist.setIndexForUuid(target)
-                    playUuid(target, LivePlaylist.channels.firstOrNull { it.uuid == target }?.name ?: "")
+                    playUuid(target, LivePlaylist.channels.firstOrNull { it.uuid == target }?.name ?: "", listFirst = listFirst)
                 }
             } else if (st is ChannelsState.Error || st is ChannelsState.NoServer) {
                 play = ""
@@ -603,7 +609,7 @@ private fun TvHomeHost() {
                             LivePlaylist.setIndexForUuid(uuid)
                             playUuid(uuid, title)
                         },
-                        onChannels = { lastTile = "channels"; chVm.loadIfNeeded(); play = "tv" },   // M531
+                        onChannels = { lastTile = "channels"; tileListFirst = TileListPref.get(ctx); chVm.loadIfNeeded(); play = "tv" },   // M531, M605
                         onRadio = { lastTile = "radio"; raVm.load(); chVm.loadIfNeeded(); play = "radio" },   // M531
                         onTvProgram = { lastTile = "epg"; section = "epg" },
                         onArchive = { lastTile = "archive"; section = "archive" },
@@ -612,7 +618,7 @@ private fun TvHomeHost() {
                 } else {
                 TvHomeScreen(   // pocas pending (play) zostava viditelny launcher, kym naskoci prehravac
                     focusKey = lastTile,
-                    onChannels = { lastTile = "channels"; chVm.loadIfNeeded(); play = "tv" },   // M531
+                    onChannels = { lastTile = "channels"; tileListFirst = TileListPref.get(ctx); chVm.loadIfNeeded(); play = "tv" },   // M531, M605
                     onRadio = { lastTile = "radio"; raVm.load(); chVm.loadIfNeeded(); play = "radio" },   // M531
                     onTvProgram = { lastTile = "epg"; section = "epg" },
                     onArchive = { lastTile = "archive"; section = "archive" },

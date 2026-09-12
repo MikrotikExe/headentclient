@@ -407,4 +407,12 @@
     <string name="one_ok_note">În lista de canale din player, o apăsare pe OK pornește canalul direct pe tot ecranul. Fără această opțiune, primul OK doar schimbă canalul în spatele listei deschise, iar al doilea închide lista. Apăsarea lungă pe OK deschide în continuare meniul canalului.</string>
     <string name="radio_number_title">Numerotează posturile radio de la 1</string>
     <string name="radio_number_note">Posturile sunt numerotate 1, 2, 3… în ordinea afișată, în loc de numerele de pe server. Se aplică filei Radio, ghidului și listei de posturi din player.</string>
+    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <string name="tile_list_group">Ecran de start (TV)</string>
+    <string name="tile_list_title">Dala Canale TV deschide lista</string>
+    <string name="tile_list_note">În loc să pornească ultimul canal, se afișează mai întâi lista de canale; canalul pornește după alegere.</string>
+    <string name="dvr_ask_title">Întreabă profilul de înregistrare</string>
+    <string name="dvr_ask_note">La înregistrare, alege profilul de înregistrare Tvheadend (dosar, păstrare). Apare doar când serverul oferă mai multe profiluri.</string>
+    <string name="dvr_pick_title">Înregistrează în profilul</string>
+    <string name="dvr_pick_last">ultimul folosit</string>
 </resources>

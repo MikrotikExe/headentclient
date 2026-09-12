@@ -169,11 +169,12 @@ object DvrController {
         channelUuid: String = "",
         start: Long = 0,
         stop: Long = 0,
-        title: String = ""
+        title: String = "",
+        profile: String? = null   // M606: profil vybrany v dialogu (ma prednost)
     ): DvrResult {
         // M486: nahravaj do profilu zvoleneho v nastaveniach servera; prazdne
         // = necha rozhodnut server (predvolba konta)
-        val cfg = server.dvrConfig.ifBlank { null }
+        val cfg = profile?.takeIf { it.isNotBlank() } ?: server.dvrConfig.ifBlank { null }
         val r = ioResult { serviceFor(server).recordEvent(eventId, cfg) }
         if (r.success) {
             invalidateScheduled(server.id)   // M474

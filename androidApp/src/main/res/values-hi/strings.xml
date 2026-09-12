@@ -407,4 +407,12 @@
     <string name="one_ok_note">प्लेयर की चैनल सूची में OK एक बार दबाने पर चैनल सीधे पूरी स्क्रीन पर चलता है। इस विकल्प के बिना पहला OK केवल खुली सूची के पीछे चैनल बदलता है और दूसरा सूची बंद करता है। OK देर तक दबाने पर चैनल मेन्यू अब भी खुलता है।</string>
     <string name="radio_number_title">रेडियो स्टेशनों की संख्या 1 से</string>
     <string name="radio_number_note">स्टेशनों को सर्वर के नंबरों के बजाय दिखाए गए क्रम में 1, 2, 3… नंबर दिए जाते हैं। रेडियो टैब, गाइड और प्लेयर की स्टेशन सूची पर लागू।</string>
+    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <string name="tile_list_group">होम स्क्रीन (TV)</string>
+    <string name="tile_list_title">TV चैनल टाइल सूची खोलती है</string>
+    <string name="tile_list_note">आख़िरी चैनल शुरू करने के बजाय पहले चैनल सूची दिखती है; चुनने के बाद चैनल शुरू होता है।</string>
+    <string name="dvr_ask_title">रिकॉर्डिंग प्रोफ़ाइल पूछें</string>
+    <string name="dvr_ask_note">रिकॉर्ड करते समय Tvheadend रिकॉर्डिंग प्रोफ़ाइल चुनें (फ़ोल्डर, रखने की अवधि)। केवल तब दिखता है जब सर्वर एक से अधिक प्रोफ़ाइल देता है।</string>
+    <string name="dvr_pick_title">प्रोफ़ाइल में रिकॉर्ड करें</string>
+    <string name="dvr_pick_last">पिछली बार इस्तेमाल</string>
 </resources>

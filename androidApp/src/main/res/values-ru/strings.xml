@@ -407,4 +407,12 @@
     <string name="one_ok_note">В списке каналов в плеере одно нажатие OK запускает канал сразу на весь экран. Без этой опции первое OK только переключает канал за открытым списком, а закрывает его лишь второе. Долгое нажатие OK по-прежнему открывает меню канала.</string>
     <string name="radio_number_title">Нумеровать радиостанции с 1</string>
     <string name="radio_number_note">Станции нумеруются 1, 2, 3… в показанном порядке вместо номеров с сервера. Действует для вкладки Радио, телепрограммы и списка станций в плеере.</string>
+    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <string name="tile_list_group">Главный экран (TV)</string>
+    <string name="tile_list_title">Плитка «ТВ-каналы» открывает список</string>
+    <string name="tile_list_note">Вместо запуска последнего канала сначала показывается список каналов; канал запускается после выбора.</string>
+    <string name="dvr_ask_title">Спрашивать профиль записи</string>
+    <string name="dvr_ask_note">При записи выбирать профиль записи Tvheadend (папка, срок хранения). Показывается, только если сервер предлагает несколько профилей.</string>
+    <string name="dvr_pick_title">Записать в профиль</string>
+    <string name="dvr_pick_last">последний использованный</string>
 </resources>

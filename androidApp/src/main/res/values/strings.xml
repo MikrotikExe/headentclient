@@ -407,4 +407,12 @@
     <string name="one_ok_note">In the player\'s channel list, one press of OK starts the channel full screen right away. Without it, the first OK only switches the channel behind the open list and a second one closes the list. Holding OK still opens the channel menu.</string>
     <string name="radio_number_title">Number radio stations from 1</string>
     <string name="radio_number_note">Stations are numbered 1, 2, 3… in the order shown instead of the numbers from the server. Applies to the Radio tab, the guide and the station list in the player.</string>
+    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <string name="tile_list_group">Home screen (TV)</string>
+    <string name="tile_list_title">TV Channels tile opens the list</string>
+    <string name="tile_list_note">Instead of starting the last channel, the channel list is shown first; the channel starts once you pick one.</string>
+    <string name="dvr_ask_title">Ask for the recording profile</string>
+    <string name="dvr_ask_note">When recording, choose the Tvheadend recording profile (storage folder, retention). Shown only when the server offers more than one profile.</string>
+    <string name="dvr_pick_title">Record to profile</string>
+    <string name="dvr_pick_last">last used</string>
 </resources>

@@ -407,4 +407,12 @@
     <string name="one_ok_note">Na liście kanałów w odtwarzaczu jedno naciśnięcie OK uruchamia kanał od razu na pełnym ekranie. Bez tej opcji pierwsze OK tylko przełącza kanał za otwartą listą, a dopiero drugie zamyka listę. Przytrzymanie OK nadal otwiera menu kanału.</string>
     <string name="radio_number_title">Numeruj stacje radiowe od 1</string>
     <string name="radio_number_note">Stacje są numerowane 1, 2, 3… w wyświetlanej kolejności zamiast numerami z serwera. Dotyczy karty Radio, przewodnika i listy stacji w odtwarzaczu.</string>
+    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <string name="tile_list_group">Ekran główny (TV)</string>
+    <string name="tile_list_title">Kafelek Kanały TV otwiera listę</string>
+    <string name="tile_list_note">Zamiast uruchamiać ostatni kanał, najpierw pokazywana jest lista kanałów; kanał uruchamia się po wyborze.</string>
+    <string name="dvr_ask_title">Pytaj o profil nagrywania</string>
+    <string name="dvr_ask_note">Podczas nagrywania wybierz profil nagrywania Tvheadend (folder, czas przechowywania). Widoczne tylko, gdy serwer oferuje więcej niż jeden profil.</string>
+    <string name="dvr_pick_title">Nagraj do profilu</string>
+    <string name="dvr_pick_last">ostatnio użyty</string>
 </resources>

@@ -1272,17 +1272,19 @@ private fun GridDetailContent(
             val rec = existingRec
             if (canRecord && recEventId != null && stop > nowSec) {
                 Spacer(Modifier.height(10.dp))
-                androidx.compose.material3.OutlinedButton(
-                    onClick = {
-                        val srv = sk.tvhclient.shared.Tvh.store.active() ?: return@OutlinedButton
+                // M606: volitelny vyber DVR profilu pred nahravanim
+                var askProfiles by remember { mutableStateOf<List<String>>(emptyList()) }
+                fun doRecord(profile: String?) {
+                        val srv = sk.tvhclient.shared.Tvh.store.active() ?: return
                         recBusy = true; recMsg = null
                         dvrScope.launch {
+                            if (profile != null) DvrAskPref.setLastUsed(context, srv.id, profile)
                             val r = if (rec != null) DvrController.cancel(srv, rec)
                             // M484: popis relacie -> zaznam sa hned premietne do zoznamu
                             else DvrController.recordEvent(
                                 srv, recEventId,
                                 (detail as? GridDetail.Epg)?.row?.channel?.uuid ?: "",
-                                start, stop, title
+                                start, stop, title, profile
                             )
                             // M484: server pri duplikate vrati len strohu chybu —
                             // dohladame, kde uz nahravka je
@@ -1306,6 +1308,27 @@ private fun GridDetailContent(
                                 recReload++          // znovu zisti stav
                                 onDvrChanged()       // M485: aj bloky v mriezke
                             }
+                        }
+                }
+                if (askProfiles.isNotEmpty()) {
+                    val srv = sk.tvhclient.shared.Tvh.store.active()
+                    DvrProfilePickDialog(
+                        options = askProfiles,
+                        subtitle = title,
+                        lastUsed = srv?.let { DvrAskPref.lastUsed(context, it.id) },
+                        selected = -1,
+                        onPick = { name -> askProfiles = emptyList(); doRecord(name) },
+                        onDismiss = { askProfiles = emptyList() },
+                        dpad = true
+                    )
+                }
+                androidx.compose.material3.OutlinedButton(
+                    onClick = {
+                        val srv = sk.tvhclient.shared.Tvh.store.active() ?: return@OutlinedButton
+                        if (rec != null) { doRecord(null); return@OutlinedButton }
+                        dvrScope.launch {
+                            val opts = DvrProfileAsk.options(context, srv)
+                            if (opts.isEmpty()) doRecord(null) else askProfiles = opts
                         }
                     },
                     enabled = !recBusy,

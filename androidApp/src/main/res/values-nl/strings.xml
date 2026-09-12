@@ -407,4 +407,12 @@
     <string name="one_ok_note">In de zenderlijst van de speler start één druk op OK de zender meteen schermvullend. Zonder deze optie schakelt de eerste OK alleen de zender achter de open lijst en sluit pas de tweede de lijst. OK ingedrukt houden opent nog steeds het zendermenu.</string>
     <string name="radio_number_title">Radiozenders nummeren vanaf 1</string>
     <string name="radio_number_note">Zenders worden genummerd 1, 2, 3… in de getoonde volgorde in plaats van de nummers van de server. Geldt voor het tabblad Radio, de gids en de zenderlijst in de speler.</string>
+    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <string name="tile_list_group">Startscherm (TV)</string>
+    <string name="tile_list_title">Tegel TV-zenders opent de lijst</string>
+    <string name="tile_list_note">In plaats van de laatste zender te starten wordt eerst de zenderlijst getoond; de zender start na de keuze.</string>
+    <string name="dvr_ask_title">Vragen om het opnameprofiel</string>
+    <string name="dvr_ask_note">Bij opnemen het Tvheadend-opnameprofiel kiezen (map, bewaartermijn). Alleen zichtbaar als de server meer dan één profiel aanbiedt.</string>
+    <string name="dvr_pick_title">Opnemen in profiel</string>
+    <string name="dvr_pick_last">laatst gebruikt</string>
 </resources>
