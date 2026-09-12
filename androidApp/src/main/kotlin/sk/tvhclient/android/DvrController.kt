@@ -106,6 +106,24 @@ object DvrController {
     }
 
     /**
+     * M608: beziace nahravky zo servera + tie, ktore sme prave naplanovali a este
+     * bezia (relacia uz zacala). V HTSP rezime sa pocas prehravania metadata
+     * neobnovuju (M595 — druhe spojenie by server s limitom 1 odmietol), takze
+     * cervena bodka pri prave naplanovanej nahravke by sa inak ukazala az po
+     * skonceni prehravania. Zoznam zo servera ma prednost, prekryv len dopĺňa.
+     */
+    fun overlayInProgress(
+        serverId: String, list: List<sk.tvhclient.shared.model.DvrEntry>
+    ): List<sk.tvhclient.shared.model.DvrEntry> {
+        val p = pendingOps[serverId] ?: return list
+        val nowSec = System.currentTimeMillis() / 1000
+        val kept = list.filterNot { p.removed.contains(it.commandId) }
+        val running = p.added.filter { it.start <= nowSec && nowSec < it.stop }
+        if (running.isEmpty()) return kept
+        return kept + running.filterNot { a -> kept.any { sameSlot(it, a) } }
+    }
+
+    /**
      * Naplanovane/beziace nahravky. Kratka cache — zoznam sa pouziva pri kazdom
      * otvoreni detailu relacie a nema zmysel kvoli tomu zatazovat server.
      */

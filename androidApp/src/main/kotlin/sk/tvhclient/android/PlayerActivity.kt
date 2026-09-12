@@ -335,6 +335,7 @@ class PlayerActivity : ComponentActivity() {
             val dup = if (r.success || existing != null) null
             else DvrController.duplicateOf(srv, hint?.second?.title ?: "")
             dvrExistingState.value = currentEventRecording(srv)
+            if (r.success) refreshRecordingOnly()   // M608: cervena bodka / kazeta hned
             android.widget.Toast.makeText(
                 this@PlayerActivity,
                 when {
@@ -1232,7 +1233,7 @@ class PlayerActivity : ComponentActivity() {
                     try { Tvh.fetchDvrInProgress(srv, api) }
                     catch (e: Exception) { emptyList() }
                     finally { api.close() }
-                }
+                }.let { DvrController.overlayInProgress(srv.id, it) }   // M608
             val recMap = recList.associateBy { it.channelUuid.ifBlank { it.channelName } }
             recInProgressByChan.value = recMap
             // M526: mapa dorazila az teraz — prepocitaj stav tlacidla nahravania.
@@ -1381,7 +1382,7 @@ class PlayerActivity : ComponentActivity() {
                     try { Tvh.fetchDvrInProgress(srv, api) }
                     catch (e: Exception) { emptyList() }
                     finally { api.close() }
-                }
+                }.let { DvrController.overlayInProgress(srv.id, it) }   // M608
             val recMap = recList.associateBy { it.channelUuid.ifBlank { it.channelName } }
             recInProgressByChan.value = recMap
             refreshDvrState()   // M526: to iste aj pri rychlom osvezeni
