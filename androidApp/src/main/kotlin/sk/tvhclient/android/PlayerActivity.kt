@@ -281,6 +281,8 @@ class PlayerActivity : ComponentActivity() {
     // M606: dialog vyberu DVR profilu (zoznam moznosti; prazdny = zatvoreny) + kurzor
     private val dvrAskState = androidx.compose.runtime.mutableStateOf<List<String>>(emptyList())
     private val dvrAskSelState = androidx.compose.runtime.mutableStateOf(0)
+    /** M607: ked dialog profilov patri kanalu z kontextovej ponuky (nie hrajucemu). */
+    private var dvrAskTarget: Pair<LivePlaylist.LiveChannel, sk.tvhclient.shared.model.EpgEvent>? = null
 
     /** Nahrat prave beziacu relaciu, alebo zrusit uz naplanovanu nahravku. */
     fun toggleRecordCurrent() {
@@ -291,6 +293,7 @@ class PlayerActivity : ComponentActivity() {
                 // M606: volitelny vyber profilu — az potom nahravanie
                 val opts = DvrProfileAsk.options(this@PlayerActivity, srv)
                 if (opts.isNotEmpty()) {
+                    dvrAskTarget = null
                     dvrAskSelState.value = 0
                     dvrAskState.value = opts
                     return@launch
@@ -303,9 +306,13 @@ class PlayerActivity : ComponentActivity() {
     /** M606: vyber v dialogu profilov (OK / klik) alebo zrusenie (BACK). */
     private fun resolveDvrAsk(name: String?) {
         dvrAskState.value = emptyList()
+        val target = dvrAskTarget
+        dvrAskTarget = null
         if (name == null) return
         Tvh.store.active()?.let { DvrAskPref.setLastUsed(this, it.id, name) }
-        lifecycleScope.launch { recordCurrent(name) }
+        lifecycleScope.launch {
+            if (target != null) recordEventOf(target.first, target.second, name) else recordCurrent(name)
+        }
     }
 
     private suspend fun recordCurrent(profile: String?) {
@@ -2276,6 +2283,9 @@ class PlayerActivity : ComponentActivity() {
         val ch = liveChannelsState.value.getOrNull(idx) ?: return emptyList()
         val keys = mutableListOf("info")
         if (recInProgressByChan.value.let { it[ch.uuid] ?: it[ch.name] } != null) keys.add("fromstart")
+        // M607: nahrat prave beziacu relaciu vybrateho kanala priamo zo zoznamu
+        // (kanal nemusi hrat) — len ked mame jej EPG s eventId a este sa nenahrava
+        else if (dvrCanRecordState.value && ctxMenuEvent(ch) != null) keys.add("rec")
         // M368: oblubene a skrytie kanala aj na TV (predtym len na telefone)
         keys.add("fav")
         // M541: usporiadanie oblubenych (len v skupine Oblubene, len D-pad)
@@ -2287,6 +2297,50 @@ class PlayerActivity : ComponentActivity() {
             HiddenChannels.isHidden(this, sidH, ch.uuid)
         keys.add(if (hiddenCh) "unhide" else "hide")
         return keys
+    }
+
+    /** M607: prave beziaca relacia kanala (z now/next cache), ak ma eventId. */
+    private fun ctxMenuEvent(ch: LivePlaylist.LiveChannel): sk.tvhclient.shared.model.EpgEvent? {
+        val nowSec = System.currentTimeMillis() / 1000
+        return epgUpcomingState.value[ch.uuid]
+            ?.firstOrNull { it.start <= nowSec && nowSec < it.stop && it.eventId != null }
+    }
+
+    /** M607: nahravanie z kontextovej ponuky — s volitelnym vyberom profilu (M606). */
+    private fun recordFromCtxMenu(ch: LivePlaylist.LiveChannel) {
+        val ev = ctxMenuEvent(ch) ?: return
+        val srv = Tvh.store.active() ?: return
+        lifecycleScope.launch {
+            val opts = DvrProfileAsk.options(this@PlayerActivity, srv)
+            if (opts.isNotEmpty()) {
+                dvrAskTarget = ch to ev
+                dvrAskSelState.value = 0
+                dvrAskState.value = opts
+            } else recordEventOf(ch, ev, null)
+        }
+    }
+
+    private suspend fun recordEventOf(ch: LivePlaylist.LiveChannel, ev: sk.tvhclient.shared.model.EpgEvent, profile: String?) {
+        val srv = Tvh.store.active() ?: return
+        val eid = ev.eventId ?: return
+        val r = DvrController.recordEvent(srv, eid, ch.uuid, ev.start, ev.stop, ev.title, profile)
+        val dup = if (r.success) null else DvrController.duplicateOf(srv, ev.title)
+        if (r.success) {
+            refreshRecordingOnly()   // cervena bodka pri kanali
+            if (ch.uuid == liveUuidState.value) dvrExistingState.value = currentEventRecording(srv)
+        }
+        android.widget.Toast.makeText(
+            this@PlayerActivity,
+            when {
+                r.success -> getString(R.string.dvr_rec_scheduled)
+                dup != null && dup.channelName.isNotBlank() -> getString(
+                    R.string.dvr_rec_duplicate, dup.channelName,
+                    sk.tvhclient.shared.formatDayLabel(dup.start) + " " + sk.tvhclient.shared.formatTimeHm(dup.start)
+                )
+                else -> r.error ?: getString(if (r.timeout) R.string.err_timeout else R.string.dvr_rec_failed)
+            },
+            android.widget.Toast.LENGTH_LONG
+        ).show()
     }
 
     private fun openChannelContextMenu(idx: Int) {
@@ -2332,6 +2386,7 @@ class PlayerActivity : ComponentActivity() {
             }
             "lock" -> toggleLockAt(idx)                           // uz riesi PIN + grace okno
             "fav" -> toggleFavoriteAt(idx, announce = false)
+            "rec" -> recordFromCtxMenu(ch)   // M607
             "reorder" -> enterReorderMode()   // M541
             "unhide" -> {
                 // M541: odkryt kanal — spat medzi vsetky kanaly (podla cisla), von zo Skrytych
@@ -4155,7 +4210,7 @@ class PlayerActivity : ComponentActivity() {
                 // M606: vyber DVR profilu pred nahravanim
                 DvrProfilePickDialog(
                     options = dvrAskState.value,
-                    subtitle = liveProgTitleState.value,
+                    subtitle = dvrAskTarget?.let { it.first.name + " · " + it.second.title } ?: liveProgTitleState.value,
                     lastUsed = Tvh.store.active()?.let { DvrAskPref.lastUsed(this@PlayerActivity, it.id) },
                     selected = dvrAskSelState.value,
                     onPick = { resolveDvrAsk(it) },
@@ -4279,6 +4334,7 @@ class PlayerActivity : ComponentActivity() {
                                         if (isFav) androidx.compose.ui.res.stringResource(R.string.fav_remove)
                                         else androidx.compose.ui.res.stringResource(R.string.fav_add)
                                     }
+                                    "rec" -> androidx.compose.ui.res.stringResource(R.string.dvr_rec_button)   // M607
                                     "hide" -> androidx.compose.ui.res.stringResource(R.string.ch_hide)
                                     "unhide" -> androidx.compose.ui.res.stringResource(R.string.ch_unhide_player)  // M541-fix
                                     "reorder" -> androidx.compose.ui.res.stringResource(R.string.fav_reorder)  // M541
@@ -4302,6 +4358,7 @@ class PlayerActivity : ComponentActivity() {
                                                 "info" -> androidx.compose.material.icons.Icons.Default.GridView
                                                 "fromstart" -> androidx.compose.material.icons.Icons.Default.PlayArrow
                                                 "fav" -> androidx.compose.material.icons.Icons.Default.Star
+                                                "rec" -> androidx.compose.material.icons.Icons.Default.FiberManualRecord   // M607
                                                 "hide" -> androidx.compose.material.icons.Icons.Default.VisibilityOff
                                                 "unhide" -> androidx.compose.material.icons.Icons.Default.Visibility   // M541
                                                 "reorder" -> androidx.compose.material.icons.Icons.Default.SwapVert    // M541
