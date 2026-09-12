@@ -405,4 +405,6 @@
     <string name="one_ok_title">Seznam kanalov</string>
     <string name="one_ok_enable">Preklop kanala z enim OK</string>
     <string name="one_ok_note">Na seznamu kanalov v predvajalniku en pritisk na OK zažene kanal takoj čez cel zaslon. Brez te možnosti prvi OK kanal samo preklopi za odprtim seznamom, drugi pa seznam zapre. Dolg pritisk na OK še vedno odpre meni kanala.</string>
+    <string name="radio_number_title">Oštevilči radijske postaje od 1</string>
+    <string name="radio_number_note">Postaje so oštevilčene 1, 2, 3… po prikazanem vrstnem redu namesto s številkami s strežnika. Velja za zavihek Radio, vodnik in seznam postaj v predvajalniku.</string>
 </resources>

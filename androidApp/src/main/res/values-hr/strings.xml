@@ -405,4 +405,6 @@
     <string name="one_ok_title">Popis kanala</string>
     <string name="one_ok_enable">Promjena kanala jednim OK</string>
     <string name="one_ok_note">Na popisu kanala u playeru jedan pritisak na OK pokreće kanal odmah preko cijelog zaslona. Bez te opcije prvi OK samo mijenja kanal iza otvorenog popisa, a tek drugi zatvara popis. Dugi pritisak na OK i dalje otvara izbornik kanala.</string>
+    <string name="radio_number_title">Numeriraj radijske postaje od 1</string>
+    <string name="radio_number_note">Postaje se numeriraju 1, 2, 3… prema prikazanom redoslijedu umjesto brojeva s poslužitelja. Vrijedi za karticu Radio, vodič i popis postaja u playeru.</string>
 </resources>

@@ -405,4 +405,6 @@
     <string name="one_ok_title">チャンネル一覧</string>
     <string name="one_ok_enable">OK 1回でチャンネルを切り替える</string>
     <string name="one_ok_note">プレーヤーのチャンネル一覧で、OKを1回押すだけでチャンネルがすぐ全画面で再生されます。この設定がない場合、最初のOKは一覧の後ろでチャンネルを切り替えるだけで、2回目で一覧が閉じます。OKの長押しは引き続きチャンネルメニューを開きます。</string>
+    <string name="radio_number_title">ラジオ局を1から番号付け</string>
+    <string name="radio_number_note">局にはサーバーの番号ではなく、表示順に 1、2、3… の番号が付きます。ラジオタブ、番組表、プレーヤーの局一覧に適用されます。</string>
 </resources>

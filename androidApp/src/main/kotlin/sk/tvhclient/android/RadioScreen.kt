@@ -173,8 +173,8 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                 categories = emptyList(),
                 seed = radioEpg,
                 onBack = { showGrid = false },
-                radioRows = stGrid.rows,
-                radioCategories = stGrid.categories,
+                radioRows = RadioNumberingPref.apply(context, stGrid.rows),   // M602
+                radioCategories = stGrid.categories.map { c -> c.copy(rows = RadioNumberingPref.apply(context, c.rows)) },
                 radioOnly = true,
                 onPlayRadio = { row, ev ->
                     playRadio(
@@ -310,8 +310,10 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                             ?: emptyList()
                     }
                     val favMarks = if (favOnly) emptySet() else favUuids
-                    val rows = if (q.isBlank()) base
-                               else base.filter { it.channel.name.lowercase().contains(q) }
+                    // M602: cislovanie 1…n podla poradia v zvolenej skupine (Oblubene uz maju)
+                    val numbered = if (favOnly) base else RadioNumberingPref.apply(context, base)
+                    val rows = if (q.isBlank()) numbered
+                               else numbered.filter { it.channel.name.lowercase().contains(q) }
                     if (rows.isEmpty()) {
                         EmptyStatus(stringResource(R.string.radio_empty))
                     } else {

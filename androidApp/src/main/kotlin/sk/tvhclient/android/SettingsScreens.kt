@@ -473,6 +473,16 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
         }
     }
     }
+    // M602: cislovanie radii od 1
+    SettingsGroup(stringResource(R.string.tab_radio), classicTitle = true) {
+        var fromOne by remember { mutableStateOf(RadioNumberingPref.get(ctx)) }
+        SettingsSwitchRow(
+            label = stringResource(R.string.radio_number_title),
+            note = stringResource(R.string.radio_number_note),
+            checked = fromOne,
+            onChange = { v -> fromOne = v; RadioNumberingPref.set(ctx, v) }
+        )
+    }
 }
 
 @Composable

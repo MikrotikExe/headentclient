@@ -405,4 +405,6 @@
     <string name="one_ok_title">Zenderlijst</string>
     <string name="one_ok_enable">Zender wisselen met één OK</string>
     <string name="one_ok_note">In de zenderlijst van de speler start één druk op OK de zender meteen schermvullend. Zonder deze optie schakelt de eerste OK alleen de zender achter de open lijst en sluit pas de tweede de lijst. OK ingedrukt houden opent nog steeds het zendermenu.</string>
+    <string name="radio_number_title">Radiozenders nummeren vanaf 1</string>
+    <string name="radio_number_note">Zenders worden genummerd 1, 2, 3… in de getoonde volgorde in plaats van de nummers van de server. Geldt voor het tabblad Radio, de gids en de zenderlijst in de speler.</string>
 </resources>

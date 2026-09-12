@@ -405,4 +405,6 @@
     <string name="one_ok_title">Lista de canales</string>
     <string name="one_ok_enable">Cambiar de canal con un solo OK</string>
     <string name="one_ok_note">En la lista de canales del reproductor, una sola pulsación de OK abre el canal directamente a pantalla completa. Sin esta opción, el primer OK solo cambia de canal detrás de la lista abierta y el segundo la cierra. Mantener pulsado OK sigue abriendo el menú del canal.</string>
+    <string name="radio_number_title">Numerar las radios desde 1</string>
+    <string name="radio_number_note">Las emisoras se numeran 1, 2, 3… en el orden mostrado en lugar de los números del servidor. Se aplica a la pestaña Radio, la guía y la lista de emisoras del reproductor.</string>
 </resources>

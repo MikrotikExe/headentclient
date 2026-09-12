@@ -283,8 +283,9 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                 startInRadio = TabController.epgRadio,   // M591
                 focusUuid = TabController.epgReturnUuid,   // M592
                 openToken = TabController.epgGrid.value,   // M593-fix
-                radioRows = (raState as? RadioState.Loaded)?.rows ?: emptyList(),
-                radioCategories = (raState as? RadioState.Loaded)?.categories ?: emptyList(),
+                radioRows = RadioNumberingPref.apply(ctx, (raState as? RadioState.Loaded)?.rows ?: emptyList()),   // M602
+                radioCategories = ((raState as? RadioState.Loaded)?.categories ?: emptyList())
+                    .map { c -> c.copy(rows = RadioNumberingPref.apply(ctx, c.rows)) },
                 onPlayRadio = { row, ev ->
                     val all = (raState as? RadioState.Loaded)?.rows ?: listOf(row)
                     playRadio(

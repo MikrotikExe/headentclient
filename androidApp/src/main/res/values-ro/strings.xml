@@ -405,4 +405,6 @@
     <string name="one_ok_title">Lista de canale</string>
     <string name="one_ok_enable">Schimbă canalul cu un singur OK</string>
     <string name="one_ok_note">În lista de canale din player, o apăsare pe OK pornește canalul direct pe tot ecranul. Fără această opțiune, primul OK doar schimbă canalul în spatele listei deschise, iar al doilea închide lista. Apăsarea lungă pe OK deschide în continuare meniul canalului.</string>
+    <string name="radio_number_title">Numerotează posturile radio de la 1</string>
+    <string name="radio_number_note">Posturile sunt numerotate 1, 2, 3… în ordinea afișată, în loc de numerele de pe server. Se aplică filei Radio, ghidului și listei de posturi din player.</string>
 </resources>

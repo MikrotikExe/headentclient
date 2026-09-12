@@ -405,4 +405,6 @@
     <string name="one_ok_title">频道列表</string>
     <string name="one_ok_enable">一次 OK 切换频道</string>
     <string name="one_ok_note">在播放器的频道列表中，按一次 OK 即可直接全屏播放该频道。未启用时，第一次 OK 只会在列表后面切换频道，第二次才关闭列表。长按 OK 仍会打开频道菜单。</string>
+    <string name="radio_number_title">电台从 1 开始编号</string>
+    <string name="radio_number_note">电台按显示顺序编为 1、2、3…，而不使用服务器上的编号。适用于电台标签页、节目指南和播放器中的电台列表。</string>
 </resources>

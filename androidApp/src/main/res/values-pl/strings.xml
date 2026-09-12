@@ -405,4 +405,6 @@
     <string name="one_ok_title">Lista kanałów</string>
     <string name="one_ok_enable">Przełączanie kanału jednym OK</string>
     <string name="one_ok_note">Na liście kanałów w odtwarzaczu jedno naciśnięcie OK uruchamia kanał od razu na pełnym ekranie. Bez tej opcji pierwsze OK tylko przełącza kanał za otwartą listą, a dopiero drugie zamyka listę. Przytrzymanie OK nadal otwiera menu kanału.</string>
+    <string name="radio_number_title">Numeruj stacje radiowe od 1</string>
+    <string name="radio_number_note">Stacje są numerowane 1, 2, 3… w wyświetlanej kolejności zamiast numerami z serwera. Dotyczy karty Radio, przewodnika i listy stacji w odtwarzaczu.</string>
 </resources>

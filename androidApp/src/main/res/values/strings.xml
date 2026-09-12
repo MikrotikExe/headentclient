@@ -405,4 +405,6 @@
     <string name="one_ok_title">Channel list</string>
     <string name="one_ok_enable">Switch channel with a single OK</string>
     <string name="one_ok_note">In the player\'s channel list, one press of OK starts the channel full screen right away. Without it, the first OK only switches the channel behind the open list and a second one closes the list. Holding OK still opens the channel menu.</string>
+    <string name="radio_number_title">Number radio stations from 1</string>
+    <string name="radio_number_note">Stations are numbered 1, 2, 3… in the order shown instead of the numbers from the server. Applies to the Radio tab, the guide and the station list in the player.</string>
 </resources>

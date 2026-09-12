@@ -455,7 +455,8 @@ private fun TvHomeHost() {
                         nowStart = ev?.start ?: r.nowStart, nowStop = ev?.stop ?: r.nowStop
                     )
                 }
-                val fullR = st.rows.filter { it.channel.uuid !in hiddenR }.map { radioCh(it) }
+                // M602: cislovanie radii 1…n podla poradia (bez skrytych), ak je volba zapnuta
+                val fullR = RadioNumberingPref.apply(ctx, st.rows.filter { it.channel.uuid !in hiddenR }).map { radioCh(it) }
                 val grpsR = st.categories.mapNotNull { cat ->
                     val t = cat.tag ?: return@mapNotNull null
                     val u = cat.rows.map { it.channel.uuid }.filter { it !in hiddenR }.toSet()
@@ -530,8 +531,9 @@ private fun TvHomeHost() {
                     openToken = TabController.epgGrid.value,   // M593-fix
 
                     // M587: rozhlasove stanice ako dalsia skupina vo filtri mriezky
-                    radioRows = (raState as? RadioState.Loaded)?.rows ?: emptyList(),
-                    radioCategories = (raState as? RadioState.Loaded)?.categories ?: emptyList()
+                    radioRows = RadioNumberingPref.apply(ctx, (raState as? RadioState.Loaded)?.rows ?: emptyList()),   // M602
+                    radioCategories = ((raState as? RadioState.Loaded)?.categories ?: emptyList())
+                        .map { c -> c.copy(rows = RadioNumberingPref.apply(ctx, c.rows)) }
                 )
             } else {
                 CenterLoading()

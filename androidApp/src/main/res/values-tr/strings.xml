@@ -405,4 +405,6 @@
     <string name="one_ok_title">Kanal listesi</string>
     <string name="one_ok_enable">Tek OK ile kanal değiştir</string>
     <string name="one_ok_note">Oynatıcının kanal listesinde OK\'a bir kez basmak kanalı doğrudan tam ekran başlatır. Bu seçenek olmadan ilk OK yalnızca açık listenin arkasında kanalı değiştirir, listeyi ikinci basış kapatır. OK\'a uzun basmak yine kanal menüsünü açar.</string>
+    <string name="radio_number_title">Radyo istasyonlarını 1\'den numaralandır</string>
+    <string name="radio_number_note">İstasyonlar sunucudaki numaralar yerine gösterilen sıraya göre 1, 2, 3… olarak numaralandırılır. Radyo sekmesi, rehber ve oynatıcıdaki istasyon listesi için geçerlidir.</string>
 </resources>

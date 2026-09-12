@@ -405,4 +405,6 @@
     <string name="one_ok_title">Seznam kanálů</string>
     <string name="one_ok_enable">Přepnout kanál jedním OK</string>
     <string name="one_ok_note">V seznamu kanálů v přehrávači spustí jedno stisknutí OK kanál rovnou na celou obrazovku. Bez této volby první OK kanál jen přepne (seznam zůstane přes obraz) a teprve druhé jej zavře. Podržení OK stále otevírá nabídku kanálu.</string>
+    <string name="radio_number_title">Číslovat rádia od 1</string>
+    <string name="radio_number_note">Stanice se číslují 1, 2, 3… podle zobrazeného pořadí místo čísel ze serveru. Platí pro záložku Rádio, TV program i seznam stanic v přehrávači.</string>
 </resources>

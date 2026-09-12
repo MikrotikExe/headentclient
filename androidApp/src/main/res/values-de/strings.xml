@@ -405,4 +405,6 @@
     <string name="one_ok_title">Kanalliste</string>
     <string name="one_ok_enable">Kanal mit einem OK umschalten</string>
     <string name="one_ok_note">In der Kanalliste des Players startet ein Druck auf OK den Kanal sofort im Vollbild. Ohne diese Option schaltet das erste OK nur den Kanal hinter der offenen Liste um, erst das zweite schließt die Liste. Langes Drücken von OK öffnet weiterhin das Kanalmenü.</string>
+    <string name="radio_number_title">Radiosender ab 1 nummerieren</string>
+    <string name="radio_number_note">Sender werden in der angezeigten Reihenfolge mit 1, 2, 3… nummeriert statt mit den Nummern vom Server. Gilt für den Radio-Tab, den Programmführer und die Senderliste im Player.</string>
 </resources>

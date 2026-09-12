@@ -405,4 +405,6 @@
     <string name="one_ok_title">Daftar saluran</string>
     <string name="one_ok_enable">Ganti saluran dengan satu OK</string>
     <string name="one_ok_note">Di daftar saluran pemutar, satu tekanan OK langsung membuka saluran layar penuh. Tanpa opsi ini, OK pertama hanya mengganti saluran di balik daftar yang terbuka dan OK kedua menutup daftar. Menahan OK tetap membuka menu saluran.</string>
+    <string name="radio_number_title">Nomori stasiun radio dari 1</string>
+    <string name="radio_number_note">Stasiun diberi nomor 1, 2, 3… sesuai urutan yang ditampilkan, bukan nomor dari server. Berlaku untuk tab Radio, panduan, dan daftar stasiun di pemutar.</string>
 </resources>
