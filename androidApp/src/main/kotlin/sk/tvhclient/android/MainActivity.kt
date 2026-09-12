@@ -304,6 +304,9 @@ private fun TvHomeHost() {
     }
     var lastTile by remember { mutableStateOf("channels") }
     var play by remember { mutableStateOf("") }
+    // M605: volba „dlazdice otvoria zoznam" — prehravac sa otvori s otvorenym zoznamom
+    // nad hrajucim poslednym kanalom (dlazdice TV kanaly / Radia, obnova po starte)
+    var tileListFirst by remember { mutableStateOf(false) }
     // M599: cakajuce spustenie (obnova posledneho kanala po starte, autostart) sa ZRUSI,
     // ked pouzivatel medzitym odide inam — do archivu, TV programu, nastaveni. Inak sa
     // po dotiahnuti kanalov otvoril prehravac cez rozrobenu obrazovku: appka sa sekala,
@@ -337,6 +340,9 @@ private fun TvHomeHost() {
         val kind = LastPlayback.pendingKind
         if (kind != null && play.isEmpty() && section.isEmpty()) {   // M599
             LastPlayback.pendingKind = null
+            // M605-fix2: obnova posledneho kanala po starte appky respektuje volbu
+            // „dlazdice otvoria zoznam" — inak sa po zapnuti boxu zoznam neotvoril
+            tileListFirst = TileListPref.get(ctx)
             if (kind == "radio") { raVm.load(); chVm.loadIfNeeded(); play = "radio" }
             else { chVm.loadIfNeeded(); play = "tv" }
         }
@@ -361,9 +367,6 @@ private fun TvHomeHost() {
     }
     var showExit by remember { mutableStateOf(false) }
 
-    // M605: dlazdica „TV kanaly" s volbou „najprv zoznam" — prehravac sa otvori so
-    // zoznamom a bez streamu; plati len pre dlazdicu (nie obnova po starte / skratky)
-    var tileListFirst by remember { mutableStateOf(false) }
     fun playUuid(uuid: String, title: String, kind: String = "tv", listFirst: Boolean = false) {
         runCatching {
             ctx.startActivity(Intent(ctx, PlayerActivity::class.java).apply {
