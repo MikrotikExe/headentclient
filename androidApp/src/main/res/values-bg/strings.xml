@@ -409,8 +409,8 @@
     <string name="radio_number_note">Станциите се номерират 1, 2, 3… по показания ред вместо с номерата от сървъра. Важи за раздел Радио, справочника и списъка със станции в плейъра.</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">Начален екран (TV)</string>
-    <string name="tile_list_title">Плочката ТВ канали отваря списъка</string>
-    <string name="tile_list_note">Вместо да стартира последния канал, първо се показва списъкът с канали; каналът стартира след избор.</string>
+    <string name="tile_list_title">Плочките ТВ канали и Радио отварят списъка</string>
+    <string name="tile_list_note">Последният канал стартира както досега и списъкът с канали или станции се отваря веднага върху него.</string>
     <string name="dvr_ask_title">Питай за профила за запис</string>
     <string name="dvr_ask_note">При запис избери профила за запис на Tvheadend (папка, съхранение). Показва се само когато сървърът предлага повече от един профил.</string>
     <string name="dvr_pick_title">Запис в профил</string>

@@ -409,8 +409,8 @@
     <string name="radio_number_note">Az állomások a megjelenített sorrendben 1, 2, 3… számot kapnak a szerver számai helyett. A Rádió lapra, a műsorújságra és a lejátszó állomáslistájára vonatkozik.</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">Kezdőképernyő (TV)</string>
-    <string name="tile_list_title">A TV-csatornák csempe a listát nyitja meg</string>
-    <string name="tile_list_note">Az utolsó csatorna indítása helyett előbb a csatornalista jelenik meg; a csatorna a választás után indul.</string>
+    <string name="tile_list_title">A TV-csatornák és Rádió csempék a listát nyitják meg</string>
+    <string name="tile_list_note">Az utolsó csatorna a megszokott módon elindul, és fölötte azonnal megnyílik a csatorna- vagy állomáslista.</string>
     <string name="dvr_ask_title">Kérdezzen rá a felvételi profilra</string>
     <string name="dvr_ask_note">Felvételkor a Tvheadend felvételi profil kiválasztása (mappa, megőrzés). Csak akkor jelenik meg, ha a kiszolgáló egynél több profilt kínál.</string>
     <string name="dvr_pick_title">Felvétel profilba</string>

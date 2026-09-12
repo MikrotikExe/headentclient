@@ -409,8 +409,8 @@
     <string name="radio_number_note">Stanice sa číslujú 1, 2, 3… podľa zobrazeného poradia namiesto čísel zo servera. Platí pre záložku Rádio, TV program aj zoznam staníc v prehrávači.</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">Úvodná obrazovka (TV)</string>
-    <string name="tile_list_title">Dlaždica TV kanály otvorí zoznam</string>
-    <string name="tile_list_note">Namiesto spustenia posledného kanála sa najprv zobrazí zoznam kanálov; kanál sa spustí až po výbere.</string>
+    <string name="tile_list_title">Dlaždice TV kanály a Rádio otvoria zoznam</string>
+    <string name="tile_list_note">Posledný kanál sa spustí ako doteraz a hneď nad ním sa otvorí zoznam kanálov alebo staníc.</string>
     <string name="dvr_ask_title">Pýtať sa na profil nahrávania</string>
     <string name="dvr_ask_note">Pri nahrávaní vybrať profil nahrávania Tvheadendu (priečinok, doba uchovania). Zobrazí sa, len keď server ponúka viac než jeden profil.</string>
     <string name="dvr_pick_title">Nahrať do profilu</string>

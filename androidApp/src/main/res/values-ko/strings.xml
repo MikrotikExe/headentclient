@@ -409,8 +409,8 @@
     <string name="radio_number_note">방송국에 서버 번호 대신 표시 순서대로 1, 2, 3… 번호를 매깁니다. 라디오 탭, 편성표, 재생기의 방송국 목록에 적용됩니다.</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">홈 화면 (TV)</string>
-    <string name="tile_list_title">TV 채널 타일이 목록을 엽니다</string>
-    <string name="tile_list_note">마지막 채널을 재생하는 대신 채널 목록을 먼저 표시하고, 선택한 뒤에 채널을 시작합니다.</string>
+    <string name="tile_list_title">TV 채널 및 라디오 타일이 목록을 엽니다</string>
+    <string name="tile_list_note">마지막 채널은 이전처럼 재생되고 그 위에 채널 또는 방송국 목록이 바로 열립니다.</string>
     <string name="dvr_ask_title">녹화 프로필 묻기</string>
     <string name="dvr_ask_note">녹화할 때 Tvheadend 녹화 프로필(저장 폴더, 보관 기간)을 선택합니다. 서버에 프로필이 둘 이상일 때만 표시됩니다.</string>
     <string name="dvr_pick_title">프로필에 녹화</string>

@@ -409,8 +409,8 @@
     <string name="radio_number_note">电台按显示顺序编为 1、2、3…，而不使用服务器上的编号。适用于电台标签页、节目指南和播放器中的电台列表。</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">主屏幕 (TV)</string>
-    <string name="tile_list_title">电视频道磁贴打开列表</string>
-    <string name="tile_list_note">不再直接播放上次的频道，而是先显示频道列表；选择后才开始播放。</string>
+    <string name="tile_list_title">电视频道和电台磁贴打开列表</string>
+    <string name="tile_list_note">上次的频道照常播放，并立即在其上方打开频道或电台列表。</string>
     <string name="dvr_ask_title">询问录制配置</string>
     <string name="dvr_ask_note">录制时选择 Tvheadend 录制配置（存储文件夹、保留期）。仅当服务器提供多个配置时显示。</string>
     <string name="dvr_pick_title">录制到配置</string>

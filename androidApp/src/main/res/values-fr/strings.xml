@@ -409,8 +409,8 @@
     <string name="radio_number_note">Les stations sont numérotées 1, 2, 3… dans l\'ordre affiché au lieu des numéros du serveur. S\'applique à l\'onglet Radio, au guide et à la liste des stations du lecteur.</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">Écran d’accueil (TV)</string>
-    <string name="tile_list_title">La tuile Chaînes TV ouvre la liste</string>
-    <string name="tile_list_note">Au lieu de lancer la dernière chaîne, la liste des chaînes s’affiche d’abord ; la chaîne démarre après le choix.</string>
+    <string name="tile_list_title">Les tuiles Chaînes TV et Radio ouvrent la liste</string>
+    <string name="tile_list_note">La dernière chaîne démarre comme avant et la liste des chaînes ou des stations s’ouvre aussitôt par-dessus.</string>
     <string name="dvr_ask_title">Demander le profil d’enregistrement</string>
     <string name="dvr_ask_note">Lors de l’enregistrement, choisir le profil d’enregistrement Tvheadend (dossier, conservation). Affiché seulement si le serveur propose plusieurs profils.</string>
     <string name="dvr_pick_title">Enregistrer dans le profil</string>

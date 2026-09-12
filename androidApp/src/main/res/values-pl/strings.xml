@@ -409,8 +409,8 @@
     <string name="radio_number_note">Stacje są numerowane 1, 2, 3… w wyświetlanej kolejności zamiast numerami z serwera. Dotyczy karty Radio, przewodnika i listy stacji w odtwarzaczu.</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">Ekran główny (TV)</string>
-    <string name="tile_list_title">Kafelek Kanały TV otwiera listę</string>
-    <string name="tile_list_note">Zamiast uruchamiać ostatni kanał, najpierw pokazywana jest lista kanałów; kanał uruchamia się po wyborze.</string>
+    <string name="tile_list_title">Kafelki Kanały TV i Radio otwierają listę</string>
+    <string name="tile_list_note">Ostatni kanał uruchamia się jak dotąd, a lista kanałów lub stacji otwiera się od razu nad nim.</string>
     <string name="dvr_ask_title">Pytaj o profil nagrywania</string>
     <string name="dvr_ask_note">Podczas nagrywania wybierz profil nagrywania Tvheadend (folder, czas przechowywania). Widoczne tylko, gdy serwer oferuje więcej niż jeden profil.</string>
     <string name="dvr_pick_title">Nagraj do profilu</string>

@@ -409,8 +409,8 @@
     <string name="radio_number_note">Posturile sunt numerotate 1, 2, 3… în ordinea afișată, în loc de numerele de pe server. Se aplică filei Radio, ghidului și listei de posturi din player.</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">Ecran de start (TV)</string>
-    <string name="tile_list_title">Dala Canale TV deschide lista</string>
-    <string name="tile_list_note">În loc să pornească ultimul canal, se afișează mai întâi lista de canale; canalul pornește după alegere.</string>
+    <string name="tile_list_title">Dalele Canale TV și Radio deschid lista</string>
+    <string name="tile_list_note">Ultimul canal pornește ca înainte, iar lista de canale sau posturi se deschide imediat deasupra.</string>
     <string name="dvr_ask_title">Întreabă profilul de înregistrare</string>
     <string name="dvr_ask_note">La înregistrare, alege profilul de înregistrare Tvheadend (dosar, păstrare). Apare doar când serverul oferă mai multe profiluri.</string>
     <string name="dvr_pick_title">Înregistrează în profilul</string>

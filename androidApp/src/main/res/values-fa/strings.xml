@@ -409,8 +409,8 @@
     <string name="radio_number_note">ایستگاه‌ها به‌جای شماره‌های سرور، به ترتیب نمایش ۱، ۲، ۳… شماره‌گذاری می‌شوند. برای زبانه رادیو، راهنمای برنامه و فهرست ایستگاه‌های پخش‌کننده اعمال می‌شود.</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">صفحهٔ اصلی (TV)</string>
-    <string name="tile_list_title">کاشی کانال‌های تلویزیون فهرست را باز می‌کند</string>
-    <string name="tile_list_note">به‌جای شروع آخرین کانال، ابتدا فهرست کانال‌ها نشان داده می‌شود؛ کانال پس از انتخاب شروع می‌شود.</string>
+    <string name="tile_list_title">کاشی‌های کانال‌های تلویزیون و رادیو فهرست را باز می‌کنند</string>
+    <string name="tile_list_note">آخرین کانال مانند قبل شروع می‌شود و فهرست کانال‌ها یا ایستگاه‌ها بلافاصله روی آن باز می‌شود.</string>
     <string name="dvr_ask_title">پرسیدن نمایهٔ ضبط</string>
     <string name="dvr_ask_note">هنگام ضبط، نمایهٔ ضبط Tvheadend را انتخاب کنید (پوشه، مدت نگهداری). فقط زمانی نمایش داده می‌شود که سرور بیش از یک نمایه ارائه دهد.</string>
     <string name="dvr_pick_title">ضبط در نمایه</string>

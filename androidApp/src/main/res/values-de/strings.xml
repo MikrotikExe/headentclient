@@ -409,8 +409,8 @@
     <string name="radio_number_note">Sender werden in der angezeigten Reihenfolge mit 1, 2, 3… nummeriert statt mit den Nummern vom Server. Gilt für den Radio-Tab, den Programmführer und die Senderliste im Player.</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">Startseite (TV)</string>
-    <string name="tile_list_title">Kachel „TV-Sender“ öffnet die Liste</string>
-    <string name="tile_list_note">Statt den letzten Sender zu starten, wird zuerst die Senderliste angezeigt; der Sender startet erst nach der Auswahl.</string>
+    <string name="tile_list_title">Kacheln „TV-Sender“ und „Radio“ öffnen die Liste</string>
+    <string name="tile_list_note">Der letzte Sender startet wie bisher, und die Sender- bzw. Stationsliste öffnet sich sofort darüber.</string>
     <string name="dvr_ask_title">Nach dem Aufnahmeprofil fragen</string>
     <string name="dvr_ask_note">Beim Aufnehmen das Tvheadend-Aufnahmeprofil wählen (Speicherordner, Aufbewahrung). Erscheint nur, wenn der Server mehr als ein Profil anbietet.</string>
     <string name="dvr_pick_title">In Profil aufnehmen</string>

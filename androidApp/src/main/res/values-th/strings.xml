@@ -409,8 +409,8 @@
     <string name="radio_number_note">สถานีจะถูกนับ 1, 2, 3… ตามลำดับที่แสดงแทนหมายเลขจากเซิร์ฟเวอร์ ใช้กับแท็บวิทยุ ผังรายการ และรายการสถานีในเครื่องเล่น</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">หน้าจอหลัก (TV)</string>
-    <string name="tile_list_title">ไทล์ช่องทีวีเปิดรายการช่อง</string>
-    <string name="tile_list_note">แทนที่จะเริ่มช่องล่าสุด จะแสดงรายการช่องก่อน ช่องจะเริ่มเล่นหลังจากเลือก</string>
+    <string name="tile_list_title">ไทล์ช่องทีวีและวิทยุเปิดรายการ</string>
+    <string name="tile_list_note">ช่องล่าสุดเริ่มเล่นเหมือนเดิม และรายการช่องหรือสถานีจะเปิดขึ้นทับทันที</string>
     <string name="dvr_ask_title">ถามโปรไฟล์การบันทึก</string>
     <string name="dvr_ask_note">เมื่อบันทึก ให้เลือกโปรไฟล์การบันทึกของ Tvheadend (โฟลเดอร์ ระยะเวลาเก็บ) แสดงเฉพาะเมื่อเซิร์ฟเวอร์มีมากกว่าหนึ่งโปรไฟล์</string>
     <string name="dvr_pick_title">บันทึกลงโปรไฟล์</string>

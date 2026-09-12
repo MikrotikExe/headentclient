@@ -409,8 +409,8 @@
     <string name="radio_number_note">Các đài được đánh số 1, 2, 3… theo thứ tự hiển thị thay cho số từ máy chủ. Áp dụng cho thẻ Radio, lịch phát sóng và danh sách đài trong trình phát.</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">Màn hình chính (TV)</string>
-    <string name="tile_list_title">Ô Kênh TV mở danh sách</string>
-    <string name="tile_list_note">Thay vì phát kênh gần nhất, danh sách kênh được hiển thị trước; kênh phát sau khi chọn.</string>
+    <string name="tile_list_title">Ô Kênh TV và Radio mở danh sách</string>
+    <string name="tile_list_note">Kênh gần nhất phát như trước và danh sách kênh hoặc đài mở ngay bên trên.</string>
     <string name="dvr_ask_title">Hỏi hồ sơ ghi hình</string>
     <string name="dvr_ask_note">Khi ghi hình, chọn hồ sơ ghi hình Tvheadend (thư mục, thời gian lưu). Chỉ hiện khi máy chủ có nhiều hơn một hồ sơ.</string>
     <string name="dvr_pick_title">Ghi vào hồ sơ</string>

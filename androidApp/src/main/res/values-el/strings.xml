@@ -409,8 +409,8 @@
     <string name="radio_number_note">Οι σταθμοί αριθμούνται 1, 2, 3… με τη σειρά εμφάνισης αντί για τους αριθμούς του διακομιστή. Ισχύει για την καρτέλα Ραδιόφωνο, τον οδηγό και τη λίστα σταθμών στο player.</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">Αρχική οθόνη (TV)</string>
-    <string name="tile_list_title">Το πλακίδιο Κανάλια TV ανοίγει τη λίστα</string>
-    <string name="tile_list_note">Αντί να ξεκινά το τελευταίο κανάλι, εμφανίζεται πρώτα η λίστα καναλιών· το κανάλι ξεκινά μετά την επιλογή.</string>
+    <string name="tile_list_title">Τα πλακίδια Κανάλια TV και Ραδιόφωνο ανοίγουν τη λίστα</string>
+    <string name="tile_list_note">Το τελευταίο κανάλι ξεκινά όπως πριν και η λίστα καναλιών ή σταθμών ανοίγει αμέσως από πάνω.</string>
     <string name="dvr_ask_title">Ερώτηση για προφίλ εγγραφής</string>
     <string name="dvr_ask_note">Κατά την εγγραφή επιλέξτε το προφίλ εγγραφής Tvheadend (φάκελος, διατήρηση). Εμφανίζεται μόνο όταν ο διακομιστής προσφέρει περισσότερα από ένα προφίλ.</string>
     <string name="dvr_pick_title">Εγγραφή στο προφίλ</string>

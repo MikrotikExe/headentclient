@@ -481,9 +481,11 @@ private fun TvHomeHost() {
                     ?: LivePlaylist.channels.firstOrNull()?.uuid
                 LastPlayback.pendingUuid = null
                 play = ""
+                val listFirstR = tileListFirst   // M605-fix: aj dlazdica Radia
+                tileListFirst = false
                 if (target != null) {
                     LivePlaylist.setIndexForUuid(target)
-                    playUuid(target, LivePlaylist.channels.firstOrNull { it.uuid == target }?.name ?: "", "radio")
+                    playUuid(target, LivePlaylist.channels.firstOrNull { it.uuid == target }?.name ?: "", "radio", listFirst = listFirstR)
                 }
             } else if (st is RadioState.Error || st is RadioState.NoServer) {
                 play = ""
@@ -610,7 +612,7 @@ private fun TvHomeHost() {
                             playUuid(uuid, title)
                         },
                         onChannels = { lastTile = "channels"; tileListFirst = TileListPref.get(ctx); chVm.loadIfNeeded(); play = "tv" },   // M531, M605
-                        onRadio = { lastTile = "radio"; raVm.load(); chVm.loadIfNeeded(); play = "radio" },   // M531
+                        onRadio = { lastTile = "radio"; tileListFirst = TileListPref.get(ctx); raVm.load(); chVm.loadIfNeeded(); play = "radio" },   // M531, M605-fix
                         onTvProgram = { lastTile = "epg"; section = "epg" },
                         onArchive = { lastTile = "archive"; section = "archive" },
                         onSettings = { lastTile = "settings"; section = "settings" },
@@ -619,7 +621,7 @@ private fun TvHomeHost() {
                 TvHomeScreen(   // pocas pending (play) zostava viditelny launcher, kym naskoci prehravac
                     focusKey = lastTile,
                     onChannels = { lastTile = "channels"; tileListFirst = TileListPref.get(ctx); chVm.loadIfNeeded(); play = "tv" },   // M531, M605
-                    onRadio = { lastTile = "radio"; raVm.load(); chVm.loadIfNeeded(); play = "radio" },   // M531
+                    onRadio = { lastTile = "radio"; tileListFirst = TileListPref.get(ctx); raVm.load(); chVm.loadIfNeeded(); play = "radio" },   // M531, M605-fix
                     onTvProgram = { lastTile = "epg"; section = "epg" },
                     onArchive = { lastTile = "archive"; section = "archive" },
                     onSettings = { lastTile = "settings"; section = "settings" },

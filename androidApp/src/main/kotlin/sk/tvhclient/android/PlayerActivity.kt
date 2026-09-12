@@ -2587,8 +2587,7 @@ class PlayerActivity : ComponentActivity() {
     // Kedy sa zoznam otvoril — OK eventy tesne po otvoreni (zvysky otvaracieho
     // dlheho stlacenia, ghost DOWN/UP pary z IR/CEC ovladacov) sa ignoruju (M330-fix2)
     private var channelListOpenedAt = 0L
-    /** M605: dlazdica „TV kanaly" otvorila prehravac len so zoznamom; kym sa nic
-     *  nespustilo (liveIndex < 0), BACK zo zoznamu vrati na uvod. */
+    /** M605: dlazdica „TV kanaly" / „Radia" otvorila prehravac so zoznamom hned pri starte. */
     private var listFirst = false
 
     private fun openChannelList() {
@@ -3239,12 +3238,8 @@ class PlayerActivity : ComponentActivity() {
                         { navChannelIndexState.value = (navChannelIndexState.value - 7).coerceIn(0, n - 1); return true }
                     android.view.KeyEvent.KEYCODE_DPAD_RIGHT ->
                         { navChannelIndexState.value = (navChannelIndexState.value + 7).coerceIn(0, n - 1); return true }
-                    android.view.KeyEvent.KEYCODE_BACK -> {
-                        // M605: zoznam bez spusteneho kanala -> BACK = spat na uvod,
-                        // nie cierny prehravac
-                        if (listFirst && liveIndex < 0) { finish(); return true }
-                        closeChannelList(); return true
-                    }
+                    android.view.KeyEvent.KEYCODE_BACK ->
+                        { closeChannelList(); return true }
                 }
             }
             when (kc) {
@@ -3826,14 +3821,12 @@ class PlayerActivity : ComponentActivity() {
         // M281: hned dopln now/next z cache (disk/proces) na viditelny zoznam, nech sa nazvy
         // relacii pod kanalmi ukazu okamzite aj po restarte (predtym cakali na sietovy refresh).
         applyCachedEpgToChannels()
-        // M605: zoznam najprv — kurzor na poslednom kanali, ale nic nehra (index -1),
-        // nech sa v zozname nic nezvyrazni ako „hrajuce" a OK na tom istom kanali ho spusti
+        // M605-fix: zoznam najprv — posledny kanal sa spusti normalne (hra za zoznamom
+        // ako nahlad) a zoznam sa otvori hned; povodne nehralo nic, co pouzivatel nechcel
         listFirst = intent.getBooleanExtra(EXTRA_LIST_FIRST, false) && liveUuids.size > 1
-        val listFirstIndex = liveIndex
-        if (listFirst) { liveIndex = -1 }
         liveIndexState.value = liveIndex
-        liveTitleState.value = if (listFirst) "" else channelTitle
-        liveUuidState.value = if (listFirst) null else channelUuid
+        liveTitleState.value = channelTitle
+        liveUuidState.value = channelUuid
         liveProgStartState.value = progStart
         liveProgStopState.value = progStop
         liveProgTitleState.value = progTitle
@@ -3970,14 +3963,9 @@ class PlayerActivity : ComponentActivity() {
                     // rodicovsky zamok: pri KAZDOM otvoreni prehravaca so zamknutym kanalom
                     // vypytaj PIN (bez ohladu na grace okno). Grace ("nepytat X min") plati len
                     // pri prepinani v ramci otvoreneho prehravaca (zoznam / pozadie / cislice).
-                    if (listFirst) {
-                        // M605: nic nespustaj, otvor rovno zoznam s kurzorom na poslednom kanali
-                        htspInitDone = false
-                        window.decorView.post {
-                            openChannelList()
-                            navChannelIndexState.value = listFirstIndex.coerceAtLeast(0)
-                        }
-                    } else if (ParentalLock.channelLockedProtected(this, server.id, channelUuid)) {
+                    // M605: dlazdica so zoznamom najprv — zoznam sa otvori hned po starte
+                    if (listFirst) window.decorView.post { openChannelList() }
+                    if (ParentalLock.channelLockedProtected(this, server.id, channelUuid)) {
                         // M263: zrus stare grace okno, nech zamknuty kanal v tomto sedeni
                         // naozaj vyzaduje PIN (aj keby sa pouzivatel cez vyzvu prepol prec a vratil sa).
                         ParentalLock.clearGrace(this)

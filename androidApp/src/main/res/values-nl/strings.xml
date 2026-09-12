@@ -409,8 +409,8 @@
     <string name="radio_number_note">Zenders worden genummerd 1, 2, 3… in de getoonde volgorde in plaats van de nummers van de server. Geldt voor het tabblad Radio, de gids en de zenderlijst in de speler.</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">Startscherm (TV)</string>
-    <string name="tile_list_title">Tegel TV-zenders opent de lijst</string>
-    <string name="tile_list_note">In plaats van de laatste zender te starten wordt eerst de zenderlijst getoond; de zender start na de keuze.</string>
+    <string name="tile_list_title">Tegels TV-zenders en Radio openen de lijst</string>
+    <string name="tile_list_note">De laatste zender start zoals voorheen en de zender- of stationslijst gaat er meteen overheen open.</string>
     <string name="dvr_ask_title">Vragen om het opnameprofiel</string>
     <string name="dvr_ask_note">Bij opnemen het Tvheadend-opnameprofiel kiezen (map, bewaartermijn). Alleen zichtbaar als de server meer dan één profiel aanbiedt.</string>
     <string name="dvr_pick_title">Opnemen in profiel</string>

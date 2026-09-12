@@ -409,8 +409,8 @@
     <string name="radio_number_note">اسٹیشنوں کو سرور کے نمبروں کی بجائے دکھائی گئی ترتیب میں 1، 2، 3… نمبر دیے جاتے ہیں۔ ریڈیو ٹیب، گائیڈ اور پلیئر کی اسٹیشن فہرست پر لاگو ہوتا ہے۔</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">ہوم اسکرین (TV)</string>
-    <string name="tile_list_title">TV چینلز ٹائل فہرست کھولتی ہے</string>
-    <string name="tile_list_note">آخری چینل شروع کرنے کے بجائے پہلے چینلز کی فہرست دکھائی جاتی ہے؛ چینل انتخاب کے بعد شروع ہوتا ہے۔</string>
+    <string name="tile_list_title">TV چینلز اور ریڈیو ٹائلیں فہرست کھولتی ہیں</string>
+    <string name="tile_list_note">آخری چینل پہلے کی طرح شروع ہوتا ہے اور اس کے اوپر فوراً چینلز یا اسٹیشنز کی فہرست کھل جاتی ہے۔</string>
     <string name="dvr_ask_title">ریکارڈنگ پروفائل پوچھیں</string>
     <string name="dvr_ask_note">ریکارڈ کرتے وقت Tvheadend ریکارڈنگ پروفائل منتخب کریں (فولڈر، رکھنے کی مدت)۔ صرف اس وقت دکھایا جاتا ہے جب سرور ایک سے زیادہ پروفائل دے۔</string>
     <string name="dvr_pick_title">پروفائل میں ریکارڈ کریں</string>

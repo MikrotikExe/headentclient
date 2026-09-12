@@ -409,8 +409,8 @@
     <string name="radio_number_note">Stasiun diberi nomor 1, 2, 3… sesuai urutan yang ditampilkan, bukan nomor dari server. Berlaku untuk tab Radio, panduan, dan daftar stasiun di pemutar.</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">Layar utama (TV)</string>
-    <string name="tile_list_title">Ubin Saluran TV membuka daftar</string>
-    <string name="tile_list_note">Alih-alih memutar saluran terakhir, daftar saluran ditampilkan lebih dulu; saluran diputar setelah dipilih.</string>
+    <string name="tile_list_title">Ubin Saluran TV dan Radio membuka daftar</string>
+    <string name="tile_list_note">Saluran terakhir diputar seperti biasa dan daftar saluran atau stasiun langsung terbuka di atasnya.</string>
     <string name="dvr_ask_title">Tanyakan profil perekaman</string>
     <string name="dvr_ask_note">Saat merekam, pilih profil perekaman Tvheadend (folder, masa simpan). Hanya tampil jika server menawarkan lebih dari satu profil.</string>
     <string name="dvr_pick_title">Rekam ke profil</string>

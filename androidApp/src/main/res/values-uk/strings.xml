@@ -409,8 +409,8 @@
     <string name="radio_number_note">Станції нумеруються 1, 2, 3… у показаному порядку замість номерів із сервера. Діє для вкладки Радіо, телепрограми та списку станцій у програвачі.</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">Головний екран (TV)</string>
-    <string name="tile_list_title">Плитка «ТБ-канали» відкриває список</string>
-    <string name="tile_list_note">Замість запуску останнього каналу спочатку показується список каналів; канал запускається після вибору.</string>
+    <string name="tile_list_title">Плитки «ТБ-канали» та «Радіо» відкривають список</string>
+    <string name="tile_list_note">Останній канал запускається як раніше, і над ним одразу відкривається список каналів або станцій.</string>
     <string name="dvr_ask_title">Запитувати профіль запису</string>
     <string name="dvr_ask_note">Під час запису вибирати профіль запису Tvheadend (тека, термін зберігання). Показується, лише якщо сервер пропонує кілька профілів.</string>
     <string name="dvr_pick_title">Записати в профіль</string>

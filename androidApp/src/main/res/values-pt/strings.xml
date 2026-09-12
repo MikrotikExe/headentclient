@@ -409,8 +409,8 @@
     <string name="radio_number_note">As estações são numeradas 1, 2, 3… pela ordem mostrada em vez dos números do servidor. Aplica-se ao separador Rádio, ao guia e à lista de estações no reprodutor.</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">Ecrã inicial (TV)</string>
-    <string name="tile_list_title">O mosaico Canais de TV abre a lista</string>
-    <string name="tile_list_note">Em vez de iniciar o último canal, a lista de canais é mostrada primeiro; o canal inicia depois da escolha.</string>
+    <string name="tile_list_title">Os mosaicos Canais de TV e Rádio abrem a lista</string>
+    <string name="tile_list_note">O último canal inicia como antes e a lista de canais ou estações abre-se logo por cima.</string>
     <string name="dvr_ask_title">Perguntar o perfil de gravação</string>
     <string name="dvr_ask_note">Ao gravar, escolher o perfil de gravação do Tvheadend (pasta, retenção). Só aparece se o servidor oferecer mais do que um perfil.</string>
     <string name="dvr_pick_title">Gravar no perfil</string>

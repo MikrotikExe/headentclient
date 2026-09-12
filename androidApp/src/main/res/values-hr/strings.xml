@@ -409,8 +409,8 @@
     <string name="radio_number_note">Postaje se numeriraju 1, 2, 3… prema prikazanom redoslijedu umjesto brojeva s poslužitelja. Vrijedi za karticu Radio, vodič i popis postaja u playeru.</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">Početni zaslon (TV)</string>
-    <string name="tile_list_title">Pločica TV kanali otvara popis</string>
-    <string name="tile_list_note">Umjesto pokretanja zadnjeg kanala prvo se prikazuje popis kanala; kanal se pokreće nakon odabira.</string>
+    <string name="tile_list_title">Pločice TV kanali i Radio otvaraju popis</string>
+    <string name="tile_list_note">Zadnji kanal pokreće se kao i dosad, a popis kanala ili postaja odmah se otvara iznad njega.</string>
     <string name="dvr_ask_title">Pitaj za profil snimanja</string>
     <string name="dvr_ask_note">Pri snimanju odaberi Tvheadend profil snimanja (mapa, čuvanje). Prikazuje se samo kad poslužitelj nudi više od jednog profila.</string>
     <string name="dvr_pick_title">Snimi u profil</string>

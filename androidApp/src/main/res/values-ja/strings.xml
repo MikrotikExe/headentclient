@@ -409,8 +409,8 @@
     <string name="radio_number_note">局にはサーバーの番号ではなく、表示順に 1、2、3… の番号が付きます。ラジオタブ、番組表、プレーヤーの局一覧に適用されます。</string>
     <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
     <string name="tile_list_group">ホーム画面 (TV)</string>
-    <string name="tile_list_title">TVチャンネルのタイルで一覧を開く</string>
-    <string name="tile_list_note">最後のチャンネルを再生する代わりに、先にチャンネル一覧を表示します。選択後にチャンネルが始まります。</string>
+    <string name="tile_list_title">TVチャンネルとラジオのタイルで一覧を開く</string>
+    <string name="tile_list_note">最後のチャンネルはこれまで通り再生され、その上にチャンネルまたは局の一覧がすぐに開きます。</string>
     <string name="dvr_ask_title">録画プロファイルを確認する</string>
     <string name="dvr_ask_note">録画時に Tvheadend の録画プロファイル（保存先フォルダー、保持期間）を選びます。サーバーに複数のプロファイルがある場合のみ表示されます。</string>
     <string name="dvr_pick_title">プロファイルに録画</string>
