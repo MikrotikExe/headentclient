@@ -3000,7 +3000,12 @@ class PlayerActivity : ComponentActivity() {
                     android.view.KeyEvent.KEYCODE_DPAD_CENTER,
                     android.view.KeyEvent.KEYCODE_ENTER,
                     android.view.KeyEvent.KEYCODE_NUMPAD_ENTER ->
-                        { if (event.repeatCount == 0) resolveDvrAsk(dvrAskState.value.getOrNull(dvrAskSelState.value)); return true }
+                        {
+                            // M606-fix: OK-up po zatvoreni dialogu inak dorazil do zoznamu
+                            // kanalov a potvrdil (spustil) vybrany kanal
+                            if (event.repeatCount == 0) { okLongFired = true; resolveDvrAsk(dvrAskState.value.getOrNull(dvrAskSelState.value)) }
+                            return true
+                        }
                     android.view.KeyEvent.KEYCODE_BACK ->
                         { resolveDvrAsk(null); return true }
                 }
