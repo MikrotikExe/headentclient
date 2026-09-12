@@ -1176,6 +1176,7 @@ class PlayerActivity : ComponentActivity() {
         if (cur.isEmpty()) return
         val nowS = System.currentTimeMillis() / 1000
         epgPartial = false   // M551-fix
+        var epgSkipped = false   // M603
         try {
             // prebiehajuce nahravky -> ktore kanaly sa prave nahravaju (cervena bodka/kazeta + vyber archiv)
             val recList: List<sk.tvhclient.shared.model.DvrEntry> =
@@ -1201,9 +1202,17 @@ class PlayerActivity : ComponentActivity() {
                 // zobrazi, ale NEpovazuje sa za cerstvy — inak by chybajuce kanaly ostali
                 // bez EPG 3 hodiny (epgIsStale). Naplanuje sa opakovanie o 20 s (max 3x).
                 val failed = sk.tvhclient.shared.htsp.HtspData.lastEpgFailed
-                epgPartial = map.isEmpty() || failed > 0
+                // M603: kolo sa preskocilo, lebo bezi prenos (M595) — dostali sme
+                // len cache. Nie je to neuplne EPG: nelogovat, neplanovat opakovanie
+                // (kazde by sa aj tak preskocilo). Cerstvost sa neobnovi, takze po
+                // skonceni prehravania sa now/next stiahne znova.
+                val skipped = sk.tvhclient.shared.htsp.HtspData.lastEpgSkipped
+                epgSkipped = skipped
+                epgPartial = !skipped && (map.isEmpty() || failed > 0)
                 if (map.isNotEmpty()) epgUpcomingState.value = epgUpcomingState.value + map
-                if (epgPartial) {
+                if (skipped) {
+                    epgRetries = 0
+                } else if (epgPartial) {
                     CrashLogger.report(
                         this, "PlayerActivity.epg",
                         "HTSP EPG incomplete: ${map.size}/${cur.size} channels, failed=$failed, withoutEpg=${sk.tvhclient.shared.htsp.HtspData.lastEpgEmpty.size}, lastEpgError=" +
@@ -1252,7 +1261,9 @@ class PlayerActivity : ComponentActivity() {
                 if (LivePlaylist.allChannels.isNotEmpty())
                     LivePlaylist.allChannels = LivePlaylist.allChannels.map(enrichHttp)
             }
-            if (!epgPartial) epgLastOkMs = System.currentTimeMillis()   // M551-fix: neuplne = stale
+            // M603: preskocene kolo (bezi prenos) cerstvost neobnovi — po skonceni
+            // prehravania sa now/next stiahne pri dalsom otvoreni zoznamu
+            if (!epgPartial && !epgSkipped) epgLastOkMs = System.currentTimeMillis()   // M551-fix: neuplne = stale
             // M271: zapis do procesovej cache, nech reopen prehravaca nesťahuje znova
             LivePlaylist.epgLastOkMs = epgLastOkMs
             LivePlaylist.epgUpcoming = epgUpcomingState.value

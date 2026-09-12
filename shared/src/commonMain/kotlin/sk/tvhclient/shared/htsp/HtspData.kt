@@ -37,6 +37,9 @@ object HtspData {
      */
     @kotlin.concurrent.Volatile private var streamCount: Int = 0
     val streaming: Boolean get() = streamCount > 0
+    /** M603: posledny epgUpcomingMap sa PRESKOCIL, lebo bezal prenos (vratil len cache).
+     *  Volajuci to nema brat ako neuplne EPG — nelogovat, neopakovat, nic nezlyhalo. */
+    @kotlin.concurrent.Volatile var lastEpgSkipped: Boolean = false
     fun streamStarted() { streamCount++ }
     fun streamStopped() { if (streamCount > 0) streamCount-- }
 
@@ -188,11 +191,20 @@ object HtspData {
      *  Zoznam umozni klientovi prepnut na dalsiu relaciu bez noveho stahovania. */
     suspend fun epgUpcomingMap(server: TvhServer, nowSec: Long): Map<String, List<EpgEvent>> {
         val nc = nowCache[server.id]
+        lastEpgSkipped = false
         if (nc != null && nowSec - nc.ts < 600) return nc.map
         // M595: kym bezi prenos, now/next nepytame — druhe spojenie by server s
-        // limitom 1 odmietol a mohol by zhodit aj prehravanie. Volajuci ma
-        // opakovanie s odstupom, takze sa to dotiahne po skonceni prehravania.
-        if (streaming) return nc?.map ?: emptyMap()
+        // limitom 1 odmietol a mohol by zhodit aj prehravanie. Vrati sa cache
+        // (aj starsia nez 10 min); dotiahne sa po skonceni prehravania.
+        // M603: preskocenie NIE je chyba — pocitadla sa vynuluju a nastavi sa
+        // lastEpgSkipped, inak volajuci (prehravac, zoznam kanalov) zapisoval do
+        // zaznamu „EPG incomplete: 0/497" a kazdych 20 s to skusal znova.
+        if (streaming) {
+            lastEpgSkipped = true
+            lastEpgFailed = 0
+            lastEpgEmpty = emptyList()
+            return nc?.map ?: emptyMap()
+        }
         // M572: pocitadla plati vzdy len pre prave bezhiace kolo — ked kolo skoncilo
         // vynimkou (napr. nedostupny server), v zazname sa inak zopakovalo cislo
         // zo starsieho kola ("0 ok, failed=552")

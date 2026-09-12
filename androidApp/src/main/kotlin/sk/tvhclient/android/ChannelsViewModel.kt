@@ -120,6 +120,7 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private var nowNextRetries = 0
+    private var streamWaitJob: kotlinx.coroutines.Job? = null   // M603
     private fun loadHtspNowNext(server: sk.tvhclient.shared.model.TvhServer, retry: Boolean = false) {
         if (!retry) nowNextRetries = 0
         viewModelScope.launch {
@@ -136,7 +137,11 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
             // stav (kanály bez EPG), loguje sa len počet; opakuje sa len pri skutočnej chybe
             val empty = sk.tvhclient.shared.htsp.HtspData.lastEpgEmpty
             val failed = sk.tvhclient.shared.htsp.HtspData.lastEpgFailed
-            if (failed > 0 || map.isEmpty()) {
+            // M603: kolo preskocene kvoli beziacemu prenosu (M595) — vratila sa len
+            // cache. Nie je to chyba: bez zaznamu („0 ok, 226 without EPG" bolo
+            // z predosleho kola) a bez opakovania; dotiahne sa po skonceni prehravania.
+            val skipped = sk.tvhclient.shared.htsp.HtspData.lastEpgSkipped
+            if (!skipped && (failed > 0 || map.isEmpty())) {
                 CrashLogger.report(
                     getApplication(), "ChannelsViewModel.nowNext",
                     "HTSP now/next: ${map.size} ok, ${empty.size} without EPG, failed=$failed, lastEpgError=" +
@@ -147,7 +152,22 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
             // nedostupnej sieti / neznamom mene servera nema zmysel klepat kazdych
             // 20 sekund — pouzivatel to videl ako opakovane chyby v zazname.
             // Server, ktory EPG legitimne nema (failed=0, vsetky kanaly prazdne), sa neopakuje.
-            if ((failed > 0 || (map.isEmpty() && empty.isEmpty())) && nowNextRetries < 3) {
+            if (skipped && map.isEmpty()) {
+                // M603: cache bola prazdna (appka sa spustila rovno do prehravania) —
+                // pockaj, kym prenos skonci, a now/next dotiahni potom. Jedina cakacka,
+                // najviac 2 hodiny, bez zaznamu.
+                if (streamWaitJob?.isActive != true) streamWaitJob = viewModelScope.launch {
+                    var waited = 0L
+                    while (sk.tvhclient.shared.htsp.HtspData.streaming && waited < 2 * 60 * 60_000L) {
+                        kotlinx.coroutines.delay(5_000); waited += 5_000
+                    }
+                    if (!sk.tvhclient.shared.htsp.HtspData.streaming) {
+                        kotlinx.coroutines.delay(1_500)   // nech server spojenie po prehravani uvolni
+                        loadHtspNowNext(server, retry = true)
+                    }
+                }
+            }
+            if (!skipped && (failed > 0 || (map.isEmpty() && empty.isEmpty())) && nowNextRetries < 3) {
                 nowNextRetries++
                 val wait = when (nowNextRetries) { 1 -> 20_000L; 2 -> 60_000L; else -> 180_000L }
                 viewModelScope.launch {
