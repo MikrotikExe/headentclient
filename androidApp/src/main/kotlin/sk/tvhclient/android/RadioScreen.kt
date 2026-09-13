@@ -145,6 +145,10 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
     // Znovu kliknutie na Radia v navigacii: skroluj na vrch a daj fokus na prve radio
     LaunchedEffect(resetSignal) {
         if (resetSignal > 0) {
+            // M610: opatovny klik na zalozku zavrie aj program stanic (M587) a
+            // detail stanice — inak zalozka „nereagovala", mriezka ostala otvorena
+            showGrid = false
+            epgFor = null
             runCatching { listState.scrollToItem(0) }
             runCatching { gridState.scrollToItem(0) }
             runCatching { firstFocus.requestFocus() }
