@@ -548,11 +548,17 @@ private fun RadioRow(
         )
         return
     }
+    // M609: klasicky riadok radia — „prave hra" a priebeh ako v zozname kanalov.
+    // M586 doplnilo now/next len do moderneho riadku, klasik ostal len s nazvom.
+    val cEv = epgList?.firstOrNull { nowSec in it.start until it.stop }
+    val cTitle = cEv?.title?.takeIf { it.isNotBlank() } ?: row.nowTitle?.takeIf { it.isNotBlank() }
+    val cStart = cEv?.start ?: row.nowStart
+    val cStop = cEv?.stop ?: row.nowStop
     Row(
         modifier
             .fillMaxWidth()
             .combinedClickable(
-                onClick = { playRadio(context, allRows, row) },
+                onClick = { playRadio(context, allRows, row, cTitle ?: "", cStart, cStop) },
                 onLongClick = { onContext(row) }
             )
             .padding(horizontal = 4.dp, vertical = 10.dp),
@@ -591,6 +597,20 @@ private fun RadioRow(
                     Spacer(Modifier.width(6.dp))
                     Text("\uD83D\uDEAB", style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            if (cTitle != null) {   // M609
+                Text(cTitle, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (cStart > 0 && cStop > cStart) {
+                    val frac = ((nowSec - cStart).toFloat() / (cStop - cStart).toFloat()).coerceIn(0f, 1f)
+                    Spacer(Modifier.height(3.dp))
+                    androidx.compose.material3.LinearProgressIndicator(
+                        progress = { frac },
+                        modifier = Modifier.fillMaxWidth().height(3.dp),
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 }
             }
         }
