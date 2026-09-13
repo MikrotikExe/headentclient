@@ -1427,18 +1427,25 @@ class PlayerActivity : ComponentActivity() {
             if (epgLastOkMs == 0L) epgLastOkMs = LivePlaylist.epgLastOkMs
             return
         }
-        try {
+        // M611: citanie z disku na pozadi — synchronne v onCreate (hlavne vlakno) pri
+        // velkom EPG trvalo sekundy a Play hlasil ANR pri starte prehravaca. Po nacitani
+        // sa cache pouzije len ak medzitym neprisli cerstve data zo siete.
+        lifecycleScope.launch {
             val nowSec = System.currentTimeMillis() / 1000
-            val daysBack = EpgRangePref.daysBack(this)
-            val disk = EpgCache.loadLive(this, srv.id, nowSec, daysBack)
-            if (disk.isNotEmpty()) {
+            val daysBack = EpgRangePref.daysBack(this@PlayerActivity)
+            val disk = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching { EpgCache.loadLive(this@PlayerActivity, srv.id, nowSec, daysBack) }.getOrDefault(emptyMap())
+            }
+            if (disk.isNotEmpty() && epgUpcomingState.value.isEmpty()) {
                 epgUpcomingState.value = disk
                 LivePlaylist.epgUpcoming = disk
-                val ts = EpgCache.lastSavedLive(this, srv.id)
-                epgLastOkMs = ts
-                LivePlaylist.epgLastOkMs = ts
+                val ts = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    runCatching { EpgCache.lastSavedLive(this@PlayerActivity, srv.id) }.getOrDefault(0L)
+                }
+                if (epgLastOkMs == 0L) { epgLastOkMs = ts; LivePlaylist.epgLastOkMs = ts }
+                applyCachedEpgToChannels()   // nazvy relacii pod kanalmi hned, ako su k dispozicii
+                refreshDvrState()
             }
-        } catch (e: Exception) {
         }
     }
 

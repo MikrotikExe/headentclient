@@ -31,15 +31,20 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
     private fun daysBack(): Int = EpgRangePref.daysBack(appCtx)
     private fun nowSec(): Long = System.currentTimeMillis() / 1000
 
-    private val _epg = MutableStateFlow<Map<String, List<EpgEvent>>>(
-        EpgCache.load(
-            app.applicationContext,
-            Tvh.store.active()?.id ?: "default",
-            System.currentTimeMillis() / 1000,
-            EpgRangePref.daysBack(app.applicationContext)
-        )
-    )
+    // M611: disková cache mriežky sa číta na pozadí (predtým synchrónne v konštruktore
+    // na hlavnom vlákne — pri veľkom EPG ANR). Čerstvé dáta majú prednosť, cache dopĺňa.
+    private val _epg = MutableStateFlow<Map<String, List<EpgEvent>>>(emptyMap())
     val epg: StateFlow<Map<String, List<EpgEvent>>> = _epg
+    private fun loadDiskAsync(replace: Boolean) {
+        viewModelScope.launch {
+            val disk = withContext(Dispatchers.IO) {
+                runCatching { EpgCache.load(appCtx, serverId(), nowSec(), daysBack()) }.getOrDefault(emptyMap())
+            }
+            if (replace) _epg.value = disk
+            else if (disk.isNotEmpty()) _epg.value = disk + _epg.value
+        }
+    }
+    init { loadDiskAsync(replace = false) }
 
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading
@@ -113,7 +118,7 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Vynutene obnovenie — z disku znova nacita pamatane dni a stiahne cerstve data. */
     fun refresh() {
-        _epg.value = EpgCache.load(appCtx, serverId(), nowSec(), daysBack())
+        loadDiskAsync(replace = true)   // M611
         inFlight.clear()
         htspStarted = false
         _gen.value = _gen.value + 1

@@ -39,15 +39,22 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
     // HTSP: kanal -> zoznam nadchadzajucich relacii (na auto-prechod na zozname).
     // M278: seed z diskovej „live" cache (rovnaka ako prehravac) — now/next naskoci hned
     // aj po restarte/obnove obrazovky, kym sa na pozadi dotiahnu cerstve data.
-    private val _epgMap = MutableStateFlow<Map<String, List<sk.tvhclient.shared.model.EpgEvent>>>(
-        EpgCache.loadLive(
-            app.applicationContext,
-            Tvh.store.active()?.id ?: "default",
-            System.currentTimeMillis() / 1000,
-            EpgRangePref.daysBack(app.applicationContext)
-        )
-    )
+    // M611: disková cache sa číta na pozadí — synchrónne čítanie v konštruktore
+    // (hlavné vlákno) trvalo pri veľkom EPG sekundy a Play hlásil ANR
+    // (EpgEvent deserialize / EpgCache.readStreamed / „I/O v hlavnom vlákne").
+    // Sieťové dáta majú prednosť: cache sa len doplní pod to, čo už prišlo.
+    private val _epgMap = MutableStateFlow<Map<String, List<sk.tvhclient.shared.model.EpgEvent>>>(emptyMap())
     val epgMap: StateFlow<Map<String, List<sk.tvhclient.shared.model.EpgEvent>>> = _epgMap
+    init {
+        viewModelScope.launch {
+            val disk = withContext(Dispatchers.IO) {
+                runCatching {
+                    EpgCache.loadLive(appCtx, sid(), System.currentTimeMillis() / 1000, EpgRangePref.daysBack(appCtx))
+                }.getOrDefault(emptyMap())
+            }
+            if (disk.isNotEmpty()) _epgMap.value = disk + _epgMap.value
+        }
+    }
 
     private val _viewMode = MutableStateFlow(ChannelViewMode.LIST)
     val viewMode: StateFlow<ChannelViewMode> = _viewMode
