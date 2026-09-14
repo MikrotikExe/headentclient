@@ -307,6 +307,28 @@ private fun TvHomeHost() {
     // M605: volba „dlazdice otvoria zoznam" — prehravac sa otvori s otvorenym zoznamom
     // nad hrajucim poslednym kanalom (dlazdice TV kanaly / Radia, obnova po starte)
     var tileListFirst by remember { mutableStateOf(false) }
+    // M613: farebne tlacidla na dialkovom aj na TV — cervena Kanaly, zelena Radio,
+    // zlta Archiv, modra Nastavenia. Doteraz ich spracuval len telefonovy hostitel
+    // (AppMain); na TV sa signal z MainActivity.dispatchKeyEvent nikdy nekonzumoval,
+    // takze farebne klavesy na boxe nerobili nic. Plati v modernom aj klasickom rezime.
+    val reqTabTv by TabController.requested
+    LaunchedEffect(reqTabTv) {
+        if (reqTabTv !in 0..3) return@LaunchedEffect
+        val t = reqTabTv
+        TabController.requested.value = -1
+        when (t) {
+            0 -> {   // Kanaly: prehravac s poslednym kanalom (rovnako ako dlazdica)
+                lastTile = "channels"; section = ""
+                tileListFirst = TileListPref.get(ctx); chVm.loadIfNeeded(); play = "tv"
+            }
+            1 -> {   // Radio
+                lastTile = "radio"; section = ""
+                tileListFirst = TileListPref.get(ctx); raVm.load(); chVm.loadIfNeeded(); play = "radio"
+            }
+            2 -> { lastTile = "archive"; play = ""; section = "archive" }
+            3 -> { lastTile = "settings"; play = ""; section = "settings" }
+        }
+    }
     // M599: cakajuce spustenie (obnova posledneho kanala po starte, autostart) sa ZRUSI,
     // ked pouzivatel medzitym odide inam — do archivu, TV programu, nastaveni. Inak sa
     // po dotiahnuti kanalov otvoril prehravac cez rozrobenu obrazovku: appka sa sekala,
