@@ -250,10 +250,21 @@ object HtspData {
                 // M551-fix2: niektoré kanály vrátia bez maxTime nič (server nemá "now"
                 // ukazovateľ, napr. medzera v EPG) — druhý pokus s časovým oknom ako
                 // v dennom programe, ktorý pre ten istý kanál udalosti vracia.
+                // M619: druhy pokus je teraz TAKY ISTY dotaz ako v mriezke (numFollowing
+                // 80, okno 3 dni, filter na kanal a deduplikacia). Issue #13: server
+                // vracal na numFollowing=5 pat udalosti od kotvy, ktora je na niektorych
+                // kanaloch v MINULOSTI (EPG s historiou) — vsetkych pat malo stop < now,
+                // takze po filtri zostalo prazdno a kanal sa zapisal ako "without EPG",
+                // hoci mriezka (numFollowing=80) na tom istom kanali data ukazala.
                 if (mapped.isEmpty()) {
                     mapped = try {
-                        client.getEvents(cid, numFollowing = 5, maxTime = nowSec + 86400)
-                            .mapNotNull { mapEvent(it) }.filter { it.stop > nowSec }
+                        client.getEvents(cid, numFollowing = 80, maxTime = nowSec + 3 * 86400)
+                            .mapNotNull { mapEvent(it) }
+                            .filter { it.channelUuid == cid.toString() }   // M398
+                            .distinctBy { it.eventId ?: "${it.start}-${it.title}" }
+                            .filter { it.stop > nowSec }
+                            .sortedBy { it.start }
+                            .take(5)
                     } catch (e: Exception) { if (onFailure(e)) continue else break }
                 }
                 streak = 0
