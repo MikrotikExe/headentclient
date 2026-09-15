@@ -28,6 +28,12 @@ jobs:
 
       - name: Set up Android SDK (sdkmanager na PATH)
         uses: android-actions/setup-android@v3
+        with:
+          # M615: predvolene sa akcia pokusi nainstalovat balik `tools`, ktory uz
+          # Google zo SDK repozitara odstranil — beh potom padne na
+          # „Failed to find package 'tools'". Instalujeme len to, co build naozaj
+          # potrebuje; licencie akceptuje samotna akcia.
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
 
       - name: Set up signing (z GitHub secrets)
         if: ${{ env.KEYSTORE_BASE64 != '' }}
