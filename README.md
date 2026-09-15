@@ -31,13 +31,17 @@ Jetpack Compose and libVLC.
 - **DVR profile per server** — choose which recording profile the server uses,
   or leave it to the server
 - Recording playback with resume and a categorized archive
-- Seeking inside recordings and the archive — drag the bar or skip ±10 s (accumulating taps)
+- Seeking inside recordings and the archive — drag the bar, or move a marker in 30 s
+  steps with the remote (holding an arrow accelerates and scales with the recording's
+  length; the jump happens once, when the button is released)
 - Timeshift on live TV over HTSP (pause and skip within the server's buffer)
 - Audio tracks labeled by language (not generic "Track 1 / 2 / 3")
 - DVB subtitle support with a dedicated renderer
 - Compact, scrollable audio/subtitle picker (tuned for TV remotes)
 - **Radio channels**, told apart from TV by DVB service type (as Kodi does),
-  with tag filtering and a remembered group
+  with tag filtering and a remembered group; stations have their own guide, a
+  now-playing line with progress and *Next*, favourites, hidden stations and
+  numbering from 1 in the order shown
 - **Start with the last channel (TV)** — resumes the channel or radio station you
   were last watching, with the full channel list and groups loaded
 - **Teletext** (EN 300 706) decoded by the app itself, over HTSP and HTTP — colour,
@@ -56,6 +60,15 @@ Jetpack Compose and libVLC.
 - **Hidden channels** can be brought back from the *Hidden channels* group in the player
 - Picons (channel logos)
 - Channel switching by number, channel list, zapping
+- **Colour and media keys on TV remotes** — red opens Channels, green Radio, yellow the
+  Archive and blue Settings from anywhere in the app (inside teletext they follow Fastext);
+  STOP, PLAY/PAUSE, rewind/fast-forward and next/previous work in the player, in recordings
+  and in the timeshift buffer
+- **Options that are off by default** — switch a channel with a single OK, let the TV home
+  tiles open the channel list right away, and pick the recording profile for each recording;
+  recording can also be started from the player's channel list (hold OK)
+- A [remote control guide](https://headentclient.com/remote.php) on the website explains
+  every key, screen by screen, for both the modern and the classic interface
 - Optional parental lock with PIN (configurable grace period, scope: channels / settings)
 - Deinterlacing (automatic or manual: Bob, Yadif, Yadif 2x, X)
 - Audio output options: passthrough to TV/AVR on Android TV, OpenSL ES mode on phones
@@ -102,14 +115,15 @@ iosApp/        SwiftUI (work in progress)
 
 ## Building (Android)
 
-The app is built with Gradle. CI builds run via GitHub Actions on each push.
+The Gradle wrapper is part of the repository, so a fresh clone builds without installing
+Gradle first. CI builds run via GitHub Actions on each push.
 
 ```
 # Debug APK (installable for testing)
-gradle :androidApp:assembleDebug
+./gradlew :androidApp:assembleDebug
 
 # Release APK (R8/minified)
-gradle :androidApp:assembleRelease
+./gradlew :androidApp:assembleRelease
 ```
 
 Release signing reads `keystore.properties` from the project root (not committed). If the
