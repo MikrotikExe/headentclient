@@ -581,10 +581,27 @@ private fun TvHomeHost() {
         }
         section == "settings" -> {
             androidx.activity.compose.BackHandler { section = "" }
+            // M620 (issue #15): rodicovsky zamok pre nastavenia platil len na telefone
+            // (AppMain). Na TV sa Nastavenia otvarali priamo, takze volba
+            // „PIN vyzadovat pre -> Nastavenia" tu nerobila nic. Rovnaka branka ako
+            // na telefone: bez spravneho PINu sa ServersTab vobec nezlozi, zrusenie
+            // dialogu (BACK) vracia na domovsku obrazovku.
+            var setUnlocked by remember { mutableStateOf(!ParentalLock.settingsNeedsPin(ctx)) }
             androidx.compose.material3.Surface(
                 modifier = Modifier.fillMaxSize(),
                 color = androidx.compose.material3.MaterialTheme.colorScheme.background
-            ) { ServersTab() }
+            ) {
+                if (setUnlocked) ServersTab()
+                else PinDialog(
+                    title = stringResource(R.string.plock_unlock_settings),
+                    onDismiss = { section = "" },
+                    onComplete = { pin ->
+                        if (ParentalLock.checkPin(ctx, pin)) {
+                            ParentalLock.markUnlocked(ctx); setUnlocked = true; true
+                        } else false
+                    }
+                )
+            }
         }
         else -> {
             androidx.activity.compose.BackHandler(enabled = !showExit) { showExit = true }
