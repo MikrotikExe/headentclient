@@ -17,8 +17,10 @@ import sk.tvhclient.shared.model.TvhServer
 class HtspDvrService(private val server: TvhServer) : DvrService {
 
     private suspend fun <T> withClient(block: suspend (HtspClient) -> T): T {
-        val c = HtspClient(server.host, server.htspPort, server.username, server.password)
-        c.connect()
+        // M621: aj DVR prikazy (naplanovat, zrusit, zmazat, zoznam) idu cez
+        // connectWithRetry — tri pokusy a zaloha na zapamatanu IP. Vypadok DNS pri
+        // prepnuti siete inak zhodil prikaz na prvy pokus (UnresolvedAddressException).
+        val c = HtspData.connectWithRetry(server)
         return try {
             block(c)
         } finally {

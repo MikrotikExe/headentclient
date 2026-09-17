@@ -56,8 +56,7 @@ object HtspData {
      * (otvoreny len port 9982) tak zoznam nebol dostupny vobec.
      */
     suspend fun streamProfiles(server: TvhServer): List<String> = runCatching {
-        val c = HtspClient(server.host, server.htspPort, server.username, server.password)
-        c.connect()
+        val c = connectWithRetry(server)   // M621
         try {
             val r = c.recvReply(c.send("getProfiles"))
             @Suppress("UNCHECKED_CAST")
@@ -77,8 +76,7 @@ object HtspData {
      * Chyba = prazdny zoznam, volajuci potom ponuku profilu nezobrazi.
      */
     suspend fun dvrConfigs(server: TvhServer): List<sk.tvhclient.shared.api.DvrConfig> = runCatching {
-        val c = HtspClient(server.host, server.htspPort, server.username, server.password)
-        c.connect()
+        val c = connectWithRetry(server)   // M621
         try {
             val r = c.recvReply(c.send("getDvrConfigs"))
             @Suppress("UNCHECKED_CAST")
@@ -113,8 +111,11 @@ object HtspData {
         }
         // M595: pocas prehravania neotvarat druhe spojenie — radsej starsia cache
         if (streaming && c != null && (!withEpg || c.withEpg)) return c.meta
-        val client = HtspClient(server.host, server.htspPort, server.username, server.password)
-        client.connect()
+        // M621: aj metadata (kanaly, DVR, archiv) idu cez connectWithRetry. Doteraz
+        // mala opakovanie a zalohu na zapamatanu IP len cesta now/next (M581), takze
+        // vypadok DNS pri prepnuti siete zhodil zoznam kanalov aj archiv na prvy pokus
+        // (UnresolvedAddressException v zazname), hoci appka IP servera poznala.
+        val client = connectWithRetry(server)
         val meta = try {
             client.fetchMetadata(withEpg = withEpg, epgMaxDays = epgMaxDays, nowSec = nowSec)
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -158,7 +159,7 @@ object HtspData {
      * cez meno; ked zlyha a mame zapamatanu IP z predosleho uspesneho spojenia (M581-fix,
      * platna 6 h), skusi sa rovno IP. Tri kola: 0 s, 1 s, 3 s.
      */
-    private suspend fun connectWithRetry(server: TvhServer): HtspClient {
+    internal suspend fun connectWithRetry(server: TvhServer): HtspClient {
         var last: Throwable? = null
         val delays = longArrayOf(0L, 1_000L, 3_000L)
         val nowMs = currentTimeSeconds() * 1000
@@ -295,6 +296,9 @@ object HtspData {
     suspend fun capabilities(server: TvhServer, nowSec: Long, ttl: Long = 600): Pair<Boolean, List<String>> {
         val c = capCache[server.id]
         if (c != null && nowSec - c.ts < ttl) return c.reachable to c.caps
+        // M621: tu ZAMERNE bez connectWithRetry — je to rychla sonda "je server na
+        // HTSP porte?" (napr. pri ukladani servera). Tri pokusy s cakanim by spravili
+        // z nedostupneho servera 4-sekundove cakanie v nastaveniach.
         val client = HtspClient(server.host, server.htspPort, server.username, server.password)
         val res = try {
             client.connect()
@@ -442,8 +446,7 @@ object HtspData {
     /** Program pre kanal cez HTSP getEvents (rychle, per-kanal). */
     suspend fun epgForChannel(server: TvhServer, channelId: String, nowSec: Long): List<EpgEvent> {
         val cid = channelId.toLongOrNull() ?: return emptyList()
-        val client = HtspClient(server.host, server.htspPort, server.username, server.password)
-        client.connect()
+        val client = connectWithRetry(server)   // M621
         return try {
             client.getEvents(cid, numFollowing = 80, maxTime = nowSec + 3 * 86400)
                 .mapNotNull { mapEvent(it) }
@@ -465,8 +468,7 @@ object HtspData {
         val meta = metadata(server, withEpg = false, nowSec = nowSec)
         val channelIds = meta.channels.mapNotNull { longOf(it, "channelId") }
         if (channelIds.isEmpty()) return
-        val client = HtspClient(server.host, server.htspPort, server.username, server.password)
-        client.connect()
+        val client = connectWithRetry(server)   // M621
         try {
             for (cid in channelIds) {
                 val evs = try {
