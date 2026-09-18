@@ -5228,8 +5228,7 @@ class PlayerActivity : ComponentActivity() {
                 // M539-fix4: release() az o chvilu — stara kompozicia sa este moze
                 // rozkladat a jej korutiny sa stareho objektu dotknut
                 runCatching { Thread.sleep(500) }
-                runCatching { oldMp.release() }
-                runCatching { oldLib.release() }
+                releaseVlc(appCtx, oldMp, oldLib, "recreate")   // M622
                 val ms = android.os.SystemClock.elapsedRealtime() - t0
                 if (ms > 3500) CrashLogger.report(appCtx, "PlayerActivity.recreate", "old libVLC released after $ms ms")
             }, "HeadentClient:vlcRelease")
@@ -5313,8 +5312,7 @@ class PlayerActivity : ComponentActivity() {
             // by hodilo IllegalStateException.
             runCatching { destroyed.await(5, java.util.concurrent.TimeUnit.SECONDS) }
             runCatching { mp.detachViews() }
-            runCatching { mp.release() }
-            runCatching { lib?.release() }
+            releaseVlc(appCtx, mp, lib, "teardown")   // M622
             val ms = android.os.SystemClock.elapsedRealtime() - t0
             if (ms > 3000) {
                 CrashLogger.report(appCtx, "PlayerActivity.teardown", "libVLC stop/release took $ms ms")
@@ -5562,6 +5560,47 @@ class PlayerActivity : ComponentActivity() {
     }
 
     companion object {
+        /**
+         * M622: bezpecne uvolnenie libVLC z pracovneho vlakna.
+         *
+         * Pad z Play (1.0.6, armeabi-v7a): SIGABRT vo vlc_mutex_destroy, volane z
+         * libvlc_media_player_release -> MediaPlayer.nativeRelease -> nase uvolnovacie
+         * vlakno. vlc_mutex_destroy spadne na assert, ked sa rusi mutex, ktory este
+         * niekto drzi — teda prehravac sa uvolnoval skor, nez dobehlo jeho vstupne
+         * vlakno. Na pomalsich 32-bitovych boxoch to stop() nestihne za pevnych 500 ms.
+         *
+         * Preto sa pred release() POCKA, kym prehravac naozaj prestane hrat (najviac
+         * 2 s, vzorka po 50 ms), potom kratka pauza na dobehnutie vnutornych vlakien,
+         * a az potom release. LibVLC sa uvolni este o kusok neskor — nikdy pred
+         * prehravacom, ktory z neho vznikol. Vsetko na pracovnom vlakne, hlavne vlakno
+         * sa necaka.
+         */
+        fun releaseVlc(
+            ctx: android.content.Context,
+            mp: org.videolan.libvlc.MediaPlayer,
+            lib: org.videolan.libvlc.LibVLC?,
+            where: String
+        ) {
+            val t0 = android.os.SystemClock.elapsedRealtime()
+            var waited = 0L
+            while (waited < 2_000L) {
+                val playing = runCatching { mp.isPlaying }.getOrDefault(false)
+                if (!playing) break
+                runCatching { Thread.sleep(50) }
+                waited += 50
+            }
+            if (waited >= 2_000L) {
+                CrashLogger.report(ctx, "PlayerActivity.$where", "player still playing 2 s after stop()")
+            }
+            // dobehnutie vnutornych vlakien libVLC (vout/audio) pred zrusenim mutexov
+            runCatching { Thread.sleep(150) }
+            runCatching { mp.release() }
+            runCatching { Thread.sleep(100) }
+            runCatching { lib?.release() }
+            val ms = android.os.SystemClock.elapsedRealtime() - t0
+            if (ms > 3_000L) CrashLogger.report(ctx, "PlayerActivity.$where", "release took $ms ms")
+        }
+
         /** M539-fix2: generacia video surface (kluc AndroidView) — zvysenie = novy SurfaceView. */
         val videoSurfaceGen = androidx.compose.runtime.mutableStateOf(0)
         // M539: hlidac zaseknuteho vystupu (sekundove vzorky)
