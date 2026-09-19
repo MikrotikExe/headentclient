@@ -2496,49 +2496,14 @@ class PlayerActivity : ComponentActivity() {
     }
     private fun closeChannelInfo() { infoVisibleState.value = false }
 
-    // ---- M430: kompaktny zap pas pri prepinani kanalov (prekryv vypnuty) ----
-    private val zapBarVisible = androidx.compose.runtime.mutableStateOf(false)
-    private val zapBarNumber = androidx.compose.runtime.mutableStateOf("")
-    private val zapBarPicon = androidx.compose.runtime.mutableStateOf<String?>(null)
-    private val zapBarChannel = androidx.compose.runtime.mutableStateOf("")
-    private val zapBarTitle = androidx.compose.runtime.mutableStateOf("")
-    private val zapBarTime = androidx.compose.runtime.mutableStateOf("")
-    private val zapBarProgress = androidx.compose.runtime.mutableStateOf(0f)
-    private var zapBarJob: kotlinx.coroutines.Job? = null
-
-    /** Zobrazi kratky pas (cislo · kanal / program · cas / priebeh) na ~4 s.
-     *  Data ma z liveChannelsState (EPG now/next uz v pamati), nic nestahuje. */
-    /** M446: zrusi zap pas — vola sa vzdy, ked sa otvara iny prekryv (moderny
-     *  prehlad, klasicke ovladanie, info). Bez toho by pas ostal visiet navrchu
-     *  az do vyprsania 4 s a bary by sa prekryvali. */
-    private fun hideZapBar() {
-        zapBarJob?.cancel()
-        zapBarVisible.value = false
+    // ---- M430 / M628: kompaktny zap pas — stav aj vykreslenie v ZapBar.kt ----
+    private val zapBar by lazy {
+        ZapBar(lifecycleScope,
+            fmtRange = { a, b -> fmtRange(a, b) },
+            suppressed = { controlsShown || modernOvState.value || infoVisibleState.value })
     }
-
-    private fun showZapBar() {
-        // M442: ak uz je na obrazovke klasicke ovladanie / moderny prehlad / info
-        // okno, zap pas nezobrazuj — tie ukazuju rovnaky udaj (cislo, kanal,
-        // program, priebeh) a pri prepinani sa samy aktualizuju. Inak by na
-        // niektorych zariadeniach (Xiaomi Mi Box, Android 9) svietili dva pasy
-        // naraz.
-        if (controlsShown || modernOvState.value || infoVisibleState.value) return
-        val ch = liveChannelsState.value.getOrNull(liveIndexState.value) ?: return
-        zapBarNumber.value = if (ch.number > 0) ch.number.toString() else ""
-        zapBarPicon.value = ch.piconUrl
-        zapBarChannel.value = ch.name
-        zapBarTitle.value = ch.nowTitle
-        zapBarTime.value = fmtRange(ch.nowStart, ch.nowStop)
-        val now = System.currentTimeMillis() / 1000
-        zapBarProgress.value = if (ch.nowStop > ch.nowStart)
-            ((now - ch.nowStart).toFloat() / (ch.nowStop - ch.nowStart)).coerceIn(0f, 1f) else 0f
-        zapBarVisible.value = true
-        zapBarJob?.cancel()
-        zapBarJob = lifecycleScope.launch {
-            kotlinx.coroutines.delay(4000)
-            zapBarVisible.value = false
-        }
-    }
+    private fun hideZapBar() = zapBar.hide()
+    private fun showZapBar() = zapBar.show(liveChannelsState.value.getOrNull(liveIndexState.value))
 
     // Kedy sa zoznam otvoril — OK eventy tesne po otvoreni (zvysky otvaracieho
     // dlheho stlacenia, ghost DOWN/UP pary z IR/CEC ovladacov) sa ignoruju (M330-fix2)
@@ -4345,81 +4310,8 @@ class PlayerActivity : ComponentActivity() {
                     }
                 }
             }
-            // M430: kompaktny zap pas — cislo · kanal / program · cas / priebeh
-            if (zapBarVisible.value && !infoVisibleState.value) {
-                Box(
-                    Modifier.fillMaxSize().padding(start = 28.dp, bottom = 32.dp),
-                    contentAlignment = Alignment.BottomStart
-                ) {
-                    Row(
-                        Modifier.widthIn(min = 300.dp, max = 560.dp)
-                            .shadow(8.dp, RoundedCornerShape(16.dp))
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
-                            .padding(horizontal = 18.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        val zpCtx = androidx.compose.ui.platform.LocalContext.current
-                        val zpSrv = remember { Tvh.store.active() }
-                        val zpLoader = remember(zpSrv?.id) { PiconImageLoader.get(zpCtx, zpSrv) }
-                        val zpUrl = zapBarPicon.value
-                        if (!zpUrl.isNullOrBlank()) {
-                            var zpOk by remember(zpUrl) { androidx.compose.runtime.mutableStateOf(true) }
-                            if (zpOk) {
-                                AsyncImage(
-                                    model = ImageRequest.Builder(zpCtx).data(zpUrl).build(),
-                                    contentDescription = null,
-                                    imageLoader = zpLoader,
-                                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
-                                    onState = { st ->
-                                        if (st is coil.compose.AsyncImagePainter.State.Error) zpOk = false
-                                    },
-                                    modifier = Modifier.size(46.dp)
-                                )
-                                Spacer(Modifier.width(14.dp))
-                            }
-                        }
-                        Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (zapBarNumber.value.isNotBlank()) {
-                                Text(zapBarNumber.value, color = MaterialTheme.colorScheme.primary,
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold)
-                                Text("  ·  ", color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.titleLarge)
-                            }
-                            Text(zapBarChannel.value, color = MaterialTheme.colorScheme.onSurface,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                        if (zapBarTitle.value.isNotBlank() || zapBarTime.value.isNotBlank()) {
-                            Spacer(Modifier.height(2.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(zapBarTitle.value, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f, fill = false))
-                                if (zapBarTime.value.isNotBlank()) {
-                                    Spacer(Modifier.width(16.dp))
-                                    Text(zapBarTime.value, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        style = MaterialTheme.typography.bodyMedium)
-                                }
-                            }
-                        }
-                        if (zapBarProgress.value > 0f) {
-                            Spacer(Modifier.height(8.dp))
-                            Box(Modifier.fillMaxWidth().height(4.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f))) {
-                                Box(Modifier.fillMaxWidth(zapBarProgress.value).fillMaxHeight()
-                                    .clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary))
-                            }
-                        }
-                        }
-                    }
-                }
-            }
+            // M430 / M628: kompaktny zap pas — cislo · kanal / program · cas / priebeh
+            if (zapBar.visible.value && !infoVisibleState.value) ZapBarOverlay(zapBar)
             // Info o relacii (detail) — overlay v style prehravaca
             if (infoVisibleState.value) {
                 Box(
