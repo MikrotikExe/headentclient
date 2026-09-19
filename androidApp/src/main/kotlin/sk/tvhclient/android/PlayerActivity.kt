@@ -1907,102 +1907,20 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    // ===== M541: rezim usporiadania oblubenych (D-pad) =====
-    // Zapina sa z menu kanala v skupine Oblubene. OK uchopi/polozi kanal pod
-    // kurzorom, sipky HORE/DOLE uchopeny kanal posuvaju (poradie sa uklada hned a
-    // zoznam sa precisluje), BACK rezim ukonci. Napoveda je v pilulke skupiny
-    // (channelGroupLabel) — ziadny novy UI kod v PlayerUi (64 KB limit metody).
-    private var reorderMode = false
-    private var reorderGrabbed = false
-
-    private fun enterReorderMode() {
-        if (LivePlaylist.activeGroupKey != LivePlaylist.GROUP_FAV) return
-        reorderMode = true
-        reorderGrabbed = false
-        updateReorderLabel()
+    // ===== M541 / M638: rezim usporiadania oblubenych (D-pad) — FavReorder.kt =====
+    private val reorder by lazy {
+        FavReorder(this,
+            serverId = { (liveServer ?: Tvh.store.active())?.id },
+            liveUuids = { liveUuids },
+            liveChannels = liveChannelsState,
+            navIndex = navChannelIndexState,
+            groupLabel = activeGroupLabelState,
+            groupLabelFor = { key -> groupLabelFor(key) },
+            reapplyFavGroup = { refreshFavOrder(); applyGroup(LivePlaylist.GROUP_FAV) },
+            okLongFired = { okLongFired })
     }
-
-    private fun exitReorderMode() {
-        if (!reorderMode) return
-        reorderMode = false
-        reorderGrabbed = false
-        activeGroupLabelState.value = groupLabelFor(LivePlaylist.activeGroupKey)
-        liveChannelsState.value = LivePlaylist.channels   // M541-fix: zrus dekoraciu
-    }
-
-    private fun updateReorderLabel() {
-        activeGroupLabelState.value = if (reorderGrabbed) {
-            val name = LivePlaylist.channels.getOrNull(navChannelIndexState.value)?.name ?: ""
-            getString(R.string.fav_reorder_grabbed, name)
-        } else getString(R.string.fav_reorder_hint)
-        decorateGrabbedRow()
-    }
-
-    /**
-     * M541-fix: uchopeny kanal musi byt v zozname na prvy pohlad odlisny od len
-     * oznaceneho. Bez zasahu do PlayerUi (64 KB limit) to riesime datami: riadok
-     * dostane pred nazov „↕" a namiesto relacie napovedu „▲▼ presunut · OK polozit".
-     * Zobrazovaci stav (liveChannelsState) je kopia; LivePlaylist.channels ostava ciste.
-     */
-    private fun decorateGrabbedRow() {
-        val base = LivePlaylist.channels
-        if (!reorderMode || !reorderGrabbed) { liveChannelsState.value = base; return }
-        val g = navChannelIndexState.value
-        val hint = getString(R.string.fav_reorder_row)
-        liveChannelsState.value = base.mapIndexed { i, ch ->
-            if (i == g) ch.copy(name = "\u2195 " + ch.name, nowTitle = hint) else ch
-        }
-    }
-
-    /** Posun uchopeneho kanala o [dir] (+1 dole / -1 hore) v poradi oblubenych. */
-    private fun moveGrabbed(dir: Int) {
-        val sid = (liveServer ?: Tvh.store.active())?.id ?: return
-        val from = navChannelIndexState.value
-        val to = from + dir
-        val order = Favorites.list(this, sid)
-        if (from !in order.indices || to !in order.indices) return
-        // zobrazovany zoznam Oblubenych = favOrder v tom istom poradi (favChannels),
-        // ale kanaly, ktore server uz nema, v nom chybaju -> mapuj cez uuid
-        val uuid = liveChannelsState.value.getOrNull(from)?.uuid ?: return
-        val target = liveChannelsState.value.getOrNull(to)?.uuid ?: return
-        val fi = order.indexOf(uuid); val ti = order.indexOf(target)
-        if (fi < 0 || ti < 0) return
-        Favorites.move(this, sid, fi, ti)
-        refreshFavOrder()
-        applyGroup(LivePlaylist.GROUP_FAV)   // precisluje 1..n a prepocita liveIndex
-        navChannelIndexState.value = liveUuids.indexOf(uuid).coerceAtLeast(0)
-        updateReorderLabel()
-    }
-
-    /** Klavesy v rezime usporiadania. Vracia true, ak bola udalost spracovana. */
-    private fun handleReorderKey(kc: Int, down: Boolean, isOk: Boolean): Boolean {
-        if (!reorderMode) return false
-        val n = liveUuids.size
-        if (isOk) {
-            if (okLongFired) return true
-            if (!down && n > 0) {
-                reorderGrabbed = !reorderGrabbed
-                updateReorderLabel()
-            }
-            return true
-        }
-        if (!down) return true
-        when (kc) {
-            android.view.KeyEvent.KEYCODE_DPAD_UP -> {
-                if (reorderGrabbed) moveGrabbed(-1)
-                else if (n > 0) navChannelIndexState.value = (navChannelIndexState.value - 1 + n) % n
-                return true
-            }
-            android.view.KeyEvent.KEYCODE_DPAD_DOWN -> {
-                if (reorderGrabbed) moveGrabbed(+1)
-                else if (n > 0) navChannelIndexState.value = (navChannelIndexState.value + 1) % n
-                return true
-            }
-            android.view.KeyEvent.KEYCODE_BACK -> { exitReorderMode(); return true }
-            android.view.KeyEvent.KEYCODE_DPAD_LEFT, android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> return true
-        }
-        return false
-    }
+    private fun enterReorderMode() = reorder.enter()
+    private fun exitReorderMode() = reorder.exit()
 
     // --- Info o relacii (detail) v prehravaci ---
     private val infoVisibleState = androidx.compose.runtime.mutableStateOf(false)
@@ -2493,13 +2411,13 @@ class PlayerActivity : ComponentActivity() {
                 return true
             }
             // M541: rezim usporiadania oblubenych ma prednost pred beznou navigaciou
-            if (reorderMode) {
+            if (reorder.active) {
                 when (kc) {
                     android.view.KeyEvent.KEYCODE_VOLUME_UP,
                     android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
                     android.view.KeyEvent.KEYCODE_VOLUME_MUTE -> return super.dispatchKeyEvent(event)
                 }
-                if (handleReorderKey(kc, down, isOk)) return true
+                reorder.handleKey(kc, down, isOk)
                 return true
             }
             if (isOk) {
