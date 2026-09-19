@@ -3204,9 +3204,9 @@ class PlayerActivity : ComponentActivity() {
         AudioModulePref.module(this)?.let { aout -> runCatching { mediaPlayer.setAudioOutput(aout) } }
         // M539-fix: ak ani druhy novy AudioTrack po prebudeni nehra, skus OpenSL ES
         // (ina cesta do audio HAL); plati len pre tuto instanciu prehravaca.
-        if (stallRecreates >= 2 && AudioModulePref.module(this) == null) {
+        if (stall.recreates >= 2 && AudioModulePref.module(this) == null) {
             runCatching { mediaPlayer.setAudioOutput("opensles") }
-            CrashLogger.report(this, "PlayerActivity.stall", "new player #$stallRecreates uses opensles")
+            CrashLogger.report(this, "PlayerActivity.stall", "new player #${stall.recreates} uses opensles")
         }
         AudioOutputPref.deviceId(this)?.let { dev -> runCatching { mediaPlayer.setAudioOutputDevice(dev) } }
 
@@ -3236,7 +3236,7 @@ class PlayerActivity : ComponentActivity() {
                 MediaPlayer.Event.Playing -> {
                     isPlayingState.value = true; refreshPipIfActive()
                     dvrSeek.onPlaying()   // M594
-                    stallPlayingSeen = true; stallSamples = 0   // M539
+                    stall.onPlaying()   // M539
                     if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }  // M392-fix2
                     maybeApplyAfr()  // AFR (M346): prepni Hz displeja podla fps streamu
                     keepScreenOn(true)  // pocas prehravania nedovol setric/ambient na boxoch
@@ -3298,80 +3298,17 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * M539: hlidac zaseknuteho vystupu.
-     *
-     * Na Strongu (Amlogic) po prebudeni zo standby a krátko po boote AudioTrack
-     * neodobera data: kanal hra bez zvuku, `time` sa nehybe, a kazde
-     * stop()/set_media (prepnutie kanala, reconnect, zavretie) by na hlavnom
-     * vlakne cakalo na audio dekoder donekonecna (ANR; bugreport 1. 9. 2026).
-     * libVLC drzi aout v input_resource a znovu ho pouziva pre dalsie vstupy,
-     * takze prepnutie kanala na tom istom MediaPlayeri mrtvy AudioTrack nevymeni.
-     * Jedina cesta je novy MediaPlayer (novy aout) — stary sa uvolni na pozadi.
-     *
-     * Kazdu sekundu: ak hra (Playing uz prislo), demux cita, ale playedAbuffers
-     * sa nezmenil (M539-fix; povodne `time`, ten vsak pri mrtvom zvuku bezi dalej
-     * podla obrazu), pocitame vzorky. >= STALL_GUARD -> outputStalled() a kazde dalsie spustenie media ide
-     * cez novy prehravac (ensureHealthyPlayer). >= STALL_RECREATE -> automaticka
-     * obnova a znovunaladenie aktualneho kanala (max STALL_MAX_RECREATES za sebou;
-     * pocitadlo sa nuluje, ked cas zacne bezat).
-     */
-    private val stallHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private var stallLastAudio = -1
-    private var stallLastDemux = -1
-    private var stallSamples = 0
-    private var stallPlayingSeen = false
-    private var stallRecreates = 0
-    private val stallTick = object : Runnable {
-        override fun run() {
-            if (playerTornDown || !::mediaPlayer.isInitialized) return
-            val mp = mediaPlayer
-            val playing = runCatching { mp.isPlaying }.getOrDefault(false)
-            // M539-fix: `time` nestaci — pri mrtvom AudioTracku obraz bezi dalej
-            // (hodiny ma PCR), stoji len zvuk. Preto libVLC statistiky: demux cita
-            // (demuxReadBytes rastie), ale audio buffre sa neprehravaju
-            // (playedAbuffers stoji) = zvukovy vystup je zaseknuty.
-            var audio = -1; var demux = -1
-            val m = runCatching { mp.media }.getOrNull()
-            if (m != null) {
-                runCatching { m.stats }.getOrNull()?.let { st -> audio = st.playedAbuffers; demux = st.demuxReadBytes }
-                runCatching { m.release() }
-            }
-            val hasAudioTrack = runCatching { mp.audioTrack }.getOrDefault(-1) != -1
-            val demuxAlive = demux >= 0 && demux != stallLastDemux
-            val audioStuck = audio >= 0 && audio == stallLastAudio
-            if (playing && stallPlayingSeen && hasAudioTrack && demuxAlive && audioStuck) {
-                stallSamples++
-            } else {
-                stallSamples = 0
-                if (audio > 0 && audio != stallLastAudio) stallRecreates = 0
-            }
-            stallLastAudio = audio
-            stallLastDemux = demux
-            if (stallSamples >= STALL_RECREATE && !seekablePlayback && !reconnectingState.value &&
-                stallRecreates < STALL_MAX_RECREATES
-            ) {
-                stallRecreates++
-                stallSamples = 0
-                CrashLogger.report(
-                    this@PlayerActivity, "PlayerActivity.stall",
-                    "audio output stalled ${STALL_RECREATE}s (playedAbuffers=$audio, demux=$demux) -> new player #$stallRecreates"
-                )
-                recreatePlayer()
-                replayCurrentLive()
-            }
-            stallHandler.postDelayed(this, 1000)
-        }
+    // M539 / M649: hlidac zaseknuteho zvukoveho vystupu v StallWatchdog.kt
+    private val stall: StallWatchdog by lazy {
+        StallWatchdog(this,
+            player = { if (!playerTornDown && ::mediaPlayer.isInitialized) mediaPlayer else null },
+            recreateAllowed = { !seekablePlayback && !reconnectingState.value },
+            onRecreate = { recreatePlayer(); replayCurrentLive() })
     }
-    private fun startStallWatch() {
-        stallHandler.removeCallbacksAndMessages(null)
-        stallHandler.postDelayed(stallTick, 1000)
-    }
-    private fun resetStallState() {
-        stallLastAudio = -1; stallLastDemux = -1; stallSamples = 0; stallPlayingSeen = false
-    }
-    /** Vystup nereaguje (cas sa pri prehravani nehybe) — stop() by zablokoval hlavne vlakno. */
-    private fun outputStalled(): Boolean = stallPlayingSeen && stallSamples >= STALL_GUARD
+    private fun startStallWatch() { stall.start() }
+    private fun resetStallState() { stall.reset() }
+    /** Vystup nereaguje (zvuk sa pri prehravani nehybe) — stop() by zablokoval hlavne vlakno. */
+    private fun outputStalled(): Boolean = stall.outputStalled()
 
     /** Pred kazdym novym mediom: ak je vystup zaseknuty, vymen prehravac (bez cakania). */
     private fun ensureHealthyPlayer() {
@@ -3465,7 +3402,7 @@ class PlayerActivity : ComponentActivity() {
     private fun teardownPlayerAsync() {
         if (playerTornDown) return
         playerTornDown = true
-        stallHandler.removeCallbacksAndMessages(null)   // M539
+        stall.destroy()   // M539
         htspFeeder?.stop(); htspFeeder = null
         httpFeeder?.stop(); httpFeeder = null
         if (!::mediaPlayer.isInitialized) {
@@ -3597,9 +3534,6 @@ class PlayerActivity : ComponentActivity() {
         /** M539-fix2: generacia video surface (kluc AndroidView) — zvysenie = novy SurfaceView. */
         val videoSurfaceGen = androidx.compose.runtime.mutableStateOf(0)
         // M539: hlidac zaseknuteho vystupu (sekundove vzorky)
-        private const val STALL_GUARD = 3
-        private const val STALL_RECREATE = 5
-        private const val STALL_MAX_RECREATES = 4
         const val EXTRA_UUID = "channel_uuid"
         const val EXTRA_TITLE = "channel_title"
         const val EXTRA_RETURN_UUID = "return_live_uuid"
