@@ -3023,114 +3023,36 @@ private fun PlayerUi(
     }
 
     // Aktualizuj poziciu kazdu sekundu (len ked je seekable a netiahneme)
+    // M662: telo tickera vyclanene do DvrPositionTicker.kt (JVM 64 KB limit metody).
     if (seekable) {
-        LaunchedEffect(Unit) {
-            var sinceSave = 0
-            while (true) {
-                val nowMs = System.currentTimeMillis()
-                val curLen = lengthMsLive.value
-                val curOff = offsetMsLive.value
-                // dosiahnutelny rozsah (bez rezervy) - playhead ani znovu-otvorenie nejde do nej
-                val curBar = if (recordingLive) (curLen - liveMarginMs).coerceAtLeast(1L) else curLen
-                // Po pretoceni (seekDvrTo): prevezmi cielovy cas ako playhead. Pri feeder/pipe
-                // je player.position po restarte neplatna, tak ju nasledny resync nesmie citat -
-                // seed da hodinam spravny bod a tikaju dalej z neho (initialSeekDone=true zaroven
-                // umlci jednorazovy skok na zaciatok relacie).
-                val seed = seekSeedLive.value          // M495-fix: cerstva hodnota
-                // M495-fix2: pockaj na znamu dlzku. Ked ju prehravac este nepozna
-                // (curLen == 0 — pomale nacitanie media alebo zlyhany pokus),
-                // coerceIn(0, curBar) by ciel orezal na NULU a seed by sa navyse
-                // spotreboval — hodiny by tikali od zaciatku. Seed nechame cakat
-                // na dalsi tik; dovtedy ho nikto iny neprepise.
-                if (seed >= 0L && curLen > 0) {
-                    posTimeMs = seed.coerceIn(0L, curBar)
-                    val denom = (curOff + curLen).coerceAtLeast(1L)
-                    posFraction = ((curOff + posTimeMs).toFloat() / denom).coerceIn(0f, 1f)
-                    initialSeekDone = true
-                    rebuiltBySeek = true      // M495
-                    onSeekSeedHandledLive.value()
-                }
-                // obnovenie po potvrdeni (ma prednost pred skokom na zaciatok relacie).
-                // POZOR: priame player.position pri pipe/feeder DVR nefunguje (a
-                // isSeekable byva false, takze sa skok nikdy nevykonal a nahravka
-                // isla od zaciatku) — pouzi tu istu cestu ako pouzivatelske
-                // pretocenie (onSeekToMs -> seekDvrAbsolute: restart s :start-time,
-                // playhead hodiny prevezmu seed).
-                if (pendingResumeMs > 0 && curLen > 0) {
-                    val tgt = pendingResumeMs.coerceIn(0L, curBar)
-                    onSeekToMs(tgt)
-                    posTimeMs = tgt
-                    posFraction = ((curOff + tgt).toFloat() / (curOff + curLen).coerceAtLeast(1L)).coerceIn(0f, 1f)
-                    pendingResumeMs = 0
-                    initialSeekDone = true
-                }
-                // Jednorazovy skok na zaciatok relacie v subore (prebiehajuca nahravka s
-                // predprogramovym obsahom). Seekujeme POZICIOU (zlomok), nie setTime - na
-                // rastucom TS je to spolahlivejsie. Zlomok = offset / (offset + uplynuty cas
-                // relacie) = poloha zaciatku relacie v aktualnom buffri.
-                if (!initialSeekDone && recordingLive && curOff > 0 &&
-                    !askResume && pendingResumeMs == 0L && curLen > 0 && player.isSeekable) {
-                    val f = (curOff.toFloat() / (curOff + curLen)).coerceIn(0f, 1f)
-                    player.position = f
-                    posFraction = f
-                    posTimeMs = 0L
-                    initialSeekDone = true
-                }
-                if (!dragging) {
-                    val p = player.position
-                    if (p in 0f..1f) {
-                        // Skok pozicie = doslo k seeku (slider/D-pad/dvojklik) -> zosulad
-                        // prehravacie hodiny so skutocnou poziciou. Mapujeme subor->cas relacie:
-                        // (p * (offset + dlzka)) - offset. Pri normalnom prehravani sa p meni
-                        // plynulo (<<5%), takze sa to nespusti a hodiny tikaju z wall-clocku.
-                        // p > 0.02: ignoruj falosne nulove citanie pozicie (caste na rastucom TS
-                        // aj tesne po znovu-otvoreni), nech hodiny neskocia na 0.
-                        // M495: len kym je medium povodne. Po pretoceni (prebudovane
-                        // s :start-time) by tento prepocet hodiny zresetoval takmer na
-                        // nulu a tikali by od zleho bodu — presne to sposobovalo, ze
-                        // dalsie pretocenie islo z davno prehratej pozicie.
-                        if (!rebuiltBySeek && initialSeekDone && curLen > 0 && p > 0.02f &&
-                            player.isSeekable && kotlin.math.abs(p - posFraction) > 0.05f) {
-                            posTimeMs = (p * (curOff + curLen) - curOff).toLong()
-                                .coerceIn(0L, curBar)
-                        }
-                        if (!rebuiltBySeek) posFraction = p
-                    }
-                    // Prehravacie hodiny: kym sa prehrava, pridavaj realny uplynuly cas.
-                    if (lastPlayTickMs > 0L && player.isPlaying) {
-                        val d = (nowMs - lastPlayTickMs).coerceIn(0L, 3000L)
-                        posTimeMs = (posTimeMs + d).coerceIn(0L, curBar)
-                    }
-                    // M495: po prebudovani media je zlomok z player.position neplatny,
-                    // takze poloha na lište musi vychadzat z hodin (inak by ukazovatel
-                    // skocil na zaciatok a nesedel by s casom).
-                    if (rebuiltBySeek) {
-                        val denom = (curOff + curLen).coerceAtLeast(1L)
-                        posFraction = ((curOff + posTimeMs).toFloat() / denom).coerceIn(0f, 1f)
-                    }
-                    // Zrkadli playhead do Activity — potrebuju ho znovu-otvorenie
-                    // in-progress streamu AJ pretacanie (seekRelative/dvojklik z neho
-                    // beru vychodziu poziciu).
-                    // M492: bolo `if (recordingLive)`, takze pri DOKONCENEJ nahravke
-                    // z archivu playhead v Activity zamrzol na hodnote posledneho seeku
-                    // a kazde dalsie pretocenie islo od nej, nie od miesta, kde sa hra.
-                    onPlayheadMs(posTimeMs)
-                }
-                lastPlayTickMs = nowMs
-                // Koniec dostupnych dat in-progress nahravky (EOF) riesi reopenDvrLive (znovu
-                // otvori stream a pokracuje do novsich dat). Seek clamp (45 s) drzi playhead
-                // bezpecne za zivou hranou, takze pri normalnom prehravani sa na EOF nenarazi.
-                // priebezne ukladaj poziciu (kazdych ~5s) - z prehravacich hodin (spolahlive)
-                sinceSave++
-                if (sinceSave >= 5 && !askResume) {
-                    sinceSave = 0
-                    if (posTimeMs > 1000L && curLen > 0 && dvrUuid != null && serverId != null) {
-                        WatchProgress.save(ctx, serverId, dvrUuid, posTimeMs.coerceAtMost(curLen), curLen)
-                    }
-                }
-                kotlinx.coroutines.delay(1000)
-            }
-        }
+        DvrPositionTicker(
+            player = player,
+            ctx = ctx,
+            lengthMsLive = lengthMsLive,
+            offsetMsLive = offsetMsLive,
+            seekSeedLive = seekSeedLive,
+            onSeekSeedHandledLive = onSeekSeedHandledLive,
+            recordingLive = recordingLive,
+            liveMarginMs = liveMarginMs,
+            dvrUuid = dvrUuid,
+            serverId = serverId,
+            posTimeMs = { posTimeMs },
+            onPosTimeMsSet = { posTimeMs = it },
+            posFraction = { posFraction },
+            onPosFractionSet = { posFraction = it },
+            initialSeekDone = { initialSeekDone },
+            onInitialSeekDoneSet = { initialSeekDone = it },
+            rebuiltBySeek = { rebuiltBySeek },
+            onRebuiltBySeekSet = { rebuiltBySeek = it },
+            pendingResumeMs = { pendingResumeMs },
+            onPendingResumeMsSet = { pendingResumeMs = it },
+            lastPlayTickMs = { lastPlayTickMs },
+            onLastPlayTickMsSet = { lastPlayTickMs = it },
+            askResume = { askResume },
+            dragging = { dragging },
+            onSeekToMs = onSeekToMs,
+            onPlayheadMs = onPlayheadMs,
+        )
     }
 
     // Live priebeh aktualnej relacie (z EPG): tika po sekundach
@@ -3191,49 +3113,14 @@ private fun PlayerUi(
         }
     }
 
-    // Auto-vyber audio stopy po nacitani: 1) zapamatana pre kanal, 2) jazykove
-    // priority (AD/narrated stopy preskakujeme), 3) fallback mimo AD stopy.
-    // M378: kluc = liveChannelUuid, nech vyber prebehne aj pri prepnuti kanala
-    // v ramci prehravaca (predtym LaunchedEffect(Unit) bezal len raz).
-    LaunchedEffect(liveChannelUuid) {
-        repeat(30) {
-            kotlinx.coroutines.delay(500)
-            val real = player.audioTracks?.filter { it.id >= 0 } ?: emptyList()
-            if (real.size >= 2) {
-                val remembered = if (liveChannelUuid != null && serverId != null)
-                    ChannelPrefs.getLastAudio(ctx, serverId, liveChannelUuid) else ""
-                if (remembered.isNotBlank()) {
-                    val m = real.firstOrNull { (it.name ?: "") == remembered }
-                        ?: real.firstOrNull { (it.name ?: "").contains(remembered) }
-                    if (m != null) {
-                        if (player.audioTrack != m.id) player.audioTrack = m.id
-                        return@LaunchedEffect
-                    }
-                }
-                for (code in preferredAudio) {
-                    // M378: v ramci jazyka preferuj beznu stopu pred AD/narrated
-                    // (obe casto nesu rovnaky jazykovy kod, napr. "English" a
-                    // "English AD" — predtym vyhrala ta, co bola v zozname prva)
-                    val cands = real.filter { AudioPref.matches(it.name ?: "", code) }
-                    val m = cands.firstOrNull { !AudioPref.isDescriptive(it.name ?: "") }
-                        ?: cands.firstOrNull()
-                    if (m != null) {
-                        if (player.audioTrack != m.id) player.audioTrack = m.id
-                        return@LaunchedEffect
-                    }
-                }
-                // M378: ziadna jazykova zhoda — ak by default (aktualna stopa)
-                // bol AD/narrated, prepni na prvu beznu stopu. Riesi kanaly,
-                // kde je AD stopa prva v poradi a vyhrala by ako default.
-                val curName = real.firstOrNull { it.id == player.audioTrack }?.name ?: ""
-                if (AudioPref.isDescriptive(curName)) {
-                    val plain = real.firstOrNull { !AudioPref.isDescriptive(it.name ?: "") }
-                    if (plain != null && player.audioTrack != plain.id) player.audioTrack = plain.id
-                }
-                return@LaunchedEffect
-            }
-        }
-    }
+    // M662: auto-vyber audio stopy (M378) je v AudioAutoSelect.kt
+    AudioAutoSelectEffect(
+        player = player,
+        ctx = ctx,
+        liveChannelUuid = liveChannelUuid,
+        serverId = serverId,
+        preferredAudio = preferredAudio
+    )
 
     LaunchedEffect(controlsVisible, menu, controlsPoke, dragging) {
         if (controlsVisible && menu == null && !dragging) {
@@ -3273,33 +3160,15 @@ private fun PlayerUi(
                   && !showChannelList && !showOptions && !returnLiveOnBack && !showInfo
     ) { onRequestExit() }
 
-    // M266: predbezne nacitanie EPG (now/next) na pozadi kratko po starte prehravaca,
-    // aby prvy otvoreny zoznam kanalov mal data uz z cache (epgUpcomingState) bez sietoveho
-    // cakania. Bezi na IO (refreshOverlayEpg), stream nabehne prvy a UI sa neblokuje.
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(1200)
-        onPrefetchEpg()   // M274: refresh len ak je cache prazdna/zastarana
-    }
-
-    // Kym je zoznam kanalov otvoreny, obnovuj EPG (now/next) aby relacie
-    // postupne prechadzali na dalsie
-    // M522: obnovuj EPG a nahravaci priznak (cervena bodka), kym je otvoreny plny
-    // zoznam kanalov ALEBO vodorovny pas. Doteraz to platilo len pre plny zoznam,
-    // takze v pase sa bodky objavovali neskoro alebo vobec — a stav tlacidla
-    // nahravania v „Viac" bol podla toho tiez nespolahlivy.
-    // Jeden efekt namiesto dvoch: PlayerUi je tesne pod 64 KB limitom metody.
-    // M525: aj MODERNY PAS (modernOvVisible) — ten sa neriadi `controlsVisible`,
-    // takze podmienka z M522 sa nan vobec nevztahovala a cervene bodky v nom
-    // nabiehali az potom, co ich stiahol velky zoznam kanalov.
-    LaunchedEffect(showChannelList || controlsVisible || modernOvVisible) {
-        if (showChannelList || controlsVisible || modernOvVisible) {
-            onRefreshEpgInitial()   // M270: prve nacitanie so spinnerom (len ak je cache prazdna/zastarana)
-            while (true) {
-                kotlinx.coroutines.delay(60_000)
-                onRefreshEpg()      // periodicky refresh bez spinnera
-            }
-        }
-    }
+    // M662: EPG efekty (M266 prefetch + M522/M525 periodicky refresh) su v PlayerEpgEffects.kt
+    PlayerEpgEffects(
+        showChannelList = showChannelList,
+        controlsVisible = controlsVisible,
+        modernOvVisible = modernOvVisible,
+        onPrefetchEpg = onPrefetchEpg,
+        onRefreshEpgInitial = onRefreshEpgInitial,
+        onRefreshEpg = onRefreshEpg
+    )
 
     Box(
         Modifier
