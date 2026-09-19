@@ -1748,9 +1748,28 @@ class PlayerActivity : ComponentActivity() {
     private fun hideZapBar() { zapBar.hide() }
     private fun showZapBar() { zapBar.show(liveChannelsState.value.getOrNull(liveIndexState.value)) }
 
-    // Kedy sa zoznam otvoril — OK eventy tesne po otvoreni (zvysky otvaracieho
-    // dlheho stlacenia, ghost DOWN/UP pary z IR/CEC ovladacov) sa ignoruju (M330-fix2)
-    private var channelListOpenedAt = 0L
+    private val listKeys: ChannelListKeys by lazy {
+        ChannelListKeys(this, live, groups, search, reorder, navChannelIndexState, groupPickerState,
+            object : ChannelListKeys.Actions {
+                override var okLongFired: Boolean
+                    get() = this@PlayerActivity.okLongFired
+                    set(v) { this@PlayerActivity.okLongFired = v }
+                override fun openContextMenu(idx: Int) { openChannelContextMenu(idx) }
+                override fun closeList() { closeChannelList() }
+                override fun switchDelayed(idx: Int) {
+                    // M600-fix: pockaj, kym sa video vrati z nahladoveho obdlznika na celu obrazovku
+                    lifecycleScope.launch {
+                        kotlinx.coroutines.delay(320)
+                        switchToIndex(idx, poke = false)
+                    }
+                }
+                override fun selectOrArchive(idx: Int) { selectChannelOrArchive(idx, poke = false) }
+                override fun reselectCurrent() {
+                    closeChannelList()
+                    if (modernTvActive()) openModernOverlay() else showControlsFocused()
+                }
+            })
+    }
     /** M605: dlazdica „TV kanaly" / „Radia" otvorila prehravac so zoznamom hned pri starte. */
     private var listFirst = false
 
@@ -1764,7 +1783,7 @@ class PlayerActivity : ComponentActivity() {
         activeGroupLabelState.value =
             if (groupKeys().size > 1) groupLabelFor(LivePlaylist.activeGroupKey) else ""
         navChannelIndexState.value = liveIndex.coerceAtLeast(0)
-        channelListOpenedAt = android.os.SystemClock.uptimeMillis()
+        listKeys.openedAt = android.os.SystemClock.uptimeMillis()
         openChannelListState.value = openChannelListState.value + 1
     }
     private fun closeChannelList() {
@@ -2027,130 +2046,10 @@ class PlayerActivity : ComponentActivity() {
             }
         }
 
-        // 1) Otvoreny zoznam kanalov -> navigujeme my
+        // 1) Otvoreny zoznam kanalov -> navigujeme my (M645: ChannelListKeys)
         if (channelListOpen) {
-            val n = liveUuids.size
-            // M370: aktivne hladanie, fokus na vysledkoch (pole riesi skory bypass vyssie)
-            if (search.isActive) {
-                if (search.handleResultsKey(kc, down)) return true
-                when (kc) {
-                    android.view.KeyEvent.KEYCODE_VOLUME_UP,
-                    android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
-                    android.view.KeyEvent.KEYCODE_VOLUME_MUTE -> return super.dispatchKeyEvent(event)
-                }
-                return true
-            }
-            val isOk = kc == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
-                kc == android.view.KeyEvent.KEYCODE_ENTER ||
-                kc == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
-            // M369: fokus na pilulke skupiny (nad zoznamom) — VLAVO/VPRAVO meni skupinu,
-            // DOLE/OK naspat do zoznamu, HORE nic, BACK zavrie pilulku.
-            if (groupPickerState.value) {
-                if (down) {
-                    when (kc) {
-                        android.view.KeyEvent.KEYCODE_DPAD_LEFT -> { cycleGroup(-1); return true }
-                        android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> { cycleGroup(+1); return true }
-                        android.view.KeyEvent.KEYCODE_DPAD_DOWN,
-                        android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-                        android.view.KeyEvent.KEYCODE_ENTER,
-                        android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> { groupPickerState.value = false; return true }
-                        android.view.KeyEvent.KEYCODE_DPAD_UP -> { search.open(); return true }
-                        android.view.KeyEvent.KEYCODE_BACK -> { groupPickerState.value = false; return true }
-                    }
-                }
-                when (kc) {
-                    android.view.KeyEvent.KEYCODE_VOLUME_UP,
-                    android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
-                    android.view.KeyEvent.KEYCODE_VOLUME_MUTE -> return super.dispatchKeyEvent(event)
-                }
-                return true
-            }
-            // M541: rezim usporiadania oblubenych ma prednost pred beznou navigaciou
-            if (reorder.active) {
-                when (kc) {
-                    android.view.KeyEvent.KEYCODE_VOLUME_UP,
-                    android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
-                    android.view.KeyEvent.KEYCODE_VOLUME_MUTE -> return super.dispatchKeyEvent(event)
-                }
-                reorder.handleKey(kc, down, isOk)
-                return true
-            }
-            if (isOk) {
-                // pocas drzania otvaracieho OK (a jeho opakovani) nereaguj
-                if (okLongFired) return true
-                // M596: rezim „jedno OK" — kratsie ochranne okno a prepnutie hned
-                // pri stlaceni (bez cakania na uvolnenie a bez otazky na archiv)
-                val oneOk = OneOkPref.get(this)
-                // debounce po otvoreni: niektore ovladace (IR/CEC) poslu po dlhom
-                // stlaceni este ghost DOWN/UP par — ten by okamzite potvrdil kanal
-                // a zoznam zavrel; vsetko OK do 400 ms od otvorenia sa zahodi
-                val guardMs = if (oneOk) 150L else 400L
-                if (android.os.SystemClock.uptimeMillis() - channelListOpenedAt < guardMs) return true
-                if (down) {
-                    // podrzanie OK v zozname = kontextove menu kanala (Info / od zaciatku / zamok)
-                    if (event.isLongPress && n > 0) {
-                        okLongFired = true               // OK-up sa potom prehltne (nevyberie kanal)
-                        openChannelContextMenu(navChannelIndexState.value)
-                        return true
-                    }
-                    return true                          // na DOWN nevyberaj (cakame na uvolnenie)
-                } else if (n > 0) {
-                    if (oneOk) {
-                        // M596-fix: jedno OK = kanal sa spusti rovno na celu obrazovku.
-                        // Bez volby sa prvym OK kanal len prepne (zoznam ostane cez obraz)
-                        // a az druhe OK zoznam zavrie.
-                        // M596-fix2: prepina sa az pri UVOLNENI — prepnutie hned pri
-                        // stlaceni zhltlo aj podrzanie OK, takze sa kontextove menu
-                        // (odkryt / info / od zaciatku) v tomto rezime nedalo otvorit.
-                        val idx = navChannelIndexState.value
-                        // M600-fix: zoznam zatvor a s prepnutim POCKAJ, kym sa video
-                        // vrati z nahladoveho obdlznika na celu obrazovku. Novy stream
-                        // inak nabehol este do maleho okna a divak videl stvorcek v rohu.
-                        // (Cierne prekrytie nepomohlo — SurfaceView sa kresli POD oknom
-                        // aplikacie, takze ho Compose prvky neprekryju.)
-                        closeChannelList()
-                        if (idx != liveIndex) lifecycleScope.launch {
-                            kotlinx.coroutines.delay(320)
-                            switchToIndex(idx, poke = false)
-                        }
-                        return true
-                    }
-                    // uvolnenie OK (kratky klik) = vyber/prepnutie kanala
-                    if (navChannelIndexState.value == liveIndexState.value) {
-                        closeChannelList()
-                        if (modernTvActive()) openModernOverlay() else showControlsFocused()
-                    }
-                    else selectChannelOrArchive(navChannelIndexState.value, poke = false)
-                }
-                return true
-            }
-            if (down && n > 0) {
-                when (kc) {
-                    android.view.KeyEvent.KEYCODE_DPAD_UP -> {
-                        // z vrchu zoznamu HORE -> fokus na pilulku skupiny (ak su nejake skupiny)
-                        if (navChannelIndexState.value == 0 && groupKeys().size > 1) {
-                            groupPickerState.value = true
-                        } else {
-                            navChannelIndexState.value = (navChannelIndexState.value - 1 + n) % n
-                        }
-                        return true
-                    }
-                    android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
-                        { navChannelIndexState.value = (navChannelIndexState.value + 1) % n; return true }
-                    android.view.KeyEvent.KEYCODE_DPAD_LEFT ->
-                        { navChannelIndexState.value = (navChannelIndexState.value - 7).coerceIn(0, n - 1); return true }
-                    android.view.KeyEvent.KEYCODE_DPAD_RIGHT ->
-                        { navChannelIndexState.value = (navChannelIndexState.value + 7).coerceIn(0, n - 1); return true }
-                    android.view.KeyEvent.KEYCODE_BACK ->
-                        { closeChannelList(); return true }
-                }
-            }
-            when (kc) {
-                android.view.KeyEvent.KEYCODE_VOLUME_UP,
-                android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
-                android.view.KeyEvent.KEYCODE_VOLUME_MUTE -> return super.dispatchKeyEvent(event)
-            }
-            return true
+            if (listKeys.handleKey(kc, down, event)) return true
+            return super.dispatchKeyEvent(event)   // hlasitost
         }
 
         // 2) Otvoreny vyber casovaca uspatia -> vertikalna navigacia
