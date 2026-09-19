@@ -1683,42 +1683,34 @@ class PlayerActivity : ComponentActivity() {
     private val prevChannelCb: () -> Unit = { switchLive(-1) }
     private val nextChannelCb: () -> Unit = { switchLive(+1) }
 
-    // --- Kontextove menu kanala v prehravaci (long-press OK / dlhy klik) ---
-    private val ctxMenuIdxState = androidx.compose.runtime.mutableStateOf(-1)  // index kanala, -1 = zatvorene
-    private val ctxMenuSelState = androidx.compose.runtime.mutableStateOf(0)    // zvyraznena polozka
-
-    /** Polozky menu pre dany kanal (v poradi). "lock" len ak je zamok zapnuty,
-     *  "fromstart" len ak sa relacia prave nahrava (da sa prehrat od zaciatku). */
-    private fun ctxMenuKeys(idx: Int): List<String> {
-        val ch = liveChannelsState.value.getOrNull(idx) ?: return emptyList()
-        val keys = mutableListOf("info")
-        if (recInProgressByChan.value.let { it[ch.uuid] ?: it[ch.name] } != null) keys.add("fromstart")
-        // M607: nahrat prave beziacu relaciu vybrateho kanala priamo zo zoznamu
-        // (kanal nemusi hrat) — len ked mame jej EPG s eventId a este sa nenahrava
-        else if (dvrCanRecordState.value && ctxMenuEvent(ch) != null) keys.add("rec")
-        // M368: oblubene a skrytie kanala aj na TV (predtym len na telefone)
-        keys.add("fav")
-        // M541: usporiadanie oblubenych (len v skupine Oblubene, len D-pad)
-        if (LivePlaylist.activeGroupKey == LivePlaylist.GROUP_FAV && liveChannelsState.value.size > 1) keys.add("reorder")
-        if (ParentalLock.isEnabled(this)) keys.add("lock")
-        // M541-fix: skryty kanal (kdekolvek, nie len v skupine Skryte) -> „Odkryt kanal"
-        val sidH = (liveServer ?: Tvh.store.active())?.id
-        val hiddenCh = LivePlaylist.activeGroupKey == LivePlaylist.GROUP_HIDDEN ||
-            HiddenChannels.isHidden(this, sidH, ch.uuid)
-        keys.add(if (hiddenCh) "unhide" else "hide")
-        return keys
+    // --- Kontextove menu kanala v prehravaci (long-press OK / dlhy klik) — ChannelContextMenu.kt (M641) ---
+    private val ctxMenu by lazy {
+        ChannelContextMenu(this, live, groups,
+            epgUpcoming = { epgUpcomingState.value },
+            recInProgress = { recInProgressByChan.value },
+            canRecord = { dvrCanRecordState.value },
+            navIndex = navChannelIndexState,
+            okLongFired = { okLongFired },
+            actions = object : ChannelContextMenu.Actions {
+                override fun showInfo(idx: Int) = showChannelInfo(idx)
+                override fun playFromStart(rec: sk.tvhclient.shared.model.DvrEntry, nowStart: Long, nowStop: Long) =
+                    playRecordingFromStart(rec, nowStart, nowStop)
+                override fun switchTo(idx: Int) = switchToIndex(idx)
+                override fun toggleLock(idx: Int) = toggleLockAt(idx)
+                override fun record(ch: LivePlaylist.LiveChannel, ev: sk.tvhclient.shared.model.EpgEvent) = recordFromCtxMenu(ch, ev)
+                override fun enterReorder() = enterReorderMode()
+            })
     }
-
-    /** M607: prave beziaca relacia kanala (z now/next cache), ak ma eventId. */
-    private fun ctxMenuEvent(ch: LivePlaylist.LiveChannel): sk.tvhclient.shared.model.EpgEvent? {
-        val nowSec = System.currentTimeMillis() / 1000
-        return epgUpcomingState.value[ch.uuid]
-            ?.firstOrNull { it.start <= nowSec && nowSec < it.stop && it.eventId != null }
-    }
+    private val ctxMenuIdxState get() = ctxMenu.idxState
+    private val ctxMenuSelState get() = ctxMenu.selState
+    private fun ctxMenuKeys(idx: Int): List<String> = ctxMenu.keys(idx)
+    private fun openChannelContextMenu(idx: Int) = ctxMenu.open(idx)
+    private fun closeChannelContextMenu() = ctxMenu.close()
+    private fun toggleFavoriteAt(idx: Int, announce: Boolean) = ctxMenu.toggleFavoriteAt(idx, announce)
+    private fun activateCtxMenu(key: String) = ctxMenu.activate(key)
 
     /** M607: nahravanie z kontextovej ponuky — s volitelnym vyberom profilu (M606). */
-    private fun recordFromCtxMenu(ch: LivePlaylist.LiveChannel) {
-        val ev = ctxMenuEvent(ch) ?: return
+    private fun recordFromCtxMenu(ch: LivePlaylist.LiveChannel, ev: sk.tvhclient.shared.model.EpgEvent) {
         val srv = Tvh.store.active() ?: return
         lifecycleScope.launch {
             val opts = DvrProfileAsk.options(this@PlayerActivity, srv)
@@ -1751,104 +1743,6 @@ class PlayerActivity : ComponentActivity() {
             },
             android.widget.Toast.LENGTH_LONG
         ).show()
-    }
-
-    private fun openChannelContextMenu(idx: Int) {
-        if (idx < 0 || idx >= liveChannelsState.value.size) return
-        if (ctxMenuKeys(idx).isEmpty()) return
-        ctxMenuSelState.value = 0
-        ctxMenuIdxState.value = idx
-    }
-    private fun closeChannelContextMenu() { ctxMenuIdxState.value = -1 }
-
-    /**
-     * Pridanie/odobratie kanala z oblubenych (kontextova ponuka, M579: klaves ZALOZKA
-     * na ovladaci). [announce] ukaze potvrdenie — pri klavese bez ponuky by inak
-     * pouzivatel nevidel, co sa stalo.
-     */
-    private fun toggleFavoriteAt(idx: Int, announce: Boolean) {
-        val ch = liveChannelsState.value.getOrNull(idx) ?: return
-        val sid = (liveServer ?: Tvh.store.active())?.id ?: return
-        Favorites.toggle(this, sid, ch.uuid)
-        val nowFav = Favorites.isFav(this, sid, ch.uuid)
-        refreshFavOrder()   // M541
-        // M541: v skupine Oblubene sa zoznam zmenil (odobrany kanal / precislovanie)
-        if (LivePlaylist.activeGroupKey == LivePlaylist.GROUP_FAV) {
-            if (LivePlaylist.favChannels().isEmpty()) applyGroup(LivePlaylist.GROUP_ALL) else applyGroup(LivePlaylist.GROUP_FAV)
-            navChannelIndexState.value = navChannelIndexState.value.coerceIn(0, (liveUuids.size - 1).coerceAtLeast(0))
-        }
-        if (announce) {
-            Toast.makeText(this, getString(if (nowFav) R.string.fav_added else R.string.fav_removed, ch.name), Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun activateCtxMenu(key: String) {
-        val idx = ctxMenuIdxState.value
-        val ch = liveChannelsState.value.getOrNull(idx)
-        closeChannelContextMenu()
-        if (ch == null) return
-        when (key) {
-            "info" -> showChannelInfo(idx)                       // detail relacie priamo v prehravaci
-            "fromstart" -> {
-                val rec = recInProgressByChan.value.let { it[ch.uuid] ?: it[ch.name] }
-                if (rec != null) playRecordingFromStart(rec, ch.nowStart, ch.nowStop)
-                else if (idx != liveIndex) switchToIndex(idx)     // ak kanal este nehra a nie je archiv -> aspon prepni nazivo
-            }
-            "lock" -> toggleLockAt(idx)                           // uz riesi PIN + grace okno
-            "fav" -> toggleFavoriteAt(idx, announce = false)
-            "rec" -> recordFromCtxMenu(ch)   // M607
-            "reorder" -> enterReorderMode()   // M541
-            "unhide" -> {
-                // M541: odkryt kanal — spat medzi vsetky kanaly (podla cisla), von zo Skrytych
-                val sid = (liveServer ?: Tvh.store.active())?.id
-                if (sid != null) {
-                    HiddenChannels.setHidden(this, sid, ch.uuid, false)
-                    LivePlaylist.hiddenChannels = LivePlaylist.hiddenChannels.filter { it.uuid != ch.uuid }
-                    if (LivePlaylist.allChannels.none { it.uuid == ch.uuid }) {
-                        LivePlaylist.allChannels = (LivePlaylist.allChannels + ch)
-                            .sortedWith(compareBy({ if (it.number > 0) it.number else Int.MAX_VALUE }, { it.name.lowercase() }))
-                    }
-                    if (LivePlaylist.activeGroupKey == LivePlaylist.GROUP_HIDDEN) {
-                        if (LivePlaylist.hiddenChannels.isEmpty()) applyGroup(LivePlaylist.GROUP_ALL)
-                        else {
-                            applyGroup(LivePlaylist.GROUP_HIDDEN)
-                            navChannelIndexState.value = idx.coerceIn(0, (liveUuids.size - 1).coerceAtLeast(0))
-                        }
-                    } else if (LivePlaylist.activeGroupKey == LivePlaylist.GROUP_ALL) {
-                        applyGroup(LivePlaylist.GROUP_ALL)   // odkryty kanal sa objavi na svojom mieste
-                        navChannelIndexState.value = liveUuids.indexOf(ch.uuid).coerceAtLeast(0)
-                    }
-                }
-            }
-            "hide" -> {
-                val sid = (liveServer ?: Tvh.store.active())?.id
-                if (sid != null) {
-                    HiddenChannels.setHidden(this, sid, ch.uuid, true)
-                    // M541: presun do zoznamu skrytych (pseudo-skupina), von zo vsetkych.
-                    // Povodne cislo vezmi z allChannels (v Oblubenych je `ch.number` poradie 1..n).
-                    val orig = LivePlaylist.allChannels.firstOrNull { it.uuid == ch.uuid } ?: ch
-                    LivePlaylist.allChannels = LivePlaylist.allChannels.filter { it.uuid != ch.uuid }
-                    if (LivePlaylist.hiddenChannels.none { it.uuid == ch.uuid }) {
-                        LivePlaylist.hiddenChannels = LivePlaylist.hiddenChannels + orig
-                    }
-                    // Skryty kanal hned odstranit zo zap zoznamu (ak prave nehra);
-                    // posun liveIndex, aby CH+/- dalej sedeli.
-                    if (idx != liveIndex) {
-                        val cur = liveChannelsState.value.toMutableList()
-                        if (idx in cur.indices) {
-                            cur.removeAt(idx)
-                            liveChannelsState.value = cur
-                            LivePlaylist.channels = cur
-                            liveUuids = cur.map { it.uuid }
-                            liveNames = cur.map { it.name }
-                            if (idx < liveIndex) liveIndex--
-                            liveIndexState.value = liveIndex
-                            navChannelIndexState.value = navChannelIndexState.value.coerceIn(0, (cur.size - 1).coerceAtLeast(0))
-                        }
-                    }
-                }
-            }
-        }
     }
 
     // ===== M541 / M638: rezim usporiadania oblubenych (D-pad) — FavReorder.kt =====
@@ -2194,31 +2088,8 @@ class PlayerActivity : ComponentActivity() {
             kc == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
         if (okKey && !down && okLongFired) { okLongFired = false; return true }
 
-        // 0c) Kontextove menu kanala (long-press v zozname) -> hore/dole + OK (na uvolnenie) + BACK
-        if (ctxMenuIdxState.value >= 0) {
-            val keys = ctxMenuKeys(ctxMenuIdxState.value)
-            val cnt = keys.size
-            val isOkC = kc == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
-                kc == android.view.KeyEvent.KEYCODE_ENTER ||
-                kc == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
-            if (isOkC) {
-                if (okLongFired) return true                 // prehltni up z otvaracieho long-pressu
-                if (!down && cnt > 0) activateCtxMenu(keys.getOrElse(ctxMenuSelState.value) { keys.first() })
-                return true                                   // OK aktivuje az na uvolnenie
-            }
-            if (down && cnt > 0) {
-                when (kc) {
-                    android.view.KeyEvent.KEYCODE_DPAD_UP ->
-                        { ctxMenuSelState.value = (ctxMenuSelState.value - 1 + cnt) % cnt; return true }
-                    android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
-                        { ctxMenuSelState.value = (ctxMenuSelState.value + 1) % cnt; return true }
-                    android.view.KeyEvent.KEYCODE_BACK,
-                    android.view.KeyEvent.KEYCODE_DPAD_LEFT ->
-                        { closeChannelContextMenu(); return true }
-                }
-            }
-            return true
-        }
+        // 0c) Kontextove menu kanala (long-press v zozname) -> hore/dole + OK (na uvolnenie) + BACK (M641)
+        if (ctxMenu.isOpen) return ctxMenu.handleKey(kc, down)
 
         // 0d) Info o relacii (detail) -> hociktore OK/BACK/vlavo zatvori
         if (infoVisibleState.value) {
