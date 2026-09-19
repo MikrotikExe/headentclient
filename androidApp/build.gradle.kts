@@ -102,6 +102,9 @@ android {
     // z compileOptions.targetCompatibility (17).
 
     buildTypes {
+        debug {
+            applicationIdSuffix = ".debug"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
