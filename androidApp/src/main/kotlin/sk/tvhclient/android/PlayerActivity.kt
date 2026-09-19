@@ -446,8 +446,13 @@ class PlayerActivity : ComponentActivity() {
     private val hasVideoState = androidx.compose.runtime.mutableStateOf(true)
     private val videoCheckHandler = android.os.Handler(android.os.Looper.getMainLooper())
     // automaticke znovupripojenie zivého streamu po vypadku siete
-    private val reconnectHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val reconnectingState = androidx.compose.runtime.mutableStateOf(false)
+    // M636: casovanie/stav reconnectu v ReconnectController.kt; co sa pri pokuse spravi, je nizsie
+    private val reconnect by lazy {
+        ReconnectController(this,
+            playerReady = { ::mediaPlayer.isInitialized },
+            isPlaying = { mediaPlayer.isPlaying })
+    }
+    private val reconnectingState get() = reconnect.reconnecting
     // tocenie pri pretacani timeshiftu (kratky resync pipe -> libVLC)
     private val seekingState = androidx.compose.runtime.mutableStateOf(false)
     private var seekSpinnerJob: kotlinx.coroutines.Job? = null
@@ -458,8 +463,6 @@ class PlayerActivity : ComponentActivity() {
     // viac klikov za sebou pretocilo RAZ (kazdy klik = plny feeder restart, nedaju sa tlct).
     private var seekAccumBaseMs: Long = -1L
     private var seekCommitJob: kotlinx.coroutines.Job? = null
-    private var reconnectAttempts = 0
-    private val maxReconnectAttempts = 8
     private var pipReceiver: android.content.BroadcastReceiver? = null
     private val PIP_ACTION = "sk.tvhclient.android.PIP_TOGGLE"
     private val PIP_CLOSE_ACTION = "sk.tvhclient.android.PIP_CLOSE"   // M576
@@ -851,7 +854,7 @@ class PlayerActivity : ComponentActivity() {
                 timeshiftOffsetState.value = tsAccumMs
             }
             isPlayingState.value = true
-            dvrReopenAttempts = 0   // manualny play -> povol nove pokusy o nacitanie novsich dat
+            reconnect.resetDvrReopen()   // manualny play -> povol nove pokusy o nacitanie novsich dat
             mediaPlayer.play()
         }
     }
@@ -1025,8 +1028,7 @@ class PlayerActivity : ComponentActivity() {
         val offsetMs = if (dvrProgStartSec > 0 && dvrRealStartSec in 1 until dvrProgStartSec)
             (dvrProgStartSec - dvrRealStartSec) * 1000 else 0L
         val fileMs = (offsetMs + targetMs).coerceAtLeast(0L)   // cas v subore (0 = realny zaciatok nahravky)
-        reconnectHandler.removeCallbacksAndMessages(null)
-        dvrReopenAttempts = 0
+        reconnect.clearPending()
         // Bezny seek = kratky restart streamu; ukaz len lahky seek-spinner, NIE "Opatovne
         // pripajanie" (to patri len skutocnemu vypadku/reconnectu). Zhasne ho Playing/Buffering,
         // poistka po 6 s keby event nedosiel.
@@ -3048,7 +3050,6 @@ class PlayerActivity : ComponentActivity() {
     // -1 = ziadny cakajuci seek. Pri feeder/pipe je player.position po restarte neplatna,
     // takze hodiny sa nemozu resync-nut z pozicie - seed im da spravny vychodzi bod.
     private val dvrSeekSeedState = mutableStateOf(-1L)
-    private var dvrReopenAttempts = 0
 
     private fun saveDvrProgress() {
         val uuid = dvrUuid ?: return
@@ -3983,101 +3984,64 @@ class PlayerActivity : ComponentActivity() {
     }
 
     /** Zrusi naplanovane znovupripojenie a skryje indikator. */
-    private fun cancelReconnect() {
-        reconnectHandler.removeCallbacksAndMessages(null)
-        reconnectAttempts = 0
-        reconnectingState.value = false
-    }
+    private fun cancelReconnect() = reconnect.cancel()
 
     /** In-progress nahravka dobehla na koniec zapisanych dat (EOF na rastucom HTTP subore).
      *  Po chvili (nech pribudne dalsi blok) znovu otvor stream a vrat sa na poziciu z
      *  prehravacich hodin (offset + prehrany cas relacie) - tak sa pokracuje do novsich dat.
-     *  Backoff proti slucke ked nic nove nepribuda; resetuje sa pri Playing evente. */
+     *  Backoff proti slucke ked nic nove nepribuda (ReconnectController); resetuje sa pri Playing evente. */
     private fun reopenDvrLive() {
         if (!seekablePlayback || !dvrRecording) return
         val url = currentStreamUrl ?: return
         if (!::mediaPlayer.isInitialized) return
-        if (dvrReopenAttempts >= 5) {
-            reconnectingState.value = false
-            return
-        }
-        dvrReopenAttempts++
         val offsetMs = if (dvrProgStartSec > 0 && dvrRealStartSec in 1 until dvrProgStartSec)
             (dvrProgStartSec - dvrRealStartSec) * 1000 else 0L
         // pozicia v subore = offset + prehrany cas relacie, par sekund vzad ako rezerva
         val startSec = ((offsetMs + dvrPlayheadMsState.value) / 1000 - 3).coerceAtLeast(0)
-        reconnectingState.value = true
-        reconnectHandler.removeCallbacksAndMessages(null)
-        reconnectHandler.postDelayed({
-            if (!::mediaPlayer.isInitialized) return@postDelayed
-            runCatching {
-                if (dvrViaFeeder) {
-                    // pokracuj od miesta kam sme dosli (rastuci subor) cez HTTP Range
-                    val srv = liveServer ?: return@runCatching
-                    val from = httpFeeder?.bytesWritten ?: 0L
-                    playDvrViaFeeder(srv, url, from)
+        reconnect.reopenDvrLive {
+            if (dvrViaFeeder) {
+                // pokracuj od miesta kam sme dosli (rastuci subor) cez HTTP Range
+                val srv = liveServer ?: return@reopenDvrLive
+                val from = httpFeeder?.bytesWritten ?: 0L
+                playDvrViaFeeder(srv, url, from)
+            } else {
+                ensureHealthyPlayer()   // M539
+                val m = buildMedia(url)
+                m.addOption(":start-time=$startSec")
+                mediaPlayer.media = m
+                m.release()
+                startPlayback()   // M539-fix2
+            }
+        }
+    }
+
+    /** Naplanuje znovupripojenie zivého streamu po vypadku (narastajuce oneskorenie — ReconnectController). */
+    private fun scheduleReconnect() {
+        if (seekablePlayback) return  // DVR nahravka sa neobnovuje (in-progress riesi reopenDvrLive)
+        reconnect.scheduleReconnect { attempt ->
+            val srv = liveServer
+            val cid = liveUuids.getOrNull(liveIndex)?.toLongOrNull()
+            val url = currentStreamUrl
+            if (htspStream && srv != null && cid != null) {
+                // HTSP kanal -> znovu napoj cez HTSP (zachova HTSP/timeshift)
+                playHtspLive(srv, cid, htspLive)
+            } else if (liveNeedsFeeder == true && srv != null && url != null) {
+                playLiveViaFeeder(srv, url)   // HTTP digest-only -> feeder
+            } else if (url != null) {
+                // M390: priame HTTP live na niektorych boxoch pada v libVLC (auth/transport),
+                // hoci feeder (OkHttp -> pipe) funguje — po 2. neuspesnom pokuse prepni na feeder.
+                if (attempt >= 2 && !seekablePlayback && srv != null && srv.username.isNotEmpty()) {
+                    liveNeedsFeeder = true
+                    playLiveViaFeeder(srv, url)
                 } else {
                     ensureHealthyPlayer()   // M539
-                    val m = buildMedia(url)
-                    m.addOption(":start-time=$startSec")
+                    val m = buildMedia(url)       // bezne HTTP
                     mediaPlayer.media = m
                     m.release()
                     startPlayback()   // M539-fix2
                 }
             }
-        }, 2500)
-    }
-
-    /** Naplanuje znovupripojenie zivého streamu po vypadku (narastajuce oneskorenie). */
-    private fun scheduleReconnect() {
-        if (seekablePlayback) return  // DVR nahravka sa neobnovuje (in-progress riesi reopenDvrLive)
-        if (!::mediaPlayer.isInitialized) return
-        if (reconnectAttempts >= maxReconnectAttempts) {
-            reconnectingState.value = false
-            Toast.makeText(this, getString(R.string.reconnect_failed), Toast.LENGTH_LONG).show()
-            return
         }
-        reconnectAttempts++
-        reconnectingState.value = true
-        val delay = (1500L * reconnectAttempts).coerceAtMost(8000L)
-        reconnectHandler.removeCallbacksAndMessages(null)
-        reconnectHandler.postDelayed({
-            if (!::mediaPlayer.isInitialized) return@postDelayed
-            val srv = liveServer
-            val cid = liveUuids.getOrNull(liveIndex)?.toLongOrNull()
-            val url = currentStreamUrl
-            runCatching {
-                if (htspStream && srv != null && cid != null) {
-                    // HTSP kanal -> znovu napoj cez HTSP (zachova HTSP/timeshift)
-                    playHtspLive(srv, cid, htspLive)
-                } else if (liveNeedsFeeder == true && srv != null && url != null) {
-                    playLiveViaFeeder(srv, url)   // HTTP digest-only -> feeder
-                } else if (url != null) {
-                    // M390: priame HTTP live na niektorych boxoch pada v libVLC (auth/transport),
-                    // hoci feeder (OkHttp -> pipe) funguje — po 2. neuspesnom pokuse prepni na feeder.
-                    if (reconnectAttempts >= 2 && !seekablePlayback && srv != null &&
-                        srv.username.isNotEmpty()
-                    ) {
-                        liveNeedsFeeder = true
-                        playLiveViaFeeder(srv, url)
-                    } else {
-                        ensureHealthyPlayer()   // M539
-                        val m = buildMedia(url)       // bezne HTTP
-                        mediaPlayer.media = m
-                        m.release()
-                        startPlayback()   // M539-fix2
-                    }
-                }
-            }
-            // watchdog: ak sa do 12 s neobjavi prehravanie (spinner ostal), skus znova;
-            // po vycerpani pokusov scheduleReconnect ohlasi chybu -> ziadne trvale zaseknutie.
-            // 12 s nechava HTSP subscription cas nabehnut a nabufrovat (kratsie sa dvojilo)
-            reconnectHandler.postDelayed({
-                if (::mediaPlayer.isInitialized && reconnectingState.value && !mediaPlayer.isPlaying) {
-                    scheduleReconnect()
-                }
-            }, 12000)
-        }, delay)
     }
 
     override fun onPictureInPictureModeChanged(
@@ -4299,7 +4263,7 @@ class PlayerActivity : ComponentActivity() {
                     maybeApplyAfr()  // AFR (M346): prepni Hz displeja podla fps streamu
                     keepScreenOn(true)  // pocas prehravania nedovol setric/ambient na boxoch
                     cancelReconnect()  // uspesne pripojenie -> vynuluj pokusy
-                    dvrReopenAttempts = 0  // uspesne pokracovanie -> vynuluj pokusy o znovu-otvorenie
+                    reconnect.resetDvrReopen()  // uspesne pokracovanie -> vynuluj pokusy o znovu-otvorenie
                     seekSpinnerJob?.cancel(); seekingState.value = false  // resync po skoku dobehol
                     // po nabehnuti zisti ci stream ma video; ak nie -> rozhlas (logo)
                     videoCheckHandler.removeCallbacksAndMessages(null)
@@ -4627,7 +4591,7 @@ class PlayerActivity : ComponentActivity() {
         // uvolni odkaz, len ak stale ukazuje na tuto instanciu (nie na novsiu)
         if (liveInstance?.get() === this) liveInstance = null
         videoCheckHandler.removeCallbacksAndMessages(null)
-        reconnectHandler.removeCallbacksAndMessages(null)
+        reconnect.destroy()
         sleep.cancel()
         pipReceiver?.let { runCatching { unregisterReceiver(it) } }
         pipReceiver = null
