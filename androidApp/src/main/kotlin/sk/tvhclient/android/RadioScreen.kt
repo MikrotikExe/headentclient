@@ -717,13 +717,13 @@ internal fun playRadio(
     }
     LivePlaylist.setIndexForUuid(row.channel.uuid)
     LastRadio.set(context, server.id, row.channel.uuid)
-    // M340: na telefone v modernom rezime hra radio cez mini prehravac
-    // (foreground service + lista nad tabmi) — appka ostava pouzitelna.
-    // TV, klasik a zamknute stanice idu povodnou cestou (plny prehravac,
-    // ktory riesi PIN aj D-pad ovladanie).
+    // M340: na telefone hra radio cez mini prehravac (foreground service + lista
+    // nad tabmi) — appka ostava pouzitelna. M624: aj v klasickom rezime.
+    // TV a zamknute stanice idu povodnou cestou (plny prehravac, ktory riesi
+    // PIN aj D-pad ovladanie).
     val needsPin = ParentalLock.channelNeedsPin(context, server.id, row.channel.uuid)
     val tvDevice = context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
-    if (!tvDevice && !needsPin && UiModePref.get(context) == UiModePref.MODERN) {
+    if (!tvDevice && !needsPin) {
         RadioCenter.stations = allRows.map {
             RadioCenter.RadioStation(
                 it.channel.uuid, it.channel.name, it.piconUrl,

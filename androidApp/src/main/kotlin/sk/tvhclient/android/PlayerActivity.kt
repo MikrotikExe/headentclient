@@ -1604,11 +1604,14 @@ class PlayerActivity : ComponentActivity() {
     }
 
     /** Zatvorenie prehravaca: ak bol spusteny cez "od zaciatku" zo zivej TV, vrat sa na povodny kanal. */
-    /** M342/M344: BACK z hrajuceho radia v modernom = handoff do RadioPlayerService.
+    /** M342/M344: BACK z hrajuceho radia = handoff do RadioPlayerService.
      *  Vrati true, ak handoff prebehol (aktivita sa ukoncila) — radio hra dalej
-     *  na pozadi s mini listou. Plati pre telefon aj TV; klasik povodne. */
+     *  na pozadi s mini listou. Moderny: telefon aj TV. M624: aj klasik na
+     *  telefone (mini lista je uz aj v klasiku); klasik na TV povodne — nema
+     *  panel, radio by hralo bez ovladania. */
     private fun radioHandoffIfPossible(): Boolean {
-        if (playKind != "radio" || UiModePref.get(this) != UiModePref.MODERN) return false
+        if (playKind != "radio") return false
+        if (UiModePref.get(this) != UiModePref.MODERN && isTvDevice()) return false
         val uuid = liveUuids.getOrNull(liveIndexState.value) ?: return false
         val server = liveServer ?: sk.tvhclient.shared.Tvh.store.active() ?: return false
         if (!::mediaPlayer.isInitialized || !mediaPlayer.isPlaying) return false
@@ -5002,10 +5005,11 @@ class PlayerActivity : ComponentActivity() {
             // M623: "Radio hra na pozadi" — zhasnutie/zamok/ina appka radio nepozastavi.
             // HOME riesi onUserLeaveHint (handoff + finish -> vetva vyssie); sem sa
             // dostane zhasnutie obrazovky a prekrytie inou aktivitou. Moderny
-            // rezim: handoff do RadioPlayerService (notifikacia + mini lista; finish()
-            // -> onDestroy uvolni tento prehravac). Klasik nema service ani listu, tak
-            // ostane hrat samotny prehravac — wake/wifi lock (M452) drzi az do onDestroy;
-            // surface neodpajame, po navrate onStart len znova attachViews (runCatching).
+            // rezim (M624: aj klasik na telefone): handoff do RadioPlayerService
+            // (notifikacia + mini lista; finish() -> onDestroy uvolni tento prehravac).
+            // Kde handoff nie je (TV), ostane hrat samotny prehravac — wake/wifi lock
+            // (M452) drzi az do onDestroy; surface neodpajame, po navrate onStart len
+            // znova attachViews (runCatching).
             // TV: ziadny handoff — TvHomeHost nema mini listu, radio by hralo bez ovladania;
             // prehravac ostane hrat sam (napr. prekryty inou appkou; po standby M540
             // v onStart prehravac obnovi a naladi znova).

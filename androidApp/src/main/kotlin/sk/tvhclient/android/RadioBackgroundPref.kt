@@ -6,9 +6,9 @@ import android.content.Context
  * M623: "Rádio hrá na pozadí" (telefón aj TV, predvolene vypnuté).
  *
  * Zapnuté: keď prehrávač rádia ide na pozadie (zhasnutie, zámok, domovská
- * obrazovka, iná appka/prehliadač), rádio hrá ďalej — telefón v modernom
- * režime cez RadioPlayerService s notifikáciou a mini lištou, telefón v
- * klasiku a TV ostane hrať samotný prehrávač (drží wake/wifi lock z M452).
+ * obrazovka, iná appka/prehliadač), rádio hrá ďalej — telefón (moderný aj
+ * klasický režim, M624) cez RadioPlayerService s notifikáciou a mini lištou,
+ * TV ostane hrať samotný prehrávač (drží wake/wifi lock z M452).
  * V samotnom prehrávači obrazovka svieti ďalej (KEEP_SCREEN_ON ako pri TV) —
  * rádio na pozadí je len pre čas mimo prehrávača.
  *

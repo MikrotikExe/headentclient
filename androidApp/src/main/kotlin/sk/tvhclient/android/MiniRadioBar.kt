@@ -43,12 +43,13 @@ import sk.tvhclient.shared.Tvh
 /**
  * Mini prehravac radia (M340) — lista nad spodnou navigaciou, kym radio hra
  * na pozadi cez RadioPlayerService. Klik na listu otvori plny prehravac,
- * tlacidla pauzuju/zastavia. Zobrazuje sa len v modernom rezime a len ked
- * je service aktivny.
+ * tlacidla pauzuju/zastavia. Zobrazuje sa v modernom aj klasickom rezime
+ * (M624), len ked je service aktivny.
  */
 @Composable
 fun MiniRadioBar() {
-    if (!isModernUi()) return
+    // M624: lista aj v klasickom rezime (ako Spotify) — farby idu z MaterialTheme,
+    // takze v klasiku prevezme jeho paletu. TV panel (TvRadioHomePanel) ostava moderny.
     val active by RadioCenter.active
     if (!active) return
     val playing by RadioCenter.playing
