@@ -451,7 +451,7 @@ class PlayerActivity : ComponentActivity() {
     private val liveNextTitleState get() = live.nextTitleState
     private val liveNextStartState get() = live.nextStartState
     private val liveNextStopState get() = live.nextStopState
-    private val zapPokeState = androidx.compose.runtime.mutableStateOf(0)
+    private val zapPokeState get() = live.zapPokeState
     private val liveIndexState get() = live.indexState
     private val liveChannelsState get() = live.channelsState
     // M634: EPG now/next + cache v PlayerEpgStore.kt; tu len delegaty pod povodnymi nazvami
@@ -1132,14 +1132,7 @@ class PlayerActivity : ComponentActivity() {
         liveUuidState.value = uuid
         saveLastLive(srv.id, uuid)
         // novy kanal = neznama relacia; skry progress bar starej relacie
-        val ch = LivePlaylist.channels.getOrNull(i)
-        liveProgStartState.value = ch?.nowStart ?: 0L
-        liveProgStopState.value = ch?.nowStop ?: 0L
-        liveProgTitleState.value = ch?.nowTitle ?: ""
-        liveNextTitleState.value = ch?.nextTitle ?: ""
-        liveNextStartState.value = ch?.nextStart ?: 0L
-        liveNextStopState.value = ch?.nextStop ?: 0L
-        zapPokeState.value = zapPokeState.value + 1
+        live.showProgramme(LivePlaylist.channels.getOrNull(i))   // M652
         // M383: profil je jednotny pre cely server (per-kanal override zruseny)
         val prof = srv.profile.ifBlank { "pass" }
         val url = Tvh.liveUrl(srv, uuid, name, prof)
@@ -1189,51 +1182,14 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    // M407: debounce rychleho zappingu cez CH+/-. Rychle stisky len posuvaju
-    // cielovy index a hned aktualizuju info na obrazovke; tazke nacitanie streamu
-    // sa spusti az ked na ~350 ms prestanes prepinat (ako set-top box). Bez toho
-    // sa kazdy stisk cakal na dokoncenie predosleho nacitania.
-    private val zapHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private var zapPendingIndex = -1
-    private val zapCommit = Runnable {
-        val target = zapPendingIndex
-        zapPendingIndex = -1
-        // M444: ked bezi zap pas (prekryv vypnuty), prepnutie kanala NESMIE
-        // stuchnut klasicke ovladanie — inak sa 350 ms po stlaceni sipky vysunie
-        // este aj stara lista a na obrazovke su dva pasy naraz (Xiaomi Mi Box).
-        val poke = ZapOverlayPref.get(this@PlayerActivity)
-        if (target >= 0 && target != liveIndex) switchToIndex(target, poke = poke)
+    // M407 / M652: debounce rychleho zappingu v ZapDebounce.kt
+    private val zap: ZapDebounce by lazy {
+        ZapDebounce(live,
+            haptic = { hapticChannelSwitch() },
+            pokeOnCommit = { ZapOverlayPref.get(this) },
+            commit = { target, poke -> switchToIndex(target, poke = poke) })
     }
-    private val zapDebounceMs = 350L
-
-    /** M407: preview info kanala bez nacitania streamu (pre rychly zapping). */
-    private fun showZapPreview(i: Int) {
-        val name = liveNames.getOrElse(i) { "" }
-        liveIndexState.value = i
-        liveTitleState.value = name
-        liveUuidState.value = liveUuids.getOrNull(i) ?: liveUuidState.value
-        val ch = LivePlaylist.channels.getOrNull(i)
-        liveProgStartState.value = ch?.nowStart ?: 0L
-        liveProgStopState.value = ch?.nowStop ?: 0L
-        liveProgTitleState.value = ch?.nowTitle ?: ""
-        liveNextTitleState.value = ch?.nextTitle ?: ""
-        liveNextStartState.value = ch?.nextStart ?: 0L
-        liveNextStopState.value = ch?.nextStop ?: 0L
-        zapPokeState.value = zapPokeState.value + 1
-    }
-
-    private fun switchLive(delta: Int) {
-        hapticChannelSwitch()
-        if (liveUuids.size < 2 || liveIndex < 0) return
-        val n = liveUuids.size
-        // od aktualneho ciela (ak uz caka) alebo od aktualneho kanala
-        val from = if (zapPendingIndex >= 0) zapPendingIndex else liveIndex
-        val target = ((from + delta) % n + n) % n
-        zapPendingIndex = target
-        showZapPreview(target)                 // okamzita odozva na obrazovke
-        zapHandler.removeCallbacks(zapCommit)
-        zapHandler.postDelayed(zapCommit, zapDebounceMs)
-    }
+    private fun switchLive(delta: Int) { zap.switchLive(delta) }
 
     // ===== M369 / M640: filter skupin v zozname kanalov — LiveGroups.kt =====
     private val groups: LiveGroups by lazy {
@@ -3266,7 +3222,7 @@ class PlayerActivity : ComponentActivity() {
         releaseStreamLocks()  // M452
         flushEpgPersist()     // M456
         clearAfr()
-        zapHandler.removeCallbacks(zapCommit)   // M407
+        zap.cancel()   // M407
         saveDvrProgress()
         super.onDestroy()
         // uvolni odkaz, len ak stale ukazuje na tuto instanciu (nie na novsiu)

@@ -30,6 +30,19 @@ internal class LiveSession {
     val nextStopState = mutableStateOf(0L)
     val indexState = mutableStateOf(-1)
     val channelsState = mutableStateOf<List<LivePlaylist.LiveChannel>>(emptyList())
+    /** M407: zvýšenie = nový kanál/preview — PlayerUi reštartuje časovač zap pásu. */
+    val zapPokeState = mutableStateOf(0)
+
+    /** M652: relácia now/next kanála [ch] do compose stavov (null = neznáma relácia, skry progress). */
+    fun showProgramme(ch: LivePlaylist.LiveChannel?) {
+        progStartState.value = ch?.nowStart ?: 0L
+        progStopState.value = ch?.nowStop ?: 0L
+        progTitleState.value = ch?.nowTitle ?: ""
+        nextTitleState.value = ch?.nextTitle ?: ""
+        nextStartState.value = ch?.nextStart ?: 0L
+        nextStopState.value = ch?.nextStop ?: 0L
+        zapPokeState.value = zapPokeState.value + 1
+    }
 
     /** Kanál na aktuálnom indexe podľa compose stavu (indexState), null ak mimo. */
     fun currentChannel(): LivePlaylist.LiveChannel? = channelsState.value.getOrNull(indexState.value)
