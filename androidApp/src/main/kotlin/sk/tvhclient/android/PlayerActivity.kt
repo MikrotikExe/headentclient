@@ -1468,113 +1468,24 @@ class PlayerActivity : ComponentActivity() {
     private var returnLiveUuid: String? = null
     private var returnLiveTitle: String? = null
 
-    // DVR scrub focus: nahlad pozicie pri vybere casu sipkami (potvrdenie OK)
-    private val scrubFractionState = androidx.compose.runtime.mutableStateOf(0f)
-    // M597: po posune sipkami sa pretocenie potvrdi samo po 2 s necinnosti — OK
-    // funguje ako doteraz (potvrdi hned). Bez toho sa posun stratil, ked pouzivatel
-    // OK nestlacil, a prejavil sa az pri dalsom stlaceni sipky.
-    private var scrubAutoJob: kotlinx.coroutines.Job? = null
-
-    private fun cancelScrubAuto() { scrubAutoJob?.cancel(); scrubAutoJob = null }
-
-    /** Vykona pretocenie na poziciu, ktoru ukazuje kurzor na lište.
-     *  M597-fix: ked kurzor skoncil prakticky tam, kde sa uz hra (posun tam a spat),
-     *  sa NEpretaca — prestavba streamu by obraz zbytocne sekla. */
-    private fun commitScrub(minDeltaMs: Long = 0L) {
-        cancelScrubAuto()
-        scrubHoldJob?.cancel(); scrubHoldJob = null   // M598-fix2
-        if (!::mediaPlayer.isInitialized || !seekablePlayback) return
-        val bar = if (dvrRecording) (dvrDurationMs - 45_000L).coerceAtLeast(1L) else dvrDurationMs
-        if (bar <= 0) return
-        val progMs = (scrubFractionState.value.coerceIn(0f, 1f) * bar).toLong()
-        if (minDeltaMs > 0L &&
-            kotlin.math.abs(progMs - dvrPlayheadMsState.value) < minDeltaMs) return
-        seekDvrAbsolute(progMs)
+    // DVR scrub (M597/M598) — ScrubController.kt (M646); tu delegaty pod povodnymi nazvami
+    private val scrub: ScrubController by lazy {
+        ScrubController(lifecycleScope,
+            barMs = { if (dvrRecording) (dvrDurationMs - 45_000L).coerceAtLeast(1L) else dvrDurationMs },
+            durMs = { if (dvrDurationMs > 0) dvrDurationMs else (if (::mediaPlayer.isInitialized) mediaPlayer.length else 0L) },
+            playheadMs = { dvrPlayheadMsState.value },
+            seekable = { ::mediaPlayer.isInitialized && seekablePlayback },
+            seekAbsolute = { ms -> seekDvrAbsolute(ms) },
+            poke = { pokeControls() })
     }
-
-    /** Naplanuje automaticke potvrdenie posunu (M597). */
-    private fun scheduleScrubAuto() {
-        cancelScrubAuto()
-        scrubAutoJob = lifecycleScope.launch {
-            kotlinx.coroutines.delay(2000)
-            commitScrub(minDeltaMs = 5_000L)   // M597-fix: bez skutocneho posunu ziadna prestavba
-            pokeControls()
-        }
-    }
-
-    /**
-     * M598: sipka pri skrytom ovladani v archive. Doteraz hned pretocila (-15 s / +30 s)
-     * — obraz sekol pri kazdom stlaceni aj pri drzani, hoci pouzivatel este len hladal
-     * miesto. Teraz sa otvori lista s kurzorom, kurzor sa posunie o krok a samotne
-     * pretocenie sa vykona az po ustaleni (M597) alebo po OK.
-     */
-    // M598-fix2: PLYNULE pretacanie pri drzani sipky.
-    //
-    // Kratke stlacenie = krok 30 s (ako doteraz). Pri drzani sa znacka posuva
-    // spojito (kazdych 50 ms) a rychlost sa postupne zvysuje — 1 minuta za sekundu,
-    // potom 2,5 / 5 / 10 minut za sekundu. Strop je urceny dlzkou nahravky: prejst
-    // ju celu trva aspon ~8 sekund drzania, takze sa da zastavit tam, kde treba.
-    // Obraz sa pocas posuvania NEprestavuje — pretoci sa raz po pusteni (M597).
-    private var scrubHoldJob: kotlinx.coroutines.Job? = null
-    // M598-fix4: niektore dialkove (IR/CEC) namiesto opakovania posielaju rychlu sériu
-    // stlacenie/uvolnenie. Ked medzera medzi nimi nie je ani stvrt sekundy, berieme to
-    // ako POKRACOVANIE toho isteho pretacania — nezacina sa odznova a rychlost sa drzi.
-    private var lastScrubUpMs = 0L
-    private var lastScrubDir = 0
-    private var scrubHoldSince = 0L
-
-    /** true = predchadzajuce pretacanie pokracuje (rovnaky smer, kratka medzera). */
-    private fun scrubContinues(dir: Int): Boolean =
-        dir == lastScrubDir && android.os.SystemClock.uptimeMillis() - lastScrubUpMs < 250L
-
-    private fun startScrubHold(dir: Int) {
-        scrubHoldJob?.cancel()
-        // M598-fix4: kym sipku DRZIM, sa nesmie spustit automaticke potvrdenie z klepnutia.
-        // Inak po 2 s drzania (~2 min zaznamu) prehravac pretocil, prestavba streamu
-        // sekla a plynule posuvanie sa tym ukoncilo — pouzivatel musel stlacat znovu.
-        cancelScrubAuto()
-        val continuing = scrubContinues(dir)
-        lastScrubDir = dir
-        if (!continuing) scrubHoldSince = android.os.SystemClock.uptimeMillis()
-        scrubHoldJob = lifecycleScope.launch {
-            val startedAt = scrubHoldSince
-            // do 0,4 s je to este klik, nie drzanie; pri pokracovani sa neceka
-            if (!continuing) kotlinx.coroutines.delay(400)
-            while (isActive) {   // CoroutineScope.isActive vnutri launch
-                val dur = if (dvrDurationMs > 0) dvrDurationMs else
-                    (if (::mediaPlayer.isInitialized) mediaPlayer.length else 0L)
-                if (dur > 0) {
-                    val held = android.os.SystemClock.uptimeMillis() - startedAt
-                    // M598-fix5: rychlost sa odvija aj od DLZKY nahravky — pri sesthodinovom
-                    // zazname by pevnych 10 minut za sekundu znamenalo skoro minutu drzania.
-                    // Preto sa berie vacsia z dvoch hodnot: pevna rychlost a percento dlzky
-                    // za sekundu (1 % / 2,5 % / 5 % / 10 %). Strop: cela nahravka najskor za ~6 s.
-                    val durSec = dur / 1000.0
-                    val rate = when {
-                        held < 1_500L -> maxOf(60.0, durSec * 0.01)
-                        held < 3_000L -> maxOf(150.0, durSec * 0.025)
-                        held < 5_000L -> maxOf(300.0, durSec * 0.05)
-                        else -> maxOf(600.0, durSec * 0.10)
-                    }
-                    val r = minOf(rate, durSec / 6.0)
-                    val deltaMs = (r * 50.0).toFloat()      // posun za jeden 50 ms krok
-                    scrubFractionState.value =
-                        (scrubFractionState.value + dir * deltaMs / dur).coerceIn(0f, 1f)
-                    pokeControls()
-                }
-                kotlinx.coroutines.delay(50)
-            }
-        }
-    }
-
-    /** Pustenie sipky: zastav plynuly posun a naplanuj pretocenie (M597). */
-    private fun stopScrubHold() {
-        if (scrubHoldJob == null) return
-        scrubHoldJob?.cancel()
-        scrubHoldJob = null
-        lastScrubUpMs = android.os.SystemClock.uptimeMillis()   // M598-fix4
-        scheduleScrubAuto()
-    }
+    private val scrubFractionState: androidx.compose.runtime.MutableState<Float> get() = scrub.fraction
+    private fun cancelScrubAuto() { scrub.cancelAuto() }
+    private fun commitScrub() { scrub.commit() }
+    private fun scheduleScrubAuto() { scrub.scheduleAuto() }
+    private fun scrubContinues(dir: Int): Boolean = scrub.continues(dir)
+    private fun startScrubHold(dir: Int) { scrub.startHold(dir) }
+    private fun stopScrubHold() { scrub.stopHold() }
+    private fun initScrub() { scrub.init() }
 
     /**
      * M598: sipka pri skrytom ovladani v archive. Doteraz hned pretocila (-15 s / +30 s)
@@ -1592,20 +1503,9 @@ class PlayerActivity : ComponentActivity() {
         val wasOnSeek = controlsShown && controlNavState.value == seekIdx
         controlNavState.value = seekIdx
         if (!wasOnSeek) initScrub()
-        val dur = if (dvrDurationMs > 0) dvrDurationMs else
-            (if (::mediaPlayer.isInitialized) mediaPlayer.length else 0L)
-        val stepFrac = if (dur > 0) 30_000f / dur else 0.02f
-        scrubFractionState.value = (scrubFractionState.value + dir * stepFrac).coerceIn(0f, 1f)
+        scrub.step(dir)
         scheduleScrubAuto()
         pokeControls()
-    }
-
-    private fun initScrub() {
-        // zlomok v ramci DOSIAHNUTELNEHO rozsahu baru (rovnaka skala ako seekbar) z
-        // playheadu prehravacich hodin - nie z player.position (na rastucom TS nespolahliva).
-        val bar = if (dvrRecording) (dvrDurationMs - 45_000L).coerceAtLeast(1L) else dvrDurationMs
-        scrubFractionState.value = if (bar > 0)
-            (dvrPlayheadMsState.value.toFloat() / bar).coerceIn(0f, 1f) else 0f
     }
 
     // Pocitadlo na obnovu ikon zamku v in-player zozname po zmene zamku.
@@ -2081,7 +1981,7 @@ class PlayerActivity : ComponentActivity() {
             // M598-fix2: pustenie sipky ukonci plynule pretacanie a naplanuje skok
             if (!down && seekablePlayback &&
                 (kc == android.view.KeyEvent.KEYCODE_DPAD_LEFT || kc == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) &&
-                scrubHoldJob != null
+                scrub.holding
             ) { stopScrubHold(); return true }
             val canZap = !seekablePlayback && liveUuids.size > 1
             // prepinanie kanalov: Channel+/-, Page+/-, aj sipky hore/dole = zap
@@ -2146,8 +2046,6 @@ class PlayerActivity : ComponentActivity() {
                 val n = order.size
                 if (seekablePlayback) {
                     val onSeek = order.getOrNull(controlNavState.value) == "seek"
-                    val dur = if (dvrDurationMs > 0) dvrDurationMs else mediaPlayer.length
-                    val stepFrac = if (dur > 0) 30_000f / dur else 0.02f
                     when (kc) {
                         android.view.KeyEvent.KEYCODE_DPAD_UP -> if (down) {
                             cancelScrubAuto()   // M597
@@ -2163,12 +2061,7 @@ class PlayerActivity : ComponentActivity() {
                         }
                         android.view.KeyEvent.KEYCODE_DPAD_LEFT -> if (down) {
                             if (onSeek) {
-                                if (event.repeatCount == 0) {   // M598-fix2: klik + plynule drzanie
-                                    if (!scrubContinues(-1)) {   // M598-fix4
-                                        scrubFractionState.value = (scrubFractionState.value - stepFrac).coerceIn(0f, 1f)
-                                    }
-                                    startScrubHold(-1)
-                                }
+                                if (event.repeatCount == 0) scrub.tapOrHold(-1)   // M598-fix2/fix4: klik + plynule drzanie
                             } else {
                                 cancelScrubAuto()
                                 controlNavState.value = (controlNavState.value - 1 + n) % n
@@ -2178,12 +2071,7 @@ class PlayerActivity : ComponentActivity() {
                         }
                         android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> if (down) {
                             if (onSeek) {
-                                if (event.repeatCount == 0) {   // M598-fix2: klik + plynule drzanie
-                                    if (!scrubContinues(+1)) {   // M598-fix4
-                                        scrubFractionState.value = (scrubFractionState.value + stepFrac).coerceIn(0f, 1f)
-                                    }
-                                    startScrubHold(+1)
-                                }
+                                if (event.repeatCount == 0) scrub.tapOrHold(+1)   // M598-fix2/fix4: klik + plynule drzanie
                             } else {
                                 cancelScrubAuto()
                                 controlNavState.value = (controlNavState.value + 1) % n
