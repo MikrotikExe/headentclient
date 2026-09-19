@@ -1326,13 +1326,40 @@ class PlayerActivity : ComponentActivity() {
             poke = { pokeControls() })
     }
     private val scrubFractionState: androidx.compose.runtime.MutableState<Float> get() = scrub.fraction
-    private fun cancelScrubAuto() { scrub.cancelAuto() }
-    private fun commitScrub() { scrub.commit() }
     private fun scheduleScrubAuto() { scrub.scheduleAuto() }
-    private fun scrubContinues(dir: Int): Boolean = scrub.continues(dir)
-    private fun startScrubHold(dir: Int) { scrub.startHold(dir) }
-    private fun stopScrubHold() { scrub.stopHold() }
     private fun initScrub() { scrub.init() }
+
+    // M651: klavesy pri beznom prehravani (blok 4 dispatchKeyEvent) v PlaybackKeys.kt
+    private val playbackKeys: PlaybackKeys by lazy {
+        PlaybackKeys(this, live, scrub, numEntry, controlNavState,
+            seekable = { seekablePlayback },
+            controlsShown = { controlsShown },
+            modernTvActive = { modernTvActive() },
+            controlOrder = { canZap ->
+                playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value,
+                    profileSwitchAvailable(), dvrRecordVisible(), teletextVisible())
+            },
+            actions = object : PlaybackKeys.Actions {
+                override fun switchLive(delta: Int) { this@PlayerActivity.switchLive(delta) }
+                override fun showZapBar() { this@PlayerActivity.showZapBar() }
+                override fun openModernOverlayAtCurrent() { modernOv.openAtCurrent() }
+                override fun openModernOverlay() { this@PlayerActivity.openModernOverlay() }
+                override fun showControlsFocused() { this@PlayerActivity.showControlsFocused() }
+                override fun pokeControls() { this@PlayerActivity.pokeControls() }
+                override fun activateControl(id: String?) { this@PlayerActivity.activateControl(id) }
+                override fun togglePlayPause() { this@PlayerActivity.togglePlayPause() }
+                override fun openChannelListLong() {
+                    okLongFired = true; openChannelList()  // okLongFired prehltne nasledne OK-up
+                }
+                override fun modernPlaybackOk(down: Boolean, event: android.view.KeyEvent): Boolean =
+                    modernOv.handlePlaybackOk(down, event) {
+                        okLongFired = true   // prehltne OK-up, inak by up hned potvrdil kanal a zoznam zavrel
+                        openChannelList()
+                    }
+                override fun beginScrub(dir: Int) { this@PlayerActivity.beginScrub(dir) }
+                override fun initScrub() { this@PlayerActivity.initScrub() }
+            })
+    }
 
     /**
      * M598: sipka pri skrytom ovladani v archive. Doteraz hned pretocila (-15 s / +30 s)
@@ -1823,190 +1850,9 @@ class PlayerActivity : ComponentActivity() {
             return super.dispatchKeyEvent(event)   // hlasitost
         }
 
-        // 4) Bezne prehravanie
+        // 4) Bezne prehravanie (M651: PlaybackKeys.kt)
         if (::mediaPlayer.isInitialized) {
-            // M598-fix2: pustenie sipky ukonci plynule pretacanie a naplanuje skok
-            if (!down && seekablePlayback &&
-                (kc == android.view.KeyEvent.KEYCODE_DPAD_LEFT || kc == android.view.KeyEvent.KEYCODE_DPAD_RIGHT) &&
-                scrub.holding
-            ) { stopScrubHold(); return true }
-            val canZap = !seekablePlayback && liveUuids.size > 1
-            // prepinanie kanalov: Channel+/-, Page+/-, aj sipky hore/dole = zap
-            // M407-fix: CH+/- a Page+/- uz NEfiltruju repeatCount — vdaka debounce
-            // v switchLive() rychle stisky len posuvaju ciel a nacitanie ide az po
-            // zastaveni, takze prepinanie ide svizne aj ked je bar zobrazeny a aj
-            // pri drzani/rychlom klikani. D-pad hore/dole ostava na prvy stisk
-            // (repeatCount==0), lebo tam koliduje s navigaciou v bare.
-            when (kc) {
-                android.view.KeyEvent.KEYCODE_CHANNEL_UP,
-                android.view.KeyEvent.KEYCODE_PAGE_UP ->
-                    if (down && canZap) {
-                        switchLive(+1)
-                        if (!ZapOverlayPref.get(this)) showZapBar() else if (modernTvActive()) modernOv.openAtCurrent() else showControlsFocused()
-                        return true
-                    }
-                android.view.KeyEvent.KEYCODE_DPAD_UP ->
-                    if (down && canZap && event.repeatCount == 0) {
-                        switchLive(+1)
-                        if (!ZapOverlayPref.get(this)) showZapBar() else if (modernTvActive()) modernOv.openAtCurrent() else showControlsFocused()
-                        return true
-                    }
-                android.view.KeyEvent.KEYCODE_CHANNEL_DOWN,
-                android.view.KeyEvent.KEYCODE_PAGE_DOWN ->
-                    if (down && canZap) {
-                        switchLive(-1)
-                        if (!ZapOverlayPref.get(this)) showZapBar() else if (modernTvActive()) modernOv.openAtCurrent() else showControlsFocused()
-                        return true
-                    }
-                android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
-                    if (down && canZap && event.repeatCount == 0) {
-                        switchLive(-1)
-                        if (!ZapOverlayPref.get(this)) showZapBar() else if (modernTvActive()) modernOv.openAtCurrent() else showControlsFocused()
-                        return true
-                    }
-            }
-            // cislice 0-9 (aj numericka klavesnica) = volba kanala cislom
-            run {
-                val digit = when (kc) {
-                    in android.view.KeyEvent.KEYCODE_0..android.view.KeyEvent.KEYCODE_9 ->
-                        kc - android.view.KeyEvent.KEYCODE_0
-                    in android.view.KeyEvent.KEYCODE_NUMPAD_0..android.view.KeyEvent.KEYCODE_NUMPAD_9 ->
-                        kc - android.view.KeyEvent.KEYCODE_NUMPAD_0
-                    else -> -1
-                }
-                if (digit >= 0) { if (down && liveUuids.isNotEmpty()) numEntry.digit(digit); return true }
-            }
-            // rozpisane cislo kanala + OK => potvrd hned (rychlejsie prepnutie,
-            // netreba cakat na 1,5 s casovac)
-            if (numEntry.isPending && (
-                    kc == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
-                    kc == android.view.KeyEvent.KEYCODE_ENTER ||
-                    kc == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER)
-            ) {
-                if (down && event.repeatCount == 0) numEntry.commitNow()
-                return true
-            }
-            // ovladanie zobrazene -> vlavo/vpravo naviguju panel, OK aktivuje
-            // zvyrazneny prvok (hore/dole prepinaju kanal vyssie)
-            if (controlsShown) {
-                val order = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable(), dvrRecordVisible(), teletextVisible())
-                val n = order.size
-                if (seekablePlayback) {
-                    val onSeek = order.getOrNull(controlNavState.value) == "seek"
-                    when (kc) {
-                        android.view.KeyEvent.KEYCODE_DPAD_UP -> if (down) {
-                            cancelScrubAuto()   // M597
-                            controlNavState.value = (controlNavState.value - 1 + n) % n
-                            if (order.getOrNull(controlNavState.value) == "seek") initScrub()
-                            pokeControls(); return true
-                        }
-                        android.view.KeyEvent.KEYCODE_DPAD_DOWN -> if (down) {
-                            cancelScrubAuto()   // M597
-                            controlNavState.value = (controlNavState.value + 1) % n
-                            if (order.getOrNull(controlNavState.value) == "seek") initScrub()
-                            pokeControls(); return true
-                        }
-                        android.view.KeyEvent.KEYCODE_DPAD_LEFT -> if (down) {
-                            if (onSeek) {
-                                if (event.repeatCount == 0) scrub.tapOrHold(-1)   // M598-fix2/fix4: klik + plynule drzanie
-                            } else {
-                                cancelScrubAuto()
-                                controlNavState.value = (controlNavState.value - 1 + n) % n
-                                if (order.getOrNull(controlNavState.value) == "seek") initScrub()
-                            }
-                            pokeControls(); return true
-                        }
-                        android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> if (down) {
-                            if (onSeek) {
-                                if (event.repeatCount == 0) scrub.tapOrHold(+1)   // M598-fix2/fix4: klik + plynule drzanie
-                            } else {
-                                cancelScrubAuto()
-                                controlNavState.value = (controlNavState.value + 1) % n
-                                if (order.getOrNull(controlNavState.value) == "seek") initScrub()
-                            }
-                            pokeControls(); return true
-                        }
-                        android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-                        android.view.KeyEvent.KEYCODE_ENTER,
-                        android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                            if (down && event.repeatCount == 0) {
-                                if (onSeek) {
-                                    commitScrub()   // M597: OK potvrdi hned (rovnaka cesta)
-                                    pokeControls()
-                                } else activateControl(order.getOrNull(controlNavState.value))
-                            }
-                            return true
-                        }
-                    }
-                } else {
-                    // live: vlavo/vpravo naviguju panel (hore/dole prepinaju kanal vyssie)
-                    when (kc) {
-                        android.view.KeyEvent.KEYCODE_DPAD_LEFT -> if (down) {
-                            controlNavState.value = (controlNavState.value - 1 + n) % n
-                            pokeControls(); return true
-                        }
-                        android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> if (down) {
-                            controlNavState.value = (controlNavState.value + 1) % n
-                            pokeControls(); return true
-                        }
-                        android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-                        android.view.KeyEvent.KEYCODE_ENTER,
-                        android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                            if (down && event.repeatCount == 0) activateControl(order.getOrNull(controlNavState.value))
-                            return true
-                        }
-                    }
-                }
-                // BACK necháme Compose BackHandler (skryje ovladanie); volume/ostatne tiez
-                return super.dispatchKeyEvent(event)
-            }
-            // ovladanie skryte
-            when (kc) {
-                android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-                android.view.KeyEvent.KEYCODE_ENTER,
-                android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                    if (seekablePlayback) {
-                        if (down && event.repeatCount == 0) { togglePlayPause(); showControlsFocused() }
-                        return true
-                    }
-                    if (modernTvActive()) {
-                        // Kratke OK -> overlay az na UP; podrzanie -> rovno velky zoznam (M328, M642).
-                        return modernOv.handlePlaybackOk(down, event) {
-                            okLongFired = true   // prehltne OK-up, inak by up hned potvrdil kanal a zoznam zavrel
-                            openChannelList()
-                        }
-                    }
-                    if (down && event.repeatCount == 0) {
-                        okLongFired = true; openChannelList()  // okLongFired prehltne nasledne OK-up
-                        return true
-                    }
-                    if (down) return true
-                }
-                android.view.KeyEvent.KEYCODE_DPAD_LEFT -> if (down) {
-                    if (seekablePlayback) {
-                        if (event.repeatCount == 0) {
-                            if (!scrubContinues(-1)) beginScrub(-1)   // M598-fix4
-                            startScrubHold(-1)
-                        }
-                        return true
-                    }
-                    if (modernTvActive()) openModernOverlay() else showControlsFocused(); return true
-                }
-                android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> if (down) {
-                    if (seekablePlayback) {
-                        if (event.repeatCount == 0) {
-                            if (!scrubContinues(+1)) beginScrub(+1)   // M598-fix4
-                            startScrubHold(+1)
-                        }
-                        return true
-                    }
-                    if (modernTvActive()) openModernOverlay() else showControlsFocused(); return true
-                }
-                // hore/dole sem prides len ak sa neda zapovat (napr. DVR) -> otvor panel
-                android.view.KeyEvent.KEYCODE_DPAD_UP,
-                android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
-                    if (down) { showControlsFocused(); return true }
-            }
+            playbackKeys.handleKey(kc, down, event)?.let { return it }
         }
         return super.dispatchKeyEvent(event)
     }
