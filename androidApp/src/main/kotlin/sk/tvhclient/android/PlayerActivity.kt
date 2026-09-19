@@ -788,34 +788,40 @@ class PlayerActivity : ComponentActivity() {
         return um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
     }
 
-    /** Vyber kanala zo zoznamu: ak sa archivuje, ponukni nazivo/od zaciatku, inak prepni. */
-    private fun selectChannelOrArchive(idx: Int, poke: Boolean = true) {
-        val ch = liveChannelsState.value.getOrNull(idx)
-        val rec = ch?.let { c -> recInProgressByChan.value.let { it[c.uuid] ?: it[c.name] } }
-        if (rec != null && isTvDevice() && ArchiveChoicePref.get(this)) {
-            archiveChoiceSelState.value = 0
-            archiveChoiceIdxState.value = idx
-            closeChannelList()
-        } else if (idx != liveIndex) switchToIndex(idx, poke) else pokeControls()
+    // ===== M657: jadro prepinania kanalov (selectChannelOrArchive, resolveArchiveChoice,
+    // rememberPlayback, playRecordingFromStart, saveLastLive, switchToIndex) — ChannelSwitcher.kt;
+    // tu delegaty pod povodnymi nazvami =====
+    private val switcher: ChannelSwitcher by lazy {
+        ChannelSwitcher(this, lifecycleScope, live, stream, tracks, object : ChannelSwitcher.Actions {
+            override fun isTvDevice(): Boolean = this@PlayerActivity.isTvDevice()
+            override fun pokeControls() { this@PlayerActivity.pokeControls() }
+            override fun closeChannelList() { this@PlayerActivity.closeChannelList() }
+            override fun refreshDvrState() { this@PlayerActivity.refreshDvrState() }
+            override fun cancelReconnect() { this@PlayerActivity.cancelReconnect() }
+            override fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, channelIndex: Int?) {
+                this@PlayerActivity.requestPin(onOk = onOk, onCancel = onCancel, channelIndex = channelIndex)
+            }
+            override fun playHtspLive(server: sk.tvhclient.shared.model.TvhServer, channelId: Long, timeshift: Boolean): Boolean =
+                this@PlayerActivity.playHtspLive(server, channelId, timeshift)
+            override fun playLiveAuto(server: sk.tvhclient.shared.model.TvhServer, url: String) { this@PlayerActivity.playLiveAuto(server, url) }
+            override fun setHasVideo(v: Boolean) { hasVideoState.value = v }
+            override fun htspInitDone(): Boolean = this@PlayerActivity.htspInitDone
+            override fun setHtspInitDone(v: Boolean) { this@PlayerActivity.htspInitDone = v }
+            override fun archiveChoiceIdx(): Int = archiveChoiceIdxState.value
+            override fun setArchiveChoiceIdx(v: Int) { archiveChoiceIdxState.value = v }
+            override fun setArchiveChoiceSel(v: Int) { archiveChoiceSelState.value = v }
+            override fun recInProgressByChan(): Map<String, sk.tvhclient.shared.model.DvrEntry> = this@PlayerActivity.recInProgressByChan.value
+            override fun dvrUuid(): String? = this@PlayerActivity.dvrUuid
+            override fun intentUuid(): String? = intent.getStringExtra(EXTRA_UUID)
+            override fun startActivity(i: android.content.Intent) { this@PlayerActivity.startActivity(i) }
+        })
     }
-
-    /** Vyriesi vyber pri archivovanom kanali: nazivo (prepne) alebo od zaciatku (spusti nahravku). */
-    private fun resolveArchiveChoice(fromStart: Boolean) {
-        val idx = archiveChoiceIdxState.value
-        archiveChoiceIdxState.value = -1
-        if (idx < 0) return
-        val ch = liveChannelsState.value.getOrNull(idx) ?: LivePlaylist.channels.getOrNull(idx) ?: return
-        if (!fromStart) {
-            if (idx != liveIndex) switchToIndex(idx) else pokeControls()
-            return
-        }
-        val rec = recInProgressByChan.value.let { it[ch.uuid] ?: it[ch.name] }
-        if (rec == null) {
-            if (idx != liveIndex) switchToIndex(idx)
-            return
-        }
-        playRecordingFromStart(rec, ch.nowStart, ch.nowStop)
-    }
+    private fun selectChannelOrArchive(idx: Int, poke: Boolean = true) { switcher.selectChannelOrArchive(idx, poke) }
+    private fun resolveArchiveChoice(fromStart: Boolean) { switcher.resolveArchiveChoice(fromStart) }
+    private fun rememberPlayback() { switcher.rememberPlayback() }
+    private fun playRecordingFromStart(rec: sk.tvhclient.shared.model.DvrEntry, progStart: Long, progStop: Long) { switcher.playRecordingFromStart(rec, progStart, progStop) }
+    private fun saveLastLive(serverId: String?, uuid: String?) { switcher.saveLastLive(serverId, uuid) }
+    private fun switchToIndex(i: Int, poke: Boolean = true) { switcher.switchToIndex(i, poke) }
 
     /** Zatvorenie prehravaca: ak bol spusteny cez "od zaciatku" zo zivej TV, vrat sa na povodny kanal. */
     /** M342/M344: BACK z hrajuceho radia = handoff do RadioPlayerService.
@@ -845,18 +851,6 @@ class PlayerActivity : ComponentActivity() {
         return true
     }
 
-    /**
-     * M494: zapamataj, co sa prave prehrava (TV). Zapisuje sa pri starte a pri
-     * kazdom prepnuti kanala, aby po vypnuti a zapnuti boxu appka pokracovala
-     * tam, kde pouzivatel skoncil.
-     */
-    private fun rememberPlayback() {
-        if (!isTvDevice()) return
-        if (dvrUuid != null) return              // M497: archiv sa neobnovuje
-        val srvId = (liveServer ?: Tvh.store.active())?.id ?: return
-        val uuid = liveUuids.getOrNull(liveIndex) ?: intent.getStringExtra(EXTRA_UUID)
-        LastPlayback.setLive(this, srvId, uuid, playKind)
-    }
 
     private fun closePlayer() {
         // M494: odchod z prehravaca = uz niet co obnovovat (pouzivatel skoncil
@@ -873,105 +867,6 @@ class PlayerActivity : ComponentActivity() {
             runCatching { startActivity(i) }
             finish()
         } else if (!autoPipIfPossible()) finish()   // M343: respektuj vypnute Auto-PiP — BACK = stop, nie PiP
-    }
-
-    /** Spusti prebiehajucu nahravku od zaciatku (novy PlayerActivity v DVR rezime). */
-    private fun playRecordingFromStart(rec: sk.tvhclient.shared.model.DvrEntry, progStart: Long, progStop: Long) {
-        val srv = liveServer ?: return
-        val url = Tvh.dvrUrl(srv, rec.uuid)
-        val pStart = if (progStart > 0) progStart else rec.start
-        val pStop = if (progStop > progStart && progStop > 0) progStop else rec.stop
-        val nowSec = System.currentTimeMillis() / 1000
-        val inProgress = pStart > 0 && nowSec < pStop
-        val i = android.content.Intent(this, PlayerActivity::class.java).apply {
-            putExtra(EXTRA_URL, url)
-            putExtra(EXTRA_TITLE, rec.title)
-            putExtra(EXTRA_DURATION_MS, rec.durationSec * 1000)
-            putExtra(EXTRA_DVR_UUID, rec.uuid)
-            putExtra(EXTRA_DVR_RECORDING, inProgress)
-            putExtra(EXTRA_DVR_PROG_START_SEC, pStart)
-            putExtra(EXTRA_DVR_PROG_STOP_SEC, pStop)
-            putExtra(EXTRA_DVR_REAL_START_SEC, rec.realStartSec)
-            // odkial sme prisli (zivy kanal) -> navrat sem po Spat
-            liveUuids.getOrNull(liveIndex)?.let { putExtra(EXTRA_RETURN_UUID, it) }
-            putExtra(EXTRA_RETURN_TITLE, liveNames.getOrElse(liveIndex) { "" })
-        }
-        runCatching { startActivity(i) }
-    }
-
-    /** Prepne na konkretny kanal podla indexu, prebuduje URL a nacita. */
-    private fun saveLastLive(serverId: String?, uuid: String?) {
-        if (serverId == null || uuid == null) return
-        if (playKind == "radio") LastRadio.set(this, serverId, uuid) else LastChannel.set(this, serverId, uuid)
-    }
-
-    private fun switchToIndex(i: Int, poke: Boolean = true) {
-        if (i < 0 || i >= liveUuids.size) return
-        if (i == liveIndex) { if (poke) pokeControls(); return }  // ten isty kanal -> nenacitavaj znova
-        rememberPlayback()  // M494: obnovenie po restarte appky
-        val srv = liveServer ?: return
-        val uuid = liveUuids[i]
-        // rodicovsky zamok: zamknuty kanal mimo 5-min okna -> vypytaj PIN
-        if (ParentalLock.channelNeedsPin(this, srv.id, uuid)) {
-            requestPin(onOk = { switchToIndex(i, poke) }, onCancel = { }, channelIndex = i)
-            return
-        }
-        // M392-fix3: volba titulkov plati len pre aktualny kanal — pri prepnuti na INY
-        // kanal ju vynuluj na vypnute (ako HTSP: desiredSubName = null). Restart toho
-        // isteho kanala (zmena profilu, applyProfileChange) sem pride s rovnakym uuid
-        // cez liveIndex=-1, preto porovnavame uuid, nie index.
-        if (uuid != liveUuidState.value) {
-            tracks.httpSpuWantOff = true
-            tracks.httpSpuWantName = null
-        }
-        liveIndex = i
-        liveIndexState.value = i
-        // M523: AZ TU, ked uz index ukazuje na NOVY kanal. Volanie na zaciatku
-        // switchToIndex citalo este stary index, takze tlacidlo nahravania
-        // zobrazovalo stav kanala, z ktoreho pouzivatel prave odisiel — na
-        // nahravanom kanali „Nahrat" a na nenahravanom „Zrusit nahravanie".
-        refreshDvrState()
-        val name = liveNames.getOrElse(i) { "" }
-        liveTitleState.value = name
-        liveUuidState.value = uuid
-        saveLastLive(srv.id, uuid)
-        // novy kanal = neznama relacia; skry progress bar starej relacie
-        live.showProgramme(LivePlaylist.channels.getOrNull(i))   // M652
-        // M383: profil je jednotny pre cely server (per-kanal override zruseny)
-        val prof = srv.profile.ifBlank { "pass" }
-        val url = Tvh.liveUrl(srv, uuid, name, prof)
-        currentStreamUrl = url
-        cancelReconnect()  // nove pripojenie -> zrus stare pokusy
-        tracks.resetReparse()  // novy kanal -> povol jednorazovy re-parse stop
-        hasVideoState.value = true  // predpokladaj video; kontrola po Playing to opravi
-        val cid = uuid.toLongOrNull()
-        // M262: ak HTSP rezim este nebol urceny (prepnutie pred doPlay, napr. odchod
-        // z PIN vyzvy zamknuteho startovacieho kanala), urci ho tu rovnako ako doPlay,
-        // aby aj prvy prepnuty kanal mal HTSP/timeshift a nie len HTTP.
-        if (srv.connectionMode == "htsp" && cid != null && !htspInitDone) {
-            htspInitDone = true
-            lifecycleScope.launch {
-                val ts = TimeshiftPref.get(this@PlayerActivity) && withContext(Dispatchers.IO) {
-                    runCatching {
-                        HtspData.timeshiftAvailable(srv, System.currentTimeMillis() / 1000)
-                    }.getOrDefault(false)
-                }
-                if (playHtspLive(srv, cid, ts)) {
-                    htspStream = true; htspLive = ts; htspLiveState.value = ts
-                } else {
-                    htspStream = false; htspLive = false; htspLiveState.value = false
-                    playLiveAuto(srv, url)
-                }
-                if (poke) pokeControls()
-            }
-            return
-        }
-        if (htspStream && cid != null && playHtspLive(srv, cid, htspLive)) {
-            if (poke) pokeControls()
-            return
-        }
-        playLiveAuto(srv, url)
-        if (poke) pokeControls()
     }
 
     /** Prepne na susedny live kanal (delta +1 / -1). */
@@ -1460,156 +1355,55 @@ class PlayerActivity : ComponentActivity() {
             c == android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
     }
 
+    // M658: retaz strazi dispatchKeyEvent v PlayerKeyRouter.kt (poradie = spravanie)
+    private val keyRouter: PlayerKeyRouter by lazy {
+        PlayerKeyRouter(this, search, ttx, pin, ctxMenu, info, listKeys, modernOv, tracks, sleep, engine, playbackKeys,
+            resumePromptState, resumeSelState, resumeAnswerState,
+            dvrAskState, dvrAskSelState, archiveChoiceIdxState, archiveChoiceSelState,
+            exitConfirmState, exitConfirmSelState, isPlayingState, optionsNavState,
+            actions = object : PlayerKeyRouter.Actions {
+                override val remoteDebug: Boolean get() = this@PlayerActivity.remoteDebug
+                override var okLongFired: Boolean
+                    get() = this@PlayerActivity.okLongFired
+                    set(v) { this@PlayerActivity.okLongFired = v }
+                override val seekablePlayback: Boolean get() = this@PlayerActivity.seekablePlayback
+                override val liveIndex: Int get() = this@PlayerActivity.liveIndex
+                override val channelListOpen: Boolean get() = this@PlayerActivity.channelListOpen
+                override val returnLiveUuid: String? get() = this@PlayerActivity.returnLiveUuid
+                override val optionsOpen: Boolean get() = this@PlayerActivity.optionsOpen
+                override val trackMenuOpen: Boolean get() = this@PlayerActivity.trackMenuOpen
+                override val htspStream: Boolean get() = this@PlayerActivity.htspStream
+                override fun isCommonKey(kc: Int): Boolean = this@PlayerActivity.isCommonKey(kc)
+                override fun resolveDvrAsk(name: String?) { this@PlayerActivity.resolveDvrAsk(name) }
+                override fun resolveArchiveChoice(fromStart: Boolean) { this@PlayerActivity.resolveArchiveChoice(fromStart) }
+                override fun finish() { this@PlayerActivity.finish() }
+                override fun openEpgInApp() { this@PlayerActivity.openEpgInApp() }
+                override fun openSpuMenu() { this@PlayerActivity.openSpuMenu() }
+                override fun openAudioMenu() { this@PlayerActivity.openAudioMenu() }
+                override fun modernTvActive(): Boolean = this@PlayerActivity.modernTvActive()
+                override fun openModernOverlay() { this@PlayerActivity.openModernOverlay() }
+                override fun showControlsFocused() { this@PlayerActivity.showControlsFocused() }
+                override fun toggleInfo() { this@PlayerActivity.toggleInfo() }
+                override fun togglePlayPause() { this@PlayerActivity.togglePlayPause() }
+                override fun pokeControls() { this@PlayerActivity.pokeControls() }
+                override fun scrubSeek(seconds: Int) { this@PlayerActivity.scrubSeek(seconds) }
+                override fun toggleFavoriteAt(idx: Int, announce: Boolean) { this@PlayerActivity.toggleFavoriteAt(idx, announce) }
+                override fun closePlayer() { this@PlayerActivity.closePlayer() }
+                override fun openChannelList() { this@PlayerActivity.openChannelList() }
+                override fun seekRelative(deltaMs: Long) { this@PlayerActivity.seekRelative(deltaMs) }
+                override fun selectOption(idx: Int) { this@PlayerActivity.selectOption(idx) }
+                override fun closeOptions() { this@PlayerActivity.closeOptions() }
+                override fun selectTrackAtNav() { this@PlayerActivity.selectTrackAtNav() }
+                override fun closeTrackMenu() { this@PlayerActivity.closeTrackMenu() }
+                override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean =
+                    this@PlayerActivity.dispatchKeyEvent(event)
+            })
+    }
+
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
         val down = event.action == android.view.KeyEvent.ACTION_DOWN
         val kc = event.keyCode
-
-        // DIAGNOSTICS (optional in settings): code for an unusual key
-        if (remoteDebug && down && !isCommonKey(kc)) {
-            val keyCodeStr = "Key code: $kc (${android.view.KeyEvent.keyCodeToString(kc)})"
-            Toast.makeText(
-                this,
-                keyCodeStr,
-                Toast.LENGTH_SHORT
-            ).show()
-            Log.d("HEADEND", keyCodeStr)
-        }
-
-        // M370: aktivne hladanie s fokusom na textovom poli -> text spracuje system/IME;
-        // zachytime len BACK (zavri hladanie) a DOLE (prejdi na vysledky).
-        if (search.isActive && search.fieldFocusedState.value) {
-            if (search.handleFieldKey(kc, down)) return true
-            return super.dispatchKeyEvent(event)
-        }
-
-        // M553: otvorený teletext berie všetky klávesy okrem hlasitosti
-        if (teletextOpenState.value) {
-            if (ttx.handleKey(kc, down, event)) return true
-            return super.dispatchKeyEvent(event)
-        }
-        // M553: kláves TEXT na diaľkovom otvorí teletext priamo
-        if (kc == android.view.KeyEvent.KEYCODE_TV_TELETEXT && down && teletextVisible()) {
-            openTeletext(); return true
-        }
-
-        // 0) PIN rodicovskeho zamku -> cislice, D-pad mriezka, CH+/- pocas vyzvy (PinPrompt, M629)
-        if (pin.isOpen) return pin.handleKey(kc, down, event)
-
-        // 0a) Dialog "Obnovit prehravanie" -> sipky vlavo/vpravo + OK riesime my (na boxe inak bez fokusu)
-        if (resumePromptState.value) return DialogKeys.twoChoice(kc, down, event, resumeSelState,
-            onOk = { sel -> resumeAnswerState.value = if (sel == 1) 1 else 2 },
-            onBack = { resumeAnswerState.value = 2 })
-
-        // 0a2) M606: vyber DVR profilu -> hore/dole + OK + BACK riesime my
-        if (dvrAskState.value.isNotEmpty()) return DialogKeys.verticalList(kc, down, event,
-            count = dvrAskState.value.size, sel = dvrAskSelState, okFirstPressOnly = true,
-            // M606-fix: OK-up po zatvoreni dialogu inak dorazil do zoznamu kanalov a potvrdil (spustil) vybrany kanal
-            onOk = { okLongFired = true; resolveDvrAsk(dvrAskState.value.getOrNull(dvrAskSelState.value)) },
-            onBack = { resolveDvrAsk(null) })
-        // 0b) Vyber pri archivovanom kanali -> sipky vlavo/vpravo + OK + BACK riesime my
-        if (archiveChoiceIdxState.value >= 0) return DialogKeys.twoChoice(kc, down, event, archiveChoiceSelState,
-            onOk = { sel -> resolveArchiveChoice(sel == 1) },
-            onBack = { archiveChoiceIdxState.value = -1 })
-        val okKey = kc == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
-            kc == android.view.KeyEvent.KEYCODE_ENTER ||
-            kc == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
-        if (okKey && !down && okLongFired) { okLongFired = false; return true }
-
-        // 0c) Kontextove menu kanala (long-press v zozname) -> hore/dole + OK (na uvolnenie) + BACK (M641)
-        if (ctxMenu.isOpen) return ctxMenu.handleKey(kc, down)
-
-        // 0d) Info o relacii (detail) -> hociktore OK/BACK/vlavo zatvori (M643: ChannelInfo)
-        if (info.isOpen) return info.handleKey(kc, down)
-
-        // 0e) Potvrdenie ukoncenia ziveho prehravania (BACK) -> sipky + OK + BACK riesime my
-        if (exitConfirmState.value) return DialogKeys.twoChoice(kc, down, event, exitConfirmSelState,
-            onOk = { sel -> if (sel == 1) finish() else exitConfirmState.value = false },
-            onBack = { exitConfirmState.value = false })
-
-        if (down) {
-            when (kc) {
-                // EPG klavesy roznych ovladacov (M345)
-                android.view.KeyEvent.KEYCODE_GUIDE,
-                android.view.KeyEvent.KEYCODE_TV_DATA_SERVICE,
-                android.view.KeyEvent.KEYCODE_TV_CONTENTS_MENU,
-                android.view.KeyEvent.KEYCODE_TV_MEDIA_CONTEXT_MENU -> { openEpgInApp(); return true }
-                // Titulkovy klaves -> titulky (predtym omylom otvaral EPG)
-                android.view.KeyEvent.KEYCODE_CAPTIONS -> { openSpuMenu(); return true }
-                // Audio klaves (na mnohych TV/box ovladacoch) -> zvukove stopy
-                android.view.KeyEvent.KEYCODE_MEDIA_AUDIO_TRACK -> { openAudioMenu(); return true }
-                // MENU klaves -> OSD/ovladanie pocas prehravania
-                android.view.KeyEvent.KEYCODE_MENU -> {
-                    if (modernTvActive()) openModernOverlay() else showControlsFocused()
-                    return true
-                }
-                android.view.KeyEvent.KEYCODE_INFO -> { toggleInfo(); return true }
-                // M577 (issue #11): medialne klavesy dialkoveho — STOP zastavi prehravanie
-                // (ako Spat bez PiP a bez potvrdenia), PLAY/PAUSE/PLAY_PAUSE ovladaju pauzu,
-                // RW/FF skacu v nahravke aj v timeshifte, NEXT/PREV = dalsi/predosly kanal
-                // (v nahravke skok o minutu)
-                android.view.KeyEvent.KEYCODE_MEDIA_STOP -> { LastPlayback.clear(this); finish(); return true }
-                android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> { togglePlayPause(); pokeControls(); return true }
-                android.view.KeyEvent.KEYCODE_MEDIA_PLAY -> { if (!isPlayingState.value) { togglePlayPause(); pokeControls() }; return true }
-                android.view.KeyEvent.KEYCODE_MEDIA_PAUSE -> { if (isPlayingState.value) { togglePlayPause(); pokeControls() }; return true }
-                android.view.KeyEvent.KEYCODE_MEDIA_REWIND -> { scrubSeek(-30); pokeControls(); return true }
-                android.view.KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> { scrubSeek(+30); pokeControls(); return true }
-                // M579: ZALOZKA (Google TV ovladace) = pridat/odobrat prave hrajuci kanal
-                // z oblubenych; TV klaves = z nahravky spat na zivy kanal, inak zoznam kanalov
-                android.view.KeyEvent.KEYCODE_BOOKMARK -> {
-                    if (!seekablePlayback && liveIndex >= 0 && !channelListOpen) { toggleFavoriteAt(liveIndex, announce = true); return true }
-                }
-                android.view.KeyEvent.KEYCODE_TV -> {
-                    if (seekablePlayback && returnLiveUuid != null) { closePlayer(); return true }
-                    if (!seekablePlayback && !channelListOpen) { openChannelList(); return true }
-                }
-                android.view.KeyEvent.KEYCODE_MEDIA_NEXT, android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
-                    val fwd = kc == android.view.KeyEvent.KEYCODE_MEDIA_NEXT
-                    if (seekablePlayback) { seekRelative(if (fwd) 60_000L else -60_000L); pokeControls(); return true }
-                    // zivy kanal: rovnake spracovanie ako CH+/CH- (zoznam, PIN, zap bar)
-                    val mapped = android.view.KeyEvent(
-                        event.downTime, event.eventTime, event.action,
-                        if (fwd) android.view.KeyEvent.KEYCODE_CHANNEL_UP else android.view.KeyEvent.KEYCODE_CHANNEL_DOWN,
-                        event.repeatCount
-                    )
-                    return dispatchKeyEvent(mapped)
-                }
-            }
-        }
-
-        // 1) Otvoreny zoznam kanalov -> navigujeme my (M645: ChannelListKeys)
-        if (channelListOpen) {
-            if (listKeys.handleKey(kc, down, event)) return true
-            return super.dispatchKeyEvent(event)   // hlasitost
-        }
-
-        // 2) Otvoreny vyber casovaca uspatia -> vertikalna navigacia
-        if (optionsOpen) {
-            if (DialogKeys.verticalList(kc, down, event, count = sleep.durations.size, sel = optionsNavState,
-                    leftCloses = true, passVolume = true,
-                    onOk = { selectOption(optionsNavState.value) }, onBack = { closeOptions() })) return true
-            return super.dispatchKeyEvent(event)
-        }
-
-        // 3) Otvorene track menu (audio/titulky) -> navigujeme my (hore/dole + OK)
-        if (trackMenuOpen) {
-            if (DialogKeys.verticalList(kc, down, event, count = tracks.menuIds(htspStream).size, sel = tracks.navIndex,
-                    leftCloses = true, passVolume = true,
-                    onOk = { selectTrackAtNav() }, onBack = { closeTrackMenu() })) return true
-            return super.dispatchKeyEvent(event)
-        }
-
-        // 3b0) "Viac" menu nad modernym overlayom (M327) — ModernOverlayController (M642)
-        if (modernOv.isMoreOpen) return modernOv.handleMoreKey(kc, down, event)
-        // 3b) Moderny TV overlay (karty kanalov + ovladacia lista) -> navigujeme my (M642)
-        if (modernOv.isOpen) {
-            if (modernOv.handleKey(kc, down, event)) return true
-            return super.dispatchKeyEvent(event)   // hlasitost
-        }
-
-        // 4) Bezne prehravanie (M651: PlaybackKeys.kt)
-        if (engine.ready) {
-            playbackKeys.handleKey(kc, down, event)?.let { return it }
-        }
+        keyRouter.handle(kc, down, event)?.let { return it }
         return super.dispatchKeyEvent(event)
     }
 
