@@ -424,131 +424,21 @@ class PlayerActivity : ComponentActivity() {
     // pre opatovne pripojenie videa po navrate z pozadia
     private var videoLayout: VLCVideoLayout? = null
     private var subOverlay: SubtitleOverlayView? = null
+    // ===== M553 / M627: teletext — stav a ovládanie v TeletextController, vykreslenie v TeletextOverlay =====
+    private val ttx by lazy {
+        TeletextController(this,
+            liveServer = { liveServer },
+            liveUuid = { liveUuidState.value },
+            seekable = { seekablePlayback },
+            onOpened = { closeModernOverlay() })
+    }
     /** M552: teletext aktuálneho kanála (HTSP: dáta z feedera, HTTP: vlastná odbočka). */
-    val teletext: TeletextSession by lazy { TeletextSession(this) }
+    val teletext: TeletextSession get() = ttx.session
+    val teletextOpenState get() = ttx.openState
+    fun teletextVisible(): Boolean = ttx.visible()
+    fun openTeletext() = ttx.open()
+    fun closeTeletext() = ttx.close()
 
-    // ===== M553: teletext UI (stav + ovládanie; vykreslenie v TeletextOverlay) =====
-    val teletextOpenState = androidx.compose.runtime.mutableStateOf(false)
-    private val ttxPageState = androidx.compose.runtime.mutableStateOf(0x100)
-    private val ttxSubState = androidx.compose.runtime.mutableStateOf(-1)
-    private val ttxEntryState = androidx.compose.runtime.mutableStateOf("")
-    private val ttxTransparentState = androidx.compose.runtime.mutableStateOf(false)
-    private val ttxRevealState = androidx.compose.runtime.mutableStateOf(false)
-    private val ttxLastPage = HashMap<String, Int>()   // kanál -> posledná strana
-    private val ttxEntryHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val ttxEntryTimeout = Runnable { ttxEntryState.value = "" }
-
-    private fun isHtspLiveServer(): Boolean = liveServer?.connectionMode == "htsp"
-
-    /** Položka Teletext sa ponúka len pri živom kanáli: HTSP keď kanál stopu má, HTTP vždy
-     *  (či vysiela, sa zistí až z PMT po otvorení). */
-    fun teletextVisible(): Boolean {
-        if (seekablePlayback || liveUuidState.value == null) return false
-        return if (isHtspLiveServer()) teletext.availableState.value else true
-    }
-
-    fun openTeletext() {
-        val uuid = liveUuidState.value ?: return
-        ttxPageState.value = ttxLastPage[uuid] ?: 0x100
-        ttxSubState.value = -1
-        ttxEntryState.value = ""
-        ttxRevealState.value = false
-        teletextOpenState.value = true
-        closeModernOverlay()
-        if (!isHtspLiveServer()) liveServer?.let { teletext.startHttp(it, uuid, lifecycleScope) }
-    }
-
-    fun closeTeletext() {
-        if (!teletextOpenState.value) return
-        teletextOpenState.value = false
-        ttxEntryHandler.removeCallbacks(ttxEntryTimeout)
-        liveUuidState.value?.let { ttxLastPage[it] = ttxPageState.value }
-        teletext.stopHttp()
-    }
-
-    private fun ttxGoto(page: Int) {
-        if (page < 0x100 || page > 0x8FF) return
-        ttxPageState.value = page
-        ttxSubState.value = -1
-        ttxEntryState.value = ""
-        ttxRevealState.value = false
-    }
-
-    /** Ďalšia/predošlá strana: najbližšia už prijatá, inak ±1 (hex číslovanie 100..8FF, len desiatkové). */
-    private fun ttxStep(dir: Int) {
-        val cur = ttxPageState.value
-        val known = teletext.decoder.knownPages().filter { isDecimalPage(it) }
-        val next = if (dir > 0) known.firstOrNull { it > cur } else known.lastOrNull { it < cur }
-        if (next != null) { ttxGoto(next); return }
-        var p = cur
-        repeat(0x800) {
-            p += dir
-            if (p < 0x100) p = 0x8FF
-            if (p > 0x8FF) p = 0x100
-            if (isDecimalPage(p)) { ttxGoto(p); return }
-        }
-    }
-
-    private fun isDecimalPage(p: Int): Boolean = ((p shr 4) and 0xF) <= 9 && (p and 0xF) <= 9
-
-    private fun ttxSubStep(dir: Int) {
-        val subs = teletext.decoder.subpages(ttxPageState.value)
-        if (subs.size < 2) return
-        val curPage = teletext.decoder.page(ttxPageState.value, ttxSubState.value)
-        val curSub = curPage?.subpage ?: subs.last()
-        val i = subs.indexOf(curSub)
-        val ni = ((if (i < 0) 0 else i) + dir + subs.size) % subs.size
-        ttxSubState.value = subs[ni]
-    }
-
-    private fun ttxDigit(d: Int) {
-        ttxEntryHandler.removeCallbacks(ttxEntryTimeout)
-        var e = ttxEntryState.value
-        if (e.isEmpty() && (d < 1 || d > 8)) return   // strana 100..899
-        e += d
-        if (e.length >= 3) { ttxGoto(e.toInt(16)); return }
-        ttxEntryState.value = e
-        ttxEntryHandler.postDelayed(ttxEntryTimeout, 4000)
-    }
-
-    private fun ttxFastext(link: Int) {
-        val pg = teletext.decoder.page(ttxPageState.value, ttxSubState.value) ?: return
-        val target = pg.links.getOrNull(link) ?: return
-        if (target > 0) ttxGoto(target)
-    }
-
-    /** Klávesy pri otvorenom teletexte. Hlasitosť prepúšťa systému, ostatné spotrebuje. */
-    private fun handleTeletextKey(kc: Int, down: Boolean, event: android.view.KeyEvent): Boolean {
-        when (kc) {
-            android.view.KeyEvent.KEYCODE_VOLUME_UP, android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
-            android.view.KeyEvent.KEYCODE_VOLUME_MUTE, android.view.KeyEvent.KEYCODE_MUTE -> return false
-        }
-        if (!down) return true
-        when (kc) {
-            in android.view.KeyEvent.KEYCODE_0..android.view.KeyEvent.KEYCODE_9 ->
-                ttxDigit(kc - android.view.KeyEvent.KEYCODE_0)
-            in android.view.KeyEvent.KEYCODE_NUMPAD_0..android.view.KeyEvent.KEYCODE_NUMPAD_9 ->
-                ttxDigit(kc - android.view.KeyEvent.KEYCODE_NUMPAD_0)
-            android.view.KeyEvent.KEYCODE_DPAD_UP, android.view.KeyEvent.KEYCODE_CHANNEL_UP,
-            android.view.KeyEvent.KEYCODE_PAGE_UP -> ttxStep(+1)
-            android.view.KeyEvent.KEYCODE_DPAD_DOWN, android.view.KeyEvent.KEYCODE_CHANNEL_DOWN,
-            android.view.KeyEvent.KEYCODE_PAGE_DOWN -> ttxStep(-1)
-            android.view.KeyEvent.KEYCODE_DPAD_LEFT -> ttxSubStep(-1)
-            android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> ttxSubStep(+1)
-            android.view.KeyEvent.KEYCODE_DPAD_CENTER, android.view.KeyEvent.KEYCODE_ENTER,
-            android.view.KeyEvent.KEYCODE_NUMPAD_ENTER ->
-                if (event.repeatCount == 0) ttxTransparentState.value = !ttxTransparentState.value
-            android.view.KeyEvent.KEYCODE_PROG_RED -> ttxFastext(0)
-            android.view.KeyEvent.KEYCODE_PROG_GREEN -> ttxFastext(1)
-            android.view.KeyEvent.KEYCODE_PROG_YELLOW -> ttxFastext(2)
-            android.view.KeyEvent.KEYCODE_PROG_BLUE -> ttxFastext(3)
-            android.view.KeyEvent.KEYCODE_INFO, android.view.KeyEvent.KEYCODE_MENU ->
-                ttxRevealState.value = !ttxRevealState.value   // odkryť skryté (conceal) znaky
-            android.view.KeyEvent.KEYCODE_BACK, android.view.KeyEvent.KEYCODE_ESCAPE,
-            android.view.KeyEvent.KEYCODE_TV_TELETEXT -> closeTeletext()
-        }
-        return true
-    }
     private var wasPlaying: Boolean = false
     // Picture-in-Picture (obraz v obraze)
     private val inPipState = androidx.compose.runtime.mutableStateOf(false)
@@ -2928,7 +2818,7 @@ class PlayerActivity : ComponentActivity() {
 
         // M553: otvorený teletext berie všetky klávesy okrem hlasitosti
         if (teletextOpenState.value) {
-            if (handleTeletextKey(kc, down, event)) return true
+            if (ttx.handleKey(kc, down, event)) return true
             return super.dispatchKeyEvent(event)
         }
         // M553: kláves TEXT na diaľkovom otvorí teletext priamo
@@ -4214,18 +4104,18 @@ class PlayerActivity : ComponentActivity() {
             if (teletextOpenState.value) {
                 TeletextOverlay(
                     session = teletext,
-                    pageNumber = ttxPageState.value,
-                    subpage = ttxSubState.value,
-                    entry = ttxEntryState.value,
-                    transparent = ttxTransparentState.value,
-                    reveal = ttxRevealState.value,
-                    isHttp = !isHtspLiveServer(),
+                    pageNumber = ttx.pageState.value,
+                    subpage = ttx.subState.value,
+                    entry = ttx.entryState.value,
+                    transparent = ttx.transparentState.value,
+                    reveal = ttx.revealState.value,
+                    isHttp = !ttx.isHtspLiveServer(),
                     onClose = { closeTeletext() },
-                    onStep = { d -> ttxStep(d) },
-                    onToggleTransparent = { ttxTransparentState.value = !ttxTransparentState.value },
+                    onStep = { d -> ttx.step(d) },
+                    onToggleTransparent = { ttx.toggleTransparent() },
                     touchUi = !isTvDevice(),                 // M559: dotykove ovladanie na telefone
-                    onSubStep = { d -> ttxSubStep(d) },
-                    onDigit = { d -> ttxDigit(d) }
+                    onSubStep = { d -> ttx.subStep(d) },
+                    onDigit = { d -> ttx.digit(d) }
                 )
             }
             if (dvrAskState.value.isNotEmpty()) {
