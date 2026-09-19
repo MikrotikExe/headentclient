@@ -18,7 +18,7 @@ import org.videolan.libvlc.MediaPlayer
  * Čo mení stream (výber profilu, zápis poslednej audio stopy, prepnutie kanála) ostáva
  * v aktivite — sem chodí len [player] a [htspFeeder] ako lambdy.
  */
-class TrackState(
+internal class TrackState(
     private val ctx: Context,
     private val player: () -> MediaPlayer?,
     private val htspFeeder: () -> HtspTsFeeder?
