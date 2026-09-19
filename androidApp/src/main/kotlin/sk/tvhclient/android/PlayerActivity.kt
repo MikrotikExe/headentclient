@@ -4181,80 +4181,21 @@ class PlayerActivity : ComponentActivity() {
             }
             // M430 / M628: kompaktny zap pas — cislo · kanal / program · cas / priebeh
             if (zapBar.visible.value && !infoVisibleState.value) ZapBarOverlay(zapBar)
-            // Info o relacii (detail) — overlay v style prehravaca
+            // Info o relacii (detail) — overlay v style prehravaca (M630: ChannelInfoOverlay)
             if (infoVisibleState.value) {
-                Box(
-                    Modifier.fillMaxSize().background(Color(0xCC0B1220))
-                        .clickable { closeChannelInfo() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        Modifier.fillMaxWidth(0.78f).widthIn(max = 560.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Color(0xFF1B2433))
-                            .padding(horizontal = 24.dp, vertical = 24.dp)
-                    ) {
-                        if (infoChannelState.value.isNotBlank()) {
-                            Text(infoChannelState.value, color = Color(0xFF6699FF),
-                                style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
-                                maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Spacer(Modifier.height(6.dp))
-                        }
-                        Text(infoTitleState.value.ifBlank { infoChannelState.value },
-                            color = Color.White, style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold)
-                        if (infoTimeState.value.isNotBlank()) {
-                            Spacer(Modifier.height(4.dp))
-                            Text(infoTimeState.value, color = Color(0xFFB9C2D0),
-                                style = MaterialTheme.typography.titleMedium)
-                        }
-                        if (infoDescState.value.isNotBlank()) {
-                            Spacer(Modifier.height(14.dp))
-                            Text(infoDescState.value, color = Color(0xFFD7DEE8),
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier
-                                    .heightIn(max = 260.dp)
-                                    .verticalScroll(androidx.compose.foundation.rememberScrollState()))
-                        }
-                        // M490: nahravanie priamo z info prekrytia. Dialog pohlcuje
-                        // vsetky klavesy a OK ho zatvara, takze focusovatelne
-                        // tlacidlo tu nefunguje — polozka sa vybera sipkou dole.
-                        if (dvrRecordVisible()) {
-                            val sel = infoRecSelState.value
-                            Spacer(Modifier.height(16.dp))
-                            Row(
-                                Modifier.fillMaxWidth()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (sel) Color(0x553B82F6) else Color.Transparent)
-                                    .border(
-                                        1.dp,
-                                        if (sel) Color(0xFF3B82F6) else Color(0x33FFFFFF),
-                                        RoundedCornerShape(12.dp)
-                                    )
-                                    .clickable { closeChannelInfo(); toggleRecordCurrent() }
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                androidx.compose.material3.Icon(
-                                    if (dvrExistingState.value != null) Icons.Default.Stop
-                                    else Icons.Default.FiberManualRecord,
-                                    contentDescription = null,
-                                    tint = if (sel) Color(0xFF6699FF) else Color(0xFFB9C2D0),
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(Modifier.width(12.dp))
-                                Text(
-                                    androidx.compose.ui.res.stringResource(
-                                        if (dvrExistingState.value != null) R.string.dvr_rec_cancel_button
-                                        else R.string.dvr_rec_button
-                                    ),
-                                    color = if (sel) Color.White else Color(0xFFD7DEE8),
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                            }
-                        }
-                    }
-                }
+                ChannelInfoOverlay(
+                    channel = infoChannelState.value,
+                    title = infoTitleState.value,
+                    time = infoTimeState.value,
+                    desc = infoDescState.value,
+                    recordLabel = if (dvrRecordVisible()) androidx.compose.ui.res.stringResource(
+                        if (dvrExistingState.value != null) R.string.dvr_rec_cancel_button else R.string.dvr_rec_button
+                    ) else null,
+                    recordActive = dvrExistingState.value != null,
+                    recordSelected = infoRecSelState.value,
+                    onClose = { closeChannelInfo() },
+                    onRecord = { toggleRecordCurrent() }
+                )
             }
             }
         }
@@ -6013,179 +5954,20 @@ private fun PlayerUi(
             onStart = onStart
         )
 
-        // Audio-only (rozhlas): namiesto ciernej zobraz vycentrovane logo
-        if (!hasVideo) {
-            val ctxLogo = androidx.compose.ui.platform.LocalContext.current
-            val cfgLogo = androidx.compose.ui.platform.LocalConfiguration.current
-            val logoLoader = remember(server?.id) { PiconImageLoader.get(ctxLogo, server) }
-            // Ked je otvoreny zoznam kanalov (TV), presun logo do nahladoveho obdlznika;
-            // inak vycentrovane na celu obrazovku.
-            val side = if (inPreview) {
-                with(density) { (minOf(previewRect!!.width, previewRect!!.height) * 0.55f).toDp() }
-            } else (minOf(cfgLogo.screenWidthDp, cfgLogo.screenHeightDp) * 0.42f).dp
-            val logoBoxMod = if (inPreview) {
-                val r = previewRect!!
-                Modifier
-                    .absoluteOffset { IntOffset(r.left.roundToInt(), r.top.roundToInt()) }
-                    .size(with(density) { r.width.toDp() }, with(density) { r.height.toDp() })
-            } else Modifier.fillMaxSize()
-            Box(logoBoxMod, contentAlignment = Alignment.Center) {
-                var logoOk by remember(centerLogoUrl) {
-                    androidx.compose.runtime.mutableStateOf(centerLogoUrl != null)
-                }
-                if (centerLogoUrl != null && logoOk) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(ctxLogo).data(centerLogoUrl).build(),
-                        contentDescription = null,
-                        imageLoader = logoLoader,
-                        contentScale = androidx.compose.ui.layout.ContentScale.Fit,
-                        onState = { st ->
-                            if (st is coil.compose.AsyncImagePainter.State.Error) logoOk = false
-                        },
-                        modifier = Modifier.size(side)
-                    )
-                } else {
-                    // Predvolena grafika radia (ked stanica nema picon alebo sa nenacita)
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(
-                            modifier = Modifier
-                                .size(side * 0.7f)
-                                .clip(RoundedCornerShape(side.value.dp * 0.12f))
-                                .background(
-                                    androidx.compose.ui.graphics.Brush.verticalGradient(
-                                        listOf(playerTrack(), playerTrack())
-                                    )
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            androidx.compose.material3.Icon(
-                                Icons.Default.Radio,
-                                contentDescription = null,
-                                tint = playerFg(),
-                                modifier = Modifier.size(side * 0.42f)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
+        // M630: male prekryvy v PlayerOverlays.kt (poradie zachovane)
+        // Audio-only (rozhlas): namiesto ciernej vycentrovane logo; na TV so zoznamom v nahlade
+        if (!hasVideo) RadioCenterLogo(centerLogoUrl, server, if (inPreview) previewRect else null)
         // indikator opätovného pripájania (vypadok siete pri zivom vysielani)
-        if (reconnecting) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .background(Color(0xCC000000), RoundedCornerShape(14.dp))
-                        .padding(horizontal = 28.dp, vertical = 22.dp)
-                ) {
-                    androidx.compose.material3.CircularProgressIndicator(color = Color.White)
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        stringResource(R.string.reconnecting),
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-        }
-
+        if (reconnecting) ReconnectingOverlay()
         // koliesko v strede pocas pretacania timeshiftu (resync)
-        if (seeking && !reconnecting) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                androidx.compose.material3.CircularProgressIndicator(color = playerFg())
-            }
-        }
-
-        // YouTube-style hint pri dvojkliku (skok o 10 s), na strane kliknutia, akumuluje sa
-        if (seekHint != 0) {
-            val fwd = seekHint > 0
-            val label = if (fwd) "+$seekHint  ›" else "‹  $seekHint"
-            Box(
-                Modifier.fillMaxSize().padding(horizontal = 44.dp),
-                contentAlignment = if (fwd) Alignment.CenterEnd else Alignment.CenterStart
-            ) {
-                Text(
-                    label,
-                    color = Color.White,
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        shadow = androidx.compose.ui.graphics.Shadow(
-                            color = Color(0xB3000000),
-                            blurRadius = 14f
-                        )
-                    )
-                )
-            }
-        }
-
+        if (seeking && !reconnecting) SeekingSpinner()
+        // YouTube-style hint pri dvojkliku (skok o 10 s)
+        if (seekHint != 0) SeekHintOverlay(seekHint)
         // MX Player overlaye: hlasitost / jas (vystredene), seek-scrub (hore v strede)
-        if (volPctState >= 0 || brightPctState >= 0) {
-            val isVol = volPctState >= 0
-            val pct = if (isVol) volPctState else brightPctState
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
-                        .background(Color(0xAA000000))
-                        .padding(horizontal = 22.dp, vertical = 16.dp)
-                ) {
-                    val gLabel = androidx.compose.ui.res.stringResource(
-                        if (isVol) R.string.player_volume else R.string.player_brightness
-                    )
-                    Text(
-                        "$gLabel  $pct%",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    androidx.compose.material3.LinearProgressIndicator(
-                        progress = { pct / 100f },
-                        modifier = Modifier.width(170.dp).padding(top = 10.dp),
-                        color = playerAccent(),
-                        trackColor = Color(0x55FFFFFF)
-                    )
-                }
-            }
-        }
-        if (scrubSecState != Int.MIN_VALUE) {
-            val s = scrubSecState
-            val a = kotlin.math.abs(s)
-            val mm = a / 60
-            val ss = a % 60
-            val core = if (mm > 0) "$mm:" + ss.toString().padStart(2, '0') else "${ss}s"
-            val label = (if (s >= 0) "+" else "\u2212") + core
-            Box(
-                Modifier.fillMaxSize().padding(top = 56.dp),
-                contentAlignment = Alignment.TopCenter
-            ) {
-                Text(
-                    label,
-                    color = Color.White,
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        shadow = androidx.compose.ui.graphics.Shadow(
-                            color = Color(0xB3000000),
-                            blurRadius = 14f
-                        )
-                    )
-                )
-            }
-        }
-
+        if (volPctState >= 0 || brightPctState >= 0) GestureLevelOverlay(volPctState, brightPctState)
+        if (scrubSecState != Int.MIN_VALUE) ScrubSecondsOverlay(scrubSecState)
         // prekrytie s prave zadavanym cislom kanala
-        if (numberEntry.isNotEmpty()) {
-            Box(
-                Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(playerScrim())
-                    .padding(horizontal = 28.dp, vertical = 14.dp)
-            ) {
-                Text(numberEntry, color = playerFg(), fontSize = 48.sp)
-            }
-        }
+        if (numberEntry.isNotEmpty()) NumberEntryOverlay(numberEntry)
 
         AnimatedVisibility(
             visible = controlsVisible,
