@@ -149,7 +149,7 @@ class PlayerActivity : ComponentActivity() {
     // nie z libVLC (to ma len jazyky, ktore uz "prehovorili"). Vyber mapujeme na realnu
     // libVLC stopu podla anglickeho nazvu jazyka (libVLC DVB titulky netaguje kodom).
     // M637: stav stop (zvuk/titulky/profil) v TrackState.kt
-    private val tracks by lazy {
+    private val tracks: TrackState by lazy {
         TrackState(this,
             player = { if (::mediaPlayer.isInitialized && !playerTornDown) mediaPlayer else null },
             htspFeeder = { htspFeeder })
@@ -171,7 +171,7 @@ class PlayerActivity : ComponentActivity() {
     private val timeshiftEngagedState = androidx.compose.runtime.mutableStateOf(false)
 
     // ===== Moderny TV overlay (karty kanalov + ovladacia lista) — ModernOverlayController.kt (M642) =====
-    private val modernOv by lazy {
+    private val modernOv: ModernOverlayController by lazy {
         ModernOverlayController(live,
             seekable = { seekablePlayback },
             timeshiftEngaged = { timeshiftEngagedState.value },
@@ -195,7 +195,7 @@ class PlayerActivity : ComponentActivity() {
                 }
             })
     }
-    private val modernOvState get() = modernOv.visible
+    private val modernOvState: androidx.compose.runtime.MutableState<Boolean> get() = modernOv.visible
 
     private val isTvBox by lazy {
         (getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager)
@@ -362,8 +362,8 @@ class PlayerActivity : ComponentActivity() {
     }
 
     private fun modernMoreIds(): List<String> = modernOv.moreIds()
-    private fun openModernOverlay() = modernOv.open()
-    private fun closeModernOverlay() = modernOv.close()
+    private fun openModernOverlay() { modernOv.open() }
+    private fun closeModernOverlay() { modernOv.close() }
 
     private var tsAccumMs = 0L
     private var tsPauseStartedAt = 0L
@@ -391,7 +391,7 @@ class PlayerActivity : ComponentActivity() {
     private var videoLayout: VLCVideoLayout? = null
     private var subOverlay: SubtitleOverlayView? = null
     // ===== M553 / M627: teletext — stav a ovládanie v TeletextController, vykreslenie v TeletextOverlay =====
-    private val ttx by lazy {
+    private val ttx: TeletextController by lazy {
         TeletextController(this,
             liveServer = { liveServer },
             liveUuid = { liveUuidState.value },
@@ -400,10 +400,10 @@ class PlayerActivity : ComponentActivity() {
     }
     /** M552: teletext aktuálneho kanála (HTSP: dáta z feedera, HTTP: vlastná odbočka). */
     val teletext: TeletextSession get() = ttx.session
-    val teletextOpenState get() = ttx.openState
+    val teletextOpenState: androidx.compose.runtime.MutableState<Boolean> get() = ttx.openState
     fun teletextVisible(): Boolean = ttx.visible()
-    fun openTeletext() = ttx.open()
-    fun closeTeletext() = ttx.close()
+    fun openTeletext() { ttx.open() }
+    fun closeTeletext() { ttx.close() }
 
     private var wasPlaying: Boolean = false
     // Picture-in-Picture (obraz v obraze)
@@ -413,12 +413,12 @@ class PlayerActivity : ComponentActivity() {
     private val videoCheckHandler = android.os.Handler(android.os.Looper.getMainLooper())
     // automaticke znovupripojenie zivého streamu po vypadku siete
     // M636: casovanie/stav reconnectu v ReconnectController.kt; co sa pri pokuse spravi, je nizsie
-    private val reconnect by lazy {
+    private val reconnect: ReconnectController by lazy {
         ReconnectController(this,
             playerReady = { ::mediaPlayer.isInitialized },
             isPlaying = { mediaPlayer.isPlaying })
     }
-    private val reconnectingState get() = reconnect.reconnecting
+    private val reconnectingState: androidx.compose.runtime.MutableState<Boolean> get() = reconnect.reconnecting
     // tocenie pri pretacani timeshiftu (kratky resync pipe -> libVLC)
     private val seekingState = androidx.compose.runtime.mutableStateOf(false)
     private var seekSpinnerJob: kotlinx.coroutines.Job? = null
@@ -447,23 +447,23 @@ class PlayerActivity : ComponentActivity() {
     private val liveIndexState get() = live.indexState
     private val liveChannelsState get() = live.channelsState
     // M634: EPG now/next + cache v PlayerEpgStore.kt; tu len delegaty pod povodnymi nazvami
-    private val epg by lazy {
+    private val epg: PlayerEpgStore by lazy {
         PlayerEpgStore(this,
             liveServer = { liveServer },
             liveChannels = liveChannelsState,
             recInProgress = recInProgressByChan,
             onDvrStateChanged = { refreshDvrState() })
     }
-    private val epgUpcomingState get() = epg.upcoming
-    private val epgLoadingState get() = epg.loading
-    private suspend fun refreshOverlayEpg() = epg.refreshOverlayEpg()
-    private fun refreshOverlayEpgInitial() = epg.refreshOverlayEpgInitial()
-    private fun refreshRecordingOnly() = epg.refreshRecordingOnly()
-    private fun cacheChannelEpg(uuid: String, list: List<sk.tvhclient.shared.model.EpgEvent>) = epg.cacheChannelEpg(uuid, list)
-    private fun hydrateEpgFromDisk(srv: sk.tvhclient.shared.model.TvhServer) = epg.hydrateEpgFromDisk(srv)
-    private fun applyCachedEpgToChannels() = epg.applyCachedEpgToChannels()
-    private fun flushEpgPersist() = epg.flushEpgPersist()
-    private fun prefetchEpgIfStale() = epg.prefetchEpgIfStale()
+    private val epgUpcomingState: androidx.compose.runtime.MutableState<Map<String, List<sk.tvhclient.shared.model.EpgEvent>>> get() = epg.upcoming
+    private val epgLoadingState: androidx.compose.runtime.MutableState<Boolean> get() = epg.loading
+    private suspend fun refreshOverlayEpg() { epg.refreshOverlayEpg() }
+    private fun refreshOverlayEpgInitial() { epg.refreshOverlayEpgInitial() }
+    private fun refreshRecordingOnly() { epg.refreshRecordingOnly() }
+    private fun cacheChannelEpg(uuid: String, list: List<sk.tvhclient.shared.model.EpgEvent>) { epg.cacheChannelEpg(uuid, list) }
+    private fun hydrateEpgFromDisk(srv: sk.tvhclient.shared.model.TvhServer) { epg.hydrateEpgFromDisk(srv) }
+    private fun applyCachedEpgToChannels() { epg.applyCachedEpgToChannels() }
+    private fun flushEpgPersist() { epg.flushEpgPersist() }
+    private fun prefetchEpgIfStale() { epg.prefetchEpgIfStale() }
 
     // D-pad / diaľkové: signál na zobrazenie ovládania, info pre seek a sw dekóder
     private val controlsPokeState = androidx.compose.runtime.mutableStateOf(0)
@@ -475,7 +475,7 @@ class PlayerActivity : ComponentActivity() {
     private val activeGroupLabelState = androidx.compose.runtime.mutableStateOf("")
     private val groupPickerState = androidx.compose.runtime.mutableStateOf(false)
     // M370 / M635: hladanie kanala podla nazvu — stav a klavesy v ChannelSearch.kt
-    private val search by lazy {
+    private val search: ChannelSearch by lazy {
         ChannelSearch(this,
             onSelect = { uuid -> selectLiveByUuid(uuid) },
             onDeactivate = { groupPickerState.value = false })
@@ -483,7 +483,7 @@ class PlayerActivity : ComponentActivity() {
     private var seekablePlayback = false
     private var currentStreamUrl: String? = null
     // Zadavanie kanala cislami z dialkoveho ovladaca (M635: ChannelNumberEntry.kt)
-    private val numEntry by lazy {
+    private val numEntry: ChannelNumberEntry by lazy {
         ChannelNumberEntry(lifecycleScope) { typed ->
             val idx = LivePlaylist.channels.indexOfFirst { it.number == typed }
             if (idx in liveUuids.indices) { switchToIndex(idx); pokeControls() }
@@ -1389,7 +1389,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     // ===== M369 / M640: filter skupin v zozname kanalov — LiveGroups.kt =====
-    private val groups by lazy {
+    private val groups: LiveGroups by lazy {
         LiveGroups(this, live,
             epgUpcoming = { epgUpcomingState.value },
             navIndex = navChannelIndexState,
@@ -1397,9 +1397,9 @@ class PlayerActivity : ComponentActivity() {
     }
     private fun groupLabelFor(key: String): String = groups.labelFor(key)
     private fun groupKeys(): List<String> = groups.keys()
-    private fun refreshFavOrder() = groups.refreshFavOrder()
-    private fun applyGroup(key: String) = groups.apply(key)
-    private fun cycleGroup(dir: Int) = groups.cycle(dir)
+    private fun refreshFavOrder() { groups.refreshFavOrder() }
+    private fun applyGroup(key: String) { groups.apply(key) }
+    private fun cycleGroup(dir: Int) { groups.cycle(dir) }
 
     // ===== M370 / M635: hladanie kanala — ChannelSearch.kt =====
     /** Vyber kanala z vysledkov hladania: prepne (aj skupinu ak treba) a pusti. */
@@ -1437,13 +1437,13 @@ class PlayerActivity : ComponentActivity() {
     private val optionsNavState = androidx.compose.runtime.mutableStateOf(0)
     // Casovac uspatia
     // M629: casovac uspatia v SleepTimer.kt
-    private val sleep by lazy { SleepTimer(this) { finish() } }
+    private val sleep: SleepTimer by lazy { SleepTimer(this) { finish() } }
     // Navigacia ovladacieho panela (focus riadime z Activity, nie cez Compose focus)
     private val controlNavState = androidx.compose.runtime.mutableStateOf(0)
     private var okLongFired = false
 
     // Rodicovsky zamok (PIN) — stav a klavesy v PinPrompt.kt (M629), vykreslenie PinDialog v PlayerUi
-    private val pin by lazy {
+    private val pin: PinPrompt by lazy {
         PinPrompt(this,
             isTv = { isTvDevice() },
             channelCount = { liveUuids.size },
@@ -1451,10 +1451,11 @@ class PlayerActivity : ComponentActivity() {
             switchToIndex = { idx -> switchToIndex(idx) },
             onRequested = { okLongFired = false })   // PIN vyzva prebera vstup; OK gesto je tym ukoncene
     }
-    private val pinPromptState get() = pin.promptState
-    private fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, markUnlock: Boolean = true, channelIndex: Int? = null) =
+    private val pinPromptState: androidx.compose.runtime.MutableState<Boolean> get() = pin.promptState
+    private fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, markUnlock: Boolean = true, channelIndex: Int? = null) {
         pin.request(onOk, onCancel, markUnlock, channelIndex)
-    private fun closePin() = pin.close()
+    }
+    private fun closePin() { pin.close() }
     // Dialog "Obnovit prehravanie" — D-pad obsluha v dispatchKeyEvent (na boxe nemal fokus)
     private val resumePromptState = androidx.compose.runtime.mutableStateOf(false)
     private val resumeSelState = androidx.compose.runtime.mutableStateOf(1)   // 0=Nie, 1=Ano (predvolba)
@@ -1639,7 +1640,7 @@ class PlayerActivity : ComponentActivity() {
     private val nextChannelCb: () -> Unit = { switchLive(+1) }
 
     // --- Kontextove menu kanala v prehravaci (long-press OK / dlhy klik) — ChannelContextMenu.kt (M641) ---
-    private val ctxMenu by lazy {
+    private val ctxMenu: ChannelContextMenu by lazy {
         ChannelContextMenu(this, live, groups,
             epgUpcoming = { epgUpcomingState.value },
             recInProgress = { recInProgressByChan.value },
@@ -1656,13 +1657,13 @@ class PlayerActivity : ComponentActivity() {
                 override fun enterReorder() = enterReorderMode()
             })
     }
-    private val ctxMenuIdxState get() = ctxMenu.idxState
-    private val ctxMenuSelState get() = ctxMenu.selState
+    private val ctxMenuIdxState: androidx.compose.runtime.MutableState<Int> get() = ctxMenu.idxState
+    private val ctxMenuSelState: androidx.compose.runtime.MutableState<Int> get() = ctxMenu.selState
     private fun ctxMenuKeys(idx: Int): List<String> = ctxMenu.keys(idx)
-    private fun openChannelContextMenu(idx: Int) = ctxMenu.open(idx)
-    private fun closeChannelContextMenu() = ctxMenu.close()
-    private fun toggleFavoriteAt(idx: Int, announce: Boolean) = ctxMenu.toggleFavoriteAt(idx, announce)
-    private fun activateCtxMenu(key: String) = ctxMenu.activate(key)
+    private fun openChannelContextMenu(idx: Int) { ctxMenu.open(idx) }
+    private fun closeChannelContextMenu() { ctxMenu.close() }
+    private fun toggleFavoriteAt(idx: Int, announce: Boolean) { ctxMenu.toggleFavoriteAt(idx, announce) }
+    private fun activateCtxMenu(key: String) { ctxMenu.activate(key) }
 
     /** M607: nahravanie z kontextovej ponuky — s volitelnym vyberom profilu (M606). */
     private fun recordFromCtxMenu(ch: LivePlaylist.LiveChannel, ev: sk.tvhclient.shared.model.EpgEvent) {
@@ -1701,7 +1702,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     // ===== M541 / M638: rezim usporiadania oblubenych (D-pad) — FavReorder.kt =====
-    private val reorder by lazy {
+    private val reorder: FavReorder by lazy {
         FavReorder(this,
             serverId = { (liveServer ?: Tvh.store.active())?.id },
             liveUuids = { liveUuids },
@@ -1712,11 +1713,11 @@ class PlayerActivity : ComponentActivity() {
             reapplyFavGroup = { refreshFavOrder(); applyGroup(LivePlaylist.GROUP_FAV) },
             okLongFired = { okLongFired })
     }
-    private fun enterReorderMode() = reorder.enter()
-    private fun exitReorderMode() = reorder.exit()
+    private fun enterReorderMode() { reorder.enter() }
+    private fun exitReorderMode() { reorder.exit() }
 
     // --- Info o relacii (detail) v prehravaci — ChannelInfo.kt (M643) ---
-    private val info by lazy {
+    private val info: ChannelInfo by lazy {
         ChannelInfo(lifecycleScope, live,
             epgUpcoming = { epgUpcomingState.value },
             cacheChannelEpg = { uuid, list -> cacheChannelEpg(uuid, list) },
@@ -1724,28 +1725,28 @@ class PlayerActivity : ComponentActivity() {
             toggleRecord = { toggleRecordCurrent() },
             onShown = { hideZapBar() })
     }
-    private val infoVisibleState get() = info.visible
-    private val infoRecSelState get() = info.recSel
-    private val infoChannelState get() = info.channel
-    private val infoTitleState get() = info.title
-    private val infoTimeState get() = info.time
-    private val infoDescState get() = info.desc
+    private val infoVisibleState: androidx.compose.runtime.MutableState<Boolean> get() = info.visible
+    private val infoRecSelState: androidx.compose.runtime.MutableState<Boolean> get() = info.recSel
+    private val infoChannelState: androidx.compose.runtime.MutableState<String> get() = info.channel
+    private val infoTitleState: androidx.compose.runtime.MutableState<String> get() = info.title
+    private val infoTimeState: androidx.compose.runtime.MutableState<String> get() = info.time
+    private val infoDescState: androidx.compose.runtime.MutableState<String> get() = info.desc
     // M280: potvrdenie ukoncenia ziveho prehravania (BACK) — ako exit dialog v menu
     private val exitConfirmState = androidx.compose.runtime.mutableStateOf(false)
     private val exitConfirmSelState = androidx.compose.runtime.mutableStateOf(0) // 0=Zrusit, 1=Ukoncit
 
     private fun fmtRange(a: Long, b: Long): String = ChannelInfo.fmtRange(a, b)
-    private fun showChannelInfo(idx: Int) = info.show(idx)
-    private fun closeChannelInfo() = info.close()
+    private fun showChannelInfo(idx: Int) { info.show(idx) }
+    private fun closeChannelInfo() { info.close() }
 
     // ---- M430 / M628: kompaktny zap pas — stav aj vykreslenie v ZapBar.kt ----
-    private val zapBar by lazy {
+    private val zapBar: ZapBar by lazy {
         ZapBar(lifecycleScope,
             fmtRange = { a, b -> fmtRange(a, b) },
             suppressed = { controlsShown || modernOvState.value || infoVisibleState.value })
     }
-    private fun hideZapBar() = zapBar.hide()
-    private fun showZapBar() = zapBar.show(liveChannelsState.value.getOrNull(liveIndexState.value))
+    private fun hideZapBar() { zapBar.hide() }
+    private fun showZapBar() { zapBar.show(liveChannelsState.value.getOrNull(liveIndexState.value)) }
 
     // Kedy sa zoznam otvoril — OK eventy tesne po otvoreni (zvysky otvaracieho
     // dlheho stlacenia, ghost DOWN/UP pary z IR/CEC ovladacov) sa ignoruju (M330-fix2)
@@ -1798,8 +1799,8 @@ class PlayerActivity : ComponentActivity() {
         htspFeeder?.selectSubtitle(esIndex)
     }
 
-    private fun applyDesiredSpu() = tracks.applyDesiredSpu()
-    private fun applyPendingSpuRestore() = tracks.applyPendingSpuRestore(htspStream, seekablePlayback)
+    private fun applyDesiredSpu() { tracks.applyDesiredSpu() }
+    private fun applyPendingSpuRestore() { tracks.applyPendingSpuRestore(htspStream, seekablePlayback) }
 
     /** M383: prepinac profilu ma zmysel len pri HTTP live (nie HTSP, nie DVR,
      *  nie externa URL — tam profil neexistuje alebo sa neda menit). */
@@ -1838,9 +1839,9 @@ class PlayerActivity : ComponentActivity() {
         if (i >= 0) { liveIndex = -1; switchToIndex(i, poke = false) }
     }
 
-    private fun openAudioMenu() = tracks.openAudioMenu()
-    private fun openSpuMenu() = tracks.openSpuMenu()
-    private fun closeTrackMenu() = tracks.closeMenu()
+    private fun openAudioMenu() { tracks.openAudioMenu() }
+    private fun openSpuMenu() { tracks.openSpuMenu() }
+    private fun closeTrackMenu() { tracks.closeMenu() }
     private fun selectTrackAtNav() {
         if (!::mediaPlayer.isInitialized) return
         val ids = tracks.menuIds(htspStream)
@@ -3429,7 +3430,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     /** Zrusi naplanovane znovupripojenie a skryje indikator. */
-    private fun cancelReconnect() = reconnect.cancel()
+    private fun cancelReconnect() { reconnect.cancel() }
 
     /** In-progress nahravka dobehla na koniec zapisanych dat (EOF na rastucom HTTP subore).
      *  Po chvili (nech pribudne dalsi blok) znovu otvor stream a vrat sa na poziciu z
@@ -3973,23 +3974,24 @@ class PlayerActivity : ComponentActivity() {
     // --- Doplnenie stop po starte (audio jazyky / DVB titulky) ---
     // Pri prvom napojeni streamu libVLC este nema doparsovane doplnkove ES; jazyky audio
     // M637: obnova zoznamu stop po starte a jednorazovy re-parse v TrackState
-    private fun scheduleTrackRefresh() = tracks.scheduleRefresh()
-    private fun cancelTrackRefresh() = tracks.cancelRefresh()
-    private fun maybeReparseForTracks() =
+    private fun scheduleTrackRefresh() { tracks.scheduleRefresh() }
+    private fun cancelTrackRefresh() { tracks.cancelRefresh() }
+    private fun maybeReparseForTracks() {
         tracks.maybeReparse(htspStream = { htspStream }, seekable = { seekablePlayback }, reconnect = { scheduleReconnect() })
+    }
 
     // ---- M626: AFR (M346) a zamky streamu (M452) vyclenene do AfrController / StreamLocks ----
-    private val afr by lazy {
+    private val afr: AfrController by lazy {
         AfrController(this, isTvBox,
             player = { if (::mediaPlayer.isInitialized && !playerTornDown) mediaPlayer else null },
             videoLayout = { videoLayout })
     }
-    private val streamLocks by lazy { StreamLocks(this, "HeadentClient:stream") }
+    private val streamLocks: StreamLocks by lazy { StreamLocks(this, "HeadentClient:stream") }
 
-    private fun maybeApplyAfr() = afr.apply()
-    private fun clearAfr() = afr.clear()
-    private fun acquireStreamLocks() = streamLocks.acquire()
-    private fun releaseStreamLocks() = streamLocks.release()
+    private fun maybeApplyAfr() { afr.apply() }
+    private fun clearAfr() { afr.clear() }
+    private fun acquireStreamLocks() { streamLocks.acquire() }
+    private fun releaseStreamLocks() { streamLocks.release() }
 
     override fun onDestroy() {
         stopPipMediaSession() // M578
