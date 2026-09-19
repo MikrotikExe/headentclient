@@ -1947,64 +1947,20 @@ class PlayerActivity : ComponentActivity() {
         if (pin.isOpen) return pin.handleKey(kc, down, event)
 
         // 0a) Dialog "Obnovit prehravanie" -> sipky vlavo/vpravo + OK riesime my (na boxe inak bez fokusu)
-        if (resumePromptState.value) {
-            if (down) {
-                when (kc) {
-                    android.view.KeyEvent.KEYCODE_DPAD_LEFT,
-                    android.view.KeyEvent.KEYCODE_DPAD_RIGHT ->
-                        { resumeSelState.value = 1 - resumeSelState.value; return true }
-                    android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-                    android.view.KeyEvent.KEYCODE_ENTER,
-                    android.view.KeyEvent.KEYCODE_NUMPAD_ENTER ->
-                        { if (event.repeatCount == 0) resumeAnswerState.value = if (resumeSelState.value == 1) 1 else 2; return true }
-                    android.view.KeyEvent.KEYCODE_BACK ->
-                        { resumeAnswerState.value = 2; return true }
-                }
-            }
-            return true
-        }
+        if (resumePromptState.value) return DialogKeys.twoChoice(kc, down, event, resumeSelState,
+            onOk = { sel -> resumeAnswerState.value = if (sel == 1) 1 else 2 },
+            onBack = { resumeAnswerState.value = 2 })
 
         // 0a2) M606: vyber DVR profilu -> hore/dole + OK + BACK riesime my
-        if (dvrAskState.value.isNotEmpty()) {
-            if (down) {
-                val n = dvrAskState.value.size
-                when (kc) {
-                    android.view.KeyEvent.KEYCODE_DPAD_UP ->
-                        { dvrAskSelState.value = (dvrAskSelState.value - 1 + n) % n; return true }
-                    android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
-                        { dvrAskSelState.value = (dvrAskSelState.value + 1) % n; return true }
-                    android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-                    android.view.KeyEvent.KEYCODE_ENTER,
-                    android.view.KeyEvent.KEYCODE_NUMPAD_ENTER ->
-                        {
-                            // M606-fix: OK-up po zatvoreni dialogu inak dorazil do zoznamu
-                            // kanalov a potvrdil (spustil) vybrany kanal
-                            if (event.repeatCount == 0) { okLongFired = true; resolveDvrAsk(dvrAskState.value.getOrNull(dvrAskSelState.value)) }
-                            return true
-                        }
-                    android.view.KeyEvent.KEYCODE_BACK ->
-                        { resolveDvrAsk(null); return true }
-                }
-            }
-            return true
-        }
+        if (dvrAskState.value.isNotEmpty()) return DialogKeys.verticalList(kc, down, event,
+            count = dvrAskState.value.size, sel = dvrAskSelState, okFirstPressOnly = true,
+            // M606-fix: OK-up po zatvoreni dialogu inak dorazil do zoznamu kanalov a potvrdil (spustil) vybrany kanal
+            onOk = { okLongFired = true; resolveDvrAsk(dvrAskState.value.getOrNull(dvrAskSelState.value)) },
+            onBack = { resolveDvrAsk(null) })
         // 0b) Vyber pri archivovanom kanali -> sipky vlavo/vpravo + OK + BACK riesime my
-        if (archiveChoiceIdxState.value >= 0) {
-            if (down) {
-                when (kc) {
-                    android.view.KeyEvent.KEYCODE_DPAD_LEFT,
-                    android.view.KeyEvent.KEYCODE_DPAD_RIGHT ->
-                        { archiveChoiceSelState.value = 1 - archiveChoiceSelState.value; return true }
-                    android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-                    android.view.KeyEvent.KEYCODE_ENTER,
-                    android.view.KeyEvent.KEYCODE_NUMPAD_ENTER ->
-                        { if (event.repeatCount == 0) resolveArchiveChoice(archiveChoiceSelState.value == 1); return true }
-                    android.view.KeyEvent.KEYCODE_BACK ->
-                        { archiveChoiceIdxState.value = -1; return true }
-                }
-            }
-            return true
-        }
+        if (archiveChoiceIdxState.value >= 0) return DialogKeys.twoChoice(kc, down, event, archiveChoiceSelState,
+            onOk = { sel -> resolveArchiveChoice(sel == 1) },
+            onBack = { archiveChoiceIdxState.value = -1 })
         val okKey = kc == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
             kc == android.view.KeyEvent.KEYCODE_ENTER ||
             kc == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
@@ -2017,24 +1973,9 @@ class PlayerActivity : ComponentActivity() {
         if (info.isOpen) return info.handleKey(kc, down)
 
         // 0e) Potvrdenie ukoncenia ziveho prehravania (BACK) -> sipky + OK + BACK riesime my
-        if (exitConfirmState.value) {
-            if (down) when (kc) {
-                android.view.KeyEvent.KEYCODE_DPAD_LEFT,
-                android.view.KeyEvent.KEYCODE_DPAD_RIGHT ->
-                    { exitConfirmSelState.value = 1 - exitConfirmSelState.value; return true }
-                android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-                android.view.KeyEvent.KEYCODE_ENTER,
-                android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                    if (event.repeatCount == 0) {
-                        if (exitConfirmSelState.value == 1) finish() else exitConfirmState.value = false
-                    }
-                    return true
-                }
-                android.view.KeyEvent.KEYCODE_BACK ->
-                    { exitConfirmState.value = false; return true }
-            }
-            return true
-        }
+        if (exitConfirmState.value) return DialogKeys.twoChoice(kc, down, event, exitConfirmSelState,
+            onOk = { sel -> if (sel == 1) finish() else exitConfirmState.value = false },
+            onBack = { exitConfirmState.value = false })
 
         if (down) {
             when (kc) {
@@ -2214,59 +2155,18 @@ class PlayerActivity : ComponentActivity() {
 
         // 2) Otvoreny vyber casovaca uspatia -> vertikalna navigacia
         if (optionsOpen) {
-            val count = sleep.durations.size
-            if (down) {
-                when (kc) {
-                    android.view.KeyEvent.KEYCODE_DPAD_UP ->
-                        { optionsNavState.value = (optionsNavState.value + count - 1) % count; return true }
-                    android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
-                        { optionsNavState.value = (optionsNavState.value + 1) % count; return true }
-                    android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-                    android.view.KeyEvent.KEYCODE_ENTER,
-                    android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                        selectOption(optionsNavState.value)
-                        return true
-                    }
-                    android.view.KeyEvent.KEYCODE_DPAD_LEFT,
-                    android.view.KeyEvent.KEYCODE_BACK -> {
-                        closeOptions()
-                        return true
-                    }
-                }
-            }
-            when (kc) {
-                android.view.KeyEvent.KEYCODE_VOLUME_UP,
-                android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
-                android.view.KeyEvent.KEYCODE_VOLUME_MUTE -> return super.dispatchKeyEvent(event)
-            }
-            return true
+            if (DialogKeys.verticalList(kc, down, event, count = sleep.durations.size, sel = optionsNavState,
+                    leftCloses = true, passVolume = true,
+                    onOk = { selectOption(optionsNavState.value) }, onBack = { closeOptions() })) return true
+            return super.dispatchKeyEvent(event)
         }
 
         // 3) Otvorene track menu (audio/titulky) -> navigujeme my (hore/dole + OK)
         if (trackMenuOpen) {
-            val ids = tracks.menuIds(htspStream)
-            val n = ids.size
-            if (down && n > 0) {
-                when (kc) {
-                    android.view.KeyEvent.KEYCODE_DPAD_UP ->
-                        { tracks.navIndex.value = (tracks.navIndex.value - 1 + n) % n; return true }
-                    android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
-                        { tracks.navIndex.value = (tracks.navIndex.value + 1) % n; return true }
-                    android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-                    android.view.KeyEvent.KEYCODE_ENTER,
-                    android.view.KeyEvent.KEYCODE_NUMPAD_ENTER ->
-                        { selectTrackAtNav(); return true }
-                    android.view.KeyEvent.KEYCODE_DPAD_LEFT,
-                    android.view.KeyEvent.KEYCODE_BACK ->
-                        { closeTrackMenu(); return true }
-                }
-            }
-            when (kc) {
-                android.view.KeyEvent.KEYCODE_VOLUME_UP,
-                android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
-                android.view.KeyEvent.KEYCODE_VOLUME_MUTE -> return super.dispatchKeyEvent(event)
-            }
-            return true
+            if (DialogKeys.verticalList(kc, down, event, count = tracks.menuIds(htspStream).size, sel = tracks.navIndex,
+                    leftCloses = true, passVolume = true,
+                    onOk = { selectTrackAtNav() }, onBack = { closeTrackMenu() })) return true
+            return super.dispatchKeyEvent(event)
         }
 
         // 3b0) "Viac" menu nad modernym overlayom (M327) — ModernOverlayController (M642)
