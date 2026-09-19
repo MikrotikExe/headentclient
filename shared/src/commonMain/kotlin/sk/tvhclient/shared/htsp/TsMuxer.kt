@@ -49,6 +49,15 @@ class TsMuxer(streams: List<Stream>) {
      *  drzi stabilnych 700-780 ms, drzime sa toho. */
     private val PCR_LEAD = 63_000L
 
+    /** M659: zaciatok vystupnej casovej osi (90 kHz, 1 s). Doteraz zacinala na 0 = pts
+     *  PRVEHO prijateho paketu. Dva dosledky: (1) PCR = DTS - PCR_LEAD sa prvych 700 ms
+     *  orezavalo na 0, takze libVLC videl stojace PCR pri rastucich PTS a zle si odvodil
+     *  pts_delay (resync, zvuk pred obrazom po prepnuti kanala); (2) prvy paket byva audio,
+     *  video s mensim DTS sa orezalo na 0 a prve snimky mali splostene znacky. So zaciatkom
+     *  na 1 s sa nic neorezava; libVLC time je relativny k prvemu pts, takze pozicia,
+     *  timeshift ani titulky sa neposunu ([timelineOriginPts] vracia povodny pts). */
+    private val START_BASE = 90_000L
+
     /** M463: najviac tolko TS paketov medzi dvoma PCR znackami. Pri 1080p50
      *  HEVC ma klucovy snimok az ~480 paketov — bez priebeznych znaciek dekoder
      *  nema pol sekundy ziadnu referenciu a jeho hodinova regulacia sa rozhadze
@@ -112,7 +121,7 @@ class TsMuxer(streams: List<Stream>) {
     fun hasTracks(): Boolean = tracks.isNotEmpty()
 
     /** Pôvod časovej osi (prvé pts), na ktorý sa zarovnáva mediaPlayer.time. null = ešte neznámy. */
-    fun timelineOriginPts(): Long? = if (hasOffset) tsOffset else null
+    fun timelineOriginPts(): Long? = if (hasOffset) tsOffset + START_BASE else null   // M659: povodny pts prveho paketu
 
 
     /** Identifikacia titulkovej stopy zo subscriptionStart (kompletny zoznam, nezavisle
@@ -342,7 +351,7 @@ class TsMuxer(streams: List<Stream>) {
     /** Premapuj vstupne pts/dts na spojitu rastucu vystupnu os. */
     private fun remap(pts: Long?, dts: Long?): Pair<Long?, Long?> {
         val ref = pts ?: dts ?: return Pair(pts, dts)
-        if (!hasOffset) { hasOffset = true; tsOffset = ref; lastOut = 0L }
+        if (!hasOffset) { hasOffset = true; tsOffset = ref - START_BASE; lastOut = START_BASE }   // M659
         var out = ref - tsOffset
         if (out < lastOut - discontTicks || out > lastOut + discontTicks) {
             tsOffset = ref - (lastOut + frameGapTicks)   // re-base po skoku
