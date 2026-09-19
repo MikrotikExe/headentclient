@@ -47,8 +47,8 @@ class RadioPlayerService : Service() {
     private var curServer: TvhServer? = null
     // M623: pri zhasnutej obrazovke (volba "Radio hra na pozadi") nesmie CPU ani
     // Wi-Fi zaspat — rovnake zamky ako drzi prehravac (M452), len pocas hrania.
-    private var wakeLock: android.os.PowerManager.WakeLock? = null
-    private var wifiLock: android.net.wifi.WifiManager.WifiLock? = null
+    // M626: spolocna trieda StreamLocks.
+    private val locks by lazy { StreamLocks(this, "HeadentClient:radio") }
     // M625: medialna notifikacia (MediaStyle + MediaSession) ako Spotify —
     // picon ako obrazok, ovladanie prev/pauza/next/stop, priebeh relacie z EPG.
     private var session: android.media.session.MediaSession? = null
@@ -442,30 +442,8 @@ class RadioPlayerService : Service() {
         super.onTaskRemoved(rootIntent)
     }
 
-    /** M623: partial wake lock + Wi-Fi lock, kym radio hra (zhasnuta obrazovka). */
-    private fun acquireLocks() {
-        runCatching {
-            if (wakeLock == null) {
-                val pm = getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
-                wakeLock = pm?.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "HeadentClient:radio")
-                    ?.apply { setReferenceCounted(false) }
-            }
-            if (wakeLock?.isHeld == false) wakeLock?.acquire()
-        }
-        runCatching {
-            if (wifiLock == null) {
-                val wm = applicationContext.getSystemService(Context.WIFI_SERVICE) as? android.net.wifi.WifiManager
-                wifiLock = wm?.createWifiLock(android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF, "HeadentClient:radio")
-                    ?.apply { setReferenceCounted(false) }
-            }
-            if (wifiLock?.isHeld == false) wifiLock?.acquire()
-        }
-    }
-
-    private fun releaseLocks() {
-        runCatching { if (wakeLock?.isHeld == true) wakeLock?.release() }
-        runCatching { if (wifiLock?.isHeld == true) wifiLock?.release() }
-    }
+    private fun acquireLocks() = locks.acquire()
+    private fun releaseLocks() = locks.release()
 
     override fun onDestroy() {
         releasePlayer()

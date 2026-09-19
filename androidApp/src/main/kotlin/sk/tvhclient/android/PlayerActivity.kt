@@ -5397,165 +5397,18 @@ class PlayerActivity : ComponentActivity() {
         }, 1800)
     }
 
-    // =====================================================================
-    // AFR — automaticka obnovovacia frekvencia (M346)
-    // Precita fps z video stopy (libVLC frameRateNum/Den) a vyberie rezim
-    // displeja s rovnakym rozlisenim, ktoreho Hz je celociselnym nasobkom fps
-    // (25 fps -> 50 Hz; 60 Hz sa odmietne, 60/25 = 2.4). Preferuje 2x nasobok,
-    // potom 1x. Predvolene vypnute (AfrPref), len TV/box. Pri odchode sa
-    // preferencia vrati systemu.
-    // =====================================================================
-    private var afrRetryPosted = false
-
-    private fun maybeApplyAfr() {
-        if (android.os.Build.VERSION.SDK_INT < 23) return
-        if (!AfrPref.get(this)) return
-        if (!::mediaPlayer.isInitialized) return
-        val vt = runCatching { mediaPlayer.currentVideoTrack }.getOrNull()
-        val num = vt?.frameRateNum ?: 0
-        val den = vt?.frameRateDen ?: 0
-        if (num <= 0 || den <= 0) {
-            // stopa este nie je pripravena — jeden odlozeny pokus
-            if (!afrRetryPosted) {
-                afrRetryPosted = true
-                window.decorView.postDelayed({ afrRetryPosted = false; maybeApplyAfr() }, 900L)
-            }
-            return
-        }
-        val fps = num.toFloat() / den
-        if (fps < 10f) return
-        // Telefon/tablet (M348): Surface.setFrameRate — system sam rozhodne,
-        // ci panel prepne (LTPO plynulo, bez resyncu); ziadna pauza netreba.
-        // Rovnake API pouziva Netflix/YouTube. TV/box ide display-mode cestou.
-        if (!isTvBox) {
-            if (android.os.Build.VERSION.SDK_INT >= 30) {
-                findVideoSurface()?.let { surf ->
-                    runCatching {
-                        surf.setFrameRate(
-                            fps,
-                            android.view.Surface.FRAME_RATE_COMPATIBILITY_FIXED_SOURCE
-                        )
-                    }
-                }
-            }
-            return
-        }
-        val disp = if (android.os.Build.VERSION.SDK_INT >= 30) display
-            else @Suppress("DEPRECATION") windowManager.defaultDisplay
-        val cur = disp?.mode ?: return
-        val candidates = disp.supportedModes.filter {
-            it.physicalWidth == cur.physicalWidth && it.physicalHeight == cur.physicalHeight
-        }
-        fun score(m: android.view.Display.Mode): Int {
-            val k = m.refreshRate / fps
-            val kr = kotlin.math.round(k)
-            if (kr < 1f || kotlin.math.abs(k - kr) > 0.02f * kr) return Int.MIN_VALUE
-            return when (kr.toInt()) { 2 -> 3; 1 -> 2; else -> 1 }  // 2x (50 Hz pre 25 fps) > 1x > vyssie
-        }
-        val best = candidates.maxByOrNull { score(it) } ?: return
-        if (score(best) == Int.MIN_VALUE) return
-        if (best.modeId == cur.modeId) return
-        // Prepnutie do HDR vypnute -> ziadne tvrde prepnutie rezimu (to vyvolava
-        // HDMI re-sync a HDR flip firmwaru). Namiesto toho len plynula ziadost
-        // o frekvenciu; system ju splni iba ak to panel zvladne bez re-syncu.
-        if (!AfrHdrSwitchPref.get(this)) {
-            if (android.os.Build.VERSION.SDK_INT >= 31) {
-                findVideoSurface()?.let { surf ->
-                    runCatching {
-                        surf.setFrameRate(
-                            fps,
-                            android.view.Surface.FRAME_RATE_COMPATIBILITY_FIXED_SOURCE,
-                            android.view.Surface.CHANGE_FRAME_RATE_ONLY_IF_SEAMLESS
-                        )
-                    }
-                }
-            }
-            return
-        }
-        runCatching {
-            val lp = window.attributes
-            lp.preferredDisplayModeId = best.modeId
-            window.attributes = lp
-            // Pauza po zmene rezimu (M347, ako Kodi): pocas HDMI resyncu TV
-            // nic neukazuje ani nehra — pauza zabrani stratenemu zaciatku
-            // a audio desyncu. Po uplynuti sa prehravanie samo obnovi.
-            val delaySec = AfrDelayPref.get(this)
-            if (delaySec > 0 && mediaPlayer.isPlaying) {
-                mediaPlayer.pause()
-                window.decorView.postDelayed({
-                    runCatching { if (::mediaPlayer.isInitialized) mediaPlayer.play() }
-                }, delaySec * 1000L)
-            }
-        }
+    // ---- M626: AFR (M346) a zamky streamu (M452) vyclenene do AfrController / StreamLocks ----
+    private val afr by lazy {
+        AfrController(this, isTvBox,
+            player = { if (::mediaPlayer.isInitialized && !playerTornDown) mediaPlayer else null },
+            videoLayout = { videoLayout })
     }
+    private val streamLocks by lazy { StreamLocks(this, "HeadentClient:stream") }
 
-    /** Najde SurfaceView videa vo VLCVideoLayout (rekurzivne) — pre setFrameRate. */
-    private fun findVideoSurface(): android.view.Surface? {
-        fun find(v: android.view.View): android.view.SurfaceView? {
-            if (v is android.view.SurfaceView) return v
-            if (v is android.view.ViewGroup) {
-                for (i in 0 until v.childCount) find(v.getChildAt(i))?.let { return it }
-            }
-            return null
-        }
-        val layout = videoLayout ?: return null
-        val sv = find(layout) ?: return null
-        val surf = sv.holder.surface
-        return if (surf != null && surf.isValid) surf else null
-    }
-
-    // A/V synchronizaciu riesi remux (ukotvenie vystupnej osi na prve VIDEO +
-     // plynule PCR) v TsMuxeri. Ziadne VLC A/V zasahy — VLC si A/V zarovnava sam.
-
-    private fun clearAfr() {
-        if (android.os.Build.VERSION.SDK_INT < 23) return
-        runCatching {
-            val lp = window.attributes
-            if (lp.preferredDisplayModeId != 0) {
-                lp.preferredDisplayModeId = 0
-                window.attributes = lp
-            }
-        }
-    }
-
-    // ---- M452: zamky pre plynuly prijem streamu ----
-    private var wifiLock: android.net.wifi.WifiManager.WifiLock? = null
-    private var cpuLock: android.os.PowerManager.WakeLock? = null
-
-    /**
-     * Bez WifiLocku Android na Wi-Fi zariadeniach (Xiaomi Mi Box a spol.) uspava
-     * Wi-Fi cip a pakety dorucuje v davkach — HTSP data potom prichadzaju raz za
-     * sekundu naraz a obraz sa trha (libVLC hlasi "picture is too late to be
-     * displayed"). Merania: recvWait ~950 ms, tsWrite 0 ms — cakalo sa vylucne
-     * na siet. Zariadenia na ethernete (Strong, Raspberry Pi) to nepocitili.
-     * WakeLock drzi procesor, aby sa prijmacia slucka neuspala.
-     */
-    private fun acquireStreamLocks() {
-        runCatching {
-            if (wifiLock == null) {
-                val wm = applicationContext.getSystemService(android.content.Context.WIFI_SERVICE)
-                    as? android.net.wifi.WifiManager
-                wifiLock = wm?.createWifiLock(
-                    android.net.wifi.WifiManager.WIFI_MODE_FULL_HIGH_PERF, "HeadentClient:stream"
-                )?.apply { setReferenceCounted(false) }
-            }
-            if (wifiLock?.isHeld == false) wifiLock?.acquire()
-        }
-        runCatching {
-            if (cpuLock == null) {
-                val pm = getSystemService(android.content.Context.POWER_SERVICE) as? android.os.PowerManager
-                cpuLock = pm?.newWakeLock(
-                    android.os.PowerManager.PARTIAL_WAKE_LOCK, "HeadentClient:stream"
-                )?.apply { setReferenceCounted(false) }
-            }
-            if (cpuLock?.isHeld == false) cpuLock?.acquire()
-        }
-    }
-
-    private fun releaseStreamLocks() {
-        runCatching { if (wifiLock?.isHeld == true) wifiLock?.release() }
-        runCatching { if (cpuLock?.isHeld == true) cpuLock?.release() }
-    }
+    private fun maybeApplyAfr() = afr.apply()
+    private fun clearAfr() = afr.clear()
+    private fun acquireStreamLocks() = streamLocks.acquire()
+    private fun releaseStreamLocks() = streamLocks.release()
 
     override fun onDestroy() {
         stopPipMediaSession() // M578
