@@ -135,7 +135,15 @@ class PlayerActivity : ComponentActivity() {
     }
 
 
-    private lateinit var libVlc: LibVLC
+    // M656: libVLC + MediaPlayer zivotny cyklus vo VlcEngine.kt; tu delegaty pod povodnymi nazvami
+    private val engine: VlcEngine by lazy {
+        VlcEngine(this, mediaFactory, vlcEvents,
+            recreates = { stall.recreates },
+            bumpSurfaceGen = { videoSurfaceGen.value = videoSurfaceGen.value + 1 },
+            resetStall = { resetStallState() })
+    }
+    private val libVlc: LibVLC get() = engine.libVlc
+    private val playerTornDown: Boolean get() = engine.tornDown
     // M655: stav streamu (feedery, HTSP priznaky, URL) v StreamState.kt; tu delegaty pod povodnymi nazvami
     private val stream = StreamState()
     private var htspFeeder: HtspTsFeeder?
@@ -160,7 +168,7 @@ class PlayerActivity : ComponentActivity() {
     // M637: stav stop (zvuk/titulky/profil) v TrackState.kt
     private val tracks: TrackState by lazy {
         TrackState(this,
-            player = { if (::mediaPlayer.isInitialized && !playerTornDown) mediaPlayer else null },
+            player = { if (engine.ready && !playerTornDown) mediaPlayer else null },
             htspFeeder = { htspFeeder })
     }
     // M392: stav titulkov spred restartu streamu pri zmene profilu (HTTP live) —
@@ -182,7 +190,7 @@ class PlayerActivity : ComponentActivity() {
             onResumePlayback = {
                 htspFeeder?.resume()
                 isPlayingState.value = true
-                if (::mediaPlayer.isInitialized && !mediaPlayer.isPlaying) mediaPlayer.play()
+                if (engine.ready && !mediaPlayer.isPlaying) mediaPlayer.play()
             },
             onSeekSpinner = { showSeekSpinner() })
     }
@@ -385,7 +393,7 @@ class PlayerActivity : ComponentActivity() {
     private fun openModernOverlay() { modernOv.open() }
     private fun closeModernOverlay() { modernOv.close() }
 
-    private lateinit var mediaPlayer: MediaPlayer
+    private val mediaPlayer: MediaPlayer get() = engine.player   // M656
 
     // M639: stav ziveho prehravania v LiveSession; tu delegaty pod povodnymi nazvami
     private val live = LiveSession()
@@ -428,7 +436,7 @@ class PlayerActivity : ComponentActivity() {
     // M636: casovanie/stav reconnectu v ReconnectController.kt; co sa pri pokuse spravi, je nizsie
     private val reconnect: ReconnectController by lazy {
         ReconnectController(this,
-            playerReady = { ::mediaPlayer.isInitialized },
+            playerReady = { engine.ready },
             isPlaying = { mediaPlayer.isPlaying })
     }
     private val reconnectingState: androidx.compose.runtime.MutableState<Boolean> get() = reconnect.reconnecting
@@ -439,10 +447,10 @@ class PlayerActivity : ComponentActivity() {
     // M648: vypocet ciela pretacania, M594 zotavenie a dvojklik v DvrSeek.kt
     private val dvrSeek: DvrSeek by lazy {
         DvrSeek(this, lifecycleScope,
-            durMs = { if (dvrDurationMs > 0) dvrDurationMs else (if (::mediaPlayer.isInitialized) mediaPlayer.length else 0L) },
+            durMs = { if (dvrDurationMs > 0) dvrDurationMs else (if (engine.ready) mediaPlayer.length else 0L) },
             recording = { dvrRecording },
             playheadMs = { dvrPlayheadMsState.value },
-            seekable = { ::mediaPlayer.isInitialized && seekablePlayback },
+            seekable = { engine.ready && seekablePlayback },
             performSeek = { target, from, dur -> seekDvrTo(target, from, dur) })
     }
     private val seekHintState: androidx.compose.runtime.MutableState<Int> get() = dvrSeek.hint
@@ -595,7 +603,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     private fun togglePlayPause() {
-        if (!::mediaPlayer.isInitialized) return
+        if (!engine.ready) return
         timeshift.flushNow()   // doruc nazbierany skok, nech je server konzistentny
         if (isPlayingState.value) {
             if (htspStream) htspFeeder?.pause()         // zastav HTSP delivery (aj bez timeshiftu)
@@ -658,7 +666,7 @@ class PlayerActivity : ComponentActivity() {
      *  V oboch pripadoch naseeduje playhead hodiny na cielovy cas. */
     private fun seekDvrTo(targetMs: Long, fromMs: Long, dur: Long) {
         val url = currentStreamUrl ?: return
-        if (!::mediaPlayer.isInitialized) return
+        if (!engine.ready) return
         val offsetMs = if (dvrProgStartSec > 0 && dvrRealStartSec in 1 until dvrProgStartSec)
             (dvrProgStartSec - dvrRealStartSec) * 1000 else 0L
         val fileMs = (offsetMs + targetMs).coerceAtLeast(0L)   // cas v subore (0 = realny zaciatok nahravky)
@@ -820,7 +828,7 @@ class PlayerActivity : ComponentActivity() {
         if (UiModePref.get(this) != UiModePref.MODERN && isTvDevice()) return false
         val uuid = liveUuids.getOrNull(liveIndexState.value) ?: return false
         val server = liveServer ?: sk.tvhclient.shared.Tvh.store.active() ?: return false
-        if (!::mediaPlayer.isInitialized || !mediaPlayer.isPlaying) return false
+        if (!engine.ready || !mediaPlayer.isPlaying) return false
         val ch = LivePlaylist.channels.firstOrNull { it.uuid == uuid }
         RadioCenter.stations = LivePlaylist.channels.map {
             RadioCenter.RadioStation(it.uuid, it.name, it.piconUrl, it.nowTitle, it.nowStart, it.nowStop)
@@ -1067,9 +1075,9 @@ class PlayerActivity : ComponentActivity() {
     private val scrub: ScrubController by lazy {
         ScrubController(lifecycleScope,
             barMs = { if (dvrRecording) (dvrDurationMs - 45_000L).coerceAtLeast(1L) else dvrDurationMs },
-            durMs = { if (dvrDurationMs > 0) dvrDurationMs else (if (::mediaPlayer.isInitialized) mediaPlayer.length else 0L) },
+            durMs = { if (dvrDurationMs > 0) dvrDurationMs else (if (engine.ready) mediaPlayer.length else 0L) },
             playheadMs = { dvrPlayheadMsState.value },
-            seekable = { ::mediaPlayer.isInitialized && seekablePlayback },
+            seekable = { engine.ready && seekablePlayback },
             seekAbsolute = { ms -> seekDvrAbsolute(ms) },
             poke = { pokeControls() })
     }
@@ -1384,7 +1392,7 @@ class PlayerActivity : ComponentActivity() {
     private fun openSpuMenu() { tracks.openSpuMenu() }
     private fun closeTrackMenu() { tracks.closeMenu() }
     private fun selectTrackAtNav() {
-        if (!::mediaPlayer.isInitialized) return
+        if (!engine.ready) return
         val ids = tracks.menuIds(htspStream)
         val id = ids.getOrNull(tracks.navIndex.value) ?: return
         when {
@@ -1599,7 +1607,7 @@ class PlayerActivity : ComponentActivity() {
         }
 
         // 4) Bezne prehravanie (M651: PlaybackKeys.kt)
-        if (::mediaPlayer.isInitialized) {
+        if (engine.ready) {
             playbackKeys.handleKey(kc, down, event)?.let { return it }
         }
         return super.dispatchKeyEvent(event)
@@ -1628,7 +1636,7 @@ class PlayerActivity : ComponentActivity() {
     private fun saveDvrProgress() {
         val uuid = dvrUuid ?: return
         val sid = dvrServerId ?: return
-        if (!::mediaPlayer.isInitialized || playerTornDown) return   // M535: player uz moze byt uvolneny
+        if (!engine.ready || playerTornDown) return   // M535: player uz moze byt uvolneny
         val dur = if (dvrDurationMs > 0) dvrDurationMs else mediaPlayer.length
         if (dur <= 0) return
         if (reachedEnd && !dvrRecording) {
@@ -1736,12 +1744,12 @@ class PlayerActivity : ComponentActivity() {
                     val live = if (haveBounds)
                         ((minOf(nowSec, dvrProgStopSec) - dvrProgStartSec) * 1000).coerceIn(1000L, progDurMs)
                     else
-                        maxOf(dvrDurationMs, if (::mediaPlayer.isInitialized) mediaPlayer.length else 0L)
+                        maxOf(dvrDurationMs, if (engine.ready) mediaPlayer.length else 0L)
                     // M528: pri DOKONCENEJ nahravke ma prednost skutocna dlzka suboru,
                     // ktoru zisti libVLC. Cyklus dlzku doteraz len zvacsoval, takze ked
                     // bola nahravka zastavena skor, ostala planovana dlzka relacie —
                     // 15-minutova nahravka sa tvarila ako hodinova.
-                    val realLen = if (::mediaPlayer.isInitialized) mediaPlayer.length else 0L
+                    val realLen = if (engine.ready) mediaPlayer.length else 0L
                     if (!dvrRecording && realLen > 1000L && realLen != dvrDurationMs) {
                         dvrDurationMs = realLen
                         dvrDurationState.value = realLen
@@ -1872,9 +1880,7 @@ class PlayerActivity : ComponentActivity() {
                     videoLayout = layout
                     mediaPlayer.attachViews(layout, null, false, false)
                     // M539-fix2: novy prehravac cakal na svoj (novy) surface — spusti ho teraz
-                    awaitingSurface = false
-                    if (pendingPlayAfterAttach) {
-                        pendingPlayAfterAttach = false
+                    if (engine.onSurfaceAttached()) {
                         layout.post { runCatching { if (!playerTornDown) mediaPlayer.play() } }
                     }
                     // vlastny titulkovy overlay nad videom (DVB titulky dekódujeme sami,
@@ -1891,9 +1897,9 @@ class PlayerActivity : ComponentActivity() {
                     layout.addView(ov)
                     subOverlay = ov
                     ov.start(
-                        clockSource = { if (::mediaPlayer.isInitialized) mediaPlayer.time else 0L },
+                        clockSource = { if (engine.ready) mediaPlayer.time else 0L },
                         aspectSource = {
-                            val vt = if (::mediaPlayer.isInitialized) runCatching { mediaPlayer.currentVideoTrack }.getOrNull() else null
+                            val vt = if (engine.ready) runCatching { mediaPlayer.currentVideoTrack }.getOrNull() else null
                             if (vt != null && vt.width > 0 && vt.height > 0) {
                                 val sn = if (vt.sarNum > 0) vt.sarNum else 1
                                 val sd = if (vt.sarDen > 0) vt.sarDen else 1
@@ -2393,7 +2399,7 @@ class PlayerActivity : ComponentActivity() {
     private val pip: PipController by lazy {
         PipController(this,
             isPlaying = { isPlayingState.value },
-            playerReady = { ::mediaPlayer.isInitialized },
+            playerReady = { engine.ready },
             isTv = { isTvDevice() },
             togglePlayPause = { togglePlayPause() },
             close = { closeFromPip() })
@@ -2449,7 +2455,7 @@ class PlayerActivity : ComponentActivity() {
     private fun reopenDvrLive() {
         if (!seekablePlayback || !dvrRecording) return
         val url = currentStreamUrl ?: return
-        if (!::mediaPlayer.isInitialized) return
+        if (!engine.ready) return
         val offsetMs = if (dvrProgStartSec > 0 && dvrRealStartSec in 1 until dvrProgStartSec)
             (dvrProgStartSec - dvrRealStartSec) * 1000 else 0L
         // pozicia v subore = offset + prehrany cas relacie, par sekund vzad ako rezerva
@@ -2518,7 +2524,7 @@ class PlayerActivity : ComponentActivity() {
             // inak by zvuk hral dalej. Ak pouzivatel PiP rozbalil na celu obrazovku, stav je
             // STARTED/RESUMED a prehravac nezastavujeme.
             if (lifecycle.currentState < androidx.lifecycle.Lifecycle.State.STARTED &&
-                ::mediaPlayer.isInitialized
+                engine.ready
             ) {
                 runCatching { if (mediaPlayer.isPlaying) mediaPlayer.pause() }
                 runCatching { mediaPlayer.detachViews() }
@@ -2529,7 +2535,7 @@ class PlayerActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         // navrat z pozadia: znova pripoj video na surface a obnov prehravanie
-        if (::mediaPlayer.isInitialized) {
+        if (engine.ready) {
             val curUuid = liveUuids.getOrNull(liveIndex)
             val locked = wasPlaying && !seekablePlayback && !pinPromptState.value &&
                 ParentalLock.channelLockedProtected(this, liveServer?.id ?: Tvh.store.active()?.id, curUuid)
@@ -2598,9 +2604,9 @@ class PlayerActivity : ComponentActivity() {
         if (android.os.Build.VERSION.SDK_INT >= 24 && inPipState.value && !isFinishing) {
             super.onStop(); return
         }
-        wasPlaying = ::mediaPlayer.isInitialized && mediaPlayer.isPlaying
+        wasPlaying = engine.ready && mediaPlayer.isPlaying
         super.onStop()
-        if (::mediaPlayer.isInitialized) {
+        if (engine.ready) {
             if (isFinishing) {
                 // M535: stop() sa NESMIE volat na hlavnom vlakne — pozri teardownPlayerAsync
                 teardownPlayerAsync()
@@ -2636,44 +2642,13 @@ class PlayerActivity : ComponentActivity() {
     // M539: vytvorenie prehravaca + obnova po zaseknutom zvukovom vystupe
     // ------------------------------------------------------------------
 
-    /** Vytvori LibVLC + MediaPlayer, nastavi zvukovy vystup a event listener.
-     *  Volane z onCreate a z recreatePlayer(). */
-    private fun createPlayer() {
-        val options = arrayListOf(
-            "--network-caching=" + BufferPref.ms(this),
-            if (VlcVerbosePref.get(this)) "-vv" else "--quiet",  // M448
-            // M539-fix: statistiky ZAPNUTE — hlidac zaseknuteho zvuku cita
-            // playedAbuffers/demuxReadBytes (s --no-stats su vzdy 0)
-            "--http-user-agent=" + userAgent()
-        )
-        // Korekcia synchronizacie zvuku ako init volba (jellyfin pristup). Aplikuje
-        // Predvolene 0 = vypnute (nic nemeni). Zaporna = zvuk skor, kladna = neskor.
-        // Deinterlacing (globalne, nech plati uz na prvom otvoreni; per-medium
-        // sa nastavi znova pri kazdom prepnuti kanala)
-        val (dEn, dMode) = deinterlaceSpec()
-        options.add("--deinterlace=$dEn")
-        if (dMode != null) options.add("--deinterlace-mode=$dMode")
-        libVlc = LibVLC(this, options)
-        mediaPlayer = MediaPlayer(libVlc)
-        // Zvukovy vystup z nastaveni. Modul (telefon: AudioTrack/OpenSL ES) aj
-        // zariadenie (TV: passthrough/pcm/stereo) sa musia nastavit pred prehravanim;
-        // menia sa az pri (znovu)otvoreni prehravaca.
-        AudioModulePref.module(this)?.let { aout -> runCatching { mediaPlayer.setAudioOutput(aout) } }
-        // M539-fix: ak ani druhy novy AudioTrack po prebudeni nehra, skus OpenSL ES
-        // (ina cesta do audio HAL); plati len pre tuto instanciu prehravaca.
-        if (stall.recreates >= 2 && AudioModulePref.module(this) == null) {
-            runCatching { mediaPlayer.setAudioOutput("opensles") }
-            CrashLogger.report(this, "PlayerActivity.stall", "new player #${stall.recreates} uses opensles")
-        }
-        AudioOutputPref.deviceId(this)?.let { dev -> runCatching { mediaPlayer.setAudioOutputDevice(dev) } }
-
-        mediaPlayer.setEventListener(vlcEvents)   // M650: VlcEvents.kt
-    }
+    /** Vytvori LibVLC + MediaPlayer (VlcEngine.create). Volane z onCreate; recreate ide cez engine. */
+    private fun createPlayer() { engine.create() }
 
     // M650: udalosti libVLC v VlcEvents.kt (rovnaka instancia pre kazdy (znovu)vytvoreny prehravac)
     private val vlcEvents: VlcEvents by lazy {
         VlcEvents(
-            player = { if (!playerTornDown && ::mediaPlayer.isInitialized) mediaPlayer else null },
+            player = { if (!playerTornDown && engine.ready) mediaPlayer else null },
             seekable = { seekablePlayback },
             dvrRecording = { dvrRecording },
             htspStream = { htspStream },
@@ -2708,7 +2683,7 @@ class PlayerActivity : ComponentActivity() {
     // M539 / M649: hlidac zaseknuteho zvukoveho vystupu v StallWatchdog.kt
     private val stall: StallWatchdog by lazy {
         StallWatchdog(this,
-            player = { if (!playerTornDown && ::mediaPlayer.isInitialized) mediaPlayer else null },
+            player = { if (!playerTornDown && engine.ready) mediaPlayer else null },
             recreateAllowed = { !seekablePlayback && !reconnectingState.value },
             onRecreate = { recreatePlayer(); replayCurrentLive() })
     }
@@ -2719,60 +2694,17 @@ class PlayerActivity : ComponentActivity() {
 
     /** Pred kazdym novym mediom: ak je vystup zaseknuty, vymen prehravac (bez cakania). */
     private fun ensureHealthyPlayer() {
-        if (!::mediaPlayer.isInitialized) return
+        if (!engine.ready) return
         if (!outputStalled()) return
         CrashLogger.report(this, "PlayerActivity.stall", "media change on stalled output -> new player")
         recreatePlayer()
     }
 
-    /** Vymeni libVLC + MediaPlayer za nove; stare uvolni na pracovnom vlakne. */
-    private fun recreatePlayer() {
-        if (::mediaPlayer.isInitialized) {
-            val oldMp = mediaPlayer
-            val oldLib = libVlc
-            runCatching { oldMp.setEventListener(null) }
-            // M539-fix3: surface odpojit od stareho prehravaca TU, este PRED jeho stop().
-            // detachViews caka, kym stary vout surface pusti — kym vstupne vlakno zije,
-            // je to okamzite (overene v M539-fix). Ak by uz bezal stop(), vstupne vlakno
-            // visi na audio dekoderi, vout uz surface nikdy nepusti a cakanie (aj to,
-            // ktore robi Compose pri odstraneni SurfaceView) by zablokovalo hlavne
-            // vlakno — presne to sa stalo v M539-fix2 (zamrznuty snimok, po minute ANR).
-            runCatching { oldMp.detachViews() }
-            val appCtx = applicationContext
-            val worker = Thread({
-                val t0 = android.os.SystemClock.elapsedRealtime()
-                runCatching { oldMp.stop() }
-                // M539-fix4: release() az o chvilu — stara kompozicia sa este moze
-                // rozkladat a jej korutiny sa stareho objektu dotknut
-                runCatching { Thread.sleep(500) }
-                releaseVlc(appCtx, oldMp, oldLib, "recreate")   // M622
-                val ms = android.os.SystemClock.elapsedRealtime() - t0
-                if (ms > 3500) CrashLogger.report(appCtx, "PlayerActivity.recreate", "old libVLC released after $ms ms")
-            }, "HeadentClient:vlcRelease")
-            worker.isDaemon = true
-            worker.start()
-        }
-        createPlayer()
-        resetStallState()
-        // M539-fix2: novy SurfaceView pre novy prehravac; play() az po jeho pripojeni
-        awaitingSurface = true
-        pendingPlayAfterAttach = false
-        videoSurfaceGen.value = videoSurfaceGen.value + 1
-    }
-
-    /** M539-fix2: po vymene prehravaca este nie je pripojeny novy surface — play() sa
-     *  odlozi do onAttach (prehravanie bez okna by nemalo video). Inak hned. */
-    private var awaitingSurface = false
-    private var pendingPlayAfterAttach = false
+    /** Vymeni libVLC + MediaPlayer za nove; stare uvolni na pracovnom vlakne (VlcEngine). */
+    private fun recreatePlayer() { engine.recreate() }
     /** M539-fix4: prve spustenie prehravania (onStart z VideoSurface) prebehlo. */
     internal var initialStartDone = false
-    private fun startPlayback() {
-        // M539-fix4: nove medium = nove pocitanie; Playing musi prist znova, inak by
-        // bezny start kanala (demux uz cita, zvuk este nie) vyzeral ako zaseknutie
-        resetStallState()
-        if (awaitingSurface) { pendingPlayAfterAttach = true; return }
-        mediaPlayer.play()
-    }
+    private fun startPlayback() { engine.startPlayback() }
 
     /** Znovu spusti aktualny zivy kanal tou istou cestou (HTSP / feeder / HTTP). */
     private fun replayCurrentLive() {
@@ -2790,61 +2722,13 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * M535: ukoncenie libVLC mimo hlavneho vlakna.
-     *
-     * `MediaPlayer.stop()` je synchronne: caka, kym skonci vstupne vlakno libVLC,
-     * a to zas caka na dekodery. Na Strongu (Amlogic) po prebudeni zo standby
-     * a krátko po boote AudioTrack neodobera data — audio dekoder visi v zapise
-     * do neho a neda sa prerusit, takze stop() na hlavnom vlakne nikdy neskoncil:
-     * po 5 s ANR, systemove „Activity destroy timeout" a appku zabil system
-     * (bugreport 1. 9. 2026, pat identickych stackov). Zavretie prehravaca preto
-     * odovzda cely libVLC objekt pracovnemu vlaknu; aktivita sa zavrie hned.
-     * Ak libVLC visi, visi len to vlakno na pozadi a zapise sa WARN do
-     * diagnostickeho logu. Feedery sa zastavia ako prve — zavretie pipe ukonci
-     * demux okamzite, takze v beznom pripade stop() trva par desiatok ms.
-     */
-    private var playerTornDown = false
-    private val playerDestroyedLatch = java.util.concurrent.CountDownLatch(1)
+    /** M535: stop/release libVLC na pracovnom vlakne (VlcEngine.teardownAsync); feedery a hlidac ako prve. */
     private fun teardownPlayerAsync() {
-        if (playerTornDown) return
-        playerTornDown = true
-        stall.destroy()   // M539
-        htspFeeder?.stop(); htspFeeder = null
-        httpFeeder?.stop(); httpFeeder = null
-        if (!::mediaPlayer.isInitialized) {
-            if (::libVlc.isInitialized) runCatching { libVlc.release() }
-            return
+        engine.teardownAsync {
+            stall.destroy()   // M539
+            htspFeeder?.stop(); htspFeeder = null
+            httpFeeder?.stop(); httpFeeder = null
         }
-        val mp = mediaPlayer
-        val lib = if (::libVlc.isInitialized) libVlc else null
-        val appCtx = applicationContext
-        runCatching { mp.setEventListener(null) }
-        val destroyed = playerDestroyedLatch
-        val worker = Thread({
-            val t0 = android.os.SystemClock.elapsedRealtime()
-            runCatching { mp.stop() }
-            // release() az po onDestroy — dovtedy sa na (uz zastaveny) prehravac
-            // mozu este obratit UI slucky/handlery a volanie na uvolneny objekt
-            // by hodilo IllegalStateException.
-            runCatching { destroyed.await(5, java.util.concurrent.TimeUnit.SECONDS) }
-            runCatching { mp.detachViews() }
-            releaseVlc(appCtx, mp, lib, "teardown")   // M622
-            val ms = android.os.SystemClock.elapsedRealtime() - t0
-            if (ms > 3000) {
-                CrashLogger.report(appCtx, "PlayerActivity.teardown", "libVLC stop/release took $ms ms")
-            }
-        }, "HeadentClient:vlcRelease")
-        worker.isDaemon = true
-        worker.start()
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            if (worker.isAlive) {
-                CrashLogger.report(
-                    appCtx, "PlayerActivity.teardown",
-                    "libVLC stop hangs >8 s (audio output stalled after standby/boot?) — left in background"
-                )
-            }
-        }, 8_000)
     }
 
     // --- Doplnenie stop po starte (audio jazyky / DVB titulky) ---
@@ -2859,7 +2743,7 @@ class PlayerActivity : ComponentActivity() {
     // ---- M626: AFR (M346) a zamky streamu (M452) vyclenene do AfrController / StreamLocks ----
     private val afr: AfrController by lazy {
         AfrController(this, isTvBox,
-            player = { if (::mediaPlayer.isInitialized && !playerTornDown) mediaPlayer else null },
+            player = { if (engine.ready && !playerTornDown) mediaPlayer else null },
             videoLayout = { videoLayout })
     }
     private val streamLocks: StreamLocks by lazy { StreamLocks(this, "HeadentClient:stream") }
@@ -2891,50 +2775,12 @@ class PlayerActivity : ComponentActivity() {
         // pri isFinishing; tu je poistka pre destroy bez predchadzajuceho stop,
         // napr. zabitie systemom pri nedostatku pamate).
         teardownPlayerAsync()
-        playerDestroyedLatch.countDown()   // pracovne vlakno smie release()
+        engine.allowRelease()   // pracovne vlakno smie release()
     }
 
     companion object {
-        /**
-         * M622: bezpecne uvolnenie libVLC z pracovneho vlakna.
-         *
-         * Pad z Play (1.0.6, armeabi-v7a): SIGABRT vo vlc_mutex_destroy, volane z
-         * libvlc_media_player_release -> MediaPlayer.nativeRelease -> nase uvolnovacie
-         * vlakno. vlc_mutex_destroy spadne na assert, ked sa rusi mutex, ktory este
-         * niekto drzi — teda prehravac sa uvolnoval skor, nez dobehlo jeho vstupne
-         * vlakno. Na pomalsich 32-bitovych boxoch to stop() nestihne za pevnych 500 ms.
-         *
-         * Preto sa pred release() POCKA, kym prehravac naozaj prestane hrat (najviac
-         * 2 s, vzorka po 50 ms), potom kratka pauza na dobehnutie vnutornych vlakien,
-         * a az potom release. LibVLC sa uvolni este o kusok neskor — nikdy pred
-         * prehravacom, ktory z neho vznikol. Vsetko na pracovnom vlakne, hlavne vlakno
-         * sa necaka.
-         */
-        fun releaseVlc(
-            ctx: android.content.Context,
-            mp: org.videolan.libvlc.MediaPlayer,
-            lib: org.videolan.libvlc.LibVLC?,
-            where: String
-        ) {
-            val t0 = android.os.SystemClock.elapsedRealtime()
-            var waited = 0L
-            while (waited < 2_000L) {
-                val playing = runCatching { mp.isPlaying }.getOrDefault(false)
-                if (!playing) break
-                runCatching { Thread.sleep(50) }
-                waited += 50
-            }
-            if (waited >= 2_000L) {
-                CrashLogger.report(ctx, "PlayerActivity.$where", "player still playing 2 s after stop()")
-            }
-            // dobehnutie vnutornych vlakien libVLC (vout/audio) pred zrusenim mutexov
-            runCatching { Thread.sleep(150) }
-            runCatching { mp.release() }
-            runCatching { Thread.sleep(100) }
-            runCatching { lib?.release() }
-            val ms = android.os.SystemClock.elapsedRealtime() - t0
-            if (ms > 3_000L) CrashLogger.report(ctx, "PlayerActivity.$where", "release took $ms ms")
-        }
+        /** M622: uvolnenie libVLC z pracovneho vlakna — VlcEngine.releaseVlc. */
+        fun releaseVlc(ctx: android.content.Context, mp: org.videolan.libvlc.MediaPlayer, lib: org.videolan.libvlc.LibVLC?, where: String) = VlcEngine.releaseVlc(ctx, mp, lib, where)
 
         /** M539-fix2: generacia video surface (kluc AndroidView) — zvysenie = novy SurfaceView. */
         val videoSurfaceGen = androidx.compose.runtime.mutableStateOf(0)
