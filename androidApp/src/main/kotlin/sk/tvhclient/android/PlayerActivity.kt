@@ -1409,49 +1409,38 @@ class PlayerActivity : ComponentActivity() {
         return super.dispatchKeyEvent(event)
     }
 
-    // DVR progress (sledovanie pozicie pre archiv)
-    private var dvrUuid: String? = null
-    private var dvrServerId: String? = null
-    private var dvrDurationMs: Long = 0
-    // Prebiehajuca relacia: dlzku dopocitavame relativne k zaciatku RELACIE (nie suboru),
-    // obmedzenu dlzkou relacie. Seekbar tak ukazuje uplynutu cast relacie, nie cely archiv.
-    private var dvrRecording = false
-    private var dvrProgStartSec: Long = 0
-    private var dvrProgStopSec: Long = 0
-    private var dvrRealStartSec: Long = 0
-    private val dvrDurationState = mutableStateOf(0L)
-    private var reachedEnd = false
-    // Playhead v case relacie (ms) zrkadleny z wall-clock prehravacich hodin v PlayerUi -
-    // spolahlivy zdroj pre znovu-otvorenie streamu (player.time je pre rastuci TS nestabilny).
-    private val dvrPlayheadMsState = mutableStateOf(0L)
-    // Po pretoceni DVR: cielovy (program-relativny) cas, ktory maju playhead hodiny prevziat.
-    // -1 = ziadny cakajuci seek. Pri feeder/pipe je player.position po restarte neplatna,
-    // takze hodiny sa nemozu resync-nut z pozicie - seed im da spravny vychodzi bod.
-    private val dvrSeekSeedState = mutableStateOf(-1L)
+    // DVR progress (sledovanie pozicie pre archiv) — M665: stav v DvrPlayback.kt, tu delegaty pod povodnymi nazvami
+    private val dvr = DvrPlayback(this)
+    private var dvrUuid: String?
+        get() = dvr.uuid
+        set(v) { dvr.uuid = v }
+    private var dvrServerId: String?
+        get() = dvr.serverId
+        set(v) { dvr.serverId = v }
+    private var dvrDurationMs: Long
+        get() = dvr.durationMs
+        set(v) { dvr.durationMs = v }
+    private var dvrRecording: Boolean
+        get() = dvr.recording
+        set(v) { dvr.recording = v }
+    private var dvrProgStartSec: Long
+        get() = dvr.progStartSec
+        set(v) { dvr.progStartSec = v }
+    private var dvrProgStopSec: Long
+        get() = dvr.progStopSec
+        set(v) { dvr.progStopSec = v }
+    private var dvrRealStartSec: Long
+        get() = dvr.realStartSec
+        set(v) { dvr.realStartSec = v }
+    private val dvrDurationState: androidx.compose.runtime.MutableState<Long> get() = dvr.durationState
+    private var reachedEnd: Boolean
+        get() = dvr.reachedEnd
+        set(v) { dvr.reachedEnd = v }
+    private val dvrPlayheadMsState: androidx.compose.runtime.MutableState<Long> get() = dvr.playheadMsState
+    private val dvrSeekSeedState: androidx.compose.runtime.MutableState<Long> get() = dvr.seekSeedState
 
     private fun saveDvrProgress() {
-        val uuid = dvrUuid ?: return
-        val sid = dvrServerId ?: return
-        if (!engine.ready || playerTornDown) return   // M535: player uz moze byt uvolneny
-        val dur = if (dvrDurationMs > 0) dvrDurationMs else mediaPlayer.length
-        if (dur <= 0) return
-        if (reachedEnd && !dvrRecording) {
-            WatchProgress.markCompleted(this, sid, uuid, dur)
-            return
-        }
-        // Program-relativny cas z playhead hodin je jediny spolahlivy zdroj:
-        // po pretoceni sa stream restartuje (:start-time) a mediaPlayer.position
-        // je relativna k NOVEMU streamu — ukladali sa nezmyselne male pozicie,
-        // rozpozeranost sa stracala a 95% prah "dopozerane" sa nikdy nedosiahol.
-        val playheadMs = dvrPlayheadMsState.value
-        val posMs = if (playheadMs > 0) {
-            playheadMs.coerceAtMost(dur)
-        } else {
-            val pos = mediaPlayer.position
-            // neprepisuj dobru poziciu nulou (napr. ked sa media este nenacitala)
-            if (pos > 0.001f && pos <= 1f) (pos * dur).toLong() else return
-        }
-        if (posMs > 0) WatchProgress.save(this, sid, uuid, posMs, dur)
+        dvr.saveProgress(if (engine.ready && !playerTornDown) mediaPlayer else null)
     }
 
     /** M623: radio s volbou "Radio hra na pozadi" (telefon aj TV) — odchod z prehravaca
