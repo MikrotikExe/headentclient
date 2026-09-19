@@ -1,6 +1,5 @@
 package sk.tvhclient.android
 
-import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.ViewGroup
@@ -495,73 +494,12 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    /** Vytvori Media s HW/SW dekoderom podla preferencie (lacne boxy = SW). */
-    private fun userAgent(): String = sk.tvhclient.shared.ClientIdent.userAgent
-
-    /** Odstrani user:pass@ z URL (pre feeder/probe — auth riesi OkHttp hlavickou). */
-    private fun stripCreds(url: String): String {
-        val i = url.indexOf("://")
-        if (i < 0) return url
-        val rest = url.substring(i + 3)
-        val at = rest.indexOf('@')
-        val slash = rest.indexOf('/')
-        if (at < 0 || (slash in 0 until at)) return url
-        return url.substring(0, i + 3) + rest.substring(at + 1)
-    }
-
-    /**
-     * Detekcia emulatora Android Studia (M426): ranchu/goldfish su nazvy jeho
-     * virtualnych dosiek, sdk_gphone modely telefonnych obrazov, "emu" sa
-     * vyskytuje vo fingerprintoch vsetkych emulatorovych obrazov. Skutocne
-     * zariadenia maju vo fingerprinte vyrobcu a v hardware nazov cipu.
-     */
-    private fun buildMedia(url: String): Media {
-        val m = Media(libVlc, Uri.parse(url))
-        m.setHWDecoderEnabled(!SwDecodePref.get(this), false)  // M447
-        // User-Agent: nech server vidi, ze sa pripaja HeadentClient
-        m.addOption(":http-user-agent=" + userAgent())
-        applyDeinterlace(m)
-        return m
-    }
-
-    /** Rezim deinterlacingu z nastaveni -> (hodnota --deinterlace, mod alebo null).
-     *  -1 = automaticky (deinterlacuje len prekladany zdroj), 0 = vypnute, 1 = zapnute. */
-    private fun deinterlaceSpec(): Pair<String, String?> = when (DeinterlacePref.get(this)) {
-        DeinterlacePref.OFF -> "0" to null
-        DeinterlacePref.BOB -> "1" to "bob"
-        DeinterlacePref.YADIF -> "1" to "yadif"
-        DeinterlacePref.YADIF2X -> "1" to "yadif2x"
-        DeinterlacePref.X -> "1" to "x"
-        else -> "-1" to "yadif"   // AUTO
-    }
-
-    /** Aplikuje deinterlacing na dane medium (riesi hrebenove pasy / combing pri
-     *  prekladanom DVB videu na rychlych zaberoch). */
-    private fun applyDeinterlace(m: Media) {
-
-        val (en, mode) = deinterlaceSpec()
-        m.addOption(":deinterlace=$en")
-        if (mode != null) m.addOption(":deinterlace-mode=$mode")
-    }
-
-    /**
-     * M381: demuxer pre feeder cestu. Feeder posiela bajty cez fd, takze libVLC
-     * nema nazov suboru ani MIME a kontajner musi uhadnut. Pri MPEG-TS profiloch
-     * (pass, htsp, *-mpegts) mu ho dame natvrdo — TS sa chyta aj uprostred toku
-     * a probing tam byva pomaly. Pri ostatnych (matroska, webm, mp4) natvrdo ts
-     * znamenalo, ze sa stream vobec neotvoril; tam necháme VLC probing (EBML /
-     * ftyp hlavicka je na zaciatku toku, takze sa kontajner urci spolahlivo).
-     */
-    private fun applyFeederDemux(media: Media, url: String) {
-        val prof = Regex("[?&]profile=([^&]*)")
-            .find(url)?.groupValues?.get(1)?.lowercase().orEmpty()
-        // M509: prazdny profil UZ NEZNAMENA TS. Od M502 je prazdna hodnota
-        // „podla nastavenia servera" a ten moze mat predvoleny hocijaky
-        // kontajner. Vnutit ts naslepo znamenalo cierny obraz pri matroske.
-        // Vnucujeme ho len tam, kde vieme, ze o TS naozaj ide.
-        val isTs = prof == "pass" || prof == "htsp" || prof.endsWith("mpegts")
-        if (isTs) media.addOption(":demux=ts")
-    }
+    // M654: stavba libVLC Media (URL / feeder, dekodér, deinterlacing, demux) v MediaFactory.kt
+    private val mediaFactory: MediaFactory by lazy { MediaFactory(this) { libVlc } }
+    private fun userAgent(): String = mediaFactory.userAgent()
+    private fun stripCreds(url: String): String = MediaFactory.stripCreds(url)
+    private fun buildMedia(url: String): Media = mediaFactory.forUrl(url)
+    private fun deinterlaceSpec(): Pair<String, String?> = mediaFactory.deinterlaceSpec()
 
     /** M255 — live cez HTTP na digest-only serveri: stiahnut cez feeder (rovnako
      *  ako DVR), lebo libVLC digest cez URL nezvlada. Pre live netreba seek. */
@@ -578,11 +516,7 @@ class PlayerActivity : ComponentActivity() {
         val feeder = HttpTsFeeder(server, stripCreds(url), 0L)
         httpFeeder = feeder
         val fd = feeder.start(lifecycleScope)
-        val media = Media(libVlc, fd)
-        media.setHWDecoderEnabled(!SwDecodePref.get(this), false)  // M447
-        applyFeederDemux(media, url)
-        media.addOption(":file-caching=" + BufferPref.ms(this))
-        applyDeinterlace(media)
+        val media = mediaFactory.forFeeder(fd, mediaFactory.feederDemuxFor(url), BufferPref.ms(this))   // M381/M509
         mediaPlayer.media = media
         media.release()
         startPlayback()   // M539-fix2
@@ -591,9 +525,7 @@ class PlayerActivity : ComponentActivity() {
     /** Cache: vyzaduje live HTTP na tomto serveri feeder (digest-only)? */
     private var liveNeedsFeeder: Boolean? = null
 
-    /** M390-fix4: vyzera identifikator ako REST uuid Tvheadendu (32 hex znakov)? */
-    private fun looksLikeRestUuid(u: String): Boolean =
-        u.length == 32 && u.all { c -> c in '0'..'9' || c in 'a'..'f' || c in 'A'..'F' }
+    private fun looksLikeRestUuid(u: String): Boolean = MediaFactory.looksLikeRestUuid(u)
 
     /** M390-fix4: v HTTP rezime prisla stara (HTSP ciselna) identita kanala —
      *  server ju odmieta (HTTP 400). Najdi cez REST spravne uuid podla nazvu
@@ -685,15 +617,12 @@ class PlayerActivity : ComponentActivity() {
         val feeder = HttpTsFeeder(server, stripCreds(url), startByte)
         httpFeeder = feeder
         val fd = feeder.start(lifecycleScope)
-        val media = Media(libVlc, fd)
-        media.setHWDecoderEnabled(!SwDecodePref.get(this), false)  // M447
-        // M509: NEvnucuj TS demuxer. Nahravka moze byt v lubovolnom kontajneri
+        // M509: NEvnucuj TS demuxer (demux = null). Nahravka moze byt v lubovolnom kontajneri
         // podla DVR profilu (matroska, mp4, webm) — natvrdo ts znamenalo, ze
         // VLC subor nerozobral, nenasiel video stopu a appka zobrazila cierno s
         // radiovym logom. Subor sa cita od zaciatku, takze si kontajner urci
         // spolahlivo sam (EBML / ftyp / TS sync hlavicka).
-        media.addOption(":file-caching=" + BufferPref.htspMs(this))
-        applyDeinterlace(media)
+        val media = mediaFactory.forFeeder(fd, null, BufferPref.htspMs(this))
         mediaPlayer.media = media
         media.release()
         startPlayback()   // M539-fix2
@@ -723,12 +652,8 @@ class PlayerActivity : ComponentActivity() {
             tracks.desiredSubName = null
             resetTimeshift()
             val fd = feeder.start(channelId, lifecycleScope, liveServer?.profile)   // M476
-            val media = Media(libVlc, fd)
-            media.setHWDecoderEnabled(!SwDecodePref.get(this), false)  // M447
-            media.addOption(":demux=ts")
-            media.addOption(":file-caching=" + BufferPref.htspMs(this))
-            applyDeinterlace(media)
-                mediaPlayer.media = media
+            val media = mediaFactory.forFeeder(fd, "ts", BufferPref.htspMs(this))
+            mediaPlayer.media = media
             media.release()
             startPlayback()   // M539-fix2
             true
