@@ -136,14 +136,24 @@ class PlayerActivity : ComponentActivity() {
 
 
     private lateinit var libVlc: LibVLC
-    private var htspFeeder: HtspTsFeeder? = null
-    private var httpFeeder: HttpTsFeeder? = null
-    private var dvrViaFeeder = false
-    private var htspLive = false
-    private val htspStreamState = androidx.compose.runtime.mutableStateOf(false)
+    // M655: stav streamu (feedery, HTSP priznaky, URL) v StreamState.kt; tu delegaty pod povodnymi nazvami
+    private val stream = StreamState()
+    private var htspFeeder: HtspTsFeeder?
+        get() = stream.htspFeeder
+        set(v) { stream.htspFeeder = v }
+    private var httpFeeder: HttpTsFeeder?
+        get() = stream.httpFeeder
+        set(v) { stream.httpFeeder = v }
+    private var dvrViaFeeder: Boolean
+        get() = stream.dvrViaFeeder
+        set(v) { stream.dvrViaFeeder = v }
+    private var htspLive: Boolean
+        get() = stream.htspLive
+        set(v) { stream.htspLive = v }
+    private val htspStreamState: androidx.compose.runtime.MutableState<Boolean> get() = stream.htspStreamState
     private var htspStream: Boolean
-        get() = htspStreamState.value
-        set(v) { htspStreamState.value = v }
+        get() = stream.htspStream
+        set(v) { stream.htspStream = v }
     // HTSP titulky: kompletny zoznam jazykov berieme z metadat (feeder.subtitleStreams),
     // nie z libVLC (to ma len jazyky, ktore uz "prehovorili"). Vyber mapujeme na realnu
     // libVLC stopu podla anglickeho nazvu jazyka (libVLC DVB titulky netaguje kodom).
@@ -164,7 +174,7 @@ class PlayerActivity : ComponentActivity() {
     // prehratie) ho nastavi; ak vsak pouzivatel prepne kanal este pred doPlay (napr.
     // odchod z PIN vyzvy zamknuteho kanala), inicializuje HTSP switchToIndex.
     private var htspInitDone = false
-    private val htspLiveState = androidx.compose.runtime.mutableStateOf(false)
+    private val htspLiveState: androidx.compose.runtime.MutableState<Boolean> get() = stream.htspLiveState
     // M647: HTSP timeshift v TimeshiftController.kt; tu delegaty pod povodnymi nazvami
     private val timeshift: TimeshiftController by lazy {
         TimeshiftController(lifecycleScope,
@@ -485,7 +495,9 @@ class PlayerActivity : ComponentActivity() {
             onDeactivate = { groupPickerState.value = false })
     }
     private var seekablePlayback = false
-    private var currentStreamUrl: String? = null
+    private var currentStreamUrl: String?
+        get() = stream.currentStreamUrl
+        set(v) { stream.currentStreamUrl = v }
     // Zadavanie kanala cislami z dialkoveho ovladaca (M635: ChannelNumberEntry.kt)
     private val numEntry: ChannelNumberEntry by lazy {
         ChannelNumberEntry(lifecycleScope) { typed ->
@@ -501,168 +513,30 @@ class PlayerActivity : ComponentActivity() {
     private fun buildMedia(url: String): Media = mediaFactory.forUrl(url)
     private fun deinterlaceSpec(): Pair<String, String?> = mediaFactory.deinterlaceSpec()
 
-    /** M255 — live cez HTTP na digest-only serveri: stiahnut cez feeder (rovnako
-     *  ako DVR), lebo libVLC digest cez URL nezvlada. Pre live netreba seek. */
-    private fun playLiveViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String) {
-        ensureHealthyPlayer()   // M539
-        closeTeletext(); teletext.reset()        // M552/M553
-        htspFeeder?.stop(); htspFeeder = null
-        httpFeeder?.stop()
-        htspStream = false
-        htspLive = false
-        htspLiveState.value = false
-        resetTimeshift()
-        currentStreamUrl = url
-        val feeder = HttpTsFeeder(server, stripCreds(url), 0L)
-        httpFeeder = feeder
-        val fd = feeder.start(lifecycleScope)
-        val media = mediaFactory.forFeeder(fd, mediaFactory.feederDemuxFor(url), BufferPref.ms(this))   // M381/M509
-        mediaPlayer.media = media
-        media.release()
-        startPlayback()   // M539-fix2
+    // M655: otvaranie streamu (HTTP / feeder / DVR / HTSP, auth sonda) v StreamOpener.kt
+    private val opener: StreamOpener by lazy {
+        StreamOpener(this, lifecycleScope, stream, live, mediaFactory, tracks,
+            player = { mediaPlayer },
+            hooks = object : StreamOpener.Hooks {
+                override fun ensureHealthyPlayer() { this@PlayerActivity.ensureHealthyPlayer() }
+                override fun startPlayback() { this@PlayerActivity.startPlayback() }
+                override fun resetTimeshift() { this@PlayerActivity.resetTimeshift() }
+                override fun resetTeletext() { closeTeletext(); teletext.reset() }   // M552/M553
+                override fun teletextSetHtspAvailable(available: Boolean) { teletext.setHtspAvailable(available) }
+                override fun teletextFeedHtsp(es: ByteArray) { teletext.feedHtsp(es) }
+                override fun subtitlePage(page: sk.tvhclient.shared.htsp.DvbSubtitleDecoder.DecodedPage, ms: Long) { subOverlay?.onPage(page, ms) }
+                override fun subtitleReset() { subOverlay?.reset() }
+                override fun fallbackTitle(): String? = intent.getStringExtra(EXTRA_TITLE)
+            })
     }
-
-    /** Cache: vyzaduje live HTTP na tomto serveri feeder (digest-only)? */
-    private var liveNeedsFeeder: Boolean? = null
-
-    private fun looksLikeRestUuid(u: String): Boolean = MediaFactory.looksLikeRestUuid(u)
-
-    /** M390-fix4: v HTTP rezime prisla stara (HTSP ciselna) identita kanala —
-     *  server ju odmieta (HTTP 400). Najdi cez REST spravne uuid podla nazvu
-     *  alebo cisla kanala, oprav playlist a prehraj s opravenym uuid.
-     *  Vracia true, ak sa o url postara sama (spustila asynchronne riesenie). */
-    private fun healStaleLiveId(server: sk.tvhclient.shared.model.TvhServer, url: String): Boolean {
-        val pathId = stripCreds(url).substringAfter("/stream/channel/", "").substringBefore('?')
-        if (pathId.isBlank() || looksLikeRestUuid(pathId)) return false
-        val entry = LivePlaylist.channels.firstOrNull { it.uuid == pathId }
-        val wantName = entry?.name ?: liveNames.getOrNull(liveIndex) ?: intent.getStringExtra(EXTRA_TITLE)
-        val wantNum = entry?.number ?: 0
-        lifecycleScope.launch {
-            val fixed = withContext(Dispatchers.IO) {
-                runCatching {
-                    val api = Tvh.apiFor(server)
-                    try {
-                        val chs = api.channels()
-                        (wantName?.let { n -> chs.firstOrNull { it.name.equals(n, ignoreCase = true) } }
-                            ?: if (wantNum > 0) chs.firstOrNull { (it.number ?: -1) == wantNum } else null)
-                            ?.uuid
-                    } finally { api.close() }
-                }.getOrNull()
-            }
-            if (fixed != null && looksLikeRestUuid(fixed)) {
-                LivePlaylist.channels = LivePlaylist.channels.map { if (it.uuid == pathId) it.copy(uuid = fixed) else it }
-                LivePlaylist.allChannels = LivePlaylist.allChannels.map { if (it.uuid == pathId) it.copy(uuid = fixed) else it }
-                liveUuids = liveUuids.map { if (it == pathId) fixed else it }
-                val newUrl = Tvh.liveUrl(server, fixed, wantName, server.profile.ifBlank { "pass" })
-                currentStreamUrl = newUrl
-                playLiveAuto(server, newUrl)
-            } else {
-                playHttp(url)   // nenaslo sa -> povodna cesta (reconnect to ohlasi)
-            }
-        }
-        return true
-    }
-
-    /** Live HTTP s auto-detekciou auth: digest-only -> feeder, inak priama cesta. */
-    private fun playLiveAuto(server: sk.tvhclient.shared.model.TvhServer, url: String) {
-        if (server.connectionMode != "htsp" && healStaleLiveId(server, url)) return
-        if (server.username.isEmpty()) { playHttp(url); return }
-        val cached = liveNeedsFeeder
-        if (cached != null) {
-            if (cached) playLiveViaFeeder(server, url) else playHttp(url)
-            return
-        }
-        lifecycleScope.launch {
-            // M390: null = sonda zlyhala -> skus priamu cestu, ale vysledok necachuj;
-            // ak priama cesta pada, scheduleReconnect prepne na feeder.
-            val nf = withContext(Dispatchers.IO) { DvrAuthProbe.needsFeederOrNull(server, stripCreds(url)) }
-            liveNeedsFeeder = nf
-            if (nf == true) playLiveViaFeeder(server, url) else playHttp(url)
-        }
-    }
-
-    /** Bezne HTTP prehravanie (zastavi pripadny HTSP feed). */
-    private fun playHttp(url: String) {
-        ensureHealthyPlayer()   // M539
-        closeTeletext(); teletext.reset()        // M552/M553
-        htspFeeder?.stop(); htspFeeder = null
-        httpFeeder?.stop(); httpFeeder = null
-        htspStream = false
-        htspLive = false
-        htspLiveState.value = false
-        resetTimeshift()
-        currentStreamUrl = url
-        val media = buildMedia(url)
-        mediaPlayer.media = media
-        media.release()
-        startPlayback()   // M539-fix2
-    }
-
-    /**
-     * M253 — DVR/archiv cez HttpTsFeeder: appka stiahne dvrfile s digest auth
-     * (OkHttp + DigestAuthenticator) a podava libVLC cez pipe. Rovny princip ako
-     * HTSP live; rieši digest-only servery kde creds v URL (user:pass@host)
-     * libVLC nezvladne. startByte = pripadny offset pre resume cez HTTP Range.
-     */
-    private fun playDvrViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String, startByte: Long = 0L) {
-        ensureHealthyPlayer()   // M539
-        closeTeletext(); teletext.reset()        // M552/M553 (archív: teletext zatiaľ len pri živom)
-        htspFeeder?.stop(); htspFeeder = null
-        httpFeeder?.stop()
-        htspStream = false
-        htspLive = false
-        htspLiveState.value = false
-        resetTimeshift()
-        currentStreamUrl = url
-        val feeder = HttpTsFeeder(server, stripCreds(url), startByte)
-        httpFeeder = feeder
-        val fd = feeder.start(lifecycleScope)
-        // M509: NEvnucuj TS demuxer (demux = null). Nahravka moze byt v lubovolnom kontajneri
-        // podla DVR profilu (matroska, mp4, webm) — natvrdo ts znamenalo, ze
-        // VLC subor nerozobral, nenasiel video stopu a appka zobrazila cierno s
-        // radiovym logom. Subor sa cita od zaciatku, takze si kontajner urci
-        // spolahlivo sam (EBML / ftyp / TS sync hlavicka).
-        val media = mediaFactory.forFeeder(fd, null, BufferPref.htspMs(this))
-        mediaPlayer.media = media
-        media.release()
-        startPlayback()   // M539-fix2
-    }
-
-    /**
-     * M162 — zivy kanal cez HTSP (premuxovany na MPEG-TS, podavany libVLC cez pipe).
-     * Vracia true ak sa podarilo spustit. Pouzite len ak je timeshift zapnuty a server
-     * ho podporuje; inak ostava HTTP cesta.
-     */
-    private fun playHtspLive(server: sk.tvhclient.shared.model.TvhServer, channelId: Long, timeshift: Boolean): Boolean {
-        return try {
-            ensureHealthyPlayer()   // M539
-            htspFeeder?.stop()
-            httpFeeder?.stop(); httpFeeder = null
-            val feeder = HtspTsFeeder(server, if (timeshift) 3600 else 0)
-            htspFeeder = feeder
-            // vlastne titulky: dekódovanu stranku posli do overlay-u (synchronizuje sa na cas)
-            feeder.onSubtitlePage = { page, ms -> subOverlay?.onPage(page, ms) }
-            subOverlay?.reset()
-            // M552: teletext — stopa TELETEXT ide do vlastného dekodéra, nie do libVLC
-            closeTeletext(); teletext.reset()
-            feeder.onTeletextAvailable = { a -> teletext.setHtspAvailable(a) }
-            feeder.onTeletext = { es -> teletext.feedHtsp(es) }
-            // novy kanal = novy zoznam titulkov, vynuluj zvoleny jazyk
-            tracks.selectedSubEs.value = -1
-            tracks.desiredSubName = null
-            resetTimeshift()
-            val fd = feeder.start(channelId, lifecycleScope, liveServer?.profile)   // M476
-            val media = mediaFactory.forFeeder(fd, "ts", BufferPref.htspMs(this))
-            mediaPlayer.media = media
-            media.release()
-            startPlayback()   // M539-fix2
-            true
-        } catch (e: Throwable) {
-            htspFeeder?.stop()
-            htspFeeder = null
-            false
-        }
-    }
+    private fun playLiveViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String) { opener.playLiveViaFeeder(server, url) }
+    private fun playLiveAuto(server: sk.tvhclient.shared.model.TvhServer, url: String) { opener.playLiveAuto(server, url) }
+    private fun playHttp(url: String) { opener.playHttp(url) }
+    private fun playDvrViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String, startByte: Long = 0L) { opener.playDvrViaFeeder(server, url, startByte) }
+    private fun playHtspLive(server: sk.tvhclient.shared.model.TvhServer, channelId: Long, timeshift: Boolean): Boolean = opener.playHtspLive(server, channelId, timeshift)
+    private var liveNeedsFeeder: Boolean?
+        get() = stream.liveNeedsFeeder
+        set(v) { stream.liveNeedsFeeder = v }
 
     private fun pokeControls() {
         hideZapBar()  // M446
