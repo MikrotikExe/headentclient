@@ -2574,7 +2574,7 @@ class PlayerActivity : ComponentActivity() {
  * Samostatna composable, aby nerastla PlayerUi (64 KB limit metody).
  */
 @Composable
-private fun exitConfirmOnBack(pipSupported: Boolean, autoPipEnabled: Boolean): Boolean {
+internal fun exitConfirmOnBack(pipSupported: Boolean, autoPipEnabled: Boolean): Boolean {
     if (!pipSupported) return true
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val isTvUi = remember {
@@ -3067,51 +3067,24 @@ private fun PlayerUi(
     var nextStop by remember(liveChannelUuid) { mutableStateOf(progNextStop) }
     val hasLiveProg = !seekable && progStart > 0 && progStop > progStart
 
-    if (!seekable && liveChannelUuid != null && server != null) {
-        LaunchedEffect(Unit) {
-            // tik kazdu sekundu
-            while (true) {
-                liveNowSec = System.currentTimeMillis() / 1000
-                kotlinx.coroutines.delay(1000)
+    // M663: tik a nacitanie EPG relacie v LiveProgrammeEffects.kt (podmienky a kluce zhodne)
+    LiveProgrammeEffects(
+        seekable = seekable,
+        liveChannelUuid = liveChannelUuid,
+        server = server,
+        hasLiveProg = hasLiveProg,
+        progStart = { progStart },
+        progStop = { progStop },
+        onTick = { liveNowSec = it },
+        onProgramme = { cur, nx ->
+            progStart = cur.start; progStop = cur.stop
+            progTitle = cur.title
+            progDesc = cur.bestDescription
+            if (nx != null) {
+                nextTitle = nx.title; nextStart = nx.start; nextStop = nx.stop
             }
         }
-        LaunchedEffect(liveChannelUuid) {
-            // hned po prepnuti nacitaj plne EPG (popis + dalsia relacia),
-            // potom obnovuj ked aktualna relacia dobehne
-            var firstDone = false
-            while (true) {
-                val now = System.currentTimeMillis() / 1000
-                if (!firstDone || progStart == 0L || progStop == 0L || now >= progStop) {
-                    val list = try {
-                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                            val api = Tvh.apiFor(server)
-                            try { Tvh.fetchEpgForChannel(server, api, liveChannelUuid) }
-                            finally { api.close() }
-                        }
-                    } catch (e: Exception) { emptyList() }
-                    val cur = list.firstOrNull { it.start <= now && now < it.stop }
-                    if (cur != null) {
-                        progStart = cur.start; progStop = cur.stop
-                        progTitle = cur.title
-                        progDesc = cur.bestDescription
-                        val nx = list.firstOrNull { it.start >= cur.stop }
-                        if (nx != null) {
-                            nextTitle = nx.title; nextStart = nx.start; nextStop = nx.stop
-                        }
-                    }
-                    firstDone = true
-                }
-                kotlinx.coroutines.delay(5000)
-            }
-        }
-    } else if (hasLiveProg) {
-        LaunchedEffect(Unit) {
-            while (true) {
-                liveNowSec = System.currentTimeMillis() / 1000
-                kotlinx.coroutines.delay(1000)
-            }
-        }
-    }
+    )
 
     // M662: auto-vyber audio stopy (M378) je v AudioAutoSelect.kt
     AudioAutoSelectEffect(
@@ -3129,36 +3102,26 @@ private fun PlayerUi(
         }
     }
 
-    // telefon: BACK z cisteho prehravania -> PiP (odkryje domovsku obrazovku), nie ukoncenie.
-    // skomponovany ako prvy => ma najnizsiu prioritu, specifickejsie handlery nizsie maju prednost.
-    // riadi sa nastavenim automatickeho PiP.
+    // M663: retaz BackHandler-ov v PlayerBackHandlers.kt (poradie = priorita, zachovane)
     val autoPipEnabled = remember { AutoPipPref.get(ctx) }
-    androidx.activity.compose.BackHandler(
-        enabled = autoPipEnabled && pipSupported && playing && !controlsVisible && menu == null && !showChannelList && !showOptions
-    ) { onEnterPip() }
-    androidx.activity.compose.BackHandler(enabled = showChannelList) { showChannelList = false }
-    androidx.activity.compose.BackHandler(enabled = menu != null) { menu = null }
-    androidx.activity.compose.BackHandler(
-        enabled = controlsVisible && menu == null && !showChannelList && !showOptions
-    ) { controlsVisible = false }
-    // "Prehrat od zaciatku" zo zivej TV: Spat (ked nie je nic otvorene) vrati na povodny zivy kanal
-    androidx.activity.compose.BackHandler(
-        enabled = returnLiveOnBack && !controlsVisible && menu == null && !showChannelList && !showOptions
-    ) { onClose() }
-    // M280: BACK pri cistom zivom prehravani (mimo PiP) -> potvrdenie ukoncenia (ako exit v menu),
-    // aby nechcene stlacenie Spat hned neukoncilo prehravanie.
-    // M280-fix: LEN na TV (zariadenia bez PiP). Na mobile/tablete (pipSupported) sa
-    // potvrdenie nezobrazuje vobec — BACK tam riesi PiP / bezne spravanie.
-    // M537: „TV" sa NESMIE odvodzovat z !pipSupported — TV boxy s PiP (Homatics,
-    // Shield, Raspberry Pi; pozri M429) potvrdenie nedostali a BACK ukoncil
-    // prehravanie hned. Rozhoduje rezim UI (leanback): na TV sa potvrdenie
-    // zobrazi vzdy, okrem pripadu, ked ma prednost auto-PiP handler vyssie
-    // (zapnuty auto-PiP na boxe s PiP -> BACK = miniatura, ako doteraz).
-    // (M537-fix: vypocet je v samostatnej composable — PlayerUi je na 64 KB limite metody.)
-    androidx.activity.compose.BackHandler(
-        enabled = exitConfirmOnBack(pipSupported, autoPipEnabled) && !seekable && !controlsVisible && menu == null
-                  && !showChannelList && !showOptions && !returnLiveOnBack && !showInfo
-    ) { onRequestExit() }
+    PlayerBackHandlers(
+        autoPipEnabled = autoPipEnabled,
+        pipSupported = pipSupported,
+        playing = playing,
+        seekable = seekable,
+        controlsVisible = controlsVisible,
+        menu = menu,
+        showChannelList = showChannelList,
+        showOptions = showOptions,
+        showInfo = showInfo,
+        returnLiveOnBack = returnLiveOnBack,
+        onEnterPip = onEnterPip,
+        onClose = onClose,
+        onRequestExit = onRequestExit,
+        setShowChannelList = { showChannelList = it },
+        setMenu = { menu = it },
+        setControlsVisible = { controlsVisible = it }
+    )
 
     // M662: EPG efekty (M266 prefetch + M522/M525 periodicky refresh) su v PlayerEpgEffects.kt
     PlayerEpgEffects(
@@ -3341,61 +3304,44 @@ private fun PlayerUi(
             onClose = onClose
         )
 
-        // "Viac" panel moderneho rezimu (telefon)
+        // "Viac" panel moderneho rezimu (telefon) — M663: ModernOverlayEffects.kt
         if (showMoreSheet) {
-            androidx.activity.compose.BackHandler { showMoreSheet = false }
-            val lockVis = pipSupported && OrientationPref.get(ctx) == OrientationPref.AUTO
-            ModernMoreSheet(
-                lockVisible = lockVis,
+            PlayerMoreSheetHost(
+                ctx = ctx,
+                pipSupported = pipSupported,
+                pipButton = pipButton,
+                profileSwitch = profileSwitch,
                 orientationLocked = orientationLocked,
-                pipVisible = pipButton,
-                profileVisible = profileSwitch,
-                onProfile = { showMoreSheet = false; menu = "profile" },
-                onPip = { showMoreSheet = false; onEnterPip() },
-                onSubs = { showMoreSheet = false; menu = "spu" },
-                // M490: rovnaky stav aj akcia ako klasicky bar a TV overlay
-                recordVisible = dvrActivity?.dvrRecordVisible() == true,
-                recordIsCancel = dvrActivity?.dvrExistingState?.value != null,
-                onRecord = {
-                    showMoreSheet = false
-                    dvrActivity?.toggleRecordCurrent()
-                },
-                teletextVisible = dvrActivity?.teletextVisible() == true,   // M559
-                onTeletext = { showMoreSheet = false; dvrActivity?.openTeletext() },
-                onSleep = { showMoreSheet = false; onOpenSleep() },
-                onLockToggle = {
-                    orientationLocked = !orientationLocked
-                    onOrientationLockChange(orientationLocked)
-                },
-                onInfo = { showMoreSheet = false; showInfo = true },
-                onDismiss = { showMoreSheet = false },
+                dvrActivity = dvrActivity,
+                onEnterPip = onEnterPip,
+                onOpenSleep = onOpenSleep,
+                onOrientationLockChange = onOrientationLockChange,
+                setShowMoreSheet = { showMoreSheet = it },
+                setMenu = { menu = it },
+                setShowInfo = { showInfo = it },
+                setOrientationLocked = { orientationLocked = it }
             )
         }
 
         // Moderny TV overlay (karty kanalov + ovladacia lista) — exkluzivita,
-        // auto-hide a vykonanie akcii z listy (signal z Activity key handlera)
-        if (modernOvVisible) {
-            LaunchedEffect(Unit) {
+        // auto-hide a vykonanie akcii z listy (M663: ModernOverlayEffects.kt)
+        ModernOverlayEffects(
+            modernOvVisible = modernOvVisible,
+            modernOvPoke = modernOvPoke,
+            modernOvExec = modernOvExec,
+            modernOvExecId = modernOvExecId,
+            modernOvCard = modernOvCard,
+            onModernOvDismiss = onModernOvDismiss,
+            onSelectChannel = onSelectChannel,
+            onOpenSleep = onOpenSleep,
+            onOpenEpg = onOpenEpg,
+            closeOverlays = {
                 controlsVisible = false; menu = null; showChannelList = false
                 showInfo = false; showOptions = false
-            }
-        }
-        LaunchedEffect(modernOvVisible, modernOvPoke) {
-            if (modernOvVisible) {
-                kotlinx.coroutines.delay(6000)
-                onModernOvDismiss()
-            }
-        }
-        LaunchedEffect(modernOvExec) {
-            if (modernOvExec > 0) when (modernOvExecId) {
-                "card" -> onSelectChannel(modernOvCard)
-                "audio" -> menu = "audio"
-                "subs" -> menu = "spu"
-                "sleep" -> onOpenSleep()
-                "epg" -> onOpenEpg()
-                "info" -> showInfo = true
-            }
-        }
+            },
+            setMenu = { menu = it },
+            setShowInfo = { showInfo = it }
+        )
         if (modernOvVisible && isTvGest) {
             val ovSrv = remember { sk.tvhclient.shared.Tvh.store.active() }
             val ovLoader = remember(ovSrv?.id) { PiconImageLoader.get(ctx, ovSrv) }
