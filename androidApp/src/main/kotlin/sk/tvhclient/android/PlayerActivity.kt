@@ -1715,62 +1715,28 @@ class PlayerActivity : ComponentActivity() {
     private fun enterReorderMode() = reorder.enter()
     private fun exitReorderMode() = reorder.exit()
 
-    // --- Info o relacii (detail) v prehravaci ---
-    private val infoVisibleState = androidx.compose.runtime.mutableStateOf(false)
-    // M490: v info prekryti je vybrata polozka nahravania (sipka dole)
-    private val infoRecSelState = androidx.compose.runtime.mutableStateOf(false)
+    // --- Info o relacii (detail) v prehravaci — ChannelInfo.kt (M643) ---
+    private val info by lazy {
+        ChannelInfo(lifecycleScope, live,
+            epgUpcoming = { epgUpcomingState.value },
+            cacheChannelEpg = { uuid, list -> cacheChannelEpg(uuid, list) },
+            dvrRecordVisible = { dvrRecordVisible() },
+            toggleRecord = { toggleRecordCurrent() },
+            onShown = { hideZapBar() })
+    }
+    private val infoVisibleState get() = info.visible
+    private val infoRecSelState get() = info.recSel
+    private val infoChannelState get() = info.channel
+    private val infoTitleState get() = info.title
+    private val infoTimeState get() = info.time
+    private val infoDescState get() = info.desc
     // M280: potvrdenie ukoncenia ziveho prehravania (BACK) — ako exit dialog v menu
     private val exitConfirmState = androidx.compose.runtime.mutableStateOf(false)
     private val exitConfirmSelState = androidx.compose.runtime.mutableStateOf(0) // 0=Zrusit, 1=Ukoncit
-    private val infoChannelState = androidx.compose.runtime.mutableStateOf("")
-    private val infoTitleState = androidx.compose.runtime.mutableStateOf("")
-    private val infoTimeState = androidx.compose.runtime.mutableStateOf("")
-    private val infoDescState = androidx.compose.runtime.mutableStateOf("")
 
-    private fun fmtClock(s: Long): String =
-        if (s <= 0) "" else java.text.SimpleDateFormat(sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault())
-            .format(java.util.Date(s * 1000))
-    private fun fmtRange(a: Long, b: Long): String {
-        val sa = fmtClock(a); val sb = fmtClock(b)
-        return if (sa.isNotBlank() && sb.isNotBlank()) "$sa - $sb" else sa
-    }
-
-    private fun applyInfo(ev: sk.tvhclient.shared.model.EpgEvent) {
-        if (ev.title.isNotBlank()) infoTitleState.value = ev.title
-        if (ev.start > 0) infoTimeState.value = fmtRange(ev.start, ev.stop)
-        infoDescState.value = ev.bestDescription
-    }
-
-    /** Zobrazi detail aktualnej relacie kanala (z EPG); okamzite ukaze now-polia, popis doplni async. */
-    private fun showChannelInfo(idx: Int) {
-        val ch = liveChannelsState.value.getOrNull(idx) ?: return
-        infoChannelState.value = ch.name
-        infoTitleState.value = ch.nowTitle
-        infoTimeState.value = fmtRange(ch.nowStart, ch.nowStop)
-        infoDescState.value = ""
-        hideZapBar()  // M446
-        infoRecSelState.value = false   // M490
-        infoVisibleState.value = true
-        val srv = Tvh.store.active() ?: return
-        val nowSec = System.currentTimeMillis() / 1000
-        fun pick(list: List<sk.tvhclient.shared.model.EpgEvent>) =
-            list.firstOrNull { it.start <= nowSec && nowSec < it.stop } ?: list.minByOrNull { it.start }
-        val cached = epgUpcomingState.value[ch.uuid]
-        if (!cached.isNullOrEmpty()) {
-            pick(cached)?.let { applyInfo(it) }
-        } else {
-            lifecycleScope.launch {
-                val list = runCatching {
-                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        Tvh.fetchEpgForChannel(srv, Tvh.apiFor(srv), ch.uuid)
-                    }
-                }.getOrDefault(emptyList())
-                cacheChannelEpg(ch.uuid, list)   // M274: memoizuj pre dalsie zobrazenia/reopen
-                if (infoVisibleState.value) pick(list)?.let { applyInfo(it) }
-            }
-        }
-    }
-    private fun closeChannelInfo() { infoVisibleState.value = false }
+    private fun fmtRange(a: Long, b: Long): String = ChannelInfo.fmtRange(a, b)
+    private fun showChannelInfo(idx: Int) = info.show(idx)
+    private fun closeChannelInfo() = info.close()
 
     // ---- M430 / M628: kompaktny zap pas — stav aj vykreslenie v ZapBar.kt ----
     private val zapBar by lazy {
@@ -2046,31 +2012,8 @@ class PlayerActivity : ComponentActivity() {
         // 0c) Kontextove menu kanala (long-press v zozname) -> hore/dole + OK (na uvolnenie) + BACK (M641)
         if (ctxMenu.isOpen) return ctxMenu.handleKey(kc, down)
 
-        // 0d) Info o relacii (detail) -> hociktore OK/BACK/vlavo zatvori
-        if (infoVisibleState.value) {
-            if (down) when (kc) {
-                // M490: dole vyberie nahravanie, hore sa vrati na „zavriet"
-                android.view.KeyEvent.KEYCODE_DPAD_DOWN -> {
-                    if (dvrRecordVisible()) infoRecSelState.value = true
-                    return true
-                }
-                android.view.KeyEvent.KEYCODE_DPAD_UP -> {
-                    infoRecSelState.value = false
-                    return true
-                }
-                android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-                android.view.KeyEvent.KEYCODE_ENTER,
-                android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                    val rec = infoRecSelState.value
-                    closeChannelInfo()
-                    if (rec) toggleRecordCurrent()
-                    return true
-                }
-                android.view.KeyEvent.KEYCODE_BACK,
-                android.view.KeyEvent.KEYCODE_DPAD_LEFT -> { closeChannelInfo(); return true }
-            }
-            return true
-        }
+        // 0d) Info o relacii (detail) -> hociktore OK/BACK/vlavo zatvori (M643: ChannelInfo)
+        if (info.isOpen) return info.handleKey(kc, down)
 
         // 0e) Potvrdenie ukoncenia ziveho prehravania (BACK) -> sipky + OK + BACK riesime my
         if (exitConfirmState.value) {
