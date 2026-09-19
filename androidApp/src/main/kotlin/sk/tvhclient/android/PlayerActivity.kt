@@ -170,17 +170,32 @@ class PlayerActivity : ComponentActivity() {
     // timeshift "zapnuty" (po prvej pauze) -> az vtedy davaju zmysel RW/FF a dvojklik
     private val timeshiftEngagedState = androidx.compose.runtime.mutableStateOf(false)
 
-    // ===== Moderny TV overlay (karty kanalov + ovladacia lista) =====
-    private val modernOvState = androidx.compose.runtime.mutableStateOf(false)
-    private val modernOvRow = androidx.compose.runtime.mutableStateOf(0)      // 0 = karty, 1 = lista
-    private val modernOvCard = androidx.compose.runtime.mutableStateOf(0)
-    private val modernOvStrip = androidx.compose.runtime.mutableStateOf(0)
-    private val modernOvPoke = androidx.compose.runtime.mutableStateOf(0)
-    private val modernOvExec = androidx.compose.runtime.mutableStateOf(0)     // signal pre composable
-    private val modernOvExecId = androidx.compose.runtime.mutableStateOf("")
-    private var modernOkLong = false
-    // OK z prehravania: overlay otvarame az na OK-UP, aby pri podrzani nepreblikol (M328)
-    private var modernOkPending = false
+    // ===== Moderny TV overlay (karty kanalov + ovladacia lista) — ModernOverlayController.kt (M642) =====
+    private val modernOv by lazy {
+        ModernOverlayController(live,
+            seekable = { seekablePlayback },
+            timeshiftEngaged = { timeshiftEngagedState.value },
+            profileSwitchAvailable = { profileSwitchAvailable() },
+            dvrRecordVisible = { dvrRecordVisible() },
+            teletextVisible = { teletextVisible() },
+            actions = object : ModernOverlayController.Actions {
+                override fun hideZapBar() = this@PlayerActivity.hideZapBar()
+                override fun togglePlayPause() = this@PlayerActivity.togglePlayPause()
+                override fun timeshiftSkip(seconds: Int) = this@PlayerActivity.timeshiftSkip(seconds)
+                override fun switchLive(dir: Int) = this@PlayerActivity.switchLive(dir)
+                override fun openChannelList() = this@PlayerActivity.openChannelList()
+                override fun openSleepMenu() = this@PlayerActivity.openSleepMenu()
+                override fun toggleInfo() = this@PlayerActivity.toggleInfo()
+                override fun openProfileMenu() = this@PlayerActivity.openProfileMenu()
+                override fun toggleRecordCurrent() = this@PlayerActivity.toggleRecordCurrent()
+                override fun openTeletext() = this@PlayerActivity.openTeletext()
+                override fun openChannelContextMenu(cardIndex: Int) {
+                    okLongFired = true   // guard prehltne OK-up (inak by potvrdil polozku menu)
+                    this@PlayerActivity.openChannelContextMenu(cardIndex)
+                }
+            })
+    }
+    private val modernOvState get() = modernOv.visible
 
     private val isTvBox by lazy {
         (getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager)
@@ -192,18 +207,7 @@ class PlayerActivity : ComponentActivity() {
         isTvBox && UiModePref.get(this) == UiModePref.MODERN &&
             !seekablePlayback && liveUuids.size > 1
 
-    /** Polozky ovladacej listy overlayu (transport v strede; pretacanie len pri timeshiftu). */
-    private fun modernStripIds(): List<String> = buildList {
-        add("epg"); add("audio")
-        // prepinanie kanalov priamo z listy (M323) — len pri live s viac kanalmi
-        val zap = !seekablePlayback && liveUuids.size > 1
-        if (zap) add("chprev")
-        if (timeshiftEngagedState.value) add("tsrew")
-        add("play")
-        if (timeshiftEngagedState.value) add("tsff")
-        if (zap) add("chnext")
-        add("subs"); add("more")
-    }
+    private fun modernStripIds(): List<String> = modernOv.stripIds()
 
     // ===== M490: nahravanie prave beziacej relacie =====
     // Logika zila od M473 vpisana priamo v telefonnom paneli „Viac", takze
@@ -357,59 +361,10 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    // "Viac" menu listy (M327): menej pouzivane polozky — rezerva pre dlhsie preklady
-    private val modernMoreState = androidx.compose.runtime.mutableStateOf(false)
-    private val modernMoreIdx = androidx.compose.runtime.mutableStateOf(0)
-    // M383: "profile" pribudne len ked je prepinac dostupny (HTTP live)
-    private fun modernMoreIds(): List<String> = buildList {
-        add("list"); add("sleep"); add("info")
-        if (profileSwitchAvailable()) add("profile")
-        if (dvrRecordVisible()) add("rec")   // M490
-        if (teletextVisible()) add("teletext")   // M553
-    }
-    private fun modernMoreActivate() {
-        val id = modernMoreIds().getOrNull(modernMoreIdx.value) ?: return
-        modernMoreState.value = false
-        when (id) {
-            "list" -> { closeModernOverlay(); openChannelList() }
-            "sleep" -> { closeModernOverlay(); openSleepMenu() }
-            "info" -> { closeModernOverlay(); toggleInfo() }
-            "profile" -> { closeModernOverlay(); openProfileMenu() }
-            "rec" -> { closeModernOverlay(); toggleRecordCurrent() }   // M490
-            "teletext" -> openTeletext()   // M553
-        }
-    }
+    private fun modernMoreIds(): List<String> = modernOv.moreIds()
+    private fun openModernOverlay() = modernOv.open()
+    private fun closeModernOverlay() = modernOv.close()
 
-    private fun openModernOverlay() {
-        hideZapBar()  // M446
-        modernOvCard.value = liveIndexState.value.coerceAtLeast(0)
-        modernOvStrip.value = modernStripIds().indexOf("play").coerceAtLeast(0)
-        modernOvRow.value = 0
-        modernOvPoke.value++
-        modernOvState.value = true
-    }
-
-    private fun closeModernOverlay() { modernOvState.value = false }
-
-    /** OK v overlayi: karta -> prepni kanal; lista -> vykonaj akciu. */
-    private fun modernOvActivate() {
-        if (modernOvRow.value == 0) {
-            modernOvExecId.value = "card"; modernOvExec.value++
-            closeModernOverlay()
-        } else when (modernStripIds().getOrNull(modernOvStrip.value)) {
-            "play" -> { togglePlayPause(); modernOvPoke.value++ }
-            "tsrew" -> { timeshiftSkip(-30); modernOvPoke.value++ }
-            "tsff" -> { timeshiftSkip(+30); modernOvPoke.value++ }
-            "more" -> { modernMoreIdx.value = 0; modernMoreState.value = true }
-            "chprev" -> { switchLive(-1); modernOvCard.value = liveIndexState.value.coerceAtLeast(0); modernOvPoke.value++ }
-            "chnext" -> { switchLive(+1); modernOvCard.value = liveIndexState.value.coerceAtLeast(0); modernOvPoke.value++ }
-            null -> {}
-            else -> {
-                modernOvExecId.value = modernStripIds()[modernOvStrip.value]; modernOvExec.value++
-                closeModernOverlay()
-            }
-        }
-    }
     private var tsAccumMs = 0L
     private var tsPauseStartedAt = 0L
     private var htspStartedAt = 0L
@@ -2370,111 +2325,12 @@ class PlayerActivity : ComponentActivity() {
             return true
         }
 
-        // 3b0) "Viac" menu nad modernym overlayom (M327)
-        if (modernMoreState.value) {
-            if (down) when (kc) {
-                android.view.KeyEvent.KEYCODE_DPAD_DOWN -> {
-                    modernMoreIdx.value = (modernMoreIdx.value + 1) % modernMoreIds().size; return true
-                }
-                android.view.KeyEvent.KEYCODE_DPAD_UP -> {
-                    modernMoreIdx.value = (modernMoreIdx.value - 1 + modernMoreIds().size) % modernMoreIds().size; return true
-                }
-                android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-                android.view.KeyEvent.KEYCODE_ENTER,
-                android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                    if (event.repeatCount == 0) modernMoreActivate(); return true
-                }
-                android.view.KeyEvent.KEYCODE_BACK -> { modernMoreState.value = false; return true }
-            }
-            if (!down && (kc == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
-                    kc == android.view.KeyEvent.KEYCODE_ENTER ||
-                    kc == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER ||
-                    kc == android.view.KeyEvent.KEYCODE_BACK)) return true
-            return true
-        }
-        // 3b) Moderny TV overlay (karty kanalov + ovladacia lista) -> navigujeme my
-        if (modernOvState.value) {
-            val ids = modernStripIds()
-            if (down) {
-                when (kc) {
-                    android.view.KeyEvent.KEYCODE_DPAD_LEFT -> {
-                        if (modernOvRow.value == 0) {
-                            val n = liveUuids.size
-                            if (n > 0) modernOvCard.value = (modernOvCard.value - 1 + n) % n
-                        } else modernOvStrip.value = (modernOvStrip.value - 1 + ids.size) % ids.size
-                        modernOvPoke.value++; return true
-                    }
-                    android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                        if (modernOvRow.value == 0) {
-                            val n = liveUuids.size
-                            if (n > 0) modernOvCard.value = (modernOvCard.value + 1) % n
-                        } else modernOvStrip.value = (modernOvStrip.value + 1) % ids.size
-                        modernOvPoke.value++; return true
-                    }
-                    android.view.KeyEvent.KEYCODE_DPAD_DOWN -> {
-                        if (modernOvRow.value == 0) {
-                            modernOvRow.value = 1
-                            modernOvStrip.value = ids.indexOf("play").coerceAtLeast(0)
-                        }
-                        modernOvPoke.value++; return true
-                    }
-                    android.view.KeyEvent.KEYCODE_DPAD_UP -> {
-                        if (modernOvRow.value == 1) modernOvRow.value = 0
-                        modernOvPoke.value++; return true
-                    }
-                    android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-                    android.view.KeyEvent.KEYCODE_ENTER,
-                    android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                        if (event.repeatCount == 1) {
-                            // Podrzanie OK v overlay = moznosti FOKUSOVANEHO kanala
-                            // (Info / Prehrat od zaciatku / Zamok) — M338. Velky zoznam
-                            // ostava cez Viac -> Kanaly a dlhe OK z cisteho prehravania.
-                            // okLongFired: guard prehltne OK-up (inak by potvrdil polozku menu)
-                            okLongFired = true
-                            modernOkLong = false
-                            openChannelContextMenu(modernOvCard.value)
-                        }
-                        return true
-                    }
-                    // M407-fix2: CH+/- a Page+/- prepinaju kanal aj v modernom overlay
-                    // (predtym sa tu prehltli a nic nerobili). Debounce v switchLive
-                    // zabezpeci svizne prepinanie bez cakania na nacitanie.
-                    android.view.KeyEvent.KEYCODE_CHANNEL_UP,
-                    android.view.KeyEvent.KEYCODE_PAGE_UP -> {
-                        if (!seekablePlayback && liveUuids.size > 1) {
-                            switchLive(+1)
-                            modernOvCard.value = liveIndexState.value.coerceAtLeast(0); modernOvPoke.value++
-                        }
-                        return true
-                    }
-                    android.view.KeyEvent.KEYCODE_CHANNEL_DOWN,
-                    android.view.KeyEvent.KEYCODE_PAGE_DOWN -> {
-                        if (!seekablePlayback && liveUuids.size > 1) {
-                            switchLive(-1)
-                            modernOvCard.value = liveIndexState.value.coerceAtLeast(0); modernOvPoke.value++
-                        }
-                        return true
-                    }
-                    android.view.KeyEvent.KEYCODE_BACK -> { closeModernOverlay(); return true }
-                }
-            } else {
-                when (kc) {
-                    android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-                    android.view.KeyEvent.KEYCODE_ENTER,
-                    android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                        if (!modernOkLong) modernOvActivate()
-                        modernOkLong = false
-                        return true
-                    }
-                    android.view.KeyEvent.KEYCODE_BACK -> return true
-                }
-            }
-            when (kc) {
-                android.view.KeyEvent.KEYCODE_VOLUME_UP,
-                android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
-                android.view.KeyEvent.KEYCODE_VOLUME_MUTE -> return super.dispatchKeyEvent(event)
-            }
-            return true
+        // 3b0) "Viac" menu nad modernym overlayom (M327) — ModernOverlayController (M642)
+        if (modernOv.isMoreOpen) return modernOv.handleMoreKey(kc, down, event)
+        // 3b) Moderny TV overlay (karty kanalov + ovladacia lista) -> navigujeme my (M642)
+        if (modernOv.isOpen) {
+            if (modernOv.handleKey(kc, down, event)) return true
+            return super.dispatchKeyEvent(event)   // hlasitost
         }
 
         // 4) Bezne prehravanie
@@ -2496,26 +2352,26 @@ class PlayerActivity : ComponentActivity() {
                 android.view.KeyEvent.KEYCODE_PAGE_UP ->
                     if (down && canZap) {
                         switchLive(+1)
-                        if (!ZapOverlayPref.get(this)) showZapBar() else if (modernTvActive()) { modernOvCard.value = liveIndexState.value.coerceAtLeast(0); openModernOverlay() } else showControlsFocused()
+                        if (!ZapOverlayPref.get(this)) showZapBar() else if (modernTvActive()) modernOv.openAtCurrent() else showControlsFocused()
                         return true
                     }
                 android.view.KeyEvent.KEYCODE_DPAD_UP ->
                     if (down && canZap && event.repeatCount == 0) {
                         switchLive(+1)
-                        if (!ZapOverlayPref.get(this)) showZapBar() else if (modernTvActive()) { modernOvCard.value = liveIndexState.value.coerceAtLeast(0); openModernOverlay() } else showControlsFocused()
+                        if (!ZapOverlayPref.get(this)) showZapBar() else if (modernTvActive()) modernOv.openAtCurrent() else showControlsFocused()
                         return true
                     }
                 android.view.KeyEvent.KEYCODE_CHANNEL_DOWN,
                 android.view.KeyEvent.KEYCODE_PAGE_DOWN ->
                     if (down && canZap) {
                         switchLive(-1)
-                        if (!ZapOverlayPref.get(this)) showZapBar() else if (modernTvActive()) { modernOvCard.value = liveIndexState.value.coerceAtLeast(0); openModernOverlay() } else showControlsFocused()
+                        if (!ZapOverlayPref.get(this)) showZapBar() else if (modernTvActive()) modernOv.openAtCurrent() else showControlsFocused()
                         return true
                     }
                 android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
                     if (down && canZap && event.repeatCount == 0) {
                         switchLive(-1)
-                        if (!ZapOverlayPref.get(this)) showZapBar() else if (modernTvActive()) { modernOvCard.value = liveIndexState.value.coerceAtLeast(0); openModernOverlay() } else showControlsFocused()
+                        if (!ZapOverlayPref.get(this)) showZapBar() else if (modernTvActive()) modernOv.openAtCurrent() else showControlsFocused()
                         return true
                     }
             }
@@ -2636,18 +2492,11 @@ class PlayerActivity : ComponentActivity() {
                         return true
                     }
                     if (modernTvActive()) {
-                        // Kratke OK -> overlay az na UP; podrzanie -> rovno velky zoznam.
-                        // Overlay sa pri podrzani vobec neotvori, ziadny preblik.
-                        if (down && event.repeatCount == 0) { modernOkPending = true; return true }
-                        if (down && event.repeatCount == 1 && modernOkPending) {
-                            modernOkPending = false
+                        // Kratke OK -> overlay az na UP; podrzanie -> rovno velky zoznam (M328, M642).
+                        return modernOv.handlePlaybackOk(down, event) {
                             okLongFired = true   // prehltne OK-up, inak by up hned potvrdil kanal a zoznam zavrel
                             openChannelList()
-                            return true
                         }
-                        if (down) return true
-                        if (modernOkPending) { modernOkPending = false; openModernOverlay() }
-                        return true
                     }
                     if (down && event.repeatCount == 0) {
                         okLongFired = true; openChannelList()  // okLongFired prehltne nasledne OK-up
@@ -3111,19 +2960,19 @@ class PlayerActivity : ComponentActivity() {
                 onNextChannel = if (canZap) nextChannelCb else null,   // M544
                 onTogglePlay = { togglePlayPause() },
                 timeshiftEngaged = timeshiftEngagedState.value,
-                modernOvVisible = modernOvState.value,
-                modernOvRow = modernOvRow.value,
-                modernOvCard = modernOvCard.value,
-                modernOvStrip = modernOvStrip.value,
-                modernOvPoke = modernOvPoke.value,
-                modernOvExec = modernOvExec.value,
-                modernOvExecId = modernOvExecId.value,
+                modernOvVisible = modernOv.visible.value,
+                modernOvRow = modernOv.row.value,
+                modernOvCard = modernOv.card.value,
+                modernOvStrip = modernOv.strip.value,
+                modernOvPoke = modernOv.poke.value,
+                modernOvExec = modernOv.exec.value,
+                modernOvExecId = modernOv.execId.value,
                 modernOvRecNames = recInProgressByChan.value.keys,
                 modernStripIds = modernStripIds(),
-                modernMoreVisible = modernMoreState.value,
-                modernMoreIndex = modernMoreIdx.value,
-                onMorePick = { i -> modernMoreIdx.value = i; modernMoreActivate() },
-                onMoreDismiss = { modernMoreState.value = false },
+                modernMoreVisible = modernOv.moreVisible.value,
+                modernMoreIndex = modernOv.moreIdx.value,
+                onMorePick = { i -> modernOv.morePick(i) },
+                onMoreDismiss = { modernOv.moreDismiss() },
                 tsMaxMs = maxRewindMs(),
                 onModernOvDismiss = { closeModernOverlay() },
                 onSkipBack = { timeshiftSkip(-30) },
