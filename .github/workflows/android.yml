@@ -47,6 +47,11 @@ jobs:
 
       - name: Build debug APK
         run: gradle :androidApp:assembleDebug
+      # M660: JVM unit testy shared modulu (TsMuxer casovanie, Htsmsg, DVR klasifikacia).
+      # Zatial informativne (continue-on-error) — build nezhodi, vysledok je v logu kroku.
+      - name: Shared unit tests
+        continue-on-error: true
+        run: gradle :shared:testDebugUnitTest
       - name: Upload debug APK
         uses: actions/upload-artifact@v5
         with:

@@ -3411,436 +3411,66 @@ private fun PlayerUi(
         // prekrytie s prave zadavanym cislom kanala
         if (numberEntry.isNotEmpty()) NumberEntryOverlay(numberEntry)
 
-        AnimatedVisibility(
-            visible = controlsVisible,
-            enter = fadeIn(),
-            exit = fadeOut(),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Box(Modifier.fillMaxSize().systemBarsPadding()) {
-                val order = playerControlOrder(onPrevChannel != null, seekable, pipButton, timeshiftEngaged, profileSwitch,
-                    dvrActivity?.dvrRecordVisible() == true, dvrActivity?.teletextVisible() == true)
-                // fokusove zvyraznenie len na TV (D-pad); na telefone (dotyk) ziadne "vybrate" tlacidlo
-                val isTvDevice = remember {
-                    val um = ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
-                    um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
-                }
-                val selCtrl = if (isTvDevice) order.getOrNull(controlNavIndex) else null
-                val curCh = liveChannels.getOrNull(liveCurrentIndex)
-                val infoLoader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
-                fun clock(sec: Long): String =
-                    if (sec <= 0) "" else java.text.SimpleDateFormat(sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault())
-                        .format(java.util.Date(sec * 1000))
-                val dateTime = java.text.SimpleDateFormat("EEE d. M., " + sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault())
-                    .format(java.util.Date(liveNowSec * 1000))
-                val hasNow = !seekable && progStart > 0 && progStop > progStart
-                val total = (progStop - progStart).coerceAtLeast(1)
-                val elapsed = (liveNowSec - progStart).coerceIn(0, total)
-                val fracNow = elapsed.toFloat() / total.toFloat()
-                val remainMin = if (hasNow) ((progStop - liveNowSec) / 60).coerceAtLeast(0) else 0
-                // skalovanie podla rozlisenia boxu (kompaktny, citatelny pruh)
-                // Meraj skutocnu sirku okna (BoxWithConstraints), nie Configuration.screenWidthDp —
-                // ten na niektorych zariadeniach hlasi zlu hodnotu (kompaktny layout na sirku).
-                // maxWidth odraza realne pixely okna, takze siroke okno vzdy dostane landscape layout.
-                BoxWithConstraints(
-                    Modifier
-                        .align(Alignment.BottomStart)
-                        .fillMaxWidth()
-                ) {
-                    val k = (maxWidth.value / 640f).coerceIn(0.9f, 1.25f)
-                    val portrait = maxWidth < 600.dp
-
-                    // Jeden spolocny info+ovladaci pruh dole
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .background(playerScrim())
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                    Row(verticalAlignment = Alignment.Top) {
-                        // cislo + logo + nazov kanala (len live; pri DVR netreba)
-                        if (!seekable) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.width((76 * k).dp)
-                        ) {
-                            if ((curCh?.number ?: 0) > 0) {
-                                Text(
-                                    "${curCh?.number}",
-                                    color = playerFg(),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = (24 * k).sp
-                                )
-                            }
-                            if (curCh?.piconUrl != null) {
-                                Spacer(Modifier.height(2.dp))
-                                AsyncImage(
-                                    model = ImageRequest.Builder(ctx).data(curCh.piconUrl).build(),
-                                    contentDescription = null,
-                                    imageLoader = infoLoader,
-                                    contentScale = androidx.compose.ui.layout.ContentScale.Fit,
-                                    modifier = Modifier.size((56 * k).dp, (32 * k).dp)
-                                )
-                            }
-                            Text(
-                                title,
-                                color = playerFgDim(),
-                                fontSize = (11 * k).sp,
-                                maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                        }
-                        Spacer(Modifier.width(14.dp))
-                        }
-                        // popis relacie: nazov, cas, priebeh, popis, dalej
-                        Column(Modifier.weight(1f)) {
-                            val headline = if (seekable) title else progTitle
-                            Row(verticalAlignment = Alignment.Top) {
-                                Text(
-                                    headline,
-                                    color = playerFg(),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = (16 * k).sp,
-                                    maxLines = if (seekable) 2 else 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        dateTime,
-                                        color = playerFgDim(),
-                                        fontSize = (12 * k).sp,
-                                        maxLines = 1,
-                                        softWrap = false
-                                    )
-                                    if (sleepLeftMin > 0) {
-                                        Text(
-                                            "\u23F2 ${sleepLeftMin} min",
-                                            color = Color(0xCC8AB4F8),
-                                            fontSize = (12 * k).sp,
-                                            maxLines = 1,
-                                            softWrap = false
-                                        )
-                                    }
-                                }
-                            }
-                            if (hasNow) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        clock(progStart) + " \u2013 " + clock(progStop),
-                                        color = playerFgDim(),
-                                        fontSize = (12 * k).sp,
-                                        maxLines = 1,
-                                        softWrap = false
-                                    )
-                                    androidx.compose.material3.LinearProgressIndicator(
-                                        progress = { fracNow },
-                                        modifier = Modifier
-                                            .width((88 * k).dp)
-                                            .padding(horizontal = 8.dp),
-                                        trackColor = playerTrack()
-                                    )
-                                    Text(
-                                        "$remainMin min",
-                                        color = playerFgDim(),
-                                        fontSize = (12 * k).sp, maxLines = 1, softWrap = false
-                                    )
-                                    if (timeshiftOffsetMs > 0L) {
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(
-                                            "\u2212" + fmtMs(timeshiftOffsetMs),
-                                            color = androidx.compose.ui.graphics.Color(0xFFFF3B30),
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = (12 * k).sp, maxLines = 1, softWrap = false
-                                        )
-                                    }
-                                }
-                            }
-                            if (progDesc.isNotBlank()) {
-                                Text(
-                                    progDesc,
-                                    color = playerFgDim(),
-                                    fontSize = (12 * k).sp,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                )
-                            }
-                            if (nextTitle.isNotBlank()) {
-                                Text(
-                                    clock(nextStart) + " \u2013 " + clock(nextStop) + "  " + nextTitle,
-                                    color = playerFgFaint(),
-                                    fontSize = (12 * k).sp,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                        Spacer(Modifier.width(12.dp))
-                    }
-                    Spacer(Modifier.height((4 * k).dp))
-                    // DVR: pretacacia lista (zvyraznena pri vybere "seek")
-                    if (seekable && barLengthMs > 0) {
-                        val seekFocused = selCtrl == "seek"
-                        val frac = when {
-                            seekFocused -> scrubFrac
-                            dragging -> dragValue
-                            else -> (posTimeMs.toFloat() / barLengthMs).coerceIn(0f, 1f)
-                        }
-                        // Lava strana: pocas tahania/vyberu cielovy cas, inak skutocny cas prehravania
-                        val cur = if (dragging || seekFocused) (frac * barLengthMs).toLong() else posTimeMs
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                                .then(
-                                    if (seekFocused) Modifier.border(
-                                        2.dp, playerFg(), RoundedCornerShape(8.dp)
-                                    ) else Modifier
-                                )
-                                .padding(horizontal = 4.dp)
-                        ) {
-                            Text(fmtMs(cur), color = playerFg(),
-                                style = MaterialTheme.typography.bodySmall)
-                            Box(
-                                modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                androidx.compose.material3.Slider(
-                                    value = frac.coerceIn(0f, 1f),
-                                    onValueChange = { dragging = true; dragValue = it },
-                                    onValueChangeFinished = {
-                                        // ciel v case relacie (v ramci dosiahnutelneho rozsahu)
-                                        val progMs = (dragValue.coerceIn(0f, 1f) * barLengthMs).toLong()
-                                            .coerceIn(0L, barLengthMs)
-                                        posTimeMs = progMs               // okamzita odozva UI
-                                        posFraction = if (lengthMs > 0)
-                                            ((recordingOffsetMs + progMs).toFloat() /
-                                                (recordingOffsetMs + lengthMs)).coerceIn(0f, 1f)
-                                        else 0f
-                                        dragging = false
-                                        // skutocny seek prebudovanim streamu (feeder byte-restart /
-                                        // direct :start-time) - player.position na pipe nefunguje
-                                        onSeekToMs(progMs)
-                                    },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                // Znacky relacie: cervena = zaciatok (koniec okraja pred),
-                                // svetlejsia = koniec relacie (zaciatok okraja po).
-                                if (progStartFrac > 0.002f || progStopFrac < 0.998f) {
-                                    androidx.compose.foundation.Canvas(
-                                        modifier = Modifier.matchParentSize()
-                                    ) {
-                                        val thumb = 10.dp.toPx()
-                                        val usable = (size.width - 2 * thumb).coerceAtLeast(0f)
-                                        val w = 3.dp.toPx()
-                                        // vyska presne cez listu (~16 dp track), vystredene
-                                        val half = 8.dp.toPx()
-                                        val cy = size.height / 2f
-                                        fun tick(f: Float, c: Color) {
-                                            val x = thumb + f.coerceIn(0f, 1f) * usable
-                                            drawLine(c, Offset(x, cy - half), Offset(x, cy + half), w)
-                                        }
-                                        if (progStopFrac < 0.998f)
-                                            tick(progStopFrac, Color(0x80FF5252))
-                                        if (progStartFrac > 0.002f)
-                                            tick(progStartFrac, Color(0xFFFF1744))
-                                    }
-                                }
-                            }
-                            Text(fmtMs(barLengthMs), color = playerFg(),
-                                style = MaterialTheme.typography.bodySmall)
-                        }
-                    }
-                    Spacer(Modifier.height((6 * k).dp))
-                    // Tlacidla: zavriet, zoznam, prev, play, next, audio, titulky, sw
-                    val bk = if (portrait) 0.95f else (0.78f * k)
-                    // tlacidlo zamku otacania ma zmysel len ked je orientacia automaticka;
-                    // pri pevnej orientacii (na vysku/sirku) ho skry
-                    val lockVisible = remember {
-                        pipSupported && OrientationPref.get(ctx) == OrientationPref.AUTO
-                    }
-                    fun has(id: String) = order.contains(id)
-                    // jedno tlacidlo podla id (zachytava okolity stav)
-                    @Composable
-                    fun barCtrl(c: String) {
-                        when (c) {
-                            "close" -> CircleButton(Icons.AutoMirrored.Filled.ArrowBack, selected = selCtrl == "close", scale = bk, onClick = onClose)
-                            "list" -> CircleButton(
-                                icon = Icons.AutoMirrored.Filled.List, selected = selCtrl == "list", scale = bk,
-                                onClick = { showChannelList = true; controlsVisible = false }
-                            )
-                            "prev" -> if (onPrevChannel != null) CircleButton(
-                                icon = Icons.Default.SkipPrevious, selected = selCtrl == "prev", scale = bk, onClick = onPrevChannel
-                            )
-                            "play" -> PlayPauseButton(
-                                isPlaying = isPlaying,
-                                selected = selCtrl == "play",
-                                scale = bk,
-                                onClick = onTogglePlay
-                            )
-                            "tsrew" -> CircleButton(
-                                icon = Icons.Default.Replay30, selected = selCtrl == "tsrew", scale = bk, onClick = onSkipBack
-                            )
-                            "tsff" -> CircleButton(
-                                icon = Icons.Default.Forward30, selected = selCtrl == "tsff", scale = bk, onClick = onSkipFwd
-                            )
-                            "next" -> if (onNextChannel != null) CircleButton(
-                                icon = Icons.Default.SkipNext, selected = selCtrl == "next", scale = bk, onClick = onNextChannel
-                            )
-                            "epg" -> CircleButton(
-                                icon = Icons.Default.GridView, selected = selCtrl == "epg", scale = bk, onClick = onOpenEpg
-                            )
-                            "pip" -> CircleButton(
-                                icon = Icons.Default.PictureInPictureAlt, selected = selCtrl == "pip", scale = bk, onClick = onEnterPip
-                            )
-                            // M490: nahrat / zrusit nahravku prave beziacej relacie
-                            "rec" -> CircleButton(
-                                icon = if (dvrActivity?.dvrExistingState?.value != null)
-                                    Icons.Default.Stop else Icons.Default.FiberManualRecord,
-                                selected = selCtrl == "rec", scale = bk,
-                                onClick = { dvrActivity?.toggleRecordCurrent() }
-                            )
-                            "info" -> CircleButton(
-                                icon = Icons.Default.Info, selected = selCtrl == "info", scale = bk,
-                                onClick = { showInfo = !showInfo }
-                            )
-                            "sleep" -> CircleButton(
-                                icon = Icons.Default.Timer, selected = selCtrl == "sleep", scale = bk,
-                                onClick = onOpenSleep
-                            )
-                            // M553: teletext (len živý kanál; HTSP ak stopu má)
-                            "txt" -> CircleButton(
-                                icon = Icons.AutoMirrored.Filled.Article, selected = selCtrl == "txt", scale = bk,
-                                onClick = { dvrActivity?.openTeletext() }
-                            )
-                            "audio" -> CircleButton(
-                                icon = Icons.Default.MusicNote, selected = selCtrl == "audio", scale = bk,
-                                onClick = { menu = if (menu == "audio") null else "audio" }
-                            )
-                            "subs" -> CircleButton(
-                                icon = Icons.Default.ClosedCaption, selected = selCtrl == "subs", scale = bk,
-                                onClick = { menu = if (menu == "spu") null else "spu" }
-                            )
-                            "profile" -> CircleButton(
-                                icon = Icons.Default.Tune, selected = selCtrl == "profile", scale = bk,
-                                onClick = { menu = if (menu == "profile") null else "profile" }
-                            )
-                            "lock" -> CircleButton(
-                                icon = Icons.Default.Lock, selected = orientationLocked, scale = bk,
-                                onClick = {
-                                    orientationLocked = !orientationLocked
-                                    onOrientationLockChange(orientationLocked)
-                                }
-                            )
-                        }
-                    }
-                    val gap = Arrangement.spacedBy((8 * k).dp)
-                    if (isModernUi() && !isTvDevice) {
-                        // Moderny rezim (telefon): 3 hlavne tlacidla + pas s popiskami;
-                        // zvysne funkcie su vo vysuvacom paneli "Viac" (showMoreSheet).
-                        ModernPhoneControls(
-                            isPlaying = isPlaying,
-                            timeshiftEngaged = timeshiftEngaged,
-                            hasPrev = has("prev") && onPrevChannel != null,
-                            hasNext = has("next") && onNextChannel != null,
-                            hasList = has("list") && liveChannels.isNotEmpty(),
-                            hasEpg = has("epg"),
-                            onClose = onClose,
-                            onAudio = { menu = "audio" },
-                            onList = { showChannelList = true; controlsVisible = false },
-                            onEpg = onOpenEpg,
-                            onTogglePlay = onTogglePlay,
-                            onPrev = onPrevChannel,
-                            onNext = onNextChannel,
-                            onSkipBack = onSkipBack,
-                            onSkipFwd = onSkipFwd,
-                            onMore = { showMoreSheet = true },
-                        )
-                    } else if (portrait) {
-                        // PORTRET: tlacidla vo viacerych radoch a vacsie (jeden rad bol nepouzitelne maly).
-                        // Rad 1: navigacia/okno, Rad 2: prehravanie (play v strede), Rad 3: zvuk/extra.
-                        val rowGap = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(horizontalArrangement = rowGap, verticalAlignment = Alignment.CenterVertically) {
-                                barCtrl("close")
-                                if (has("pip")) barCtrl("pip")
-                                if (has("list") && liveChannels.isNotEmpty()) barCtrl("list")
-                                if (has("epg")) barCtrl("epg")
-                                barCtrl("info")
-                            }
-                            Row(horizontalArrangement = rowGap, verticalAlignment = Alignment.CenterVertically) {
-                                if (timeshiftEngaged) barCtrl("tsrew")
-                                if (has("prev")) barCtrl("prev")
-                                barCtrl("play")
-                                if (has("next")) barCtrl("next")
-                                if (timeshiftEngaged) barCtrl("tsff")
-                            }
-                            Row(horizontalArrangement = rowGap, verticalAlignment = Alignment.CenterVertically) {
-                                barCtrl("audio")
-                                barCtrl("subs")
-                                if (has("profile")) barCtrl("profile")
-                                if (has("rec")) barCtrl("rec")     // M490-fix: aj trojriadkovy bar
-                                if (has("txt")) barCtrl("txt")     // M553
-                                barCtrl("sleep")
-                                if (lockVisible) barCtrl("lock")
-                            }
-                        }
-                    } else
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        // vlavo: zavriet, zoznam, EPG
-                        Row(
-                            horizontalArrangement = gap,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            barCtrl("close")
-                            if (has("pip")) barCtrl("pip")
-                            if (has("list") && liveChannels.isNotEmpty()) barCtrl("list")
-                            if (has("epg")) barCtrl("epg")
-                            if (has("txt")) barCtrl("txt")     // M554: vľavo
-                            barCtrl("info")                    // M554: vľavo
-                        }
-                        // stred: prepinanie + play/stop
-                        Row(
-                            horizontalArrangement = gap,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (timeshiftEngaged) barCtrl("tsrew")
-                            if (has("prev")) barCtrl("prev")
-                            barCtrl("play")
-                            if (has("next")) barCtrl("next")
-                            if (timeshiftEngaged) barCtrl("tsff")
-                        }
-                        // vpravo: audio, titulky, info, SW
-                        Row(
-                            horizontalArrangement = gap,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f),
-                            // zarovnaj k pravej hrane
-                        ) {
-                            Spacer(Modifier.weight(1f))
-                            barCtrl("audio")
-                            barCtrl("subs")
-                            if (has("profile")) barCtrl("profile")
-                            if (has("rec")) barCtrl("rec")     // M490
-                            barCtrl("sleep")
-                            if (lockVisible) barCtrl("lock")
-                        }
-                    }
-                }
-                }
-            }
-        }
+        // M661: ovladaci pruh (horny info blok + seekbar + tlacidla) je v PlayerControlBar.kt
+        PlayerControlsOverlay(
+            controlsVisible = controlsVisible,
+            onControlsVisibleSet = { controlsVisible = it },
+            ctx = ctx,
+            dvrActivity = dvrActivity,
+            title = title,
+            seekable = seekable,
+            pipButton = pipButton,
+            pipSupported = pipSupported,
+            timeshiftEngaged = timeshiftEngaged,
+            profileSwitch = profileSwitch,
+            controlNavIndex = controlNavIndex,
+            liveChannels = liveChannels,
+            liveCurrentIndex = liveCurrentIndex,
+            server = server,
+            liveNowSec = liveNowSec,
+            progStart = progStart,
+            progStop = progStop,
+            progTitle = progTitle,
+            progDesc = progDesc,
+            nextTitle = nextTitle,
+            nextStart = nextStart,
+            nextStop = nextStop,
+            sleepLeftMin = sleepLeftMin,
+            timeshiftOffsetMs = timeshiftOffsetMs,
+            barLengthMs = barLengthMs,
+            lengthMs = lengthMs,
+            recordingOffsetMs = recordingOffsetMs,
+            scrubFrac = scrubFrac,
+            progStartFrac = progStartFrac,
+            progStopFrac = progStopFrac,
+            dragging = dragging,
+            onDraggingSet = { dragging = it },
+            dragValue = dragValue,
+            onDragValueSet = { dragValue = it },
+            posTimeMs = posTimeMs,
+            onPosTimeMsSet = { posTimeMs = it },
+            onPosFractionSet = { posFraction = it },
+            onSeekToMs = onSeekToMs,
+            isPlaying = isPlaying,
+            menu = menu,
+            onMenuSet = { menu = it },
+            onShowChannelListSet = { showChannelList = it },
+            showInfo = showInfo,
+            onShowInfoSet = { showInfo = it },
+            onShowMoreSheetSet = { showMoreSheet = it },
+            orientationLocked = orientationLocked,
+            onOrientationLockedSet = { orientationLocked = it },
+            onOrientationLockChange = onOrientationLockChange,
+            onPrevChannel = onPrevChannel,
+            onNextChannel = onNextChannel,
+            onTogglePlay = onTogglePlay,
+            onSkipBack = onSkipBack,
+            onSkipFwd = onSkipFwd,
+            onOpenEpg = onOpenEpg,
+            onEnterPip = onEnterPip,
+            onOpenSleep = onOpenSleep,
+            onClose = onClose
+        )
 
         // "Viac" panel moderneho rezimu (telefon)
         if (showMoreSheet) {
@@ -3916,121 +3546,24 @@ private fun PlayerUi(
             )
         }
 
-        // Info okno: detail prave beziacej relacie (INFO kláves / tlacidlo)
+        // Info okno: detail prave beziacej relacie (INFO kláves / tlacidlo) — M661: PlayerInfoWindow.kt
         if (showInfo) {
-            androidx.activity.compose.BackHandler { showInfo = false }
-            val clk: (Long) -> String = { sec ->
-                if (sec <= 0) "" else java.text.SimpleDateFormat(sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault())
-                    .format(java.util.Date(sec * 1000))
-            }
-            val tRange = if (progStart > 0 && progStop > progStart)
-                clk(progStart) + " \u2013 " + clk(progStop) else ""
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(playerScrim())
-                    .clickable { showInfo = false },
-                contentAlignment = Alignment.Center
-            ) {
-                androidx.compose.material3.Surface(
-                    color = playerScrim(),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.fillMaxWidth(0.72f).widthIn(max = 560.dp)
-                ) {
-                    Column(
-                        Modifier
-                            .padding(28.dp)
-                            .verticalScroll(androidx.compose.foundation.rememberScrollState())
-                    ) {
-                        // hlavicka kanala (len pri zivom vysielani)
-                        val infoCh = liveChannels.getOrNull(liveCurrentIndex)
-                        if (infoCh != null) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (infoCh.number > 0) {
-                                    Text(
-                                        "${infoCh.number}",
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 18.sp
-                                    )
-                                    Spacer(Modifier.width(10.dp))
-                                }
-                                Text(
-                                    infoCh.name,
-                                    color = playerFgDim(),
-                                    fontSize = 15.sp,
-                                    maxLines = 1,
-                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                )
-                            }
-                            Spacer(Modifier.height(14.dp))
-                        }
-                        Text(
-                            progTitle.ifBlank { title },
-                            color = playerFg(),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 22.sp
-                        )
-                        if (tRange.isNotBlank()) {
-                            Spacer(Modifier.height(6.dp))
-                            Text(tRange, color = playerFgDim(), fontSize = 15.sp)
-                        }
-                        // priebeh + zostavajuci cas (len zive vysielanie)
-                        if (!seekable && progStart > 0 && progStop > progStart) {
-                            val totalI = (progStop - progStart).coerceAtLeast(1)
-                            val fracI = ((liveNowSec - progStart).toFloat() / totalI.toFloat())
-                                .coerceIn(0f, 1f)
-                            val remainI = ((progStop - liveNowSec) / 60).coerceAtLeast(0)
-                            Spacer(Modifier.height(12.dp))
-                            androidx.compose.material3.LinearProgressIndicator(
-                                progress = { fracI },
-                                modifier = Modifier.fillMaxWidth().height(4.dp),
-                                trackColor = playerTrack()
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Text(stringResource(R.string.time_remaining, remainI), color = playerFgFaint(), fontSize = 13.sp)
-                        }
-                        if (progDesc.isNotBlank()) {
-                            Spacer(Modifier.height(14.dp))
-                            Text(progDesc, color = playerFgDim(), fontSize = 16.sp, lineHeight = 22.sp)
-                        }
-                        // M490: nahravanie aj z info okna (telefon — dotyk, bez fokusu)
-                        if (dvrActivity?.dvrRecordVisible() == true) {
-                            Spacer(Modifier.height(16.dp))
-                            androidx.compose.material3.OutlinedButton(
-                                onClick = { showInfo = false; dvrActivity?.toggleRecordCurrent() },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                androidx.compose.material3.Icon(
-                                    if (dvrActivity?.dvrExistingState?.value != null) Icons.Default.Stop
-                                    else Icons.Default.FiberManualRecord,
-                                    contentDescription = null
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(stringResource(
-                                    if (dvrActivity?.dvrExistingState?.value != null)
-                                        R.string.dvr_rec_cancel_button else R.string.dvr_rec_button
-                                ))
-                            }
-                        }
-                        if (nextTitle.isNotBlank()) {
-                            Spacer(Modifier.height(16.dp))
-                            val nr = when {
-                                nextStart > 0 && nextStop > nextStart ->
-                                    clk(nextStart) + " \u2013 " + clk(nextStop) + "  "
-                                nextStart > 0 -> clk(nextStart) + "  "
-                                else -> ""
-                            }
-                            Text(
-                                // M491: bolo natvrdo po slovensky
-                                stringResource(R.string.mh_next) + " " + nr + nextTitle,
-                                color = playerFgFaint(),
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
-                }
-            }
+            PlayerInfoWindow(
+                setShowInfo = { v -> showInfo = v },
+                title = title,
+                seekable = seekable,
+                progStart = progStart,
+                progStop = progStop,
+                progTitle = progTitle,
+                progDesc = progDesc,
+                nextTitle = nextTitle,
+                nextStart = nextStart,
+                nextStop = nextStop,
+                liveNowSec = liveNowSec,
+                liveChannels = liveChannels,
+                liveCurrentIndex = liveCurrentIndex,
+                dvrActivity = dvrActivity
+            )
         }
 
         // Overlay: zoznam kanalov priamo v prehravaci (vysuva sa zhora podla listFrac) — TELEFON (M631: PhoneChannelList.kt)
@@ -4097,55 +3630,24 @@ private fun PlayerUi(
             )
         }
 
-        // Menu stop (audio / titulky)
+        // Menu stop (audio / titulky) — M661: TrackMenu.kt
         if (menu != null) {
-            // trackListVersion: cita sa zamerne, nech sa zoznam prerenderuje, ked
-            // libVLC prida stopu (DVB titulky / audio jazyky sa objavia az po starte).
-            @Suppress("UNUSED_EXPRESSION") trackListVersion
-            val htspSpu = menu == "spu" && onPickHtspSpu != null
-            val items = when {
-                menu == "profile" -> profileItems.mapIndexed { i, name -> TrackItem(i, name) }
-                menu == "audio" -> player.audioTrackItems()
-                htspSpu -> htspSpuItems ?: emptyList()
-                else -> player.spuTrackItems()
-            }
-            val currentId = when {
-                menu == "profile" -> profileItems.indexOf(currentProfile)
-                menu == "audio" -> player.audioTrack
-                htspSpu -> htspSpuCurrentId
-                else -> player.spuTrack
-            }
-            TrackMenu(
-                header = when (menu) {
-                    "profile" -> stringResource(R.string.field_profile)
-                    "audio" -> stringResource(R.string.track_audio)
-                    else -> stringResource(R.string.track_subtitles)
-                },
-                items = items,
-                currentId = currentId,
-                allowOff = (menu == "spu"),  // titulky sa daju vypnut (-1)
-                navIndex = trackNavIndex,
-                onPick = { id ->
-                    if (menu == "profile") {
-                        profileItems.getOrNull(id)?.let { onPickProfile(it) }
-                    } else if (menu == "audio") {
-                        player.audioTrack = id
-                        // zapamataj vyber pre kanal (live)
-                        if (liveChannelUuid != null && serverId != null) {
-                            val name = items.firstOrNull { it.id == id }?.name
-                            if (!name.isNullOrBlank()) {
-                                ChannelPrefs.setLastAudio(ctx, serverId, liveChannelUuid, name)
-                            }
-                        }
-                    } else if (htspSpu) {
-                        onPickHtspSpu!!(id)
-                    } else {
-                        player.spuTrack = id
-                        if (menu == "spu") onPickHttpSpu?.invoke(id)   // M392-fix
-                    }
-                    menu = null
-                },
-                onDismiss = { menu = null }
+            PlayerTrackMenu(
+                menu = menu,
+                setMenu = { v -> menu = v },
+                ctx = ctx,
+                player = player,
+                trackListVersion = trackListVersion,
+                trackNavIndex = trackNavIndex,
+                profileItems = profileItems,
+                currentProfile = currentProfile,
+                onPickProfile = onPickProfile,
+                htspSpuItems = htspSpuItems,
+                htspSpuCurrentId = htspSpuCurrentId,
+                onPickHtspSpu = onPickHtspSpu,
+                onPickHttpSpu = onPickHttpSpu,
+                liveChannelUuid = liveChannelUuid,
+                serverId = serverId
             )
         }
 
