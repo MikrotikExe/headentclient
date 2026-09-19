@@ -3137,77 +3137,24 @@ private fun PlayerUi(
         Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .pointerInput(isTvGest, seekable, timeshiftEngaged, controlsVisible) {
-                val audio = ctx.getSystemService(android.content.Context.AUDIO_SERVICE) as android.media.AudioManager
-                val act = ctx as? android.app.Activity
-                val maxVol = audio.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC).coerceAtLeast(1)
-                val slop = viewConfiguration.touchSlop
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    var mode = 0          // 0=nerozhodnute, 1=seek(H), 2=hlasitost(V vpravo), 3=jas(V vlavo), 4=otvor zoznam (V zhora)
-                    var startVol = 0
-                    var startBright = 0.5f
-                    val guardTop = 48.dp.toPx()              // odsadenie od hornej hrany (systemova lista/shade)
-                    while (true) {
-                        val ev = awaitPointerEvent()
-                        val ch = ev.changes.firstOrNull { it.id == down.id } ?: break
-                        if (!ch.pressed) break
-                        val dx = ch.position.x - down.position.x
-                        val dy = ch.position.y - down.position.y
-                        // Gesta zachovaj po ploche; zakaz ich len v oblasti spodneho baru
-                        // (ovladanie/slider), ked je viditelny - tam pretacas cez slider.
-                        val inBar = controlsVisible && down.position.y > size.height * 0.6f
-                        // M565: gesta prehravaca (hlasitost, jas, seek, vysunutie zoznamu) su vypnute,
-                        // kym je otvorene akekolvek menu — tento detektor nerespektuje consume()
-                        // deti (awaitFirstDown(requireUnconsumed = false)), takze ho treba vypnut tu
-                        val overlayOpen = showChannelList || showMoreSheet || menu != null || showOptions
-                        if (mode == 0 && !overlayOpen && !inBar && (kotlin.math.abs(dx) > slop || kotlin.math.abs(dy) > slop)) {
-                            mode = if (kotlin.math.abs(dx) >= kotlin.math.abs(dy)) {
-                                if (seekable || timeshiftEngaged) 1 else 0   // seek len ked je co pretacat
-                            } else if (isTvGest) {
-                                0                                            // na TV ziadne gesta
-                            } else if (down.position.y <= guardTop) {
-                                0                                            // horny okraj (systemova lista/wifi) -> ziadne vertikalne gesto
-                            } else if (down.position.x < size.width * 0.25f) {
-                                val cur = act?.window?.attributes?.screenBrightness ?: -1f
-                                startBright = if (cur in 0f..1f) cur else 0.5f; 3                              // lavych 25% = jas
-                            } else if (down.position.x >= size.width * 0.75f) {
-                                startVol = audio.getStreamVolume(android.media.AudioManager.STREAM_MUSIC); 2   // pravych 25% = hlasitost
-                            } else if (dy > 0) {
-                                4                                            // stred 50% (0.25-0.75), tah dole -> otvor zoznam
-                            } else {
-                                0                                            // ine -> nic
-                            }
-                        }
-                        if (mode != 0) ch.consume()
-                        when (mode) {
-                            1 -> scrubSecState = (dx / size.width * 90f).toInt()
-                            4 -> listFrac = (dy / (size.height * 0.5f) * 0.7f).coerceIn(0f, 1f)   // vysuvanie zhora za prstom (o 30% pomalsie)
-                            2 -> {
-                                val nv = (startVol - dy / size.height * maxVol).toInt().coerceIn(0, maxVol)
-                                audio.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, nv, 0)
-                                volPctState = nv * 100 / maxVol
-                            }
-                            3 -> {
-                                val nb = (startBright - dy / size.height).coerceIn(0.01f, 1f)
-                                act?.window?.let { w -> val lp = w.attributes; lp.screenBrightness = nb; w.attributes = lp }
-                                brightPctState = (nb * 100).toInt()
-                            }
-                        }
-                    }
-                    if (mode == 1) {
-                        val secs = scrubSecState
-                        if (secs != Int.MIN_VALUE && secs != 0) onScrubSeek(secs)
-                    }
-                    if (mode == 4) {
-                        val open = listFrac > 0.33f
-                        showChannelList = open        // open -> LaunchedEffect dotiahne na 1
-                        if (!open) listScope.launch {
-                            androidx.compose.animation.core.animate(listFrac, 0f) { v, _ -> listFrac = v }
-                        }
-                    }
-                }
-            }
+            // M664: MX Player gesta (seek / hlasitost / jas / vysunutie zoznamu) v PlayerGestures.kt
+            .playerGestures(
+                ctx = ctx,
+                isTvGest = isTvGest,
+                seekable = seekable,
+                timeshiftEngaged = timeshiftEngaged,
+                controlsVisible = controlsVisible,
+                overlayOpen = { showChannelList || showMoreSheet || menu != null || showOptions },
+                listScope = listScope,
+                listFrac = { listFrac },
+                setListFrac = { listFrac = it },
+                scrubSec = { scrubSecState },
+                setScrubSec = { scrubSecState = it },
+                setVolPct = { volPctState = it },
+                setBrightPct = { brightPctState = it },
+                setShowChannelList = { showChannelList = it },
+                onScrubSeek = onScrubSeek
+            )
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = { if (menu != null) menu = null else controlsVisible = !controlsVisible },
