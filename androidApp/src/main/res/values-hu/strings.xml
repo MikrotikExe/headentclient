@@ -418,4 +418,7 @@
     <!-- M623: radio hra na pozadi (telefon) -->
     <string name="radio_bg_title">A rádió a háttérben is szól</string>
     <string name="radio_bg_note">A rádió tovább szól, ha kilép a lejátszóból – a kezdőképernyőn, másik alkalmazásban vagy lezárt képernyőnél. A lejátszóban a képernyő bekapcsolva marad.</string>
+    <!-- M625: medialna notifikacia radia -->
+    <string name="radio_prev_station">Előző állomás</string>
+    <string name="radio_next_station">Következő állomás</string>
 </resources>

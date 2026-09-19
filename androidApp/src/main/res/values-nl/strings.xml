@@ -418,4 +418,7 @@
     <!-- M623: radio hra na pozadi (telefon) -->
     <string name="radio_bg_title">Radio speelt door op de achtergrond</string>
     <string name="radio_bg_note">De radio speelt door als u de speler verlaat: op het startscherm, in een andere app of met vergrendeld scherm. In de speler zelf blijft het scherm aan.</string>
+    <!-- M625: medialna notifikacia radia -->
+    <string name="radio_prev_station">Vorige zender</string>
+    <string name="radio_next_station">Volgende zender</string>
 </resources>

@@ -418,4 +418,7 @@
     <!-- M623: radio hra na pozadi (telefon) -->
     <string name="radio_bg_title">Radio svira u pozadini</string>
     <string name="radio_bg_note">Radio svira dalje kad izađete iz playera — na početnom zaslonu, u drugoj aplikaciji ili sa zaključanim zaslonom. U samom playeru zaslon ostaje uključen.</string>
+    <!-- M625: medialna notifikacia radia -->
+    <string name="radio_prev_station">Prethodna postaja</string>
+    <string name="radio_next_station">Sljedeća postaja</string>
 </resources>

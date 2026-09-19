@@ -418,4 +418,7 @@
     <!-- M623: radio hra na pozadi (telefon) -->
     <string name="radio_bg_title">رادیو در پس‌زمینه ادامه می‌یابد</string>
     <string name="radio_bg_note">رادیو پس از خروج از پخش‌کننده ادامه می‌یابد — در صفحهٴ اصلی، در برنامهٴ دیگر یا با صفحهٴ قفل‌شده. در خود پخش‌کننده صفحه روشن می‌ماند.</string>
+    <!-- M625: medialna notifikacia radia -->
+    <string name="radio_prev_station">ایستگاه قبلی</string>
+    <string name="radio_next_station">ایستگاه بعدی</string>
 </resources>

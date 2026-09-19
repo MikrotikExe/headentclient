@@ -418,4 +418,7 @@
     <!-- M623: radio hra na pozadi (telefon) -->
     <string name="radio_bg_title">라디오를 백그라운드에서 계속 재생</string>
     <string name="radio_bg_note">플레이어를 벗어나도 라디오가 계속 재생됩니다 — 홈 화면, 다른 앱 또는 화면 잠금 상태에서. 플레이어 안에서는 화면이 켜진 채 유지됩니다.</string>
+    <!-- M625: medialna notifikacia radia -->
+    <string name="radio_prev_station">이전 방송국</string>
+    <string name="radio_next_station">다음 방송국</string>
 </resources>

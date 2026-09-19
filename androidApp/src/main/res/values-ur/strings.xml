@@ -418,4 +418,7 @@
     <!-- M623: radio hra na pozadi (telefon) -->
     <string name="radio_bg_title">ریڈیو پس منظر میں چلتا رہے</string>
     <string name="radio_bg_note">پلیئر سے باہر جانے پر ریڈیو چلتا رہتا ہے — ہوم اسکرین پر، دوسری ایپ میں یا اسکرین لاک ہونے پر۔ پلیئر میں اسکرین روشن رہتی ہے۔</string>
+    <!-- M625: medialna notifikacia radia -->
+    <string name="radio_prev_station">پچھلا اسٹیشن</string>
+    <string name="radio_next_station">اگلا اسٹیشن</string>
 </resources>

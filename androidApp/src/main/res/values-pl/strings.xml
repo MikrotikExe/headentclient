@@ -418,4 +418,7 @@
     <!-- M623: radio hra na pozadi (telefon) -->
     <string name="radio_bg_title">Radio gra w tle</string>
     <string name="radio_bg_note">Radio gra dalej po wyjściu z odtwarzacza — na ekranie głównym, w innej aplikacji lub przy zablokowanym ekranie. W samym odtwarzaczu ekran pozostaje włączony.</string>
+    <!-- M625: medialna notifikacia radia -->
+    <string name="radio_prev_station">Poprzednia stacja</string>
+    <string name="radio_next_station">Następna stacja</string>
 </resources>

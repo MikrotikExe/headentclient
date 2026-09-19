@@ -418,4 +418,7 @@
     <!-- M623: radio hra na pozadi (telefon) -->
     <string name="radio_bg_title">วิทยุเล่นต่อในพื้นหลัง</string>
     <string name="radio_bg_note">วิทยุเล่นต่อเมื่อออกจากตัวเล่น — บนหน้าจอหลัก ในแอปอื่น หรือเมื่อล็อกหน้าจอ ในตัวเล่นเองหน้าจอจะเปิดค้างไว้</string>
+    <!-- M625: medialna notifikacia radia -->
+    <string name="radio_prev_station">สถานีก่อนหน้า</string>
+    <string name="radio_next_station">สถานีถัดไป</string>
 </resources>

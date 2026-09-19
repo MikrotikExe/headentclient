@@ -418,4 +418,7 @@
     <!-- M623: radio hra na pozadi (telefon) -->
     <string name="radio_bg_title">Radio tiếp tục phát trong nền</string>
     <string name="radio_bg_note">Radio tiếp tục phát khi bạn rời trình phát — trên màn hình chính, trong ứng dụng khác hoặc khi khóa màn hình. Trong trình phát, màn hình vẫn sáng.</string>
+    <!-- M625: medialna notifikacia radia -->
+    <string name="radio_prev_station">Đài trước</string>
+    <string name="radio_next_station">Đài tiếp theo</string>
 </resources>

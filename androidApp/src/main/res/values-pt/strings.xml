@@ -418,4 +418,7 @@
     <!-- M623: radio hra na pozadi (telefon) -->
     <string name="radio_bg_title">A rádio continua a tocar em segundo plano</string>
     <string name="radio_bg_note">A rádio continua a tocar quando sai do leitor — no ecrã inicial, noutra aplicação ou com o ecrã bloqueado. No próprio leitor o ecrã mantém-se ligado.</string>
+    <!-- M625: medialna notifikacia radia -->
+    <string name="radio_prev_station">Estação anterior</string>
+    <string name="radio_next_station">Estação seguinte</string>
 </resources>

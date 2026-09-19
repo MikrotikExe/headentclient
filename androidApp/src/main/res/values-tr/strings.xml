@@ -418,4 +418,7 @@
     <!-- M623: radio hra na pozadi (telefon) -->
     <string name="radio_bg_title">Radyo arka planda çalmaya devam eder</string>
     <string name="radio_bg_note">Oynatıcıdan çıktığınızda radyo çalmaya devam eder: ana ekranda, başka bir uygulamada veya ekran kilitliyken. Oynatıcının içinde ekran açık kalır.</string>
+    <!-- M625: medialna notifikacia radia -->
+    <string name="radio_prev_station">Önceki istasyon</string>
+    <string name="radio_next_station">Sonraki istasyon</string>
 </resources>

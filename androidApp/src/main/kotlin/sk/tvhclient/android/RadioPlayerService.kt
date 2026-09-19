@@ -12,7 +12,6 @@ import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
-import androidx.core.app.NotificationCompat
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
@@ -50,6 +49,13 @@ class RadioPlayerService : Service() {
     // Wi-Fi zaspat — rovnake zamky ako drzi prehravac (M452), len pocas hrania.
     private var wakeLock: android.os.PowerManager.WakeLock? = null
     private var wifiLock: android.net.wifi.WifiManager.WifiLock? = null
+    // M625: medialna notifikacia (MediaStyle + MediaSession) ako Spotify —
+    // picon ako obrazok, ovladanie prev/pauza/next/stop, priebeh relacie z EPG.
+    private var session: android.media.session.MediaSession? = null
+    private var artwork: android.graphics.Bitmap? = null
+    private var artworkFor: String? = null          // uuid stanice, pre ktoru je artwork
+    private val epgHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val epgExpired = Runnable { updateNotification(player?.isPlaying == true) }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -65,6 +71,8 @@ class RadioPlayerService : Service() {
             }
             ACTION_TOGGLE -> togglePlayPause()
             ACTION_STOP -> stopEverything()
+            ACTION_NEXT -> RadioCenter.switchStation(this, +1)    // M625
+            ACTION_PREV -> RadioCenter.switchStation(this, -1)    // M625
         }
         return START_NOT_STICKY
     }
@@ -72,6 +80,14 @@ class RadioPlayerService : Service() {
     private fun startPlayback(url: String, name: String, uuid: String) {
         curName = name
         createChannel()
+        ensureSession()                       // M625
+        if (artworkFor != uuid) {             // M625: nova stanica -> zatial bez piconu
+            artwork = RadioArtwork.render(this, null)
+            artworkFor = uuid
+            loadArtwork(uuid, RadioCenter.piconUrl.value)
+        }
+        updateSessionMetadata()
+        updatePlaybackState(playing = true)
         startForeground(NOTIF_ID, buildNotification(playing = true))
         acquireLocks()   // M623
         releasePlayer()
@@ -180,6 +196,7 @@ class RadioPlayerService : Service() {
         releasePlayer()
         releaseLocks()   // M623
         abandonFocus()
+        releaseSession()  // M625
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -258,33 +275,163 @@ class RadioPlayerService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+    /**
+     * M625: medialna notifikacia. Framework MediaStyle (bez androidx.media) naviazany
+     * na MediaSession — Android 13+ z nej kresli velku kartu s obrazkom, farbami
+     * odvodenymi z artworku (RadioArtwork = farby appky) a lištou priebehu relacie;
+     * starsie verzie klasicky MediaStyle s tromi tlacidlami v kompaktnom pohlade.
+     * Prev/next len ak je v snapshote viac stanic.
+     */
     private fun buildNotification(playing: Boolean): android.app.Notification {
         val openApp = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+        val b = if (Build.VERSION.SDK_INT >= 26) android.app.Notification.Builder(this, CHANNEL_ID)
+                else @Suppress("DEPRECATION") android.app.Notification.Builder(this)
+        val epg = currentEpgLine()
+        b.setSmallIcon(R.drawable.ic_stat_radio)
             .setContentTitle(curName)
-            .setContentText(curEpg.ifBlank { getString(R.string.tab_radio) })
+            .setContentText(epg.ifBlank { getString(R.string.tab_radio) })
+            .setSubText(if (epg.isBlank()) null else getString(R.string.tab_radio))
             .setContentIntent(openApp)
             .setOngoing(playing)
             .setOnlyAlertOnce(true)
-            .addAction(
-                if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
-                getString(if (playing) R.string.pause else R.string.play),
-                pending(ACTION_TOGGLE)
+            .setShowWhen(false)
+            .setColor(RadioArtwork.accent(this))
+            .setVisibility(android.app.Notification.VISIBILITY_PUBLIC)
+            .setDeleteIntent(pending(ACTION_STOP))
+        if (Build.VERSION.SDK_INT >= 26) b.setColorized(true)
+        artwork?.let { b.setLargeIcon(it) }
+
+        val multi = RadioCenter.stations.size > 1
+        val compact = ArrayList<Int>()
+        fun action(icon: Int, title: Int, act: String) {
+            b.addAction(android.app.Notification.Action.Builder(
+                android.graphics.drawable.Icon.createWithResource(this, icon),
+                getString(title), pending(act)).build())
+        }
+        if (multi) { action(android.R.drawable.ic_media_previous, R.string.radio_prev_station, ACTION_PREV); compact.add(0) }
+        action(if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
+            if (playing) R.string.pause else R.string.play, ACTION_TOGGLE); compact.add(compact.size)
+        if (multi) { action(android.R.drawable.ic_media_next, R.string.radio_next_station, ACTION_NEXT); compact.add(compact.size) }
+        action(android.R.drawable.ic_menu_close_clear_cancel, R.string.pm_close, ACTION_STOP)
+        if (!multi) compact.add(compact.size)   // bez prev/next: pauza + zavriet v kompaktnom
+
+        val style = android.app.Notification.MediaStyle()
+        session?.let { style.setMediaSession(it.sessionToken) }
+        style.setShowActionsInCompactView(*compact.take(3).toIntArray())
+        b.setStyle(style)
+        return b.build()
+    }
+
+    /** EPG riadok, len kym relacia realne bezi (po konci by bol zavadzajuci). */
+    private fun currentEpgLine(): String {
+        val title = RadioCenter.nowTitle.value.ifBlank { curEpg }
+        val stop = RadioCenter.nowStop.value
+        if (title.isBlank()) return ""
+        if (stop > 0 && System.currentTimeMillis() / 1000 >= stop) return ""
+        return title
+    }
+
+    // ---- M625: MediaSession ----
+    private fun ensureSession() {
+        if (session != null) return
+        val ms = runCatching { android.media.session.MediaSession(this, "headent-radio") }.getOrNull() ?: return
+        ms.setCallback(object : android.media.session.MediaSession.Callback() {
+            override fun onPlay() { val p = player ?: return; if (!p.isPlaying) { requestFocus(); p.play() } }
+            override fun onPause() { player?.let { if (it.isPlaying) it.pause() } }
+            override fun onStop() { stopEverything() }
+            override fun onSkipToNext() { RadioCenter.switchStation(this@RadioPlayerService, +1) }
+            override fun onSkipToPrevious() { RadioCenter.switchStation(this@RadioPlayerService, -1) }
+        })
+        ms.setSessionActivity(PendingIntent.getActivity(
+            this, 0, Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
+        @Suppress("DEPRECATION")
+        ms.setFlags(android.media.session.MediaSession.FLAG_HANDLES_MEDIA_BUTTONS or
+            android.media.session.MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS)
+        ms.isActive = true
+        session = ms
+    }
+
+    private fun releaseSession() {
+        epgHandler.removeCallbacks(epgExpired)
+        runCatching { session?.isActive = false; session?.release() }
+        session = null
+        artwork = null
+        artworkFor = null
+    }
+
+    /** Nazov stanice, relacia, artwork a dlzka relacie (pre lištu priebehu). */
+    private fun updateSessionMetadata() {
+        val ms = session ?: return
+        val epg = currentEpgLine()
+        val start = RadioCenter.nowStart.value
+        val stop = RadioCenter.nowStop.value
+        val mb = android.media.MediaMetadata.Builder()
+            .putString(android.media.MediaMetadata.METADATA_KEY_TITLE, curName)
+            .putString(android.media.MediaMetadata.METADATA_KEY_DISPLAY_TITLE, curName)
+            .putString(android.media.MediaMetadata.METADATA_KEY_ARTIST, epg.ifBlank { getString(R.string.tab_radio) })
+            .putString(android.media.MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE, epg)
+        if (epg.isNotBlank() && start > 0 && stop > start) {
+            mb.putLong(android.media.MediaMetadata.METADATA_KEY_DURATION, (stop - start) * 1000L)
+        } else {
+            mb.putLong(android.media.MediaMetadata.METADATA_KEY_DURATION, -1L)   // zivy stream bez lišty
+        }
+        artwork?.let {
+            mb.putBitmap(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART, it)
+            mb.putBitmap(android.media.MediaMetadata.METADATA_KEY_ART, it)
+        }
+        runCatching { ms.setMetadata(mb.build()) }
+        // po konci relacie prekresli (bez EPG riadku a bez lišty)
+        epgHandler.removeCallbacks(epgExpired)
+        if (epg.isNotBlank() && stop > 0) {
+            val delay = stop * 1000L - System.currentTimeMillis()
+            if (delay > 0) epgHandler.postDelayed(epgExpired, delay + 1000L)
+        }
+    }
+
+    /** Stav prehravania; pozicia = cas od zaciatku relacie (system ju posuva sam pri speed 1). */
+    private fun updatePlaybackState(playing: Boolean) {
+        val ms = session ?: return
+        val start = RadioCenter.nowStart.value
+        val pos = if (currentEpgLine().isNotBlank() && start > 0)
+            (System.currentTimeMillis() - start * 1000L).coerceAtLeast(0L)
+        else android.media.session.PlaybackState.PLAYBACK_POSITION_UNKNOWN
+        var actions = android.media.session.PlaybackState.ACTION_PLAY or
+            android.media.session.PlaybackState.ACTION_PAUSE or
+            android.media.session.PlaybackState.ACTION_PLAY_PAUSE or
+            android.media.session.PlaybackState.ACTION_STOP
+        if (RadioCenter.stations.size > 1) {
+            actions = actions or android.media.session.PlaybackState.ACTION_SKIP_TO_NEXT or
+                android.media.session.PlaybackState.ACTION_SKIP_TO_PREVIOUS
+        }
+        val st = android.media.session.PlaybackState.Builder()
+            .setActions(actions)
+            .setState(
+                if (playing) android.media.session.PlaybackState.STATE_PLAYING
+                else android.media.session.PlaybackState.STATE_PAUSED,
+                pos, if (playing) 1f else 0f
             )
-            .addAction(
-                android.R.drawable.ic_menu_close_clear_cancel,
-                getString(R.string.pm_close),
-                pending(ACTION_STOP)
-            )
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .build()
+        runCatching { ms.setPlaybackState(st) }
+    }
+
+    /** Picon stanice na pozadi; po nacitani prekresli artwork, metadata aj notifikaciu. */
+    private fun loadArtwork(uuid: String, piconUrl: String?) {
+        if (piconUrl.isNullOrBlank()) return
+        scope.launch {
+            val bmp = withContext(Dispatchers.IO) { RadioArtwork.loadPicon(this@RadioPlayerService, curServer, piconUrl) }
+            if (bmp == null || artworkFor != uuid || session == null) return@launch
+            artwork = RadioArtwork.render(this@RadioPlayerService, bmp)
+            updateSessionMetadata()
+            updateNotification(player?.isPlaying == true)
+        }
     }
 
     private fun updateNotification(playing: Boolean) {
+        updatePlaybackState(playing)   // M625
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         runCatching { nm.notify(NOTIF_ID, buildNotification(playing)) }
     }
@@ -324,6 +471,7 @@ class RadioPlayerService : Service() {
         releasePlayer()
         releaseLocks()   // M623
         abandonFocus()
+        releaseSession()  // M625
         runCatching { scope.cancel() }
         super.onDestroy()
     }
@@ -332,6 +480,8 @@ class RadioPlayerService : Service() {
         const val ACTION_PLAY = "sk.tvhclient.radio.PLAY"
         const val ACTION_TOGGLE = "sk.tvhclient.radio.TOGGLE"
         const val ACTION_STOP = "sk.tvhclient.radio.STOP"
+        const val ACTION_NEXT = "sk.tvhclient.radio.NEXT"     // M625
+        const val ACTION_PREV = "sk.tvhclient.radio.PREV"     // M625
         const val EXTRA_URL = "url"
         const val EXTRA_NAME = "name"
         const val EXTRA_UUID = "uuid"

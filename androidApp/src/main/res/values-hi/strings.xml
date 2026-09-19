@@ -418,4 +418,7 @@
     <!-- M623: radio hra na pozadi (telefon) -->
     <string name="radio_bg_title">रेडियो बैकग्राउंड में बजता रहे</string>
     <string name="radio_bg_note">प्लेयर से बाहर जाने पर रेडियो बजता रहता है — होम स्क्रीन पर, दूसरे ऐप में या स्क्रीन लॉक होने पर। प्लेयर में ही स्क्रीन चालू रहती है।</string>
+    <!-- M625: medialna notifikacia radia -->
+    <string name="radio_prev_station">पिछला स्टेशन</string>
+    <string name="radio_next_station">अगला स्टेशन</string>
 </resources>

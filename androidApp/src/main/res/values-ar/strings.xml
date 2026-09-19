@@ -418,4 +418,7 @@
     <!-- M623: radio hra na pozadi (telefon) -->
     <string name="radio_bg_title">يواصل الراديو التشغيل في الخلفية</string>
     <string name="radio_bg_note">يواصل الراديو التشغيل عند الخروج من المشغّل — في الشاشة الرئيسية أو في تطبيق آخر أو مع قفل الشاشة. داخل المشغّل نفسه تبقى الشاشة مضاءة.</string>
+    <!-- M625: medialna notifikacia radia -->
+    <string name="radio_prev_station">المحطة السابقة</string>
+    <string name="radio_next_station">المحطة التالية</string>
 </resources>

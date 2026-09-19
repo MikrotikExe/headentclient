@@ -418,4 +418,7 @@
     <!-- M623: radio hra na pozadi (telefon) -->
     <string name="radio_bg_title">Радіо грає у фоні</string>
     <string name="radio_bg_note">Радіо продовжує грати, коли ви виходите з плеєра — на головному екрані, в іншому застосунку або за заблокованого екрана. У самому плеєрі екран залишається увімкненим.</string>
+    <!-- M625: medialna notifikacia radia -->
+    <string name="radio_prev_station">Попередня станція</string>
+    <string name="radio_next_station">Наступна станція</string>
 </resources>

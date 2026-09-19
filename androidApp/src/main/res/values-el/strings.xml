@@ -418,4 +418,7 @@
     <!-- M623: radio hra na pozadi (telefon) -->
     <string name="radio_bg_title">Το ραδιόφωνο συνεχίζει στο παρασκήνιο</string>
     <string name="radio_bg_note">Το ραδιόφωνο συνεχίζει όταν φεύγετε από την αναπαραγωγή — στην αρχική οθόνη, σε άλλη εφαρμογή ή με κλειδωμένη οθόνη. Στην ίδια την αναπαραγωγή η οθόνη μένει αναμμένη.</string>
+    <!-- M625: medialna notifikacia radia -->
+    <string name="radio_prev_station">Προηγούμενος σταθμός</string>
+    <string name="radio_next_station">Επόμενος σταθμός</string>
 </resources>
