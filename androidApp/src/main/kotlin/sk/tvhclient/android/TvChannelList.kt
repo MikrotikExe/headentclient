@@ -1,6 +1,7 @@
 package sk.tvhclient.android
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Voicemail
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -61,6 +65,7 @@ import sk.tvhclient.shared.model.TvhServer
  * [onPreviewRect] hlási polohu náhľadového obdĺžnika volajúcemu (kreslí doň logo rádia).
  * Vyclenené z PlayerUi (PlayerActivity.kt), správanie nezmenené.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun TvChannelListOverlay(
     liveChannels: List<LivePlaylist.LiveChannel>,

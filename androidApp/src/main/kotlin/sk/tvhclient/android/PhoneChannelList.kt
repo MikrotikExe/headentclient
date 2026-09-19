@@ -2,6 +2,7 @@ package sk.tvhclient.android
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +47,7 @@ import sk.tvhclient.shared.model.TvhServer
  * je zóna na zatvorenie ťahom. Riadky: moderný (ModernPlayerChannelRow) alebo klasický.
  * Vyclenené z PlayerUi (PlayerActivity.kt), správanie nezmenené.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun PhoneChannelListOverlay(
     listFrac: Float,
