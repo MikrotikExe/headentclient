@@ -62,3 +62,49 @@ internal data class ProfileArgs(
     val switchAvailable: Boolean = false,
     val onPick: (String) -> Unit = {}
 )
+
+/** M667: DVR / seek — dĺžka, resume, scrub, seek callbacky. */
+@Immutable
+internal data class DvrSeekArgs(
+    val knownDurationMs: Long,
+    val resumeMs: Long = 0,
+    val uuid: String? = null,
+    val scrubFrac: Float = 0f,
+    val recordingLive: Boolean = false,
+    val recordingStopSec: Long = 0,
+    val recordingOffsetMs: Long = 0,
+    val onPlayheadMs: (Long) -> Unit = {},
+    val seekSeedMs: Long = -1L,
+    val onSeekSeedHandled: () -> Unit = {},
+    val onSeekToMs: (Long) -> Unit = {},
+    val resumeSel: Int = 1,
+    val resumeAnswer: Int = 0,
+    val onAskResumeChange: (Boolean) -> Unit = {},
+    val onResumeAnswerHandled: () -> Unit = {},
+    val onDoubleTapSeek: (Boolean) -> Unit = {},
+    val onScrubSeek: (Int) -> Unit = {},
+    val seekHint: Int = 0,
+    val onSkipBack: () -> Unit = {},
+    val onSkipFwd: () -> Unit = {}
+)
+
+/** M667: jednorazové signály (poke/open/close) a navigačné indexy z aktivity. */
+@Immutable
+internal data class UiSignals(
+    val controlsPoke: Int = 0,
+    val infoPoke: Int = 0,
+    val zapPoke: Int = 0,
+    val openList: Int = 0,
+    val closeList: Int = 0,
+    val openOptions: Int = 0,
+    val closeOptions: Int = 0,
+    val optionsNavIndex: Int = 0,
+    val controlNavIndex: Int = 0,
+    val trackNavIndex: Int = 0,
+    val trackListVersion: Int = 0,
+    val closeMenu: Int = 0,
+    val openAudio: Int = 0,
+    val openSpu: Int = 0,
+    val lockTick: Int = 0,
+    val numberEntry: String = ""
+)

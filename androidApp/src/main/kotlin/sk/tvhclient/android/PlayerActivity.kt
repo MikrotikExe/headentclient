@@ -1656,7 +1656,32 @@ class PlayerActivity : ComponentActivity() {
                 title = liveTitleState.value,
                 player = mediaPlayer,
                 seekable = directUrl != null,  // DVR nahravka = da sa pretacat; live nie
-                knownDurationMs = dvrDurationState.value,  // dlzka z DVR entry; pri prebiehajucej nahravke rastie k zivej hrane
+                dvr = DvrSeekArgs(
+                    knownDurationMs = dvrDurationState.value,  // dlzka z DVR entry; pri prebiehajucej nahravke rastie k zivej hrane
+                    resumeMs = resumeMs,
+                    uuid = dvrUuid,
+                    onSkipBack = { timeshiftSkip(-30) },
+                    onSkipFwd = { timeshiftSkip(+30) },
+                    onDoubleTapSeek = { fwd -> doubleTapSeek(fwd) },
+                    onScrubSeek = { secs -> scrubSeek(secs) },
+                    seekHint = seekHintState.value,
+                    scrubFrac = scrubFractionState.value,
+                    recordingLive = dvrRecording,
+                    recordingStopSec = dvrProgStopSec,
+                    recordingOffsetMs = if (dvrProgStartSec > 0 && dvrRealStartSec in 1 until dvrProgStartSec)
+                        (dvrProgStartSec - dvrRealStartSec) * 1000 else 0L,
+                    onPlayheadMs = { dvrPlayheadMsState.value = it },
+                    seekSeedMs = dvrSeekSeedState.value,
+                    onSeekSeedHandled = { dvrSeekSeedState.value = -1L },
+                    onSeekToMs = { ms -> seekDvrAbsolute(ms) },
+                    resumeSel = resumeSelState.value,
+                    resumeAnswer = resumeAnswerState.value,
+                    onAskResumeChange = {
+                        resumePromptState.value = it
+                        if (it) { resumeSelState.value = 1; resumeAnswerState.value = 0 }
+                    },
+                    onResumeAnswerHandled = { resumeAnswerState.value = 0 },
+                ),
                 progStartFrac = progStartFrac,
                 progStopFrac = progStopFrac,
                 progStartSec = liveProgStartState.value,
@@ -1665,8 +1690,6 @@ class PlayerActivity : ComponentActivity() {
                 server = server,
                 liveChannelUuid = if (directUrl == null) liveUuidState.value else null,
                 preferredAudio = AudioPref.get(this),
-                resumeMs = resumeMs,
-                dvrUuid = dvrUuid,
                 serverId = server.id,
                 htspSpuItems = if (htspStreamState.value) {
                     @Suppress("UNUSED_EXPRESSION") tracks.listVersion.value  // refresh ked pribudne stopa
@@ -1691,8 +1714,6 @@ class PlayerActivity : ComponentActivity() {
                         requestPin(onOk = doPlay, onCancel = { finish() }, channelIndex = liveIndex)
                     } else doPlay()
                 },
-                controlsPoke = controlsPokeState.value,
-                infoPoke = infoPokeState.value,
                 inPip = inPipState.value,
                 pipSupported = pipSupported,
                 pipButton = pipButtonVisible(),
@@ -1716,8 +1737,6 @@ class PlayerActivity : ComponentActivity() {
                     navIndex = search.navIndexState.value,
                     focusSignal = search.focusSignalState.value,
                 ),
-                openListSignal = openChannelListState.value,
-                closeListSignal = closeChannelListState.value,
                 onTrackMenuChange = { kind ->
                     // M349-fix: composable hlasi aj DRUH menu — bez toho ostal
                     // trackMenuKind "audio" z minula a vyber titulkov cez D-pad
@@ -1734,17 +1753,8 @@ class PlayerActivity : ComponentActivity() {
                     channelListOpen = it
                     if (it) navChannelIndexState.value = liveIndex.coerceAtLeast(0)
                 },
-                openOptionsSignal = openOptionsState.value,
-                closeOptionsSignal = closeOptionsState.value,
-                optionsNavIndex = optionsNavState.value,
                 sleepDeadline = sleep.deadlineState.value,
                 onOptionsSelect = { idx -> selectOption(idx) },
-                controlNavIndex = controlNavState.value,
-                trackNavIndex = tracks.navIndex.value,
-                trackListVersion = tracks.listVersion.value,
-                closeMenuSignal = tracks.closeMenuSignal.value,
-                openAudioSignal = tracks.openAudioSignal.value,
-                openSpuSignal = tracks.openSpuSignal.value,
                 profile = ProfileArgs(
                     openSignal = tracks.openProfileSignal.value,
                     items = tracks.profileItems.value,
@@ -1783,10 +1793,6 @@ class PlayerActivity : ComponentActivity() {
                 onTogglePlay = { togglePlayPause() },
                 timeshiftEngaged = timeshiftEngagedState.value,
                 tsMaxMs = maxRewindMs(),
-                onSkipBack = { timeshiftSkip(-30) },
-                onSkipFwd = { timeshiftSkip(+30) },
-                onDoubleTapSeek = { fwd -> doubleTapSeek(fwd) },
-                onScrubSeek = { secs -> scrubSeek(secs) },
                 onLoadChannelEpg = { uuid, cb ->
                     val cached = epgUpcomingState.value[uuid]
                     if (!cached.isNullOrEmpty()) {
@@ -1803,19 +1809,34 @@ class PlayerActivity : ComponentActivity() {
                         }
                     }
                 },
-                seekHint = seekHintState.value,
                 liveChannels = if (canZap) liveChannelsState.value else emptyList(),
                 liveCurrentIndex = liveIndexState.value,
                 onSelectChannel = { idx -> selectChannelOrArchive(idx) },
                 onChannelLongPress = { idx -> openChannelContextMenu(idx) },
-                lockTick = lockTickState.value,
+                signals = UiSignals(
+                    controlsPoke = controlsPokeState.value,
+                    infoPoke = infoPokeState.value,
+                    openList = openChannelListState.value,
+                    closeList = closeChannelListState.value,
+                    openOptions = openOptionsState.value,
+                    closeOptions = closeOptionsState.value,
+                    optionsNavIndex = optionsNavState.value,
+                    controlNavIndex = controlNavState.value,
+                    trackNavIndex = tracks.navIndex.value,
+                    trackListVersion = tracks.listVersion.value,
+                    closeMenu = tracks.closeMenuSignal.value,
+                    openAudio = tracks.openAudioSignal.value,
+                    openSpu = tracks.openSpuSignal.value,
+                    lockTick = lockTickState.value,
+                    numberEntry = numEntry.entryState.value,
+                    zapPoke = zapPokeState.value,
+                ),
                 onRefreshEpg = {
                     lifecycleScope.launch { refreshOverlayEpg() }
                 },
                 onRefreshEpgInitial = { refreshOverlayEpgInitial() },
                 onPrefetchEpg = { prefetchEpgIfStale() },
                 epgLoading = epgLoadingState.value,
-                numberEntry = numEntry.entryState.value,
                 timeshiftOffsetMs = timeshiftOffsetState.value,
                 pin = PinArgs(
                     prompt = pin.promptState.value,
@@ -1828,26 +1849,9 @@ class PlayerActivity : ComponentActivity() {
                     gridRow = pin.gridRowState.value,
                     gridCol = pin.gridColState.value,
                 ),
-                scrubFrac = scrubFractionState.value,
                 progNextTitle = liveNextTitleState.value,
                 progNextStart = liveNextStartState.value,
                 progNextStop = liveNextStopState.value,
-                zapPoke = zapPokeState.value,
-                recordingLive = dvrRecording,
-                recordingStopSec = dvrProgStopSec,
-                recordingOffsetMs = if (dvrProgStartSec > 0 && dvrRealStartSec in 1 until dvrProgStartSec)
-                    (dvrProgStartSec - dvrRealStartSec) * 1000 else 0L,
-                onPlayheadMs = { dvrPlayheadMsState.value = it },
-                seekSeedMs = dvrSeekSeedState.value,
-                onSeekSeedHandled = { dvrSeekSeedState.value = -1L },
-                onSeekToMs = { ms -> seekDvrAbsolute(ms) },
-                resumeSel = resumeSelState.value,
-                resumeAnswer = resumeAnswerState.value,
-                onAskResumeChange = {
-                    resumePromptState.value = it
-                    if (it) { resumeSelState.value = 1; resumeAnswerState.value = 0 }
-                },
-                onResumeAnswerHandled = { resumeAnswerState.value = 0 },
                 onRequestExit = {
                     // M344: hrajuce radio v modernom nekonci — ide do mini prehravaca,
                     // takze potvrdzovacia otazka nema zmysel; TV live ju ma dalej
@@ -2726,7 +2730,7 @@ private fun PlayerUi(
     title: String,
     player: MediaPlayer,
     seekable: Boolean,
-    knownDurationMs: Long,
+    dvr: DvrSeekArgs,
     progStartFrac: Float = 0f,
     progStopFrac: Float = 1f,
     progStartSec: Long = 0,
@@ -2735,8 +2739,6 @@ private fun PlayerUi(
     server: sk.tvhclient.shared.model.TvhServer? = null,
     liveChannelUuid: String? = null,
     preferredAudio: List<String> = emptyList(),
-    resumeMs: Long = 0,
-    dvrUuid: String? = null,
     serverId: String? = null,
     htspSpuItems: List<TrackItem>? = null,   // != null => HTSP: kompletny zoznam titulkov z metadat
     htspSpuCurrentId: Int = -1,
@@ -2750,25 +2752,17 @@ private fun PlayerUi(
     timeshiftEngaged: Boolean = false,
     modern: ModernOverlayArgs = ModernOverlayArgs(),
     tsMaxMs: Long = 0L,
-    onSkipBack: () -> Unit = {},
-    onSkipFwd: () -> Unit = {},
-    onDoubleTapSeek: (Boolean) -> Unit = {},
-    onScrubSeek: (Int) -> Unit = {},
     onLoadChannelEpg: (String, (List<sk.tvhclient.shared.model.EpgEvent>) -> Unit) -> Unit = { _, _ -> },
-    seekHint: Int = 0,
     liveChannels: List<LivePlaylist.LiveChannel> = emptyList(),
     liveCurrentIndex: Int = -1,
     onSelectChannel: (Int) -> Unit = {},
     onChannelLongPress: (Int) -> Unit = {},
-    lockTick: Int = 0,
+    signals: UiSignals = UiSignals(),
     onRefreshEpg: () -> Unit = {},
     onRefreshEpgInitial: () -> Unit = {},
     onPrefetchEpg: () -> Unit = {},
     epgLoading: Boolean = false,
-    numberEntry: String = "",
     timeshiftOffsetMs: Long = 0L,
-    controlsPoke: Int = 0,
-    infoPoke: Int = 0,
     inPip: Boolean = false,
     pipSupported: Boolean = false,
     // PiP tlacidlo v paneli (M349-fix3): oddelene od pipSupported, ktory
@@ -2787,42 +2781,18 @@ private fun PlayerUi(
     channelGroupLabel: String = "",
     channelGroupPicker: Boolean = false,
     search: ChannelSearchArgs = ChannelSearchArgs(),
-    openListSignal: Int = 0,
-    closeListSignal: Int = 0,
     onTrackMenuChange: (String?) -> Unit = {},
     onChannelListChange: (Boolean) -> Unit = {},
-    openOptionsSignal: Int = 0,
-    closeOptionsSignal: Int = 0,
-    optionsNavIndex: Int = 0,
     sleepDeadline: Long = 0,
     onOptionsSelect: (Int) -> Unit = {},
-    controlNavIndex: Int = 0,
-    trackNavIndex: Int = 0,
-    trackListVersion: Int = 0,
-    closeMenuSignal: Int = 0,
-    openAudioSignal: Int = 0,
-    openSpuSignal: Int = 0,
     // M383: prepinac stream profilu
     profile: ProfileArgs = ProfileArgs(),
     onOptionsChange: (Boolean) -> Unit = {},
     onControlsVisibleChange: (Boolean) -> Unit = {},
     pin: PinArgs = PinArgs(),
-    scrubFrac: Float = 0f,
     progNextTitle: String = "",
     progNextStart: Long = 0,
     progNextStop: Long = 0,
-    zapPoke: Int = 0,
-    recordingLive: Boolean = false,
-    recordingStopSec: Long = 0,
-    recordingOffsetMs: Long = 0,
-    onPlayheadMs: (Long) -> Unit = {},
-    seekSeedMs: Long = -1L,
-    onSeekSeedHandled: () -> Unit = {},
-    onSeekToMs: (Long) -> Unit = {},
-    resumeSel: Int = 1,
-    resumeAnswer: Int = 0,
-    onAskResumeChange: (Boolean) -> Unit = {},
-    onResumeAnswerHandled: () -> Unit = {},
     onOrientationLockChange: (Boolean) -> Unit = {},
     returnLiveOnBack: Boolean = false,
     onRequestExit: () -> Unit = {},
@@ -2886,12 +2856,12 @@ private fun PlayerUi(
     var showOptions by remember { mutableStateOf(false) }
 
     // D-pad / dialkove poslalo signal -> zobraz ovladanie (navigaciu panela riesi Activity)
-    LaunchedEffect(controlsPoke) {
-        if (controlsPoke > 0) controlsVisible = true
+    LaunchedEffect(signals.controlsPoke) {
+        if (signals.controlsPoke > 0) controlsVisible = true
     }
     // INFO signal -> prepni okno s detailom relacie
-    LaunchedEffect(infoPoke) {
-        if (infoPoke > 0) showInfo = !showInfo
+    LaunchedEffect(signals.infoPoke) {
+        if (signals.infoPoke > 0) showInfo = !showInfo
     }
     // v PiP rezime skry vsetky ovladacie prvky (okno je male)
     LaunchedEffect(inPip) {
@@ -2907,23 +2877,23 @@ private fun PlayerUi(
     LaunchedEffect(showChannelList) { onChannelListChange(showChannelList) }
     LaunchedEffect(showOptions) { onOptionsChange(showOptions) }
     // Activity ziada otvorit/zavriet zoznam kanalov (podrzanie OK)
-    LaunchedEffect(openListSignal) {
-        if (openListSignal > 0) { showChannelList = true; controlsVisible = false }
+    LaunchedEffect(signals.openList) {
+        if (signals.openList > 0) { showChannelList = true; controlsVisible = false }
     }
-    LaunchedEffect(closeListSignal) {
-        if (closeListSignal > 0) showChannelList = false
+    LaunchedEffect(signals.closeList) {
+        if (signals.closeList > 0) showChannelList = false
     }
     // Moznosti (Zvuk/Titulky/SW) cez D-pad DOLE / MENU
-    LaunchedEffect(openOptionsSignal) {
-        if (openOptionsSignal > 0) { showOptions = true; controlsVisible = false }
+    LaunchedEffect(signals.openOptions) {
+        if (signals.openOptions > 0) { showOptions = true; controlsVisible = false }
     }
-    LaunchedEffect(closeOptionsSignal) {
-        if (closeOptionsSignal > 0) showOptions = false
+    LaunchedEffect(signals.closeOptions) {
+        if (signals.closeOptions > 0) showOptions = false
     }
-    LaunchedEffect(openAudioSignal) { if (openAudioSignal > 0) { menu = "audio"; controlsVisible = false } }
-    LaunchedEffect(openSpuSignal) { if (openSpuSignal > 0) { menu = "spu"; controlsVisible = false } }
+    LaunchedEffect(signals.openAudio) { if (signals.openAudio > 0) { menu = "audio"; controlsVisible = false } }
+    LaunchedEffect(signals.openSpu) { if (signals.openSpu > 0) { menu = "spu"; controlsVisible = false } }
     LaunchedEffect(profile.openSignal) { if (profile.openSignal > 0) { menu = "profile"; controlsVisible = false } }
-    LaunchedEffect(closeMenuSignal) { if (closeMenuSignal > 0) menu = null }
+    LaunchedEffect(signals.closeMenu) { if (signals.closeMenu > 0) menu = null }
     // ikona play/pause podla skutocneho stavu prehravaca
     LaunchedEffect(playing) { isPlaying = playing }
     // seek stav (len pre DVR). TS subor nenese dlzku, takze pouzivame:
@@ -2952,17 +2922,17 @@ private fun PlayerUi(
     // Nepouzivame player.length do skaly - VLC ju pre rastuci TS hlasi v hrubych
     // skokoch, co rozhadzovalo lavu stranu casomiery. Fallback na VLC dlzku len ked
     // EPG cas nemame.
-    val lengthMs = if (knownDurationMs > 0) knownDurationMs else player.length.coerceAtLeast(0L)
+    val lengthMs = if (dvr.knownDurationMs > 0) dvr.knownDurationMs else player.length.coerceAtLeast(0L)
     // Cerstva dlzka pre ticker (LaunchedEffect(Unit) inak zachyti hodnotu zo startu a
     // lava strana by sa nezmestila nad uroven zivej hrany pri starte).
     val lengthMsLive = androidx.compose.runtime.rememberUpdatedState(lengthMs)
-    val offsetMsLive = androidx.compose.runtime.rememberUpdatedState(recordingOffsetMs)
+    val offsetMsLive = androidx.compose.runtime.rememberUpdatedState(dvr.recordingOffsetMs)
     // M495-fix: to iste plati pre seed z pretocenia. Ticker bezi v LaunchedEffect(Unit),
     // takze si hodnotu parametra zapamata pri PRVEJ kompozicii a novu uz nikdy neuvidi —
     // seed teda nikdy nedorazil, hodiny sa na ciel neprepli a resync ich zrazil takmer
     // na nulu (odtial "0:59" hned po skoku na 40. minutu).
-    val seekSeedLive = androidx.compose.runtime.rememberUpdatedState(seekSeedMs)
-    val onSeekSeedHandledLive = androidx.compose.runtime.rememberUpdatedState(onSeekSeedHandled)
+    val seekSeedLive = androidx.compose.runtime.rememberUpdatedState(dvr.seekSeedMs)
+    val onSeekSeedHandledLive = androidx.compose.runtime.rememberUpdatedState(dvr.onSeekSeedHandled)
     // Pri prebiehajucej nahravke nedovol pretocit az na zivu hranu (koniec dostupnych dat).
     // Zapisane data zaostavaju za EPG casom (prava strana) o cca 20-30 s, takze rezerva
     // pocitana z EPG casu musi byt vacsia, inak playhead skoci do este nezapisanej zony,
@@ -2971,19 +2941,19 @@ private fun PlayerUi(
     val liveMarginMs = 45_000L
     // Dlzka pre seekbar = dosiahnutelny rozsah (bez 45 s rezervy pri prebiehajucej nahravke).
     // Tak playhead dosiahne koniec baru bez viditeľnej medzery/"bariery" - rezerva je skryta.
-    val barLengthMs = if (recordingLive) (lengthMs - liveMarginMs).coerceAtLeast(1L) else lengthMs
+    val barLengthMs = if (dvr.recordingLive) (lengthMs - liveMarginMs).coerceAtLeast(1L) else lengthMs
 
     // Obnovenie pozicie (len DVR): spytaj sa, a po potvrdeni pretoc ked je
     // media nacitana
-    var askResume by remember { mutableStateOf(resumeMs > 0) }
+    var askResume by remember { mutableStateOf(dvr.resumeMs > 0) }
     var pendingResumeMs by remember { mutableStateOf(0L) }
     // Most na D-pad obsluhu dialogu v Activity: nahlas viditelnost a reaguj na odpoved
-    LaunchedEffect(askResume) { onAskResumeChange(askResume) }
-    LaunchedEffect(resumeAnswer) {
-        if (resumeAnswer != 0 && askResume) {
-            if (resumeAnswer == 1) pendingResumeMs = resumeMs
+    LaunchedEffect(askResume) { dvr.onAskResumeChange(askResume) }
+    LaunchedEffect(dvr.resumeAnswer) {
+        if (dvr.resumeAnswer != 0 && askResume) {
+            if (dvr.resumeAnswer == 1) pendingResumeMs = dvr.resumeMs
             askResume = false
-            onResumeAnswerHandled()
+            dvr.onResumeAnswerHandled()
         }
     }
 
@@ -2997,9 +2967,9 @@ private fun PlayerUi(
             offsetMsLive = offsetMsLive,
             seekSeedLive = seekSeedLive,
             onSeekSeedHandledLive = onSeekSeedHandledLive,
-            recordingLive = recordingLive,
+            recordingLive = dvr.recordingLive,
             liveMarginMs = liveMarginMs,
-            dvrUuid = dvrUuid,
+            dvrUuid = dvr.uuid,
             serverId = serverId,
             posTimeMs = { posTimeMs },
             onPosTimeMsSet = { posTimeMs = it },
@@ -3015,8 +2985,8 @@ private fun PlayerUi(
             onLastPlayTickMsSet = { lastPlayTickMs = it },
             askResume = { askResume },
             dragging = { dragging },
-            onSeekToMs = onSeekToMs,
-            onPlayheadMs = onPlayheadMs,
+            onSeekToMs = dvr.onSeekToMs,
+            onPlayheadMs = dvr.onPlayheadMs,
         )
     }
 
@@ -3060,7 +3030,7 @@ private fun PlayerUi(
         preferredAudio = preferredAudio
     )
 
-    LaunchedEffect(controlsVisible, menu, controlsPoke, dragging) {
+    LaunchedEffect(controlsVisible, menu, signals.controlsPoke, dragging) {
         if (controlsVisible && menu == null && !dragging) {
             kotlinx.coroutines.delay(3000)
             controlsVisible = false
@@ -3118,12 +3088,12 @@ private fun PlayerUi(
                 setVolPct = { volPctState = it },
                 setBrightPct = { brightPctState = it },
                 setShowChannelList = { showChannelList = it },
-                onScrubSeek = onScrubSeek
+                onScrubSeek = dvr.onScrubSeek
             )
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = { if (menu != null) menu = null else controlsVisible = !controlsVisible },
-                    onDoubleTap = { off -> onDoubleTapSeek(off.x > size.width / 2f) }
+                    onDoubleTap = { off -> dvr.onDoubleTapSeek(off.x > size.width / 2f) }
                 )
             }
     ) {
@@ -3148,12 +3118,12 @@ private fun PlayerUi(
         // koliesko v strede pocas pretacania timeshiftu (resync)
         if (seeking && !reconnecting) SeekingSpinner()
         // YouTube-style hint pri dvojkliku (skok o 10 s)
-        if (seekHint != 0) SeekHintOverlay(seekHint)
+        if (dvr.seekHint != 0) SeekHintOverlay(dvr.seekHint)
         // MX Player overlaye: hlasitost / jas (vystredene), seek-scrub (hore v strede)
         if (volPctState >= 0 || brightPctState >= 0) GestureLevelOverlay(volPctState, brightPctState)
         if (scrubSecState != Int.MIN_VALUE) ScrubSecondsOverlay(scrubSecState)
         // prekrytie s prave zadavanym cislom kanala
-        if (numberEntry.isNotEmpty()) NumberEntryOverlay(numberEntry)
+        if (signals.numberEntry.isNotEmpty()) NumberEntryOverlay(signals.numberEntry)
 
         // M661: ovladaci pruh (horny info blok + seekbar + tlacidla) je v PlayerControlBar.kt
         PlayerControlsOverlay(
@@ -3167,7 +3137,7 @@ private fun PlayerUi(
             pipSupported = pipSupported,
             timeshiftEngaged = timeshiftEngaged,
             profileSwitch = profile.switchAvailable,
-            controlNavIndex = controlNavIndex,
+            controlNavIndex = signals.controlNavIndex,
             liveChannels = liveChannels,
             liveCurrentIndex = liveCurrentIndex,
             server = server,
@@ -3183,8 +3153,8 @@ private fun PlayerUi(
             timeshiftOffsetMs = timeshiftOffsetMs,
             barLengthMs = barLengthMs,
             lengthMs = lengthMs,
-            recordingOffsetMs = recordingOffsetMs,
-            scrubFrac = scrubFrac,
+            recordingOffsetMs = dvr.recordingOffsetMs,
+            scrubFrac = dvr.scrubFrac,
             progStartFrac = progStartFrac,
             progStopFrac = progStopFrac,
             dragging = dragging,
@@ -3194,7 +3164,7 @@ private fun PlayerUi(
             posTimeMs = posTimeMs,
             onPosTimeMsSet = { posTimeMs = it },
             onPosFractionSet = { posFraction = it },
-            onSeekToMs = onSeekToMs,
+            onSeekToMs = dvr.onSeekToMs,
             isPlaying = isPlaying,
             menu = menu,
             onMenuSet = { menu = it },
@@ -3208,8 +3178,8 @@ private fun PlayerUi(
             onPrevChannel = onPrevChannel,
             onNextChannel = onNextChannel,
             onTogglePlay = onTogglePlay,
-            onSkipBack = onSkipBack,
-            onSkipFwd = onSkipFwd,
+            onSkipBack = dvr.onSkipBack,
+            onSkipFwd = dvr.onSkipFwd,
             onOpenEpg = onOpenEpg,
             onEnterPip = onEnterPip,
             onOpenSleep = onOpenSleep,
@@ -3303,7 +3273,7 @@ private fun PlayerUi(
                 liveCurrentIndex = liveCurrentIndex,
                 channelNavIndex = channelNavIndex,
                 epgLoading = epgLoading,
-                lockTick = lockTick,
+                lockTick = signals.lockTick,
                 liveNowSec = liveNowSec,
                 onSelectChannel = onSelectChannel,
                 onChannelLongPress = onChannelLongPress,
@@ -3319,7 +3289,7 @@ private fun PlayerUi(
                 liveCurrentIndex = liveCurrentIndex,
                 channelNavIndex = channelNavIndex,
                 epgLoading = epgLoading,
-                lockTick = lockTick,
+                lockTick = signals.lockTick,
                 liveNowSec = liveNowSec,
                 onLoadChannelEpg = onLoadChannelEpg,
                 channelGroupLabel = channelGroupLabel,
@@ -3351,7 +3321,7 @@ private fun PlayerUi(
         // Vyber dlzky casovaca uspatia — vertikalne, navigacia z Activity (M633: PlayerMenus.kt)
         if (showOptions) {
             SleepOptionsMenu(
-                highlightIndex = if (isTvGest) optionsNavIndex else -1,   // M385-fix
+                highlightIndex = if (isTvGest) signals.optionsNavIndex else -1,   // M385-fix
                 onSelect = onOptionsSelect,
                 onDismiss = { showOptions = false }
             )
@@ -3364,8 +3334,8 @@ private fun PlayerUi(
                 setMenu = { v -> menu = v },
                 ctx = ctx,
                 player = player,
-                trackListVersion = trackListVersion,
-                trackNavIndex = trackNavIndex,
+                trackListVersion = signals.trackListVersion,
+                trackNavIndex = signals.trackNavIndex,
                 profileItems = profile.items,
                 currentProfile = profile.current,
                 onPickProfile = profile.onPick,
@@ -3381,9 +3351,9 @@ private fun PlayerUi(
         // Dialog: obnovit prehravanie od poslednej pozicie? (M559-fix: vytiahnute z PlayerUi — limit 64 kB)
         if (askResume) {
             ResumeDialog(
-                resumeMs = resumeMs, resumeSel = resumeSel,
+                resumeMs = dvr.resumeMs, resumeSel = dvr.resumeSel,
                 onNo = { askResume = false },
-                onYes = { pendingResumeMs = resumeMs; askResume = false }
+                onYes = { pendingResumeMs = dvr.resumeMs; askResume = false }
             )
         }
 
