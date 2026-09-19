@@ -148,8 +148,12 @@ class PlayerActivity : ComponentActivity() {
     // HTSP titulky: kompletny zoznam jazykov berieme z metadat (feeder.subtitleStreams),
     // nie z libVLC (to ma len jazyky, ktore uz "prehovorili"). Vyber mapujeme na realnu
     // libVLC stopu podla anglickeho nazvu jazyka (libVLC DVB titulky netaguje kodom).
-    private val selectedSubEsState = androidx.compose.runtime.mutableStateOf(-1)  // -1 = Vypnute
-    private var desiredSubName: String? = null   // anglicky nazov zvoleneho jazyka (null = vypnute)
+    // M637: stav stop (zvuk/titulky/profil) v TrackState.kt
+    private val tracks by lazy {
+        TrackState(this,
+            player = { if (::mediaPlayer.isInitialized && !playerTornDown) mediaPlayer else null },
+            htspFeeder = { htspFeeder })
+    }
     // M392: stav titulkov spred restartu streamu pri zmene profilu (HTTP live) —
     // novy kontajner (napr. matroska) moze mat default titulkovu stopu, ktoru by
     // libVLC sam zapol; po restarte preto obnovime povodnu volbu pouzivatela.
@@ -157,8 +161,6 @@ class PlayerActivity : ComponentActivity() {
     // (zhodne s HTSP, kde null = vypnute). Vynucuje sa pri kazdom ESAdded,
     // takze ani neskoro registrovana default stopa (matroska na pomalom boxe)
     // titulky nezapne. Rusi ju len rucne zapnutie v menu (D-pad aj dotyk).
-    private var httpSpuWantOff = true
-    private var httpSpuWantName: String? = null
     // M262: ci uz prebehlo urcenie HTSP rezimu pre toto sedenie. doPlay (startovacie
     // prehratie) ho nastavi; ak vsak pouzivatel prepne kanal este pred doPlay (napr.
     // odchod z PIN vyzvy zamknuteho kanala), inicializuje HTSP switchToIndex.
@@ -747,8 +749,8 @@ class PlayerActivity : ComponentActivity() {
             feeder.onTeletextAvailable = { a -> teletext.setHtspAvailable(a) }
             feeder.onTeletext = { es -> teletext.feedHtsp(es) }
             // novy kanal = novy zoznam titulkov, vynuluj zvoleny jazyk
-            selectedSubEsState.value = -1
-            desiredSubName = null
+            tracks.selectedSubEs.value = -1
+            tracks.desiredSubName = null
             resetTimeshift()
             val fd = feeder.start(channelId, lifecycleScope, liveServer?.profile)   // M476
             val media = Media(libVlc, fd)
@@ -1303,8 +1305,8 @@ class PlayerActivity : ComponentActivity() {
         // isteho kanala (zmena profilu, applyProfileChange) sem pride s rovnakym uuid
         // cez liveIndex=-1, preto porovnavame uuid, nie index.
         if (uuid != liveUuidState.value) {
-            httpSpuWantOff = true
-            httpSpuWantName = null
+            tracks.httpSpuWantOff = true
+            tracks.httpSpuWantName = null
         }
         liveIndex = i
         liveIndexState.value = i
@@ -1331,8 +1333,7 @@ class PlayerActivity : ComponentActivity() {
         val url = Tvh.liveUrl(srv, uuid, name, prof)
         currentStreamUrl = url
         cancelReconnect()  // nove pripojenie -> zrus stare pokusy
-        trackReparseDone = false  // novy kanal -> povol jednorazovy re-parse stop
-        trackReparseHandler.removeCallbacksAndMessages(null)
+        tracks.resetReparse()  // novy kanal -> povol jednorazovy re-parse stop
         hasVideoState.value = true  // predpokladaj video; kontrola po Playing to opravi
         val cid = uuid.toLongOrNull()
         // M262: ak HTSP rezim este nebol urceny (prepnutie pred doPlay, napr. odchod
@@ -1535,29 +1536,11 @@ class PlayerActivity : ComponentActivity() {
     private val openOptionsState = androidx.compose.runtime.mutableStateOf(0)
     private val closeOptionsState = androidx.compose.runtime.mutableStateOf(0)
     private val optionsNavState = androidx.compose.runtime.mutableStateOf(0)
-    private val openAudioMenuState = androidx.compose.runtime.mutableStateOf(0)
-    private val openSpuMenuState = androidx.compose.runtime.mutableStateOf(0)
-    // M383: prepinac stream profilu v prehravaci (len HTTP live)
-    private val openProfileMenuState = androidx.compose.runtime.mutableStateOf(0)
-    private val profileItemsState = androidx.compose.runtime.mutableStateOf<List<String>>(emptyList())
-    private val currentProfileState = androidx.compose.runtime.mutableStateOf("")
-    // M383-fix: dostupnost MUSI byt compose state — obycajna funkcia sa vyhodnoti
-    // len pri prvej kompozicii (pred spustenim prehravania) a UI by sa o zmene
-    // nikdy nedozvedelo; presne preto tlacidlo nebolo vidno
-    private val profileSwitchState = androidx.compose.runtime.mutableStateOf(false)
     // Casovac uspatia
     // M629: casovac uspatia v SleepTimer.kt
     private val sleep by lazy { SleepTimer(this) { finish() } }
     // Navigacia ovladacieho panela (focus riadime z Activity, nie cez Compose focus)
     private val controlNavState = androidx.compose.runtime.mutableStateOf(0)
-    // Navigacia track menu (audio/titulky)
-    private val trackNavState = androidx.compose.runtime.mutableStateOf(0)
-    // Verzia zoznamu stop — zvysi sa ked libVLC prida/ubere stopu (ESAdded/ESDeleted).
-    // DVB titulky a viacjazycne audio sa objavia az par sekund po starte streamu;
-    // toto vynuti obnovu otvoreneho track menu, nech sa stopy doplnia automaticky.
-    private val trackListVersionState = androidx.compose.runtime.mutableStateOf(0)
-    private val closeMenuState = androidx.compose.runtime.mutableStateOf(0)
-    private var trackMenuKind = "audio"
     private var okLongFired = false
 
     // Rodicovsky zamok (PIN) — stav a klavesy v PinPrompt.kt (M629), vykreslenie PinDialog v PlayerUi
@@ -2128,89 +2111,37 @@ class PlayerActivity : ComponentActivity() {
         closeOptions()
     }
 
-    // --- Track menu (audio/titulky) riadene z Activity ---
-    private fun trackMenuIds(): List<Int> {
-        if (!::mediaPlayer.isInitialized) return emptyList()
-        if (trackMenuKind == "profile") return profileItemsState.value.indices.toList()
-        return if (trackMenuKind == "audio") {
-            mediaPlayer.audioTrackItems().map { it.id }
-        } else {
-            val spu = if (htspStream) htspSpuItemsList() else mediaPlayer.spuTrackItems()
-            listOf(-1) + spu.map { it.id }  // -1 = Vypnute
-        }
-    }
-
-    /** HTSP: kompletny zoznam titulkovych jazykov z metadat (rovnaky na kazdom zariadeni,
-     *  nezavisle od toho ci jazyk uz "prehovoril"). id = HTSP stream index. */
-    private fun htspSpuItemsList(): List<TrackItem> {
-        val subs = htspFeeder?.subtitleStreams ?: return emptyList()
-        // M491: nazov stopy, ked sa jazyk neda urcit — bol natvrdo po slovensky
-        return subs.map {
-            TrackItem(it.esIndex, langDisplay(it.language) ?: getString(R.string.sub_dvb))
-        }
-    }
-
+    // --- Track menu (audio/titulky) riadene z Activity; stav a pomocne funkcie v TrackState (M637) ---
     /** HTSP vyber titulku: zapamataj zelany jazyk a skus ho hned nastavit v libVLC; ak stopa
      *  este nie je (jazyk nehovoril), aplikuje sa pri ESAdded. id < 0 = Vypnute. */
     private fun onPickHtspSpu(esIndex: Int) {
-        selectedSubEsState.value = esIndex
+        tracks.selectedSubEs.value = esIndex
         // DVB titulky dekódujeme a renderujeme sami; do libVLC nejdu. Vyber = ktory ES dekódovat.
         subOverlay?.reset()
         htspFeeder?.selectSubtitle(esIndex)
     }
 
-    /** Nastavi libVLC titulkovu stopu podla zelaneho (anglickeho) nazvu jazyka, ak uz existuje. */
-    private fun applyDesiredSpu() {
-        if (!::mediaPlayer.isInitialized) return
-        val want = desiredSubName ?: return
-        val tracks = mediaPlayer.spuTracks ?: return
-        val m = tracks.firstOrNull {
-            it.id >= 0 && (it.name?.contains(want, ignoreCase = true) == true)
-        } ?: return
-        if (mediaPlayer.spuTrack != m.id) mediaPlayer.spuTrack = m.id
-    }
-    /** M392-fix: presad zelanie pouzivatela pre titulky na HTTP live streame.
-     *  Vola sa pri kazdom ESAdded — default-flagovana stopa (matroska) sa moze
-     *  zaregistrovat aj desiatky sekund po starte a libVLC by ju zapol. */
-    private fun applyPendingSpuRestore() {
-        if (!::mediaPlayer.isInitialized || htspStream || seekablePlayback) return
-        val want = httpSpuWantName
-        if (want != null) {
-            val tr = mediaPlayer.spuTracks?.firstOrNull {
-                it.id >= 0 && (it.name?.contains(want, ignoreCase = true) == true)
-            } ?: return
-            if (mediaPlayer.spuTrack != tr.id) mediaPlayer.spuTrack = tr.id
-            return
-        }
-        if (httpSpuWantOff && mediaPlayer.spuTrack != -1) mediaPlayer.spuTrack = -1
-    }
-
-    /** M392-fix: rucna volba titulkov na HTTP live (D-pad aj dotykove menu). */
-    private fun httpSpuUserPick(id: Int) {
-        httpSpuWantOff = id < 0
-        httpSpuWantName = if (id >= 0 && ::mediaPlayer.isInitialized)
-            mediaPlayer.spuTrackItems().firstOrNull { it.id == id }?.name else null
-    }
+    private fun applyDesiredSpu() = tracks.applyDesiredSpu()
+    private fun applyPendingSpuRestore() = tracks.applyPendingSpuRestore(htspStream, seekablePlayback)
 
     /** M383: prepinac profilu ma zmysel len pri HTTP live (nie HTSP, nie DVR,
      *  nie externa URL — tam profil neexistuje alebo sa neda menit). */
-    private fun profileSwitchAvailable(): Boolean = profileSwitchState.value
+    private fun profileSwitchAvailable(): Boolean = tracks.profileSwitch.value
 
     private fun openProfileMenu() {
         val srv = liveServer ?: return
-        trackMenuKind = "profile"; trackNavState.value = 0
         // okamzity fallback, server moze zoznam vzapati nahradit vlastnym
-        if (profileItemsState.value.isEmpty()) {
-            profileItemsState.value =
+        if (tracks.profileItems.value.isEmpty()) {
+            tracks.profileItems.value =
                 ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
         }
         lifecycleScope.launch {
             val list = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                 sk.tvhclient.shared.Tvh.streamProfiles(srv)
             }
-            if (list.isNotEmpty()) profileItemsState.value = list
+            if (list.isNotEmpty()) tracks.profileItems.value = list
         }
-        openProfileMenuState.value = openProfileMenuState.value + 1
+        tracks.openProfileMenu()
     }
 
     /** M383: novy profil = nova predvolba SERVERA (plati pre vsetky dalsie kanaly,
@@ -2221,38 +2152,27 @@ class PlayerActivity : ComponentActivity() {
         if (profile.isBlank() || profile == srv.profile) return
         // M392: zosulad zelanie so skutocnym stavom pred restartom (pokryva aj
         // pripad, ked pouzivatel medzitym prepol titulky dotykovym menu)
-        if (::mediaPlayer.isInitialized && !htspStream) {
-            val cur = runCatching { mediaPlayer.spuTrack }.getOrDefault(-1)
-            httpSpuWantOff = cur < 0
-            httpSpuWantName = if (cur >= 0)
-                mediaPlayer.spuTrackItems().firstOrNull { it.id == cur }?.name else null
-        }
+        if (!htspStream) tracks.captureHttpSpuFromPlayer()
         val updated = srv.copy(profile = profile)
         sk.tvhclient.shared.Tvh.store.upsert(updated)
         liveServer = updated
-        currentProfileState.value = profile
+        tracks.currentProfile.value = profile
         val i = liveIndex
         if (i >= 0) { liveIndex = -1; switchToIndex(i, poke = false) }
     }
 
-    private fun openAudioMenu() {
-        trackMenuKind = "audio"; trackNavState.value = 0
-        openAudioMenuState.value = openAudioMenuState.value + 1
-    }
-    private fun openSpuMenu() {
-        trackMenuKind = "spu"; trackNavState.value = 0
-        openSpuMenuState.value = openSpuMenuState.value + 1
-    }
-    private fun closeTrackMenu() { closeMenuState.value = closeMenuState.value + 1 }
+    private fun openAudioMenu() = tracks.openAudioMenu()
+    private fun openSpuMenu() = tracks.openSpuMenu()
+    private fun closeTrackMenu() = tracks.closeMenu()
     private fun selectTrackAtNav() {
         if (!::mediaPlayer.isInitialized) return
-        val ids = trackMenuIds()
-        val id = ids.getOrNull(trackNavState.value) ?: return
+        val ids = tracks.menuIds(htspStream)
+        val id = ids.getOrNull(tracks.navIndex.value) ?: return
         when {
-            trackMenuKind == "profile" -> {
-                profileItemsState.value.getOrNull(id)?.let { applyProfileChange(it) }
+            tracks.menuKind == "profile" -> {
+                tracks.profileItems.value.getOrNull(id)?.let { applyProfileChange(it) }
             }
-            trackMenuKind == "audio" -> {
+            tracks.menuKind == "audio" -> {
                 mediaPlayer.audioTrack = id
                 // M378: zapamataj rucny vyber pre kanal aj z TV menu (D-pad);
                 // predtym sa ukladal len z dotykoveho menu, takze na TV sa
@@ -2267,7 +2187,7 @@ class PlayerActivity : ComponentActivity() {
             htspStream -> onPickHtspSpu(id)
             else -> {
                 mediaPlayer.spuTrack = id
-                httpSpuUserPick(id)   // M392-fix: prepise trvale zelanie
+                tracks.httpSpuUserPick(id)   // M392-fix: prepise trvale zelanie
             }
         }
         closeTrackMenu()
@@ -2692,14 +2612,14 @@ class PlayerActivity : ComponentActivity() {
 
         // 3) Otvorene track menu (audio/titulky) -> navigujeme my (hore/dole + OK)
         if (trackMenuOpen) {
-            val ids = trackMenuIds()
+            val ids = tracks.menuIds(htspStream)
             val n = ids.size
             if (down && n > 0) {
                 when (kc) {
                     android.view.KeyEvent.KEYCODE_DPAD_UP ->
-                        { trackNavState.value = (trackNavState.value - 1 + n) % n; return true }
+                        { tracks.navIndex.value = (tracks.navIndex.value - 1 + n) % n; return true }
                     android.view.KeyEvent.KEYCODE_DPAD_DOWN ->
-                        { trackNavState.value = (trackNavState.value + 1) % n; return true }
+                        { tracks.navIndex.value = (tracks.navIndex.value + 1) % n; return true }
                     android.view.KeyEvent.KEYCODE_DPAD_CENTER,
                     android.view.KeyEvent.KEYCODE_ENTER,
                     android.view.KeyEvent.KEYCODE_NUMPAD_ENTER ->
@@ -3206,19 +3126,19 @@ class PlayerActivity : ComponentActivity() {
         // Server je potrebny aj v DVR rezime (seekDvrTo / reopenDvrLive cez feeder).
         // Live-zapping nizsie zavisi od liveUuids (pri DVR prazdne), nie od liveServer.
         liveServer = server
-        currentProfileState.value = server.profile.ifBlank { "pass" }
+        tracks.currentProfile.value = server.profile.ifBlank { "pass" }
         // M476: prepinac profilu plati aj pre HTSP — protokol ho podporuje od v16
-        profileSwitchState.value = directUrl == null && channelUuid != null
+        tracks.profileSwitch.value = directUrl == null && channelUuid != null
         // M383: prednacitaj zoznam profilov (dotykove tlacidlo otvara menu priamo,
         // bez openProfileMenu) — fallback hned, servrovy zoznam async
-        if (profileItemsState.value.isEmpty()) {
-            profileItemsState.value =
+        if (tracks.profileItems.value.isEmpty()) {
+            tracks.profileItems.value =
                 ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
             lifecycleScope.launch {
                 val list = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                     sk.tvhclient.shared.Tvh.streamProfiles(server)
                 }
-                if (list.isNotEmpty()) profileItemsState.value = list
+                if (list.isNotEmpty()) tracks.profileItems.value = list
             }
         }
         // Live zapping: priprav zoznam susednych kanalov
@@ -3288,12 +3208,12 @@ class PlayerActivity : ComponentActivity() {
                 dvrUuid = dvrUuid,
                 serverId = server.id,
                 htspSpuItems = if (htspStreamState.value) {
-                    @Suppress("UNUSED_EXPRESSION") trackListVersionState.value  // refresh ked pribudne stopa
-                    htspSpuItemsList()
+                    @Suppress("UNUSED_EXPRESSION") tracks.listVersion.value  // refresh ked pribudne stopa
+                    tracks.htspSpuItems()
                 } else null,
-                htspSpuCurrentId = selectedSubEsState.value,
+                htspSpuCurrentId = tracks.selectedSubEs.value,
                 onPickHtspSpu = if (htspStreamState.value) pickHtspSpuCb else null,   // M544: bez lambdy v kompozicii
-                onPickHttpSpu = { id -> httpSpuUserPick(id) },
+                onPickHttpSpu = { id -> tracks.httpSpuUserPick(id) },
                 onAttach = { layout ->
                     videoLayout = layout
                     mediaPlayer.attachViews(layout, null, false, false)
@@ -3417,10 +3337,10 @@ class PlayerActivity : ComponentActivity() {
                     // trackMenuKind "audio" z minula a vyber titulkov cez D-pad
                     // omylom prepinal zvukovu stopu
                     trackMenuOpen = kind != null
-                    if (kind != null) { trackMenuKind = kind; trackNavState.value = 0 }
+                    if (kind != null) { tracks.menuKind = kind; tracks.navIndex.value = 0 }
                     // M383: poistka — profile menu otvorene dotykom bez zoznamu
-                    if (kind == "profile" && profileItemsState.value.isEmpty()) {
-                        profileItemsState.value =
+                    if (kind == "profile" && tracks.profileItems.value.isEmpty()) {
+                        tracks.profileItems.value =
                             ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
                     }
                 },
@@ -3434,14 +3354,14 @@ class PlayerActivity : ComponentActivity() {
                 sleepDeadline = sleep.deadlineState.value,
                 onOptionsSelect = { idx -> selectOption(idx) },
                 controlNavIndex = controlNavState.value,
-                trackNavIndex = trackNavState.value,
-                trackListVersion = trackListVersionState.value,
-                closeMenuSignal = closeMenuState.value,
-                openAudioSignal = openAudioMenuState.value,
-                openSpuSignal = openSpuMenuState.value,
-                openProfileSignal = openProfileMenuState.value,
-                profileItems = profileItemsState.value,
-                currentProfile = currentProfileState.value,
+                trackNavIndex = tracks.navIndex.value,
+                trackListVersion = tracks.listVersion.value,
+                closeMenuSignal = tracks.closeMenuSignal.value,
+                openAudioSignal = tracks.openAudioSignal.value,
+                openSpuSignal = tracks.openSpuSignal.value,
+                openProfileSignal = tracks.openProfileSignal.value,
+                profileItems = tracks.profileItems.value,
+                currentProfile = tracks.currentProfile.value,
                 profileSwitch = profileSwitchAvailable(),
                 onPickProfile = { p -> applyProfileChange(p) },
                 modernMoreIdList = modernMoreIds(),
@@ -4290,7 +4210,7 @@ class PlayerActivity : ComponentActivity() {
                 MediaPlayer.Event.ESDeleted -> {
                     // libVLC priebezne registruje stopy (DVB titulky / audio jazyky sa
                     // objavia az par sekund po starte) -> obnov otvorene track menu
-                    trackListVersionState.value = trackListVersionState.value + 1
+                    tracks.bumpListVersion()
                     // ak pouzivatel zvolil titulkovy jazyk, ktory este nebol k dispozicii,
                     // nastav ho hned ako jeho stopa pribudne (mimo libVLC callbacku)
                     if (htspStream) lifecycleScope.launch { applyDesiredSpu() }
@@ -4527,44 +4447,11 @@ class PlayerActivity : ComponentActivity() {
 
     // --- Doplnenie stop po starte (audio jazyky / DVB titulky) ---
     // Pri prvom napojeni streamu libVLC este nema doparsovane doplnkove ES; jazyky audio
-    // stop a DVB titulkove stopy sa objavia az par sekund po starte. ESAdded udalost na
-    // niektorych streamoch nechodi spolahlivo, preto po Event.Playing kratko pollujeme a
-    // obnovujeme pripadne otvorene track menu (zvysenim trackListVersionState), kym sa
-    // stopy doplnia. Bez prerusenia prehravania — len precitanie zoznamu nanovo.
-    private val trackRefreshHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private fun scheduleTrackRefresh() {
-        trackRefreshHandler.removeCallbacksAndMessages(null)
-        // niekolko vln v priebehu ~8 s — staci aby sa stihli doparsovat jazyky aj DVB titulky
-        for (delay in longArrayOf(800L, 1600L, 2600L, 4000L, 6000L, 8000L)) {
-            trackRefreshHandler.postDelayed({
-                trackListVersionState.value = trackListVersionState.value + 1
-            }, delay)
-        }
-    }
-    private fun cancelTrackRefresh() {
-        trackRefreshHandler.removeCallbacksAndMessages(null)
-    }
-
-    // Jednorazove znovu-napojenie streamu kvoli stopam. Ak po starte ziadna audio stopa
-    // nema jazyk, libVLC vytvoril ES skor nez doparsoval PMT s jazykovymi deskriptormi
-    // (caste na multi-audio TS). Tieto ES uz jazyk nedostanu a DVB titulky sa neobjavia —
-    // pomoze len cerstve napojenie streamu (rovnaky efekt ako navrat z pozadia). Spravime
-    // ho RAZ na kanal a LEN ked jazyky naozaj chybaju (inak ziadny zbytocny blik).
-    private var trackReparseDone = false
-    private val trackReparseHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private fun maybeReparseForTracks() {
-        if (trackReparseDone || seekablePlayback || htspStream) return  // HTSP berie jazyky z PMT
-        trackReparseHandler.removeCallbacksAndMessages(null)
-        trackReparseHandler.postDelayed({
-            if (trackReparseDone || seekablePlayback || htspStream || !::mediaPlayer.isInitialized) return@postDelayed
-            val langs = runCatching { mediaPlayer.trackLanguages() }.getOrDefault(emptyMap())
-            val anyLang = langs.values.any { !it.isNullOrBlank() && !it.equals("und", true) }
-            trackReparseDone = true  // tak ci tak skus len raz
-            // znovu napojenie cez OVERENU reconnect cestu (sama sa zotavi, naplni stopy);
-            // vlastny re-open cez playHtspLive sa zasekaval na stop+start HTSP subscription
-            if (!anyLang) scheduleReconnect()
-        }, 1800)
-    }
+    // M637: obnova zoznamu stop po starte a jednorazovy re-parse v TrackState
+    private fun scheduleTrackRefresh() = tracks.scheduleRefresh()
+    private fun cancelTrackRefresh() = tracks.cancelRefresh()
+    private fun maybeReparseForTracks() =
+        tracks.maybeReparse(htspStream = { htspStream }, seekable = { seekablePlayback }, reconnect = { scheduleReconnect() })
 
     // ---- M626: AFR (M346) a zamky streamu (M452) vyclenene do AfrController / StreamLocks ----
     private val afr by lazy {
@@ -4599,7 +4486,7 @@ class PlayerActivity : ComponentActivity() {
         stopTimeshiftTicker()
         skipFlushJob?.cancel()
         cancelTrackRefresh()
-        trackReparseHandler.removeCallbacksAndMessages(null)
+        tracks.destroy()
         // M535: stop/release libVLC na pracovnom vlakne (bezne uz prebehlo v onStop
         // pri isFinishing; tu je poistka pre destroy bez predchadzajuceho stop,
         // napr. zabitie systemom pri nedostatku pamate).
@@ -4779,7 +4666,7 @@ private val ISO639_2to1 = mapOf(
 
 /** ISO-639 kod jazyka (napr. "slo","eng") -> citatelny nazov v jazyku zariadenia.
  *  Vracia null ak je kod prazdny / neznamy ("und"), aby sa pouzil fallback. */
-private fun langDisplay(code: String?): String? {
+internal fun langDisplay(code: String?): String? {
     val c = code?.lowercase()?.trim() ?: return null
     if (c.isEmpty() || c == "und" || c == "unknown" || c == "qaa") return null
     val iso2 = ISO639_2to1[c] ?: if (c.length == 2) c else null
@@ -4797,7 +4684,7 @@ private fun langDisplay(code: String?): String? {
  *  ("DVB subtitles - [Czech]") a netaguje ich kodom, takze vyber z metadat parujeme
  *  na realnu libVLC stopu cez tento anglicky nazov. null ak sa neda urcit. */
 /** Mapa ES id -> jazyk z metadat aktualneho media (audio aj titulky maju language). */
-private fun MediaPlayer.trackLanguages(): Map<Int, String?> {
+internal fun MediaPlayer.trackLanguages(): Map<Int, String?> {
     val out = HashMap<Int, String?>()
     val m = media ?: return out
     try {
@@ -4823,7 +4710,7 @@ private fun trackFallbackName(resId: Int, id: Int): String =
         sk.tvhclient.shared.storage.AppContextHolder.context.getString(resId) + " " + id
     }.getOrDefault("#$id")
 
-private fun MediaPlayer.audioTrackItems(): List<TrackItem> {
+internal fun MediaPlayer.audioTrackItems(): List<TrackItem> {
     val descs = audioTracks ?: return emptyList()
     val langs = trackLanguages()
     // id < 0 je vstavana "Disable" polozka libVLC — preskoc (audio sa nevypina)
@@ -4841,7 +4728,7 @@ private fun MediaPlayer.audioTrackItems(): List<TrackItem> {
     }
 }
 
-private fun MediaPlayer.spuTrackItems(): List<TrackItem> {
+internal fun MediaPlayer.spuTrackItems(): List<TrackItem> {
     val descs = spuTracks ?: return emptyList()
     val langs = trackLanguages()
     // id < 0 je vstavana "Disable" polozka libVLC — preskoc; vypnutie titulkov
