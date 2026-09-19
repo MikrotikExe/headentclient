@@ -6635,132 +6635,24 @@ private fun PlayerUi(
             )
         }
 
-        // "Viac" menu modernej listy (M327): Kanaly / Casovac uspatia / Informacie
+        // "Viac" menu modernej listy (M327): Kanaly / Casovac uspatia / Informacie (M633: PlayerMenus.kt)
         if (modernMoreVisible) {
-            // M383: zoznam idcok prichadza z Activity (moze obsahovat "profile")
-            val moreLabels = modernMoreIdList.map { id ->
-                when (id) {
-                    "list" -> stringResource(R.string.tab_channels)
-                    "sleep" -> stringResource(R.string.sleep_timer)
-                    "profile" -> stringResource(R.string.field_profile)
-                    "rec" -> stringResource(                       // M490
-                        if (dvrActivity?.dvrExistingState?.value != null)
-                            R.string.dvr_rec_cancel_button else R.string.dvr_rec_button
-                    )
-                    "teletext" -> stringResource(R.string.teletext)   // M553
-                    else -> stringResource(R.string.pm_info)
-                }
-            }
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(playerScrimSoft())
-                    .consumeAllPointer()   // M563
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { onMoreDismiss() },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    Modifier
-                        // M558: bez max sirky sa riadky (fillMaxWidth) roztiahli na celu obrazovku;
-                        // rovnaka sirka ako TrackMenu (Zvuk/Titulky/Profil)
-                        .widthIn(min = 280.dp, max = 460.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(playerScrim())
-                        .padding(8.dp)
-                ) {
-                    Text(
-                        stringResource(R.string.pm_more),
-                        color = playerFg(),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(12.dp)
-                    )
-                    moreLabels.forEachIndexed { idx, label ->
-                        // M385-fix: D-pad zvyraznenie len na TV (na telefone svietil vrchny riadok)
-                        val sel = isTvGest && idx == modernMoreIndex
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (sel) playerAccent().copy(alpha = 0.35f) else Color.Transparent)   // M562
-                                .clickable { onMorePick(idx) }
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // M516: ikona ku kazdej polozke — bez nej bol zoznam holy text,
-                            // kym klasicky bar ikony ma
-                            androidx.compose.material3.Icon(
-                                when (modernMoreIdList.getOrNull(idx)) {
-                                    "list" -> Icons.Default.List
-                                    "sleep" -> Icons.Default.Timer
-                                    "profile" -> Icons.Default.Tune
-                                    "rec" -> if (dvrActivity?.dvrExistingState?.value != null)
-                                        Icons.Default.Stop else Icons.Default.FiberManualRecord
-                                    "teletext" -> Icons.AutoMirrored.Filled.Article   // M553-fix3
-                                    else -> Icons.Default.Info
-                                },
-                                contentDescription = null,
-                                tint = if (sel) playerFg() else playerFgDim(),
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(Modifier.width(16.dp))
-                            Text(label, color = playerFg())
-                        }
-                    }
-                }
-            }
+            ModernMoreMenu(
+                ids = modernMoreIdList,
+                highlightIndex = if (isTvGest) modernMoreIndex else -1,   // M385-fix
+                recActive = dvrActivity?.dvrExistingState?.value != null,
+                onPick = onMorePick,
+                onDismiss = onMoreDismiss
+            )
         }
 
-        // Vyber dlzky casovaca uspatia — vertikalne, navigacia z Activity
+        // Vyber dlzky casovaca uspatia — vertikalne, navigacia z Activity (M633: PlayerMenus.kt)
         if (showOptions) {
-            val opts = listOf(
-                stringResource(R.string.sleep_off),
-                "15 min", "30 min", "45 min", "60 min", "90 min"
+            SleepOptionsMenu(
+                highlightIndex = if (isTvGest) optionsNavIndex else -1,   // M385-fix
+                onSelect = onOptionsSelect,
+                onDismiss = { showOptions = false }
             )
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(playerScrimSoft())
-                    .consumeAllPointer()   // M563
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { showOptions = false },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    Modifier
-                        // M562: rovnaka sirka ako menu Viac / TrackMenu (bez max sa riadky roztiahli)
-                        .widthIn(min = 280.dp, max = 460.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(playerScrim())
-                        .padding(8.dp)
-                ) {
-                    Text(
-                        stringResource(R.string.sleep_timer),
-                        color = playerFg(),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(12.dp)
-                    )
-                    opts.forEachIndexed { idx, label ->
-                        // M385-fix: D-pad zvyraznenie len na TV (na telefone svietil vrchny riadok)
-                        val sel = isTvGest && idx == optionsNavIndex
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (sel) (if (isModernUi()) playerAccent().copy(alpha = 0.35f) else Color(0x553B82F6)) else Color.Transparent)   // M562
-                                .clickable { onOptionsSelect(idx) }
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(label, color = playerFg())
-                        }
-                    }
-                }
-            }
         }
 
         // Menu stop (audio / titulky)
@@ -6824,93 +6716,13 @@ private fun PlayerUi(
             )
         }
 
-        // Rodicovsky zamok: zadanie PIN (cislice z dialkoveho riesi Activity)
+        // Rodicovsky zamok: zadanie PIN (cislice z dialkoveho riesi Activity; M633: PlayerMenus.kt)
         if (pinPrompt) {
-            Box(
-                Modifier.fillMaxSize().background(Color(0x990B1220))
-                    .pointerInput(Unit) { detectTapGestures { } },   // blokuj vstup do pozadia
-                contentAlignment = Alignment.Center
-            ) {
-                // M273: kompaktny panel ako pri vytvarani PINu (PinDialogGrid), nie cela obrazovka.
-                androidx.compose.material3.Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color(0xFF1B2433),
-                    contentColor = Color.White,
-                    tonalElevation = 6.dp
-                ) {
-                    Column(
-                        Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            androidx.compose.ui.res.stringResource(R.string.plock_enter),
-                            color = Color.White,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Spacer(Modifier.height(20.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                            repeat(4) { i ->
-                                Box(
-                                    Modifier.size(18.dp).clip(CircleShape).background(
-                                        if (i < pinLen) MaterialTheme.colorScheme.primary else Color(0x44FFFFFF)
-                                    )
-                                )
-                            }
-                        }
-                        if (pinError) {
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                androidx.compose.ui.res.stringResource(R.string.plock_wrong),
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                        Spacer(Modifier.height(16.dp))
-                        // Ciselna mriezka: na telefone dotykova, na TV ovladana D-padom
-                        // (zvyraznenie vybraneho klavesu) — pre ovladace bez ciselnych klaves.
-                        val padKeys = listOf(
-                            listOf("1", "2", "3"),
-                            listOf("4", "5", "6"),
-                            listOf("7", "8", "9"),
-                            listOf("del", "0", "list")
-                        )
-                        padKeys.forEachIndexed { r, rowKeys ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                rowKeys.forEachIndexed { c, label ->
-                                    val selected = isTvGest && r == pinGridRow && c == pinGridCol
-                                    Box(
-                                        Modifier.size(width = 64.dp, height = 44.dp)
-                                            .clip(RoundedCornerShape(22.dp))
-                                            .background(
-                                                if (selected) MaterialTheme.colorScheme.primary
-                                                else Color(0x22FFFFFF)
-                                            )
-                                            .border(
-                                                2.dp,
-                                                if (selected) Color.White else Color(0x55FFFFFF),
-                                                RoundedCornerShape(22.dp)
-                                            )
-                                            .clickable {
-                                                when (label) {
-                                                    "del" -> onPinBack()
-                                                    "list" -> onPinOpenList()
-                                                    else -> onPinDigit(label.toInt())
-                                                }
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            when (label) { "del" -> "\u232B"; "list" -> "\u2630"; else -> label },
-                                            color = if (selected) MaterialTheme.colorScheme.onPrimary else Color.White,
-                                            style = MaterialTheme.typography.titleMedium
-                                        )
-                                    }
-                                }
-                            }
-                            Spacer(Modifier.height(8.dp))
-                        }
-                    }
-                }
-            }
+            PlayerPinPanel(
+                pinLen = pinLen, pinError = pinError,
+                gridRow = if (isTvGest) pinGridRow else -1, gridCol = if (isTvGest) pinGridCol else -1,
+                onDigit = onPinDigit, onBack = onPinBack, onOpenList = onPinOpenList
+            )
         }
     }
 }
