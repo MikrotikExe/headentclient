@@ -166,9 +166,20 @@ class PlayerActivity : ComponentActivity() {
     // odchod z PIN vyzvy zamknuteho kanala), inicializuje HTSP switchToIndex.
     private var htspInitDone = false
     private val htspLiveState = androidx.compose.runtime.mutableStateOf(false)
-    private val timeshiftOffsetState = androidx.compose.runtime.mutableStateOf(0L)
+    // M647: HTSP timeshift v TimeshiftController.kt; tu delegaty pod povodnymi nazvami
+    private val timeshift: TimeshiftController by lazy {
+        TimeshiftController(lifecycleScope,
+            feeder = { htspFeeder },
+            onResumePlayback = {
+                htspFeeder?.resume()
+                isPlayingState.value = true
+                if (::mediaPlayer.isInitialized && !mediaPlayer.isPlaying) mediaPlayer.play()
+            },
+            onSeekSpinner = { showSeekSpinner() })
+    }
+    private val timeshiftOffsetState: androidx.compose.runtime.MutableState<Long> get() = timeshift.offsetMs
     // timeshift "zapnuty" (po prvej pauze) -> az vtedy davaju zmysel RW/FF a dvojklik
-    private val timeshiftEngagedState = androidx.compose.runtime.mutableStateOf(false)
+    private val timeshiftEngagedState: androidx.compose.runtime.MutableState<Boolean> get() = timeshift.engaged
 
     // ===== Moderny TV overlay (karty kanalov + ovladacia lista) — ModernOverlayController.kt (M642) =====
     private val modernOv: ModernOverlayController by lazy {
@@ -365,12 +376,6 @@ class PlayerActivity : ComponentActivity() {
     private fun openModernOverlay() { modernOv.open() }
     private fun closeModernOverlay() { modernOv.close() }
 
-    private var tsAccumMs = 0L
-    private var tsPauseStartedAt = 0L
-    private var htspStartedAt = 0L
-    private var pendingSkipMs = 0L
-    private var skipFlushJob: kotlinx.coroutines.Job? = null
-    private var timeshiftTickerJob: kotlinx.coroutines.Job? = null
     private lateinit var mediaPlayer: MediaPlayer
 
     // M639: stav ziveho prehravania v LiveSession; tu delegaty pod povodnymi nazvami
@@ -792,61 +797,31 @@ class PlayerActivity : ComponentActivity() {
 
     private fun togglePlayPause() {
         if (!::mediaPlayer.isInitialized) return
-        skipFlushJob?.cancel(); flushSkip()   // doruc nazbierany skok, nech je server konzistentny
+        timeshift.flushNow()   // doruc nazbierany skok, nech je server konzistentny
         if (isPlayingState.value) {
             if (htspStream) htspFeeder?.pause()         // zastav HTSP delivery (aj bez timeshiftu)
             if (htspLive) {
                 // prva pauza "zapne" timeshift: odtialto sa rata buffer aj cervene pocitadlo
-                // prva pauza je pri „On-demand" timeshifte moment, kedy server
-                // zacne buffer naozaj tvorit — odtialto ma zmysel ratat okno
-                if (htspStartedAt <= 0L) htspStartedAt = System.currentTimeMillis()
-                timeshiftEngagedState.value = true
+                timeshift.onPaused()
                 // zapnutim timeshiftu pribudnu ovladace pretacania (tsrew pred play) a posunu sa
                 // indexy — re-ukotvi fokus na play/pause, nech "neskoci" na pretacanie
                 val ord = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), true, profileSwitchAvailable(), dvrRecordVisible())
                 controlNavState.value = ord.indexOf("play").coerceAtLeast(0)
-                tsPauseStartedAt = System.currentTimeMillis()
-                startTimeshiftTicker()
             }
             isPlayingState.value = false
             mediaPlayer.pause()
         } else {
             if (htspStream) htspFeeder?.resume()
-            if (htspLive) {
-                if (tsPauseStartedAt > 0L) {
-                    tsAccumMs += System.currentTimeMillis() - tsPauseStartedAt
-                    tsPauseStartedAt = 0L
-                }
-                stopTimeshiftTicker()
-                timeshiftOffsetState.value = tsAccumMs
-            }
+            if (htspLive) timeshift.onResumed()
             isPlayingState.value = true
             reconnect.resetDvrReopen()   // manualny play -> povol nove pokusy o nacitanie novsich dat
             mediaPlayer.play()
         }
     }
 
-    /** Pocas pauzy rastie posun za zivym (1 s/s); aktualizuje ukazovatel kazdu sekundu. */
-    private fun startTimeshiftTicker() {
-        timeshiftTickerJob?.cancel()
-        timeshiftTickerJob = lifecycleScope.launch {
-            while (true) {
-                val extra = if (tsPauseStartedAt > 0L) System.currentTimeMillis() - tsPauseStartedAt else 0L
-                timeshiftOffsetState.value = tsAccumMs + extra
-                kotlinx.coroutines.delay(1000)
-            }
-        }
-    }
-
-    private fun stopTimeshiftTicker() {
-        timeshiftTickerJob?.cancel()
-        timeshiftTickerJob = null
-    }
-
     /** Novy zivy zaciatok (cerstva subscription = na zivo) -> vynuluj timeshift. */
     private fun resetTimeshift() {
-        stopTimeshiftTicker()
-        skipFlushJob?.cancel(); skipFlushJob = null
+        timeshift.reset()
         seekSpinnerJob?.cancel(); seekingState.value = false
         seekHintJob?.cancel(); seekHintState.value = 0
         // M492: akumulator dvojkliku sa nulovat musi tiez — inak by po prepnuti
@@ -855,84 +830,22 @@ class PlayerActivity : ComponentActivity() {
         seekCommitJob?.cancel(); seekCommitJob = null
         seekAccumBaseMs = -1L
         dvrPlayheadMsState.value = 0L
-        pendingSkipMs = 0L
-        tsAccumMs = 0L
-        tsPauseStartedAt = 0L
-        htspStartedAt = 0L   // novy kanal = novy buffer od nuly
-        timeshiftEngagedState.value = false
-        timeshiftOffsetState.value = 0L
     }
 
-    /**
-     * Kolko sa da pretocit dozadu.
-     *
-     * M508-fix2: prednost ma SKUTOCNA dlzka buffera hlasena serverom
-     * (`timeshiftStatus`: end - start). Pozor, pole `shift` je aktualna pozicia
-     * voci zivemu vysielaniu, nie rozsah — pouzit ho na toto bola chyba.
-     *
-     * Odhad podla uplynuteho casu neplati, ked ma server timeshift „On-demand":
-     * vtedy sa buffer zacne tvorit az ked oň klient poziada (pauza/skok), takze
-     * skok tesne po naladeni kanala isiel do prazdna a obraz zamrzol.
-     *
-     * Wall-clock ostava ako zaloha, ked server rozsah nehlasi (starsi TVH; pri
-     * radiu TVH timeshift info neposiela vobec).
-     */
-    private fun maxRewindMs(): Long {
-        val fromServer = (htspFeeder?.bufferTicks ?: 0L) / 90L   // 90 kHz -> ms
-        if (fromServer > 0L) return fromServer.coerceAtMost(3600_000L)
-        if (htspStartedAt <= 0L) return 0L
-        val elapsed = System.currentTimeMillis() - htspStartedAt
-        return elapsed.coerceAtMost(3600_000L)
-    }
+    private fun maxRewindMs(): Long = timeshift.maxRewindMs()
 
-    /** Relativny skok v timeshifte (sekundy; zaporne = vzad). Aktualizuje aj ukazovatel. */
-    private fun timeshiftSkip(seconds: Int) {
-        if (!htspLive) return
-        // ak je pauza, po skoku spusti prehravanie (nech vidno vysledok skoku)
-        if (tsPauseStartedAt > 0L) {
-            val now = System.currentTimeMillis()
-            tsAccumMs += now - tsPauseStartedAt
-            tsPauseStartedAt = 0L
-            stopTimeshiftTicker()
-            htspFeeder?.resume()
-            isPlayingState.value = true
-            if (::mediaPlayer.isInitialized && !mediaPlayer.isPlaying) mediaPlayer.play()
-        }
-        // cielova pozicia za zivym, orezana na <0 .. hlbka bufferu>
-        val target = (tsAccumMs - seconds.toLong() * 1000L).coerceIn(0L, maxRewindMs())
-        val deltaMs = target - tsAccumMs
-        if (deltaMs == 0L) return                   // niet kam (zaciatok bufferu alebo zive)
-        tsAccumMs = target
-        timeshiftOffsetState.value = tsAccumMs
-        // ukazovatel reaguje hned, ale realny skok posli az ked prestane tukanie —
-        // viac skokov za sebou inak nuti libVLC stale resynchronizovat (trha to)
-        pendingSkipMs += deltaMs
-        skipFlushJob?.cancel()
-        skipFlushJob = lifecycleScope.launch {
-            kotlinx.coroutines.delay(350)
-            flushSkip()
+    /** Relativny skok v timeshifte (sekundy; zaporne = vzad). */
+    private fun timeshiftSkip(seconds: Int) { if (htspLive) timeshift.skip(seconds) }
+
+    /** Koliesko v strede pocas resyncu; zhasne ho Playing/Buffering event, poistka po 4 s. */
+    private fun showSeekSpinner() {
+        seekingState.value = true
+        seekSpinnerJob?.cancel()
+        seekSpinnerJob = lifecycleScope.launch {
+            kotlinx.coroutines.delay(4000)
+            seekingState.value = false
         }
     }
-
-    /** Posle nazbierany skok jedným relativnym subscriptionSkip. Na zive sa vracia
-     *  skokom dopredu (NIE subscriptionLive, ktory padal, ani restartom, ktory by
-     *  vynuloval buffer) — tak ostava ta ista subscription aj buffer a da sa pretacat aj potom. */
-    private fun flushSkip() {
-        val net = pendingSkipMs
-        pendingSkipMs = 0L
-        if (net != 0L) {
-            htspFeeder?.skip((-net / 1000L).toInt())   // dozadu => zaporne, dopredu => kladne
-            // koliesko v strede pocas resyncu; zhasne ho Playing/Buffering event,
-            // poistka ho zhasne aj keby event neprisiel
-            seekingState.value = true
-            seekSpinnerJob?.cancel()
-            seekSpinnerJob = lifecycleScope.launch {
-                kotlinx.coroutines.delay(4000)
-                seekingState.value = false
-            }
-        }
-    }
-
 
     /** Pretacanie pre DVR (live TS sa pretacat neda). TS subor nenese dlzku,
      *  preto pouzivame dlzku z DVR entry a poziciu ako zlomok (na TS spolahlive). */
@@ -3697,8 +3610,7 @@ class PlayerActivity : ComponentActivity() {
         pipReceiver?.let { runCatching { unregisterReceiver(it) } }
         pipReceiver = null
         subOverlay?.stopTicker()   // zastav titulkovy ticker skor nez uvolnis mediaPlayer
-        stopTimeshiftTicker()
-        skipFlushJob?.cancel()
+        timeshift.destroy()
         cancelTrackRefresh()
         tracks.destroy()
         // M535: stop/release libVLC na pracovnom vlakne (bezne uz prebehlo v onStop
