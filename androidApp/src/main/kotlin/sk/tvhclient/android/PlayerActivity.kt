@@ -1837,16 +1837,6 @@ class PlayerActivity : ComponentActivity() {
         if (i >= 0) selectChannelOrArchive(i, poke = false)
     }
 
-    /** M262 — prepnutie pocas zobrazenej PIN vyzvy: zrusi vyzvu zamknuteho kanala
-     *  (bez ukoncenia prehravaca) a prepne na susedny relativne k blokovanemu kanalu.
-     *  switchToIndex znova vyhodnoti zamok: volny kanal -> hra, dalsi zamknuty -> opat PIN. */
-    private fun switchFromPin(fromIndex: Int, delta: Int) {
-        val n = liveUuids.size
-        if (n < 2) return
-        closePin()
-        switchToIndex(((fromIndex + delta) % n + n) % n)
-    }
-
     /** Zadanie cisla kanala z dialkoveho: nazbieraj cislice, po 1,5 s sa prepne. */
     private fun onChannelDigit(d: Int) {
         if (liveUuids.isEmpty()) return
@@ -1902,10 +1892,8 @@ class PlayerActivity : ComponentActivity() {
     // nikdy nedozvedelo; presne preto tlacidlo nebolo vidno
     private val profileSwitchState = androidx.compose.runtime.mutableStateOf(false)
     // Casovac uspatia
-    private val sleepMinutesState = androidx.compose.runtime.mutableStateOf(0)
-    private val sleepDeadlineState = androidx.compose.runtime.mutableStateOf(0L)
-    private val sleepHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val sleepDurations = listOf(0, 15, 30, 45, 60, 90)
+    // M629: casovac uspatia v SleepTimer.kt
+    private val sleep by lazy { SleepTimer(this) { finish() } }
     // Navigacia ovladacieho panela (focus riadime z Activity, nie cez Compose focus)
     private val controlNavState = androidx.compose.runtime.mutableStateOf(0)
     // Navigacia track menu (audio/titulky)
@@ -1918,11 +1906,19 @@ class PlayerActivity : ComponentActivity() {
     private var trackMenuKind = "audio"
     private var okLongFired = false
 
-    // Rodicovsky zamok (PIN) — Activity-driven overlay
-    private val pinPromptState = androidx.compose.runtime.mutableStateOf(false)
-    private val pinEntryState = androidx.compose.runtime.mutableStateOf("")
-    private val pinErrorState = androidx.compose.runtime.mutableStateOf(false)
-    private var pinOnSuccess: (() -> Unit)? = null
+    // Rodicovsky zamok (PIN) — stav a klavesy v PinPrompt.kt (M629), vykreslenie PinDialog v PlayerUi
+    private val pin by lazy {
+        PinPrompt(this,
+            isTv = { isTvDevice() },
+            channelCount = { liveUuids.size },
+            openChannelList = { openChannelList() },
+            switchToIndex = { idx -> switchToIndex(idx) },
+            onRequested = { okLongFired = false })   // PIN vyzva prebera vstup; OK gesto je tym ukoncene
+    }
+    private val pinPromptState get() = pin.promptState
+    private fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, markUnlock: Boolean = true, channelIndex: Int? = null) =
+        pin.request(onOk, onCancel, markUnlock, channelIndex)
+    private fun closePin() = pin.close()
     // Dialog "Obnovit prehravanie" — D-pad obsluha v dispatchKeyEvent (na boxe nemal fokus)
     private val resumePromptState = androidx.compose.runtime.mutableStateOf(false)
     private val resumeSelState = androidx.compose.runtime.mutableStateOf(1)   // 0=Nie, 1=Ano (predvolba)
@@ -1934,7 +1930,6 @@ class PlayerActivity : ComponentActivity() {
     // Navrat na povodny zivy kanal po zatvoreni DVR prehravaca spusteneho cez "od zaciatku"
     private var returnLiveUuid: String? = null
     private var returnLiveTitle: String? = null
-    private var pinOnCancel: (() -> Unit)? = null
 
     // DVR scrub focus: nahlad pozicie pri vybere casu sipkami (potvrdenie OK)
     private val scrubFractionState = androidx.compose.runtime.mutableStateOf(0f)
@@ -2074,73 +2069,6 @@ class PlayerActivity : ComponentActivity() {
         val bar = if (dvrRecording) (dvrDurationMs - 45_000L).coerceAtLeast(1L) else dvrDurationMs
         scrubFractionState.value = if (bar > 0)
             (dvrPlayheadMsState.value.toFloat() / bar).coerceIn(0f, 1f) else 0f
-    }
-
-    // M265: vyber v PIN mriezke (in-player vyzva, D-pad). Mriezka 1-9 / del 0 x.
-    private val pinGridRowState = androidx.compose.runtime.mutableStateOf(0)
-    private val pinGridColState = androidx.compose.runtime.mutableStateOf(0)
-    private fun activatePinGridKey() {
-        val grid = listOf(
-            listOf("1", "2", "3"),
-            listOf("4", "5", "6"),
-            listOf("7", "8", "9"),
-            listOf("del", "0", "list")
-        )
-        val r = pinGridRowState.value.coerceIn(0, 3)
-        val c = pinGridColState.value.coerceIn(0, 2)
-        when (val label = grid[r][c]) {
-            "del" -> pinDel()
-            "list" -> pinOpenChannelList()
-            else -> pinDigit(label.toInt())
-        }
-    }
-
-    private var pinMarkUnlock = true
-    // M262: index kanala, ktoreho prehravanie PIN vyzva blokuje (null = ine pouzitie,
-    // napr. zamykanie z menu). Umoznuje pocas vyzvy prepnut na susedny kanal.
-    private var pinChannelIndex: Int? = null
-    private fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, markUnlock: Boolean = true, channelIndex: Int? = null) {
-        okLongFired = false   // PIN vyzva preberá vstup; OK gesto je tým ukoncene
-        pinMarkUnlock = markUnlock
-        pinChannelIndex = channelIndex
-        pinOnSuccess = onOk; pinOnCancel = onCancel
-        pinEntryState.value = ""; pinErrorState.value = false
-        pinGridRowState.value = 0; pinGridColState.value = 0
-        pinPromptState.value = true
-    }
-    private fun closePin() {
-        pinPromptState.value = false; pinEntryState.value = ""; pinErrorState.value = false
-        pinOnSuccess = null; pinOnCancel = null
-        pinMarkUnlock = true
-        pinChannelIndex = null
-    }
-    /** M267: z PIN vyzvy zamknuteho kanala otvor zoznam kanalov, nech si pouzivatel vyberie
-     *  iny (nezamknuty) kanal. Vyzvu zatvorime bez onCancel (teda bez finish), aby prehravac
-     *  nezhasol. Ak je len jeden kanal, niet kam prepnut -> sprav cancel (finish). */
-    private fun pinOpenChannelList() {
-        if (liveUuids.size < 2) { cancelPin(); return }
-        closePin()
-        openChannelList()
-    }
-    private fun pinDigit(d: Int) {
-        if (pinEntryState.value.length >= 4) return
-        pinEntryState.value += d
-        pinErrorState.value = false
-        if (pinEntryState.value.length == 4) {
-            if (ParentalLock.checkPin(this, pinEntryState.value)) {
-                if (pinMarkUnlock) ParentalLock.markUnlocked(this)
-                val ok = pinOnSuccess
-                closePin(); ok?.invoke()
-            } else { pinErrorState.value = true; pinEntryState.value = "" }
-        }
-    }
-    private fun cancelPin() {
-        val c = pinOnCancel
-        closePin(); c?.invoke()
-    }
-    private fun pinDel() {
-        if (pinEntryState.value.isNotEmpty()) pinEntryState.value = pinEntryState.value.dropLast(1)
-        pinErrorState.value = false
     }
 
     // Pocitadlo na obnovu ikon zamku v in-player zozname po zmene zamku.
@@ -2540,26 +2468,9 @@ class PlayerActivity : ComponentActivity() {
         openOptionsState.value = openOptionsState.value + 1
     }
 
-    /** Nastavi casovac uspatia (0 = vypnut). Po uplynuti zastavi a zavrie prehravac. */
-    private fun setSleepTimer(minutes: Int) {
-        sleepHandler.removeCallbacksAndMessages(null)
-        sleepMinutesState.value = minutes
-        if (minutes <= 0) {
-            sleepDeadlineState.value = 0L
-            Toast.makeText(this, getString(R.string.sleep_off), Toast.LENGTH_SHORT).show()
-            return
-        }
-        sleepDeadlineState.value = System.currentTimeMillis() + minutes * 60_000L
-        sleepHandler.postDelayed({
-            // M535: stop() uz nie na hlavnom vlakne — zastavi ho teardown pri finish()
-            finish()
-        }, minutes * 60_000L)
-        Toast.makeText(this, getString(R.string.sleep_set, minutes), Toast.LENGTH_SHORT).show()
-    }
-
     /** Vyber dlzky casovaca uspatia. */
     private fun selectOption(idx: Int) {
-        setSleepTimer(sleepDurations.getOrElse(idx) { 0 })
+        sleep.set(sleep.durations.getOrElse(idx) { 0 })
         closeOptions()
     }
 
@@ -2791,50 +2702,8 @@ class PlayerActivity : ComponentActivity() {
             openTeletext(); return true
         }
 
-        // 0) PIN rodicovskeho zamku -> cislice zadavame my; na TV aj D-pad mriezka
-        if (pinPromptState.value) {
-            if (down) {
-                val digit = when (kc) {
-                    in android.view.KeyEvent.KEYCODE_0..android.view.KeyEvent.KEYCODE_9 ->
-                        kc - android.view.KeyEvent.KEYCODE_0
-                    in android.view.KeyEvent.KEYCODE_NUMPAD_0..android.view.KeyEvent.KEYCODE_NUMPAD_9 ->
-                        kc - android.view.KeyEvent.KEYCODE_NUMPAD_0
-                    else -> -1
-                }
-                // priame cislice z dialkoveho (ak ich ovladac ma)
-                if (digit >= 0) { pinDigit(digit); return true }
-                when (kc) {
-                    android.view.KeyEvent.KEYCODE_DEL -> { pinDel(); return true }
-                    // M267-fix: sipka Spat pocas PIN vyzvy zamknuteho kanala vrati pouzivatela
-                    // k zoznamu kanalov (nech si vyberie nezamknuty), neukoncuje prehravac.
-                    // Plati LEN pocas PIN vyzvy (mimo nej ma BACK svoju beznu funkciu nizsie).
-                    android.view.KeyEvent.KEYCODE_BACK -> { pinOpenChannelList(); return true }
-                }
-                // M262: pocas vyzvy sa da prepnut na iny kanal — len hardverove CHANNEL +/-
-                // (D-pad teraz ovlada PIN mriezku). Volny kanal sa zacne hrat, dalsi zamknuty
-                // si opat vypyta PIN.
-                val pci = pinChannelIndex
-                if (pci != null && liveUuids.size > 1 && event.repeatCount == 0) {
-                    when (kc) {
-                        android.view.KeyEvent.KEYCODE_CHANNEL_UP -> { switchFromPin(pci, +1); return true }
-                        android.view.KeyEvent.KEYCODE_CHANNEL_DOWN -> { switchFromPin(pci, -1); return true }
-                    }
-                }
-                // M265: D-pad mriezka na zadanie PIN — pre ovladace bez ciselnych klaves.
-                if (isTvDevice()) {
-                    when (kc) {
-                        android.view.KeyEvent.KEYCODE_DPAD_LEFT -> { pinGridColState.value = (pinGridColState.value - 1 + 3) % 3; return true }
-                        android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> { pinGridColState.value = (pinGridColState.value + 1) % 3; return true }
-                        android.view.KeyEvent.KEYCODE_DPAD_UP -> { pinGridRowState.value = (pinGridRowState.value - 1 + 4) % 4; return true }
-                        android.view.KeyEvent.KEYCODE_DPAD_DOWN -> { pinGridRowState.value = (pinGridRowState.value + 1) % 4; return true }
-                        android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-                        android.view.KeyEvent.KEYCODE_ENTER,
-                        android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> { activatePinGridKey(); return true }
-                    }
-                }
-            }
-            return true
-        }
+        // 0) PIN rodicovskeho zamku -> cislice, D-pad mriezka, CH+/- pocas vyzvy (PinPrompt, M629)
+        if (pin.isOpen) return pin.handleKey(kc, down, event)
 
         // 0a) Dialog "Obnovit prehravanie" -> sipky vlavo/vpravo + OK riesime my (na boxe inak bez fokusu)
         if (resumePromptState.value) {
@@ -3178,7 +3047,7 @@ class PlayerActivity : ComponentActivity() {
 
         // 2) Otvoreny vyber casovaca uspatia -> vertikalna navigacia
         if (optionsOpen) {
-            val count = sleepDurations.size
+            val count = sleep.durations.size
             if (down) {
                 when (kc) {
                     android.view.KeyEvent.KEYCODE_DPAD_UP ->
@@ -3948,7 +3817,7 @@ class PlayerActivity : ComponentActivity() {
                 openOptionsSignal = openOptionsState.value,
                 closeOptionsSignal = closeOptionsState.value,
                 optionsNavIndex = optionsNavState.value,
-                sleepDeadline = sleepDeadlineState.value,
+                sleepDeadline = sleep.deadlineState.value,
                 onOptionsSelect = { idx -> selectOption(idx) },
                 controlNavIndex = controlNavState.value,
                 trackNavIndex = trackNavState.value,
@@ -4024,15 +3893,15 @@ class PlayerActivity : ComponentActivity() {
                 epgLoading = epgLoadingState.value,
                 numberEntry = numEntryState.value,
                 timeshiftOffsetMs = timeshiftOffsetState.value,
-                pinPrompt = pinPromptState.value,
-                pinLen = pinEntryState.value.length,
-                pinError = pinErrorState.value,
-                onPinDigit = { d -> pinDigit(d) },
-                onPinBack = { pinDel() },
-                onPinCancel = { cancelPin() },
-                onPinOpenList = { pinOpenChannelList() },
-                pinGridRow = pinGridRowState.value,
-                pinGridCol = pinGridColState.value,
+                pinPrompt = pin.promptState.value,
+                pinLen = pin.entryState.value.length,
+                pinError = pin.errorState.value,
+                onPinDigit = { d -> pin.digit(d) },
+                onPinBack = { pin.del() },
+                onPinCancel = { pin.cancel() },
+                onPinOpenList = { pin.openList() },
+                pinGridRow = pin.gridRowState.value,
+                pinGridCol = pin.gridColState.value,
                 scrubFrac = scrubFractionState.value,
                 progNextTitle = liveNextTitleState.value,
                 progNextStart = liveNextStartState.value,
@@ -5205,7 +5074,7 @@ class PlayerActivity : ComponentActivity() {
         if (liveInstance?.get() === this) liveInstance = null
         videoCheckHandler.removeCallbacksAndMessages(null)
         reconnectHandler.removeCallbacksAndMessages(null)
-        sleepHandler.removeCallbacksAndMessages(null)
+        sleep.cancel()
         pipReceiver?.let { runCatching { unregisterReceiver(it) } }
         pipReceiver = null
         subOverlay?.stopTicker()   // zastav titulkovy ticker skor nez uvolnis mediaPlayer
