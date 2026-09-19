@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">Bij opnemen het Tvheadend-opnameprofiel kiezen (map, bewaartermijn). Alleen zichtbaar als de server meer dan één profiel aanbiedt.</string>
     <string name="dvr_pick_title">Opnemen in profiel</string>
     <string name="dvr_pick_last">laatst gebruikt</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">Radio speelt door op de achtergrond</string>
+    <string name="radio_bg_note">De radio speelt door als u de speler verlaat: op het startscherm, in een andere app of met vergrendeld scherm. In de speler zelf blijft het scherm aan.</string>
 </resources>

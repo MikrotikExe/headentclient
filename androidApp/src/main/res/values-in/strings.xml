@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">Saat merekam, pilih profil perekaman Tvheadend (folder, masa simpan). Hanya tampil jika server menawarkan lebih dari satu profil.</string>
     <string name="dvr_pick_title">Rekam ke profil</string>
     <string name="dvr_pick_last">terakhir dipakai</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">Radio terus diputar di latar belakang</string>
+    <string name="radio_bg_note">Radio terus diputar saat Anda keluar dari pemutar — di layar utama, di aplikasi lain, atau saat layar terkunci. Di dalam pemutar, layar tetap menyala.</string>
 </resources>

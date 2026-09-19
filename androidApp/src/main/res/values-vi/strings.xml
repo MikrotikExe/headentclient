@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">Khi ghi hình, chọn hồ sơ ghi hình Tvheadend (thư mục, thời gian lưu). Chỉ hiện khi máy chủ có nhiều hơn một hồ sơ.</string>
     <string name="dvr_pick_title">Ghi vào hồ sơ</string>
     <string name="dvr_pick_last">dùng gần nhất</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">Radio tiếp tục phát trong nền</string>
+    <string name="radio_bg_note">Radio tiếp tục phát khi bạn rời trình phát — trên màn hình chính, trong ứng dụng khác hoặc khi khóa màn hình. Trong trình phát, màn hình vẫn sáng.</string>
 </resources>

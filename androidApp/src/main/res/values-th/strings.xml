@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">เมื่อบันทึก ให้เลือกโปรไฟล์การบันทึกของ Tvheadend (โฟลเดอร์ ระยะเวลาเก็บ) แสดงเฉพาะเมื่อเซิร์ฟเวอร์มีมากกว่าหนึ่งโปรไฟล์</string>
     <string name="dvr_pick_title">บันทึกลงโปรไฟล์</string>
     <string name="dvr_pick_last">ใช้ล่าสุด</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">วิทยุเล่นต่อในพื้นหลัง</string>
+    <string name="radio_bg_note">วิทยุเล่นต่อเมื่อออกจากตัวเล่น — บนหน้าจอหลัก ในแอปอื่น หรือเมื่อล็อกหน้าจอ ในตัวเล่นเองหน้าจอจะเปิดค้างไว้</string>
 </resources>

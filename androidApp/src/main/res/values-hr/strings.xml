@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">Pri snimanju odaberi Tvheadend profil snimanja (mapa, čuvanje). Prikazuje se samo kad poslužitelj nudi više od jednog profila.</string>
     <string name="dvr_pick_title">Snimi u profil</string>
     <string name="dvr_pick_last">zadnje korišten</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">Radio svira u pozadini</string>
+    <string name="radio_bg_note">Radio svira dalje kad izađete iz playera — na početnom zaslonu, u drugoj aplikaciji ili sa zaključanim zaslonom. U samom playeru zaslon ostaje uključen.</string>
 </resources>

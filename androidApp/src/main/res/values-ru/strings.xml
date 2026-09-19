@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">При записи выбирать профиль записи Tvheadend (папка, срок хранения). Показывается, только если сервер предлагает несколько профилей.</string>
     <string name="dvr_pick_title">Записать в профиль</string>
     <string name="dvr_pick_last">последний использованный</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">Радио играет в фоне</string>
+    <string name="radio_bg_note">Радио продолжает играть, когда вы выходите из плеера — на главном экране, в другом приложении или при заблокированном экране. В самом плеере экран остаётся включённым.</string>
 </resources>

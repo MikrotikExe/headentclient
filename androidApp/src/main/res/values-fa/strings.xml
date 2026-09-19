@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">هنگام ضبط، نمایهٔ ضبط Tvheadend را انتخاب کنید (پوشه، مدت نگهداری). فقط زمانی نمایش داده می‌شود که سرور بیش از یک نمایه ارائه دهد.</string>
     <string name="dvr_pick_title">ضبط در نمایه</string>
     <string name="dvr_pick_last">آخرین استفاده‌شده</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">رادیو در پس‌زمینه ادامه می‌یابد</string>
+    <string name="radio_bg_note">رادیو پس از خروج از پخش‌کننده ادامه می‌یابد — در صفحهٴ اصلی، در برنامهٴ دیگر یا با صفحهٴ قفل‌شده. در خود پخش‌کننده صفحه روشن می‌ماند.</string>
 </resources>

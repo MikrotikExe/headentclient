@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">При запис избери профила за запис на Tvheadend (папка, съхранение). Показва се само когато сървърът предлага повече от един профил.</string>
     <string name="dvr_pick_title">Запис в профил</string>
     <string name="dvr_pick_last">последно използван</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">Радиото свири на заден план</string>
+    <string name="radio_bg_note">Радиото продължава да свири, когато излезете от плейъра — на началния екран, в друго приложение или при заключен екран. В самия плейър екранът остава включен.</string>
 </resources>

@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">When recording, choose the Tvheadend recording profile (storage folder, retention). Shown only when the server offers more than one profile.</string>
     <string name="dvr_pick_title">Record to profile</string>
     <string name="dvr_pick_last">last used</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">Radio keeps playing in the background</string>
+    <string name="radio_bg_note">The radio keeps playing when you leave the player — on the home screen, in another app or with the screen locked. In the player itself the screen stays on.</string>
 </resources>

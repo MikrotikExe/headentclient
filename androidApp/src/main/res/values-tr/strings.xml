@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">Kaydederken Tvheadend kayıt profilini seç (klasör, saklama). Yalnızca sunucu birden fazla profil sunuyorsa gösterilir.</string>
     <string name="dvr_pick_title">Profile kaydet</string>
     <string name="dvr_pick_last">son kullanılan</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">Radyo arka planda çalmaya devam eder</string>
+    <string name="radio_bg_note">Oynatıcıdan çıktığınızda radyo çalmaya devam eder: ana ekranda, başka bir uygulamada veya ekran kilitliyken. Oynatıcının içinde ekran açık kalır.</string>
 </resources>

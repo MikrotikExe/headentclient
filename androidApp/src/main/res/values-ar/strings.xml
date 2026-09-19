@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">عند التسجيل اختر ملف تعريف التسجيل في Tvheadend (المجلد، مدة الاحتفاظ). يظهر فقط عندما يوفر الخادم أكثر من ملف تعريف واحد.</string>
     <string name="dvr_pick_title">التسجيل في ملف التعريف</string>
     <string name="dvr_pick_last">آخر ما استُخدم</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">يواصل الراديو التشغيل في الخلفية</string>
+    <string name="radio_bg_note">يواصل الراديو التشغيل عند الخروج من المشغّل — في الشاشة الرئيسية أو في تطبيق آخر أو مع قفل الشاشة. داخل المشغّل نفسه تبقى الشاشة مضاءة.</string>
 </resources>

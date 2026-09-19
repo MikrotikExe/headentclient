@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">Beim Aufnehmen das Tvheadend-Aufnahmeprofil wählen (Speicherordner, Aufbewahrung). Erscheint nur, wenn der Server mehr als ein Profil anbietet.</string>
     <string name="dvr_pick_title">In Profil aufnehmen</string>
     <string name="dvr_pick_last">zuletzt verwendet</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">Radio läuft im Hintergrund weiter</string>
+    <string name="radio_bg_note">Das Radio läuft weiter, wenn Sie den Player verlassen – auf dem Startbildschirm, in einer anderen App oder bei gesperrtem Bildschirm. Im Player selbst bleibt der Bildschirm an.</string>
 </resources>

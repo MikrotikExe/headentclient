@@ -882,6 +882,22 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         )
     }
 
+    // M623: radio hra na pozadi (telefon aj TV) — odchod z prehravaca (zhasnutie,
+    // zamok, domovska obrazovka, ina appka) radio nepozastavi
+    run {
+        var radioBg by remember { mutableStateOf(RadioBackgroundPref.get(ctx)) }
+        SettingsSwitchRow(
+            label = stringResource(R.string.radio_bg_title),
+            note = stringResource(R.string.radio_bg_note),
+            checked = radioBg,
+            onChange = { on ->
+                radioBg = on
+                RadioBackgroundPref.set(ctx, on)
+                TabController.settingsDirty.value = true
+            }
+        )
+    }
+
     // Vyber pri archivovanom kanali v prehravaci (nazivo / od zaciatku) — len TV/box
     if (isTvDev) {
         SettingsGroupDivider()

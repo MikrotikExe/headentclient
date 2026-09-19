@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">Felvételkor a Tvheadend felvételi profil kiválasztása (mappa, megőrzés). Csak akkor jelenik meg, ha a kiszolgáló egynél több profilt kínál.</string>
     <string name="dvr_pick_title">Felvétel profilba</string>
     <string name="dvr_pick_last">utoljára használt</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">A rádió a háttérben is szól</string>
+    <string name="radio_bg_note">A rádió tovább szól, ha kilép a lejátszóból – a kezdőképernyőn, másik alkalmazásban vagy lezárt képernyőnél. A lejátszóban a képernyő bekapcsolva marad.</string>
 </resources>

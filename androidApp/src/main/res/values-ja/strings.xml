@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">録画時に Tvheadend の録画プロファイル（保存先フォルダー、保持期間）を選びます。サーバーに複数のプロファイルがある場合のみ表示されます。</string>
     <string name="dvr_pick_title">プロファイルに録画</string>
     <string name="dvr_pick_last">前回使用</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">ラジオをバックグラウンドで再生し続ける</string>
+    <string name="radio_bg_note">プレーヤーを離れてもラジオは再生され続けます（ホーム画面、別のアプリ、画面ロック中）。プレーヤー内では画面は点灯したままです。</string>
 </resources>

@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">La înregistrare, alege profilul de înregistrare Tvheadend (dosar, păstrare). Apare doar când serverul oferă mai multe profiluri.</string>
     <string name="dvr_pick_title">Înregistrează în profilul</string>
     <string name="dvr_pick_last">ultimul folosit</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">Radioul continuă în fundal</string>
+    <string name="radio_bg_note">Radioul continuă când ieșiți din player — pe ecranul de start, în altă aplicație sau cu ecranul blocat. În player ecranul rămâne aprins.</string>
 </resources>

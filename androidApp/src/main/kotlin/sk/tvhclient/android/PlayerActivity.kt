@@ -3735,6 +3735,12 @@ class PlayerActivity : ComponentActivity() {
         if (posMs > 0) WatchProgress.save(this, sid, uuid, posMs, dur)
     }
 
+    /** M623: radio s volbou "Radio hra na pozadi" (telefon aj TV) — odchod z prehravaca
+     *  na pozadie (zhasnutie, zamok, domovska obrazovka, ina appka) radio nepozastavi.
+     *  V samotnom prehravaci obrazovka svieti dalej (KEEP_SCREEN_ON ako pri TV). */
+    private fun radioBackground(): Boolean =
+        playKind == "radio" && RadioBackgroundPref.get(this)
+
     private fun keepScreenOn(on: Boolean) {
         runOnUiThread {
             if (on) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -4991,6 +4997,22 @@ class PlayerActivity : ComponentActivity() {
             if (isFinishing) {
                 // M535: stop() sa NESMIE volat na hlavnom vlakne — pozri teardownPlayerAsync
                 teardownPlayerAsync()
+                return
+            }
+            // M623: "Radio hra na pozadi" — zhasnutie/zamok/ina appka radio nepozastavi.
+            // HOME riesi onUserLeaveHint (handoff + finish -> vetva vyssie); sem sa
+            // dostane zhasnutie obrazovky a prekrytie inou aktivitou. Moderny
+            // rezim: handoff do RadioPlayerService (notifikacia + mini lista; finish()
+            // -> onDestroy uvolni tento prehravac). Klasik nema service ani listu, tak
+            // ostane hrat samotny prehravac — wake/wifi lock (M452) drzi az do onDestroy;
+            // surface neodpajame, po navrate onStart len znova attachViews (runCatching).
+            // TV: ziadny handoff — TvHomeHost nema mini listu, radio by hralo bez ovladania;
+            // prehravac ostane hrat sam (napr. prekryty inou appkou; po standby M540
+            // v onStart prehravac obnovi a naladi znova).
+            if (wasPlaying && radioBackground()) {
+                if (isTvDevice() || !radioHandoffIfPossible()) {
+                    CrashLogger.report(this, "PlayerActivity.radioBg", "keep playing in background (tv=${isTvDevice()})")
+                }
                 return
             }
             if (mediaPlayer.isPlaying) {

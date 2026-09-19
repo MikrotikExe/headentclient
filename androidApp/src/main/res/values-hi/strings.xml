@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">रिकॉर्ड करते समय Tvheadend रिकॉर्डिंग प्रोफ़ाइल चुनें (फ़ोल्डर, रखने की अवधि)। केवल तब दिखता है जब सर्वर एक से अधिक प्रोफ़ाइल देता है।</string>
     <string name="dvr_pick_title">प्रोफ़ाइल में रिकॉर्ड करें</string>
     <string name="dvr_pick_last">पिछली बार इस्तेमाल</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">रेडियो बैकग्राउंड में बजता रहे</string>
+    <string name="radio_bg_note">प्लेयर से बाहर जाने पर रेडियो बजता रहता है — होम स्क्रीन पर, दूसरे ऐप में या स्क्रीन लॉक होने पर। प्लेयर में ही स्क्रीन चालू रहती है।</string>
 </resources>

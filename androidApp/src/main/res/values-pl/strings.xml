@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">Podczas nagrywania wybierz profil nagrywania Tvheadend (folder, czas przechowywania). Widoczne tylko, gdy serwer oferuje więcej niż jeden profil.</string>
     <string name="dvr_pick_title">Nagraj do profilu</string>
     <string name="dvr_pick_last">ostatnio użyty</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">Radio gra w tle</string>
+    <string name="radio_bg_note">Radio gra dalej po wyjściu z odtwarzacza — na ekranie głównym, w innej aplikacji lub przy zablokowanym ekranie. W samym odtwarzaczu ekran pozostaje włączony.</string>
 </resources>

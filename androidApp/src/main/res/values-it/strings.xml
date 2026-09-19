@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">Durante la registrazione scegli il profilo di registrazione Tvheadend (cartella, conservazione). Mostrato solo se il server offre più profili.</string>
     <string name="dvr_pick_title">Registra nel profilo</string>
     <string name="dvr_pick_last">ultimo usato</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">La radio continua in sottofondo</string>
+    <string name="radio_bg_note">La radio continua quando esci dal lettore: nella schermata iniziale, in un’altra app o con lo schermo bloccato. Nel lettore stesso lo schermo resta acceso.</string>
 </resources>

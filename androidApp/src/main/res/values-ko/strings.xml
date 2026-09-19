@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">녹화할 때 Tvheadend 녹화 프로필(저장 폴더, 보관 기간)을 선택합니다. 서버에 프로필이 둘 이상일 때만 표시됩니다.</string>
     <string name="dvr_pick_title">프로필에 녹화</string>
     <string name="dvr_pick_last">마지막 사용</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">라디오를 백그라운드에서 계속 재생</string>
+    <string name="radio_bg_note">플레이어를 벗어나도 라디오가 계속 재생됩니다 — 홈 화면, 다른 앱 또는 화면 잠금 상태에서. 플레이어 안에서는 화면이 켜진 채 유지됩니다.</string>
 </resources>

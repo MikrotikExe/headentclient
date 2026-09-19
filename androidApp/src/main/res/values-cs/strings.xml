@@ -415,4 +415,7 @@
     <string name="dvr_ask_note">Při nahrávání vybrat profil nahrávání Tvheadendu (složka, doba uchování). Zobrazí se, jen když server nabízí více než jeden profil.</string>
     <string name="dvr_pick_title">Nahrát do profilu</string>
     <string name="dvr_pick_last">naposledy použitý</string>
+    <!-- M623: radio hra na pozadi (telefon) -->
+    <string name="radio_bg_title">Rádio hraje na pozadí</string>
+    <string name="radio_bg_note">Rádio hraje dál, když odejdeš z přehrávače — na domovské obrazovce, v jiné aplikaci nebo při zamknutém displeji. V samotném přehrávači displej svítí dál.</string>
 </resources>
