@@ -428,12 +428,16 @@ class PlayerActivity : ComponentActivity() {
     private val seekingState = androidx.compose.runtime.mutableStateOf(false)
     private var seekSpinnerJob: kotlinx.coroutines.Job? = null
     // YouTube-style dvojklik pretacanie: nazbierane sekundy (+/-), 0 = skryte
-    private val seekHintState = androidx.compose.runtime.mutableStateOf(0)
-    private var seekHintJob: kotlinx.coroutines.Job? = null
-    // Akumulovany dvojklik (DVR): vychodzi playhead serie klikov + odlozeny commit, aby
-    // viac klikov za sebou pretocilo RAZ (kazdy klik = plny feeder restart, nedaju sa tlct).
-    private var seekAccumBaseMs: Long = -1L
-    private var seekCommitJob: kotlinx.coroutines.Job? = null
+    // M648: vypocet ciela pretacania, M594 zotavenie a dvojklik v DvrSeek.kt
+    private val dvrSeek: DvrSeek by lazy {
+        DvrSeek(this, lifecycleScope,
+            durMs = { if (dvrDurationMs > 0) dvrDurationMs else (if (::mediaPlayer.isInitialized) mediaPlayer.length else 0L) },
+            recording = { dvrRecording },
+            playheadMs = { dvrPlayheadMsState.value },
+            seekable = { ::mediaPlayer.isInitialized && seekablePlayback },
+            performSeek = { target, from, dur -> seekDvrTo(target, from, dur) })
+    }
+    private val seekHintState: androidx.compose.runtime.MutableState<Int> get() = dvrSeek.hint
     private var pipReceiver: android.content.BroadcastReceiver? = null
     private val PIP_ACTION = "sk.tvhclient.android.PIP_TOGGLE"
     private val PIP_CLOSE_ACTION = "sk.tvhclient.android.PIP_CLOSE"   // M576
@@ -823,12 +827,9 @@ class PlayerActivity : ComponentActivity() {
     private fun resetTimeshift() {
         timeshift.reset()
         seekSpinnerJob?.cancel(); seekingState.value = false
-        seekHintJob?.cancel(); seekHintState.value = 0
-        // M492: akumulator dvojkliku sa nulovat musi tiez — inak by po prepnuti
-        // media ostal vychodzi bod z predchadzajucej nahravky a prve pretocenie
-        // by skocilo uplne inam. Playhead vynuluj z rovnakeho dovodu.
-        seekCommitJob?.cancel(); seekCommitJob = null
-        seekAccumBaseMs = -1L
+        // M492: akumulator dvojkliku a hint sa nulovat musia tiez — inak by po prepnuti
+        // media ostal vychodzi bod z predchadzajucej nahravky. Playhead vynuluj z rovnakeho dovodu.
+        dvrSeek.resetForNewMedia()
         dvrPlayheadMsState.value = 0L
     }
 
@@ -849,54 +850,9 @@ class PlayerActivity : ComponentActivity() {
 
     /** Pretacanie pre DVR (live TS sa pretacat neda). TS subor nenese dlzku,
      *  preto pouzivame dlzku z DVR entry a poziciu ako zlomok (na TS spolahlive). */
-    // M594: zotavenie po pretoceni za realny koniec suboru
-    private var lastSeekAtMs = 0L
-    private var lastSeekTargetMs = 0L
-    private var seekRecoverTries = 0
-    private fun justSeeked(): Boolean =
-        lastSeekAtMs > 0L && android.os.SystemClock.elapsedRealtime() - lastSeekAtMs < 15_000L
-
-    /** Vrati true, ak sa po pretoceni podarilo ustupit spat a skusit znova. */
-    private fun recoverAfterSeek(): Boolean {
-        if (!seekablePlayback || dvrRecording || !justSeeked() || seekRecoverTries >= 2) return false
-        seekRecoverTries++
-        val back = (lastSeekTargetMs - 30_000L * seekRecoverTries).coerceAtLeast(0L)
-        CrashLogger.report(this, "PlayerActivity.dvrSeek",
-            "seek past end of file, retry #$seekRecoverTries at ${back / 1000}s")
-        seekDvrAbsolute(back)
-        return true
-    }
-
-    /** Absolutny seek na program-relativny cas (spodna lista / D-pad). Cez seekDvrTo,
-     *  takze funguje aj pre feeder/pipe (player.position tam nic nerobi). */
-    private fun seekDvrAbsolute(targetMs: Long) {
-        if (!::mediaPlayer.isInitialized || !seekablePlayback) return
-        val dur = if (dvrDurationMs > 0) dvrDurationMs else mediaPlayer.length
-        if (dur <= 0) return
-        // M594: aj dokoncena nahravka dostane rezervu — trvanie sa berie z EPG a subor
-        // byva o cosi kratsi (nahravanie skoncilo skor). Skok na uplny koniec potom
-        // trafil EOF a prehravac ostal stat.
-        val maxMs = if (dvrRecording) (dur - 45_000L).coerceAtLeast(0L) else (dur - 5_000L).coerceAtLeast(0L)
-        val curMs = dvrPlayheadMsState.value.coerceIn(0L, dur)
-        val tgt = targetMs.coerceIn(0L, maxMs)
-        if (kotlin.math.abs(tgt - curMs) < 1000L) return
-        seekDvrTo(tgt, curMs, dur)
-    }
-
-    private fun seekRelative(deltaMs: Long) {
-        if (!::mediaPlayer.isInitialized || !seekablePlayback) return
-        val dur = if (dvrDurationMs > 0) dvrDurationMs else mediaPlayer.length
-        if (dur <= 0) return
-        // Pri prebiehajucej nahravke nechaj rezervu ~45 s od zivej hrany (zapisane data
-        // zaostavaju za EPG casom; mensia rezerva = EOF a zamrznutie TS).
-        val maxMs = if (dvrRecording) (dur - 45_000L).coerceAtLeast(0L) else (dur - 5_000L).coerceAtLeast(0L)   // M594
-        // Aktualna pozicia = nas playhead (spolahlivy pre obe cesty; player.position je
-        // pre rastuci TS aj pre pipe nestabilna).
-        val curMs = dvrPlayheadMsState.value.coerceIn(0L, dur)
-        val targetMs = (curMs + deltaMs).coerceIn(0L, maxMs)
-        if (kotlin.math.abs(targetMs - curMs) < 1000L) return
-        seekDvrTo(targetMs, curMs, dur)
-    }
+    private fun recoverAfterSeek(): Boolean = dvrSeek.recoverAfterSeek()
+    private fun seekDvrAbsolute(targetMs: Long) { dvrSeek.seekAbsolute(targetMs) }
+    private fun seekRelative(deltaMs: Long) { dvrSeek.seekRelative(deltaMs) }
 
     /** Pretoc DVR nahravku na cielovy program-relativny cas PREBUDOVANIM streamu.
      *  Priame URL -> nova Media s :start-time (libVLC seekuje cez HTTP Range).
@@ -948,8 +904,7 @@ class PlayerActivity : ComponentActivity() {
         }
         // M594: cas a ciel posledneho pretocenia — ked hned po nom pride koniec/chyba,
         // je to trafeny EOF (subor kratsi nez trvanie z EPG) a nie skutocny koniec
-        lastSeekAtMs = android.os.SystemClock.elapsedRealtime()
-        lastSeekTargetMs = targetMs
+        dvrSeek.markSeek(targetMs)
         // playhead hned na cielovu poziciu + seed pre hodiny (po restarte je player.position
         // neplatna, hodiny ju nesmu citat - prevezmu seed a tikaju dalej z neho)
         dvrPlayheadMsState.value = targetMs
@@ -957,39 +912,16 @@ class PlayerActivity : ComponentActivity() {
     }
 
     /** Dvojklik na lavu/pravu stranu (YouTube-style): skok o 10 s.
-     *  DVR -> seek v medii; aktivny timeshift -> subscriptionSkip. Hint sa akumuluje. */
+     *  DVR -> seek v medii (akumulovane); aktivny timeshift -> subscriptionSkip hned. */
     private fun doubleTapSeek(forward: Boolean) {
-        val step = if (forward) 10 else -10
         when {
-            seekablePlayback -> {
-                // zafixuj vychodzi playhead na zaciatku serie klikov (dalsie kliky len pridavaju)
-                if (seekAccumBaseMs < 0L) seekAccumBaseMs = dvrPlayheadMsState.value
-            }
+            seekablePlayback -> dvrSeek.doubleTap(forward, applyImmediately = false)
             htspLive -> {
                 if (maxRewindMs() <= 0L) return   // timeshift sa zapne az pauzou, dovtedy niet co pretacat
-                timeshiftSkip(step)               // live timeshift: lacne, pretoc hned
+                timeshiftSkip(if (forward) 10 else -10)   // live timeshift: lacne, pretoc hned
+                dvrSeek.doubleTap(forward, applyImmediately = true)
             }
             else -> return   // ziadne pretacanie (zive bez timeshiftu) -> ignoruj
-        }
-        val cur = seekHintState.value
-        val acc = if (cur != 0 && (cur > 0) == forward) cur + step else step
-        seekHintState.value = acc
-        seekHintJob?.cancel()
-        seekHintJob = lifecycleScope.launch {
-            kotlinx.coroutines.delay(800)
-            seekHintState.value = 0
-        }
-        // DVR: pretoc az ~0,5 s po poslednom kliku na akumulovany sucet (1 restart namiesto N)
-        if (seekablePlayback) {
-            seekCommitJob?.cancel()
-            seekCommitJob = lifecycleScope.launch {
-                kotlinx.coroutines.delay(450)
-                val target = seekAccumBaseMs + acc * 1000L
-                seekAccumBaseMs = -1L
-                seekHintJob?.cancel()
-                seekHintState.value = 0
-                seekDvrAbsolute(target)
-            }
         }
     }
 
@@ -3303,7 +3235,7 @@ class PlayerActivity : ComponentActivity() {
                 }
                 MediaPlayer.Event.Playing -> {
                     isPlayingState.value = true; refreshPipIfActive()
-                    seekRecoverTries = 0   // M594
+                    dvrSeek.onPlaying()   // M594
                     stallPlayingSeen = true; stallSamples = 0   // M539
                     if (!htspStream) lifecycleScope.launch { applyPendingSpuRestore() }  // M392-fix2
                     maybeApplyAfr()  // AFR (M346): prepni Hz displeja podla fps streamu
