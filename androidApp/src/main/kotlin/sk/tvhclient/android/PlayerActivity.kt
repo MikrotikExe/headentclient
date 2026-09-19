@@ -804,6 +804,8 @@ class PlayerActivity : ComponentActivity() {
             override fun playHtspLive(server: sk.tvhclient.shared.model.TvhServer, channelId: Long, timeshift: Boolean): Boolean =
                 this@PlayerActivity.playHtspLive(server, channelId, timeshift)
             override fun playLiveAuto(server: sk.tvhclient.shared.model.TvhServer, url: String) { this@PlayerActivity.playLiveAuto(server, url) }
+            override fun playDvrViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String) { this@PlayerActivity.playDvrViaFeeder(server, url) }
+            override fun playHttp(url: String) { this@PlayerActivity.playHttp(url) }
             override fun setHasVideo(v: Boolean) { hasVideoState.value = v }
             override fun htspInitDone(): Boolean = this@PlayerActivity.htspInitDone
             override fun setHtspInitDone(v: Boolean) { this@PlayerActivity.htspInitDone = v }
@@ -1465,6 +1467,40 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    /** M658: pripojenie video layoutu z PlayerUi (povodne onAttach lambda v setContent). */
+    private fun attachVideo(layout: VLCVideoLayout) {
+        videoLayout = layout
+        mediaPlayer.attachViews(layout, null, false, false)
+        // M539-fix2: novy prehravac cakal na svoj (novy) surface — spusti ho teraz
+        if (engine.onSurfaceAttached()) {
+            layout.post { runCatching { if (!playerTornDown) mediaPlayer.play() } }
+        }
+        // vlastny titulkovy overlay nad videom (DVB titulky dekódujeme sami,
+        // do libVLC nejdu) — synchronizovany na cas prehravaca
+        subOverlay?.let { old ->
+            old.stopTicker()
+            (old.parent as? ViewGroup)?.removeView(old)   // nenechaj zamrznuty stary overlay (dvojity text)
+        }
+        val ov = SubtitleOverlayView(layout.context)
+        ov.layoutParams = FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
+        layout.addView(ov)
+        subOverlay = ov
+        ov.start(
+            clockSource = { if (engine.ready) mediaPlayer.time else 0L },
+            aspectSource = {
+                val vt = if (engine.ready) runCatching { mediaPlayer.currentVideoTrack }.getOrNull() else null
+                if (vt != null && vt.width > 0 && vt.height > 0) {
+                    val sn = if (vt.sarNum > 0) vt.sarNum else 1
+                    val sd = if (vt.sarDen > 0) vt.sarDen else 1
+                    (vt.width.toFloat() * sn) / (vt.height.toFloat() * sd)
+                } else 16f / 9f
+            }
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Mini radio (M340) nesmie hrat popri plnom prehravaci
@@ -1480,9 +1516,10 @@ class PlayerActivity : ComponentActivity() {
             }
         }
         liveInstance = java.lang.ref.WeakReference(this)
+        val args = PlayerArgs.from(intent)   // M658: vsetky intent extra na jednom mieste
         // Navrat na povodny zivy kanal po zatvoreni (pri "Prehrat od zaciatku" z prehravaca)
-        returnLiveUuid = intent.getStringExtra(EXTRA_RETURN_UUID)
-        returnLiveTitle = intent.getStringExtra(EXTRA_RETURN_TITLE)
+        returnLiveUuid = args.returnLiveUuid
+        returnLiveTitle = args.returnLiveTitle
         // predvolene otacanie obrazovky podla nastavenia (auto = fullUser ako v manifeste)
         runCatching {
             requestedOrientation = when (OrientationPref.get(this)) {
@@ -1504,56 +1541,35 @@ class PlayerActivity : ComponentActivity() {
         insetsController.systemBarsBehavior =
             androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
 
-        val channelUuid = intent.getStringExtra(EXTRA_UUID)
-        val channelTitle = intent.getStringExtra(EXTRA_TITLE) ?: ""
-        val directUrl = intent.getStringExtra(EXTRA_URL)
-        playKind = intent.getStringExtra(EXTRA_KIND) ?: "tv"
-        val durationMs = intent.getLongExtra(EXTRA_DURATION_MS, 0L)
-        val progStart = intent.getLongExtra(EXTRA_PROG_START, 0L)
-        val progStop = intent.getLongExtra(EXTRA_PROG_STOP, 0L)
-        val progTitle = intent.getStringExtra(EXTRA_PROG_TITLE) ?: ""
-        dvrUuid = intent.getStringExtra(EXTRA_DVR_UUID)
-        val progStartFrac = intent.getFloatExtra(EXTRA_PROG_START_FRAC, 0f)
-        val progStopFrac = intent.getFloatExtra(EXTRA_PROG_STOP_FRAC, 1f)
+        val channelUuid = args.channelUuid
+        val channelTitle = args.channelTitle
+        val directUrl = args.directUrl
+        playKind = args.playKind
+        val durationMs = args.durationMs
+        val progStart = args.progStart
+        val progStop = args.progStop
+        val progTitle = args.progTitle
+        dvrUuid = args.dvrUuid
+        val progStartFrac = args.progStartFrac
+        val progStopFrac = args.progStopFrac
         dvrDurationMs = durationMs
         dvrDurationState.value = durationMs
-        dvrRecording = intent.getBooleanExtra(EXTRA_DVR_RECORDING, false)
-        dvrProgStartSec = intent.getLongExtra(EXTRA_DVR_PROG_START_SEC, 0L)
-        dvrProgStopSec = intent.getLongExtra(EXTRA_DVR_PROG_STOP_SEC, 0L)
-        dvrRealStartSec = intent.getLongExtra(EXTRA_DVR_REAL_START_SEC, 0L)
+        dvrRecording = args.dvrRecording
+        dvrProgStartSec = args.dvrProgStartSec
+        dvrProgStopSec = args.dvrProgStopSec
+        dvrRealStartSec = args.dvrRealStartSec
         // Prebiehajuca relacia: dlzka rastie k zivej hrane; bar musi byt VZDY viditelny.
         // Ak mame hranice relacie, dopocitavame relativne k jej zaciatku (cap dlzkou relacie).
         // Ak hranice chybaju (nahravka nema vyplnene start/stop), drzime krok s dlzkou z VLC.
+        // M658: vypocet a sekundovy cyklus su v DvrDurationTicker (M528 vnutri).
         if (dvrRecording) {
-            val haveBounds = dvrProgStartSec > 0 && dvrProgStopSec > dvrProgStartSec
-            val progDurMs = if (haveBounds) (dvrProgStopSec - dvrProgStartSec) * 1000 else 0L
-            dvrDurationMs = if (haveBounds)
-                ((System.currentTimeMillis() / 1000 - dvrProgStartSec) * 1000).coerceIn(1000L, progDurMs)
-            else
-                maxOf(durationMs, 1000L)   // aspon 1s, nech sa bar zobrazi
-            dvrDurationState.value = dvrDurationMs
-            lifecycleScope.launch {
-                while (true) {
-                    val nowSec = System.currentTimeMillis() / 1000
-                    val live = if (haveBounds)
-                        ((minOf(nowSec, dvrProgStopSec) - dvrProgStartSec) * 1000).coerceIn(1000L, progDurMs)
-                    else
-                        maxOf(dvrDurationMs, if (engine.ready) mediaPlayer.length else 0L)
-                    // M528: pri DOKONCENEJ nahravke ma prednost skutocna dlzka suboru,
-                    // ktoru zisti libVLC. Cyklus dlzku doteraz len zvacsoval, takze ked
-                    // bola nahravka zastavena skor, ostala planovana dlzka relacie —
-                    // 15-minutova nahravka sa tvarila ako hodinova.
-                    val realLen = if (engine.ready) mediaPlayer.length else 0L
-                    if (!dvrRecording && realLen > 1000L && realLen != dvrDurationMs) {
-                        dvrDurationMs = realLen
-                        dvrDurationState.value = realLen
-                    } else if (live > dvrDurationMs) {
-                        dvrDurationMs = live; dvrDurationState.value = live
-                    }
-                    if (haveBounds && nowSec >= dvrProgStopSec) break  // relacia skoncila
-                    kotlinx.coroutines.delay(1000)
-                }
-            }
+            DvrDurationTicker(
+                scope = lifecycleScope,
+                playerLength = { if (engine.ready) mediaPlayer.length else 0L },
+                isRecording = { dvrRecording },
+                current = { dvrDurationMs },
+                set = { dvrDurationMs = it; dvrDurationState.value = it }
+            ).start(durationMs, dvrProgStartSec, dvrProgStopSec)
         }
         val server = Tvh.store.active()
         if (server == null || (channelUuid == null && directUrl == null)) {
@@ -1614,7 +1630,7 @@ class PlayerActivity : ComponentActivity() {
         applyCachedEpgToChannels()
         // M605-fix: zoznam najprv — posledny kanal sa spusti normalne (hra za zoznamom
         // ako nahlad) a zoznam sa otvori hned; povodne nehralo nic, co pouzivatel nechcel
-        listFirst = intent.getBooleanExtra(EXTRA_LIST_FIRST, false) && liveUuids.size > 1
+        listFirst = args.listFirst && liveUuids.size > 1
         liveIndexState.value = liveIndex
         liveTitleState.value = channelTitle
         liveUuidState.value = channelUuid
@@ -1670,85 +1686,10 @@ class PlayerActivity : ComponentActivity() {
                 htspSpuCurrentId = tracks.selectedSubEs.value,
                 onPickHtspSpu = if (htspStreamState.value) pickHtspSpuCb else null,   // M544: bez lambdy v kompozicii
                 onPickHttpSpu = { id -> tracks.httpSpuUserPick(id) },
-                onAttach = { layout ->
-                    videoLayout = layout
-                    mediaPlayer.attachViews(layout, null, false, false)
-                    // M539-fix2: novy prehravac cakal na svoj (novy) surface — spusti ho teraz
-                    if (engine.onSurfaceAttached()) {
-                        layout.post { runCatching { if (!playerTornDown) mediaPlayer.play() } }
-                    }
-                    // vlastny titulkovy overlay nad videom (DVB titulky dekódujeme sami,
-                    // do libVLC nejdu) — synchronizovany na cas prehravaca
-                    subOverlay?.let { old ->
-                        old.stopTicker()
-                        (old.parent as? ViewGroup)?.removeView(old)   // nenechaj zamrznuty stary overlay (dvojity text)
-                    }
-                    val ov = SubtitleOverlayView(layout.context)
-                    ov.layoutParams = FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-                    layout.addView(ov)
-                    subOverlay = ov
-                    ov.start(
-                        clockSource = { if (engine.ready) mediaPlayer.time else 0L },
-                        aspectSource = {
-                            val vt = if (engine.ready) runCatching { mediaPlayer.currentVideoTrack }.getOrNull() else null
-                            if (vt != null && vt.width > 0 && vt.height > 0) {
-                                val sn = if (vt.sarNum > 0) vt.sarNum else 1
-                                val sd = if (vt.sarDen > 0) vt.sarDen else 1
-                                (vt.width.toFloat() * sn) / (vt.height.toFloat() * sd)
-                            } else 16f / 9f
-                        }
-                    )
-                },
+                onAttach = { layout -> attachVideo(layout) },
                 onStart = {
-                    val doPlay: () -> Unit = {
-                        val cid = channelUuid?.toLongOrNull()
-                        val htspMode = server.connectionMode == "htsp"
-                        if (cid != null && directUrl == null && htspMode) {
-                            // stream cez HTSP (9982). Timeshift funkcie len ak je pref zapnuty a server podporuje.
-                            currentStreamUrl = streamUrl  // HTTP fallback pre reconnect/reparse stop
-                            lifecycleScope.launch {
-                                val ts = TimeshiftPref.get(this@PlayerActivity) && withContext(Dispatchers.IO) {
-                                    runCatching {
-                                        HtspData.timeshiftAvailable(server, System.currentTimeMillis() / 1000)
-                                    }.getOrDefault(false)
-                                }
-                                if (playHtspLive(server, cid, ts)) {
-                                    htspStream = true
-                                    htspLive = ts
-                                    htspLiveState.value = ts
-                                } else {
-                                    htspStream = false
-                                    htspLive = false
-                                    htspLiveState.value = false
-                                    playLiveAuto(server, streamUrl)
-                                }
-                                htspInitDone = true
-                                pokeControls()
-                            }
-                        } else {
-                            if (directUrl != null && server.username.isNotEmpty()) {
-                                // M254: auto-detekcia auth. Digest-only server -> feeder
-                                // (libVLC digest cez URL nevie); basic/ziadna -> priama
-                                // seekovatelna cesta.
-                                lifecycleScope.launch {
-                                    val useFeeder = withContext(Dispatchers.IO) {
-                                        DvrAuthProbe.needsFeeder(server, stripCreds(streamUrl))
-                                    }
-                                    dvrViaFeeder = useFeeder
-                                    if (useFeeder) playDvrViaFeeder(server, streamUrl)
-                                    else playHttp(streamUrl)
-                                    pokeControls()
-                                }
-                            } else {
-                                dvrViaFeeder = false
-                                playLiveAuto(server, streamUrl)
-                                pokeControls()
-                            }
-                        }
-                    }
+                    // M658: HTSP/HTTP/DVR vetvenie prveho spustenia — ChannelSwitcher.playInitial
+                    val doPlay: () -> Unit = { switcher.playInitial(server, channelUuid, directUrl, streamUrl) }
                     // rodicovsky zamok: pri KAZDOM otvoreni prehravaca so zamknutym kanalom
                     // vypytaj PIN (bez ohladu na grace okno). Grace ("nepytat X min") plati len
                     // pri prepinani v ramci otvoreneho prehravaca (zoznam / pozadie / cislice).

@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import sk.tvhclient.shared.Tvh
+import sk.tvhclient.shared.htsp.HtspData
 
 /**
  * M657: jadro prepínania kanálov (vyclenené z PlayerActivity): výber kanála zo zoznamu
@@ -33,6 +34,9 @@ internal class ChannelSwitcher(
         fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, channelIndex: Int?)
         fun playHtspLive(server: sk.tvhclient.shared.model.TvhServer, channelId: Long, timeshift: Boolean): Boolean
         fun playLiveAuto(server: sk.tvhclient.shared.model.TvhServer, url: String)
+        /** M658: DVR nahravka cez HttpTsFeeder (digest-only server) / priama HTTP cesta (playInitial). */
+        fun playDvrViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String)
+        fun playHttp(url: String)
         /** predpokladaj video; kontrola po Playing to opravi */
         fun setHasVideo(v: Boolean)
         /** M262: ci uz prebehlo urcenie HTSP rezimu pre toto sedenie (zdielane s doPlay). */
@@ -50,6 +54,58 @@ internal class ChannelSwitcher(
         fun intentUuid(): String?
         /** Novy PlayerActivity v DVR rezime (playRecordingFromStart). */
         fun startActivity(intent: android.content.Intent)
+    }
+
+    /**
+     * M658: prve spustenie po starte aktivity (povodne doPlay v onStart lambde PlayerUi).
+     * HTSP kanal -> subscription (s timeshiftom podla pref + podpory servera), inak HTTP;
+     * DVR nahravka s prihlasenim -> auto-detekcia auth (feeder / priama cesta).
+     */
+    fun playInitial(server: sk.tvhclient.shared.model.TvhServer, channelUuid: String?, directUrl: String?, streamUrl: String) {
+        val cid = channelUuid?.toLongOrNull()
+        val htspMode = server.connectionMode == "htsp"
+        if (cid != null && directUrl == null && htspMode) {
+            // stream cez HTSP (9982). Timeshift funkcie len ak je pref zapnuty a server podporuje.
+            stream.currentStreamUrl = streamUrl  // HTTP fallback pre reconnect/reparse stop
+            scope.launch {
+                val ts = TimeshiftPref.get(ctx) && withContext(Dispatchers.IO) {
+                    runCatching {
+                        HtspData.timeshiftAvailable(server, System.currentTimeMillis() / 1000)
+                    }.getOrDefault(false)
+                }
+                if (actions.playHtspLive(server, cid, ts)) {
+                    stream.htspStream = true
+                    stream.htspLive = ts
+                    stream.htspLiveState.value = ts
+                } else {
+                    stream.htspStream = false
+                    stream.htspLive = false
+                    stream.htspLiveState.value = false
+                    actions.playLiveAuto(server, streamUrl)
+                }
+                actions.setHtspInitDone(true)
+                actions.pokeControls()
+            }
+        } else {
+            if (directUrl != null && server.username.isNotEmpty()) {
+                // M254: auto-detekcia auth. Digest-only server -> feeder
+                // (libVLC digest cez URL nevie); basic/ziadna -> priama
+                // seekovatelna cesta.
+                scope.launch {
+                    val useFeeder = withContext(Dispatchers.IO) {
+                        DvrAuthProbe.needsFeeder(server, MediaFactory.stripCreds(streamUrl))
+                    }
+                    stream.dvrViaFeeder = useFeeder
+                    if (useFeeder) actions.playDvrViaFeeder(server, streamUrl)
+                    else actions.playHttp(streamUrl)
+                    actions.pokeControls()
+                }
+            } else {
+                stream.dvrViaFeeder = false
+                actions.playLiveAuto(server, streamUrl)
+                actions.pokeControls()
+            }
+        }
     }
 
     /** Vyber kanala zo zoznamu: ak sa archivuje, ponukni nazivo/od zaciatku, inak prepni. */
