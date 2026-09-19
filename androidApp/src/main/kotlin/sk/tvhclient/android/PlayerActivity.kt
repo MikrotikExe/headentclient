@@ -437,9 +437,6 @@ class PlayerActivity : ComponentActivity() {
             performSeek = { target, from, dur -> seekDvrTo(target, from, dur) })
     }
     private val seekHintState: androidx.compose.runtime.MutableState<Int> get() = dvrSeek.hint
-    private var pipReceiver: android.content.BroadcastReceiver? = null
-    private val PIP_ACTION = "sk.tvhclient.android.PIP_TOGGLE"
-    private val PIP_CLOSE_ACTION = "sk.tvhclient.android.PIP_CLOSE"   // M576
     private var liveServer: sk.tvhclient.shared.model.TvhServer?
         get() = live.server
         set(v) { live.server = v }
@@ -1230,10 +1227,6 @@ class PlayerActivity : ComponentActivity() {
     // ovladacom neda ovladat (issue #11)
     private fun pipButtonVisible(): Boolean = pipSupported && !isTvDevice() && !AutoPipPref.get(this)
 
-    private val pipSupported: Boolean by lazy {
-        android.os.Build.VERSION.SDK_INT >= 26 &&
-            packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)
-    }
     private var controlsShown = false
     private val openOptionsState = androidx.compose.runtime.mutableStateOf(0)
     private val closeOptionsState = androidx.compose.runtime.mutableStateOf(0)
@@ -2597,53 +2590,18 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    // ---- Picture-in-Picture ----
-    @androidx.annotation.RequiresApi(26)
-    private fun buildPipParams(): android.app.PictureInPictureParams {
-        val playing = isPlayingState.value
-        val icon = android.graphics.drawable.Icon.createWithResource(
-            this,
-            if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
-        )
-        val label = if (playing) getString(R.string.pip_pause) else getString(R.string.pip_play)
-        val pi = android.app.PendingIntent.getBroadcast(
-            this, 1,
-            android.content.Intent(PIP_ACTION).setPackage(packageName),
-            android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        val action = android.app.RemoteAction(icon, label, label, pi)
-        // M576 (issue #11): akcia Zavriet — na TV je PiP okno mimo dosahu dialkoveho,
-        // jedina cesta k nemu je systemova ponuka PiP (dlhe Home); tam sa tato akcia
-        // zobrazi a okno sa da zavriet jednym potvrdenim. Na telefone je priamo v okne.
-        val closeLabel = getString(R.string.pip_close)
-        val closePi = android.app.PendingIntent.getBroadcast(
-            this, 2,
-            android.content.Intent(PIP_CLOSE_ACTION).setPackage(packageName),
-            android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT
-        )
-        val closeAction = android.app.RemoteAction(
-            android.graphics.drawable.Icon.createWithResource(this, android.R.drawable.ic_menu_close_clear_cancel),
-            closeLabel, closeLabel, closePi
-        )
-        // M576-fix: telefon/tablet ma systemovy krizik v PiP okne vzdy -> nasa akcia by bola
-        // druhe X vedla neho; na TV ostava (system tam vlastne ovladanie okna nema alebo ho
-        // skryva v ponuke PiP)
-        val actions = if (isTvDevice()) listOf(action, closeAction) else listOf(action)
-        return android.app.PictureInPictureParams.Builder()
-            .setActions(actions)
-            .setAspectRatio(android.util.Rational(16, 9))
-            .build()
+    // ---- Picture-in-Picture (M653: PipController.kt) ----
+    private val pip: PipController by lazy {
+        PipController(this,
+            isPlaying = { isPlayingState.value },
+            playerReady = { ::mediaPlayer.isInitialized },
+            isTv = { isTvDevice() },
+            togglePlayPause = { togglePlayPause() },
+            close = { closeFromPip() })
     }
+    private val pipSupported: Boolean get() = pip.supported
 
-    private fun enterPipIfPossible(): Boolean {
-        if (android.os.Build.VERSION.SDK_INT >= 26 &&
-            packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
-            ::mediaPlayer.isInitialized
-        ) {
-            return runCatching { enterPictureInPictureMode(buildPipParams()) }.getOrDefault(false)
-        }
-        return false
-    }
+    private fun enterPipIfPossible(): Boolean = pip.enterIfPossible()
 
     /** Spusti PiP (okno plava nad plochou / inou appkou). M349-fix4: ziadny
      *  moveTaskToBack — presun tasku na pozadie hned po vstupe do PiP na
@@ -2671,94 +2629,11 @@ class PlayerActivity : ComponentActivity() {
         // do RadioPlayerService (moderny rezim); v klasiku vrati false a volajuci
         // pokracuje bez PiP (zatvorenie/EPG) — povodne spravanie klasiku bez okna.
         if (playKind == "radio") return radioHandoffIfPossible()
-        if (AutoPipPref.get(this) && pipSupported && isPlayingState.value &&
-            android.os.Build.VERSION.SDK_INT >= 26 &&
-            packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
-            ::mediaPlayer.isInitialized &&
-            !isInPictureInPictureMode
-        ) {
-            // enterPictureInPictureMode vrati true, ak realne vstupil do PiP (nespoliehaj sa
-            // na isInPictureInPictureMode hned po volani - aktualizuje sa az asynchronne)
-            return runCatching { enterPictureInPictureMode(buildPipParams()) }.getOrDefault(false)
-        }
-        return false
+        return pip.autoEnterIfPossible()
     }
 
     // aktualizuj ikonu play/pauza v PiP podla skutocneho stavu prehravania
-    private fun refreshPipIfActive() {
-        if (android.os.Build.VERSION.SDK_INT >= 26 && isInPictureInPictureMode) {
-            runCatching { setPictureInPictureParams(buildPipParams()) }
-            updatePipMediaState()
-        }
-    }
-
-    // ---- M578: medialne klavesy v PiP cez MediaSession ----
-    // Plavajuce PiP okno nedostava klavesy (na TV sa nan neda ani zamerat), ale medialne
-    // tlacidla dialkoveho system doruci aktivnej MediaSession bez ohladu na fokus. Pocas
-    // PiP preto drzime aktivnu session: STOP okno zavrie, PLAY/PAUSE prepina pauzu a
-    // DLHE podrzanie PLAY/PAUSE zavrie tiez — pre ovladace, ktore maju len to jedno
-    // tlacidlo (issue #11). Mimo PiP sa klavesy spracuvaju v dispatchKeyEvent ako doteraz.
-    private var pipSession: android.media.session.MediaSession? = null
-
-    private fun startPipMediaSession() {
-        if (pipSession != null) return
-        val ms = runCatching { android.media.session.MediaSession(this, "headent-pip") }.getOrNull() ?: return
-        ms.setCallback(object : android.media.session.MediaSession.Callback() {
-            override fun onStop() { closeFromPip() }
-            override fun onPlay() { if (!isPlayingState.value) togglePlayPause() }
-            override fun onPause() { if (isPlayingState.value) togglePlayPause() }
-            override fun onMediaButtonEvent(mediaButtonIntent: android.content.Intent): Boolean {
-                val ke = if (android.os.Build.VERSION.SDK_INT >= 33)
-                    mediaButtonIntent.getParcelableExtra(android.content.Intent.EXTRA_KEY_EVENT, android.view.KeyEvent::class.java)
-                else @Suppress("DEPRECATION") mediaButtonIntent.getParcelableExtra<android.view.KeyEvent>(android.content.Intent.EXTRA_KEY_EVENT)
-                ke ?: return super.onMediaButtonEvent(mediaButtonIntent)
-                when (ke.keyCode) {
-                    android.view.KeyEvent.KEYCODE_MEDIA_STOP -> { if (ke.action == android.view.KeyEvent.ACTION_DOWN) closeFromPip(); return true }
-                    android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
-                    android.view.KeyEvent.KEYCODE_HEADSETHOOK -> {
-                        when {
-                            ke.action == android.view.KeyEvent.ACTION_DOWN && ke.repeatCount == 1 -> { pipLongFired = true; closeFromPip() }
-                            ke.action == android.view.KeyEvent.ACTION_UP -> {
-                                if (!pipLongFired) togglePlayPause()
-                                pipLongFired = false
-                            }
-                        }
-                        return true
-                    }
-                }
-                return super.onMediaButtonEvent(mediaButtonIntent)
-            }
-        })
-        pipSession = ms
-        updatePipMediaState()
-        runCatching { ms.isActive = true }
-    }
-
-    private var pipLongFired = false
-
-    private fun updatePipMediaState() {
-        val ms = pipSession ?: return
-        val playing = isPlayingState.value
-        val st = android.media.session.PlaybackState.Builder()
-            .setActions(
-                android.media.session.PlaybackState.ACTION_STOP or
-                android.media.session.PlaybackState.ACTION_PLAY or
-                android.media.session.PlaybackState.ACTION_PAUSE or
-                android.media.session.PlaybackState.ACTION_PLAY_PAUSE
-            )
-            .setState(
-                if (playing) android.media.session.PlaybackState.STATE_PLAYING else android.media.session.PlaybackState.STATE_PAUSED,
-                android.media.session.PlaybackState.PLAYBACK_POSITION_UNKNOWN, 1f
-            )
-            .build()
-        runCatching { ms.setPlaybackState(st) }
-    }
-
-    private fun stopPipMediaSession() {
-        pipSession?.let { runCatching { it.isActive = false; it.release() } }
-        pipSession = null
-        pipLongFired = false
-    }
+    private fun refreshPipIfActive() { pip.refreshIfActive() }
 
     private fun closeFromPip() {
         LastPlayback.clear(this)
@@ -2837,29 +2712,8 @@ class PlayerActivity : ComponentActivity() {
             pendingEpgAfterPip = false
             launchEpgActivity()
         }
-        if (isInPictureInPictureMode) {
-            startPipMediaSession()   // M578
-            if (pipReceiver == null) {
-                pipReceiver = object : android.content.BroadcastReceiver() {
-                    override fun onReceive(c: android.content.Context?, i: android.content.Intent?) {
-                        when (i?.action) {
-                            PIP_ACTION -> togglePlayPause()
-                            PIP_CLOSE_ACTION -> { LastPlayback.clear(this@PlayerActivity); finish() }   // M576
-                        }
-                    }
-                }
-                val filter = android.content.IntentFilter(PIP_ACTION).apply { addAction(PIP_CLOSE_ACTION) }
-                if (android.os.Build.VERSION.SDK_INT >= 33) {
-                    registerReceiver(pipReceiver, filter, android.content.Context.RECEIVER_NOT_EXPORTED)
-                } else {
-                    @Suppress("UnspecifiedRegisterReceiverFlag")
-                    registerReceiver(pipReceiver, filter)
-                }
-            }
-        } else {
-            stopPipMediaSession()   // M578
-            pipReceiver?.let { runCatching { unregisterReceiver(it) } }
-            pipReceiver = null
+        pip.onModeChanged(isInPictureInPictureMode)   // M578 session + receiver akcii (M653)
+        if (!isInPictureInPictureMode) {
             // PiP okno zatvorene pouzivatelom kym bola appka na pozadi: aktivita je uz STOPnuta
             // (stav CREATED, onStop uz prebehol a nechal video bezat). Tu doraz zastav prehravanie,
             // inak by zvuk hral dalej. Ak pouzivatel PiP rozbalil na celu obrazovku, stav je
@@ -3217,7 +3071,7 @@ class PlayerActivity : ComponentActivity() {
     private fun releaseStreamLocks() { streamLocks.release() }
 
     override fun onDestroy() {
-        stopPipMediaSession() // M578
+        pip.destroy() // M578 session + receiver (M653)
         teletext.stopHttp()   // M552
         releaseStreamLocks()  // M452
         flushEpgPersist()     // M456
@@ -3230,8 +3084,6 @@ class PlayerActivity : ComponentActivity() {
         vlcEvents.destroy()   // M650
         reconnect.destroy()
         sleep.cancel()
-        pipReceiver?.let { runCatching { unregisterReceiver(it) } }
-        pipReceiver = null
         subOverlay?.stopTicker()   // zastav titulkovy ticker skor nez uvolnis mediaPlayer
         timeshift.destroy()
         cancelTrackRefresh()
