@@ -418,11 +418,20 @@ class PlayerActivity : ComponentActivity() {
     private var timeshiftTickerJob: kotlinx.coroutines.Job? = null
     private lateinit var mediaPlayer: MediaPlayer
 
-    // Live zapping (prepinanie kanalov v prehravaci)
-    private var liveUuids: List<String> = emptyList()
-    private var liveNames: List<String> = emptyList()
-    private var liveIndex: Int = -1
-    private var playKind: String = "tv"
+    // M639: stav ziveho prehravania v LiveSession; tu delegaty pod povodnymi nazvami
+    private val live = LiveSession()
+    private var liveUuids: List<String>
+        get() = live.uuids
+        set(v) { live.uuids = v }
+    private var liveNames: List<String>
+        get() = live.names
+        set(v) { live.names = v }
+    private var liveIndex: Int
+        get() = live.index
+        set(v) { live.index = v }
+    private var playKind: String
+        get() = live.playKind
+        set(v) { live.playKind = v }
     // pre opatovne pripojenie videa po navrate z pozadia
     private var videoLayout: VLCVideoLayout? = null
     private var subOverlay: SubtitleOverlayView? = null
@@ -468,19 +477,20 @@ class PlayerActivity : ComponentActivity() {
     private var pipReceiver: android.content.BroadcastReceiver? = null
     private val PIP_ACTION = "sk.tvhclient.android.PIP_TOGGLE"
     private val PIP_CLOSE_ACTION = "sk.tvhclient.android.PIP_CLOSE"   // M576
-    private var liveServer: sk.tvhclient.shared.model.TvhServer? = null
-    private val liveTitleState = androidx.compose.runtime.mutableStateOf("")
-    private val liveUuidState = androidx.compose.runtime.mutableStateOf<String?>(null)
-    private val liveProgStartState = androidx.compose.runtime.mutableStateOf(0L)
-    private val liveProgStopState = androidx.compose.runtime.mutableStateOf(0L)
-    private val liveProgTitleState = androidx.compose.runtime.mutableStateOf("")
-    private val liveNextTitleState = androidx.compose.runtime.mutableStateOf("")
-    private val liveNextStartState = androidx.compose.runtime.mutableStateOf(0L)
-    private val liveNextStopState = androidx.compose.runtime.mutableStateOf(0L)
+    private var liveServer: sk.tvhclient.shared.model.TvhServer?
+        get() = live.server
+        set(v) { live.server = v }
+    private val liveTitleState get() = live.titleState
+    private val liveUuidState get() = live.uuidState
+    private val liveProgStartState get() = live.progStartState
+    private val liveProgStopState get() = live.progStopState
+    private val liveProgTitleState get() = live.progTitleState
+    private val liveNextTitleState get() = live.nextTitleState
+    private val liveNextStartState get() = live.nextStartState
+    private val liveNextStopState get() = live.nextStopState
     private val zapPokeState = androidx.compose.runtime.mutableStateOf(0)
-    private val liveIndexState = androidx.compose.runtime.mutableStateOf(-1)
-    private val liveChannelsState =
-        androidx.compose.runtime.mutableStateOf<List<LivePlaylist.LiveChannel>>(emptyList())
+    private val liveIndexState get() = live.indexState
+    private val liveChannelsState get() = live.channelsState
     // M634: EPG now/next + cache v PlayerEpgStore.kt; tu len delegaty pod povodnymi nazvami
     private val epg by lazy {
         PlayerEpgStore(this,
