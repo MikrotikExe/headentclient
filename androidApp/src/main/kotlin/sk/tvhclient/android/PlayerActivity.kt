@@ -504,18 +504,21 @@ class PlayerActivity : ComponentActivity() {
     // M369: aktivny filter skupiny v zozname kanalov + priznak, ci je fokus na pilulke skupiny.
     private val activeGroupLabelState = androidx.compose.runtime.mutableStateOf("")
     private val groupPickerState = androidx.compose.runtime.mutableStateOf(false)
-    // M370: hladanie kanala podla nazvu v zozname kanalov (TV: systemova klavesnica).
-    private val searchActiveState = androidx.compose.runtime.mutableStateOf(false)
-    private val searchQueryState = androidx.compose.runtime.mutableStateOf("")
-    private val searchFieldFocusedState = androidx.compose.runtime.mutableStateOf(true)
-    private val searchNavIndexState = androidx.compose.runtime.mutableStateOf(0)
-    private val searchFocusSignalState = androidx.compose.runtime.mutableStateOf(0)
+    // M370 / M635: hladanie kanala podla nazvu — stav a klavesy v ChannelSearch.kt
+    private val search by lazy {
+        ChannelSearch(this,
+            onSelect = { uuid -> selectLiveByUuid(uuid) },
+            onDeactivate = { groupPickerState.value = false })
+    }
     private var seekablePlayback = false
     private var currentStreamUrl: String? = null
-    // Zadavanie kanala cislami z dialkoveho ovladaca
-    private val numEntryState = androidx.compose.runtime.mutableStateOf("")
-    private var numEntry = ""
-    private var numJob: kotlinx.coroutines.Job? = null
+    // Zadavanie kanala cislami z dialkoveho ovladaca (M635: ChannelNumberEntry.kt)
+    private val numEntry by lazy {
+        ChannelNumberEntry(lifecycleScope) { typed ->
+            val idx = LivePlaylist.channels.indexOfFirst { it.number == typed }
+            if (idx in liveUuids.indices) { switchToIndex(idx); pokeControls() }
+        }
+    }
 
     /** Vytvori Media s HW/SW dekoderom podla preferencie (lacne boxy = SW). */
     private fun userAgent(): String = sk.tvhclient.shared.ClientIdent.userAgent
@@ -1496,67 +1499,15 @@ class PlayerActivity : ComponentActivity() {
         applyGroup(keys[next])
     }
 
-    // ===== M370: hladanie kanala podla nazvu (napriec vsetkymi kanalmi) =====
-    fun searchResults(): List<LivePlaylist.LiveChannel> {
-        val q = searchQueryState.value.trim()
-        if (q.isEmpty()) return emptyList()
-        return LivePlaylist.allChannels.filter { it.name.contains(q, ignoreCase = true) }
-    }
-    private fun openSearch() {
-        groupPickerState.value = false
-        searchQueryState.value = ""
-        searchNavIndexState.value = 0
-        searchFieldFocusedState.value = true
-        searchActiveState.value = true
-        searchFocusSignalState.value = searchFocusSignalState.value + 1
-        // Immersive okno prehravaca inak systemovu klavesnicu nepusti — vynutime ju.
-        runCatching {
-            window.setSoftInputMode(
-                android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE or
-                    android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
-            )
-            androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
-                .show(androidx.core.view.WindowInsetsCompat.Type.ime())
-        }
-    }
-    private fun closeSearch() {
-        searchActiveState.value = false
-        searchFieldFocusedState.value = true
-        searchQueryState.value = ""
-        runCatching {
-            androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
-                .hide(androidx.core.view.WindowInsetsCompat.Type.ime())
-        }
-    }
+    // ===== M370 / M635: hladanie kanala — ChannelSearch.kt =====
     /** Vyber kanala z vysledkov hladania: prepne (aj skupinu ak treba) a pusti. */
     private fun selectLiveByUuid(uuid: String) {
         okLongFired = true   // prehltne nasledne OK-up, inak by zoznam potvrdil iny kanal (index 0)
-        closeSearch()
+        search.close()
         closeChannelList()
         var i = liveUuids.indexOf(uuid)
         if (i < 0) { applyGroup(LivePlaylist.GROUP_ALL); i = liveUuids.indexOf(uuid) }
         if (i >= 0) selectChannelOrArchive(i, poke = false)
-    }
-
-    /** Zadanie cisla kanala z dialkoveho: nazbieraj cislice, po 1,5 s sa prepne. */
-    private fun onChannelDigit(d: Int) {
-        if (liveUuids.isEmpty()) return
-        numEntry = (numEntry + d).takeLast(4)
-        numEntryState.value = numEntry
-        numJob?.cancel()
-        numJob = lifecycleScope.launch {
-            kotlinx.coroutines.delay(1500)
-            commitChannelNumber()
-        }
-    }
-
-    private fun commitChannelNumber() {
-        val typed = numEntry.toIntOrNull()
-        numEntry = ""
-        numEntryState.value = ""
-        if (typed == null) return
-        val idx = LivePlaylist.channels.indexOfFirst { it.number == typed }
-        if (idx in liveUuids.indices) { switchToIndex(idx); pokeControls() }
     }
 
     // stav prekryti (z Compose) — kym je otvorene, D-pad riesime my (zoznam) alebo Compose (menu)
@@ -2146,7 +2097,7 @@ class PlayerActivity : ComponentActivity() {
         refreshFavOrder()   // M541: oblubene sa mohli zmenit v zozname Kanaly
         if (liveUuids.size < 2 && groupKeys().size <= 1) return
         groupPickerState.value = false
-        searchActiveState.value = false
+        search.deactivateSilently()
         activeGroupLabelState.value =
             if (groupKeys().size > 1) groupLabelFor(LivePlaylist.activeGroupKey) else ""
         navChannelIndexState.value = liveIndex.coerceAtLeast(0)
@@ -2156,7 +2107,7 @@ class PlayerActivity : ComponentActivity() {
     private fun closeChannelList() {
         exitReorderMode()   // M541
         groupPickerState.value = false
-        searchActiveState.value = false
+        search.deactivateSilently()
         closeChannelListState.value = closeChannelListState.value + 1
     }
     private fun closeOptions() {
@@ -2377,19 +2328,8 @@ class PlayerActivity : ComponentActivity() {
 
         // M370: aktivne hladanie s fokusom na textovom poli -> text spracuje system/IME;
         // zachytime len BACK (zavri hladanie) a DOLE (prejdi na vysledky).
-        if (searchActiveState.value && searchFieldFocusedState.value) {
-            if (down) {
-                when (kc) {
-                    android.view.KeyEvent.KEYCODE_BACK -> { closeSearch(); return true }
-                    android.view.KeyEvent.KEYCODE_DPAD_DOWN -> {
-                        if (searchResults().isNotEmpty()) {
-                            searchFieldFocusedState.value = false
-                            searchNavIndexState.value = 0
-                        }
-                        return true
-                    }
-                }
-            }
+        if (search.isActive && search.fieldFocusedState.value) {
+            if (search.handleFieldKey(kc, down)) return true
             return super.dispatchKeyEvent(event)
         }
 
@@ -2596,36 +2536,8 @@ class PlayerActivity : ComponentActivity() {
         if (channelListOpen) {
             val n = liveUuids.size
             // M370: aktivne hladanie, fokus na vysledkoch (pole riesi skory bypass vyssie)
-            if (searchActiveState.value) {
-                val res = searchResults()
-                val n2 = res.size
-                if (down) {
-                    when (kc) {
-                        android.view.KeyEvent.KEYCODE_DPAD_UP -> {
-                            if (searchNavIndexState.value <= 0) {
-                                searchFieldFocusedState.value = true
-                                searchFocusSignalState.value = searchFocusSignalState.value + 1
-                            } else searchNavIndexState.value = searchNavIndexState.value - 1
-                            return true
-                        }
-                        android.view.KeyEvent.KEYCODE_DPAD_DOWN -> {
-                            if (n2 > 0) searchNavIndexState.value =
-                                (searchNavIndexState.value + 1).coerceAtMost(n2 - 1)
-                            return true
-                        }
-                        android.view.KeyEvent.KEYCODE_DPAD_CENTER,
-                        android.view.KeyEvent.KEYCODE_ENTER,
-                        android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                            res.getOrNull(searchNavIndexState.value)?.let { selectLiveByUuid(it.uuid) }
-                            return true
-                        }
-                        android.view.KeyEvent.KEYCODE_BACK -> {
-                            searchFieldFocusedState.value = true
-                            searchFocusSignalState.value = searchFocusSignalState.value + 1
-                            return true
-                        }
-                    }
-                }
+            if (search.isActive) {
+                if (search.handleResultsKey(kc, down)) return true
                 when (kc) {
                     android.view.KeyEvent.KEYCODE_VOLUME_UP,
                     android.view.KeyEvent.KEYCODE_VOLUME_DOWN,
@@ -2647,7 +2559,7 @@ class PlayerActivity : ComponentActivity() {
                         android.view.KeyEvent.KEYCODE_DPAD_CENTER,
                         android.view.KeyEvent.KEYCODE_ENTER,
                         android.view.KeyEvent.KEYCODE_NUMPAD_ENTER -> { groupPickerState.value = false; return true }
-                        android.view.KeyEvent.KEYCODE_DPAD_UP -> { openSearch(); return true }
+                        android.view.KeyEvent.KEYCODE_DPAD_UP -> { search.open(); return true }
                         android.view.KeyEvent.KEYCODE_BACK -> { groupPickerState.value = false; return true }
                     }
                 }
@@ -2961,16 +2873,16 @@ class PlayerActivity : ComponentActivity() {
                         kc - android.view.KeyEvent.KEYCODE_NUMPAD_0
                     else -> -1
                 }
-                if (digit >= 0) { if (down) onChannelDigit(digit); return true }
+                if (digit >= 0) { if (down && liveUuids.isNotEmpty()) numEntry.digit(digit); return true }
             }
             // rozpisane cislo kanala + OK => potvrd hned (rychlejsie prepnutie,
             // netreba cakat na 1,5 s casovac)
-            if (numEntry.isNotEmpty() && (
+            if (numEntry.isPending && (
                     kc == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
                     kc == android.view.KeyEvent.KEYCODE_ENTER ||
                     kc == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER)
             ) {
-                if (down && event.repeatCount == 0) { numJob?.cancel(); commitChannelNumber() }
+                if (down && event.repeatCount == 0) numEntry.commitNow()
                 return true
             }
             // ovladanie zobrazene -> vlavo/vpravo naviguju panel, OK aktivuje
@@ -3490,13 +3402,13 @@ class PlayerActivity : ComponentActivity() {
                 channelNavIndex = navChannelIndexState.value,
                 channelGroupLabel = activeGroupLabelState.value,
                 channelGroupPicker = groupPickerState.value,
-                searchActive = searchActiveState.value,
-                searchQuery = searchQueryState.value,
-                onSearchQueryChange = { searchQueryState.value = it; searchNavIndexState.value = 0 },
-                searchFieldFocused = searchFieldFocusedState.value,
-                searchHits = if (searchActiveState.value) searchResults() else emptyList(),
-                searchNavIndex = searchNavIndexState.value,
-                searchFocusSignal = searchFocusSignalState.value,
+                searchActive = search.activeState.value,
+                searchQuery = search.queryState.value,
+                onSearchQueryChange = { search.setQuery(it) },
+                searchFieldFocused = search.fieldFocusedState.value,
+                searchHits = if (search.isActive) search.results() else emptyList(),
+                searchNavIndex = search.navIndexState.value,
+                searchFocusSignal = search.focusSignalState.value,
                 openListSignal = openChannelListState.value,
                 closeListSignal = closeChannelListState.value,
                 onTrackMenuChange = { kind ->
@@ -3592,7 +3504,7 @@ class PlayerActivity : ComponentActivity() {
                 onRefreshEpgInitial = { refreshOverlayEpgInitial() },
                 onPrefetchEpg = { prefetchEpgIfStale() },
                 epgLoading = epgLoadingState.value,
-                numberEntry = numEntryState.value,
+                numberEntry = numEntry.entryState.value,
                 timeshiftOffsetMs = timeshiftOffsetState.value,
                 pinPrompt = pin.promptState.value,
                 pinLen = pin.entryState.value.length,
