@@ -1707,13 +1707,15 @@ class PlayerActivity : ComponentActivity() {
                 channelNavIndex = navChannelIndexState.value,
                 channelGroupLabel = activeGroupLabelState.value,
                 channelGroupPicker = groupPickerState.value,
-                searchActive = search.activeState.value,
-                searchQuery = search.queryState.value,
-                onSearchQueryChange = { search.setQuery(it) },
-                searchFieldFocused = search.fieldFocusedState.value,
-                searchHits = if (search.isActive) search.results() else emptyList(),
-                searchNavIndex = search.navIndexState.value,
-                searchFocusSignal = search.focusSignalState.value,
+                search = ChannelSearchArgs(
+                    active = search.activeState.value,
+                    query = search.queryState.value,
+                    onQueryChange = { search.setQuery(it) },
+                    fieldFocused = search.fieldFocusedState.value,
+                    hits = if (search.isActive) search.results() else emptyList(),
+                    navIndex = search.navIndexState.value,
+                    focusSignal = search.focusSignalState.value,
+                ),
                 openListSignal = openChannelListState.value,
                 closeListSignal = closeChannelListState.value,
                 onTrackMenuChange = { kind ->
@@ -1743,12 +1745,30 @@ class PlayerActivity : ComponentActivity() {
                 closeMenuSignal = tracks.closeMenuSignal.value,
                 openAudioSignal = tracks.openAudioSignal.value,
                 openSpuSignal = tracks.openSpuSignal.value,
-                openProfileSignal = tracks.openProfileSignal.value,
-                profileItems = tracks.profileItems.value,
-                currentProfile = tracks.currentProfile.value,
-                profileSwitch = profileSwitchAvailable(),
-                onPickProfile = { p -> applyProfileChange(p) },
-                modernMoreIdList = modernMoreIds(),
+                profile = ProfileArgs(
+                    openSignal = tracks.openProfileSignal.value,
+                    items = tracks.profileItems.value,
+                    current = tracks.currentProfile.value,
+                    switchAvailable = profileSwitchAvailable(),
+                    onPick = { p -> applyProfileChange(p) },
+                ),
+                modern = ModernOverlayArgs(
+                    moreIdList = modernMoreIds(),
+                    visible = modernOv.visible.value,
+                    row = modernOv.row.value,
+                    card = modernOv.card.value,
+                    strip = modernOv.strip.value,
+                    poke = modernOv.poke.value,
+                    exec = modernOv.exec.value,
+                    execId = modernOv.execId.value,
+                    recNames = recInProgressByChan.value.keys,
+                    stripIds = modernStripIds(),
+                    moreVisible = modernOv.moreVisible.value,
+                    moreIndex = modernOv.moreIdx.value,
+                    onMorePick = { i -> modernOv.morePick(i) },
+                    onMoreDismiss = { modernOv.moreDismiss() },
+                    onDismiss = { closeModernOverlay() },
+                ),
                 onOptionsChange = { optionsOpen = it },
                 onControlsVisibleChange = { controlsShown = it },
                 onOrientationLockChange = { locked ->
@@ -1762,21 +1782,7 @@ class PlayerActivity : ComponentActivity() {
                 onNextChannel = if (canZap) nextChannelCb else null,   // M544
                 onTogglePlay = { togglePlayPause() },
                 timeshiftEngaged = timeshiftEngagedState.value,
-                modernOvVisible = modernOv.visible.value,
-                modernOvRow = modernOv.row.value,
-                modernOvCard = modernOv.card.value,
-                modernOvStrip = modernOv.strip.value,
-                modernOvPoke = modernOv.poke.value,
-                modernOvExec = modernOv.exec.value,
-                modernOvExecId = modernOv.execId.value,
-                modernOvRecNames = recInProgressByChan.value.keys,
-                modernStripIds = modernStripIds(),
-                modernMoreVisible = modernOv.moreVisible.value,
-                modernMoreIndex = modernOv.moreIdx.value,
-                onMorePick = { i -> modernOv.morePick(i) },
-                onMoreDismiss = { modernOv.moreDismiss() },
                 tsMaxMs = maxRewindMs(),
-                onModernOvDismiss = { closeModernOverlay() },
                 onSkipBack = { timeshiftSkip(-30) },
                 onSkipFwd = { timeshiftSkip(+30) },
                 onDoubleTapSeek = { fwd -> doubleTapSeek(fwd) },
@@ -1811,15 +1817,17 @@ class PlayerActivity : ComponentActivity() {
                 epgLoading = epgLoadingState.value,
                 numberEntry = numEntry.entryState.value,
                 timeshiftOffsetMs = timeshiftOffsetState.value,
-                pinPrompt = pin.promptState.value,
-                pinLen = pin.entryState.value.length,
-                pinError = pin.errorState.value,
-                onPinDigit = { d -> pin.digit(d) },
-                onPinBack = { pin.del() },
-                onPinCancel = { pin.cancel() },
-                onPinOpenList = { pin.openList() },
-                pinGridRow = pin.gridRowState.value,
-                pinGridCol = pin.gridColState.value,
+                pin = PinArgs(
+                    prompt = pin.promptState.value,
+                    len = pin.entryState.value.length,
+                    error = pin.errorState.value,
+                    onDigit = { d -> pin.digit(d) },
+                    onBack = { pin.del() },
+                    onCancel = { pin.cancel() },
+                    onOpenList = { pin.openList() },
+                    gridRow = pin.gridRowState.value,
+                    gridCol = pin.gridColState.value,
+                ),
                 scrubFrac = scrubFractionState.value,
                 progNextTitle = liveNextTitleState.value,
                 progNextStart = liveNextStartState.value,
@@ -2740,21 +2748,8 @@ private fun PlayerUi(
     onNextChannel: (() -> Unit)? = null,
     onTogglePlay: () -> Unit = {},
     timeshiftEngaged: Boolean = false,
-    modernOvVisible: Boolean = false,
-    modernOvRow: Int = 0,
-    modernOvCard: Int = 0,
-    modernOvStrip: Int = 0,
-    modernOvPoke: Int = 0,
-    modernOvExec: Int = 0,
-    modernOvExecId: String = "",
-    modernOvRecNames: Set<String> = emptySet(),
-    modernStripIds: List<String> = emptyList(),
-    modernMoreVisible: Boolean = false,
-    modernMoreIndex: Int = 0,
-    onMorePick: (Int) -> Unit = {},
-    onMoreDismiss: () -> Unit = {},
+    modern: ModernOverlayArgs = ModernOverlayArgs(),
     tsMaxMs: Long = 0L,
-    onModernOvDismiss: () -> Unit = {},
     onSkipBack: () -> Unit = {},
     onSkipFwd: () -> Unit = {},
     onDoubleTapSeek: (Boolean) -> Unit = {},
@@ -2791,13 +2786,7 @@ private fun PlayerUi(
     channelNavIndex: Int = -1,
     channelGroupLabel: String = "",
     channelGroupPicker: Boolean = false,
-    searchActive: Boolean = false,
-    searchQuery: String = "",
-    onSearchQueryChange: (String) -> Unit = {},
-    searchFieldFocused: Boolean = true,
-    searchHits: List<LivePlaylist.LiveChannel> = emptyList(),
-    searchNavIndex: Int = 0,
-    searchFocusSignal: Int = 0,
+    search: ChannelSearchArgs = ChannelSearchArgs(),
     openListSignal: Int = 0,
     closeListSignal: Int = 0,
     onTrackMenuChange: (String?) -> Unit = {},
@@ -2814,23 +2803,10 @@ private fun PlayerUi(
     openAudioSignal: Int = 0,
     openSpuSignal: Int = 0,
     // M383: prepinac stream profilu
-    openProfileSignal: Int = 0,
-    profileItems: List<String> = emptyList(),
-    currentProfile: String = "",
-    profileSwitch: Boolean = false,
-    onPickProfile: (String) -> Unit = {},
-    modernMoreIdList: List<String> = listOf("list", "sleep", "info"),
+    profile: ProfileArgs = ProfileArgs(),
     onOptionsChange: (Boolean) -> Unit = {},
     onControlsVisibleChange: (Boolean) -> Unit = {},
-    pinPrompt: Boolean = false,
-    pinLen: Int = 0,
-    pinError: Boolean = false,
-    onPinDigit: (Int) -> Unit = {},
-    onPinBack: () -> Unit = {},
-    onPinCancel: () -> Unit = {},
-    onPinOpenList: () -> Unit = {},
-    pinGridRow: Int = 0,
-    pinGridCol: Int = 0,
+    pin: PinArgs = PinArgs(),
     scrubFrac: Float = 0f,
     progNextTitle: String = "",
     progNextStart: Long = 0,
@@ -2946,7 +2922,7 @@ private fun PlayerUi(
     }
     LaunchedEffect(openAudioSignal) { if (openAudioSignal > 0) { menu = "audio"; controlsVisible = false } }
     LaunchedEffect(openSpuSignal) { if (openSpuSignal > 0) { menu = "spu"; controlsVisible = false } }
-    LaunchedEffect(openProfileSignal) { if (openProfileSignal > 0) { menu = "profile"; controlsVisible = false } }
+    LaunchedEffect(profile.openSignal) { if (profile.openSignal > 0) { menu = "profile"; controlsVisible = false } }
     LaunchedEffect(closeMenuSignal) { if (closeMenuSignal > 0) menu = null }
     // ikona play/pause podla skutocneho stavu prehravaca
     LaunchedEffect(playing) { isPlaying = playing }
@@ -3116,7 +3092,7 @@ private fun PlayerUi(
     PlayerEpgEffects(
         showChannelList = showChannelList,
         controlsVisible = controlsVisible,
-        modernOvVisible = modernOvVisible,
+        modernOvVisible = modern.visible,
         onPrefetchEpg = onPrefetchEpg,
         onRefreshEpgInitial = onRefreshEpgInitial,
         onRefreshEpg = onRefreshEpg
@@ -3190,7 +3166,7 @@ private fun PlayerUi(
             pipButton = pipButton,
             pipSupported = pipSupported,
             timeshiftEngaged = timeshiftEngaged,
-            profileSwitch = profileSwitch,
+            profileSwitch = profile.switchAvailable,
             controlNavIndex = controlNavIndex,
             liveChannels = liveChannels,
             liveCurrentIndex = liveCurrentIndex,
@@ -3246,7 +3222,7 @@ private fun PlayerUi(
                 ctx = ctx,
                 pipSupported = pipSupported,
                 pipButton = pipButton,
-                profileSwitch = profileSwitch,
+                profileSwitch = profile.switchAvailable,
                 orientationLocked = orientationLocked,
                 dvrActivity = dvrActivity,
                 onEnterPip = onEnterPip,
@@ -3262,12 +3238,12 @@ private fun PlayerUi(
         // Moderny TV overlay (karty kanalov + ovladacia lista) — exkluzivita,
         // auto-hide a vykonanie akcii z listy (M663: ModernOverlayEffects.kt)
         ModernOverlayEffects(
-            modernOvVisible = modernOvVisible,
-            modernOvPoke = modernOvPoke,
-            modernOvExec = modernOvExec,
-            modernOvExecId = modernOvExecId,
-            modernOvCard = modernOvCard,
-            onModernOvDismiss = onModernOvDismiss,
+            modernOvVisible = modern.visible,
+            modernOvPoke = modern.poke,
+            modernOvExec = modern.exec,
+            modernOvExecId = modern.execId,
+            modernOvCard = modern.card,
+            onModernOvDismiss = modern.onDismiss,
             onSelectChannel = onSelectChannel,
             onOpenSleep = onOpenSleep,
             onOpenEpg = onOpenEpg,
@@ -3278,17 +3254,17 @@ private fun PlayerUi(
             setMenu = { menu = it },
             setShowInfo = { showInfo = it }
         )
-        if (modernOvVisible && isTvGest) {
+        if (modern.visible && isTvGest) {
             val ovSrv = remember { sk.tvhclient.shared.Tvh.store.active() }
             val ovLoader = remember(ovSrv?.id) { PiconImageLoader.get(ctx, ovSrv) }
             ModernTvOverlay(
                 channels = liveChannels,
                 currentIndex = liveCurrentIndex,
-                cardIndex = modernOvCard,
-                focusRow = modernOvRow,
-                stripIndex = modernOvStrip,
-                stripIds = modernStripIds,
-                recNames = modernOvRecNames,
+                cardIndex = modern.card,
+                focusRow = modern.row,
+                stripIndex = modern.strip,
+                stripIds = modern.stripIds,
+                recNames = modern.recNames,
                 isPlaying = isPlaying,
                 tsEngaged = timeshiftEngaged,
                 tsOffsetMs = timeshiftOffsetMs,
@@ -3348,13 +3324,13 @@ private fun PlayerUi(
                 onLoadChannelEpg = onLoadChannelEpg,
                 channelGroupLabel = channelGroupLabel,
                 channelGroupPicker = channelGroupPicker,
-                searchActive = searchActive,
-                searchQuery = searchQuery,
-                onSearchQueryChange = onSearchQueryChange,
-                searchFieldFocused = searchFieldFocused,
-                searchHits = searchHits,
-                searchNavIndex = searchNavIndex,
-                searchFocusSignal = searchFocusSignal,
+                searchActive = search.active,
+                searchQuery = search.query,
+                onSearchQueryChange = search.onQueryChange,
+                searchFieldFocused = search.fieldFocused,
+                searchHits = search.hits,
+                searchNavIndex = search.navIndex,
+                searchFocusSignal = search.focusSignal,
                 inPreview = inPreview,
                 previewRect = previewRect,
                 onPreviewRect = { r -> previewRect = r }
@@ -3362,13 +3338,13 @@ private fun PlayerUi(
         }
 
         // "Viac" menu modernej listy (M327): Kanaly / Casovac uspatia / Informacie (M633: PlayerMenus.kt)
-        if (modernMoreVisible) {
+        if (modern.moreVisible) {
             ModernMoreMenu(
-                ids = modernMoreIdList,
-                highlightIndex = if (isTvGest) modernMoreIndex else -1,   // M385-fix
+                ids = modern.moreIdList,
+                highlightIndex = if (isTvGest) modern.moreIndex else -1,   // M385-fix
                 recActive = dvrActivity?.dvrExistingState?.value != null,
-                onPick = onMorePick,
-                onDismiss = onMoreDismiss
+                onPick = modern.onMorePick,
+                onDismiss = modern.onMoreDismiss
             )
         }
 
@@ -3390,9 +3366,9 @@ private fun PlayerUi(
                 player = player,
                 trackListVersion = trackListVersion,
                 trackNavIndex = trackNavIndex,
-                profileItems = profileItems,
-                currentProfile = currentProfile,
-                onPickProfile = onPickProfile,
+                profileItems = profile.items,
+                currentProfile = profile.current,
+                onPickProfile = profile.onPick,
                 htspSpuItems = htspSpuItems,
                 htspSpuCurrentId = htspSpuCurrentId,
                 onPickHtspSpu = onPickHtspSpu,
@@ -3412,11 +3388,11 @@ private fun PlayerUi(
         }
 
         // Rodicovsky zamok: zadanie PIN (cislice z dialkoveho riesi Activity; M633: PlayerMenus.kt)
-        if (pinPrompt) {
+        if (pin.prompt) {
             PlayerPinPanel(
-                pinLen = pinLen, pinError = pinError,
-                gridRow = if (isTvGest) pinGridRow else -1, gridCol = if (isTvGest) pinGridCol else -1,
-                onDigit = onPinDigit, onBack = onPinBack, onOpenList = onPinOpenList
+                pinLen = pin.len, pinError = pin.error,
+                gridRow = if (isTvGest) pin.gridRow else -1, gridCol = if (isTvGest) pin.gridCol else -1,
+                onDigit = pin.onDigit, onBack = pin.onBack, onOpenList = pin.onOpenList
             )
         }
     }
