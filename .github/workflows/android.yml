@@ -49,9 +49,13 @@ jobs:
         run: gradle :androidApp:assembleDebug
       # M660: JVM unit testy shared modulu (TsMuxer casovanie, Htsmsg, DVR klasifikacia).
       # Zatial informativne (continue-on-error) — build nezhodi, vysledok je v logu kroku.
+      # M660-fix: shared pouziva com.android.kotlin.multiplatform.library (M550), takze
+      # uloha sa NEvola testDebugUnitTest — ten plugin nema varianty debug/release.
+      # allTests je standardny KMP agregat (na Linuxe iOS ulohy sam preskoci); ak by aj ten
+      # nesedel, vypiseme zoznam dostupnych testovacich uloh do logu.
       - name: Shared unit tests
         continue-on-error: true
-        run: gradle :shared:testDebugUnitTest
+        run: gradle :shared:allTests || gradle :shared:tasks --all --console=plain | grep -i -E "test|check"
       - name: Upload debug APK
         uses: actions/upload-artifact@v5
         with:
