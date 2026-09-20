@@ -139,7 +139,7 @@ dependencies {
     // any impact on the code. The constraint does not add a dependency, it only limits the version if it is pulled in.
     constraints {
         implementation("androidx.fragment:fragment:1.8.6") {
-            because("Stara tranzitivna 1.0.0 je zastarala; vynutit verziu kompatibilnu so SDK 35")
+            because("The old transitive 1.0.0 is outdated; force a version compatible with SDK 35")
         }
     }
     implementation(project(":shared"))

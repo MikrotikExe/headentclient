@@ -128,7 +128,7 @@ class TsMuxerTimingTest {
         // a jump of 10 minutes (subscriptionSkip) -> the output axis must continue right after the previous one
         val jumped = m.mux(1, es, pts = dts + 54_000_000L + 3_600L, dts = dts + 54_000_000L, randomAccess = true)
         val after = parse(jumped).pes.first { it.pid == 0x1001 }.dts!!
-        assertTrue(after > before && after - before < 90_000L, "po skoku ma os pokracovat plynulo: $before -> $after")
+        assertTrue(after > before && after - before < 90_000L, "the timeline must continue smoothly after a jump: $before -> $after")
     }
 
     /** M674: video is silent for > 250 ms, audio keeps running -> PCR-only packets on the video PID, the PCR keeps growing. */
