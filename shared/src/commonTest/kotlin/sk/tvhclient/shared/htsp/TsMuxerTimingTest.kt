@@ -130,4 +130,48 @@ class TsMuxerTimingTest {
         val after = parse(jumped).pes.first { it.pid == 0x1001 }.dts!!
         assertTrue(after > before && after - before < 90_000L, "po skoku ma os pokracovat plynulo: $before -> $after")
     }
+
+    /** M674: video mlci > 250 ms, audio bezi -> PCR-only pakety na video PID, PCR rastie dalej. */
+    @Test
+    fun pcrKeepsRunningWhenVideoStalls() {
+        val m = muxer()
+        var all = m.start()
+        var vdts = 1_000_000L
+        for (i in 0 until 5) { all += m.mux(1, es, pts = vdts + 7_200L, dts = vdts, randomAccess = i == 0); vdts += 3_600L }
+        val beforeStall = parse(all)
+        val lastVideoPcr = beforeStall.pcr.last().second
+        // 2 s len audio (kazdych 24 ms), video stoji
+        var apts = vdts
+        var audioOnly = ByteArray(0)
+        for (i in 0 until 80) { audioOnly += m.mux(2, es, pts = apts, dts = null, randomAccess = false); apts += 2_160L }
+        val stall = parse(audioOnly)
+        assertTrue(stall.pcr.isNotEmpty(), "pocas vypadku videa musia ist PCR-only pakety")
+        assertTrue(stall.pcr.all { it.first == 0x1001 }, "PCR ostava na povodnom PCR PID (video)")
+        var last = lastVideoPcr
+        for ((_, v) in stall.pcr) { assertTrue(v >= last, "PCR musi rast aj bez videa: $last -> $v"); last = v }
+        // rozostup PCR-only paketov ~250 ms, nie na kazdom audio pakete
+        assertTrue(stall.pcr.size in 5..12, "PCR-only paketov: ${stall.pcr.size}")
+        // navrat videa: PCR nejde dozadu
+        val resumed = parse(m.mux(1, es, pts = apts + 7_200L, dts = apts, randomAccess = true))
+        assertTrue(resumed.pcr.first().second >= last, "PCR po navrate videa nesmie ist dozadu")
+    }
+
+    /** M674: PCR-only paket = len adaptation field, bez payloadu; CC video stopy sa nim nemeni. */
+    @Test
+    fun pcrOnlyPacketHasNoPayloadAndKeepsCc() {
+        val m = muxer()
+        m.start()
+        m.mux(1, es, pts = 1_007_200L, dts = 1_000_000L, randomAccess = true)
+        val out = m.mux(2, es, pts = 1_000_000L + 30_000L, dts = null, randomAccess = false)   // audio 333 ms za videom
+        val first = out.copyOfRange(0, 188)
+        assertEquals(0x47, first[0].toInt() and 0xFF)
+        val pid = ((first[1].toInt() and 0x1F) shl 8) or (first[2].toInt() and 0xFF)
+        assertEquals(0x1001, pid, "prvy paket je PCR-only na video PID")
+        assertEquals(0x2, (first[3].toInt() shr 4) and 0x3, "AFC=10: len adaptation field")
+        assertEquals(183, first[4].toInt() and 0xFF)
+        assertEquals(0x10, first[5].toInt() and 0xFF, "PCR_flag")
+        // dalsi video paket pokracuje s CC, ktore PCR-only paket neposunul
+        val nextVideo = parse(m.mux(1, es, pts = 1_010_800L, dts = 1_003_600L, randomAccess = false))
+        assertTrue(nextVideo.pes.any { it.pid == 0x1001 })
+    }
 }

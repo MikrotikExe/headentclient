@@ -66,6 +66,13 @@ class TsMuxer(streams: List<Stream>) {
 
     /** M463: DTS predchadzajuceho snimku — na interpolaciu PCR vnutri snimku. */
     private var lastPcrDts: Long? = null
+    /** M674: posledne zapisane PCR (90 kHz) — PCR nesmie ist dozadu ani po PCR-only pakete. */
+    private var lastPcrOut: Long = -1L
+    /** M674: ak audio predbehne posledne PCR (video PID mlci — vypadok, scrambling, cakanie na
+     *  keyframe) o viac nez 250 ms, poslem PCR-only paket na PCR PID, aby hodiny libVLC nestali.
+     *  250 ms: audio DTS bezne predbieha video DTS o reorder oneskorenie B-snimkov (do ~120 ms)
+     *  a po skoku (re-base) o frameGap + PTS-DTS odstup (~115 ms) — to stall nie je. */
+    private val PCR_STALL_TICKS = 22_500L
 
     private val tracks = ArrayList<Track>()
     private var trackByEs: Map<Int, Track> = emptyMap()
@@ -267,7 +274,16 @@ class TsMuxer(streams: List<Stream>) {
         // rychlejsie, nez uplynie termin. Tvheadend na HTTP ceste PCR generuje
         // s rezervou — preto tam bol obraz plynuly.
         val dtsNow = if (t.pid == pcrPid) (outDts ?: outPts) else null
-        val pcr = if (dtsNow != null) (dtsNow - PCR_LEAD).coerceAtLeast(0L) else null
+        // M674: PCR nikdy dozadu (po PCR-only pakete odvodenom z audia)
+        val pcr = if (dtsNow != null) maxOf((dtsNow - PCR_LEAD).coerceAtLeast(0L), lastPcrOut) else null
+        // M674: video PID mlci a audio uz predbehlo posledne PCR -> PCR-only paket pred tymto PES
+        // len audio — titulky maju PTS (cas zobrazenia) daleko pred videom, z nich PCR odvodit nemozno
+        val otherDts = if (dtsNow == null && !t.isSubtitle) (outDts ?: outPts) else null
+        val prevPcrDts = lastPcrDts
+        val stallPcr: Long? = if (otherDts != null && prevPcrDts != null && otherDts - prevPcrDts > PCR_STALL_TICKS) {
+            lastPcrDts = otherDts
+            maxOf((otherDts - PCR_LEAD).coerceAtLeast(0L), lastPcrOut)
+        } else null
         // trvanie snimku pre interpolaciu (prvy snimok: 20 ms ako rozumny odhad)
         val frameSpan = if (dtsNow != null) {
             val prev = lastPcrDts
@@ -277,10 +293,12 @@ class TsMuxer(streams: List<Stream>) {
         } else 0L
 
         val psiLen = (patPkt?.size ?: 0) + (pmtPkt?.size ?: 0)
-        val out = ByteArray(psiLen + tsPacketCount(pesLen, pcr != null, rap) * 188)
+        val stallLen = if (stallPcr != null) 188 else 0
+        val out = ByteArray(psiLen + stallLen + tsPacketCount(pesLen, pcr != null, rap) * 188)
         var off = 0
         patPkt?.let { it.copyInto(out, off); off += it.size }
         pmtPkt?.let { it.copyInto(out, off); off += it.size }
+        if (stallPcr != null) { writePcrOnly(stallPcr, out, off); off += 188 }
         writePackets(t, pesHdr, hdrLen, es, esOff, esLen, pcr, frameSpan, rap, out, off)
         return out
     }
@@ -544,6 +562,29 @@ class TsMuxer(streams: List<Stream>) {
     // ---- TS packetizacia ----
 
     /** M453: zapisuje TS pakety priamo do `out` od indexu `startOff`. */
+    /** M674: TS paket len s adaptation field a PCR na PCR PID (bez payloadu, CC sa neinkrementuje). */
+    private fun writePcrOnly(pcrVal: Long, out: ByteArray, startOff: Int) {
+        val pkt = TsPacketView(out, startOff)
+        val cc = trackByPid(pcrPid)?.cc ?: 0
+        pkt[0] = 0x47
+        pkt[1] = ((pcrPid ushr 8) and 0x1F).toByte()
+        pkt[2] = (pcrPid and 0xFF).toByte()
+        pkt[3] = (0x20 or cc).toByte()          // AFC=10: len adaptation field
+        pkt[4] = 183.toByte()                    // afLen = zvysok paketu
+        pkt[5] = 0x10                            // PCR_flag
+        val base = pcrVal and 0x1FFFFFFFFL
+        pkt[6] = ((base ushr 25) and 0xFF).toByte()
+        pkt[7] = ((base ushr 17) and 0xFF).toByte()
+        pkt[8] = ((base ushr 9) and 0xFF).toByte()
+        pkt[9] = ((base ushr 1) and 0xFF).toByte()
+        pkt[10] = ((((base and 1L).toInt()) shl 7) or 0x7E).toByte()
+        pkt[11] = 0x00
+        for (i in 12 until 188) pkt[i] = 0xFF.toByte()
+        lastPcrOut = pcrVal
+    }
+
+    private fun trackByPid(pid: Int): Track? = tracks.firstOrNull { it.pid == pid }
+
     /** M668: PES = hlavicka (hdrLen bajtov) + ES — kopiruje sa po castiach priamo do TS paketov. */
     private fun writePackets(t: Track, hdr: ByteArray, hdrLen: Int, es: ByteArray, esOff: Int, esLen: Int, pcrBase: Long?, frameSpan: Long, rap: Boolean, out: ByteArray, startOff: Int) {
         var pos = 0
@@ -600,6 +641,7 @@ class TsMuxer(streams: List<Stream>) {
                         pcrBase!! + frameSpan * pcrIdx.toLong() / totalPkts.toLong()
                     else pcrBase!!
                     pcrIdx += PCR_MAX_GAP_PKT
+                    lastPcrOut = interp   // M674
                     val base = interp and 0x1FFFFFFFFL
                     pkt[idx++] = ((base ushr 25) and 0xFF).toByte()
                     pkt[idx++] = ((base ushr 17) and 0xFF).toByte()
