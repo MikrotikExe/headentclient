@@ -301,7 +301,6 @@ class PlayerActivity : ComponentActivity() {
     fun openTeletext() { ttx.open() }
     fun closeTeletext() { ttx.close() }
 
-    private var wasPlaying: Boolean = false
     // Picture-in-Picture (obraz v obraze)
     private val inPipState = androidx.compose.runtime.mutableStateOf(false)
     // false = audio-only (rozhlas) -> zobraz logo namiesto ciernej
@@ -1961,48 +1960,29 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
+    // M672: odchod na pozadie / navrat (M540 standby, M263 PIN, M623 radio na pozadi) v BackgroundResume.kt
+    private val bg: BackgroundResume by lazy {
+        BackgroundResume(this, engine, live, object : BackgroundResume.Hooks {
+            override fun seekable(): Boolean = seekablePlayback
+            override fun isTvDevice(): Boolean = this@PlayerActivity.isTvDevice()
+            override fun pinPromptShown(): Boolean = pinPromptState.value
+            override fun inPip(): Boolean = inPipState.value
+            override fun videoLayout(): VLCVideoLayout? = this@PlayerActivity.videoLayout
+            override fun saveDvrProgress() { this@PlayerActivity.saveDvrProgress() }
+            override fun teardownPlayerAsync() { this@PlayerActivity.teardownPlayerAsync() }
+            override fun radioBackground(): Boolean = this@PlayerActivity.radioBackground()
+            override fun radioHandoffIfPossible(): Boolean = this@PlayerActivity.radioHandoffIfPossible()
+            override fun recreatePlayer() { this@PlayerActivity.recreatePlayer() }
+            override fun replayCurrentLive() { this@PlayerActivity.replayCurrentLive() }
+            override fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, channelIndex: Int) {
+                this@PlayerActivity.requestPin(onOk = onOk, onCancel = onCancel, channelIndex = channelIndex)
+            }
+        })
+    }
+
     override fun onStart() {
         super.onStart()
-        // navrat z pozadia: znova pripoj video na surface a obnov prehravanie
-        if (engine.ready) {
-            val curUuid = liveUuids.getOrNull(liveIndex)
-            val locked = wasPlaying && !seekablePlayback && !pinPromptState.value &&
-                ParentalLock.channelLockedProtected(this, liveServer?.id ?: Tvh.store.active()?.id, curUuid)
-            // M540: navrat po standby (obrazovka zhasla, kym sme boli zastaveni) — na
-            // Amlogicu je stary AudioTrack po prebudeni mrtvy (M539). Namiesto 5 s
-            // cakania na hlidac rovno novy prehravac a znovunaladenie; PIN plati dalej.
-            if (wasPlaying && !seekablePlayback && !playerTornDown && isTvDevice() &&
-                WakeTracker.screenWentOffSince(stoppedAt)
-            ) {
-                CrashLogger.report(this, "PlayerActivity.wake", "resume after standby -> new player")
-                recreatePlayer()
-                if (locked) {
-                    ParentalLock.clearGrace(this)
-                    requestPin(
-                        onOk = { replayCurrentLive() },
-                        onCancel = { finish() },
-                        channelIndex = liveIndex
-                    )
-                } else {
-                    replayCurrentLive()
-                }
-                return
-            }
-            videoLayout?.let { runCatching { mediaPlayer.attachViews(it, null, false, false) } }
-            // rodicovsky zamok: ak sa vraciame z pozadia na zamknuty ZIVY kanal,
-            // vyziadaj PIN znova (kazdy navrat do prehravaca = PIN, ako pri starte).
-            if (locked) {
-                runCatching { if (mediaPlayer.isPlaying) mediaPlayer.pause() }
-                ParentalLock.clearGrace(this)   // M263: rovnako ako pri starte
-                requestPin(
-                    onOk = { runCatching { mediaPlayer.play() } },
-                    onCancel = { finish() },
-                    channelIndex = liveIndex
-                )
-            } else if (wasPlaying) {
-                runCatching { mediaPlayer.play() }
-            }
-        }
+        bg.onStart()
     }
 
     override fun onUserLeaveHint() {
@@ -2021,49 +2001,10 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    /** M540: kedy sme naposledy isli do pozadia (elapsedRealtime). */
-    private var stoppedAt = 0L
-
     override fun onStop() {
-        stoppedAt = android.os.SystemClock.elapsedRealtime()
-        saveDvrProgress()
-        // PiP okno nechaj hrat LEN ak sme realne v PiP (vlastny priznak z callbacku, nie zivy
-        // isInPictureInPictureMode - ten pri zatvarani PiP casto este hlasi true) a appka len ide
-        // na pozadie. Ak sa aktivita ukoncuje, prepadni dole a zastav prehravanie.
-        if (android.os.Build.VERSION.SDK_INT >= 24 && inPipState.value && !isFinishing) {
-            super.onStop(); return
-        }
-        wasPlaying = engine.ready && mediaPlayer.isPlaying
+        if (bg.onStopBeforeSuper()) { super.onStop(); return }
         super.onStop()
-        if (engine.ready) {
-            if (isFinishing) {
-                // M535: stop() sa NESMIE volat na hlavnom vlakne — pozri teardownPlayerAsync
-                teardownPlayerAsync()
-                return
-            }
-            // M623: "Radio hra na pozadi" — zhasnutie/zamok/ina appka radio nepozastavi.
-            // HOME riesi onUserLeaveHint (handoff + finish -> vetva vyssie); sem sa
-            // dostane zhasnutie obrazovky a prekrytie inou aktivitou. Moderny
-            // rezim (M624: aj klasik na telefone): handoff do RadioPlayerService
-            // (notifikacia + mini lista; finish() -> onDestroy uvolni tento prehravac).
-            // Kde handoff nie je (TV), ostane hrat samotny prehravac — wake/wifi lock
-            // (M452) drzi az do onDestroy; surface neodpajame, po navrate onStart len
-            // znova attachViews (runCatching).
-            // TV: ziadny handoff — TvHomeHost nema mini listu, radio by hralo bez ovladania;
-            // prehravac ostane hrat sam (napr. prekryty inou appkou; po standby M540
-            // v onStart prehravac obnovi a naladi znova).
-            if (wasPlaying && radioBackground()) {
-                if (isTvDevice() || !radioHandoffIfPossible()) {
-                    CrashLogger.report(this, "PlayerActivity.radioBg", "keep playing in background (tv=${isTvDevice()})")
-                }
-                return
-            }
-            if (mediaPlayer.isPlaying) {
-                mediaPlayer.pause()
-            }
-            // uvolni surface, nech sa po navrate da znova pripojit (inak cierna obrazovka)
-            runCatching { mediaPlayer.detachViews() }
-        }
+        bg.onStopAfterSuper()
     }
 
 
