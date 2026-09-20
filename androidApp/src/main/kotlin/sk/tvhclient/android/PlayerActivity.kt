@@ -237,157 +237,31 @@ class PlayerActivity : ComponentActivity() {
 
     private fun modernStripIds(): List<String> = modernOv.stripIds()
 
-    // ===== M490: nahravanie prave beziacej relacie =====
-    // Logika zila od M473 vpisana priamo v telefonnom paneli „Viac", takze
-    // klasicky bar ani moderny TV overlay ju nemali odkial zavolat. Stav aj
-    // akcia su teraz na Activity a zdielaju ich vsetky vstupy.
-    val dvrCanRecordState = androidx.compose.runtime.mutableStateOf(false)
-    val dvrEventIdState = androidx.compose.runtime.mutableStateOf<Long?>(null)
-    val dvrExistingState =
-        androidx.compose.runtime.mutableStateOf<sk.tvhclient.shared.model.DvrEntry?>(null)
-
+    // ===== M490 / M669: nahravanie prave beziacej relacie — DvrRecordController.kt =====
+    // Stav aj akcie zdielaju vsetky vstupy (klasicky bar, panel „Viac", TV overlay); tu delegaty
+    // pod povodnymi (verejnymi) nazvami, lebo ich composables citaju cez dvrActivity.
+    private val dvrRec: DvrRecordController by lazy {
+        DvrRecordController(this, lifecycleScope, live,
+            epgUpcoming = epgUpcomingState,
+            recInProgressByChan = recInProgressByChan,
+            refreshRecordingOnly = { refreshRecordingOnly() })
+    }
+    val dvrCanRecordState: androidx.compose.runtime.MutableState<Boolean> get() = dvrRec.canRecordState
+    val dvrEventIdState: androidx.compose.runtime.MutableState<Long?> get() = dvrRec.eventIdState
+    val dvrExistingState: androidx.compose.runtime.MutableState<sk.tvhclient.shared.model.DvrEntry?> get() = dvrRec.existingState
     /** Ma sa ovladac nahravania vobec ukazat? */
-    fun dvrRecordVisible(): Boolean =
-        dvrCanRecordState.value && (dvrEventIdState.value != null || dvrExistingState.value != null)
-
-    /**
-     * Zisti prava a stav nahravky pre prave sledovanu relaciu.
-     *
-     * Vola sa pri starte prehravaca a po prepnuti kanala — nie pri otvoreni
-     * ovladania. Poradie ovladacov sa pocita z `playerControlOrder()`, takze
-     * keby polozka pribudla az kym je lista otvorena, posunuli by sa indexy
-     * pod rukou a dpad by aktivoval nieco ine.
-     */
-    fun refreshDvrState() {
-        // M521: zahod stav PREDCHADZAJUCEHO kanala hned, este pred nacitanim.
-        // Nacitanie zoznamu nahravok trva cez HTTP sekundy (u velkych serverov
-        // je to vyse tisic zaznamov) a dovtedy tlacidlo ukazovalo stav kanala,
-        // z ktoreho pouzivatel prave odisiel — raz „Zrusit" tam, kde sa nenahrava,
-        // inokedy „Nahrat" tam, kde nahravka bezi.
-        dvrExistingState.value = null
-        dvrEventIdState.value = currentEventId()   // z lokalnej EPG cache, synchronne
-        // M521-fix: prebiehajucu nahravku vezmi z toho isteho zdroja, z ktoreho sa
-        // kreslia cervene bodky v zozname kanalov (fetchDvrInProgress). Je to mapa
-        // uz nacitanych BEZIACICH nahravok — dostupna okamzite a spolahliva —
-        // kym DvrController.scheduledFor() tahal cely zoznam naplanovanych
-        // (u velkeho servera vyse tisic zaznamov) a kym dobehol, tlacidlo ukazovalo
-        // nespravny stav.
-        liveChannelsState.value.getOrNull(liveIndexState.value)?.let { ch ->
-            recInProgressByChan.value.let { it[ch.uuid] ?: it[ch.name] }
-                ?.let { dvrExistingState.value = it }
-        }
-        lifecycleScope.launch {
-            val srv = Tvh.store.active()
-            var eid = currentEventId()
-            // najprv rychly a spolahlivy zdroj, az potom pomaly zoznam naplanovanych
-            var rec = runningRecordingHere() ?: currentEventRecording(srv)
-            // M520: ak sa EPG pre tento kanal este nestihlo nacitat, prehravac
-            // nepozna beziacu relaciu — a bez nej sa tlacidlo nahravania vobec
-            // nezobrazi. Prave preto sa objavovalo raz ano, raz nie, podla toho,
-            // ci uz EPG doslo. Dohladame si ju teda priamo zo servera.
-            if (eid == null && srv != null) {
-                val uuid = liveChannelsState.value.getOrNull(liveIndexState.value)?.uuid
-                if (uuid != null) {
-                    val evs = withContext(Dispatchers.IO) {
-                        runCatching {
-                            val api = Tvh.apiFor(srv)
-                            try { Tvh.fetchEpgForChannel(srv, api, uuid) } finally { api.close() }
-                        }.getOrDefault(emptyList())
-                    }
-                    if (evs.isNotEmpty()) {
-                        // doplnime do cache, nech to dalsie otvorenie uz nemusi tahat
-                        epgUpcomingState.value = epgUpcomingState.value + (uuid to evs)
-                        val nowSec = System.currentTimeMillis() / 1000
-                        val cur = evs.firstOrNull { it.start <= nowSec && nowSec < it.stop }
-                        eid = cur?.eventId
-                        if (rec == null && cur != null) {
-                            rec = DvrController.scheduledFor(srv, uuid, cur.start, cur.stop)
-                        }
-                    }
-                }
-            }
-            dvrEventIdState.value = eid
-            dvrExistingState.value = rec
-            dvrCanRecordState.value = srv != null && DvrController.access(srv).canRecord
-        }
-    }
-
+    fun dvrRecordVisible(): Boolean = dvrRec.recordVisible()
+    /** Zisti prava a stav nahravky pre prave sledovanu relaciu (start, prepnutie kanala). */
+    fun refreshDvrState() { dvrRec.refreshState() }
     // M606: dialog vyberu DVR profilu (zoznam moznosti; prazdny = zatvoreny) + kurzor
-    private val dvrAskState = androidx.compose.runtime.mutableStateOf<List<String>>(emptyList())
-    private val dvrAskSelState = androidx.compose.runtime.mutableStateOf(0)
+    private val dvrAskState: androidx.compose.runtime.MutableState<List<String>> get() = dvrRec.askState
+    private val dvrAskSelState: androidx.compose.runtime.MutableState<Int> get() = dvrRec.askSelState
     /** M607: ked dialog profilov patri kanalu z kontextovej ponuky (nie hrajucemu). */
-    private var dvrAskTarget: Pair<LivePlaylist.LiveChannel, sk.tvhclient.shared.model.EpgEvent>? = null
-
+    private val dvrAskTarget: Pair<LivePlaylist.LiveChannel, sk.tvhclient.shared.model.EpgEvent>? get() = dvrRec.askTarget
     /** Nahrat prave beziacu relaciu, alebo zrusit uz naplanovanu nahravku. */
-    fun toggleRecordCurrent() {
-        val srv = Tvh.store.active() ?: return
-        lifecycleScope.launch {
-            val existing = dvrExistingState.value ?: currentEventRecording(srv)
-            if (existing == null) {
-                // M606: volitelny vyber profilu — az potom nahravanie
-                val opts = DvrProfileAsk.options(this@PlayerActivity, srv)
-                if (opts.isNotEmpty()) {
-                    dvrAskTarget = null
-                    dvrAskSelState.value = 0
-                    dvrAskState.value = opts
-                    return@launch
-                }
-            }
-            recordCurrent(null)
-        }
-    }
-
+    fun toggleRecordCurrent() { dvrRec.toggleRecordCurrent() }
     /** M606: vyber v dialogu profilov (OK / klik) alebo zrusenie (BACK). */
-    private fun resolveDvrAsk(name: String?) {
-        dvrAskState.value = emptyList()
-        val target = dvrAskTarget
-        dvrAskTarget = null
-        if (name == null) return
-        Tvh.store.active()?.let { DvrAskPref.setLastUsed(this, it.id, name) }
-        lifecycleScope.launch {
-            if (target != null) recordEventOf(target.first, target.second, name) else recordCurrent(name)
-        }
-    }
-
-    private suspend fun recordCurrent(profile: String?) {
-        val srv = Tvh.store.active() ?: return
-        run {
-            val existing = dvrExistingState.value ?: currentEventRecording(srv)
-            val eid = dvrEventIdState.value ?: currentEventId()
-            if (existing == null && eid == null) return
-            val hint = currentLiveEvent()
-            val r = if (existing != null) DvrController.cancel(srv, existing)
-            else DvrController.recordEvent(
-                srv, eid!!,
-                hint?.first ?: "",
-                hint?.second?.start ?: 0L,
-                hint?.second?.stop ?: 0L,
-                hint?.second?.title ?: "",
-                profile
-            )
-            // M484: pri duplikate dohladaj, kde uz nahravka je
-            val dup = if (r.success || existing != null) null
-            else DvrController.duplicateOf(srv, hint?.second?.title ?: "")
-            dvrExistingState.value = currentEventRecording(srv)
-            if (r.success) refreshRecordingOnly()   // M608: cervena bodka / kazeta hned
-            android.widget.Toast.makeText(
-                this@PlayerActivity,
-                when {
-                    r.success && existing != null -> getString(R.string.dvr_rec_cancelled)
-                    r.success -> getString(R.string.dvr_rec_scheduled)
-                    dup != null && dup.channelName.isNotBlank() -> getString(
-                        R.string.dvr_rec_duplicate, dup.channelName,
-                        sk.tvhclient.shared.formatDayLabel(dup.start) + " " +
-                            sk.tvhclient.shared.formatTimeHm(dup.start)
-                    )
-                    else -> r.error ?: getString(
-                        if (r.timeout) R.string.err_timeout else R.string.dvr_rec_failed
-                    )
-                },
-                android.widget.Toast.LENGTH_LONG
-            ).show()
-        }
-    }
+    private fun resolveDvrAsk(name: String?) { dvrRec.resolveAsk(name) }
 
     private fun modernMoreIds(): List<String> = modernOv.moreIds()
     private fun openModernOverlay() { modernOv.open() }
@@ -742,45 +616,12 @@ class PlayerActivity : ComponentActivity() {
     }
 
     /** M473: eventId prave beziacej relacie na aktualnom kanali (null = nevieme). */
-    fun currentEventId(): Long? {
-        val ch = liveChannelsState.value.getOrNull(liveIndexState.value) ?: return null
-        val nowSec = System.currentTimeMillis() / 1000
-        return epgUpcomingState.value[ch.uuid]
-            ?.firstOrNull { it.start <= nowSec && nowSec < it.stop }
-            ?.eventId
-    }
-
-    /** M475: naplanovana/beziaca nahravka pre prave sledovanu relaciu (null = ziadna). */
-    /**
-     * M484: kanal a prave beziaca relacia — po naplanovani sa posle do
-     * DvrController, aby sa nahravka hned premietla do zoznamu a tlacidlo sa
-     * prepislo na „Zrusit" bez cakania na obnovu cache metadat.
-     */
-    fun currentLiveEvent(): Pair<String, sk.tvhclient.shared.model.EpgEvent>? {
-        val ch = liveChannelsState.value.getOrNull(liveIndexState.value) ?: return null
-        val nowSec = System.currentTimeMillis() / 1000
-        val ev = epgUpcomingState.value[ch.uuid]
-            ?.firstOrNull { it.start <= nowSec && nowSec < it.stop } ?: return null
-        return ch.uuid to ev
-    }
-
-    /** M521-fix: beziaca nahravka na prave sledovanom kanali z mapy cervených bodiek. */
-    fun runningRecordingHere(): sk.tvhclient.shared.model.DvrEntry? {
-        val ch = liveChannelsState.value.getOrNull(liveIndexState.value) ?: return null
-        return recInProgressByChan.value.let { it[ch.uuid] ?: it[ch.name] }
-    }
-
-    suspend fun currentEventRecording(
-        server: sk.tvhclient.shared.model.TvhServer?
-    ): sk.tvhclient.shared.model.DvrEntry? {
-        val srv = server ?: return null
-        val ch = liveChannelsState.value.getOrNull(liveIndexState.value) ?: return null
-        val nowSec = System.currentTimeMillis() / 1000
-        val ev = epgUpcomingState.value[ch.uuid]
-            ?.firstOrNull { it.start <= nowSec && nowSec < it.stop } ?: return null
-        return DvrController.scheduledFor(srv, ch.uuid, ev.start, ev.stop)
-    }
-
+    // M669: currentEventId / currentLiveEvent / runningRecordingHere / currentEventRecording v DvrRecordController
+    fun currentEventId(): Long? = dvrRec.currentEventId()
+    fun currentLiveEvent(): Pair<String, sk.tvhclient.shared.model.EpgEvent>? = dvrRec.currentLiveEvent()
+    fun runningRecordingHere(): sk.tvhclient.shared.model.DvrEntry? = dvrRec.runningRecordingHere()
+    suspend fun currentEventRecording(server: sk.tvhclient.shared.model.TvhServer?): sk.tvhclient.shared.model.DvrEntry? =
+        dvrRec.currentEventRecording(server)
 
     /** TV/box (Android TV) — na detekciu kde sa ma archivny vyber zobrazovat. */
     private fun isTvDevice(): Boolean {
@@ -1092,41 +933,8 @@ class PlayerActivity : ComponentActivity() {
     private fun toggleFavoriteAt(idx: Int, announce: Boolean) { ctxMenu.toggleFavoriteAt(idx, announce) }
     private fun activateCtxMenu(key: String) { ctxMenu.activate(key) }
 
-    /** M607: nahravanie z kontextovej ponuky — s volitelnym vyberom profilu (M606). */
-    private fun recordFromCtxMenu(ch: LivePlaylist.LiveChannel, ev: sk.tvhclient.shared.model.EpgEvent) {
-        val srv = Tvh.store.active() ?: return
-        lifecycleScope.launch {
-            val opts = DvrProfileAsk.options(this@PlayerActivity, srv)
-            if (opts.isNotEmpty()) {
-                dvrAskTarget = ch to ev
-                dvrAskSelState.value = 0
-                dvrAskState.value = opts
-            } else recordEventOf(ch, ev, null)
-        }
-    }
-
-    private suspend fun recordEventOf(ch: LivePlaylist.LiveChannel, ev: sk.tvhclient.shared.model.EpgEvent, profile: String?) {
-        val srv = Tvh.store.active() ?: return
-        val eid = ev.eventId ?: return
-        val r = DvrController.recordEvent(srv, eid, ch.uuid, ev.start, ev.stop, ev.title, profile)
-        val dup = if (r.success) null else DvrController.duplicateOf(srv, ev.title)
-        if (r.success) {
-            refreshRecordingOnly()   // cervena bodka pri kanali
-            if (ch.uuid == liveUuidState.value) dvrExistingState.value = currentEventRecording(srv)
-        }
-        android.widget.Toast.makeText(
-            this@PlayerActivity,
-            when {
-                r.success -> getString(R.string.dvr_rec_scheduled)
-                dup != null && dup.channelName.isNotBlank() -> getString(
-                    R.string.dvr_rec_duplicate, dup.channelName,
-                    sk.tvhclient.shared.formatDayLabel(dup.start) + " " + sk.tvhclient.shared.formatTimeHm(dup.start)
-                )
-                else -> r.error ?: getString(if (r.timeout) R.string.err_timeout else R.string.dvr_rec_failed)
-            },
-            android.widget.Toast.LENGTH_LONG
-        ).show()
-    }
+    /** M607 / M669: nahravanie z kontextovej ponuky — DvrRecordController. */
+    private fun recordFromCtxMenu(ch: LivePlaylist.LiveChannel, ev: sk.tvhclient.shared.model.EpgEvent) { dvrRec.recordFromCtxMenu(ch, ev) }
 
     // ===== M541 / M638: rezim usporiadania oblubenych (D-pad) — FavReorder.kt =====
     private val reorder: FavReorder by lazy {
