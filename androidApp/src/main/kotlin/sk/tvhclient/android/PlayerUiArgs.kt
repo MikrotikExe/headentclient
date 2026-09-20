@@ -1,6 +1,7 @@
 package sk.tvhclient.android
 
 import androidx.compose.runtime.Immutable
+import org.videolan.libvlc.util.VLCVideoLayout
 
 /**
  * M666: zoskupené parametre [PlayerUi] — štyri malé nemenné držiaky, aby bola
@@ -107,4 +108,79 @@ internal data class UiSignals(
     val openSpu: Int = 0,
     val lockTick: Int = 0,
     val numberEntry: String = ""
+)
+
+/** M675: aktuálna/nasledujúca relácia na overlayi a logo kanála v strede. */
+@Immutable
+internal data class ProgrammeArgs(
+    val startFrac: Float = 0f,
+    val stopFrac: Float = 1f,
+    val startSec: Long = 0,
+    val stopSec: Long = 0,
+    val title: String = "",
+    val nextTitle: String = "",
+    val nextStart: Long = 0,
+    val nextStop: Long = 0,
+    val centerLogoUrl: String? = null
+)
+
+/** M675: zoznam kanálov (live zapping) — dáta, navigácia a EPG callbacky. */
+@Immutable
+internal data class ChannelListArgs(
+    val channels: List<LivePlaylist.LiveChannel> = emptyList(),
+    val currentIndex: Int = -1,
+    val onSelect: (Int) -> Unit = {},
+    val onLongPress: (Int) -> Unit = {},
+    val onLoadEpg: (String, (List<sk.tvhclient.shared.model.EpgEvent>) -> Unit) -> Unit = { _, _ -> },
+    val navIndex: Int = -1,
+    val groupLabel: String = "",
+    val groupPicker: Boolean = false,
+    val epgLoading: Boolean = false,
+    val onOpenChange: (Boolean) -> Unit = {},
+    val onRefreshEpg: () -> Unit = {},
+    val onRefreshEpgInitial: () -> Unit = {},
+    val onPrefetchEpg: () -> Unit = {}
+)
+
+/** M675: callbacky z PlayerUi do aktivity (onAttach/onStart/onClose sú povinné). */
+@Immutable
+internal data class PlayerCallbacks(
+    val onAttach: (VLCVideoLayout) -> Unit,
+    val onStart: () -> Unit,
+    val onPrevChannel: (() -> Unit)? = null,
+    val onNextChannel: (() -> Unit)? = null,
+    val onTogglePlay: () -> Unit = {},
+    val onOpenEpg: () -> Unit = {},
+    val onEnterPip: () -> Unit = {},
+    val onOpenSleep: () -> Unit = {},
+    val onTrackMenuChange: (String?) -> Unit = {},
+    val onOptionsSelect: (Int) -> Unit = {},
+    val onOptionsChange: (Boolean) -> Unit = {},
+    val onControlsVisibleChange: (Boolean) -> Unit = {},
+    val onOrientationLockChange: (Boolean) -> Unit = {},
+    val onRequestExit: () -> Unit = {},
+    val onClose: () -> Unit
+)
+
+/** M675: príznaky stavu prehrávania (seekable je povinný). */
+@Immutable
+internal data class PlaybackFlags(
+    val seekable: Boolean,
+    val timeshiftEngaged: Boolean = false,
+    val timeshiftOffsetMs: Long = 0L,
+    val tsMaxMs: Long = 0L,
+    val inPip: Boolean = false,
+    val pipSupported: Boolean = false,
+    /**
+     * PiP tlacidlo v paneli (M349-fix3): oddelene od pipSupported, ktory
+     * gate-uje auto-PiP BackHandler a exit-confirm (tie potrebuju schopnost,
+     * nie viditelnost tlacidla)
+     */
+    val pipButton: Boolean = false,
+    val hasVideo: Boolean = true,
+    val reconnecting: Boolean = false,
+    val seeking: Boolean = false,
+    val playing: Boolean = true,
+    val returnLiveOnBack: Boolean = false,
+    val sleepDeadline: Long = 0
 )

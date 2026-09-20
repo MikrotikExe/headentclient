@@ -174,16 +174,8 @@ class RadioPlayerService : Service() {
         p.play()
     }
 
-    /** Odstrani user:pass@ z URL (auth riesi feeder cez OkHttp hlavicku). */
-    private fun stripCreds(url: String): String {
-        val i = url.indexOf("://")
-        if (i < 0) return url
-        val rest = url.substring(i + 3)
-        val at = rest.indexOf('@')
-        val slash = rest.indexOf('/')
-        if (at < 0 || (slash in 0 until at)) return url
-        return url.substring(0, i + 3) + rest.substring(at + 1)
-    }
+    /** Odstrani user:pass@ z URL (auth riesi feeder cez OkHttp hlavicku). M676: spolocne v MediaFactory. */
+    private fun stripCreds(url: String): String = MediaFactory.stripCreds(url)
 
     private fun togglePlayPause() {
         val p = player ?: return

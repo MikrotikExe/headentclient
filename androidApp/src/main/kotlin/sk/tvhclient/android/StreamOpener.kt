@@ -129,7 +129,7 @@ internal class StreamOpener(
 
     /**
      * M253 — DVR/archiv cez HttpTsFeeder: appka stiahne dvrfile s digest auth
-     * (OkHttp + DigestAuthenticator) a podava libVLC cez pipe. Rovny princip ako
+     * (OkHttp + DigestAuthenticator zo shared/net) a podava libVLC cez pipe. Rovny princip ako
      * HTSP live; rieši digest-only servery kde creds v URL (user:pass@host)
      * libVLC nezvladne. startByte = pripadny offset pre resume cez HTTP Range.
      */

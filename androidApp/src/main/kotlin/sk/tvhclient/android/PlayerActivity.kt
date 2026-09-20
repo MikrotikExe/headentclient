@@ -1,75 +1,43 @@
 package sk.tvhclient.android
 
 import android.os.Bundle
-import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.absoluteOffset
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.ClosedCaption
 import androidx.compose.material.icons.filled.FiberManualRecord
-import androidx.compose.material.icons.filled.Forward30
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Radio
-import androidx.compose.material.icons.filled.Replay30
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.SwapVert
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Voicemail
@@ -86,20 +54,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -107,21 +64,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.videolan.libvlc.LibVLC
-import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.util.VLCVideoLayout
 import sk.tvhclient.shared.Tvh
-import sk.tvhclient.shared.htsp.HtspData
 import kotlin.math.roundToInt
 
 /**
@@ -391,7 +343,6 @@ class PlayerActivity : ComponentActivity() {
     private val mediaFactory: MediaFactory by lazy { MediaFactory(this) { libVlc } }
     private fun userAgent(): String = mediaFactory.userAgent()
     private fun stripCreds(url: String): String = MediaFactory.stripCreds(url)
-    private fun buildMedia(url: String): Media = mediaFactory.forUrl(url)
     private fun deinterlaceSpec(): Pair<String, String?> = mediaFactory.deinterlaceSpec()
 
     // M655: otvaranie streamu (HTTP / feeder / DVR / HTSP, auth sonda) v StreamOpener.kt
@@ -716,7 +667,6 @@ class PlayerActivity : ComponentActivity() {
     private fun groupKeys(): List<String> = groups.keys()
     private fun refreshFavOrder() { groups.refreshFavOrder() }
     private fun applyGroup(key: String) { groups.apply(key) }
-    private fun cycleGroup(dir: Int) { groups.cycle(dir) }
 
     // ===== M370 / M635: hladanie kanala — ChannelSearch.kt =====
     /** Vyber kanala z vysledkov hladania: prepne (aj skupinu ak treba) a pusti. */
@@ -768,7 +718,6 @@ class PlayerActivity : ComponentActivity() {
     private fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, markUnlock: Boolean = true, channelIndex: Int? = null) {
         pin.request(onOk, onCancel, markUnlock, channelIndex)
     }
-    private fun closePin() { pin.close() }
     // Dialog "Obnovit prehravanie" — D-pad obsluha v dispatchKeyEvent (na boxe nemal fokus)
     private val resumePromptState = androidx.compose.runtime.mutableStateOf(false)
     private val resumeSelState = androidx.compose.runtime.mutableStateOf(1)   // 0=Nie, 1=Ano (predvolba)
@@ -1219,25 +1168,8 @@ class PlayerActivity : ComponentActivity() {
         )
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        // Mini radio (M340) nesmie hrat popri plnom prehravaci
-        RadioPlayerService.stop(this)
-        // Zavri predoslu instanciu prehravaca (napr. visiacu v PiP so starym kanalom),
-        // nech pri prepnuti kanala nezostane stara PiP visiet. Nova sa otvori na celu obrazovku.
-        // M427: ak stara instancia visi v PiP, obycajny finish() zavrie aktivitu,
-        // ale pripnute PiP okno (pinned task) moze ostat visiet ako prazdna karta
-        // — systemu treba povedat, nech odstrani cely task. Mimo PiP staci finish().
-        liveInstance?.get()?.let { old ->
-            if (old !== this) runCatching {
-                if (old.isInPictureInPictureMode) old.finishAndRemoveTask() else old.finish()
-            }
-        }
-        liveInstance = java.lang.ref.WeakReference(this)
-        val args = PlayerArgs.from(intent)   // M658: vsetky intent extra na jednom mieste
-        // Navrat na povodny zivy kanal po zatvoreni (pri "Prehrat od zaciatku" z prehravaca)
-        returnLiveUuid = args.returnLiveUuid
-        returnLiveTitle = args.returnLiveTitle
+    /** M675: orientácia, keep-screen-on, stream locky a immersive fullscreen (vyňaté z onCreate). */
+    private fun setupWindow() {
         // predvolene otacanie obrazovky podla nastavenia (auto = fullUser ako v manifeste)
         runCatching {
             requestedOrientation = when (OrientationPref.get(this)) {
@@ -1258,6 +1190,71 @@ class PlayerActivity : ComponentActivity() {
         insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
         insetsController.systemBarsBehavior =
             androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+    }
+
+    /** M675: príprava live-zapping stavu a state holderov pred setContent (vyňaté z onCreate). */
+    private fun setupLiveState(
+        args: PlayerArgs,
+        server: sk.tvhclient.shared.model.TvhServer,
+        channelUuid: String?,
+        channelTitle: String,
+        directUrl: String?,
+        streamUrl: String,
+        progStart: Long,
+        progStop: Long,
+        progTitle: String
+    ) {
+        // Live zapping: priprav zoznam susednych kanalov
+        if (directUrl == null && channelUuid != null && LivePlaylist.channels.isNotEmpty()) {
+            liveUuids = LivePlaylist.channels.map { it.uuid }
+            liveNames = LivePlaylist.channels.map { it.name }
+            liveIndex = LivePlaylist.index.takeIf { it in liveUuids.indices }
+                ?: liveUuids.indexOf(channelUuid)
+            liveServer = server
+            saveLastLive(server.id, channelUuid)
+            hydrateEpgFromDisk(server)   // M275: nacitaj EPG z disku (prezije restart boxu)
+        }
+        rememberPlayback()   // M494: uz pri starte, nie az po prvom prepnuti
+        liveChannelsState.value = LivePlaylist.channels
+        // M281: hned dopln now/next z cache (disk/proces) na viditelny zoznam, nech sa nazvy
+        // relacii pod kanalmi ukazu okamzite aj po restarte (predtym cakali na sietovy refresh).
+        applyCachedEpgToChannels()
+        // M605-fix: zoznam najprv — posledny kanal sa spusti normalne (hra za zoznamom
+        // ako nahlad) a zoznam sa otvori hned; povodne nehralo nic, co pouzivatel nechcel
+        listFirst = args.listFirst && liveUuids.size > 1
+        liveIndexState.value = liveIndex
+        liveTitleState.value = channelTitle
+        liveUuidState.value = channelUuid
+        liveProgStartState.value = progStart
+        liveProgStopState.value = progStop
+        liveProgTitleState.value = progTitle
+        val canZap = directUrl == null && liveUuids.size > 1
+        seekablePlayback = directUrl != null
+        // predvolene zvyraznenie ovladacieho panela = play (nie krizik)
+        controlNavState.value = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable(), dvrRecordVisible(), teletextVisible()).indexOf("play").coerceAtLeast(0)
+        currentStreamUrl = streamUrl
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // Mini radio (M340) nesmie hrat popri plnom prehravaci
+        RadioPlayerService.stop(this)
+        // Zavri predoslu instanciu prehravaca (napr. visiacu v PiP so starym kanalom),
+        // nech pri prepnuti kanala nezostane stara PiP visiet. Nova sa otvori na celu obrazovku.
+        // M427: ak stara instancia visi v PiP, obycajny finish() zavrie aktivitu,
+        // ale pripnute PiP okno (pinned task) moze ostat visiet ako prazdna karta
+        // — systemu treba povedat, nech odstrani cely task. Mimo PiP staci finish().
+        liveInstance?.get()?.let { old ->
+            if (old !== this) runCatching {
+                if (old.isInPictureInPictureMode) old.finishAndRemoveTask() else old.finish()
+            }
+        }
+        liveInstance = java.lang.ref.WeakReference(this)
+        val args = PlayerArgs.from(intent)   // M658: vsetky intent extra na jednom mieste
+        // Navrat na povodny zivy kanal po zatvoreni (pri "Prehrat od zaciatku" z prehravaca)
+        returnLiveUuid = args.returnLiveUuid
+        returnLiveTitle = args.returnLiveTitle
+        setupWindow()
 
         val channelUuid = args.channelUuid
         val channelTitle = args.channelTitle
@@ -1331,35 +1328,8 @@ class PlayerActivity : ComponentActivity() {
                 if (list.isNotEmpty()) tracks.profileItems.value = list
             }
         }
-        // Live zapping: priprav zoznam susednych kanalov
-        if (directUrl == null && channelUuid != null && LivePlaylist.channels.isNotEmpty()) {
-            liveUuids = LivePlaylist.channels.map { it.uuid }
-            liveNames = LivePlaylist.channels.map { it.name }
-            liveIndex = LivePlaylist.index.takeIf { it in liveUuids.indices }
-                ?: liveUuids.indexOf(channelUuid)
-            liveServer = server
-            saveLastLive(server.id, channelUuid)
-            hydrateEpgFromDisk(server)   // M275: nacitaj EPG z disku (prezije restart boxu)
-        }
-        rememberPlayback()   // M494: uz pri starte, nie az po prvom prepnuti
-        liveChannelsState.value = LivePlaylist.channels
-        // M281: hned dopln now/next z cache (disk/proces) na viditelny zoznam, nech sa nazvy
-        // relacii pod kanalmi ukazu okamzite aj po restarte (predtym cakali na sietovy refresh).
-        applyCachedEpgToChannels()
-        // M605-fix: zoznam najprv — posledny kanal sa spusti normalne (hra za zoznamom
-        // ako nahlad) a zoznam sa otvori hned; povodne nehralo nic, co pouzivatel nechcel
-        listFirst = args.listFirst && liveUuids.size > 1
-        liveIndexState.value = liveIndex
-        liveTitleState.value = channelTitle
-        liveUuidState.value = channelUuid
-        liveProgStartState.value = progStart
-        liveProgStopState.value = progStop
-        liveProgTitleState.value = progTitle
+        setupLiveState(args, server, channelUuid, channelTitle, directUrl, streamUrl, progStart, progStop, progTitle)
         val canZap = directUrl == null && liveUuids.size > 1
-        seekablePlayback = directUrl != null
-        // predvolene zvyraznenie ovladacieho panela = play (nie krizik)
-        controlNavState.value = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable(), dvrRecordVisible(), teletextVisible()).indexOf("play").coerceAtLeast(0)
-        currentStreamUrl = streamUrl
 
         setContent {
             val pThemeMode = PlayerThemePref.stateOf(this).value
@@ -1384,7 +1354,21 @@ class PlayerActivity : ComponentActivity() {
             PlayerUi(
                 title = liveTitleState.value,
                 player = mediaPlayer,
-                seekable = directUrl != null,  // DVR nahravka = da sa pretacat; live nie
+                flags = PlaybackFlags(
+                    seekable = directUrl != null,  // DVR nahravka = da sa pretacat; live nie
+                    inPip = inPipState.value,
+                    pipSupported = pipSupported,
+                    pipButton = pipButtonVisible(),
+                    hasVideo = hasVideoState.value,
+                    reconnecting = reconnectingState.value,
+                    seeking = seekingState.value,
+                    playing = isPlayingState.value,
+                    sleepDeadline = sleep.deadlineState.value,
+                    timeshiftEngaged = timeshiftEngagedState.value,
+                    tsMaxMs = maxRewindMs(),
+                    timeshiftOffsetMs = timeshiftOffsetState.value,
+                    returnLiveOnBack = returnLiveUuid != null,
+                ),
                 dvr = DvrSeekArgs(
                     knownDurationMs = dvrDurationState.value,  // dlzka z DVR entry; pri prebiehajucej nahravke rastie k zivej hrane
                     resumeMs = resumeMs,
@@ -1411,11 +1395,17 @@ class PlayerActivity : ComponentActivity() {
                     },
                     onResumeAnswerHandled = { resumeAnswerState.value = 0 },
                 ),
-                progStartFrac = progStartFrac,
-                progStopFrac = progStopFrac,
-                progStartSec = liveProgStartState.value,
-                progStopSec = liveProgStopState.value,
-                progTitleArg = liveProgTitleState.value,
+                programme = ProgrammeArgs(
+                    startFrac = progStartFrac,
+                    stopFrac = progStopFrac,
+                    startSec = liveProgStartState.value,
+                    stopSec = liveProgStopState.value,
+                    title = liveProgTitleState.value,
+                    centerLogoUrl = liveChannelsState.value.getOrNull(liveIndexState.value)?.piconUrl,
+                    nextTitle = liveNextTitleState.value,
+                    nextStart = liveNextStartState.value,
+                    nextStop = liveNextStopState.value,
+                ),
                 server = server,
                 liveChannelUuid = if (directUrl == null) liveUuidState.value else null,
                 preferredAudio = AudioPref.get(this),
@@ -1427,36 +1417,95 @@ class PlayerActivity : ComponentActivity() {
                 htspSpuCurrentId = tracks.selectedSubEs.value,
                 onPickHtspSpu = if (htspStreamState.value) pickHtspSpuCb else null,   // M544: bez lambdy v kompozicii
                 onPickHttpSpu = { id -> tracks.httpSpuUserPick(id) },
-                onAttach = { layout -> attachVideo(layout) },
-                onStart = {
-                    // M658: HTSP/HTTP/DVR vetvenie prveho spustenia — ChannelSwitcher.playInitial
-                    val doPlay: () -> Unit = { switcher.playInitial(server, channelUuid, directUrl, streamUrl) }
-                    // rodicovsky zamok: pri KAZDOM otvoreni prehravaca so zamknutym kanalom
-                    // vypytaj PIN (bez ohladu na grace okno). Grace ("nepytat X min") plati len
-                    // pri prepinani v ramci otvoreneho prehravaca (zoznam / pozadie / cislice).
-                    // M605: dlazdica so zoznamom najprv — zoznam sa otvori hned po starte
-                    if (listFirst) window.decorView.post { openChannelList() }
-                    if (ParentalLock.channelLockedProtected(this, server.id, channelUuid)) {
-                        // M263: zrus stare grace okno, nech zamknuty kanal v tomto sedeni
-                        // naozaj vyzaduje PIN (aj keby sa pouzivatel cez vyzvu prepol prec a vratil sa).
-                        ParentalLock.clearGrace(this)
-                        requestPin(onOk = doPlay, onCancel = { finish() }, channelIndex = liveIndex)
-                    } else doPlay()
-                },
-                inPip = inPipState.value,
-                pipSupported = pipSupported,
-                pipButton = pipButtonVisible(),
-                hasVideo = hasVideoState.value,
-                reconnecting = reconnectingState.value,
-                seeking = seekingState.value,
-                centerLogoUrl = liveChannelsState.value.getOrNull(liveIndexState.value)?.piconUrl,
-                onOpenEpg = { openEpgInApp() },
-                onEnterPip = { enterPipAndMinimize() },
-                onOpenSleep = { openSleepMenu() },
-                playing = isPlayingState.value,
-                channelNavIndex = navChannelIndexState.value,
-                channelGroupLabel = activeGroupLabelState.value,
-                channelGroupPicker = groupPickerState.value,
+                callbacks = PlayerCallbacks(
+                    onAttach = { layout -> attachVideo(layout) },
+                    onStart = {
+                        // M658: HTSP/HTTP/DVR vetvenie prveho spustenia — ChannelSwitcher.playInitial
+                        val doPlay: () -> Unit = { switcher.playInitial(server, channelUuid, directUrl, streamUrl) }
+                        // rodicovsky zamok: pri KAZDOM otvoreni prehravaca so zamknutym kanalom
+                        // vypytaj PIN (bez ohladu na grace okno). Grace ("nepytat X min") plati len
+                        // pri prepinani v ramci otvoreneho prehravaca (zoznam / pozadie / cislice).
+                        // M605: dlazdica so zoznamom najprv — zoznam sa otvori hned po starte
+                        if (listFirst) window.decorView.post { openChannelList() }
+                        if (ParentalLock.channelLockedProtected(this, server.id, channelUuid)) {
+                            // M263: zrus stare grace okno, nech zamknuty kanal v tomto sedeni
+                            // naozaj vyzaduje PIN (aj keby sa pouzivatel cez vyzvu prepol prec a vratil sa).
+                            ParentalLock.clearGrace(this)
+                            requestPin(onOk = doPlay, onCancel = { finish() }, channelIndex = liveIndex)
+                        } else doPlay()
+                    },
+                    onOpenEpg = { openEpgInApp() },
+                    onEnterPip = { enterPipAndMinimize() },
+                    onOpenSleep = { openSleepMenu() },
+                    onTrackMenuChange = { kind ->
+                        // M349-fix: composable hlasi aj DRUH menu — bez toho ostal
+                        // trackMenuKind "audio" z minula a vyber titulkov cez D-pad
+                        // omylom prepinal zvukovu stopu
+                        trackMenuOpen = kind != null
+                        if (kind != null) { tracks.menuKind = kind; tracks.navIndex.value = 0 }
+                        // M383: poistka — profile menu otvorene dotykom bez zoznamu
+                        if (kind == "profile" && tracks.profileItems.value.isEmpty()) {
+                            tracks.profileItems.value =
+                                ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
+                        }
+                    },
+                    onOptionsSelect = { idx -> selectOption(idx) },
+                    onOptionsChange = { optionsOpen = it },
+                    onControlsVisibleChange = { controlsShown = it },
+                    onOrientationLockChange = { locked ->
+                        runCatching {
+                            requestedOrientation =
+                                if (locked) android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LOCKED
+                                else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_USER
+                        }
+                    },
+                    onPrevChannel = if (canZap) prevChannelCb else null,   // M544
+                    onNextChannel = if (canZap) nextChannelCb else null,   // M544
+                    onTogglePlay = { togglePlayPause() },
+                    onRequestExit = {
+                        // M344: hrajuce radio v modernom nekonci — ide do mini prehravaca,
+                        // takze potvrdzovacia otazka nema zmysel; TV live ju ma dalej
+                        if (!radioHandoffIfPossible()) {
+                            exitConfirmSelState.value = 0; exitConfirmState.value = true
+                        }
+                    },
+                    onClose = { closePlayer() },
+                ),
+                channelList = ChannelListArgs(
+                    navIndex = navChannelIndexState.value,
+                    groupLabel = activeGroupLabelState.value,
+                    groupPicker = groupPickerState.value,
+                    onOpenChange = {
+                        channelListOpen = it
+                        if (it) navChannelIndexState.value = liveIndex.coerceAtLeast(0)
+                    },
+                    onLoadEpg = { uuid, cb ->
+                        val cached = epgUpcomingState.value[uuid]
+                        if (!cached.isNullOrEmpty()) {
+                            cb(cached)
+                        } else {
+                            lifecycleScope.launch {
+                                val list = runCatching {
+                                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                        Tvh.fetchEpgForChannel(server, Tvh.apiFor(server), uuid)
+                                    }
+                                }.getOrDefault(emptyList())
+                                cacheChannelEpg(uuid, list)   // M274: memoizuj pre dalsie zobrazenia/reopen
+                                cb(list)
+                            }
+                        }
+                    },
+                    channels = if (canZap) liveChannelsState.value else emptyList(),
+                    currentIndex = liveIndexState.value,
+                    onSelect = { idx -> selectChannelOrArchive(idx) },
+                    onLongPress = { idx -> openChannelContextMenu(idx) },
+                    onRefreshEpg = {
+                        lifecycleScope.launch { refreshOverlayEpg() }
+                    },
+                    onRefreshEpgInitial = { refreshOverlayEpgInitial() },
+                    onPrefetchEpg = { prefetchEpgIfStale() },
+                    epgLoading = epgLoadingState.value,
+                ),
                 search = ChannelSearchArgs(
                     active = search.activeState.value,
                     query = search.queryState.value,
@@ -1466,24 +1515,6 @@ class PlayerActivity : ComponentActivity() {
                     navIndex = search.navIndexState.value,
                     focusSignal = search.focusSignalState.value,
                 ),
-                onTrackMenuChange = { kind ->
-                    // M349-fix: composable hlasi aj DRUH menu — bez toho ostal
-                    // trackMenuKind "audio" z minula a vyber titulkov cez D-pad
-                    // omylom prepinal zvukovu stopu
-                    trackMenuOpen = kind != null
-                    if (kind != null) { tracks.menuKind = kind; tracks.navIndex.value = 0 }
-                    // M383: poistka — profile menu otvorene dotykom bez zoznamu
-                    if (kind == "profile" && tracks.profileItems.value.isEmpty()) {
-                        tracks.profileItems.value =
-                            ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
-                    }
-                },
-                onChannelListChange = {
-                    channelListOpen = it
-                    if (it) navChannelIndexState.value = liveIndex.coerceAtLeast(0)
-                },
-                sleepDeadline = sleep.deadlineState.value,
-                onOptionsSelect = { idx -> selectOption(idx) },
                 profile = ProfileArgs(
                     openSignal = tracks.openProfileSignal.value,
                     items = tracks.profileItems.value,
@@ -1508,40 +1539,6 @@ class PlayerActivity : ComponentActivity() {
                     onMoreDismiss = { modernOv.moreDismiss() },
                     onDismiss = { closeModernOverlay() },
                 ),
-                onOptionsChange = { optionsOpen = it },
-                onControlsVisibleChange = { controlsShown = it },
-                onOrientationLockChange = { locked ->
-                    runCatching {
-                        requestedOrientation =
-                            if (locked) android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LOCKED
-                            else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_USER
-                    }
-                },
-                onPrevChannel = if (canZap) prevChannelCb else null,   // M544
-                onNextChannel = if (canZap) nextChannelCb else null,   // M544
-                onTogglePlay = { togglePlayPause() },
-                timeshiftEngaged = timeshiftEngagedState.value,
-                tsMaxMs = maxRewindMs(),
-                onLoadChannelEpg = { uuid, cb ->
-                    val cached = epgUpcomingState.value[uuid]
-                    if (!cached.isNullOrEmpty()) {
-                        cb(cached)
-                    } else {
-                        lifecycleScope.launch {
-                            val list = runCatching {
-                                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                                    Tvh.fetchEpgForChannel(server, Tvh.apiFor(server), uuid)
-                                }
-                            }.getOrDefault(emptyList())
-                            cacheChannelEpg(uuid, list)   // M274: memoizuj pre dalsie zobrazenia/reopen
-                            cb(list)
-                        }
-                    }
-                },
-                liveChannels = if (canZap) liveChannelsState.value else emptyList(),
-                liveCurrentIndex = liveIndexState.value,
-                onSelectChannel = { idx -> selectChannelOrArchive(idx) },
-                onChannelLongPress = { idx -> openChannelContextMenu(idx) },
                 signals = UiSignals(
                     controlsPoke = controlsPokeState.value,
                     infoPoke = infoPokeState.value,
@@ -1560,13 +1557,6 @@ class PlayerActivity : ComponentActivity() {
                     numberEntry = numEntry.entryState.value,
                     zapPoke = zapPokeState.value,
                 ),
-                onRefreshEpg = {
-                    lifecycleScope.launch { refreshOverlayEpg() }
-                },
-                onRefreshEpgInitial = { refreshOverlayEpgInitial() },
-                onPrefetchEpg = { prefetchEpgIfStale() },
-                epgLoading = epgLoadingState.value,
-                timeshiftOffsetMs = timeshiftOffsetState.value,
                 pin = PinArgs(
                     prompt = pin.promptState.value,
                     len = pin.entryState.value.length,
@@ -1577,19 +1567,7 @@ class PlayerActivity : ComponentActivity() {
                     onOpenList = { pin.openList() },
                     gridRow = pin.gridRowState.value,
                     gridCol = pin.gridColState.value,
-                ),
-                progNextTitle = liveNextTitleState.value,
-                progNextStart = liveNextStartState.value,
-                progNextStop = liveNextStopState.value,
-                onRequestExit = {
-                    // M344: hrajuce radio v modernom nekonci — ide do mini prehravaca,
-                    // takze potvrdzovacia otazka nema zmysel; TV live ju ma dalej
-                    if (!radioHandoffIfPossible()) {
-                        exitConfirmSelState.value = 0; exitConfirmState.value = true
-                    }
-                },
-                onClose = { closePlayer() },
-                returnLiveOnBack = returnLiveUuid != null
+                )
             )
             }
             // Vyber pri archivovanom kanali (nazivo / od zaciatku) — overlay v style prehravaca
@@ -2350,13 +2328,9 @@ internal fun MediaPlayer.spuTrackItems(): List<TrackItem> {
 private fun PlayerUi(
     title: String,
     player: MediaPlayer,
-    seekable: Boolean,
+    flags: PlaybackFlags,
     dvr: DvrSeekArgs,
-    progStartFrac: Float = 0f,
-    progStopFrac: Float = 1f,
-    progStartSec: Long = 0,
-    progStopSec: Long = 0,
-    progTitleArg: String = "",
+    programme: ProgrammeArgs = ProgrammeArgs(),
     server: sk.tvhclient.shared.model.TvhServer? = null,
     liveChannelUuid: String? = null,
     preferredAudio: List<String> = emptyList(),
@@ -2365,59 +2339,14 @@ private fun PlayerUi(
     htspSpuCurrentId: Int = -1,
     onPickHtspSpu: ((Int) -> Unit)? = null,
     onPickHttpSpu: ((Int) -> Unit)? = null,
-    onAttach: (VLCVideoLayout) -> Unit,
-    onStart: () -> Unit,
-    onPrevChannel: (() -> Unit)? = null,
-    onNextChannel: (() -> Unit)? = null,
-    onTogglePlay: () -> Unit = {},
-    timeshiftEngaged: Boolean = false,
+    callbacks: PlayerCallbacks,
     modern: ModernOverlayArgs = ModernOverlayArgs(),
-    tsMaxMs: Long = 0L,
-    onLoadChannelEpg: (String, (List<sk.tvhclient.shared.model.EpgEvent>) -> Unit) -> Unit = { _, _ -> },
-    liveChannels: List<LivePlaylist.LiveChannel> = emptyList(),
-    liveCurrentIndex: Int = -1,
-    onSelectChannel: (Int) -> Unit = {},
-    onChannelLongPress: (Int) -> Unit = {},
+    channelList: ChannelListArgs = ChannelListArgs(),
     signals: UiSignals = UiSignals(),
-    onRefreshEpg: () -> Unit = {},
-    onRefreshEpgInitial: () -> Unit = {},
-    onPrefetchEpg: () -> Unit = {},
-    epgLoading: Boolean = false,
-    timeshiftOffsetMs: Long = 0L,
-    inPip: Boolean = false,
-    pipSupported: Boolean = false,
-    // PiP tlacidlo v paneli (M349-fix3): oddelene od pipSupported, ktory
-    // gate-uje auto-PiP BackHandler a exit-confirm (tie potrebuju schopnost,
-    // nie viditelnost tlacidla)
-    pipButton: Boolean = false,
-    hasVideo: Boolean = true,
-    reconnecting: Boolean = false,
-    seeking: Boolean = false,
-    centerLogoUrl: String? = null,
-    onOpenEpg: () -> Unit = {},
-    onEnterPip: () -> Unit = {},
-    onOpenSleep: () -> Unit = {},
-    playing: Boolean = true,
-    channelNavIndex: Int = -1,
-    channelGroupLabel: String = "",
-    channelGroupPicker: Boolean = false,
     search: ChannelSearchArgs = ChannelSearchArgs(),
-    onTrackMenuChange: (String?) -> Unit = {},
-    onChannelListChange: (Boolean) -> Unit = {},
-    sleepDeadline: Long = 0,
-    onOptionsSelect: (Int) -> Unit = {},
     // M383: prepinac stream profilu
     profile: ProfileArgs = ProfileArgs(),
-    onOptionsChange: (Boolean) -> Unit = {},
-    onControlsVisibleChange: (Boolean) -> Unit = {},
-    pin: PinArgs = PinArgs(),
-    progNextTitle: String = "",
-    progNextStart: Long = 0,
-    progNextStop: Long = 0,
-    onOrientationLockChange: (Boolean) -> Unit = {},
-    returnLiveOnBack: Boolean = false,
-    onRequestExit: () -> Unit = {},
-    onClose: () -> Unit
+    pin: PinArgs = PinArgs()
 ) {
     var controlsVisible by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
@@ -2434,14 +2363,14 @@ private fun PlayerUi(
     }
     // odpocet casovaca uspatia (aktualizuje sa kym je casovac aktivny)
     var sleepNow by remember { mutableStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(sleepDeadline) {
-        while (sleepDeadline > 0) {
+    LaunchedEffect(flags.sleepDeadline) {
+        while (flags.sleepDeadline > 0) {
             sleepNow = System.currentTimeMillis()
             kotlinx.coroutines.delay(20_000)
         }
     }
-    val sleepLeftMin = if (sleepDeadline > 0)
-        (((sleepDeadline - sleepNow) + 59_999) / 60_000).coerceAtLeast(0) else 0L
+    val sleepLeftMin = if (flags.sleepDeadline > 0)
+        (((flags.sleepDeadline - sleepNow) + 59_999) / 60_000).coerceAtLeast(0) else 0L
     var showChannelList by remember { mutableStateOf(false) }
     // vizualne vysunutie zoznamu zhora: 0 = zatvoreny, 1 = otvoreny (pocas tahania sleduje prst)
     var listFrac by remember { mutableStateOf(0f) }
@@ -2485,18 +2414,18 @@ private fun PlayerUi(
         if (signals.infoPoke > 0) showInfo = !showInfo
     }
     // v PiP rezime skry vsetky ovladacie prvky (okno je male)
-    LaunchedEffect(inPip) {
-        if (inPip) {
+    LaunchedEffect(flags.inPip) {
+        if (flags.inPip) {
             controlsVisible = false; showInfo = false; showMoreSheet = false
             showChannelList = false; menu = null; showOptions = false
         }
     }
     // oznam Activity ci je ovladanie zobrazene (vtedy D-pad navigaciu riesi Activity)
-    LaunchedEffect(controlsVisible) { onControlsVisibleChange(controlsVisible) }
+    LaunchedEffect(controlsVisible) { callbacks.onControlsVisibleChange(controlsVisible) }
     // oznam Activity stav prekryti (kvoli D-pad smerovaniu)
-    LaunchedEffect(menu) { onTrackMenuChange(menu) }
-    LaunchedEffect(showChannelList) { onChannelListChange(showChannelList) }
-    LaunchedEffect(showOptions) { onOptionsChange(showOptions) }
+    LaunchedEffect(menu) { callbacks.onTrackMenuChange(menu) }
+    LaunchedEffect(showChannelList) { channelList.onOpenChange(showChannelList) }
+    LaunchedEffect(showOptions) { callbacks.onOptionsChange(showOptions) }
     // Activity ziada otvorit/zavriet zoznam kanalov (podrzanie OK)
     LaunchedEffect(signals.openList) {
         if (signals.openList > 0) { showChannelList = true; controlsVisible = false }
@@ -2516,7 +2445,7 @@ private fun PlayerUi(
     LaunchedEffect(profile.openSignal) { if (profile.openSignal > 0) { menu = "profile"; controlsVisible = false } }
     LaunchedEffect(signals.closeMenu) { if (signals.closeMenu > 0) menu = null }
     // ikona play/pause podla skutocneho stavu prehravaca
-    LaunchedEffect(playing) { isPlaying = playing }
+    LaunchedEffect(flags.playing) { isPlaying = flags.playing }
     // seek stav (len pre DVR). TS subor nenese dlzku, takze pouzivame:
     //  - dlzku z DVR entry (knownDurationMs), fallback player.length
     //  - position (zlomok 0..1) na zobrazenie aj pretacanie (na TS spolahlivejsie nez setTime)
@@ -2580,7 +2509,7 @@ private fun PlayerUi(
 
     // Aktualizuj poziciu kazdu sekundu (len ked je seekable a netiahneme)
     // M662: telo tickera vyclanene do DvrPositionTicker.kt (JVM 64 KB limit metody).
-    if (seekable) {
+    if (flags.seekable) {
         DvrPositionTicker(
             player = player,
             ctx = ctx,
@@ -2614,18 +2543,18 @@ private fun PlayerUi(
     // Live priebeh aktualnej relacie (z EPG): tika po sekundach
     var liveNowSec by remember { mutableStateOf(System.currentTimeMillis() / 1000) }
     // Aktualna relacia (mutable — pri dobehnuti sa nacita dalsia)
-    var progStart by remember(liveChannelUuid) { mutableStateOf(progStartSec) }
-    var progStop by remember(liveChannelUuid) { mutableStateOf(progStopSec) }
-    var progTitle by remember(liveChannelUuid) { mutableStateOf(progTitleArg) }
+    var progStart by remember(liveChannelUuid) { mutableStateOf(programme.startSec) }
+    var progStop by remember(liveChannelUuid) { mutableStateOf(programme.stopSec) }
+    var progTitle by remember(liveChannelUuid) { mutableStateOf(programme.title) }
     var progDesc by remember(liveChannelUuid) { mutableStateOf("") }
-    var nextTitle by remember(liveChannelUuid) { mutableStateOf(progNextTitle) }
-    var nextStart by remember(liveChannelUuid) { mutableStateOf(progNextStart) }
-    var nextStop by remember(liveChannelUuid) { mutableStateOf(progNextStop) }
-    val hasLiveProg = !seekable && progStart > 0 && progStop > progStart
+    var nextTitle by remember(liveChannelUuid) { mutableStateOf(programme.nextTitle) }
+    var nextStart by remember(liveChannelUuid) { mutableStateOf(programme.nextStart) }
+    var nextStop by remember(liveChannelUuid) { mutableStateOf(programme.nextStop) }
+    val hasLiveProg = !flags.seekable && progStart > 0 && progStop > progStart
 
     // M663: tik a nacitanie EPG relacie v LiveProgrammeEffects.kt (podmienky a kluce zhodne)
     LiveProgrammeEffects(
-        seekable = seekable,
+        seekable = flags.seekable,
         liveChannelUuid = liveChannelUuid,
         server = server,
         hasLiveProg = hasLiveProg,
@@ -2662,18 +2591,18 @@ private fun PlayerUi(
     val autoPipEnabled = remember { AutoPipPref.get(ctx) }
     PlayerBackHandlers(
         autoPipEnabled = autoPipEnabled,
-        pipSupported = pipSupported,
-        playing = playing,
-        seekable = seekable,
+        pipSupported = flags.pipSupported,
+        playing = flags.playing,
+        seekable = flags.seekable,
         controlsVisible = controlsVisible,
         menu = menu,
         showChannelList = showChannelList,
         showOptions = showOptions,
         showInfo = showInfo,
-        returnLiveOnBack = returnLiveOnBack,
-        onEnterPip = onEnterPip,
-        onClose = onClose,
-        onRequestExit = onRequestExit,
+        returnLiveOnBack = flags.returnLiveOnBack,
+        onEnterPip = callbacks.onEnterPip,
+        onClose = callbacks.onClose,
+        onRequestExit = callbacks.onRequestExit,
         setShowChannelList = { showChannelList = it },
         setMenu = { menu = it },
         setControlsVisible = { controlsVisible = it }
@@ -2684,9 +2613,9 @@ private fun PlayerUi(
         showChannelList = showChannelList,
         controlsVisible = controlsVisible,
         modernOvVisible = modern.visible,
-        onPrefetchEpg = onPrefetchEpg,
-        onRefreshEpgInitial = onRefreshEpgInitial,
-        onRefreshEpg = onRefreshEpg
+        onPrefetchEpg = channelList.onPrefetchEpg,
+        onRefreshEpgInitial = channelList.onRefreshEpgInitial,
+        onRefreshEpg = channelList.onRefreshEpg
     )
 
     Box(
@@ -2697,8 +2626,8 @@ private fun PlayerUi(
             .playerGestures(
                 ctx = ctx,
                 isTvGest = isTvGest,
-                seekable = seekable,
-                timeshiftEngaged = timeshiftEngaged,
+                seekable = flags.seekable,
+                timeshiftEngaged = flags.timeshiftEngaged,
                 controlsVisible = controlsVisible,
                 overlayOpen = { showChannelList || showMoreSheet || menu != null || showOptions },
                 listScope = listScope,
@@ -2718,7 +2647,7 @@ private fun PlayerUi(
                 )
             }
     ) {
-        val inPreview = showChannelList && isTvGest && liveChannels.isNotEmpty() && previewRect != null
+        val inPreview = showChannelList && isTvGest && channelList.channels.isNotEmpty() && previewRect != null
         // M539-fix2: AndroidView je v samostatnej composable (mensia PlayerUi + vymena surface)
         VideoSurface(
             modifier = if (inPreview) {
@@ -2727,17 +2656,17 @@ private fun PlayerUi(
                     .absoluteOffset { IntOffset(r.left.roundToInt(), r.top.roundToInt()) }
                     .size(with(density) { r.width.toDp() }, with(density) { r.height.toDp() })
             } else Modifier.fillMaxSize(),
-            onAttach = onAttach,
-            onStart = onStart
+            onAttach = callbacks.onAttach,
+            onStart = callbacks.onStart
         )
 
         // M630: male prekryvy v PlayerOverlays.kt (poradie zachovane)
         // Audio-only (rozhlas): namiesto ciernej vycentrovane logo; na TV so zoznamom v nahlade
-        if (!hasVideo) RadioCenterLogo(centerLogoUrl, server, if (inPreview) previewRect else null)
+        if (!flags.hasVideo) RadioCenterLogo(programme.centerLogoUrl, server, if (inPreview) previewRect else null)
         // indikator opätovného pripájania (vypadok siete pri zivom vysielani)
-        if (reconnecting) ReconnectingOverlay()
+        if (flags.reconnecting) ReconnectingOverlay()
         // koliesko v strede pocas pretacania timeshiftu (resync)
-        if (seeking && !reconnecting) SeekingSpinner()
+        if (flags.seeking && !flags.reconnecting) SeekingSpinner()
         // YouTube-style hint pri dvojkliku (skok o 10 s)
         if (dvr.seekHint != 0) SeekHintOverlay(dvr.seekHint)
         // MX Player overlaye: hlasitost / jas (vystredene), seek-scrub (hore v strede)
@@ -2753,14 +2682,14 @@ private fun PlayerUi(
             ctx = ctx,
             dvrActivity = dvrActivity,
             title = title,
-            seekable = seekable,
-            pipButton = pipButton,
-            pipSupported = pipSupported,
-            timeshiftEngaged = timeshiftEngaged,
+            seekable = flags.seekable,
+            pipButton = flags.pipButton,
+            pipSupported = flags.pipSupported,
+            timeshiftEngaged = flags.timeshiftEngaged,
             profileSwitch = profile.switchAvailable,
             controlNavIndex = signals.controlNavIndex,
-            liveChannels = liveChannels,
-            liveCurrentIndex = liveCurrentIndex,
+            liveChannels = channelList.channels,
+            liveCurrentIndex = channelList.currentIndex,
             server = server,
             liveNowSec = liveNowSec,
             progStart = progStart,
@@ -2771,13 +2700,13 @@ private fun PlayerUi(
             nextStart = nextStart,
             nextStop = nextStop,
             sleepLeftMin = sleepLeftMin,
-            timeshiftOffsetMs = timeshiftOffsetMs,
+            timeshiftOffsetMs = flags.timeshiftOffsetMs,
             barLengthMs = barLengthMs,
             lengthMs = lengthMs,
             recordingOffsetMs = dvr.recordingOffsetMs,
             scrubFrac = dvr.scrubFrac,
-            progStartFrac = progStartFrac,
-            progStopFrac = progStopFrac,
+            progStartFrac = programme.startFrac,
+            progStopFrac = programme.stopFrac,
             dragging = dragging,
             onDraggingSet = { dragging = it },
             dragValue = dragValue,
@@ -2795,30 +2724,30 @@ private fun PlayerUi(
             onShowMoreSheetSet = { showMoreSheet = it },
             orientationLocked = orientationLocked,
             onOrientationLockedSet = { orientationLocked = it },
-            onOrientationLockChange = onOrientationLockChange,
-            onPrevChannel = onPrevChannel,
-            onNextChannel = onNextChannel,
-            onTogglePlay = onTogglePlay,
+            onOrientationLockChange = callbacks.onOrientationLockChange,
+            onPrevChannel = callbacks.onPrevChannel,
+            onNextChannel = callbacks.onNextChannel,
+            onTogglePlay = callbacks.onTogglePlay,
             onSkipBack = dvr.onSkipBack,
             onSkipFwd = dvr.onSkipFwd,
-            onOpenEpg = onOpenEpg,
-            onEnterPip = onEnterPip,
-            onOpenSleep = onOpenSleep,
-            onClose = onClose
+            onOpenEpg = callbacks.onOpenEpg,
+            onEnterPip = callbacks.onEnterPip,
+            onOpenSleep = callbacks.onOpenSleep,
+            onClose = callbacks.onClose
         )
 
         // "Viac" panel moderneho rezimu (telefon) — M663: ModernOverlayEffects.kt
         if (showMoreSheet) {
             PlayerMoreSheetHost(
                 ctx = ctx,
-                pipSupported = pipSupported,
-                pipButton = pipButton,
+                pipSupported = flags.pipSupported,
+                pipButton = flags.pipButton,
                 profileSwitch = profile.switchAvailable,
                 orientationLocked = orientationLocked,
                 dvrActivity = dvrActivity,
-                onEnterPip = onEnterPip,
-                onOpenSleep = onOpenSleep,
-                onOrientationLockChange = onOrientationLockChange,
+                onEnterPip = callbacks.onEnterPip,
+                onOpenSleep = callbacks.onOpenSleep,
+                onOrientationLockChange = callbacks.onOrientationLockChange,
                 setShowMoreSheet = { showMoreSheet = it },
                 setMenu = { menu = it },
                 setShowInfo = { showInfo = it },
@@ -2835,9 +2764,9 @@ private fun PlayerUi(
             modernOvExecId = modern.execId,
             modernOvCard = modern.card,
             onModernOvDismiss = modern.onDismiss,
-            onSelectChannel = onSelectChannel,
-            onOpenSleep = onOpenSleep,
-            onOpenEpg = onOpenEpg,
+            onSelectChannel = channelList.onSelect,
+            onOpenSleep = callbacks.onOpenSleep,
+            onOpenEpg = callbacks.onOpenEpg,
             closeOverlays = {
                 controlsVisible = false; menu = null; showChannelList = false
                 showInfo = false; showOptions = false
@@ -2849,17 +2778,17 @@ private fun PlayerUi(
             val ovSrv = remember { sk.tvhclient.shared.Tvh.store.active() }
             val ovLoader = remember(ovSrv?.id) { PiconImageLoader.get(ctx, ovSrv) }
             ModernTvOverlay(
-                channels = liveChannels,
-                currentIndex = liveCurrentIndex,
+                channels = channelList.channels,
+                currentIndex = channelList.currentIndex,
                 cardIndex = modern.card,
                 focusRow = modern.row,
                 stripIndex = modern.strip,
                 stripIds = modern.stripIds,
                 recNames = modern.recNames,
                 isPlaying = isPlaying,
-                tsEngaged = timeshiftEngaged,
-                tsOffsetMs = timeshiftOffsetMs,
-                tsMaxMs = tsMaxMs,
+                tsEngaged = flags.timeshiftEngaged,
+                tsOffsetMs = flags.timeshiftOffsetMs,
+                tsMaxMs = flags.tsMaxMs,
                 imageLoader = ovLoader,
             )
         }
@@ -2869,7 +2798,7 @@ private fun PlayerUi(
             PlayerInfoWindow(
                 setShowInfo = { v -> showInfo = v },
                 title = title,
-                seekable = seekable,
+                seekable = flags.seekable,
                 progStart = progStart,
                 progStop = progStop,
                 progTitle = progTitle,
@@ -2878,43 +2807,43 @@ private fun PlayerUi(
                 nextStart = nextStart,
                 nextStop = nextStop,
                 liveNowSec = liveNowSec,
-                liveChannels = liveChannels,
-                liveCurrentIndex = liveCurrentIndex,
+                liveChannels = channelList.channels,
+                liveCurrentIndex = channelList.currentIndex,
                 dvrActivity = dvrActivity
             )
         }
 
         // Overlay: zoznam kanalov priamo v prehravaci (vysuva sa zhora podla listFrac) — TELEFON (M631: PhoneChannelList.kt)
-        if ((showChannelList || listFrac > 0.001f) && !isTvGest && liveChannels.isNotEmpty()) {
+        if ((showChannelList || listFrac > 0.001f) && !isTvGest && channelList.channels.isNotEmpty()) {
             PhoneChannelListOverlay(
                 listFrac = listFrac,
-                liveChannels = liveChannels,
+                liveChannels = channelList.channels,
                 server = server,
                 serverId = serverId,
-                liveCurrentIndex = liveCurrentIndex,
-                channelNavIndex = channelNavIndex,
-                epgLoading = epgLoading,
+                liveCurrentIndex = channelList.currentIndex,
+                channelNavIndex = channelList.navIndex,
+                epgLoading = channelList.epgLoading,
                 lockTick = signals.lockTick,
                 liveNowSec = liveNowSec,
-                onSelectChannel = onSelectChannel,
-                onChannelLongPress = onChannelLongPress,
+                onSelectChannel = channelList.onSelect,
+                onChannelLongPress = channelList.onLongPress,
                 onClose = { showChannelList = false }
             )
         }
         // TV zoznam kanalov (M632: TvChannelList.kt)
-        if (showChannelList && isTvGest && liveChannels.isNotEmpty()) {
+        if (showChannelList && isTvGest && channelList.channels.isNotEmpty()) {
             TvChannelListOverlay(
-                liveChannels = liveChannels,
+                liveChannels = channelList.channels,
                 server = server,
                 serverId = serverId,
-                liveCurrentIndex = liveCurrentIndex,
-                channelNavIndex = channelNavIndex,
-                epgLoading = epgLoading,
+                liveCurrentIndex = channelList.currentIndex,
+                channelNavIndex = channelList.navIndex,
+                epgLoading = channelList.epgLoading,
                 lockTick = signals.lockTick,
                 liveNowSec = liveNowSec,
-                onLoadChannelEpg = onLoadChannelEpg,
-                channelGroupLabel = channelGroupLabel,
-                channelGroupPicker = channelGroupPicker,
+                onLoadChannelEpg = channelList.onLoadEpg,
+                channelGroupLabel = channelList.groupLabel,
+                channelGroupPicker = channelList.groupPicker,
                 searchActive = search.active,
                 searchQuery = search.query,
                 onSearchQueryChange = search.onQueryChange,
@@ -2943,7 +2872,7 @@ private fun PlayerUi(
         if (showOptions) {
             SleepOptionsMenu(
                 highlightIndex = if (isTvGest) signals.optionsNavIndex else -1,   // M385-fix
-                onSelect = onOptionsSelect,
+                onSelect = callbacks.onOptionsSelect,
                 onDismiss = { showOptions = false }
             )
         }
