@@ -1017,14 +1017,19 @@ class PlayerActivity : ComponentActivity() {
     }
 
     // --- Track menu (audio/titulky) riadene z Activity; stav a pomocne funkcie v TrackState (M637) ---
-    /** HTSP vyber titulku: zapamataj zelany jazyk a skus ho hned nastavit v libVLC; ak stopa
-     *  este nie je (jazyk nehovoril), aplikuje sa pri ESAdded. id < 0 = Vypnute. */
-    private fun onPickHtspSpu(esIndex: Int) {
-        tracks.selectedSubEs.value = esIndex
-        // DVB titulky dekódujeme a renderujeme sami; do libVLC nejdu. Vyber = ktory ES dekódovat.
-        subOverlay?.reset()
-        htspFeeder?.selectSubtitle(esIndex)
+    // M671: akcie track menu (HTSP titulky, profil, D-pad vyber) v TrackMenuController.kt
+    private val trackMenu: TrackMenuController by lazy {
+        TrackMenuController(this, lifecycleScope, tracks, live, stream,
+            player = { if (engine.ready) mediaPlayer else null },
+            hooks = object : TrackMenuController.Hooks {
+                override fun subtitleReset() { subOverlay?.reset() }
+                override fun restartCurrentChannel() {
+                    val i = liveIndex
+                    if (i >= 0) { liveIndex = -1; switchToIndex(i, poke = false) }
+                }
+            })
     }
+    private fun onPickHtspSpu(esIndex: Int) { trackMenu.pickHtspSpu(esIndex) }
 
     private fun applyDesiredSpu() { tracks.applyDesiredSpu() }
     private fun applyPendingSpuRestore() { tracks.applyPendingSpuRestore(htspStream, seekablePlayback) }
@@ -1033,70 +1038,14 @@ class PlayerActivity : ComponentActivity() {
      *  nie externa URL — tam profil neexistuje alebo sa neda menit). */
     private fun profileSwitchAvailable(): Boolean = tracks.profileSwitch.value
 
-    private fun openProfileMenu() {
-        val srv = liveServer ?: return
-        // okamzity fallback, server moze zoznam vzapati nahradit vlastnym
-        if (tracks.profileItems.value.isEmpty()) {
-            tracks.profileItems.value =
-                ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
-        }
-        lifecycleScope.launch {
-            val list = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                sk.tvhclient.shared.Tvh.streamProfiles(srv)
-            }
-            if (list.isNotEmpty()) tracks.profileItems.value = list
-        }
-        tracks.openProfileMenu()
-    }
-
-    /** M383: novy profil = nova predvolba SERVERA (plati pre vsetky dalsie kanaly,
-     *  drzi po restarte; ta ista hodnota je v Nastavenia -> server -> Upravit).
-     *  Stream sa restartuje s novou URL. */
-    private fun applyProfileChange(profile: String) {
-        val srv = liveServer ?: return
-        if (profile.isBlank() || profile == srv.profile) return
-        // M392: zosulad zelanie so skutocnym stavom pred restartom (pokryva aj
-        // pripad, ked pouzivatel medzitym prepol titulky dotykovym menu)
-        if (!htspStream) tracks.captureHttpSpuFromPlayer()
-        val updated = srv.copy(profile = profile)
-        sk.tvhclient.shared.Tvh.store.upsert(updated)
-        liveServer = updated
-        tracks.currentProfile.value = profile
-        val i = liveIndex
-        if (i >= 0) { liveIndex = -1; switchToIndex(i, poke = false) }
-    }
+    private fun openProfileMenu() { trackMenu.openProfileMenu() }
+    /** M383: novy profil = nova predvolba servera + restart streamu (TrackMenuController). */
+    private fun applyProfileChange(profile: String) { trackMenu.applyProfileChange(profile) }
 
     private fun openAudioMenu() { tracks.openAudioMenu() }
     private fun openSpuMenu() { tracks.openSpuMenu() }
     private fun closeTrackMenu() { tracks.closeMenu() }
-    private fun selectTrackAtNav() {
-        if (!engine.ready) return
-        val ids = tracks.menuIds(htspStream)
-        val id = ids.getOrNull(tracks.navIndex.value) ?: return
-        when {
-            tracks.menuKind == "profile" -> {
-                tracks.profileItems.value.getOrNull(id)?.let { applyProfileChange(it) }
-            }
-            tracks.menuKind == "audio" -> {
-                mediaPlayer.audioTrack = id
-                // M378: zapamataj rucny vyber pre kanal aj z TV menu (D-pad);
-                // predtym sa ukladal len z dotykoveho menu, takze na TV sa
-                // volba po prepnuti kanala "zabudla"
-                val sid = sk.tvhclient.shared.Tvh.store.active()?.id
-                val uuid = liveUuidState.value
-                if (sid != null && uuid != null) {
-                    val name = mediaPlayer.audioTrackItems().firstOrNull { it.id == id }?.name
-                    if (!name.isNullOrBlank()) ChannelPrefs.setLastAudio(this, sid, uuid, name)
-                }
-            }
-            htspStream -> onPickHtspSpu(id)
-            else -> {
-                mediaPlayer.spuTrack = id
-                tracks.httpSpuUserPick(id)   // M392-fix: prepise trvale zelanie
-            }
-        }
-        closeTrackMenu()
-    }
+    private fun selectTrackAtNav() { trackMenu.selectAtNav() }
 
     // --- Aktivacia zvyrazneneho prvku ovladacieho panela ---
     private fun activateControl(id: String?) {
