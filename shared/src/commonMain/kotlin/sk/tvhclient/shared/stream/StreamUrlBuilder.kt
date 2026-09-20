@@ -15,8 +15,10 @@ import sk.tvhclient.shared.model.TvhServer
  */
 object StreamUrlBuilder {
 
-    private const val STREAM_CH = "stream/channel/%s"
-    private const val STREAM_CHID = "stream/channelid/%s"
+    // M678: bez %s a String.format — ten je len na JVM, v commonMain ho Kotlin/Native nepozna
+    // (iOS cielove kompilacie padali na "Unresolved reference 'format'").
+    private const val STREAM_CH = "stream/channel/"
+    private const val STREAM_CHID = "stream/channelid/"
 
     private fun encode(s: String): String = buildString {
         for (c in s) {
@@ -59,7 +61,7 @@ object StreamUrlBuilder {
         channelTitle: String? = null,
         htsp: Boolean = false
     ): String {
-        val ep = if (htsp) STREAM_CHID.format(channelUuid) else STREAM_CH.format(channelUuid)
+        val ep = (if (htsp) STREAM_CHID else STREAM_CH) + channelUuid
         return build(server, ep, profile, channelTitle)
     }
 
@@ -73,7 +75,7 @@ object StreamUrlBuilder {
         channelTitle: String? = null,
         htsp: Boolean = false
     ): String {
-        val ep = if (htsp) STREAM_CHID.format(channelUuid) else STREAM_CH.format(channelUuid)
+        val ep = (if (htsp) STREAM_CHID else STREAM_CH) + channelUuid
         var url = server.baseUrl.trimEnd('/') + "/" + ep
         val q = mutableListOf<String>()
         if (profile.isNotBlank()) q.add("profile=" + encode(profile))

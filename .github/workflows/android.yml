@@ -47,28 +47,28 @@ jobs:
 
       - name: Build debug APK
         run: gradle :androidApp:assembleDebug
-      # M660: JVM unit testy shared modulu (TsMuxer casovanie, Htsmsg, DVR klasifikacia).
-      # Zatial informativne (continue-on-error) — build nezhodi, vysledok je v logu kroku.
-      # M660-fix: shared pouziva com.android.kotlin.multiplatform.library (M550), takze
-      # uloha sa NEvola testDebugUnitTest — ten plugin nema varianty debug/release.
-      # allTests je standardny KMP agregat (na Linuxe iOS ulohy sam preskoci); ak by aj ten
-      # nesedel, vypiseme zoznam dostupnych testovacich uloh do logu.
-      # M660-fix2: krok nikdy nezhodi build a VZDY vypise, co sa stalo — zoznam testov
-      # s vysledkami z XML reportov a zoznam dostupnych testovacich uloh (kvoli nazvom
-      # uloh v KMP android kniznici). Podla toho sa uprav na konkretnu ulohu.
+      # M660 / M678: JVM unit testy shared modulu (TsMuxer casovanie, Htsmsg, SHA-1,
+      # DVR klasifikacia, radio podla service type). Presny nazov ulohy pre KMP android
+      # kniznicu (M550) je testAndroidHostTest — allTests by tahal aj iOS ciele, ktore sa
+      # na Linuxe nedaju zostavit. continue-on-error, aby sa pri zlyhani testu nestratili
+      # artefakty (vysledok je v logu aj v zhrnuti behu).
       - name: Shared unit tests
         continue-on-error: true
         run: |
           set +e
-          gradle :shared:allTests --continue
-          echo "==== vysledky testov (XML reporty) ===="
+          gradle :shared:testAndroidHostTest
+          rc=$?
+          echo "==== vysledky testov ===="
           find shared/build -path "*test-results*" -name "TEST-*.xml" | while read f; do
-            echo "-- $f"
-            grep -h -E "<testsuite |<testcase |<failure" "$f" | sed "s/<properties>.*//" | head -40
+            grep -h -E "<testsuite " "$f" | sed "s/ timestamp=.*//"
+            grep -h -E "<failure" "$f" | head -10
           done
-          echo "==== dostupne testovacie ulohy ===="
-          gradle :shared:tasks --all --console=plain | grep -i -E "test" | head -40
-          exit 0
+          exit $rc
+      # M678: kontrola, ze shared modul ide zostavit aj pre iOS (commonMain nesmie pouzivat
+      # JVM-only API). Informativne — appka je zatial len Android.
+      - name: iOS compile check (shared)
+        continue-on-error: true
+        run: gradle :shared:compileKotlinIosSimulatorArm64
       - name: Upload debug APK
         uses: actions/upload-artifact@v5
         with:

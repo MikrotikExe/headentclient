@@ -9,6 +9,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.encodeURLParameter
 import io.ktor.client.statement.HttpResponse
+import kotlin.concurrent.Volatile   // M678: kotlin.jvm.Volatile je v common kode deprecated
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -140,8 +141,8 @@ class TvhApi(private val server: TvhServer) {
 
     /** M399: pocitadlo + posledna chyba dekodovania (zobrazitelne v diagnostike). */
     companion object {
-        @kotlin.jvm.Volatile var decodeFailCount: Int = 0
-        @kotlin.jvm.Volatile var lastDecodeError: String? = null
+        @Volatile var decodeFailCount: Int = 0
+        @Volatile var lastDecodeError: String? = null
     }
 
     // ---- verejne API ----
