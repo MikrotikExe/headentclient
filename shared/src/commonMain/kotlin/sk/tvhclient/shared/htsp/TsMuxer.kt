@@ -241,7 +241,8 @@ class TsMuxer(streams: List<Stream>) {
         val pmtPkt = if (withPsi) pmt() else null
         if (withPsi) psiCounter = siInterval
 
-        val pesLen = buildPesInto(t, es, outPts, outDts)
+        val hdrLen = buildPesHeader(t, es.size, outPts, outDts)   // M668: len hlavicka, ES sa nekopiruje
+        val pesLen = hdrLen + es.size
         // M457: PCR musi PREDBIEHAT DTS o hodnotu dekodovacieho buffera.
         // Povodne sa PCR rovnalo DTS snimku — dekoder tak dostal snimok presne
         // vo chvili, ked ho mal uz zobrazit, bez rezervy na dekodovanie. Bezne
@@ -266,7 +267,7 @@ class TsMuxer(streams: List<Stream>) {
         var off = 0
         patPkt?.let { it.copyInto(out, off); off += it.size }
         pmtPkt?.let { it.copyInto(out, off); off += it.size }
-        writePackets(t, pesBuf, pesLen, pcr, frameSpan, rap, out, off)
+        writePackets(t, pesHdr, hdrLen, es, pcr, frameSpan, rap, out, off)
         return out
     }
 
@@ -480,20 +481,22 @@ class TsMuxer(streams: List<Stream>) {
      * alokuje presne jedno pole a telo sa kopiruje naraz (copyInto).
      */
     /** M454: znovupouzivany buffer pre PES — nealokuje sa pole na kazdy snimok. */
-    private var pesBuf = ByteArray(64 * 1024)
+    /** M668: PES hlavicka sa stavia do maleho pola (max 19 B); ES payload sa uz do PES
+     *  nekopiruje — writePackets ho bere priamo zo vstupu. Setri jednu kopiu celeho snimku
+     *  na kazdy muxpkt (pri HEVC keyframe 300-600 kB) a 64 kB+ pracovny buffer. */
+    private val pesHdr = ByteArray(19)
 
-    private fun buildPesInto(t: Track, es: ByteArray, pts: Long?, dts: Long?): Int {
+    /** Postavi PES hlavicku pre ES dlzky [esLen] do [pesHdr]; vrati jej dlzku (9, 14 alebo 19). */
+    private fun buildPesHeader(t: Track, esLen: Int, pts: Long?, dts: Long?): Int {
         val hasPts = pts != null
         // DVB titulky musia mat len PTS (DTS je pre ne nevalidne a niektore stream zdroje
         // ho posielaju nekonzistentne -> raz sa titulok zobrazi, raz nie). Vynutime PTS-only.
         val hasDts = dts != null && dts != pts && !t.isSubtitle
         val ptsDtsFlags = if (hasPts && hasDts) 0xC0 else if (hasPts) 0x80 else 0x00
         val headerDataLen = if (hasPts && hasDts) 10 else if (hasPts) 5 else 0
-        val pesPayloadLen = 3 + headerDataLen + es.size
+        val pesPayloadLen = 3 + headerDataLen + esLen
         val lenField = if (t.isVideo) 0 else if (pesPayloadLen <= 0xFFFF) pesPayloadLen else 0
-        val total = 9 + headerDataLen + es.size
-        if (pesBuf.size < total) pesBuf = ByteArray(total + total / 4)
-        val out = pesBuf
+        val out = pesHdr
         out[0] = 0x00; out[1] = 0x00; out[2] = 0x01
         out[3] = (t.streamId and 0xFF).toByte()
         out[4] = ((lenField ushr 8) and 0xFF).toByte()
@@ -510,8 +513,7 @@ class TsMuxer(streams: List<Stream>) {
         } else if (hasPts) {
             i = putTimestamp(out, i, 0x2, pts!!)
         }
-        es.copyInto(out, i)
-        return total
+        return i
     }
 
     /** Zapise 5-bajtovu casovu znacku na dany index, vrati novy index. */
@@ -528,9 +530,11 @@ class TsMuxer(streams: List<Stream>) {
     // ---- TS packetizacia ----
 
     /** M453: zapisuje TS pakety priamo do `out` od indexu `startOff`. */
-    private fun writePackets(t: Track, pes: ByteArray, pesLen: Int, pcrBase: Long?, frameSpan: Long, rap: Boolean, out: ByteArray, startOff: Int) {
+    /** M668: PES = hlavicka (hdrLen bajtov) + ES — kopiruje sa po castiach priamo do TS paketov. */
+    private fun writePackets(t: Track, hdr: ByteArray, hdrLen: Int, es: ByteArray, pcrBase: Long?, frameSpan: Long, rap: Boolean, out: ByteArray, startOff: Int) {
         var pos = 0
         var first = true
+        val pesLen = hdrLen + es.size
         val n = pesLen
         var base = startOff
         var sincePcr = 0
@@ -594,7 +598,16 @@ class TsMuxer(streams: List<Stream>) {
                 while (s > 0) { pkt[idx++] = 0xFF.toByte(); s-- }
                 payloadStart = 5 + afContentLen
             }
-            pes.copyInto(out, base + payloadStart, pos, pos + take)
+            // M668: kus PES od pos dlzky take sa sklada z hlavicky a/alebo ES — bez medzikopie
+            var dst = base + payloadStart
+            var p = pos
+            val end = pos + take
+            if (p < hdrLen) {
+                val h = minOf(end, hdrLen)
+                hdr.copyInto(out, dst, p, h)
+                dst += h - p; p = h
+            }
+            if (p < end) es.copyInto(out, dst, p - hdrLen, end - hdrLen)
             pos += take
             base += 188
             sincePcr = if (pcrHere) 0 else sincePcr + 1
