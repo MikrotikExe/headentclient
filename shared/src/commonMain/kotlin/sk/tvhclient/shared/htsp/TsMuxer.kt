@@ -161,7 +161,15 @@ class TsMuxer(streams: List<Stream>) {
     }
 
     /** Jeden muxpkt → TS bajty. Prazdne ak je stopa nepodporovana. */
-    fun mux(esIndex: Int, payload: ByteArray, pts: Long?, dts: Long?, randomAccess: Boolean): ByteArray {
+    fun mux(esIndex: Int, payload: ByteArray, pts: Long?, dts: Long?, randomAccess: Boolean): ByteArray =
+        mux(esIndex, payload, 0, payload.size, pts, dts, randomAccess)
+
+    /**
+     * M673: ES ako usek (off, len) vacsieho pola (telo HTSP spravy) — video/audio sa
+     * z neho kopiruje priamo do TS paketov bez medzikopie (Htsmsg.Bin). Titulky a AAC
+     * (ADTS obal) si usek skopiruju, ide o male pakety.
+     */
+    fun mux(esIndex: Int, buf: ByteArray, off: Int, len: Int, pts: Long?, dts: Long?, randomAccess: Boolean): ByteArray {
         var t = trackByEs[esIndex]
         var activated = ByteArray(0)
         if (t == null) {
@@ -183,6 +191,7 @@ class TsMuxer(streams: List<Stream>) {
         // Titulky: holé segmenty z HTSP treba obalit do PES data-field; casovanie cez
         // remapSub (nesmie prepisat spolocnu os). Zbytocny clear pred content potlacime.
         if (t.isSubtitle) {
+            val payload = buf.copyOfRange(off, off + len)
             if (isSubtitleClear(payload)) {
                 // podrz clear; ak uz nieco drzime, najprv to posli
                 var pre = ByteArray(0)
@@ -210,9 +219,11 @@ class TsMuxer(streams: List<Stream>) {
             flushed = emitPes(ht, wrapDvbSub(hp), op, od, false)
             heldClearPayload = null; heldClearTrack = null
         }
-        val es = if (t.isAac) adtsWrap(t, payload) else payload
         val (op, od) = remap(pts, dts)
-        val body = emitPes(t, es, op, od, randomAccess)
+        val body = if (t.isAac) {
+            val au = adtsWrap(t, buf.copyOfRange(off, off + len))
+            emitPes(t, au, 0, au.size, op, od, randomAccess)
+        } else emitPes(t, buf, off, len, op, od, randomAccess)
         // M454: `a + b` na ByteArray vytvori nove pole a skopiruje don vsetko.
         // flushed/activated su pri beznom snimku prazdne, takze konkatenacia
         // znamenala zbytocnu kopiu CELEHO TS bloku pri kazdom snimku (velke
@@ -234,15 +245,18 @@ class TsMuxer(streams: List<Stream>) {
      * v `top`, kym hardverovy dekoder mal 11 %). Teraz sa spocita presna velkost,
      * alokuje jedno pole a pakety sa zapisuju priamo don.
      */
-    private fun emitPes(t: Track, es: ByteArray, outPts: Long?, outDts: Long?, rap: Boolean): ByteArray {
+    private fun emitPes(t: Track, es: ByteArray, outPts: Long?, outDts: Long?, rap: Boolean): ByteArray =
+        emitPes(t, es, 0, es.size, outPts, outDts, rap)
+
+    private fun emitPes(t: Track, es: ByteArray, esOff: Int, esLen: Int, outPts: Long?, outDts: Long?, rap: Boolean): ByteArray {
         psiCounter -= 1
         val withPsi = psiCounter <= 0
         val patPkt = if (withPsi) pat() else null
         val pmtPkt = if (withPsi) pmt() else null
         if (withPsi) psiCounter = siInterval
 
-        val hdrLen = buildPesHeader(t, es.size, outPts, outDts)   // M668: len hlavicka, ES sa nekopiruje
-        val pesLen = hdrLen + es.size
+        val hdrLen = buildPesHeader(t, esLen, outPts, outDts)   // M668: len hlavicka, ES sa nekopiruje
+        val pesLen = hdrLen + esLen
         // M457: PCR musi PREDBIEHAT DTS o hodnotu dekodovacieho buffera.
         // Povodne sa PCR rovnalo DTS snimku — dekoder tak dostal snimok presne
         // vo chvili, ked ho mal uz zobrazit, bez rezervy na dekodovanie. Bezne
@@ -267,7 +281,7 @@ class TsMuxer(streams: List<Stream>) {
         var off = 0
         patPkt?.let { it.copyInto(out, off); off += it.size }
         pmtPkt?.let { it.copyInto(out, off); off += it.size }
-        writePackets(t, pesHdr, hdrLen, es, pcr, frameSpan, rap, out, off)
+        writePackets(t, pesHdr, hdrLen, es, esOff, esLen, pcr, frameSpan, rap, out, off)
         return out
     }
 
@@ -531,10 +545,10 @@ class TsMuxer(streams: List<Stream>) {
 
     /** M453: zapisuje TS pakety priamo do `out` od indexu `startOff`. */
     /** M668: PES = hlavicka (hdrLen bajtov) + ES — kopiruje sa po castiach priamo do TS paketov. */
-    private fun writePackets(t: Track, hdr: ByteArray, hdrLen: Int, es: ByteArray, pcrBase: Long?, frameSpan: Long, rap: Boolean, out: ByteArray, startOff: Int) {
+    private fun writePackets(t: Track, hdr: ByteArray, hdrLen: Int, es: ByteArray, esOff: Int, esLen: Int, pcrBase: Long?, frameSpan: Long, rap: Boolean, out: ByteArray, startOff: Int) {
         var pos = 0
         var first = true
-        val pesLen = hdrLen + es.size
+        val pesLen = hdrLen + esLen
         val n = pesLen
         var base = startOff
         var sincePcr = 0
@@ -607,7 +621,7 @@ class TsMuxer(streams: List<Stream>) {
                 hdr.copyInto(out, dst, p, h)
                 dst += h - p; p = h
             }
-            if (p < end) es.copyInto(out, dst, p - hdrLen, end - hdrLen)
+            if (p < end) es.copyInto(out, dst, esOff + (p - hdrLen), esOff + (end - hdrLen))
             pos += take
             base += 188
             sincePcr = if (pcrHere) 0 else sincePcr + 1

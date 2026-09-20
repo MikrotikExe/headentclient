@@ -215,7 +215,7 @@ class HtspClient(
         serverVersion = r["htspversion"] as? Long
         serverSwVersion = r["serverversion"] as? String
         serverName = r["servername"] as? String
-        challenge = r["challenge"] as? ByteArray
+        challenge = (r["challenge"] as? Htsmsg.Bin)?.toByteArray()
         @Suppress("UNCHECKED_CAST")
         serverCapabilities = (r["servercapability"] as? List<Any?>)
             ?.mapNotNull { it as? String } ?: emptyList()
@@ -389,14 +389,14 @@ class HtspClient(
                     }
                     "muxpkt" -> {
                         val mx = muxer ?: continue
-                        val es = (m["payload"] as? ByteArray) ?: continue
+                        val esBin = (m["payload"] as? Htsmsg.Bin) ?: continue   // M673: usek bez kopie
                         val streamIdx = (m["stream"] as? Long)?.toInt() ?: continue
                         val pts = m["pts"] as? Long
                         val dts = m["dts"] as? Long
-                        if (streamIdx == teletextEs) { onTeletext(es); continue }   // M552
+                        if (streamIdx == teletextEs) { onTeletext(esBin.toByteArray()); continue }   // M552
                         if (streamIdx == subDecodeEs) {
                             // vybrana titulkova stopa: dekóduj a renderuj sami (do libVLC nejde)
-                            val page = if (pts != null) subDecoder.decode(pts, es) else null
+                            val page = if (pts != null) subDecoder.decode(pts, esBin.toByteArray()) else null
                             if (page != null) {
                                 val origin = mx.timelineOriginPts()
                                 val targetMs = if (origin != null) (page.pts - origin) / 90L else page.pts / 90L
@@ -405,7 +405,7 @@ class HtspClient(
                             continue
                         }
                         val rap = ((m["frametype"] as? Long)?.toInt() ?: 0) == 'I'.code
-                        val ts = mx.mux(streamIdx, es, pts, dts, rap)
+                        val ts = mx.mux(streamIdx, esBin.data, esBin.offset, esBin.length, pts, dts, rap)
                         if (ts.isNotEmpty()) onTs(ts)
                     }
                     "timeshiftStatus" -> {

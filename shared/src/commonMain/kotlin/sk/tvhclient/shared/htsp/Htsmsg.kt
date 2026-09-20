@@ -7,6 +7,15 @@ package sk.tvhclient.shared.htsp
  * Typy: MAP=1, S64=2 (int, little-endian min bytes), STR=3, BIN=4, LIST=5.
  */
 internal object Htsmsg {
+    /**
+     * M673: BIN pole ako usek tela spravy (bez kopie). muxpkt payload (desiatky az stovky kB
+     * pri HEVC keyframe) ide do TsMuxera priamo z tohto useku; kto potrebuje samostatne pole
+     * (challenge, titulky, teletext), zavola [toByteArray].
+     */
+    class Bin(val data: ByteArray, val offset: Int, val length: Int) {
+        fun toByteArray(): ByteArray = data.copyOfRange(offset, offset + length)
+    }
+
     const val MAP = 1
     const val S64 = 2
     const val STR = 3
@@ -115,7 +124,7 @@ internal object Htsmsg {
             pos += dlInt
             val v: Any? = when (typ) {
                 STR -> data.decodeToString(start, start + dlInt)
-                BIN -> data.copyOfRange(start, start + dlInt)
+                BIN -> Bin(data, start, dlInt)   // M673: bez kopie — usek tela spravy
                 S64 -> bin2intRange(data, start, dlInt)
                 MAP -> deser(data.copyOfRange(start, start + dlInt), false)
                 LIST -> deser(data.copyOfRange(start, start + dlInt), true)

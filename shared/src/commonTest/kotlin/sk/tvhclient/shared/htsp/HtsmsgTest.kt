@@ -51,8 +51,9 @@ class HtsmsgTest {
     fun byteArrayRoundTrip() {
         val bin = byteArrayOf(0x01, 0x7F, 0x00, 0xFF.toByte(), 0x10)
         val out = rt(mapOf("chal" to bin))["chal"]
-        assertTrue(out is ByteArray)
-        assertTrue(bin.contentEquals(out))
+        // M673: BIN sa deserializuje ako usek tela spravy (Htsmsg.Bin), bez kopie
+        assertTrue(out is Htsmsg.Bin)
+        assertTrue(bin.contentEquals(out.toByteArray()))
     }
 
     @Test
