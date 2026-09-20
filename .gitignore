@@ -30,3 +30,6 @@ iosApp/Pods/
 keystore.properties
 *.jks
 *.keystore
+
+# Stream captures (accidentally committed in M685)
+*.ts
