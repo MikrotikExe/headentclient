@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">De server biedt het profiel “%1$s” niet aan — hij gebruikt in plaats daarvan zijn standaardprofiel.</string>
     <string name="profile_note_htsp">HTSP verstuurt elementaire streams, dus er wordt niet getranscodeerd. Laat de serverinstelling staan tenzij je account aan een profiel gebonden is.</string>
     <string name="dvr_reload">Vernieuwen</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Verborgen zenders</string>
     <string name="fav_reorder">Favorieten ordenen</string>
     <string name="fav_reorder_hint">Ordenen: OK pakken/loslaten · ▲▼ verplaatsen · TERUG klaar</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">In de zenderlijst van de speler start één druk op OK de zender meteen schermvullend. Zonder deze optie schakelt de eerste OK alleen de zender achter de open lijst en sluit pas de tweede de lijst. OK ingedrukt houden opent nog steeds het zendermenu.</string>
     <string name="radio_number_title">Radiozenders nummeren vanaf 1</string>
     <string name="radio_number_note">Zenders worden genummerd 1, 2, 3… in de getoonde volgorde in plaats van de nummers van de server. Geldt voor het tabblad Radio, de gids en de zenderlijst in de speler.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Startscherm (TV)</string>
     <string name="tile_list_title">Tegels TV-zenders en Radio openen de lijst</string>
     <string name="tile_list_note">De laatste zender start zoals voorheen en de zender- of stationslijst gaat er meteen overheen open.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">Bij opnemen het Tvheadend-opnameprofiel kiezen (map, bewaartermijn). Alleen zichtbaar als de server meer dan één profiel aanbiedt.</string>
     <string name="dvr_pick_title">Opnemen in profiel</string>
     <string name="dvr_pick_last">laatst gebruikt</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">Radio speelt door op de achtergrond</string>
     <string name="radio_bg_note">De radio speelt door als u de speler verlaat: op het startscherm, in een andere app of met vergrendeld scherm. In de speler zelf blijft het scherm aan.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">Vorige zender</string>
     <string name="radio_next_station">Volgende zender</string>
 </resources>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- M538: Android 9-10 — kreslit aj do vyrezu (ako povodne enableEdgeToEdge). -->
+    <!-- M538: Android 9-10 — draw into the cutout as well (as the original enableEdgeToEdge did). -->
     <style name="Theme.Headent" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>

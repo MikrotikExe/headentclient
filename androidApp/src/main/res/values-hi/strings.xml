@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">सर्वर पर प्रोफ़ाइल “%1$s” उपलब्ध नहीं है — वह अपनी डिफ़ॉल्ट प्रोफ़ाइल उपयोग करेगा।</string>
     <string name="profile_note_htsp">HTSP एलिमेंट्री स्ट्रीम भेजता है, इसलिए ट्रांसकोडिंग नहीं होती। यदि खाता किसी खास प्रोफ़ाइल से बंधा नहीं, तो सर्वर की सेटिंग रहने दें।</string>
     <string name="dvr_reload">रिफ़्रेश करें</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">छिपे चैनल</string>
     <string name="fav_reorder">पसंदीदा क्रमबद्ध करें</string>
     <string name="fav_reorder_hint">क्रम: OK पकड़ें/छोड़ें · ▲▼ हटाएँ · BACK पूर्ण</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">प्लेयर की चैनल सूची में OK एक बार दबाने पर चैनल सीधे पूरी स्क्रीन पर चलता है। इस विकल्प के बिना पहला OK केवल खुली सूची के पीछे चैनल बदलता है और दूसरा सूची बंद करता है। OK देर तक दबाने पर चैनल मेन्यू अब भी खुलता है।</string>
     <string name="radio_number_title">रेडियो स्टेशनों की संख्या 1 से</string>
     <string name="radio_number_note">स्टेशनों को सर्वर के नंबरों के बजाय दिखाए गए क्रम में 1, 2, 3… नंबर दिए जाते हैं। रेडियो टैब, गाइड और प्लेयर की स्टेशन सूची पर लागू।</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">होम स्क्रीन (TV)</string>
     <string name="tile_list_title">TV चैनल और रेडियो टाइल सूची खोलती हैं</string>
     <string name="tile_list_note">आख़िरी चैनल पहले की तरह शुरू होता है और उसके ऊपर तुरंत चैनल या स्टेशन सूची खुल जाती है।</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">रिकॉर्ड करते समय Tvheadend रिकॉर्डिंग प्रोफ़ाइल चुनें (फ़ोल्डर, रखने की अवधि)। केवल तब दिखता है जब सर्वर एक से अधिक प्रोफ़ाइल देता है।</string>
     <string name="dvr_pick_title">प्रोफ़ाइल में रिकॉर्ड करें</string>
     <string name="dvr_pick_last">पिछली बार इस्तेमाल</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">रेडियो बैकग्राउंड में बजता रहे</string>
     <string name="radio_bg_note">प्लेयर से बाहर जाने पर रेडियो बजता रहता है — होम स्क्रीन पर, दूसरे ऐप में या स्क्रीन लॉक होने पर। प्लेयर में ही स्क्रीन चालू रहती है।</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">पिछला स्टेशन</string>
     <string name="radio_next_station">अगला स्टेशन</string>
 </resources>

@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">เซิร์ฟเวอร์ไม่มีโปรไฟล์ “%1$s” — จะใช้โปรไฟล์เริ่มต้นแทน</string>
     <string name="profile_note_htsp">HTSP ส่งสตรีมดิบ จึงไม่มีการทรานส์โค้ด หากบัญชีไม่ได้ผูกกับโปรไฟล์ใด ให้คงค่าของเซิร์ฟเวอร์ไว้</string>
     <string name="dvr_reload">รีเฟรช</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">ช่องที่ซ่อน</string>
     <string name="fav_reorder">จัดเรียงรายการโปรด</string>
     <string name="fav_reorder_hint">จัดเรียง: OK จับ/วาง · ▲▼ ย้าย · BACK เสร็จ</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">ในรายการช่องของเครื่องเล่น การกด OK เพียงครั้งเดียวจะเปิดช่องแบบเต็มจอทันที หากไม่เปิดตัวเลือกนี้ การกด OK ครั้งแรกจะเปลี่ยนช่องอยู่ด้านหลังรายการที่เปิดค้างไว้ และครั้งที่สองจึงปิดรายการ การกด OK ค้างไว้ยังคงเปิดเมนูของช่อง</string>
     <string name="radio_number_title">นับหมายเลขสถานีวิทยุจาก 1</string>
     <string name="radio_number_note">สถานีจะถูกนับ 1, 2, 3… ตามลำดับที่แสดงแทนหมายเลขจากเซิร์ฟเวอร์ ใช้กับแท็บวิทยุ ผังรายการ และรายการสถานีในเครื่องเล่น</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">หน้าจอหลัก (TV)</string>
     <string name="tile_list_title">ไทล์ช่องทีวีและวิทยุเปิดรายการ</string>
     <string name="tile_list_note">ช่องล่าสุดเริ่มเล่นเหมือนเดิม และรายการช่องหรือสถานีจะเปิดขึ้นทับทันที</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">เมื่อบันทึก ให้เลือกโปรไฟล์การบันทึกของ Tvheadend (โฟลเดอร์ ระยะเวลาเก็บ) แสดงเฉพาะเมื่อเซิร์ฟเวอร์มีมากกว่าหนึ่งโปรไฟล์</string>
     <string name="dvr_pick_title">บันทึกลงโปรไฟล์</string>
     <string name="dvr_pick_last">ใช้ล่าสุด</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">วิทยุเล่นต่อในพื้นหลัง</string>
     <string name="radio_bg_note">วิทยุเล่นต่อเมื่อออกจากตัวเล่น — บนหน้าจอหลัก ในแอปอื่น หรือเมื่อล็อกหน้าจอ ในตัวเล่นเองหน้าจอจะเปิดค้างไว้</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">สถานีก่อนหน้า</string>
     <string name="radio_next_station">สถานีถัดไป</string>
 </resources>

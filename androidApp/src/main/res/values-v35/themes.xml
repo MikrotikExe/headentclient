@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- M538: Android 15+ — edge-to-edge je vynutene systemom, farby pruhov sa ignoruju
-         a okno sa kresli do vyrezu predvolene (rezim „always"); shortEdges je zastarany,
-         preto tu nie je. -->
+    <!-- M538: Android 15+ — edge-to-edge is enforced by the system, the bar colours are ignored
+         and the window draws into the cutout by default (the „always" mode); shortEdges is deprecated,
+         which is why it is not here. -->
     <style name="Theme.Headent" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:enforceStatusBarContrast">false</item>

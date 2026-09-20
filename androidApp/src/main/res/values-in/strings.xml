@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">Server tidak menyediakan profil “%1$s” — akan memakai profil bawaannya.</string>
     <string name="profile_note_htsp">HTSP mengirim stream elementer, jadi tidak ada transcoding. Biarkan pengaturan server kecuali akun terikat pada profil tertentu.</string>
     <string name="dvr_reload">Segarkan</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Saluran tersembunyi</string>
     <string name="fav_reorder">Urutkan favorit</string>
     <string name="fav_reorder_hint">Urutkan: OK ambil/lepas · ▲▼ pindah · BACK selesai</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">Di daftar saluran pemutar, satu tekanan OK langsung membuka saluran layar penuh. Tanpa opsi ini, OK pertama hanya mengganti saluran di balik daftar yang terbuka dan OK kedua menutup daftar. Menahan OK tetap membuka menu saluran.</string>
     <string name="radio_number_title">Nomori stasiun radio dari 1</string>
     <string name="radio_number_note">Stasiun diberi nomor 1, 2, 3… sesuai urutan yang ditampilkan, bukan nomor dari server. Berlaku untuk tab Radio, panduan, dan daftar stasiun di pemutar.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Layar utama (TV)</string>
     <string name="tile_list_title">Ubin Saluran TV dan Radio membuka daftar</string>
     <string name="tile_list_note">Saluran terakhir diputar seperti biasa dan daftar saluran atau stasiun langsung terbuka di atasnya.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">Saat merekam, pilih profil perekaman Tvheadend (folder, masa simpan). Hanya tampil jika server menawarkan lebih dari satu profil.</string>
     <string name="dvr_pick_title">Rekam ke profil</string>
     <string name="dvr_pick_last">terakhir dipakai</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">Radio terus diputar di latar belakang</string>
     <string name="radio_bg_note">Radio terus diputar saat Anda keluar dari pemutar — di layar utama, di aplikasi lain, atau saat layar terkunci. Di dalam pemutar, layar tetap menyala.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">Stasiun sebelumnya</string>
     <string name="radio_next_station">Stasiun berikutnya</string>
 </resources>

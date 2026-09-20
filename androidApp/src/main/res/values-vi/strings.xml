@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">Máy chủ không có hồ sơ “%1$s” — sẽ dùng hồ sơ mặc định thay thế.</string>
     <string name="profile_note_htsp">HTSP truyền luồng nguyên bản nên không chuyển mã. Giữ thiết lập của máy chủ trừ khi tài khoản bị giới hạn ở một hồ sơ cụ thể.</string>
     <string name="dvr_reload">Làm mới</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Kênh ẩn</string>
     <string name="fav_reorder">Sắp xếp yêu thích</string>
     <string name="fav_reorder_hint">Sắp xếp: OK nắm/thả · ▲▼ di chuyển · BACK xong</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">Trong danh sách kênh của trình phát, OK chuyển kênh ngay khi nhấn, không chờ nhả nút và không hỏi về bản ghi. Giữ OK vẫn mở menu của kênh.</string>
     <string name="radio_number_title">Đánh số đài phát thanh từ 1</string>
     <string name="radio_number_note">Các đài được đánh số 1, 2, 3… theo thứ tự hiển thị thay cho số từ máy chủ. Áp dụng cho thẻ Radio, lịch phát sóng và danh sách đài trong trình phát.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Màn hình chính (TV)</string>
     <string name="tile_list_title">Ô Kênh TV và Radio mở danh sách</string>
     <string name="tile_list_note">Kênh gần nhất phát như trước và danh sách kênh hoặc đài mở ngay bên trên.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">Khi ghi hình, chọn hồ sơ ghi hình Tvheadend (thư mục, thời gian lưu). Chỉ hiện khi máy chủ có nhiều hơn một hồ sơ.</string>
     <string name="dvr_pick_title">Ghi vào hồ sơ</string>
     <string name="dvr_pick_last">dùng gần nhất</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">Radio tiếp tục phát trong nền</string>
     <string name="radio_bg_note">Radio tiếp tục phát khi bạn rời trình phát — trên màn hình chính, trong ứng dụng khác hoặc khi khóa màn hình. Trong trình phát, màn hình vẫn sáng.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">Đài trước</string>
     <string name="radio_next_station">Đài tiếp theo</string>
 </resources>

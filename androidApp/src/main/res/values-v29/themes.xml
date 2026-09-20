@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- M538: Android 10-14 — navyse bez vynuteneho kontrastneho scrimu na pruhoch. -->
+    <!-- M538: Android 10-14 — additionally without the enforced contrast scrim on the bars. -->
     <style name="Theme.Headent" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>

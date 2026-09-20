@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">Strežnik ne ponuja profila „%1$s“ — namesto njega uporabi privzetega.</string>
     <string name="profile_note_htsp">HTSP prenaša elementarne tokove, zato ni prekodiranja. Pusti nastavitev strežnika, razen če je račun vezan na določen profil.</string>
     <string name="dvr_reload">Osveži</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Skriti kanali</string>
     <string name="fav_reorder">Uredi priljubljene</string>
     <string name="fav_reorder_hint">Urejanje: OK primi/spusti · ▲▼ premakni · NAZAJ končano</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">Na seznamu kanalov v predvajalniku en pritisk na OK zažene kanal takoj čez cel zaslon. Brez te možnosti prvi OK kanal samo preklopi za odprtim seznamom, drugi pa seznam zapre. Dolg pritisk na OK še vedno odpre meni kanala.</string>
     <string name="radio_number_title">Oštevilči radijske postaje od 1</string>
     <string name="radio_number_note">Postaje so oštevilčene 1, 2, 3… po prikazanem vrstnem redu namesto s številkami s strežnika. Velja za zavihek Radio, vodnik in seznam postaj v predvajalniku.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Začetni zaslon (TV)</string>
     <string name="tile_list_title">Ploščici TV-kanali in Radio odpreta seznam</string>
     <string name="tile_list_note">Zadnji kanal se zažene kot doslej, nad njim pa se takoj odpre seznam kanalov ali postaj.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">Pri snemanju izberi Tvheadend profil snemanja (mapa, hramba). Prikaže se le, če strežnik ponuja več kot en profil.</string>
     <string name="dvr_pick_title">Snemaj v profil</string>
     <string name="dvr_pick_last">nazadnje uporabljen</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">Radio igra v ozadju</string>
     <string name="radio_bg_note">Radio igra naprej, ko zapustite predvajalnik – na začetnem zaslonu, v drugi aplikaciji ali ob zaklenjenem zaslonu. V predvajalniku zaslon ostane prižgan.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">Prejšnja postaja</string>
     <string name="radio_next_station">Naslednja postaja</string>
 </resources>

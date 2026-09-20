@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">서버에 “%1$s” 프로필이 없습니다 — 대신 기본 프로필을 사용합니다.</string>
     <string name="profile_note_htsp">HTSP는 기본 스트림을 전송하므로 트랜스코딩이 없습니다. 계정이 특정 프로필로 제한되지 않았다면 서버 설정을 그대로 두세요.</string>
     <string name="dvr_reload">새로 고침</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">숨긴 채널</string>
     <string name="fav_reorder">즐겨찾기 정렬</string>
     <string name="fav_reorder_hint">정렬: OK 잡기/놓기 · ▲▼ 이동 · 뒤로 완료</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">재생기의 채널 목록에서 OK를 한 번만 누르면 채널이 바로 전체 화면으로 재생됩니다. 이 옵션이 없으면 첫 번째 OK는 열린 목록 뒤에서 채널만 바꾸고 두 번째 OK가 목록을 닫습니다. OK를 길게 누르면 여전히 채널 메뉴가 열립니다.</string>
     <string name="radio_number_title">라디오 방송국을 1부터 번호 매기기</string>
     <string name="radio_number_note">방송국에 서버 번호 대신 표시 순서대로 1, 2, 3… 번호를 매깁니다. 라디오 탭, 편성표, 재생기의 방송국 목록에 적용됩니다.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">홈 화면 (TV)</string>
     <string name="tile_list_title">TV 채널 및 라디오 타일이 목록을 엽니다</string>
     <string name="tile_list_note">마지막 채널은 이전처럼 재생되고 그 위에 채널 또는 방송국 목록이 바로 열립니다.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">녹화할 때 Tvheadend 녹화 프로필(저장 폴더, 보관 기간)을 선택합니다. 서버에 프로필이 둘 이상일 때만 표시됩니다.</string>
     <string name="dvr_pick_title">프로필에 녹화</string>
     <string name="dvr_pick_last">마지막 사용</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">라디오를 백그라운드에서 계속 재생</string>
     <string name="radio_bg_note">플레이어를 벗어나도 라디오가 계속 재생됩니다 — 홈 화면, 다른 앱 또는 화면 잠금 상태에서. 플레이어 안에서는 화면이 켜진 채 유지됩니다.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">이전 방송국</string>
     <string name="radio_next_station">다음 방송국</string>
 </resources>

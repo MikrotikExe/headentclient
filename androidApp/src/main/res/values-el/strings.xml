@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">Ο διακομιστής δεν προσφέρει το προφίλ «%1$s» — θα χρησιμοποιήσει το προεπιλεγμένο.</string>
     <string name="profile_note_htsp">Το HTSP μεταφέρει στοιχειώδεις ροές, οπότε δεν γίνεται ανακωδικοποίηση. Άφησε τη ρύθμιση του διακομιστή, εκτός αν ο λογαριασμός είναι δεμένος σε συγκεκριμένο προφίλ.</string>
     <string name="dvr_reload">Ανανέωση</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Κρυφά κανάλια</string>
     <string name="fav_reorder">Ταξινόμηση αγαπημένων</string>
     <string name="fav_reorder_hint">Ταξινόμηση: OK πιάσε/άφησε · ▲▼ μετακίνηση · ΠΙΣΩ τέλος</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">Στη λίστα καναλιών του player, ένα πάτημα OK ξεκινά το κανάλι αμέσως σε πλήρη οθόνη. Χωρίς αυτή την επιλογή, το πρώτο OK απλώς αλλάζει κανάλι πίσω από την ανοιχτή λίστα και μόνο το δεύτερο την κλείνει. Το παρατεταμένο OK εξακολουθεί να ανοίγει το μενού του καναλιού.</string>
     <string name="radio_number_title">Αρίθμηση ραδιοφωνικών σταθμών από το 1</string>
     <string name="radio_number_note">Οι σταθμοί αριθμούνται 1, 2, 3… με τη σειρά εμφάνισης αντί για τους αριθμούς του διακομιστή. Ισχύει για την καρτέλα Ραδιόφωνο, τον οδηγό και τη λίστα σταθμών στο player.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Αρχική οθόνη (TV)</string>
     <string name="tile_list_title">Τα πλακίδια Κανάλια TV και Ραδιόφωνο ανοίγουν τη λίστα</string>
     <string name="tile_list_note">Το τελευταίο κανάλι ξεκινά όπως πριν και η λίστα καναλιών ή σταθμών ανοίγει αμέσως από πάνω.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">Κατά την εγγραφή επιλέξτε το προφίλ εγγραφής Tvheadend (φάκελος, διατήρηση). Εμφανίζεται μόνο όταν ο διακομιστής προσφέρει περισσότερα από ένα προφίλ.</string>
     <string name="dvr_pick_title">Εγγραφή στο προφίλ</string>
     <string name="dvr_pick_last">τελευταίο σε χρήση</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">Το ραδιόφωνο συνεχίζει στο παρασκήνιο</string>
     <string name="radio_bg_note">Το ραδιόφωνο συνεχίζει όταν φεύγετε από την αναπαραγωγή — στην αρχική οθόνη, σε άλλη εφαρμογή ή με κλειδωμένη οθόνη. Στην ίδια την αναπαραγωγή η οθόνη μένει αναμμένη.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">Προηγούμενος σταθμός</string>
     <string name="radio_next_station">Επόμενος σταθμός</string>
 </resources>

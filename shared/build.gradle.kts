@@ -5,10 +5,10 @@ plugins {
 }
 
 kotlin {
-    // M550 (AGP 9): Android target cez com.android.kotlin.multiplatform.library —
-    // stara kombinacia com.android.library + kotlin.multiplatform v jednom module
-    // uz s novym AGP DSL nefunguje. Konfiguracia Androidu je tu, top-level
-    // android {} blok tento plugin nema.
+    // M550 (AGP 9): Android target via com.android.kotlin.multiplatform.library —
+    // the old combination of com.android.library + kotlin.multiplatform in a single module
+    // no longer works with the new AGP DSL. The Android configuration lives here, a top-level
+    // android {} block does not exist in this plugin.
     android {
         namespace = "sk.tvhclient.shared"
         compileSdk = 36
@@ -16,7 +16,7 @@ kotlin {
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
-        // unit testy (commonTest) bezia na JVM ako androidHostTest
+        // unit tests (commonTest) run on the JVM as androidHostTest
         withHostTestBuilder {}
     }
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- M538: tema appky (MainActivity a spol.). Edge-to-edge bez androidx.activity
-         EdgeToEdge: priehladne systemove pruhy, pozadie okna kresli appka. -->
+    <!-- M538: the app theme (MainActivity and friends). Edge-to-edge without androidx.activity
+         EdgeToEdge: transparent system bars, the window background is drawn by the app. -->
     <style name="Theme.Headent" parent="@android:style/Theme.Material.NoActionBar">
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>

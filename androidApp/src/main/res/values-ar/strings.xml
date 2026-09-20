@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">الخادم لا يوفر الملف «%1$s» — سيستخدم ملفه الافتراضي بدلاً منه.</string>
     <string name="profile_note_htsp">ينقل HTSP تدفقات أولية، فلا يجري تحويل الترميز. اترك إعداد الخادم ما لم يكن حسابك مرتبطًا بملف معين.</string>
     <string name="dvr_reload">تحديث</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">القنوات المخفية</string>
     <string name="fav_reorder">ترتيب المفضلة</string>
     <string name="fav_reorder_hint">الترتيب: OK إمساك/إفلات · ▲▼ نقل · رجوع تم</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">في قائمة القنوات داخل المشغّل، ضغطة واحدة على OK تشغّل القناة مباشرة بملء الشاشة. بدون هذا الخيار، تبدّل الضغطة الأولى القناة خلف القائمة المفتوحة فقط، والثانية هي التي تغلق القائمة. الضغط المطوّل على OK لا يزال يفتح قائمة القناة.</string>
     <string name="radio_number_title">ترقيم محطات الراديو من 1</string>
     <string name="radio_number_note">تُرقَّم المحطات 1، 2، 3… حسب الترتيب المعروض بدلاً من أرقام الخادم. يسري ذلك على تبويب الراديو ودليل البرامج وقائمة المحطات في المشغّل.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">الشاشة الرئيسية (TV)</string>
     <string name="tile_list_title">بلاطتا قنوات التلفزيون والراديو تفتحان القائمة</string>
     <string name="tile_list_note">تبدأ آخر قناة كما في السابق وتُفتح فوقها فوراً قائمة القنوات أو المحطات.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">عند التسجيل اختر ملف تعريف التسجيل في Tvheadend (المجلد، مدة الاحتفاظ). يظهر فقط عندما يوفر الخادم أكثر من ملف تعريف واحد.</string>
     <string name="dvr_pick_title">التسجيل في ملف التعريف</string>
     <string name="dvr_pick_last">آخر ما استُخدم</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">يواصل الراديو التشغيل في الخلفية</string>
     <string name="radio_bg_note">يواصل الراديو التشغيل عند الخروج من المشغّل — في الشاشة الرئيسية أو في تطبيق آخر أو مع قفل الشاشة. داخل المشغّل نفسه تبقى الشاشة مضاءة.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">المحطة السابقة</string>
     <string name="radio_next_station">المحطة التالية</string>
 </resources>

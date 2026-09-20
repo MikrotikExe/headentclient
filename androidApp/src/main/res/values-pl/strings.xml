@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">Serwer nie udostępnia profilu „%1$s” — użyje zamiast niego domyślnego.</string>
     <string name="profile_note_htsp">HTSP przesyła strumienie elementarne, więc nie ma transkodowania. Zostaw ustawienie serwera, chyba że konto ma przypisany konkretny profil.</string>
     <string name="dvr_reload">Odśwież</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Ukryte kanały</string>
     <string name="fav_reorder">Uporządkuj ulubione</string>
     <string name="fav_reorder_hint">Porządkowanie: OK chwyć/upuść · ▲▼ przesuń · WSTECZ gotowe</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">Na liście kanałów w odtwarzaczu jedno naciśnięcie OK uruchamia kanał od razu na pełnym ekranie. Bez tej opcji pierwsze OK tylko przełącza kanał za otwartą listą, a dopiero drugie zamyka listę. Przytrzymanie OK nadal otwiera menu kanału.</string>
     <string name="radio_number_title">Numeruj stacje radiowe od 1</string>
     <string name="radio_number_note">Stacje są numerowane 1, 2, 3… w wyświetlanej kolejności zamiast numerami z serwera. Dotyczy karty Radio, przewodnika i listy stacji w odtwarzaczu.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Ekran główny (TV)</string>
     <string name="tile_list_title">Kafelki Kanały TV i Radio otwierają listę</string>
     <string name="tile_list_note">Ostatni kanał uruchamia się jak dotąd, a lista kanałów lub stacji otwiera się od razu nad nim.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">Podczas nagrywania wybierz profil nagrywania Tvheadend (folder, czas przechowywania). Widoczne tylko, gdy serwer oferuje więcej niż jeden profil.</string>
     <string name="dvr_pick_title">Nagraj do profilu</string>
     <string name="dvr_pick_last">ostatnio użyty</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">Radio gra w tle</string>
     <string name="radio_bg_note">Radio gra dalej po wyjściu z odtwarzacza — na ekranie głównym, w innej aplikacji lub przy zablokowanym ekranie. W samym odtwarzaczu ekran pozostaje włączony.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">Poprzednia stacja</string>
     <string name="radio_next_station">Następna stacja</string>
 </resources>

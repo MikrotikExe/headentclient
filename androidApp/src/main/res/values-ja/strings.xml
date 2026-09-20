@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">サーバーにプロファイル「%1$s」がありません — 代わりに既定のプロファイルを使用します。</string>
     <string name="profile_note_htsp">HTSPはエレメンタリストリームを伝送するため、トランスコードは行われません。アカウントが特定のプロファイルに限定されていなければサーバーの設定のままで構いません。</string>
     <string name="dvr_reload">更新</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">非表示のチャンネル</string>
     <string name="fav_reorder">お気に入りを並べ替え</string>
     <string name="fav_reorder_hint">並べ替え: OK つかむ/置く · ▲▼ 移動 · 戻る 完了</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">プレーヤーのチャンネル一覧で、OKを1回押すだけでチャンネルがすぐ全画面で再生されます。この設定がない場合、最初のOKは一覧の後ろでチャンネルを切り替えるだけで、2回目で一覧が閉じます。OKの長押しは引き続きチャンネルメニューを開きます。</string>
     <string name="radio_number_title">ラジオ局を1から番号付け</string>
     <string name="radio_number_note">局にはサーバーの番号ではなく、表示順に 1、2、3… の番号が付きます。ラジオタブ、番組表、プレーヤーの局一覧に適用されます。</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">ホーム画面 (TV)</string>
     <string name="tile_list_title">TVチャンネルとラジオのタイルで一覧を開く</string>
     <string name="tile_list_note">最後のチャンネルはこれまで通り再生され、その上にチャンネルまたは局の一覧がすぐに開きます。</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">録画時に Tvheadend の録画プロファイル（保存先フォルダー、保持期間）を選びます。サーバーに複数のプロファイルがある場合のみ表示されます。</string>
     <string name="dvr_pick_title">プロファイルに録画</string>
     <string name="dvr_pick_last">前回使用</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">ラジオをバックグラウンドで再生し続ける</string>
     <string name="radio_bg_note">プレーヤーを離れてもラジオは再生され続けます（ホーム画面、別のアプリ、画面ロック中）。プレーヤー内では画面は点灯したままです。</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">前の局</string>
     <string name="radio_next_station">次の局</string>
 </resources>

@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">El servidor no ofrece el perfil «%1$s»; usará el suyo predeterminado.</string>
     <string name="profile_note_htsp">HTSP transporta flujos elementales, por lo que no hay transcodificación. Deja el ajuste del servidor salvo que tu cuenta esté ligada a un perfil concreto.</string>
     <string name="dvr_reload">Actualizar</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Canales ocultos</string>
     <string name="fav_reorder">Reordenar favoritos</string>
     <string name="fav_reorder_hint">Reordenar: OK coger/soltar · ▲▼ mover · ATRÁS listo</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">En la lista de canales del reproductor, una sola pulsación de OK abre el canal directamente a pantalla completa. Sin esta opción, el primer OK solo cambia de canal detrás de la lista abierta y el segundo la cierra. Mantener pulsado OK sigue abriendo el menú del canal.</string>
     <string name="radio_number_title">Numerar las radios desde 1</string>
     <string name="radio_number_note">Las emisoras se numeran 1, 2, 3… en el orden mostrado en lugar de los números del servidor. Se aplica a la pestaña Radio, la guía y la lista de emisoras del reproductor.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Pantalla de inicio (TV)</string>
     <string name="tile_list_title">Los mosaicos Canales de TV y Radio abren la lista</string>
     <string name="tile_list_note">El último canal se inicia como antes y la lista de canales o emisoras se abre encima de inmediato.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">Al grabar, elegir el perfil de grabación de Tvheadend (carpeta, retención). Solo se muestra si el servidor ofrece más de un perfil.</string>
     <string name="dvr_pick_title">Grabar en el perfil</string>
     <string name="dvr_pick_last">último usado</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">La radio sigue sonando en segundo plano</string>
     <string name="radio_bg_note">La radio sigue sonando al salir del reproductor: en la pantalla de inicio, en otra aplicación o con la pantalla bloqueada. En el propio reproductor la pantalla permanece encendida.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">Emisora anterior</string>
     <string name="radio_next_station">Emisora siguiente</string>
 </resources>

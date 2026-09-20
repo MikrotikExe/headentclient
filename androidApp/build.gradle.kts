@@ -4,8 +4,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 plugins {
-    // M550 (AGP 9): Kotlin je v AGP zabudovany, plugin org.jetbrains.kotlin.android
-    // sa uz neaplikuje (s novym DSL je nekompatibilny).
+    // M550 (AGP 9): Kotlin is built into AGP, the org.jetbrains.kotlin.android plugin
+    // is no longer applied (it is incompatible with the new DSL).
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinCompose)
 }
@@ -14,11 +14,11 @@ android {
     namespace = "sk.tvhclient.android"
     compileSdk = 36
 
-    // M374: ndkVersion odstranena — NDK bol potrebny len na extrakciu
-    // natívnych debug symbolov (vypnute nizsie), inak ho build nepotrebuje.
+    // M374: ndkVersion removed — the NDK was needed only for extracting
+    // native debug symbols (disabled below), otherwise the build does not need it.
 
-    // Podpis pre Play: kluc sa cita z keystore.properties (nie je v gite).
-    // Ak subor chyba (napr. CI debug build), release sa proste nepodpise.
+    // Signing for Play: the key is read from keystore.properties (which is not in git).
+    // If the file is missing (e.g. a CI debug build), the release simply is not signed.
     val keystoreProps = Properties()
     val keystorePropsFile = rootProject.file("keystore.properties")
     if (keystorePropsFile.exists()) {
@@ -39,27 +39,27 @@ android {
     val buildingBundle = gradle.startParameter.taskNames.any {
         it.contains("bundle", ignoreCase = true)
     }
-    // M424-fix3: univerzalny APK sa stava SAMOSTATNE, len na vyziadanie:
+    // M424-fix3: the universal APK is built SEPARATELY, only on demand:
     //   gradle :androidApp:assembleRelease -PuniversalApk
-    // Vtedy sa vypnu splity a vznikne jeden APK s oboma ARM ABI (androidApp-release.apk).
-    // Bezny build (push, ladenie) stavia len splity — univerzalny nezdrziava CI.
+    // Then the splits are disabled and a single APK with both ARM ABIs is produced (androidApp-release.apk).
+    // A regular build (push, debugging) builds only the splits — the universal one does not hold CI up.
     val universalRequested = project.hasProperty("universalApk")
-    // M574: build pre emulator Android Studio (x86_64 obraz Android TV / Google TV):
+    // M574: build for the Android Studio emulator (x86_64 Android TV / Google TV image):
     //   gradle :androidApp:assembleDebug -PemulatorAbi
-    // Bezne splity maju len ARM, takze by sa APK do emulatora nedal nainstalovat.
-    // libVLC nesie aj x86_64 kniznice, staci ich pustit do splitu.
+    // The regular splits contain only ARM, so the APK could not be installed on the emulator.
+    // libVLC also ships x86_64 libraries, it is enough to let them into the split.
     val emulatorRequested = project.hasProperty("emulatorAbi")
 
     defaultConfig {
         applicationId = "sk.tvhclient"
         minSdk = 23
         targetSdk = 36
-        // M424-fix4: ABI filter LEN pre univerzalny build. Pri zapnutych
-        // splitoch ABI obmedzuje uz include() v splits bloku a AGP kombinaciu
-        // ndk.abiFilters + splits odmieta ("Conflicting configuration").
-        // Univerzalny build ma splity vypnute a bez filtra by zobral vsetky
-        // ABI z libVLC vratane x86/x86_64 (212 MB namiesto ~104 MB).
-        // AAB pre Play filter nema — Play si ABI deli sam.
+        // M424-fix4: ABI filter ONLY for the universal build. With splits
+        // enabled the ABIs are already restricted by include() in the splits block, and AGP rejects the
+        // ndk.abiFilters + splits combination ("Conflicting configuration").
+        // The universal build has splits disabled and without the filter it would take all
+        // ABIs from libVLC including x86/x86_64 (212 MB instead of ~104 MB).
+        // The AAB for Play has no filter — Play splits the ABIs itself.
         if (universalRequested && !buildingBundle) {
             ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
         }
@@ -77,13 +77,13 @@ android {
         buildConfig = true
     }
 
-    // libVLC bundluje natívne .so pre vsetky ABI (~200MB). Rozdelime APK
-    // podla ABI a zahodime x86/x86_64 (len emulator). Vysledok: samostatne
-    // mensie APK pre kazde realne zariadenie (~50-60MB namiesto ~200MB).
-    // ABI splits len pre APK build (assemble*), NIE pre bundle (AAB). AGP 8.9+
-    // pri bundleRelease so zapnutym splits padne ("Sequence contains more than one
-    // matching element"). Pri AAB sa splits aj tak ignoruje — Play si rozdeli ABI
-    // sam z App Bundle. Podmienka podla nazvu gradle ulohy.
+    // libVLC bundles native .so files for all ABIs (~200MB). We split the APK
+    // by ABI and drop x86/x86_64 (emulator only). The result: separate
+    // smaller APKs for each real device (~50-60MB instead of ~200MB).
+    // ABI splits only for the APK build (assemble*), NOT for the bundle (AAB). AGP 8.9+
+    // fails on bundleRelease with splits enabled ("Sequence contains more than one
+    // matching element"). For an AAB splits is ignored anyway — Play splits the ABIs
+    // itself from the App Bundle. The condition is based on the gradle task name.
     splits {
         abi {
             isEnable = !buildingBundle && !universalRequested
@@ -98,8 +98,8 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    // M550: kotlinOptions {} je v AGP 9 zrusene; jvmTarget sa preberá
-    // z compileOptions.targetCompatibility (17).
+    // M550: kotlinOptions {} has been removed in AGP 9; jvmTarget is taken
+    // from compileOptions.targetCompatibility (17).
 
     buildTypes {
         release {
@@ -109,23 +109,23 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // M400: natívne debug symboly ZAPNUTÉ (návrat z M374) — pribalia sa
-            // do AAB a Play prestane hlásiť upozornenie; natívne pády (libVLC)
-            // budú v Console čitateľné. Cena: dlhší CI build (extrakcia symbolov
-            // z ~200MB .so kniznic).
+            // M400: native debug symbols ENABLED (a revert of M374) — they are bundled
+            // into the AAB and Play stops reporting the warning; native crashes (libVLC)
+            // will be readable in the Console. The cost: a longer CI build (extracting symbols
+            // from ~200MB of .so libraries).
             ndk { debugSymbolLevel = "SYMBOL_TABLE" }
-            // Play: vlastny kluc ak je keystore.properties; inak (CI test) debug
-            // podpis, nech je release APK instalovatelny na otestovanie R8.
+            // Play: our own key if keystore.properties is present; otherwise (CI test) a debug
+            // signature, so the release APK is installable for testing R8.
             signingConfig = if (keystorePropsFile.exists()) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")
             }
         }
-        // M680 (PR #16, jpstotz): debug build sa instaluje VEDLA Play verzie —
-        // iny application id (.debug), iny nazov v launcheri (src/debug/AndroidManifest.xml)
-        // a banner so stuhou „DEBUG BUILD" (src/debug/res/drawable-nodpi/tv_banner.png).
-        // Data su tym padom oddelene: v debug appke si treba server pridat znova.
+        // M680 (PR #16, jpstotz): the debug build installs ALONGSIDE the Play version —
+        // a different application id (.debug), a different launcher name (src/debug/AndroidManifest.xml)
+        // and a banner with a „DEBUG BUILD" ribbon (src/debug/res/drawable-nodpi/tv_banner.png).
+        // The data is therefore separate: in the debug app you have to add the server again.
         debug {
             applicationIdSuffix = ".debug"
         }
@@ -133,10 +133,10 @@ android {
 }
 
 dependencies {
-    // Vynuti modernu verziu androidx.fragment. Stara 1.0.0 sa tahá tranzitivne (cez ine
-    // kniznice) a Play ju hlasi ako zastaralu ("Technicka kvalita"). Appka fragmenty priamo
-    // nepouziva (je cela v Compose), takze toto len povysi verziu a uspokoji hlasenie, bez
-    // dosahu na kod. Constraint nepridava zavislost, len obmedzuje verziu ak je tahaná.
+    // Forces a modern version of androidx.fragment. The old 1.0.0 is pulled in transitively (through other
+    // libraries) and Play reports it as outdated ("Technical quality"). The app does not use fragments
+    // directly (it is entirely in Compose), so this merely upgrades the version and satisfies the report, without
+    // any impact on the code. The constraint does not add a dependency, it only limits the version if it is pulled in.
     constraints {
         implementation("androidx.fragment:fragment:1.8.6") {
             because("Stara tranzitivna 1.0.0 je zastarala; vynutit verziu kompatibilnu so SDK 35")
@@ -144,7 +144,7 @@ dependencies {
     }
     implementation(project(":shared"))
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.tvprovider)   // M580: riadok oblubenych na domovskej obrazovke Android TV
+    implementation(libs.androidx.tvprovider)   // M580: favourites row on the Android TV home screen
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)

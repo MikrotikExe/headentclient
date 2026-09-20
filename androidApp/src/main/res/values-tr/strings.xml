@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">Sunucu “%1$s” profilini sunmuyor — bunun yerine varsayılanı kullanacak.</string>
     <string name="profile_note_htsp">HTSP temel akışları taşır, dolayısıyla yeniden kodlama olmaz. Hesabın belirli bir profile bağlı değilse sunucu ayarında bırak.</string>
     <string name="dvr_reload">Yenile</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Gizli kanallar</string>
     <string name="fav_reorder">Favorileri sırala</string>
     <string name="fav_reorder_hint">Sıralama: OK tut/bırak · ▲▼ taşı · GERİ bitti</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">Oynatıcının kanal listesinde OK\'a bir kez basmak kanalı doğrudan tam ekran başlatır. Bu seçenek olmadan ilk OK yalnızca açık listenin arkasında kanalı değiştirir, listeyi ikinci basış kapatır. OK\'a uzun basmak yine kanal menüsünü açar.</string>
     <string name="radio_number_title">Radyo istasyonlarını 1\'den numaralandır</string>
     <string name="radio_number_note">İstasyonlar sunucudaki numaralar yerine gösterilen sıraya göre 1, 2, 3… olarak numaralandırılır. Radyo sekmesi, rehber ve oynatıcıdaki istasyon listesi için geçerlidir.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Ana ekran (TV)</string>
     <string name="tile_list_title">TV Kanalları ve Radyo kutucukları listeyi açar</string>
     <string name="tile_list_note">Son kanal eskisi gibi başlar ve kanal ya da istasyon listesi hemen üstünde açılır.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">Kaydederken Tvheadend kayıt profilini seç (klasör, saklama). Yalnızca sunucu birden fazla profil sunuyorsa gösterilir.</string>
     <string name="dvr_pick_title">Profile kaydet</string>
     <string name="dvr_pick_last">son kullanılan</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">Radyo arka planda çalmaya devam eder</string>
     <string name="radio_bg_note">Oynatıcıdan çıktığınızda radyo çalmaya devam eder: ana ekranda, başka bir uygulamada veya ekran kilitliyken. Oynatıcının içinde ekran açık kalır.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">Önceki istasyon</string>
     <string name="radio_next_station">Sonraki istasyon</string>
 </resources>

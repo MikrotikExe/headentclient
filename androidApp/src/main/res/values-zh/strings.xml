@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">服务器没有“%1$s”配置——将改用默认配置。</string>
     <string name="profile_note_htsp">HTSP 传输基本流，因此不会转码。除非账号被限定到特定配置，否则保持服务器设置。</string>
     <string name="dvr_reload">刷新</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">隐藏的频道</string>
     <string name="fav_reorder">重新排序收藏</string>
     <string name="fav_reorder_hint">排序：OK 抓取/放下 · ▲▼ 移动 · 返回 完成</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">在播放器的频道列表中，按一次 OK 即可直接全屏播放该频道。未启用时，第一次 OK 只会在列表后面切换频道，第二次才关闭列表。长按 OK 仍会打开频道菜单。</string>
     <string name="radio_number_title">电台从 1 开始编号</string>
     <string name="radio_number_note">电台按显示顺序编为 1、2、3…，而不使用服务器上的编号。适用于电台标签页、节目指南和播放器中的电台列表。</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">主屏幕 (TV)</string>
     <string name="tile_list_title">电视频道和电台磁贴打开列表</string>
     <string name="tile_list_note">上次的频道照常播放，并立即在其上方打开频道或电台列表。</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">录制时选择 Tvheadend 录制配置（存储文件夹、保留期）。仅当服务器提供多个配置时显示。</string>
     <string name="dvr_pick_title">录制到配置</string>
     <string name="dvr_pick_last">上次使用</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">电台在后台继续播放</string>
     <string name="radio_bg_note">离开播放器后电台继续播放——在主屏幕、其他应用中或锁屏时。在播放器内屏幕保持常亮。</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">上一个电台</string>
     <string name="radio_next_station">下一个电台</string>
 </resources>

@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-      # mapovane zo secrets, aby sa dalo testovat v 'if' (secrets sa v if nedaju)
+      # mapped from secrets so it can be tested in 'if' (secrets cannot be used in if)
       KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
     steps:
       - uses: actions/checkout@v5
@@ -29,10 +29,10 @@ jobs:
       - name: Set up Android SDK (sdkmanager na PATH)
         uses: android-actions/setup-android@v3
         with:
-          # M615: predvolene sa akcia pokusi nainstalovat balik `tools`, ktory uz
-          # Google zo SDK repozitara odstranil — beh potom padne na
-          # „Failed to find package 'tools'". Instalujeme len to, co build naozaj
-          # potrebuje; licencie akceptuje samotna akcia.
+          # M615: by default the action tries to install the `tools` package, which
+          # Google has already removed from the SDK repository — the run then fails with
+          # „Failed to find package 'tools'". We install only what the build really
+          # needs; the action accepts the licenses itself.
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
 
       - name: Set up signing (z GitHub secrets)
@@ -47,11 +47,11 @@ jobs:
 
       - name: Build debug APK
         run: gradle :androidApp:assembleDebug
-      # M660 / M678: JVM unit testy shared modulu (TsMuxer casovanie, Htsmsg, SHA-1,
-      # DVR klasifikacia, radio podla service type). Presny nazov ulohy pre KMP android
-      # kniznicu (M550) je testAndroidHostTest — allTests by tahal aj iOS ciele, ktore sa
-      # na Linuxe nedaju zostavit. continue-on-error, aby sa pri zlyhani testu nestratili
-      # artefakty (vysledok je v logu aj v zhrnuti behu).
+      # M660 / M678: JVM unit tests of the shared module (TsMuxer timing, Htsmsg, SHA-1,
+      # DVR classification, radio by service type). The exact task name for the KMP android
+      # library (M550) is testAndroidHostTest — allTests would also pull in the iOS targets, which
+      # cannot be built on Linux. continue-on-error, so that a failing test does not lose the
+      # artifacts (the result is in the log and in the run summary).
       - name: Shared unit tests
         continue-on-error: true
         run: |
@@ -64,8 +64,8 @@ jobs:
             grep -h -E "<failure" "$f" | head -10
           done
           exit $rc
-      # M678: kontrola, ze shared modul ide zostavit aj pre iOS (commonMain nesmie pouzivat
-      # JVM-only API). Informativne — appka je zatial len Android.
+      # M678: a check that the shared module also builds for iOS (commonMain must not use
+      # JVM-only APIs). Informational — the app is Android-only for now.
       - name: iOS compile check (shared)
         continue-on-error: true
         run: gradle :shared:compileKotlinIosSimulatorArm64
@@ -73,8 +73,8 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: HeadentClient-debug
-          # M424-fix2: len splity — univerzalny APK by artefakt zdvojnasobil,
-          # na test na zariadeni ho netreba (patri len do GitHub Release)
+          # M424-fix2: splits only — a universal APK would double the artifact,
+          # it is not needed for testing on a device (it belongs only in the GitHub Release)
           path: |
             androidApp/build/outputs/apk/debug/*-arm64-v8a-*.apk
             androidApp/build/outputs/apk/debug/*-armeabi-v7a-*.apk
@@ -85,7 +85,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: HeadentClient-release
-          # M424-fix2: len splity, univerzalny sa nahrava len v release.yml
+          # M424-fix2: splits only, the universal one is uploaded only in release.yml
           path: |
             androidApp/build/outputs/apk/release/*-arm64-v8a-*.apk
             androidApp/build/outputs/apk/release/*-armeabi-v7a-*.apk
@@ -97,8 +97,8 @@ jobs:
         with:
           name: HeadentClient-aab
           path: androidApp/build/outputs/bundle/release/*.aab
-      # M544: R8 mapping — na rozlustenie obfuskovanych stackov z diagnostickeho logu
-      # (a na nahratie do Play Console k danemu buildu)
+      # M544: R8 mapping — for decoding obfuscated stack traces from the diagnostic log
+      # (and for uploading to the Play Console for that build)
       - name: Upload R8 mapping
         uses: actions/upload-artifact@v5
         with:

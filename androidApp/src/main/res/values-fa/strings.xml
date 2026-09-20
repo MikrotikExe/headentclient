@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">سرور نمایه «%1$s» را ارائه نمی‌دهد — به جای آن از نمایه پیش‌فرض خود استفاده می‌کند.</string>
     <string name="profile_note_htsp">HTSP جریان‌های پایه را منتقل می‌کند، پس تبدیل کدک انجام نمی‌شود. اگر حساب به نمایه‌ای محدود نیست، تنظیم سرور را نگه دار.</string>
     <string name="dvr_reload">بازآوری</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">کانال‌های پنهان</string>
     <string name="fav_reorder">مرتب‌سازی علاقه‌مندی‌ها</string>
     <string name="fav_reorder_hint">مرتب‌سازی: OK گرفتن/رها کردن · ▲▼ جابه‌جایی · بازگشت پایان</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">در فهرست شبکه‌های پخش‌کننده، یک بار فشردن OK شبکه را بی‌درنگ به‌صورت تمام‌صفحه اجرا می‌کند. بدون این گزینه، OK نخست فقط شبکه را پشت فهرست باز عوض می‌کند و دومی فهرست را می‌بندد. نگه داشتن OK همچنان منوی شبکه را باز می‌کند.</string>
     <string name="radio_number_title">شماره‌گذاری ایستگاه‌های رادیویی از ۱</string>
     <string name="radio_number_note">ایستگاه‌ها به‌جای شماره‌های سرور، به ترتیب نمایش ۱، ۲، ۳… شماره‌گذاری می‌شوند. برای زبانه رادیو، راهنمای برنامه و فهرست ایستگاه‌های پخش‌کننده اعمال می‌شود.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">صفحهٔ اصلی (TV)</string>
     <string name="tile_list_title">کاشی‌های کانال‌های تلویزیون و رادیو فهرست را باز می‌کنند</string>
     <string name="tile_list_note">آخرین کانال مانند قبل شروع می‌شود و فهرست کانال‌ها یا ایستگاه‌ها بلافاصله روی آن باز می‌شود.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">هنگام ضبط، نمایهٔ ضبط Tvheadend را انتخاب کنید (پوشه، مدت نگهداری). فقط زمانی نمایش داده می‌شود که سرور بیش از یک نمایه ارائه دهد.</string>
     <string name="dvr_pick_title">ضبط در نمایه</string>
     <string name="dvr_pick_last">آخرین استفاده‌شده</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">رادیو در پس‌زمینه ادامه می‌یابد</string>
     <string name="radio_bg_note">رادیو پس از خروج از پخش‌کننده ادامه می‌یابد — در صفحهٴ اصلی، در برنامهٴ دیگر یا با صفحهٴ قفل‌شده. در خود پخش‌کننده صفحه روشن می‌ماند.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">ایستگاه قبلی</string>
     <string name="radio_next_station">ایستگاه بعدی</string>
 </resources>

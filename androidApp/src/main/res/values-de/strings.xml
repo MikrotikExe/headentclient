@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">Der Server bietet das Profil „%1$s“ nicht an — er verwendet stattdessen sein Standardprofil.</string>
     <string name="profile_note_htsp">HTSP überträgt Elementarströme, es wird also nicht transkodiert. Belasse die Servereinstellung, sofern dein Konto nicht an ein bestimmtes Profil gebunden ist.</string>
     <string name="dvr_reload">Aktualisieren</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Ausgeblendete Sender</string>
     <string name="fav_reorder">Favoriten sortieren</string>
     <string name="fav_reorder_hint">Sortieren: OK greifen/ablegen · ▲▼ verschieben · BACK fertig</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">In der Kanalliste des Players startet ein Druck auf OK den Kanal sofort im Vollbild. Ohne diese Option schaltet das erste OK nur den Kanal hinter der offenen Liste um, erst das zweite schließt die Liste. Langes Drücken von OK öffnet weiterhin das Kanalmenü.</string>
     <string name="radio_number_title">Radiosender ab 1 nummerieren</string>
     <string name="radio_number_note">Sender werden in der angezeigten Reihenfolge mit 1, 2, 3… nummeriert statt mit den Nummern vom Server. Gilt für den Radio-Tab, den Programmführer und die Senderliste im Player.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Startseite (TV)</string>
     <string name="tile_list_title">Kacheln „TV-Sender“ und „Radio“ öffnen die Liste</string>
     <string name="tile_list_note">Der letzte Sender startet wie bisher, und die Sender- bzw. Stationsliste öffnet sich sofort darüber.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">Beim Aufnehmen das Tvheadend-Aufnahmeprofil wählen (Speicherordner, Aufbewahrung). Erscheint nur, wenn der Server mehr als ein Profil anbietet.</string>
     <string name="dvr_pick_title">In Profil aufnehmen</string>
     <string name="dvr_pick_last">zuletzt verwendet</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">Radio läuft im Hintergrund weiter</string>
     <string name="radio_bg_note">Das Radio läuft weiter, wenn Sie den Player verlassen – auf dem Startbildschirm, in einer anderen App oder bei gesperrtem Bildschirm. Im Player selbst bleibt der Bildschirm an.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">Vorheriger Sender</string>
     <string name="radio_next_station">Nächster Sender</string>
 </resources>

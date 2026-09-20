@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">A kiszolgáló nem kínálja a(z) „%1$s” profilt — helyette az alapértelmezettet használja.</string>
     <string name="profile_note_htsp">A HTSP elemi adatfolyamokat visz át, tehát nincs átkódolás. Hagyd a kiszolgáló beállítását, hacsak a fiók nincs egy adott profilhoz kötve.</string>
     <string name="dvr_reload">Frissítés</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Rejtett csatornák</string>
     <string name="fav_reorder">Kedvencek rendezése</string>
     <string name="fav_reorder_hint">Rendezés: OK megfog/letesz · ▲▼ mozgat · VISSZA kész</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">A lejátszó csatornalistájában egyetlen OK azonnal teljes képernyőn indítja a csatornát. Enélkül az első OK csak átvált a nyitott lista mögött, és csak a második zárja be a listát. Az OK nyomva tartása továbbra is a csatorna menüjét nyitja meg.</string>
     <string name="radio_number_title">Rádióállomások számozása 1-től</string>
     <string name="radio_number_note">Az állomások a megjelenített sorrendben 1, 2, 3… számot kapnak a szerver számai helyett. A Rádió lapra, a műsorújságra és a lejátszó állomáslistájára vonatkozik.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Kezdőképernyő (TV)</string>
     <string name="tile_list_title">A TV-csatornák és Rádió csempék a listát nyitják meg</string>
     <string name="tile_list_note">Az utolsó csatorna a megszokott módon elindul, és fölötte azonnal megnyílik a csatorna- vagy állomáslista.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">Felvételkor a Tvheadend felvételi profil kiválasztása (mappa, megőrzés). Csak akkor jelenik meg, ha a kiszolgáló egynél több profilt kínál.</string>
     <string name="dvr_pick_title">Felvétel profilba</string>
     <string name="dvr_pick_last">utoljára használt</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">A rádió a háttérben is szól</string>
     <string name="radio_bg_note">A rádió tovább szól, ha kilép a lejátszóból – a kezdőképernyőn, másik alkalmazásban vagy lezárt képernyőnél. A lejátszóban a képernyő bekapcsolva marad.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">Előző állomás</string>
     <string name="radio_next_station">Következő állomás</string>
 </resources>

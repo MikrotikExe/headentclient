@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">সার্ভারে “%1$s” প্রোফাইল নেই — এর বদলে ডিফল্ট প্রোফাইল ব্যবহৃত হবে।</string>
     <string name="profile_note_htsp">HTSP এলিমেন্টারি স্ট্রিম পাঠায়, তাই ট্রান্সকোডিং হয় না। অ্যাকাউন্ট নির্দিষ্ট প্রোফাইলে বাঁধা না হলে সার্ভারের সেটিংস রাখুন।</string>
     <string name="dvr_reload">রিফ্রেশ</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">লুকানো চ্যানেল</string>
     <string name="fav_reorder">পছন্দের ক্রম সাজান</string>
     <string name="fav_reorder_hint">সাজানো: OK ধরুন/ছাড়ুন · ▲▼ সরান · BACK শেষ</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">প্লেয়ারের চ্যানেল তালিকায় একবার OK চাপলেই চ্যানেল সরাসরি পূর্ণ পর্দায় চালু হয়। এই বিকল্প ছাড়া প্রথম OK শুধু খোলা তালিকার পেছনে চ্যানেল বদলায় এবং দ্বিতীয়টি তালিকা বন্ধ করে। OK চেপে ধরলে এখনও চ্যানেল মেনু খোলে।</string>
     <string name="radio_number_title">রেডিও স্টেশন ১ থেকে নম্বর করুন</string>
     <string name="radio_number_note">সার্ভারের নম্বরের বদলে প্রদর্শিত ক্রমে স্টেশনগুলো ১, ২, ৩… নম্বর পায়। রেডিও ট্যাব, গাইড ও প্লেয়ারের স্টেশন তালিকায় প্রযোজ্য।</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">হোম স্ক্রিন (TV)</string>
     <string name="tile_list_title">TV চ্যানেল ও রেডিও টাইল তালিকা খোলে</string>
     <string name="tile_list_note">শেষ চ্যানেল আগের মতোই চালু হয় এবং তার উপরে সঙ্গে সঙ্গে চ্যানেল বা স্টেশন তালিকা খোলে।</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">রেকর্ড করার সময় Tvheadend রেকর্ডিং প্রোফাইল বেছে নিন (ফোল্ডার, সংরক্ষণকাল)। সার্ভার একাধিক প্রোফাইল দিলে তবেই দেখানো হয়।</string>
     <string name="dvr_pick_title">প্রোফাইলে রেকর্ড করুন</string>
     <string name="dvr_pick_last">সর্বশেষ ব্যবহৃত</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">রেডিও ব্যাকগ্রাউন্ডে বাজতে থাকে</string>
     <string name="radio_bg_note">প্লেয়ার থেকে বেরিয়ে গেলে রেডিও বাজতে থাকে — হোম স্ক্রিনে, অন্য অ্যাপে বা স্ক্রিন লক থাকলে। প্লেয়ারের মধ্যে স্ক্রিন চালু থাকে।</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">আগের স্টেশন</string>
     <string name="radio_next_station">পরের স্টেশন</string>
 </resources>

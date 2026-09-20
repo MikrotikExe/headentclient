@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">Serverul nu oferă profilul „%1$s” — va folosi profilul implicit.</string>
     <string name="profile_note_htsp">HTSP transportă fluxuri elementare, deci nu se transcodează. Lasă setarea serverului dacă contul nu e legat de un anume profil.</string>
     <string name="dvr_reload">Reîmprospătează</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Canale ascunse</string>
     <string name="fav_reorder">Reordonează favoritele</string>
     <string name="fav_reorder_hint">Reordonare: OK apucă/lasă · ▲▼ mută · ÎNAPOI gata</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">În lista de canale din player, o apăsare pe OK pornește canalul direct pe tot ecranul. Fără această opțiune, primul OK doar schimbă canalul în spatele listei deschise, iar al doilea închide lista. Apăsarea lungă pe OK deschide în continuare meniul canalului.</string>
     <string name="radio_number_title">Numerotează posturile radio de la 1</string>
     <string name="radio_number_note">Posturile sunt numerotate 1, 2, 3… în ordinea afișată, în loc de numerele de pe server. Se aplică filei Radio, ghidului și listei de posturi din player.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Ecran de start (TV)</string>
     <string name="tile_list_title">Dalele Canale TV și Radio deschid lista</string>
     <string name="tile_list_note">Ultimul canal pornește ca înainte, iar lista de canale sau posturi se deschide imediat deasupra.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">La înregistrare, alege profilul de înregistrare Tvheadend (dosar, păstrare). Apare doar când serverul oferă mai multe profiluri.</string>
     <string name="dvr_pick_title">Înregistrează în profilul</string>
     <string name="dvr_pick_last">ultimul folosit</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">Radioul continuă în fundal</string>
     <string name="radio_bg_note">Radioul continuă când ieșiți din player — pe ecranul de start, în altă aplicație sau cu ecranul blocat. În player ecranul rămâne aprins.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">Postul anterior</string>
     <string name="radio_next_station">Postul următor</string>
 </resources>

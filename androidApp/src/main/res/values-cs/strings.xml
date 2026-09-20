@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">Server profil „%1$s“ nenabízí — použije místo něj svůj výchozí.</string>
     <string name="profile_note_htsp">HTSP přenáší elementární streamy, takže se netranskóduje. Pokud účet nemá vyhrazený profil, nech nastavení serveru.</string>
     <string name="dvr_reload">Obnovit</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Skryté kanály</string>
     <string name="fav_reorder">Uspořádat oblíbené</string>
     <string name="fav_reorder_hint">Uspořádání: OK uchopit/položit · ▲▼ přesunout · BACK hotovo</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">V seznamu kanálů v přehrávači spustí jedno stisknutí OK kanál rovnou na celou obrazovku. Bez této volby první OK kanál jen přepne (seznam zůstane přes obraz) a teprve druhé jej zavře. Podržení OK stále otevírá nabídku kanálu.</string>
     <string name="radio_number_title">Číslovat rádia od 1</string>
     <string name="radio_number_note">Stanice se číslují 1, 2, 3… podle zobrazeného pořadí místo čísel ze serveru. Platí pro záložku Rádio, TV program i seznam stanic v přehrávači.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Úvodní obrazovka (TV)</string>
     <string name="tile_list_title">Dlaždice TV kanály a Rádio otevřou seznam</string>
     <string name="tile_list_note">Poslední kanál se spustí jako dosud a hned nad ním se otevře seznam kanálů nebo stanic.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">Při nahrávání vybrat profil nahrávání Tvheadendu (složka, doba uchování). Zobrazí se, jen když server nabízí více než jeden profil.</string>
     <string name="dvr_pick_title">Nahrát do profilu</string>
     <string name="dvr_pick_last">naposledy použitý</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">Rádio hraje na pozadí</string>
     <string name="radio_bg_note">Rádio hraje dál, když odejdeš z přehrávače — na domovské obrazovce, v jiné aplikaci nebo při zamknutém displeji. V samotném přehrávači displej svítí dál.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">Předchozí stanice</string>
     <string name="radio_next_station">Další stanice</string>
 </resources>

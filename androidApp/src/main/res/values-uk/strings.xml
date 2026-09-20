@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">Сервер не пропонує профіль «%1$s» — буде використано профіль за замовчуванням.</string>
     <string name="profile_note_htsp">HTSP передає елементарні потоки, тому транскодування немає. Залиш налаштування сервера, якщо обліковий запис не прив’язаний до певного профілю.</string>
     <string name="dvr_reload">Оновити</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Приховані канали</string>
     <string name="fav_reorder">Упорядкувати улюблені</string>
     <string name="fav_reorder_hint">Порядок: OK взяти/відпустити · ▲▼ перемістити · НАЗАД готово</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">У списку каналів у програвачі одне натискання OK запускає канал одразу на весь екран. Без цієї опції перше OK лише перемикає канал за відкритим списком, а закриває його аж друге. Довге натискання OK і далі відкриває меню каналу.</string>
     <string name="radio_number_title">Нумерувати радіостанції з 1</string>
     <string name="radio_number_note">Станції нумеруються 1, 2, 3… у показаному порядку замість номерів із сервера. Діє для вкладки Радіо, телепрограми та списку станцій у програвачі.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Головний екран (TV)</string>
     <string name="tile_list_title">Плитки «ТБ-канали» та «Радіо» відкривають список</string>
     <string name="tile_list_note">Останній канал запускається як раніше, і над ним одразу відкривається список каналів або станцій.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">Під час запису вибирати профіль запису Tvheadend (тека, термін зберігання). Показується, лише якщо сервер пропонує кілька профілів.</string>
     <string name="dvr_pick_title">Записати в профіль</string>
     <string name="dvr_pick_last">останній використаний</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">Радіо грає у фоні</string>
     <string name="radio_bg_note">Радіо продовжує грати, коли ви виходите з плеєра — на головному екрані, в іншому застосунку або за заблокованого екрана. У самому плеєрі екран залишається увімкненим.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">Попередня станція</string>
     <string name="radio_next_station">Наступна станція</string>
 </resources>

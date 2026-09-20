@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">Сървърът не предлага профила „%1$s“ — ще използва своя подразбиращ се.</string>
     <string name="profile_note_htsp">HTSP пренася елементарни потоци, така че няма транскодиране. Остави настройката на сървъра, освен ако профилът е зададен за акаунта.</string>
     <string name="dvr_reload">Обнови</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Скрити канали</string>
     <string name="fav_reorder">Подреди любимите</string>
     <string name="fav_reorder_hint">Подреждане: OK хвани/пусни · ▲▼ премести · НАЗАД готово</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">В списъка с канали в плейъра едно натискане на OK пуска канала веднага на цял екран. Без тази опция първото OK само сменя канала зад отворения списък, а второто го затваря. Задържането на OK продължава да отваря менюто на канала.</string>
     <string name="radio_number_title">Номерирай радиостанциите от 1</string>
     <string name="radio_number_note">Станциите се номерират 1, 2, 3… по показания ред вместо с номерата от сървъра. Важи за раздел Радио, справочника и списъка със станции в плейъра.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Начален екран (TV)</string>
     <string name="tile_list_title">Плочките ТВ канали и Радио отварят списъка</string>
     <string name="tile_list_note">Последният канал стартира както досега и списъкът с канали или станции се отваря веднага върху него.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">При запис избери профила за запис на Tvheadend (папка, съхранение). Показва се само когато сървърът предлага повече от един профил.</string>
     <string name="dvr_pick_title">Запис в профил</string>
     <string name="dvr_pick_last">последно използван</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">Радиото свири на заден план</string>
     <string name="radio_bg_note">Радиото продължава да свири, когато излезете от плейъра — на началния екран, в друго приложение или при заключен екран. В самия плейър екранът остава включен.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">Предишна станция</string>
     <string name="radio_next_station">Следваща станция</string>
 </resources>

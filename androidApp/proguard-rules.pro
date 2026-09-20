@@ -1,10 +1,10 @@
 # ============================================================================
-# Headent Client — R8 / ProGuard keep pravidla pre release build
+# Headent Client — R8 / ProGuard keep rules for the release build
 # ============================================================================
 
 # --- kotlinx.serialization -------------------------------------------------
-# Modelove triedy v shared module su @Serializable; serializery sa generuju
-# a pristupuju cez reflexiu/companion. Drzime ich.
+# The model classes in the shared module are @Serializable; the serializers are generated
+# and accessed via reflection/companion. We keep them.
 -keepattributes *Annotation*, InnerClasses
 -dontnote kotlinx.serialization.**
 
@@ -24,28 +24,28 @@
 }
 -keepclasseswithmembers class **$$serializer { *; }
 
-# Nase @Serializable modely (shared/model/*) pokryvaju genericke pravidla vyssie:
-# kotlinx.serialization je compile-time (nazvy poli su konstanty v $$serializer),
-# takze samotne triedy a ich polia mozu byt obfuskovane. Ziadne polymorfne
-# ani reflexne pouzitie v shared module nie je -> blanket keep nie je potrebny.
-# Pre istotu drzime len mena @Serializable tried (citatelnejsi mapping/diag log).
+# Our own @Serializable models (shared/model/*) are covered by the generic rules above:
+# kotlinx.serialization is compile-time (field names are constants in $$serializer),
+# so the classes themselves and their fields may be obfuscated. There is no polymorphic
+# or reflective use in the shared module -> a blanket keep is not needed.
+# To be safe we keep only the names of the @Serializable classes (a more readable mapping/diag log).
 -keepnames @kotlinx.serialization.Serializable class sk.tvhclient.shared.**
 
 # --- libVLC (org.videolan) -------------------------------------------------
-# Pouziva JNI native callbacky — triedy/metody referencovane z native kodu
-# sa nesmu prejmenovat ani odstranit.
+# It uses JNI native callbacks — classes/methods referenced from native code
+# must not be renamed or removed.
 -keep class org.videolan.** { *; }
 -dontwarn org.videolan.**
 
 # --- Ktor + okhttp engine --------------------------------------------------
-# Ziadne blanket keep: Ktor aj okhttp si nesu vlastne consumer keep pravidla
-# v AAR/JAR (META-INF/proguard), R8 ich aplikuje automaticky. Nas kod vola
-# Ktor len priamo (bez reflexie), takze R8 moze zvysok bezpecne zahodit.
-# Engine vytvarame explicitne HttpClient(OkHttp), ServiceLoader lookup drzime
-# len pre istotu (jedna mala trieda).
+# No blanket keeps: both Ktor and okhttp carry their own consumer keep rules
+# in the AAR/JAR (META-INF/proguard), and R8 applies them automatically. Our code calls
+# Ktor only directly (no reflection), so R8 can safely drop the rest.
+# We create the engine explicitly with HttpClient(OkHttp); we keep the ServiceLoader lookup
+# only to be safe (one small class).
 -keep class * implements io.ktor.client.HttpClientEngineContainer { *; }
-# Ktor pouziva kotlinx-atomicfu -> AtomicFieldUpdater hlada volatile polia
-# podla mena; nesmu sa premenovat (odporucane pravidlo Ktor pre R8).
+# Ktor uses kotlinx-atomicfu -> AtomicFieldUpdater looks up volatile fields
+# by name; they must not be renamed (Ktor's recommended rule for R8).
 -keepclassmembers class io.ktor.** { volatile <fields>; }
 -keepclassmembernames class io.ktor.** { volatile <fields>; }
 -dontwarn io.ktor.**
@@ -57,28 +57,28 @@
 -dontwarn kotlinx.coroutines.**
 
 # --- androidx.security.crypto / Tink ---------------------------------------
-# Tink (EncryptedSharedPreferences) referencuje compile-only errorprone a
-# javax anotacie, ktore nie su v runtime classpath -> R8 ich hlasi ako chybajuce.
+# Tink (EncryptedSharedPreferences) references compile-only errorprone and
+# javax annotations that are not on the runtime classpath -> R8 reports them as missing.
 -dontwarn com.google.errorprone.annotations.**
 -dontwarn javax.annotation.**
 -dontwarn com.google.api.**
-# Ziadny blanket keep pre Tink (velka kniznica, drzali sme ju celu). Jedine, co
-# Tink potrebuje pri R8, je protobuf-lite: GeneratedMessageLite hlada polia
-# sprav cez reflexiu podla mena -> polia potomkov sa nesmu premenovat.
+# No blanket keep for Tink (a large library, we used to keep all of it). The only thing
+# Tink needs under R8 is protobuf-lite: GeneratedMessageLite looks up message
+# fields by name via reflection -> the subclasses' fields must not be renamed.
 -keepclassmembers class * extends com.google.crypto.tink.shaded.protobuf.GeneratedMessageLite {
     <fields>;
 }
 -dontwarn com.google.crypto.tink.**
 
-# --- Kotlin metadata / reflexia --------------------------------------------
+# --- Kotlin metadata / reflection ------------------------------------------
 -keep class kotlin.Metadata { *; }
 -dontwarn kotlin.**
 
-# --- Enums (serializovane ako enum) ----------------------------------------
+# --- Enums (serialized as enum) --------------------------------------------
 -keepclassmembers enum * {
     public static **[] values();
     public static ** valueOf(java.lang.String);
 }
 
-# --- Compose (R8-friendly, len pre istotu pri tooling) ---------------------
+# --- Compose (R8-friendly, just to be safe with tooling) -------------------
 -dontwarn androidx.compose.**

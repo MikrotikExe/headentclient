@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <!-- M680 (PR #16): v debug builde iny nazov v launcheri, nech sa neplieta s Play verziou.
-         Prepis cez manifest (nie app_name v src/debug/res/values) — app_name je prelozene
-         v 31 jazykoch, takze na zariadeni s inym jazykom by vyhral preklad. -->
+    <!-- M680 (PR #16): a different launcher name in the debug build, so it does not get mixed up with the Play version.
+         Overridden via the manifest (not app_name in src/debug/res/values) — app_name is translated
+         into 31 languages, so on a device with another language the translation would win. -->
     <application
         android:label="Headent Client Debug"
         tools:replace="android:label" />

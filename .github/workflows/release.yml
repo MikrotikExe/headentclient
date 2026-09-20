@@ -1,8 +1,8 @@
 name: Release (tag -> APK na GitHub Release)
 
-# M402: pri pushnuti tagu v* CI zostavi PODPISANE release APK a publikuje
-# GitHub Release s prilohou a sha256. Rucne spustenie: workflow_dispatch
-# s nazvom existujuceho tagu (pre tagy pushnute pred pridanim workflowu).
+# M402: when a v* tag is pushed, CI builds a SIGNED release APK and publishes
+# a GitHub Release with the attachment and its sha256. Manual run: workflow_dispatch
+# with the name of an existing tag (for tags pushed before this workflow was added).
 on:
   push:
     tags: [ 'v*' ]
@@ -40,10 +40,10 @@ jobs:
       - name: Set up Android SDK (sdkmanager na PATH)
         uses: android-actions/setup-android@v3
         with:
-          # M615: predvolene sa akcia pokusi nainstalovat balik `tools`, ktory uz
-          # Google zo SDK repozitara odstranil — beh potom padne na
-          # „Failed to find package 'tools'". Instalujeme len to, co build naozaj
-          # potrebuje; licencie akceptuje samotna akcia.
+          # M615: by default the action tries to install the `tools` package, which
+          # Google has already removed from the SDK repository — the run then fails with
+          # „Failed to find package 'tools'". We install only what the build really
+          # needs; the action accepts the licenses itself.
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
 
       - name: Set up signing (z GitHub secrets)
@@ -62,7 +62,7 @@ jobs:
       - name: Build release APK (splity)
         run: |
           gradle :androidApp:assembleRelease
-          # odloz splity bokom, dalsi build ma rovnaky vystupny priecinok
+          # move the splits aside, the next build uses the same output directory
           mkdir -p /tmp/rel-apks
           cp androidApp/build/outputs/apk/release/*.apk /tmp/rel-apks/
 
@@ -72,14 +72,14 @@ jobs:
           cp androidApp/build/outputs/apk/release/androidApp-release.apk /tmp/rel-apks/ 2>/dev/null \
             || cp androidApp/build/outputs/apk/release/*-release.apk /tmp/rel-apks/
           cp -f /tmp/rel-apks/*.apk androidApp/build/outputs/apk/release/
-          # M544: mapping.txt k release buildu (splity a univerzalny maju rovnaky kod)
+          # M544: mapping.txt for the release build (the splits and the universal APK share the same code)
           cp androidApp/build/outputs/mapping/release/mapping.txt "mapping-${REL_TAG#v}.txt" || true
 
       - name: Priprav artefakty (nazov + sha256)
         run: |
-          # M424: assembleRelease vyrobi viac APK (jeden na kazde ABI + univerzalny).
-          # Predtym tu bolo "ls | head -1", co abecedne vybralo arm64 a zvysok zahodilo
-          # -> na 32-bitovych zariadeniach sa vydanie nedalo nainstalovat.
+          # M424: assembleRelease produces several APKs (one per ABI + the universal one).
+          # Previously this was "ls | head -1", which alphabetically picked arm64 and threw the rest away
+          # -> the release could not be installed on 32-bit devices.
           DIR=androidApp/build/outputs/apk/release
           VER="${REL_TAG#v}"
           ls -la "$DIR" || true
@@ -99,10 +99,10 @@ jobs:
             FOUND=$((FOUND+1))
           done
           if [ "$FOUND" -eq 0 ]; then echo "Release APK sa nenasiel" >&2; exit 1; fi
-          # Poistka proti navratu tej istej chyby. Vydanie musi byt instalovatelne
-          # na 32-bit aj 64-bit, co plati ked existuje bud univerzalny APK, alebo
-          # oba splity. Druha moznost nastane pri rucnom spusteni nad starsou
-          # znackou, ktorej build.gradle.kts univerzalny APK este nevyrabal.
+          # A safeguard against the same bug coming back. The release must be installable
+          # on both 32-bit and 64-bit, which holds when either the universal APK exists, or
+          # both splits do. The second case happens on a manual run over an older
+          # tag whose build.gradle.kts did not produce a universal APK yet.
           if [ ! -f "HeadentClient-$VER-universal.apk" ] &&
              { [ ! -f "HeadentClient-$VER-arm64-v8a.apk" ] ||
                [ ! -f "HeadentClient-$VER-armeabi-v7a.apk" ]; }; then

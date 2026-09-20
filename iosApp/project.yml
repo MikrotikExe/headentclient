@@ -1,4 +1,4 @@
-# Generovanie Xcode projektu: brew install xcodegen && xcodegen
+# Generating the Xcode project: brew install xcodegen && xcodegen
 name: HeadentClient
 options:
   bundleIdPrefix: sk.tvhclient
@@ -31,7 +31,7 @@ targets:
       properties:
         CFBundleDisplayName: Headent Client
         UILaunchScreen: {}
-        # TVH bezi typicky na HTTP bez TLS - povolime cleartext
+        # TVH typically runs over HTTP without TLS - we allow cleartext
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
     preBuildScripts:

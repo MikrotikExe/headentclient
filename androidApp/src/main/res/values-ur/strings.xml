@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">سرور پر پروفائل «%1$s» دستیاب نہیں — وہ اپنی ڈیفالٹ پروفائل استعمال کرے گا۔</string>
     <string name="profile_note_htsp">HTSP بنیادی اسٹریمز بھیجتا ہے، اس لیے ٹرانس کوڈنگ نہیں ہوتی۔ اگر اکاؤنٹ کسی خاص پروفائل سے منسلک نہیں تو سرور کی ترتیب رہنے دیں۔</string>
     <string name="dvr_reload">تازہ کریں</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">پوشیدہ چینلز</string>
     <string name="fav_reorder">پسندیدہ ترتیب دیں</string>
     <string name="fav_reorder_hint">ترتیب: OK پکڑیں/چھوڑیں · ▲▼ منتقل کریں · BACK مکمل</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">پلیئر کی چینل فہرست میں OK ایک بار دبانے سے چینل فوراً پوری اسکرین پر چلتا ہے۔ اس آپشن کے بغیر پہلا OK صرف کھلی فہرست کے پیچھے چینل بدلتا ہے اور دوسرا فہرست بند کرتا ہے۔ OK دبائے رکھنے سے اب بھی چینل مینو کھلتا ہے۔</string>
     <string name="radio_number_title">ریڈیو اسٹیشنوں کی نمبرنگ 1 سے</string>
     <string name="radio_number_note">اسٹیشنوں کو سرور کے نمبروں کی بجائے دکھائی گئی ترتیب میں 1، 2، 3… نمبر دیے جاتے ہیں۔ ریڈیو ٹیب، گائیڈ اور پلیئر کی اسٹیشن فہرست پر لاگو ہوتا ہے۔</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">ہوم اسکرین (TV)</string>
     <string name="tile_list_title">TV چینلز اور ریڈیو ٹائلیں فہرست کھولتی ہیں</string>
     <string name="tile_list_note">آخری چینل پہلے کی طرح شروع ہوتا ہے اور اس کے اوپر فوراً چینلز یا اسٹیشنز کی فہرست کھل جاتی ہے۔</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">ریکارڈ کرتے وقت Tvheadend ریکارڈنگ پروفائل منتخب کریں (فولڈر، رکھنے کی مدت)۔ صرف اس وقت دکھایا جاتا ہے جب سرور ایک سے زیادہ پروفائل دے۔</string>
     <string name="dvr_pick_title">پروفائل میں ریکارڈ کریں</string>
     <string name="dvr_pick_last">آخری استعمال شدہ</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">ریڈیو پس منظر میں چلتا رہے</string>
     <string name="radio_bg_note">پلیئر سے باہر جانے پر ریڈیو چلتا رہتا ہے — ہوم اسکرین پر، دوسری ایپ میں یا اسکرین لاک ہونے پر۔ پلیئر میں اسکرین روشن رہتی ہے۔</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">پچھلا اسٹیشن</string>
     <string name="radio_next_station">اگلا اسٹیشن</string>
 </resources>

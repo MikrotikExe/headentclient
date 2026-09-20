@@ -389,7 +389,7 @@
     <string name="profile_unknown_warn">Il server non offre il profilo “%1$s” — userà invece quello predefinito.</string>
     <string name="profile_note_htsp">HTSP trasporta flussi elementari, quindi non c\'è transcodifica. Lascia l\'impostazione del server se il tuo account non è vincolato a un profilo.</string>
     <string name="dvr_reload">Aggiorna</string>
-    <!-- M541: oblubene v poradi + skryte kanaly -->
+    <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Canali nascosti</string>
     <string name="fav_reorder">Riordina preferiti</string>
     <string name="fav_reorder_hint">Riordina: OK prendi/rilascia · ▲▼ sposta · INDIETRO fine</string>
@@ -407,7 +407,7 @@
     <string name="one_ok_note">Nell\'elenco canali del lettore, una sola pressione di OK avvia il canale subito a schermo intero. Senza questa opzione il primo OK cambia solo canale dietro l\'elenco aperto e il secondo lo chiude. Tenendo premuto OK si apre ancora il menu del canale.</string>
     <string name="radio_number_title">Numera le radio da 1</string>
     <string name="radio_number_note">Le stazioni sono numerate 1, 2, 3… nell\'ordine mostrato invece dei numeri del server. Vale per la scheda Radio, la guida e l\'elenco delle stazioni nel lettore.</string>
-    <!-- M605/M606: dlazdica -> zoznam, DVR profil pri nahravani -->
+    <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Schermata iniziale (TV)</string>
     <string name="tile_list_title">I riquadri Canali TV e Radio aprono l’elenco</string>
     <string name="tile_list_note">L’ultimo canale parte come prima e l’elenco dei canali o delle stazioni si apre subito sopra.</string>
@@ -415,10 +415,10 @@
     <string name="dvr_ask_note">Durante la registrazione scegli il profilo di registrazione Tvheadend (cartella, conservazione). Mostrato solo se il server offre più profili.</string>
     <string name="dvr_pick_title">Registra nel profilo</string>
     <string name="dvr_pick_last">ultimo usato</string>
-    <!-- M623: radio hra na pozadi (telefon) -->
+    <!-- M623: radio plays in the background (phone) -->
     <string name="radio_bg_title">La radio continua in sottofondo</string>
     <string name="radio_bg_note">La radio continua quando esci dal lettore: nella schermata iniziale, in un’altra app o con lo schermo bloccato. Nel lettore stesso lo schermo resta acceso.</string>
-    <!-- M625: medialna notifikacia radia -->
+    <!-- M625: radio media notification -->
     <string name="radio_prev_station">Stazione precedente</string>
     <string name="radio_next_station">Stazione successiva</string>
 </resources>
