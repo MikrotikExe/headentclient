@@ -87,41 +87,23 @@ class PlayerActivity : ComponentActivity() {
     }
 
 
-    // M656: libVLC + MediaPlayer zivotny cyklus vo VlcEngine.kt; tu delegaty pod povodnymi nazvami
+    // M656: libVLC + MediaPlayer zivotny cyklus vo VlcEngine.kt (M677: pristup priamo cez engine)
     private val engine: VlcEngine by lazy {
         VlcEngine(this, mediaFactory, vlcEvents,
             recreates = { stall.recreates },
             bumpSurfaceGen = { videoSurfaceGen.value = videoSurfaceGen.value + 1 },
-            resetStall = { resetStallState() })
+            resetStall = { stall.reset() })
     }
-    private val libVlc: LibVLC get() = engine.libVlc
-    private val playerTornDown: Boolean get() = engine.tornDown
-    // M655: stav streamu (feedery, HTSP priznaky, URL) v StreamState.kt; tu delegaty pod povodnymi nazvami
+    // M655: stav streamu (feedery, HTSP priznaky, URL) v StreamState.kt (M677: pristup priamo cez stream)
     private val stream = StreamState()
-    private var htspFeeder: HtspTsFeeder?
-        get() = stream.htspFeeder
-        set(v) { stream.htspFeeder = v }
-    private var httpFeeder: HttpTsFeeder?
-        get() = stream.httpFeeder
-        set(v) { stream.httpFeeder = v }
-    private var dvrViaFeeder: Boolean
-        get() = stream.dvrViaFeeder
-        set(v) { stream.dvrViaFeeder = v }
-    private var htspLive: Boolean
-        get() = stream.htspLive
-        set(v) { stream.htspLive = v }
-    private val htspStreamState: androidx.compose.runtime.MutableState<Boolean> get() = stream.htspStreamState
-    private var htspStream: Boolean
-        get() = stream.htspStream
-        set(v) { stream.htspStream = v }
     // HTSP titulky: kompletny zoznam jazykov berieme z metadat (feeder.subtitleStreams),
     // nie z libVLC (to ma len jazyky, ktore uz "prehovorili"). Vyber mapujeme na realnu
     // libVLC stopu podla anglickeho nazvu jazyka (libVLC DVB titulky netaguje kodom).
     // M637: stav stop (zvuk/titulky/profil) v TrackState.kt
     private val tracks: TrackState by lazy {
         TrackState(this,
-            player = { if (engine.ready && !playerTornDown) mediaPlayer else null },
-            htspFeeder = { htspFeeder })
+            player = { if (engine.ready && !engine.tornDown) engine.player else null },
+            htspFeeder = { stream.htspFeeder })
     }
     // M392: stav titulkov spred restartu streamu pri zmene profilu (HTTP live) —
     // novy kontajner (napr. matroska) moze mat default titulkovu stopu, ktoru by
@@ -134,48 +116,44 @@ class PlayerActivity : ComponentActivity() {
     // prehratie) ho nastavi; ak vsak pouzivatel prepne kanal este pred doPlay (napr.
     // odchod z PIN vyzvy zamknuteho kanala), inicializuje HTSP switchToIndex.
     private var htspInitDone = false
-    private val htspLiveState: androidx.compose.runtime.MutableState<Boolean> get() = stream.htspLiveState
-    // M647: HTSP timeshift v TimeshiftController.kt; tu delegaty pod povodnymi nazvami
+    // M647: HTSP timeshift v TimeshiftController.kt (M677: pristup priamo cez timeshift)
     private val timeshift: TimeshiftController by lazy {
         TimeshiftController(lifecycleScope,
-            feeder = { htspFeeder },
+            feeder = { stream.htspFeeder },
             onResumePlayback = {
-                htspFeeder?.resume()
+                stream.htspFeeder?.resume()
                 isPlayingState.value = true
-                if (engine.ready && !mediaPlayer.isPlaying) mediaPlayer.play()
+                if (engine.ready && !engine.player.isPlaying) engine.player.play()
             },
             onSeekSpinner = { showSeekSpinner() })
     }
-    private val timeshiftOffsetState: androidx.compose.runtime.MutableState<Long> get() = timeshift.offsetMs
     // timeshift "zapnuty" (po prvej pauze) -> az vtedy davaju zmysel RW/FF a dvojklik
-    private val timeshiftEngagedState: androidx.compose.runtime.MutableState<Boolean> get() = timeshift.engaged
 
     // ===== Moderny TV overlay (karty kanalov + ovladacia lista) — ModernOverlayController.kt (M642) =====
     private val modernOv: ModernOverlayController by lazy {
         ModernOverlayController(live,
             seekable = { seekablePlayback },
-            timeshiftEngaged = { timeshiftEngagedState.value },
+            timeshiftEngaged = { timeshift.engaged.value },
             profileSwitchAvailable = { profileSwitchAvailable() },
             dvrRecordVisible = { dvrRecordVisible() },
             teletextVisible = { teletextVisible() },
             actions = object : ModernOverlayController.Actions {
-                override fun hideZapBar() = this@PlayerActivity.hideZapBar()
+                override fun hideZapBar() = zapBar.hide()
                 override fun togglePlayPause() = this@PlayerActivity.togglePlayPause()
                 override fun timeshiftSkip(seconds: Int) = this@PlayerActivity.timeshiftSkip(seconds)
                 override fun switchLive(dir: Int) = this@PlayerActivity.switchLive(dir)
                 override fun openChannelList() = this@PlayerActivity.openChannelList()
                 override fun openSleepMenu() = this@PlayerActivity.openSleepMenu()
                 override fun toggleInfo() = this@PlayerActivity.toggleInfo()
-                override fun openProfileMenu() = this@PlayerActivity.openProfileMenu()
+                override fun openProfileMenu() = trackMenu.openProfileMenu()
                 override fun toggleRecordCurrent() = this@PlayerActivity.toggleRecordCurrent()
                 override fun openTeletext() = this@PlayerActivity.openTeletext()
                 override fun openChannelContextMenu(cardIndex: Int) {
                     okLongFired = true   // guard prehltne OK-up (inak by potvrdil polozku menu)
-                    this@PlayerActivity.openChannelContextMenu(cardIndex)
+                    ctxMenu.open(cardIndex)
                 }
             })
     }
-    private val modernOvState: androidx.compose.runtime.MutableState<Boolean> get() = modernOv.visible
 
     private val isTvBox by lazy {
         (getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager)
@@ -185,70 +163,40 @@ class PlayerActivity : ComponentActivity() {
     /** Moderny overlay ma zmysel len na TV, v modernom rezime, pri zivom so zoznamom. */
     private fun modernTvActive(): Boolean =
         isTvBox && UiModePref.get(this) == UiModePref.MODERN &&
-            !seekablePlayback && liveUuids.size > 1
-
-    private fun modernStripIds(): List<String> = modernOv.stripIds()
+            !seekablePlayback && live.uuids.size > 1
 
     // ===== M490 / M669: nahravanie prave beziacej relacie — DvrRecordController.kt =====
-    // Stav aj akcie zdielaju vsetky vstupy (klasicky bar, panel „Viac", TV overlay); tu delegaty
-    // pod povodnymi (verejnymi) nazvami, lebo ich composables citaju cez dvrActivity.
+    // Stav aj akcie zdielaju vsetky vstupy (klasicky bar, panel „Viac", TV overlay). M677: ostavaju
+    // len verejne delegaty, ktore composables citaju cez dvrActivity; ostatne idu priamo cez dvrRec.
     private val dvrRec: DvrRecordController by lazy {
         DvrRecordController(this, lifecycleScope, live,
-            epgUpcoming = epgUpcomingState,
+            epgUpcoming = epg.upcoming,
             recInProgressByChan = recInProgressByChan,
-            refreshRecordingOnly = { refreshRecordingOnly() })
+            refreshRecordingOnly = { epg.refreshRecordingOnly() })
     }
-    val dvrCanRecordState: androidx.compose.runtime.MutableState<Boolean> get() = dvrRec.canRecordState
-    val dvrEventIdState: androidx.compose.runtime.MutableState<Long?> get() = dvrRec.eventIdState
     val dvrExistingState: androidx.compose.runtime.MutableState<sk.tvhclient.shared.model.DvrEntry?> get() = dvrRec.existingState
     /** Ma sa ovladac nahravania vobec ukazat? */
     fun dvrRecordVisible(): Boolean = dvrRec.recordVisible()
     /** Zisti prava a stav nahravky pre prave sledovanu relaciu (start, prepnutie kanala). */
     fun refreshDvrState() { dvrRec.refreshState() }
-    // M606: dialog vyberu DVR profilu (zoznam moznosti; prazdny = zatvoreny) + kurzor
-    private val dvrAskState: androidx.compose.runtime.MutableState<List<String>> get() = dvrRec.askState
-    private val dvrAskSelState: androidx.compose.runtime.MutableState<Int> get() = dvrRec.askSelState
-    /** M607: ked dialog profilov patri kanalu z kontextovej ponuky (nie hrajucemu). */
-    private val dvrAskTarget: Pair<LivePlaylist.LiveChannel, sk.tvhclient.shared.model.EpgEvent>? get() = dvrRec.askTarget
     /** Nahrat prave beziacu relaciu, alebo zrusit uz naplanovanu nahravku. */
     fun toggleRecordCurrent() { dvrRec.toggleRecordCurrent() }
-    /** M606: vyber v dialogu profilov (OK / klik) alebo zrusenie (BACK). */
-    private fun resolveDvrAsk(name: String?) { dvrRec.resolveAsk(name) }
 
-    private fun modernMoreIds(): List<String> = modernOv.moreIds()
-    private fun openModernOverlay() { modernOv.open() }
-    private fun closeModernOverlay() { modernOv.close() }
-
-    private val mediaPlayer: MediaPlayer get() = engine.player   // M656
-
-    // M639: stav ziveho prehravania v LiveSession; tu delegaty pod povodnymi nazvami
+    // M639: stav ziveho prehravania v LiveSession (M677: pristup priamo cez live)
     private val live = LiveSession()
-    private var liveUuids: List<String>
-        get() = live.uuids
-        set(v) { live.uuids = v }
-    private var liveNames: List<String>
-        get() = live.names
-        set(v) { live.names = v }
-    private var liveIndex: Int
-        get() = live.index
-        set(v) { live.index = v }
-    private var playKind: String
-        get() = live.playKind
-        set(v) { live.playKind = v }
     // pre opatovne pripojenie videa po navrate z pozadia
     private var videoLayout: VLCVideoLayout? = null
     private var subOverlay: SubtitleOverlayView? = null
     // ===== M553 / M627: teletext — stav a ovládanie v TeletextController, vykreslenie v TeletextOverlay =====
     private val ttx: TeletextController by lazy {
         TeletextController(this,
-            liveServer = { liveServer },
-            liveUuid = { liveUuidState.value },
+            liveServer = { live.server },
+            liveUuid = { live.uuidState.value },
             seekable = { seekablePlayback },
-            onOpened = { closeModernOverlay() })
+            onOpened = { modernOv.close() })
     }
     /** M552: teletext aktuálneho kanála (HTSP: dáta z feedera, HTTP: vlastná odbočka). */
     val teletext: TeletextSession get() = ttx.session
-    val teletextOpenState: androidx.compose.runtime.MutableState<Boolean> get() = ttx.openState
     fun teletextVisible(): Boolean = ttx.visible()
     fun openTeletext() { ttx.open() }
     fun closeTeletext() { ttx.close() }
@@ -256,15 +204,13 @@ class PlayerActivity : ComponentActivity() {
     // Picture-in-Picture (obraz v obraze)
     private val inPipState = androidx.compose.runtime.mutableStateOf(false)
     // false = audio-only (rozhlas) -> zobraz logo namiesto ciernej
-    private val hasVideoState: androidx.compose.runtime.MutableState<Boolean> get() = vlcEvents.hasVideo   // M650
     // automaticke znovupripojenie zivého streamu po vypadku siete
     // M636: casovanie/stav reconnectu v ReconnectController.kt; co sa pri pokuse spravi, je nizsie
     private val reconnect: ReconnectController by lazy {
         ReconnectController(this,
             playerReady = { engine.ready },
-            isPlaying = { mediaPlayer.isPlaying })
+            isPlaying = { engine.player.isPlaying })
     }
-    private val reconnectingState: androidx.compose.runtime.MutableState<Boolean> get() = reconnect.reconnecting
     // tocenie pri pretacani timeshiftu (kratky resync pipe -> libVLC)
     private val seekingState = androidx.compose.runtime.mutableStateOf(false)
     private var seekSpinnerJob: kotlinx.coroutines.Job? = null
@@ -272,45 +218,20 @@ class PlayerActivity : ComponentActivity() {
     // M648: vypocet ciela pretacania, M594 zotavenie a dvojklik v DvrSeek.kt
     private val dvrSeek: DvrSeek by lazy {
         DvrSeek(this, lifecycleScope,
-            durMs = { if (dvrDurationMs > 0) dvrDurationMs else (if (engine.ready) mediaPlayer.length else 0L) },
-            recording = { dvrRecording },
-            playheadMs = { dvrPlayheadMsState.value },
+            durMs = { if (dvr.durationMs > 0) dvr.durationMs else (if (engine.ready) engine.player.length else 0L) },
+            recording = { dvr.recording },
+            playheadMs = { dvr.playheadMsState.value },
             seekable = { engine.ready && seekablePlayback },
             performSeek = { target, from, dur -> seekDvrTo(target, from, dur) })
     }
-    private val seekHintState: androidx.compose.runtime.MutableState<Int> get() = dvrSeek.hint
-    private var liveServer: sk.tvhclient.shared.model.TvhServer?
-        get() = live.server
-        set(v) { live.server = v }
-    private val liveTitleState get() = live.titleState
-    private val liveUuidState get() = live.uuidState
-    private val liveProgStartState get() = live.progStartState
-    private val liveProgStopState get() = live.progStopState
-    private val liveProgTitleState get() = live.progTitleState
-    private val liveNextTitleState get() = live.nextTitleState
-    private val liveNextStartState get() = live.nextStartState
-    private val liveNextStopState get() = live.nextStopState
-    private val zapPokeState get() = live.zapPokeState
-    private val liveIndexState get() = live.indexState
-    private val liveChannelsState get() = live.channelsState
-    // M634: EPG now/next + cache v PlayerEpgStore.kt; tu len delegaty pod povodnymi nazvami
+    // M634: EPG now/next + cache v PlayerEpgStore.kt (M677: pristup priamo cez epg)
     private val epg: PlayerEpgStore by lazy {
         PlayerEpgStore(this,
-            liveServer = { liveServer },
-            liveChannels = liveChannelsState,
+            liveServer = { live.server },
+            liveChannels = live.channelsState,
             recInProgress = recInProgressByChan,
             onDvrStateChanged = { refreshDvrState() })
     }
-    private val epgUpcomingState: androidx.compose.runtime.MutableState<Map<String, List<sk.tvhclient.shared.model.EpgEvent>>> get() = epg.upcoming
-    private val epgLoadingState: androidx.compose.runtime.MutableState<Boolean> get() = epg.loading
-    private suspend fun refreshOverlayEpg() { epg.refreshOverlayEpg() }
-    private fun refreshOverlayEpgInitial() { epg.refreshOverlayEpgInitial() }
-    private fun refreshRecordingOnly() { epg.refreshRecordingOnly() }
-    private fun cacheChannelEpg(uuid: String, list: List<sk.tvhclient.shared.model.EpgEvent>) { epg.cacheChannelEpg(uuid, list) }
-    private fun hydrateEpgFromDisk(srv: sk.tvhclient.shared.model.TvhServer) { epg.hydrateEpgFromDisk(srv) }
-    private fun applyCachedEpgToChannels() { epg.applyCachedEpgToChannels() }
-    private fun flushEpgPersist() { epg.flushEpgPersist() }
-    private fun prefetchEpgIfStale() { epg.prefetchEpgIfStale() }
 
     // D-pad / diaľkové: signál na zobrazenie ovládania, info pre seek a sw dekóder
     private val controlsPokeState = androidx.compose.runtime.mutableStateOf(0)
@@ -328,30 +249,24 @@ class PlayerActivity : ComponentActivity() {
             onDeactivate = { groupPickerState.value = false })
     }
     private var seekablePlayback = false
-    private var currentStreamUrl: String?
-        get() = stream.currentStreamUrl
-        set(v) { stream.currentStreamUrl = v }
     // Zadavanie kanala cislami z dialkoveho ovladaca (M635: ChannelNumberEntry.kt)
     private val numEntry: ChannelNumberEntry by lazy {
         ChannelNumberEntry(lifecycleScope) { typed ->
             val idx = LivePlaylist.channels.indexOfFirst { it.number == typed }
-            if (idx in liveUuids.indices) { switchToIndex(idx); pokeControls() }
+            if (idx in live.uuids.indices) { switcher.switchToIndex(idx); pokeControls() }
         }
     }
 
     // M654: stavba libVLC Media (URL / feeder, dekodér, deinterlacing, demux) v MediaFactory.kt
-    private val mediaFactory: MediaFactory by lazy { MediaFactory(this) { libVlc } }
-    private fun userAgent(): String = mediaFactory.userAgent()
-    private fun stripCreds(url: String): String = MediaFactory.stripCreds(url)
-    private fun deinterlaceSpec(): Pair<String, String?> = mediaFactory.deinterlaceSpec()
+    private val mediaFactory: MediaFactory by lazy { MediaFactory(this) { engine.libVlc } }
 
     // M655: otvaranie streamu (HTTP / feeder / DVR / HTSP, auth sonda) v StreamOpener.kt
     private val opener: StreamOpener by lazy {
         StreamOpener(this, lifecycleScope, stream, live, mediaFactory, tracks,
-            player = { mediaPlayer },
+            player = { engine.player },
             hooks = object : StreamOpener.Hooks {
                 override fun ensureHealthyPlayer() { this@PlayerActivity.ensureHealthyPlayer() }
-                override fun startPlayback() { this@PlayerActivity.startPlayback() }
+                override fun startPlayback() { engine.startPlayback() }
                 override fun resetTimeshift() { this@PlayerActivity.resetTimeshift() }
                 override fun resetTeletext() { closeTeletext(); teletext.reset() }   // M552/M553
                 override fun teletextSetHtspAvailable(available: Boolean) { teletext.setHtspAvailable(available) }
@@ -361,17 +276,9 @@ class PlayerActivity : ComponentActivity() {
                 override fun fallbackTitle(): String? = intent.getStringExtra(EXTRA_TITLE)
             })
     }
-    private fun playLiveViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String) { opener.playLiveViaFeeder(server, url) }
-    private fun playLiveAuto(server: sk.tvhclient.shared.model.TvhServer, url: String) { opener.playLiveAuto(server, url) }
-    private fun playHttp(url: String) { opener.playHttp(url) }
-    private fun playDvrViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String, startByte: Long = 0L) { opener.playDvrViaFeeder(server, url, startByte) }
-    private fun playHtspLive(server: sk.tvhclient.shared.model.TvhServer, channelId: Long, timeshift: Boolean): Boolean = opener.playHtspLive(server, channelId, timeshift)
-    private var liveNeedsFeeder: Boolean?
-        get() = stream.liveNeedsFeeder
-        set(v) { stream.liveNeedsFeeder = v }
 
     private fun pokeControls() {
-        hideZapBar()  // M446
+        zapBar.hide()  // M446
         // Moderny rezim na TV pri live: stary ovladaci panel sa nezobrazuje (M325/M327)
         if (modernTvActive()) return
         controlsPokeState.value = controlsPokeState.value + 1
@@ -390,9 +297,9 @@ class PlayerActivity : ComponentActivity() {
         val i = android.content.Intent(this, MainActivity::class.java).apply {
             putExtra("open_epg", true)
             // M591: z prehravaca radia sa ma otvorit program STANIC, nie TV kanalov
-            if (playKind == "radio") putExtra("epg_radio", true)
+            if (live.playKind == "radio") putExtra("epg_radio", true)
             // zapamataj aktualny zivy kanal, nech BACK z EPG vrati do prehravaca nan
-            if (!seekablePlayback) liveUuids.getOrNull(liveIndex)?.let { putExtra("epg_return_uuid", it) }
+            if (!seekablePlayback) live.uuids.getOrNull(live.index)?.let { putExtra("epg_return_uuid", it) }
         }
         runCatching { startActivity(i) }
     }
@@ -403,7 +310,7 @@ class PlayerActivity : ComponentActivity() {
         // 1,2 s poistke; medzitym bol vidiet uvod. Program otvor hned, handoff
         // (moderny rezim) pride po nom; v klasiku ostane prehravac pod programom
         // ako doteraz.
-        if (playKind == "radio") {
+        if (live.playKind == "radio") {
             launchEpgActivity()
             radioHandoffIfPossible()
             return
@@ -420,8 +327,8 @@ class PlayerActivity : ComponentActivity() {
         }
     }
     private fun showControlsFocused() {
-        hideZapBar()  // M446
-        val order = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable(), dvrRecordVisible(), teletextVisible())
+        zapBar.hide()  // M446
+        val order = playerControlOrder(!seekablePlayback && live.uuids.size > 1, seekablePlayback, pipButtonVisible(), timeshift.engaged.value, profileSwitchAvailable(), dvrRecordVisible(), teletextVisible())
         controlNavState.value = order.indexOf("play").coerceAtLeast(0)
         pokeControls()
     }
@@ -430,23 +337,23 @@ class PlayerActivity : ComponentActivity() {
         if (!engine.ready) return
         timeshift.flushNow()   // doruc nazbierany skok, nech je server konzistentny
         if (isPlayingState.value) {
-            if (htspStream) htspFeeder?.pause()         // zastav HTSP delivery (aj bez timeshiftu)
-            if (htspLive) {
+            if (stream.htspStream) stream.htspFeeder?.pause()         // zastav HTSP delivery (aj bez timeshiftu)
+            if (stream.htspLive) {
                 // prva pauza "zapne" timeshift: odtialto sa rata buffer aj cervene pocitadlo
                 timeshift.onPaused()
                 // zapnutim timeshiftu pribudnu ovladace pretacania (tsrew pred play) a posunu sa
                 // indexy — re-ukotvi fokus na play/pause, nech "neskoci" na pretacanie
-                val ord = playerControlOrder(!seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(), true, profileSwitchAvailable(), dvrRecordVisible())
+                val ord = playerControlOrder(!seekablePlayback && live.uuids.size > 1, seekablePlayback, pipButtonVisible(), true, profileSwitchAvailable(), dvrRecordVisible())
                 controlNavState.value = ord.indexOf("play").coerceAtLeast(0)
             }
             isPlayingState.value = false
-            mediaPlayer.pause()
+            engine.player.pause()
         } else {
-            if (htspStream) htspFeeder?.resume()
-            if (htspLive) timeshift.onResumed()
+            if (stream.htspStream) stream.htspFeeder?.resume()
+            if (stream.htspLive) timeshift.onResumed()
             isPlayingState.value = true
             reconnect.resetDvrReopen()   // manualny play -> povol nove pokusy o nacitanie novsich dat
-            mediaPlayer.play()
+            engine.player.play()
         }
     }
 
@@ -457,13 +364,11 @@ class PlayerActivity : ComponentActivity() {
         // M492: akumulator dvojkliku a hint sa nulovat musia tiez — inak by po prepnuti
         // media ostal vychodzi bod z predchadzajucej nahravky. Playhead vynuluj z rovnakeho dovodu.
         dvrSeek.resetForNewMedia()
-        dvrPlayheadMsState.value = 0L
+        dvr.playheadMsState.value = 0L
     }
 
-    private fun maxRewindMs(): Long = timeshift.maxRewindMs()
-
     /** Relativny skok v timeshifte (sekundy; zaporne = vzad). */
-    private fun timeshiftSkip(seconds: Int) { if (htspLive) timeshift.skip(seconds) }
+    private fun timeshiftSkip(seconds: Int) { if (stream.htspLive) timeshift.skip(seconds) }
 
     /** Zhasne seek-koliesko (Playing/Buffering 100 % dobehol, alebo novy zivy zaciatok). */
     private fun hideSeekSpinner() { seekSpinnerJob?.cancel(); seekingState.value = false }
@@ -478,21 +383,15 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    /** Pretacanie pre DVR (live TS sa pretacat neda). TS subor nenese dlzku,
-     *  preto pouzivame dlzku z DVR entry a poziciu ako zlomok (na TS spolahlive). */
-    private fun recoverAfterSeek(): Boolean = dvrSeek.recoverAfterSeek()
-    private fun seekDvrAbsolute(targetMs: Long) { dvrSeek.seekAbsolute(targetMs) }
-    private fun seekRelative(deltaMs: Long) { dvrSeek.seekRelative(deltaMs) }
-
     /** Pretoc DVR nahravku na cielovy program-relativny cas PREBUDOVANIM streamu.
      *  Priame URL -> nova Media s :start-time (libVLC seekuje cez HTTP Range).
      *  Feeder/pipe -> restart HTTP feedu na odhadnutom byte-offsete (pipe sa neseekuje).
      *  V oboch pripadoch naseeduje playhead hodiny na cielovy cas. */
     private fun seekDvrTo(targetMs: Long, fromMs: Long, dur: Long) {
-        val url = currentStreamUrl ?: return
+        val url = stream.currentStreamUrl ?: return
         if (!engine.ready) return
-        val offsetMs = if (dvrProgStartSec > 0 && dvrRealStartSec in 1 until dvrProgStartSec)
-            (dvrProgStartSec - dvrRealStartSec) * 1000 else 0L
+        val offsetMs = if (dvr.progStartSec > 0 && dvr.realStartSec in 1 until dvr.progStartSec)
+            (dvr.progStartSec - dvr.realStartSec) * 1000 else 0L
         val fileMs = (offsetMs + targetMs).coerceAtLeast(0L)   // cas v subore (0 = realny zaciatok nahravky)
         reconnect.clearPending()
         // Bezny seek = kratky restart streamu; ukaz len lahky seek-spinner, NIE "Opatovne
@@ -510,8 +409,8 @@ class PlayerActivity : ComponentActivity() {
         dvrSeek.markSeek(targetMs)
         // playhead hned na cielovu poziciu + seed pre hodiny (po restarte je player.position
         // neplatna, hodiny ju nesmu citat - prevezmu seed a tikaju dalej z neho)
-        dvrPlayheadMsState.value = targetMs
-        dvrSeekSeedState.value = targetMs
+        dvr.playheadMsState.value = targetMs
+        dvr.seekSeedState.value = targetMs
     }
 
     /** Dvojklik na lavu/pravu stranu (YouTube-style): skok o 10 s.
@@ -519,8 +418,8 @@ class PlayerActivity : ComponentActivity() {
     private fun doubleTapSeek(forward: Boolean) {
         when {
             seekablePlayback -> dvrSeek.doubleTap(forward, applyImmediately = false)
-            htspLive -> {
-                if (maxRewindMs() <= 0L) return   // timeshift sa zapne az pauzou, dovtedy niet co pretacat
+            stream.htspLive -> {
+                if (timeshift.maxRewindMs() <= 0L) return   // timeshift sa zapne az pauzou, dovtedy niet co pretacat
                 timeshiftSkip(if (forward) 10 else -10)   // live timeshift: lacne, pretoc hned
                 dvrSeek.doubleTap(forward, applyImmediately = true)
             }
@@ -532,19 +431,13 @@ class PlayerActivity : ComponentActivity() {
     private fun scrubSeek(seconds: Int) {
         if (seconds == 0) return
         when {
-            seekablePlayback -> seekRelative(seconds.toLong() * 1000L)
-            htspLive -> { if (maxRewindMs() > 0L) timeshiftSkip(seconds) }  // konvencia ako seekRelative: zaporne = vzad
+            seekablePlayback -> dvrSeek.seekRelative(seconds.toLong() * 1000L)
+            stream.htspLive -> { if (timeshift.maxRewindMs() > 0L) timeshiftSkip(seconds) }  // konvencia ako seekRelative: zaporne = vzad
             else -> {}
         }
     }
 
-    /** M473: eventId prave beziacej relacie na aktualnom kanali (null = nevieme). */
-    // M669: currentEventId / currentLiveEvent / runningRecordingHere / currentEventRecording v DvrRecordController
-    fun currentEventId(): Long? = dvrRec.currentEventId()
-    fun currentLiveEvent(): Pair<String, sk.tvhclient.shared.model.EpgEvent>? = dvrRec.currentLiveEvent()
-    fun runningRecordingHere(): sk.tvhclient.shared.model.DvrEntry? = dvrRec.runningRecordingHere()
-    suspend fun currentEventRecording(server: sk.tvhclient.shared.model.TvhServer?): sk.tvhclient.shared.model.DvrEntry? =
-        dvrRec.currentEventRecording(server)
+    // M473 / M669: currentEventId / currentLiveEvent / runningRecordingHere / currentEventRecording v DvrRecordController
 
     /** TV/box (Android TV) — na detekciu kde sa ma archivny vyber zobrazovat. */
     private fun isTvDevice(): Boolean {
@@ -553,41 +446,35 @@ class PlayerActivity : ComponentActivity() {
     }
 
     // ===== M657: jadro prepinania kanalov (selectChannelOrArchive, resolveArchiveChoice,
-    // rememberPlayback, playRecordingFromStart, saveLastLive, switchToIndex) — ChannelSwitcher.kt;
-    // tu delegaty pod povodnymi nazvami =====
+    // rememberPlayback, playRecordingFromStart, saveLastLive, switchToIndex) — ChannelSwitcher.kt
+    // (M677: volania priamo cez switcher) =====
     private val switcher: ChannelSwitcher by lazy {
         ChannelSwitcher(this, lifecycleScope, live, stream, tracks, object : ChannelSwitcher.Actions {
             override fun isTvDevice(): Boolean = this@PlayerActivity.isTvDevice()
             override fun pokeControls() { this@PlayerActivity.pokeControls() }
             override fun closeChannelList() { this@PlayerActivity.closeChannelList() }
             override fun refreshDvrState() { this@PlayerActivity.refreshDvrState() }
-            override fun cancelReconnect() { this@PlayerActivity.cancelReconnect() }
+            override fun cancelReconnect() { reconnect.cancel() }
             override fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, channelIndex: Int?) {
                 this@PlayerActivity.requestPin(onOk = onOk, onCancel = onCancel, channelIndex = channelIndex)
             }
             override fun playHtspLive(server: sk.tvhclient.shared.model.TvhServer, channelId: Long, timeshift: Boolean): Boolean =
-                this@PlayerActivity.playHtspLive(server, channelId, timeshift)
-            override fun playLiveAuto(server: sk.tvhclient.shared.model.TvhServer, url: String) { this@PlayerActivity.playLiveAuto(server, url) }
-            override fun playDvrViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String) { this@PlayerActivity.playDvrViaFeeder(server, url) }
-            override fun playHttp(url: String) { this@PlayerActivity.playHttp(url) }
-            override fun setHasVideo(v: Boolean) { hasVideoState.value = v }
+                opener.playHtspLive(server, channelId, timeshift)
+            override fun playLiveAuto(server: sk.tvhclient.shared.model.TvhServer, url: String) { opener.playLiveAuto(server, url) }
+            override fun playDvrViaFeeder(server: sk.tvhclient.shared.model.TvhServer, url: String) { opener.playDvrViaFeeder(server, url) }
+            override fun playHttp(url: String) { opener.playHttp(url) }
+            override fun setHasVideo(v: Boolean) { vlcEvents.hasVideo.value = v }
             override fun htspInitDone(): Boolean = this@PlayerActivity.htspInitDone
             override fun setHtspInitDone(v: Boolean) { this@PlayerActivity.htspInitDone = v }
             override fun archiveChoiceIdx(): Int = archiveChoiceIdxState.value
             override fun setArchiveChoiceIdx(v: Int) { archiveChoiceIdxState.value = v }
             override fun setArchiveChoiceSel(v: Int) { archiveChoiceSelState.value = v }
             override fun recInProgressByChan(): Map<String, sk.tvhclient.shared.model.DvrEntry> = this@PlayerActivity.recInProgressByChan.value
-            override fun dvrUuid(): String? = this@PlayerActivity.dvrUuid
+            override fun dvrUuid(): String? = dvr.uuid
             override fun intentUuid(): String? = intent.getStringExtra(EXTRA_UUID)
             override fun startActivity(i: android.content.Intent) { this@PlayerActivity.startActivity(i) }
         })
     }
-    private fun selectChannelOrArchive(idx: Int, poke: Boolean = true) { switcher.selectChannelOrArchive(idx, poke) }
-    private fun resolveArchiveChoice(fromStart: Boolean) { switcher.resolveArchiveChoice(fromStart) }
-    private fun rememberPlayback() { switcher.rememberPlayback() }
-    private fun playRecordingFromStart(rec: sk.tvhclient.shared.model.DvrEntry, progStart: Long, progStop: Long) { switcher.playRecordingFromStart(rec, progStart, progStop) }
-    private fun saveLastLive(serverId: String?, uuid: String?) { switcher.saveLastLive(serverId, uuid) }
-    private fun switchToIndex(i: Int, poke: Boolean = true) { switcher.switchToIndex(i, poke) }
 
     /** Zatvorenie prehravaca: ak bol spusteny cez "od zaciatku" zo zivej TV, vrat sa na povodny kanal. */
     /** M342/M344: BACK z hrajuceho radia = handoff do RadioPlayerService.
@@ -596,11 +483,11 @@ class PlayerActivity : ComponentActivity() {
      *  telefone (mini lista je uz aj v klasiku); klasik na TV povodne — nema
      *  panel, radio by hralo bez ovladania. */
     private fun radioHandoffIfPossible(): Boolean {
-        if (playKind != "radio") return false
+        if (live.playKind != "radio") return false
         if (UiModePref.get(this) != UiModePref.MODERN && isTvDevice()) return false
-        val uuid = liveUuids.getOrNull(liveIndexState.value) ?: return false
-        val server = liveServer ?: sk.tvhclient.shared.Tvh.store.active() ?: return false
-        if (!engine.ready || !mediaPlayer.isPlaying) return false
+        val uuid = live.uuids.getOrNull(live.indexState.value) ?: return false
+        val server = live.server ?: sk.tvhclient.shared.Tvh.store.active() ?: return false
+        if (!engine.ready || !engine.player.isPlaying) return false
         val ch = LivePlaylist.channels.firstOrNull { it.uuid == uuid }
         RadioCenter.stations = LivePlaylist.channels.map {
             RadioCenter.RadioStation(it.uuid, it.name, it.piconUrl, it.nowTitle, it.nowStart, it.nowStop)
@@ -616,7 +503,6 @@ class PlayerActivity : ComponentActivity() {
         finish()
         return true
     }
-
 
     private fun closePlayer() {
         // M494: odchod z prehravaca = uz niet co obnovovat (pouzivatel skoncil
@@ -652,21 +538,17 @@ class PlayerActivity : ComponentActivity() {
         ZapDebounce(live,
             haptic = { hapticChannelSwitch() },
             pokeOnCommit = { ZapOverlayPref.get(this) },
-            commit = { target, poke -> switchToIndex(target, poke = poke) })
+            commit = { target, poke -> switcher.switchToIndex(target, poke = poke) })
     }
     private fun switchLive(delta: Int) { zap.switchLive(delta) }
 
     // ===== M369 / M640: filter skupin v zozname kanalov — LiveGroups.kt =====
     private val groups: LiveGroups by lazy {
         LiveGroups(this, live,
-            epgUpcoming = { epgUpcomingState.value },
+            epgUpcoming = { epg.upcoming.value },
             navIndex = navChannelIndexState,
             groupLabel = activeGroupLabelState)
     }
-    private fun groupLabelFor(key: String): String = groups.labelFor(key)
-    private fun groupKeys(): List<String> = groups.keys()
-    private fun refreshFavOrder() { groups.refreshFavOrder() }
-    private fun applyGroup(key: String) { groups.apply(key) }
 
     // ===== M370 / M635: hladanie kanala — ChannelSearch.kt =====
     /** Vyber kanala z vysledkov hladania: prepne (aj skupinu ak treba) a pusti. */
@@ -674,9 +556,9 @@ class PlayerActivity : ComponentActivity() {
         okLongFired = true   // prehltne nasledne OK-up, inak by zoznam potvrdil iny kanal (index 0)
         search.close()
         closeChannelList()
-        var i = liveUuids.indexOf(uuid)
-        if (i < 0) { applyGroup(LivePlaylist.GROUP_ALL); i = liveUuids.indexOf(uuid) }
-        if (i >= 0) selectChannelOrArchive(i, poke = false)
+        var i = live.uuids.indexOf(uuid)
+        if (i < 0) { groups.apply(LivePlaylist.GROUP_ALL); i = live.uuids.indexOf(uuid) }
+        if (i >= 0) switcher.selectChannelOrArchive(i, poke = false)
     }
 
     // stav prekryti (z Compose) — kym je otvorene, D-pad riesime my (zoznam) alebo Compose (menu)
@@ -692,7 +574,7 @@ class PlayerActivity : ComponentActivity() {
      *  pipSupported zaroven vylucuje TV (nemaju FEATURE_PICTURE_IN_PICTURE). */
     // M575: na TV sa tlacidlo neponuka ani ked box PiP hlasi — okno sa dialkovym
     // ovladacom neda ovladat (issue #11)
-    private fun pipButtonVisible(): Boolean = pipSupported && !isTvDevice() && !AutoPipPref.get(this)
+    private fun pipButtonVisible(): Boolean = pip.supported && !isTvDevice() && !AutoPipPref.get(this)
 
     private var controlsShown = false
     private val openOptionsState = androidx.compose.runtime.mutableStateOf(0)
@@ -709,12 +591,11 @@ class PlayerActivity : ComponentActivity() {
     private val pin: PinPrompt by lazy {
         PinPrompt(this,
             isTv = { isTvDevice() },
-            channelCount = { liveUuids.size },
+            channelCount = { live.uuids.size },
             openChannelList = { openChannelList() },
-            switchToIndex = { idx -> switchToIndex(idx) },
+            switchToIndex = { idx -> switcher.switchToIndex(idx) },
             onRequested = { okLongFired = false })   // PIN vyzva prebera vstup; OK gesto je tym ukoncene
     }
-    private val pinPromptState: androidx.compose.runtime.MutableState<Boolean> get() = pin.promptState
     private fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, markUnlock: Boolean = true, channelIndex: Int? = null) {
         pin.request(onOk, onCancel, markUnlock, channelIndex)
     }
@@ -730,19 +611,16 @@ class PlayerActivity : ComponentActivity() {
     private var returnLiveUuid: String? = null
     private var returnLiveTitle: String? = null
 
-    // DVR scrub (M597/M598) — ScrubController.kt (M646); tu delegaty pod povodnymi nazvami
+    // DVR scrub (M597/M598) — ScrubController.kt (M646); pristup priamo cez scrub
     private val scrub: ScrubController by lazy {
         ScrubController(lifecycleScope,
-            barMs = { if (dvrRecording) (dvrDurationMs - 45_000L).coerceAtLeast(1L) else dvrDurationMs },
-            durMs = { if (dvrDurationMs > 0) dvrDurationMs else (if (engine.ready) mediaPlayer.length else 0L) },
-            playheadMs = { dvrPlayheadMsState.value },
+            barMs = { if (dvr.recording) (dvr.durationMs - 45_000L).coerceAtLeast(1L) else dvr.durationMs },
+            durMs = { if (dvr.durationMs > 0) dvr.durationMs else (if (engine.ready) engine.player.length else 0L) },
+            playheadMs = { dvr.playheadMsState.value },
             seekable = { engine.ready && seekablePlayback },
-            seekAbsolute = { ms -> seekDvrAbsolute(ms) },
+            seekAbsolute = { ms -> dvrSeek.seekAbsolute(ms) },
             poke = { pokeControls() })
     }
-    private val scrubFractionState: androidx.compose.runtime.MutableState<Float> get() = scrub.fraction
-    private fun scheduleScrubAuto() { scrub.scheduleAuto() }
-    private fun initScrub() { scrub.init() }
 
     // M651: klavesy pri beznom prehravani (blok 4 dispatchKeyEvent) v PlaybackKeys.kt
     private val playbackKeys: PlaybackKeys by lazy {
@@ -751,14 +629,14 @@ class PlayerActivity : ComponentActivity() {
             controlsShown = { controlsShown },
             modernTvActive = { modernTvActive() },
             controlOrder = { canZap ->
-                playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value,
+                playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshift.engaged.value,
                     profileSwitchAvailable(), dvrRecordVisible(), teletextVisible())
             },
             actions = object : PlaybackKeys.Actions {
                 override fun switchLive(delta: Int) { this@PlayerActivity.switchLive(delta) }
                 override fun showZapBar() { this@PlayerActivity.showZapBar() }
                 override fun openModernOverlayAtCurrent() { modernOv.openAtCurrent() }
-                override fun openModernOverlay() { this@PlayerActivity.openModernOverlay() }
+                override fun openModernOverlay() { modernOv.open() }
                 override fun showControlsFocused() { this@PlayerActivity.showControlsFocused() }
                 override fun pokeControls() { this@PlayerActivity.pokeControls() }
                 override fun activateControl(id: String?) { this@PlayerActivity.activateControl(id) }
@@ -772,7 +650,7 @@ class PlayerActivity : ComponentActivity() {
                         openChannelList()
                     }
                 override fun beginScrub(dir: Int) { this@PlayerActivity.beginScrub(dir) }
-                override fun initScrub() { this@PlayerActivity.initScrub() }
+                override fun initScrub() { scrub.init() }
             })
     }
 
@@ -784,16 +662,16 @@ class PlayerActivity : ComponentActivity() {
      */
     private fun beginScrub(dir: Int) {
         val order = playerControlOrder(
-            !seekablePlayback && liveUuids.size > 1, seekablePlayback, pipButtonVisible(),
-            timeshiftEngagedState.value, profileSwitchAvailable(), dvrRecordVisible(), teletextVisible()
+            !seekablePlayback && live.uuids.size > 1, seekablePlayback, pipButtonVisible(),
+            timeshift.engaged.value, profileSwitchAvailable(), dvrRecordVisible(), teletextVisible()
         )
         val seekIdx = order.indexOf("seek")
         if (seekIdx < 0) { showControlsFocused(); return }
         val wasOnSeek = controlsShown && controlNavState.value == seekIdx
         controlNavState.value = seekIdx
-        if (!wasOnSeek) initScrub()
+        if (!wasOnSeek) scrub.init()
         scrub.step(dir)
-        scheduleScrubAuto()
+        scrub.scheduleAuto()
         pokeControls()
     }
 
@@ -802,8 +680,8 @@ class PlayerActivity : ComponentActivity() {
 
     /** Zamkne/odomkne kanal v zozname prehravaca (ako dlhy klik na telefone). Chrani PINom. */
     private fun toggleLockAt(idx: Int) {
-        val srv = liveServer ?: return
-        val uuid = liveUuids.getOrNull(idx) ?: return
+        val srv = live.server ?: return
+        val uuid = live.uuids.getOrNull(idx) ?: return
         val doToggle: () -> Unit = {
             val now = ParentalLock.isChannelLocked(this, srv.id, uuid)
             ParentalLock.setChannelLocked(this, srv.id, uuid, !now)
@@ -824,85 +702,62 @@ class PlayerActivity : ComponentActivity() {
      * „$$ExternalSyntheticLambda7 cannot be cast to Function1" (Pixel 9, 1.0.5).
      * Pole ziadny slot nezabera, takze sa nema co posunut.
      */
-    private val pickHtspSpuCb: (Int) -> Unit = { id -> onPickHtspSpu(id) }
+    private val pickHtspSpuCb: (Int) -> Unit = { id -> trackMenu.pickHtspSpu(id) }
     private val prevChannelCb: () -> Unit = { switchLive(-1) }
     private val nextChannelCb: () -> Unit = { switchLive(+1) }
 
     // --- Kontextove menu kanala v prehravaci (long-press OK / dlhy klik) — ChannelContextMenu.kt (M641) ---
     private val ctxMenu: ChannelContextMenu by lazy {
         ChannelContextMenu(this, live, groups,
-            epgUpcoming = { epgUpcomingState.value },
+            epgUpcoming = { epg.upcoming.value },
             recInProgress = { recInProgressByChan.value },
-            canRecord = { dvrCanRecordState.value },
+            canRecord = { dvrRec.canRecordState.value },
             navIndex = navChannelIndexState,
             okLongFired = { okLongFired },
             actions = object : ChannelContextMenu.Actions {
-                override fun showInfo(idx: Int) = showChannelInfo(idx)
+                override fun showInfo(idx: Int) = info.show(idx)
                 override fun playFromStart(rec: sk.tvhclient.shared.model.DvrEntry, nowStart: Long, nowStop: Long) =
-                    playRecordingFromStart(rec, nowStart, nowStop)
-                override fun switchTo(idx: Int) = switchToIndex(idx)
+                    switcher.playRecordingFromStart(rec, nowStart, nowStop)
+                override fun switchTo(idx: Int) = switcher.switchToIndex(idx)
                 override fun toggleLock(idx: Int) = toggleLockAt(idx)
-                override fun record(ch: LivePlaylist.LiveChannel, ev: sk.tvhclient.shared.model.EpgEvent) = recordFromCtxMenu(ch, ev)
-                override fun enterReorder() = enterReorderMode()
+                override fun record(ch: LivePlaylist.LiveChannel, ev: sk.tvhclient.shared.model.EpgEvent) = dvrRec.recordFromCtxMenu(ch, ev)
+                override fun enterReorder() = reorder.enter()
             })
     }
-    private val ctxMenuIdxState: androidx.compose.runtime.MutableState<Int> get() = ctxMenu.idxState
-    private val ctxMenuSelState: androidx.compose.runtime.MutableState<Int> get() = ctxMenu.selState
-    private fun ctxMenuKeys(idx: Int): List<String> = ctxMenu.keys(idx)
-    private fun openChannelContextMenu(idx: Int) { ctxMenu.open(idx) }
-    private fun closeChannelContextMenu() { ctxMenu.close() }
-    private fun toggleFavoriteAt(idx: Int, announce: Boolean) { ctxMenu.toggleFavoriteAt(idx, announce) }
-    private fun activateCtxMenu(key: String) { ctxMenu.activate(key) }
-
-    /** M607 / M669: nahravanie z kontextovej ponuky — DvrRecordController. */
-    private fun recordFromCtxMenu(ch: LivePlaylist.LiveChannel, ev: sk.tvhclient.shared.model.EpgEvent) { dvrRec.recordFromCtxMenu(ch, ev) }
 
     // ===== M541 / M638: rezim usporiadania oblubenych (D-pad) — FavReorder.kt =====
     private val reorder: FavReorder by lazy {
         FavReorder(this,
-            serverId = { (liveServer ?: Tvh.store.active())?.id },
-            liveUuids = { liveUuids },
-            liveChannels = liveChannelsState,
+            serverId = { (live.server ?: Tvh.store.active())?.id },
+            liveUuids = { live.uuids },
+            liveChannels = live.channelsState,
             navIndex = navChannelIndexState,
             groupLabel = activeGroupLabelState,
-            groupLabelFor = { key -> groupLabelFor(key) },
-            reapplyFavGroup = { refreshFavOrder(); applyGroup(LivePlaylist.GROUP_FAV) },
+            groupLabelFor = { key -> groups.labelFor(key) },
+            reapplyFavGroup = { groups.refreshFavOrder(); groups.apply(LivePlaylist.GROUP_FAV) },
             okLongFired = { okLongFired })
     }
-    private fun enterReorderMode() { reorder.enter() }
-    private fun exitReorderMode() { reorder.exit() }
 
     // --- Info o relacii (detail) v prehravaci — ChannelInfo.kt (M643) ---
     private val info: ChannelInfo by lazy {
         ChannelInfo(lifecycleScope, live,
-            epgUpcoming = { epgUpcomingState.value },
-            cacheChannelEpg = { uuid, list -> cacheChannelEpg(uuid, list) },
+            epgUpcoming = { epg.upcoming.value },
+            cacheChannelEpg = { uuid, list -> epg.cacheChannelEpg(uuid, list) },
             dvrRecordVisible = { dvrRecordVisible() },
             toggleRecord = { toggleRecordCurrent() },
-            onShown = { hideZapBar() })
+            onShown = { zapBar.hide() })
     }
-    private val infoVisibleState: androidx.compose.runtime.MutableState<Boolean> get() = info.visible
-    private val infoRecSelState: androidx.compose.runtime.MutableState<Boolean> get() = info.recSel
-    private val infoChannelState: androidx.compose.runtime.MutableState<String> get() = info.channel
-    private val infoTitleState: androidx.compose.runtime.MutableState<String> get() = info.title
-    private val infoTimeState: androidx.compose.runtime.MutableState<String> get() = info.time
-    private val infoDescState: androidx.compose.runtime.MutableState<String> get() = info.desc
     // M280: potvrdenie ukoncenia ziveho prehravania (BACK) — ako exit dialog v menu
     private val exitConfirmState = androidx.compose.runtime.mutableStateOf(false)
     private val exitConfirmSelState = androidx.compose.runtime.mutableStateOf(0) // 0=Zrusit, 1=Ukoncit
 
-    private fun fmtRange(a: Long, b: Long): String = ChannelInfo.fmtRange(a, b)
-    private fun showChannelInfo(idx: Int) { info.show(idx) }
-    private fun closeChannelInfo() { info.close() }
-
     // ---- M430 / M628: kompaktny zap pas — stav aj vykreslenie v ZapBar.kt ----
     private val zapBar: ZapBar by lazy {
         ZapBar(lifecycleScope,
-            fmtRange = { a, b -> fmtRange(a, b) },
-            suppressed = { controlsShown || modernOvState.value || infoVisibleState.value })
+            fmtRange = { a, b -> ChannelInfo.fmtRange(a, b) },
+            suppressed = { controlsShown || modernOv.visible.value || info.visible.value })
     }
-    private fun hideZapBar() { zapBar.hide() }
-    private fun showZapBar() { zapBar.show(liveChannelsState.value.getOrNull(liveIndexState.value)) }
+    private fun showZapBar() { zapBar.show(live.channelsState.value.getOrNull(live.indexState.value)) }
 
     private val listKeys: ChannelListKeys by lazy {
         ChannelListKeys(this, live, groups, search, reorder, navChannelIndexState, groupPickerState,
@@ -910,19 +765,19 @@ class PlayerActivity : ComponentActivity() {
                 override var okLongFired: Boolean
                     get() = this@PlayerActivity.okLongFired
                     set(v) { this@PlayerActivity.okLongFired = v }
-                override fun openContextMenu(idx: Int) { openChannelContextMenu(idx) }
+                override fun openContextMenu(idx: Int) { ctxMenu.open(idx) }
                 override fun closeList() { closeChannelList() }
                 override fun switchDelayed(idx: Int) {
                     // M600-fix: pockaj, kym sa video vrati z nahladoveho obdlznika na celu obrazovku
                     lifecycleScope.launch {
                         kotlinx.coroutines.delay(320)
-                        switchToIndex(idx, poke = false)
+                        switcher.switchToIndex(idx, poke = false)
                     }
                 }
-                override fun selectOrArchive(idx: Int) { selectChannelOrArchive(idx, poke = false) }
+                override fun selectOrArchive(idx: Int) { switcher.selectChannelOrArchive(idx, poke = false) }
                 override fun reselectCurrent() {
                     closeChannelList()
-                    if (modernTvActive()) openModernOverlay() else showControlsFocused()
+                    if (modernTvActive()) modernOv.open() else showControlsFocused()
                 }
             })
     }
@@ -932,18 +787,18 @@ class PlayerActivity : ComponentActivity() {
     private fun openChannelList() {
         // M371: otvor aj s 1 kanalom, ak su skupiny na prepnutie (napr. Oblubene s 1 kanalom),
         // inak by sa filtrovany zoznam uz nedal otvorit ani prepnut spat.
-        refreshFavOrder()   // M541: oblubene sa mohli zmenit v zozname Kanaly
-        if (liveUuids.size < 2 && groupKeys().size <= 1) return
+        groups.refreshFavOrder()   // M541: oblubene sa mohli zmenit v zozname Kanaly
+        if (live.uuids.size < 2 && groups.keys().size <= 1) return
         groupPickerState.value = false
         search.deactivateSilently()
         activeGroupLabelState.value =
-            if (groupKeys().size > 1) groupLabelFor(LivePlaylist.activeGroupKey) else ""
-        navChannelIndexState.value = liveIndex.coerceAtLeast(0)
+            if (groups.keys().size > 1) groups.labelFor(LivePlaylist.activeGroupKey) else ""
+        navChannelIndexState.value = live.index.coerceAtLeast(0)
         listKeys.openedAt = android.os.SystemClock.uptimeMillis()
         openChannelListState.value = openChannelListState.value + 1
     }
     private fun closeChannelList() {
-        exitReorderMode()   // M541
+        reorder.exit()   // M541
         groupPickerState.value = false
         search.deactivateSilently()
         closeChannelListState.value = closeChannelListState.value + 1
@@ -968,32 +823,21 @@ class PlayerActivity : ComponentActivity() {
     // M671: akcie track menu (HTSP titulky, profil, D-pad vyber) v TrackMenuController.kt
     private val trackMenu: TrackMenuController by lazy {
         TrackMenuController(this, lifecycleScope, tracks, live, stream,
-            player = { if (engine.ready) mediaPlayer else null },
+            player = { if (engine.ready) engine.player else null },
             hooks = object : TrackMenuController.Hooks {
                 override fun subtitleReset() { subOverlay?.reset() }
                 override fun restartCurrentChannel() {
-                    val i = liveIndex
-                    if (i >= 0) { liveIndex = -1; switchToIndex(i, poke = false) }
+                    val i = live.index
+                    if (i >= 0) { live.index = -1; switcher.switchToIndex(i, poke = false) }
                 }
             })
     }
-    private fun onPickHtspSpu(esIndex: Int) { trackMenu.pickHtspSpu(esIndex) }
 
-    private fun applyDesiredSpu() { tracks.applyDesiredSpu() }
-    private fun applyPendingSpuRestore() { tracks.applyPendingSpuRestore(htspStream, seekablePlayback) }
+    private fun applyPendingSpuRestore() { tracks.applyPendingSpuRestore(stream.htspStream, seekablePlayback) }
 
     /** M383: prepinac profilu ma zmysel len pri HTTP live (nie HTSP, nie DVR,
      *  nie externa URL — tam profil neexistuje alebo sa neda menit). */
     private fun profileSwitchAvailable(): Boolean = tracks.profileSwitch.value
-
-    private fun openProfileMenu() { trackMenu.openProfileMenu() }
-    /** M383: novy profil = nova predvolba servera + restart streamu (TrackMenuController). */
-    private fun applyProfileChange(profile: String) { trackMenu.applyProfileChange(profile) }
-
-    private fun openAudioMenu() { tracks.openAudioMenu() }
-    private fun openSpuMenu() { tracks.openSpuMenu() }
-    private fun closeTrackMenu() { tracks.closeMenu() }
-    private fun selectTrackAtNav() { trackMenu.selectAtNav() }
 
     // --- Aktivacia zvyrazneneho prvku ovladacieho panela ---
     private fun activateControl(id: String?) {
@@ -1005,9 +849,9 @@ class PlayerActivity : ComponentActivity() {
             "next" -> { switchLive(+1); pokeControls() }
             "tsrew" -> { timeshiftSkip(-30); pokeControls() }
             "tsff" -> { timeshiftSkip(+30); pokeControls() }
-            "audio" -> openAudioMenu()
-            "subs" -> openSpuMenu()
-            "profile" -> openProfileMenu()
+            "audio" -> tracks.openAudioMenu()
+            "subs" -> tracks.openSpuMenu()
+            "profile" -> trackMenu.openProfileMenu()
             "epg" -> openEpgInApp()
             "pip" -> enterPipAndMinimize()
             "info" -> { toggleInfo(); pokeControls() }
@@ -1039,7 +883,7 @@ class PlayerActivity : ComponentActivity() {
     private val keyRouter: PlayerKeyRouter by lazy {
         PlayerKeyRouter(this, search, ttx, pin, ctxMenu, info, listKeys, modernOv, tracks, sleep, engine, playbackKeys,
             resumePromptState, resumeSelState, resumeAnswerState,
-            dvrAskState, dvrAskSelState, archiveChoiceIdxState, archiveChoiceSelState,
+            dvrRec.askState, dvrRec.askSelState, archiveChoiceIdxState, archiveChoiceSelState,
             exitConfirmState, exitConfirmSelState, isPlayingState, optionsNavState,
             actions = object : PlayerKeyRouter.Actions {
                 override val remoteDebug: Boolean get() = this@PlayerActivity.remoteDebug
@@ -1047,34 +891,34 @@ class PlayerActivity : ComponentActivity() {
                     get() = this@PlayerActivity.okLongFired
                     set(v) { this@PlayerActivity.okLongFired = v }
                 override val seekablePlayback: Boolean get() = this@PlayerActivity.seekablePlayback
-                override val liveIndex: Int get() = this@PlayerActivity.liveIndex
+                override val liveIndex: Int get() = live.index
                 override val channelListOpen: Boolean get() = this@PlayerActivity.channelListOpen
                 override val returnLiveUuid: String? get() = this@PlayerActivity.returnLiveUuid
                 override val optionsOpen: Boolean get() = this@PlayerActivity.optionsOpen
                 override val trackMenuOpen: Boolean get() = this@PlayerActivity.trackMenuOpen
-                override val htspStream: Boolean get() = this@PlayerActivity.htspStream
+                override val htspStream: Boolean get() = stream.htspStream
                 override fun isCommonKey(kc: Int): Boolean = this@PlayerActivity.isCommonKey(kc)
-                override fun resolveDvrAsk(name: String?) { this@PlayerActivity.resolveDvrAsk(name) }
-                override fun resolveArchiveChoice(fromStart: Boolean) { this@PlayerActivity.resolveArchiveChoice(fromStart) }
+                override fun resolveDvrAsk(name: String?) { dvrRec.resolveAsk(name) }
+                override fun resolveArchiveChoice(fromStart: Boolean) { switcher.resolveArchiveChoice(fromStart) }
                 override fun finish() { this@PlayerActivity.finish() }
                 override fun openEpgInApp() { this@PlayerActivity.openEpgInApp() }
-                override fun openSpuMenu() { this@PlayerActivity.openSpuMenu() }
-                override fun openAudioMenu() { this@PlayerActivity.openAudioMenu() }
+                override fun openSpuMenu() { tracks.openSpuMenu() }
+                override fun openAudioMenu() { tracks.openAudioMenu() }
                 override fun modernTvActive(): Boolean = this@PlayerActivity.modernTvActive()
-                override fun openModernOverlay() { this@PlayerActivity.openModernOverlay() }
+                override fun openModernOverlay() { modernOv.open() }
                 override fun showControlsFocused() { this@PlayerActivity.showControlsFocused() }
                 override fun toggleInfo() { this@PlayerActivity.toggleInfo() }
                 override fun togglePlayPause() { this@PlayerActivity.togglePlayPause() }
                 override fun pokeControls() { this@PlayerActivity.pokeControls() }
                 override fun scrubSeek(seconds: Int) { this@PlayerActivity.scrubSeek(seconds) }
-                override fun toggleFavoriteAt(idx: Int, announce: Boolean) { this@PlayerActivity.toggleFavoriteAt(idx, announce) }
+                override fun toggleFavoriteAt(idx: Int, announce: Boolean) { ctxMenu.toggleFavoriteAt(idx, announce) }
                 override fun closePlayer() { this@PlayerActivity.closePlayer() }
                 override fun openChannelList() { this@PlayerActivity.openChannelList() }
-                override fun seekRelative(deltaMs: Long) { this@PlayerActivity.seekRelative(deltaMs) }
+                override fun seekRelative(deltaMs: Long) { dvrSeek.seekRelative(deltaMs) }
                 override fun selectOption(idx: Int) { this@PlayerActivity.selectOption(idx) }
                 override fun closeOptions() { this@PlayerActivity.closeOptions() }
-                override fun selectTrackAtNav() { this@PlayerActivity.selectTrackAtNav() }
-                override fun closeTrackMenu() { this@PlayerActivity.closeTrackMenu() }
+                override fun selectTrackAtNav() { trackMenu.selectAtNav() }
+                override fun closeTrackMenu() { tracks.closeMenu() }
                 override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean =
                     this@PlayerActivity.dispatchKeyEvent(event)
             })
@@ -1087,45 +931,18 @@ class PlayerActivity : ComponentActivity() {
         return super.dispatchKeyEvent(event)
     }
 
-    // DVR progress (sledovanie pozicie pre archiv) — M665: stav v DvrPlayback.kt, tu delegaty pod povodnymi nazvami
+    // DVR progress (sledovanie pozicie pre archiv) — M665: stav v DvrPlayback.kt (M677: pristup priamo cez dvr)
     private val dvr = DvrPlayback(this)
-    private var dvrUuid: String?
-        get() = dvr.uuid
-        set(v) { dvr.uuid = v }
-    private var dvrServerId: String?
-        get() = dvr.serverId
-        set(v) { dvr.serverId = v }
-    private var dvrDurationMs: Long
-        get() = dvr.durationMs
-        set(v) { dvr.durationMs = v }
-    private var dvrRecording: Boolean
-        get() = dvr.recording
-        set(v) { dvr.recording = v }
-    private var dvrProgStartSec: Long
-        get() = dvr.progStartSec
-        set(v) { dvr.progStartSec = v }
-    private var dvrProgStopSec: Long
-        get() = dvr.progStopSec
-        set(v) { dvr.progStopSec = v }
-    private var dvrRealStartSec: Long
-        get() = dvr.realStartSec
-        set(v) { dvr.realStartSec = v }
-    private val dvrDurationState: androidx.compose.runtime.MutableState<Long> get() = dvr.durationState
-    private var reachedEnd: Boolean
-        get() = dvr.reachedEnd
-        set(v) { dvr.reachedEnd = v }
-    private val dvrPlayheadMsState: androidx.compose.runtime.MutableState<Long> get() = dvr.playheadMsState
-    private val dvrSeekSeedState: androidx.compose.runtime.MutableState<Long> get() = dvr.seekSeedState
 
     private fun saveDvrProgress() {
-        dvr.saveProgress(if (engine.ready && !playerTornDown) mediaPlayer else null)
+        dvr.saveProgress(if (engine.ready && !engine.tornDown) engine.player else null)
     }
 
     /** M623: radio s volbou "Radio hra na pozadi" (telefon aj TV) — odchod z prehravaca
      *  na pozadie (zhasnutie, zamok, domovska obrazovka, ina appka) radio nepozastavi.
      *  V samotnom prehravaci obrazovka svieti dalej (KEEP_SCREEN_ON ako pri TV). */
     private fun radioBackground(): Boolean =
-        playKind == "radio" && RadioBackgroundPref.get(this)
+        live.playKind == "radio" && RadioBackgroundPref.get(this)
 
     private fun keepScreenOn(on: Boolean) {
         runOnUiThread {
@@ -1137,10 +954,10 @@ class PlayerActivity : ComponentActivity() {
     /** M658: pripojenie video layoutu z PlayerUi (povodne onAttach lambda v setContent). */
     private fun attachVideo(layout: VLCVideoLayout) {
         videoLayout = layout
-        mediaPlayer.attachViews(layout, null, false, false)
+        engine.player.attachViews(layout, null, false, false)
         // M539-fix2: novy prehravac cakal na svoj (novy) surface — spusti ho teraz
         if (engine.onSurfaceAttached()) {
-            layout.post { runCatching { if (!playerTornDown) mediaPlayer.play() } }
+            layout.post { runCatching { if (!engine.tornDown) engine.player.play() } }
         }
         // vlastny titulkovy overlay nad videom (DVB titulky dekódujeme sami,
         // do libVLC nejdu) — synchronizovany na cas prehravaca
@@ -1156,9 +973,9 @@ class PlayerActivity : ComponentActivity() {
         layout.addView(ov)
         subOverlay = ov
         ov.start(
-            clockSource = { if (engine.ready) mediaPlayer.time else 0L },
+            clockSource = { if (engine.ready) engine.player.time else 0L },
             aspectSource = {
-                val vt = if (engine.ready) runCatching { mediaPlayer.currentVideoTrack }.getOrNull() else null
+                val vt = if (engine.ready) runCatching { engine.player.currentVideoTrack }.getOrNull() else null
                 if (vt != null && vt.width > 0 && vt.height > 0) {
                     val sn = if (vt.sarNum > 0) vt.sarNum else 1
                     val sd = if (vt.sarDen > 0) vt.sarDen else 1
@@ -1181,7 +998,7 @@ class PlayerActivity : ComponentActivity() {
         remoteDebug = RemoteDebugPref.isEnabled(this)
         // Drz obrazovku zapnutu od startu prehravaca (setric/ambient na boxoch sa nesmie spustit)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        acquireStreamLocks()  // M452
+        streamLocks.acquire()  // M452
 
         // Immersive fullscreen — skry status aj navigacnu listu, nech
         // neprekryvaju ovladanie. Listy sa daju vytiahnut potiahnutim.
@@ -1206,33 +1023,33 @@ class PlayerActivity : ComponentActivity() {
     ) {
         // Live zapping: priprav zoznam susednych kanalov
         if (directUrl == null && channelUuid != null && LivePlaylist.channels.isNotEmpty()) {
-            liveUuids = LivePlaylist.channels.map { it.uuid }
-            liveNames = LivePlaylist.channels.map { it.name }
-            liveIndex = LivePlaylist.index.takeIf { it in liveUuids.indices }
-                ?: liveUuids.indexOf(channelUuid)
-            liveServer = server
-            saveLastLive(server.id, channelUuid)
-            hydrateEpgFromDisk(server)   // M275: nacitaj EPG z disku (prezije restart boxu)
+            live.uuids = LivePlaylist.channels.map { it.uuid }
+            live.names = LivePlaylist.channels.map { it.name }
+            live.index = LivePlaylist.index.takeIf { it in live.uuids.indices }
+                ?: live.uuids.indexOf(channelUuid)
+            live.server = server
+            switcher.saveLastLive(server.id, channelUuid)
+            epg.hydrateEpgFromDisk(server)   // M275: nacitaj EPG z disku (prezije restart boxu)
         }
-        rememberPlayback()   // M494: uz pri starte, nie az po prvom prepnuti
-        liveChannelsState.value = LivePlaylist.channels
+        switcher.rememberPlayback()   // M494: uz pri starte, nie az po prvom prepnuti
+        live.channelsState.value = LivePlaylist.channels
         // M281: hned dopln now/next z cache (disk/proces) na viditelny zoznam, nech sa nazvy
         // relacii pod kanalmi ukazu okamzite aj po restarte (predtym cakali na sietovy refresh).
-        applyCachedEpgToChannels()
+        epg.applyCachedEpgToChannels()
         // M605-fix: zoznam najprv — posledny kanal sa spusti normalne (hra za zoznamom
         // ako nahlad) a zoznam sa otvori hned; povodne nehralo nic, co pouzivatel nechcel
-        listFirst = args.listFirst && liveUuids.size > 1
-        liveIndexState.value = liveIndex
-        liveTitleState.value = channelTitle
-        liveUuidState.value = channelUuid
-        liveProgStartState.value = progStart
-        liveProgStopState.value = progStop
-        liveProgTitleState.value = progTitle
-        val canZap = directUrl == null && liveUuids.size > 1
+        listFirst = args.listFirst && live.uuids.size > 1
+        live.indexState.value = live.index
+        live.titleState.value = channelTitle
+        live.uuidState.value = channelUuid
+        live.progStartState.value = progStart
+        live.progStopState.value = progStop
+        live.progTitleState.value = progTitle
+        val canZap = directUrl == null && live.uuids.size > 1
         seekablePlayback = directUrl != null
         // predvolene zvyraznenie ovladacieho panela = play (nie krizik)
-        controlNavState.value = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshiftEngagedState.value, profileSwitchAvailable(), dvrRecordVisible(), teletextVisible()).indexOf("play").coerceAtLeast(0)
-        currentStreamUrl = streamUrl
+        controlNavState.value = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshift.engaged.value, profileSwitchAvailable(), dvrRecordVisible(), teletextVisible()).indexOf("play").coerceAtLeast(0)
+        stream.currentStreamUrl = streamUrl
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -1259,49 +1076,49 @@ class PlayerActivity : ComponentActivity() {
         val channelUuid = args.channelUuid
         val channelTitle = args.channelTitle
         val directUrl = args.directUrl
-        playKind = args.playKind
+        live.playKind = args.playKind
         val durationMs = args.durationMs
         val progStart = args.progStart
         val progStop = args.progStop
         val progTitle = args.progTitle
-        dvrUuid = args.dvrUuid
+        dvr.uuid = args.dvrUuid
         val progStartFrac = args.progStartFrac
         val progStopFrac = args.progStopFrac
-        dvrDurationMs = durationMs
-        dvrDurationState.value = durationMs
-        dvrRecording = args.dvrRecording
-        dvrProgStartSec = args.dvrProgStartSec
-        dvrProgStopSec = args.dvrProgStopSec
-        dvrRealStartSec = args.dvrRealStartSec
+        dvr.durationMs = durationMs
+        dvr.durationState.value = durationMs
+        dvr.recording = args.dvrRecording
+        dvr.progStartSec = args.dvrProgStartSec
+        dvr.progStopSec = args.dvrProgStopSec
+        dvr.realStartSec = args.dvrRealStartSec
         // Prebiehajuca relacia: dlzka rastie k zivej hrane; bar musi byt VZDY viditelny.
         // Ak mame hranice relacie, dopocitavame relativne k jej zaciatku (cap dlzkou relacie).
         // Ak hranice chybaju (nahravka nema vyplnene start/stop), drzime krok s dlzkou z VLC.
         // M658: vypocet a sekundovy cyklus su v DvrDurationTicker (M528 vnutri).
-        if (dvrRecording) {
+        if (dvr.recording) {
             DvrDurationTicker(
                 scope = lifecycleScope,
-                playerLength = { if (engine.ready) mediaPlayer.length else 0L },
-                isRecording = { dvrRecording },
-                current = { dvrDurationMs },
-                set = { dvrDurationMs = it; dvrDurationState.value = it }
-            ).start(durationMs, dvrProgStartSec, dvrProgStopSec)
+                playerLength = { if (engine.ready) engine.player.length else 0L },
+                isRecording = { dvr.recording },
+                current = { dvr.durationMs },
+                set = { dvr.durationMs = it; dvr.durationState.value = it }
+            ).start(durationMs, dvr.progStartSec, dvr.progStopSec)
         }
         val server = Tvh.store.active()
         if (server == null || (channelUuid == null && directUrl == null)) {
             finish()
             return
         }
-        dvrServerId = server.id
+        dvr.serverId = server.id
 
         // Ulozena pozicia: ponuknut obnovenie ak nie je dopozerane a nie je
         // tesne na zaciatku/konci
-        val saved = dvrUuid?.let { WatchProgress.get(this, server.id, it) }
+        val saved = dvr.uuid?.let { WatchProgress.get(this, server.id, it) }
         val resumeMs = if (saved != null && !saved.completed && saved.posMs > 30_000 &&
             (durationMs <= 0 || durationMs - saved.posMs > 60_000)
         ) saved.posMs else 0L
 
-        createPlayer()   // M539: libVLC + MediaPlayer + listener (znovupouzitelne pri obnove po zaseknuti zvuku)
-        startStallWatch()
+        engine.create()   // M539: libVLC + MediaPlayer + listener (znovupouzitelne pri obnove po zaseknuti zvuku)
+        stall.start()
 
         // DVR: priame dvrfile URL (s creds). Live: profil servera (M383 — per-kanal
         // override zruseny, profil sa da prepnut priamo v prehravaci).
@@ -1312,7 +1129,7 @@ class PlayerActivity : ComponentActivity() {
 
         // Server je potrebny aj v DVR rezime (seekDvrTo / reopenDvrLive cez feeder).
         // Live-zapping nizsie zavisi od liveUuids (pri DVR prazdne), nie od liveServer.
-        liveServer = server
+        live.server = server
         tracks.currentProfile.value = server.profile.ifBlank { "pass" }
         // M476: prepinac profilu plati aj pre HTSP — protokol ho podporuje od v16
         tracks.profileSwitch.value = directUrl == null && channelUuid != null
@@ -1329,7 +1146,7 @@ class PlayerActivity : ComponentActivity() {
             }
         }
         setupLiveState(args, server, channelUuid, channelTitle, directUrl, streamUrl, progStart, progStop, progTitle)
-        val canZap = directUrl == null && liveUuids.size > 1
+        val canZap = directUrl == null && live.uuids.size > 1
 
         setContent {
             val pThemeMode = PlayerThemePref.stateOf(this).value
@@ -1352,41 +1169,41 @@ class PlayerActivity : ComponentActivity() {
             // uvolnenym objektom -> IllegalStateException „can't get VLCObject instance".
             androidx.compose.runtime.key(videoSurfaceGen.value) {
             PlayerUi(
-                title = liveTitleState.value,
-                player = mediaPlayer,
+                title = live.titleState.value,
+                player = engine.player,
                 flags = PlaybackFlags(
                     seekable = directUrl != null,  // DVR nahravka = da sa pretacat; live nie
                     inPip = inPipState.value,
-                    pipSupported = pipSupported,
+                    pipSupported = pip.supported,
                     pipButton = pipButtonVisible(),
-                    hasVideo = hasVideoState.value,
-                    reconnecting = reconnectingState.value,
+                    hasVideo = vlcEvents.hasVideo.value,
+                    reconnecting = reconnect.reconnecting.value,
                     seeking = seekingState.value,
                     playing = isPlayingState.value,
                     sleepDeadline = sleep.deadlineState.value,
-                    timeshiftEngaged = timeshiftEngagedState.value,
-                    tsMaxMs = maxRewindMs(),
-                    timeshiftOffsetMs = timeshiftOffsetState.value,
+                    timeshiftEngaged = timeshift.engaged.value,
+                    tsMaxMs = timeshift.maxRewindMs(),
+                    timeshiftOffsetMs = timeshift.offsetMs.value,
                     returnLiveOnBack = returnLiveUuid != null,
                 ),
                 dvr = DvrSeekArgs(
-                    knownDurationMs = dvrDurationState.value,  // dlzka z DVR entry; pri prebiehajucej nahravke rastie k zivej hrane
+                    knownDurationMs = dvr.durationState.value,  // dlzka z DVR entry; pri prebiehajucej nahravke rastie k zivej hrane
                     resumeMs = resumeMs,
-                    uuid = dvrUuid,
+                    uuid = dvr.uuid,
                     onSkipBack = { timeshiftSkip(-30) },
                     onSkipFwd = { timeshiftSkip(+30) },
                     onDoubleTapSeek = { fwd -> doubleTapSeek(fwd) },
                     onScrubSeek = { secs -> scrubSeek(secs) },
-                    seekHint = seekHintState.value,
-                    scrubFrac = scrubFractionState.value,
-                    recordingLive = dvrRecording,
-                    recordingStopSec = dvrProgStopSec,
-                    recordingOffsetMs = if (dvrProgStartSec > 0 && dvrRealStartSec in 1 until dvrProgStartSec)
-                        (dvrProgStartSec - dvrRealStartSec) * 1000 else 0L,
-                    onPlayheadMs = { dvrPlayheadMsState.value = it },
-                    seekSeedMs = dvrSeekSeedState.value,
-                    onSeekSeedHandled = { dvrSeekSeedState.value = -1L },
-                    onSeekToMs = { ms -> seekDvrAbsolute(ms) },
+                    seekHint = dvrSeek.hint.value,
+                    scrubFrac = scrub.fraction.value,
+                    recordingLive = dvr.recording,
+                    recordingStopSec = dvr.progStopSec,
+                    recordingOffsetMs = if (dvr.progStartSec > 0 && dvr.realStartSec in 1 until dvr.progStartSec)
+                        (dvr.progStartSec - dvr.realStartSec) * 1000 else 0L,
+                    onPlayheadMs = { dvr.playheadMsState.value = it },
+                    seekSeedMs = dvr.seekSeedState.value,
+                    onSeekSeedHandled = { dvr.seekSeedState.value = -1L },
+                    onSeekToMs = { ms -> dvrSeek.seekAbsolute(ms) },
                     resumeSel = resumeSelState.value,
                     resumeAnswer = resumeAnswerState.value,
                     onAskResumeChange = {
@@ -1398,24 +1215,24 @@ class PlayerActivity : ComponentActivity() {
                 programme = ProgrammeArgs(
                     startFrac = progStartFrac,
                     stopFrac = progStopFrac,
-                    startSec = liveProgStartState.value,
-                    stopSec = liveProgStopState.value,
-                    title = liveProgTitleState.value,
-                    centerLogoUrl = liveChannelsState.value.getOrNull(liveIndexState.value)?.piconUrl,
-                    nextTitle = liveNextTitleState.value,
-                    nextStart = liveNextStartState.value,
-                    nextStop = liveNextStopState.value,
+                    startSec = live.progStartState.value,
+                    stopSec = live.progStopState.value,
+                    title = live.progTitleState.value,
+                    centerLogoUrl = live.channelsState.value.getOrNull(live.indexState.value)?.piconUrl,
+                    nextTitle = live.nextTitleState.value,
+                    nextStart = live.nextStartState.value,
+                    nextStop = live.nextStopState.value,
                 ),
                 server = server,
-                liveChannelUuid = if (directUrl == null) liveUuidState.value else null,
+                liveChannelUuid = if (directUrl == null) live.uuidState.value else null,
                 preferredAudio = AudioPref.get(this),
                 serverId = server.id,
-                htspSpuItems = if (htspStreamState.value) {
+                htspSpuItems = if (stream.htspStreamState.value) {
                     @Suppress("UNUSED_EXPRESSION") tracks.listVersion.value  // refresh ked pribudne stopa
                     tracks.htspSpuItems()
                 } else null,
                 htspSpuCurrentId = tracks.selectedSubEs.value,
-                onPickHtspSpu = if (htspStreamState.value) pickHtspSpuCb else null,   // M544: bez lambdy v kompozicii
+                onPickHtspSpu = if (stream.htspStreamState.value) pickHtspSpuCb else null,   // M544: bez lambdy v kompozicii
                 onPickHttpSpu = { id -> tracks.httpSpuUserPick(id) },
                 callbacks = PlayerCallbacks(
                     onAttach = { layout -> attachVideo(layout) },
@@ -1431,7 +1248,7 @@ class PlayerActivity : ComponentActivity() {
                             // M263: zrus stare grace okno, nech zamknuty kanal v tomto sedeni
                             // naozaj vyzaduje PIN (aj keby sa pouzivatel cez vyzvu prepol prec a vratil sa).
                             ParentalLock.clearGrace(this)
-                            requestPin(onOk = doPlay, onCancel = { finish() }, channelIndex = liveIndex)
+                            requestPin(onOk = doPlay, onCancel = { finish() }, channelIndex = live.index)
                         } else doPlay()
                     },
                     onOpenEpg = { openEpgInApp() },
@@ -1477,10 +1294,10 @@ class PlayerActivity : ComponentActivity() {
                     groupPicker = groupPickerState.value,
                     onOpenChange = {
                         channelListOpen = it
-                        if (it) navChannelIndexState.value = liveIndex.coerceAtLeast(0)
+                        if (it) navChannelIndexState.value = live.index.coerceAtLeast(0)
                     },
                     onLoadEpg = { uuid, cb ->
-                        val cached = epgUpcomingState.value[uuid]
+                        val cached = epg.upcoming.value[uuid]
                         if (!cached.isNullOrEmpty()) {
                             cb(cached)
                         } else {
@@ -1490,21 +1307,21 @@ class PlayerActivity : ComponentActivity() {
                                         Tvh.fetchEpgForChannel(server, Tvh.apiFor(server), uuid)
                                     }
                                 }.getOrDefault(emptyList())
-                                cacheChannelEpg(uuid, list)   // M274: memoizuj pre dalsie zobrazenia/reopen
+                                epg.cacheChannelEpg(uuid, list)   // M274: memoizuj pre dalsie zobrazenia/reopen
                                 cb(list)
                             }
                         }
                     },
-                    channels = if (canZap) liveChannelsState.value else emptyList(),
-                    currentIndex = liveIndexState.value,
-                    onSelect = { idx -> selectChannelOrArchive(idx) },
-                    onLongPress = { idx -> openChannelContextMenu(idx) },
+                    channels = if (canZap) live.channelsState.value else emptyList(),
+                    currentIndex = live.indexState.value,
+                    onSelect = { idx -> switcher.selectChannelOrArchive(idx) },
+                    onLongPress = { idx -> ctxMenu.open(idx) },
                     onRefreshEpg = {
-                        lifecycleScope.launch { refreshOverlayEpg() }
+                        lifecycleScope.launch { epg.refreshOverlayEpg() }
                     },
-                    onRefreshEpgInitial = { refreshOverlayEpgInitial() },
-                    onPrefetchEpg = { prefetchEpgIfStale() },
-                    epgLoading = epgLoadingState.value,
+                    onRefreshEpgInitial = { epg.refreshOverlayEpgInitial() },
+                    onPrefetchEpg = { epg.prefetchEpgIfStale() },
+                    epgLoading = epg.loading.value,
                 ),
                 search = ChannelSearchArgs(
                     active = search.activeState.value,
@@ -1520,10 +1337,10 @@ class PlayerActivity : ComponentActivity() {
                     items = tracks.profileItems.value,
                     current = tracks.currentProfile.value,
                     switchAvailable = profileSwitchAvailable(),
-                    onPick = { p -> applyProfileChange(p) },
+                    onPick = { p -> trackMenu.applyProfileChange(p) },
                 ),
                 modern = ModernOverlayArgs(
-                    moreIdList = modernMoreIds(),
+                    moreIdList = modernOv.moreIds(),
                     visible = modernOv.visible.value,
                     row = modernOv.row.value,
                     card = modernOv.card.value,
@@ -1532,12 +1349,12 @@ class PlayerActivity : ComponentActivity() {
                     exec = modernOv.exec.value,
                     execId = modernOv.execId.value,
                     recNames = recInProgressByChan.value.keys,
-                    stripIds = modernStripIds(),
+                    stripIds = modernOv.stripIds(),
                     moreVisible = modernOv.moreVisible.value,
                     moreIndex = modernOv.moreIdx.value,
                     onMorePick = { i -> modernOv.morePick(i) },
                     onMoreDismiss = { modernOv.moreDismiss() },
-                    onDismiss = { closeModernOverlay() },
+                    onDismiss = { modernOv.close() },
                 ),
                 signals = UiSignals(
                     controlsPoke = controlsPokeState.value,
@@ -1555,7 +1372,7 @@ class PlayerActivity : ComponentActivity() {
                     openSpu = tracks.openSpuSignal.value,
                     lockTick = lockTickState.value,
                     numberEntry = numEntry.entryState.value,
-                    zapPoke = zapPokeState.value,
+                    zapPoke = live.zapPokeState.value,
                 ),
                 pin = PinArgs(
                     prompt = pin.promptState.value,
@@ -1572,7 +1389,7 @@ class PlayerActivity : ComponentActivity() {
             }
             // Vyber pri archivovanom kanali (nazivo / od zaciatku) — overlay v style prehravaca
             // M553: teletext — nad prehrávačom, mimo PlayerUi
-            if (teletextOpenState.value) {
+            if (ttx.openState.value) {
                 TeletextOverlay(
                     session = teletext,
                     pageNumber = ttx.pageState.value,
@@ -1589,19 +1406,19 @@ class PlayerActivity : ComponentActivity() {
                     onDigit = { d -> ttx.digit(d) }
                 )
             }
-            if (dvrAskState.value.isNotEmpty()) {
+            if (dvrRec.askState.value.isNotEmpty()) {
                 // M606: vyber DVR profilu pred nahravanim
                 DvrProfilePickDialog(
-                    options = dvrAskState.value,
-                    subtitle = dvrAskTarget?.let { it.first.name + " · " + it.second.title } ?: liveProgTitleState.value,
+                    options = dvrRec.askState.value,
+                    subtitle = dvrRec.askTarget?.let { it.first.name + " · " + it.second.title } ?: live.progTitleState.value,
                     lastUsed = Tvh.store.active()?.let { DvrAskPref.lastUsed(this@PlayerActivity, it.id) },
-                    selected = dvrAskSelState.value,
-                    onPick = { resolveDvrAsk(it) },
-                    onDismiss = { resolveDvrAsk(null) }
+                    selected = dvrRec.askSelState.value,
+                    onPick = { dvrRec.resolveAsk(it) },
+                    onDismiss = { dvrRec.resolveAsk(null) }
                 )
             }
             if (archiveChoiceIdxState.value >= 0) {
-                val aCh = liveChannelsState.value.getOrNull(archiveChoiceIdxState.value)
+                val aCh = live.channelsState.value.getOrNull(archiveChoiceIdxState.value)
                 if (aCh != null) {
                     val aSel = archiveChoiceSelState.value
                     Box(
@@ -1640,7 +1457,7 @@ class PlayerActivity : ComponentActivity() {
                                     Modifier.clip(RoundedCornerShape(12.dp))
                                         .background(if (aSel == 0) Color(0x553B82F6) else Color.Transparent)
                                         .border(1.dp, if (aSel == 0) Color(0xFF3B82F6) else Color(0x33FFFFFF), RoundedCornerShape(12.dp))
-                                        .clickable { resolveArchiveChoice(false) }
+                                        .clickable { switcher.resolveArchiveChoice(false) }
                                         .padding(horizontal = 20.dp, vertical = 12.dp)
                                 ) {
                                     Text(androidx.compose.ui.res.stringResource(R.string.play_live),
@@ -1651,7 +1468,7 @@ class PlayerActivity : ComponentActivity() {
                                     Modifier.clip(RoundedCornerShape(12.dp))
                                         .background(if (aSel == 1) Color(0x553B82F6) else Color.Transparent)
                                         .border(1.dp, if (aSel == 1) Color(0xFF3B82F6) else Color(0x33FFFFFF), RoundedCornerShape(12.dp))
-                                        .clickable { resolveArchiveChoice(true) }
+                                        .clickable { switcher.resolveArchiveChoice(true) }
                                         .padding(horizontal = 20.dp, vertical = 12.dp)
                                 ) {
                                     Text(androidx.compose.ui.res.stringResource(R.string.play_from_start),
@@ -1664,20 +1481,20 @@ class PlayerActivity : ComponentActivity() {
                 }
             }
             // Kontextove menu kanala (long-press) — overlay v style prehravaca
-            if (ctxMenuIdxState.value >= 0) {
-                val cIdx = ctxMenuIdxState.value
-                val cCh = liveChannelsState.value.getOrNull(cIdx)
-                val cKeys = ctxMenuKeys(cIdx)
+            if (ctxMenu.idxState.value >= 0) {
+                val cIdx = ctxMenu.idxState.value
+                val cCh = live.channelsState.value.getOrNull(cIdx)
+                val cKeys = ctxMenu.keys(cIdx)
                 if (cCh != null && cKeys.isNotEmpty()) {
-                    val cSel = ctxMenuSelState.value.coerceIn(0, cKeys.size - 1)
+                    val cSel = ctxMenu.selState.value.coerceIn(0, cKeys.size - 1)
                     val cLocked = remember(lockTickState.value, cCh.uuid) {
-                        ParentalLock.isChannelLocked(this@PlayerActivity, liveServer?.id, cCh.uuid)
+                        ParentalLock.isChannelLocked(this@PlayerActivity, live.server?.id, cCh.uuid)
                     }
                     val ctxModern = isModernUi()
                     val ctxAccent = playerAccent()
                     Box(
                         Modifier.fillMaxSize().background(Color(0xCC0B1220))
-                            .clickable { closeChannelContextMenu() },   // ťuknutie mimo zatvori + blokuje pozadie
+                            .clickable { ctxMenu.close() },   // ťuknutie mimo zatvori + blokuje pozadie
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
@@ -1712,7 +1529,7 @@ class PlayerActivity : ComponentActivity() {
                                     "lock" -> if (cLocked) androidx.compose.ui.res.stringResource(R.string.plock_unlock)
                                               else androidx.compose.ui.res.stringResource(R.string.plock_lock)
                                     "fav" -> {
-                                        val sid = (liveServer ?: Tvh.store.active())?.id
+                                        val sid = (live.server ?: Tvh.store.active())?.id
                                         val isFav = sid != null && Favorites.isFav(this@PlayerActivity, sid, cCh.uuid)
                                         if (isFav) androidx.compose.ui.res.stringResource(R.string.fav_remove)
                                         else androidx.compose.ui.res.stringResource(R.string.fav_add)
@@ -1731,7 +1548,7 @@ class PlayerActivity : ComponentActivity() {
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(if (rowSel) selBg else Color.Transparent)
                                         .border(1.dp, if (rowSel) selBorder else Color(0x33FFFFFF), RoundedCornerShape(12.dp))
-                                        .clickable { ctxMenuSelState.value = i; activateCtxMenu(key) }
+                                        .clickable { ctxMenu.selState.value = i; ctxMenu.activate(key) }
                                         .padding(horizontal = 16.dp, vertical = 13.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
@@ -1817,20 +1634,20 @@ class PlayerActivity : ComponentActivity() {
                 }
             }
             // M430 / M628: kompaktny zap pas — cislo · kanal / program · cas / priebeh
-            if (zapBar.visible.value && !infoVisibleState.value) ZapBarOverlay(zapBar)
+            if (zapBar.visible.value && !info.visible.value) ZapBarOverlay(zapBar)
             // Info o relacii (detail) — overlay v style prehravaca (M630: ChannelInfoOverlay)
-            if (infoVisibleState.value) {
+            if (info.visible.value) {
                 ChannelInfoOverlay(
-                    channel = infoChannelState.value,
-                    title = infoTitleState.value,
-                    time = infoTimeState.value,
-                    desc = infoDescState.value,
+                    channel = info.channel.value,
+                    title = info.title.value,
+                    time = info.time.value,
+                    desc = info.desc.value,
                     recordLabel = if (dvrRecordVisible()) androidx.compose.ui.res.stringResource(
                         if (dvrExistingState.value != null) R.string.dvr_rec_cancel_button else R.string.dvr_rec_button
                     ) else null,
                     recordActive = dvrExistingState.value != null,
-                    recordSelected = infoRecSelState.value,
-                    onClose = { closeChannelInfo() },
+                    recordSelected = info.recSel.value,
+                    onClose = { info.close() },
                     onRecord = { toggleRecordCurrent() }
                 )
             }
@@ -1847,9 +1664,6 @@ class PlayerActivity : ComponentActivity() {
             togglePlayPause = { togglePlayPause() },
             close = { closeFromPip() })
     }
-    private val pipSupported: Boolean get() = pip.supported
-
-    private fun enterPipIfPossible(): Boolean = pip.enterIfPossible()
 
     /** Spusti PiP (okno plava nad plochou / inou appkou). M349-fix4: ziadny
      *  moveTaskToBack — presun tasku na pozadie hned po vstupe do PiP na
@@ -1860,11 +1674,11 @@ class PlayerActivity : ComponentActivity() {
         // M431-fix: BACK cez Compose BackHandler vola tuto funkciu priamo (mimo
         // closePlayer/autoPipIfPossible), takze radio brana musi byt aj tu —
         // inak radio konci v PiP okne. Handoff na pozadie / zatvorenie.
-        if (playKind == "radio") {
+        if (live.playKind == "radio") {
             if (!radioHandoffIfPossible()) finish()
             return
         }
-        enterPipIfPossible()
+        pip.enterIfPossible()
     }
 
     /**
@@ -1876,33 +1690,29 @@ class PlayerActivity : ComponentActivity() {
         // M431: radio do PiP nepatri (zvuk bez obrazu v okne). Namiesto PiP handoff
         // do RadioPlayerService (moderny rezim); v klasiku vrati false a volajuci
         // pokracuje bez PiP (zatvorenie/EPG) — povodne spravanie klasiku bez okna.
-        if (playKind == "radio") return radioHandoffIfPossible()
+        if (live.playKind == "radio") return radioHandoffIfPossible()
         return pip.autoEnterIfPossible()
     }
 
     // aktualizuj ikonu play/pauza v PiP podla skutocneho stavu prehravania
-    private fun refreshPipIfActive() { pip.refreshIfActive() }
 
     private fun closeFromPip() {
         LastPlayback.clear(this)
         finish()
     }
 
-    /** Zrusi naplanovane znovupripojenie a skryje indikator. */
-    private fun cancelReconnect() { reconnect.cancel() }
-
     /** In-progress nahravka dobehla na koniec zapisanych dat (EOF na rastucom HTTP subore).
      *  Po chvili (nech pribudne dalsi blok) znovu otvor stream a vrat sa na poziciu z
      *  prehravacich hodin (offset + prehrany cas relacie) - tak sa pokracuje do novsich dat.
      *  Backoff proti slucke ked nic nove nepribuda (ReconnectController); resetuje sa pri Playing evente. */
     private fun reopenDvrLive() {
-        if (!seekablePlayback || !dvrRecording) return
-        val url = currentStreamUrl ?: return
+        if (!seekablePlayback || !dvr.recording) return
+        val url = stream.currentStreamUrl ?: return
         if (!engine.ready) return
-        val offsetMs = if (dvrProgStartSec > 0 && dvrRealStartSec in 1 until dvrProgStartSec)
-            (dvrProgStartSec - dvrRealStartSec) * 1000 else 0L
+        val offsetMs = if (dvr.progStartSec > 0 && dvr.realStartSec in 1 until dvr.progStartSec)
+            (dvr.progStartSec - dvr.realStartSec) * 1000 else 0L
         // pozicia v subore = offset + prehrany cas relacie, par sekund vzad ako rezerva
-        val startSec = ((offsetMs + dvrPlayheadMsState.value) / 1000 - 3).coerceAtLeast(0)
+        val startSec = ((offsetMs + dvr.playheadMsState.value) / 1000 - 3).coerceAtLeast(0)
         reconnect.reopenDvrLive { opener.reopenDvrAt(url, startSec) }   // M670
     }
 
@@ -1932,8 +1742,8 @@ class PlayerActivity : ComponentActivity() {
             if (lifecycle.currentState < androidx.lifecycle.Lifecycle.State.STARTED &&
                 engine.ready
             ) {
-                runCatching { if (mediaPlayer.isPlaying) mediaPlayer.pause() }
-                runCatching { mediaPlayer.detachViews() }
+                runCatching { if (engine.player.isPlaying) engine.player.pause() }
+                runCatching { engine.player.detachViews() }
             }
         }
     }
@@ -1943,15 +1753,15 @@ class PlayerActivity : ComponentActivity() {
         BackgroundResume(this, engine, live, object : BackgroundResume.Hooks {
             override fun seekable(): Boolean = seekablePlayback
             override fun isTvDevice(): Boolean = this@PlayerActivity.isTvDevice()
-            override fun pinPromptShown(): Boolean = pinPromptState.value
+            override fun pinPromptShown(): Boolean = pin.promptState.value
             override fun inPip(): Boolean = inPipState.value
             override fun videoLayout(): VLCVideoLayout? = this@PlayerActivity.videoLayout
             override fun saveDvrProgress() { this@PlayerActivity.saveDvrProgress() }
             override fun teardownPlayerAsync() { this@PlayerActivity.teardownPlayerAsync() }
             override fun radioBackground(): Boolean = this@PlayerActivity.radioBackground()
             override fun radioHandoffIfPossible(): Boolean = this@PlayerActivity.radioHandoffIfPossible()
-            override fun recreatePlayer() { this@PlayerActivity.recreatePlayer() }
-            override fun replayCurrentLive() { this@PlayerActivity.replayCurrentLive() }
+            override fun recreatePlayer() { engine.recreate() }
+            override fun replayCurrentLive() { opener.replayCurrentLive() }
             override fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, channelIndex: Int) {
                 this@PlayerActivity.requestPin(onOk = onOk, onCancel = onCancel, channelIndex = channelIndex)
             }
@@ -1972,10 +1782,10 @@ class PlayerActivity : ComponentActivity() {
         // Na TV preto pri odchode z appky do PiP nevstupujeme; PiP na TV zostava len
         // vnutri appky (BACK -> miniatura nad TV programom).
         // M431: HOME pocas radia — ziadne PiP okno; v modernom rezime handoff na pozadie
-        if (playKind == "radio") { radioHandoffIfPossible(); return }
-        if (!isTvDevice() && AutoPipPref.get(this) && pipSupported && isPlayingState.value &&
+        if (live.playKind == "radio") { radioHandoffIfPossible(); return }
+        if (!isTvDevice() && AutoPipPref.get(this) && pip.supported && isPlayingState.value &&
             !(android.os.Build.VERSION.SDK_INT >= 24 && isInPictureInPictureMode)) {
-            enterPipIfPossible()
+            pip.enterIfPossible()
         }
     }
 
@@ -1985,43 +1795,39 @@ class PlayerActivity : ComponentActivity() {
         bg.onStopAfterSuper()
     }
 
-
     // ------------------------------------------------------------------
     // M539: vytvorenie prehravaca + obnova po zaseknutom zvukovom vystupe
     // ------------------------------------------------------------------
 
-    /** Vytvori LibVLC + MediaPlayer (VlcEngine.create). Volane z onCreate; recreate ide cez engine. */
-    private fun createPlayer() { engine.create() }
-
     // M650: udalosti libVLC v VlcEvents.kt (rovnaka instancia pre kazdy (znovu)vytvoreny prehravac)
     private val vlcEvents: VlcEvents by lazy {
         VlcEvents(
-            player = { if (!playerTornDown && engine.ready) mediaPlayer else null },
+            player = { if (!engine.tornDown && engine.ready) engine.player else null },
             seekable = { seekablePlayback },
-            dvrRecording = { dvrRecording },
-            htspStream = { htspStream },
-            dvrProgStopSec = { dvrProgStopSec },
+            dvrRecording = { dvr.recording },
+            htspStream = { stream.htspStream },
+            dvrProgStopSec = { dvr.progStopSec },
             actions = object : VlcEvents.Actions {
                 override fun scheduleReconnect() { this@PlayerActivity.scheduleReconnect() }
-                override fun cancelReconnect() { this@PlayerActivity.cancelReconnect() }
+                override fun cancelReconnect() { reconnect.cancel() }
                 override fun resetDvrReopen() { reconnect.resetDvrReopen() }
-                override fun hideReconnecting() { reconnectingState.value = false }
+                override fun hideReconnecting() { reconnect.reconnecting.value = false }
                 override fun reopenDvrLive() { this@PlayerActivity.reopenDvrLive() }
-                override fun recoverAfterSeek(): Boolean = this@PlayerActivity.recoverAfterSeek()
+                override fun recoverAfterSeek(): Boolean = dvrSeek.recoverAfterSeek()
                 override fun setPlaying(playing: Boolean) { isPlayingState.value = playing }
-                override fun refreshPipIfActive() { this@PlayerActivity.refreshPipIfActive() }
+                override fun refreshPipIfActive() { pip.refreshIfActive() }
                 override fun onPlayingForSeek() { dvrSeek.onPlaying() }
                 override fun onPlayingForStall() { stall.onPlaying() }
                 override fun applyPendingSpuRestore() { lifecycleScope.launch { this@PlayerActivity.applyPendingSpuRestore() } }
-                override fun applyDesiredSpu() { lifecycleScope.launch { this@PlayerActivity.applyDesiredSpu() } }
-                override fun maybeApplyAfr() { this@PlayerActivity.maybeApplyAfr() }
+                override fun applyDesiredSpu() { lifecycleScope.launch { tracks.applyDesiredSpu() } }
+                override fun maybeApplyAfr() { afr.apply() }
                 override fun keepScreenOn(on: Boolean) { this@PlayerActivity.keepScreenOn(on) }
                 override fun hideSeekSpinner() { this@PlayerActivity.hideSeekSpinner() }
-                override fun scheduleTrackRefresh() { this@PlayerActivity.scheduleTrackRefresh() }
+                override fun scheduleTrackRefresh() { tracks.scheduleRefresh() }
                 override fun maybeReparseForTracks() { this@PlayerActivity.maybeReparseForTracks() }
                 override fun bumpTrackList() { tracks.bumpListVersion() }
                 override fun saveDvrProgress() { this@PlayerActivity.saveDvrProgress() }
-                override fun onReachedEnd() { reachedEnd = true }
+                override fun onReachedEnd() { dvr.reachedEnd = true }
                 override fun showPlaybackError() {
                     Toast.makeText(this@PlayerActivity, getString(R.string.playback_error, "VLC"), Toast.LENGTH_LONG).show()
                 }
@@ -2031,69 +1837,52 @@ class PlayerActivity : ComponentActivity() {
     // M539 / M649: hlidac zaseknuteho zvukoveho vystupu v StallWatchdog.kt
     private val stall: StallWatchdog by lazy {
         StallWatchdog(this,
-            player = { if (!playerTornDown && engine.ready) mediaPlayer else null },
-            recreateAllowed = { !seekablePlayback && !reconnectingState.value },
-            onRecreate = { recreatePlayer(); replayCurrentLive() })
+            player = { if (!engine.tornDown && engine.ready) engine.player else null },
+            recreateAllowed = { !seekablePlayback && !reconnect.reconnecting.value },
+            onRecreate = { engine.recreate(); opener.replayCurrentLive() })
     }
-    private fun startStallWatch() { stall.start() }
-    private fun resetStallState() { stall.reset() }
-    /** Vystup nereaguje (zvuk sa pri prehravani nehybe) — stop() by zablokoval hlavne vlakno. */
-    private fun outputStalled(): Boolean = stall.outputStalled()
 
     /** Pred kazdym novym mediom: ak je vystup zaseknuty, vymen prehravac (bez cakania). */
     private fun ensureHealthyPlayer() {
         if (!engine.ready) return
-        if (!outputStalled()) return
+        if (!stall.outputStalled()) return
         CrashLogger.report(this, "PlayerActivity.stall", "media change on stalled output -> new player")
-        recreatePlayer()
+        engine.recreate()
     }
 
-    /** Vymeni libVLC + MediaPlayer za nove; stare uvolni na pracovnom vlakne (VlcEngine). */
-    private fun recreatePlayer() { engine.recreate() }
     /** M539-fix4: prve spustenie prehravania (onStart z VideoSurface) prebehlo. */
     internal var initialStartDone = false
-    private fun startPlayback() { engine.startPlayback() }
-
-    /** Znovu spusti aktualny zivy kanal tou istou cestou (HTSP / feeder / HTTP) — M670: StreamOpener. */
-    private fun replayCurrentLive() { opener.replayCurrentLive() }
 
     /** M535: stop/release libVLC na pracovnom vlakne (VlcEngine.teardownAsync); feedery a hlidac ako prve. */
     private fun teardownPlayerAsync() {
         engine.teardownAsync {
             stall.destroy()   // M539
-            htspFeeder?.stop(); htspFeeder = null
-            httpFeeder?.stop(); httpFeeder = null
+            stream.htspFeeder?.stop(); stream.htspFeeder = null
+            stream.httpFeeder?.stop(); stream.httpFeeder = null
         }
     }
 
     // --- Doplnenie stop po starte (audio jazyky / DVB titulky) ---
     // Pri prvom napojeni streamu libVLC este nema doparsovane doplnkove ES; jazyky audio
     // M637: obnova zoznamu stop po starte a jednorazovy re-parse v TrackState
-    private fun scheduleTrackRefresh() { tracks.scheduleRefresh() }
-    private fun cancelTrackRefresh() { tracks.cancelRefresh() }
     private fun maybeReparseForTracks() {
-        tracks.maybeReparse(htspStream = { htspStream }, seekable = { seekablePlayback }, reconnect = { scheduleReconnect() })
+        tracks.maybeReparse(htspStream = { stream.htspStream }, seekable = { seekablePlayback }, reconnect = { scheduleReconnect() })
     }
 
     // ---- M626: AFR (M346) a zamky streamu (M452) vyclenene do AfrController / StreamLocks ----
     private val afr: AfrController by lazy {
         AfrController(this, isTvBox,
-            player = { if (engine.ready && !playerTornDown) mediaPlayer else null },
+            player = { if (engine.ready && !engine.tornDown) engine.player else null },
             videoLayout = { videoLayout })
     }
     private val streamLocks: StreamLocks by lazy { StreamLocks(this, "HeadentClient:stream") }
 
-    private fun maybeApplyAfr() { afr.apply() }
-    private fun clearAfr() { afr.clear() }
-    private fun acquireStreamLocks() { streamLocks.acquire() }
-    private fun releaseStreamLocks() { streamLocks.release() }
-
     override fun onDestroy() {
         pip.destroy() // M578 session + receiver (M653)
         teletext.stopHttp()   // M552
-        releaseStreamLocks()  // M452
-        flushEpgPersist()     // M456
-        clearAfr()
+        streamLocks.release()  // M452
+        epg.flushEpgPersist()     // M456
+        afr.clear()
         zap.cancel()   // M407
         saveDvrProgress()
         super.onDestroy()
@@ -2104,7 +1893,7 @@ class PlayerActivity : ComponentActivity() {
         sleep.cancel()
         subOverlay?.stopTicker()   // zastav titulkovy ticker skor nez uvolnis mediaPlayer
         timeshift.destroy()
-        cancelTrackRefresh()
+        tracks.cancelRefresh()
         tracks.destroy()
         // M535: stop/release libVLC na pracovnom vlakne (bezne uz prebehlo v onStop
         // pri isFinishing; tu je poistka pre destroy bez predchadzajuceho stop,
