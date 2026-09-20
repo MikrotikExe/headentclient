@@ -51,7 +51,6 @@ import sk.tvhclient.shared.Tvh
  */
 class ZapBar(
     private val scope: CoroutineScope,
-    private val fmtRange: (Long, Long) -> String,
     private val suppressed: () -> Boolean
 ) {
     val visible = mutableStateOf(false)

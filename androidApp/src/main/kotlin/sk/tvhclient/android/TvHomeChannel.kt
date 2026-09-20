@@ -45,8 +45,7 @@ object TvHomeChannel {
 
     fun supported(ctx: Context): Boolean {
         if (android.os.Build.VERSION.SDK_INT < 26) return false
-        val um = ctx.getSystemService(Context.UI_MODE_SERVICE) as? android.app.UiModeManager
-        return um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
+        return isTvUiMode(ctx)   // M679
     }
 
     /**

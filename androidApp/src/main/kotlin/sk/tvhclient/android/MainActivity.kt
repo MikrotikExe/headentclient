@@ -122,8 +122,7 @@ class MainActivity : ComponentActivity() {
      *  Telefonov sa netyka — tam je PiP nad inymi appkami ziaduce. */
     override fun onStop() {
         super.onStop()
-        val isTv = (getSystemService(UI_MODE_SERVICE) as? android.app.UiModeManager)
-            ?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
+        val isTv = isTvUiMode(this)   // M679
         if (isTv && !isChangingConfigurations) {
             PlayerActivity.closeIfInPip()
         }
@@ -145,8 +144,7 @@ class MainActivity : ComponentActivity() {
     private fun maybeResumeLastPlayback(savedInstanceState: Bundle?) {
         if (savedInstanceState != null) return
         if (intent?.getBooleanExtra("open_epg", false) == true) return
-        val um = getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
-        if (um?.currentModeType != android.content.res.Configuration.UI_MODE_TYPE_TELEVISION) return
+        if (!isTvUiMode(this)) return   // M679
         if (!ResumeLastPref.get(this)) return
         // M496: len priprav poziadavku — vykona ju UI, ktore vie pockat na kanaly
         LastPlayback.prepareRestore(this, sk.tvhclient.shared.Tvh.store.active()?.id)
@@ -262,10 +260,7 @@ fun App() {
     // Ziadny server -> uvitacia obrazovka
     if (servers.isEmpty()) { WelcomeScreen(serversVm); return }
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val isTv = remember {
-        val um = ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
-        um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
-    }
+    val isTv = remember { isTvUiMode(ctx) }   // M679
     if (isTv) TvHomeHost() else AppMain()
 }
 
@@ -1180,10 +1175,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
     // M393: sekcia Dialkove ovladanie ma zmysel len na TV (zapina prijimac na boxe);
     // na telefone ju skryvame — telefon je ovladac, nie ovladane zariadenie.
     val ctxTvChk = androidx.compose.ui.platform.LocalContext.current
-    val isTvSettings = remember {
-        val um = ctxTvChk.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
-        um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
-    }
+    val isTvSettings = remember { isTvUiMode(ctxTvChk) }   // M679
     val effective = section ?: "general"
 
     // spolocny obsah sekcie (pouzity v sidebar aj drill-down rezime)

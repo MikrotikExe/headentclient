@@ -155,10 +155,7 @@ class PlayerActivity : ComponentActivity() {
             })
     }
 
-    private val isTvBox by lazy {
-        (getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager)
-            ?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
-    }
+    private val isTvBox by lazy { isTvUiMode(this) }   // M679
 
     /** Moderny overlay ma zmysel len na TV, v modernom rezime, pri zivom so zoznamom. */
     private fun modernTvActive(): Boolean =
@@ -440,10 +437,7 @@ class PlayerActivity : ComponentActivity() {
     // M473 / M669: currentEventId / currentLiveEvent / runningRecordingHere / currentEventRecording v DvrRecordController
 
     /** TV/box (Android TV) — na detekciu kde sa ma archivny vyber zobrazovat. */
-    private fun isTvDevice(): Boolean {
-        val um = getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
-        return um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
-    }
+    private fun isTvDevice(): Boolean = isTvUiMode(this)   // M679: DeviceKind.kt
 
     // ===== M657: jadro prepinania kanalov (selectChannelOrArchive, resolveArchiveChoice,
     // rememberPlayback, playRecordingFromStart, saveLastLive, switchToIndex) — ChannelSwitcher.kt
@@ -754,7 +748,6 @@ class PlayerActivity : ComponentActivity() {
     // ---- M430 / M628: kompaktny zap pas — stav aj vykreslenie v ZapBar.kt ----
     private val zapBar: ZapBar by lazy {
         ZapBar(lifecycleScope,
-            fmtRange = { a, b -> ChannelInfo.fmtRange(a, b) },
             suppressed = { controlsShown || modernOv.visible.value || info.visible.value })
     }
     private fun showZapBar() { zapBar.show(live.channelsState.value.getOrNull(live.indexState.value)) }
@@ -1966,10 +1959,7 @@ class PlayerActivity : ComponentActivity() {
 internal fun exitConfirmOnBack(pipSupported: Boolean, autoPipEnabled: Boolean): Boolean {
     if (!pipSupported) return true
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val isTvUi = remember {
-        (ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager)
-            ?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
-    }
+    val isTvUi = remember { isTvUiMode(ctx) }   // M679
     return isTvUi && !autoPipEnabled
 }
 
@@ -2176,10 +2166,7 @@ private fun PlayerUi(
     var brightPctState by remember { mutableStateOf(-1) }
     var scrubSecState by remember { mutableStateOf(Int.MIN_VALUE) }   // MIN_VALUE = skryte
     val ctxTvGest = androidx.compose.ui.platform.LocalContext.current
-    val isTvGest = remember {
-        val um = ctxTvGest.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
-        um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
-    }
+    val isTvGest = remember { isTvUiMode(ctxTvGest) }   // M679
     LaunchedEffect(volPctState) { if (volPctState >= 0) { kotlinx.coroutines.delay(700); volPctState = -1 } }
     LaunchedEffect(brightPctState) { if (brightPctState >= 0) { kotlinx.coroutines.delay(700); brightPctState = -1 } }
     LaunchedEffect(scrubSecState) { if (scrubSecState != Int.MIN_VALUE) { kotlinx.coroutines.delay(700); scrubSecState = Int.MIN_VALUE } }

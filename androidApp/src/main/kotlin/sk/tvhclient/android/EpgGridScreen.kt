@@ -472,10 +472,7 @@ fun EpgGridScreen(
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
     val gridFocus = remember { FocusRequester() }
     // Kurzorovy vyber (fialovy ramik) + D-pad maju zmysel len na TV; na dotyku (telefon/tablet) je zbytocny
-    val isTv = remember {
-        val um = context.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
-        um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
-    }
+    val isTv = remember { isTvUiMode(context) }   // M679
     val daysBack = EpgRangePref.backStateOf(context).value
     val daysForward = EpgRangePref.fwdStateOf(context).value
     var pendingCursorEdge by remember { mutableStateOf<DayJump?>(null) }

@@ -52,10 +52,7 @@ internal fun TrackMenu(
     // M385: zvyraznenie riadka je D-pad fokus — ma zmysel len na TV. Na telefone
     // (dotyk) inak trvalo svieti vrchny riadok menu (Zvuk / Titulky / Stream profil).
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val isTvDevice = remember {
-        val um = ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
-        um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
-    }
+    val isTvDevice = remember { isTvUiMode(ctx) }   // M679
     val nav = if (isTvDevice) navIndex else -1
     // TV D-pad: drz zvyrazneny riadok vo vyhlade pri posuvani
     LaunchedEffect(nav) {
@@ -259,18 +256,7 @@ internal fun playerControlOrder(canZap: Boolean, seekable: Boolean = false, pip:
     add("sleep")
 }
 
-internal fun fmtMs(ms: Long): String {
-    if (ms <= 0) return "0:00"
-    val totalSec = ms / 1000
-    val h = totalSec / 3600
-    val m = (totalSec % 3600) / 60
-    val s = totalSec % 60
-    return if (h > 0) {
-        "$h:" + m.toString().padStart(2, '0') + ":" + s.toString().padStart(2, '0')
-    } else {
-        "$m:" + s.toString().padStart(2, '0')
-    }
-}
+// M679: fmtMs presunute do UiTime.kt (spolu s fmtClock/fmtRange)
 
 /**
  * M563: spotrebuje vsetky dotykove udalosti (aj tahanie), aby gesta prehravaca pod

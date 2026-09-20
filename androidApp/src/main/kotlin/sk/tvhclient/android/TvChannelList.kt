@@ -111,8 +111,6 @@ internal fun TvChannelListOverlay(
     val nowT = liveNowSec
     val curT = epgT.firstOrNull { it.start <= nowT && nowT < it.stop }
     val nextT = epgT.filter { it.start >= nowT }.sortedBy { it.start }.take(4)
-    fun hhmm(s: Long): String =
-        java.text.SimpleDateFormat(sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault()).format(java.util.Date(s * 1000))
     val dateStr = java.text.SimpleDateFormat("EEEE d. MMMM", java.util.Locale.getDefault())
         .format(java.util.Date(nowT * 1000)).replaceFirstChar { it.uppercase() }
     val accentC = playerAccent()
@@ -232,7 +230,7 @@ internal fun TvChannelListOverlay(
                 )
                 Spacer(Modifier.width(12.dp))
             }
-            Text(hhmm(nowT), color = playerFg(),
+            Text(fmtClock(nowT), color = playerFg(),
                 style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         }
         Row(Modifier.fillMaxWidth().weight(1f)) {
@@ -400,7 +398,7 @@ internal fun TvChannelListOverlay(
                     }
                 }
                 if (curT != null)
-                    Text(hhmm(curT.start) + " – " + hhmm(curT.stop), color = accentC,
+                    Text(fmtClock(curT.start) + " – " + fmtClock(curT.stop), color = accentC,
                         style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(top = 4.dp))
                 // nahlad: zive video hraneho kanala — VLC povrch presvita cez dieru v scrime
@@ -427,7 +425,7 @@ internal fun TvChannelListOverlay(
                     Spacer(Modifier.height(12.dp))
                     nextT.forEach { ev ->
                         Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                            Text(hhmm(ev.start), color = accentC,
+                            Text(fmtClock(ev.start), color = accentC,
                                 style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.width(58.dp))
                             Text(ev.title, color = playerFg(), style = MaterialTheme.typography.bodyMedium,

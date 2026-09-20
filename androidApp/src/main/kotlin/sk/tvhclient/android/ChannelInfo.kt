@@ -6,12 +6,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import sk.tvhclient.shared.TimeFormatConfig
 import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.model.EpgEvent
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /**
  * M643: info o relácii (detail) v prehrávači — stav, načítanie a klávesy, vyclenené
@@ -91,12 +87,5 @@ internal class ChannelInfo(
         return true
     }
 
-    companion object {
-        fun fmtClock(s: Long): String =
-            if (s <= 0) "" else SimpleDateFormat(TimeFormatConfig.hm, Locale.getDefault()).format(Date(s * 1000))
-        fun fmtRange(a: Long, b: Long): String {
-            val sa = fmtClock(a); val sb = fmtClock(b)
-            return if (sa.isNotBlank() && sb.isNotBlank()) "$sa - $sb" else sa
-        }
-    }
+    // M679: fmtClock/fmtRange su v UiTime.kt (spolocne pre prehravac aj zoznamy)
 }

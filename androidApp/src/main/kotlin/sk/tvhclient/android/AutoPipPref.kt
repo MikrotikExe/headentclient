@@ -15,14 +15,9 @@ object AutoPipPref {
     private const val PREFS = "app_prefs"
     private const val KEY = "auto_pip"
 
-    private fun isTv(context: Context): Boolean {
-        val um = context.getSystemService(Context.UI_MODE_SERVICE) as? android.app.UiModeManager
-        return um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
-    }
-
     fun get(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY, !isTv(context))
+            .getBoolean(KEY, !isTvUiMode(context))   // M679
 
     fun set(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

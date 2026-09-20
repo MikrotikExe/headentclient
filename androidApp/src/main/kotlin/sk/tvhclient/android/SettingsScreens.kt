@@ -669,10 +669,7 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
     }
 
     // Predvolene otacanie obrazovky v prehravaci — na TV/STB nema zmysel, skry
-    val isTvDev = remember {
-        val um = ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
-        um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
-    }
+    val isTvDev = remember { isTvUiMode(ctx) }   // M679
     SettingsGroup(stringResource(R.string.set_grp_video)) {
     // M447: vynutene softverove dekodovanie — zachrana pre zariadenia
     // s pokazenym HW dekoderom (Mi Box S a 10-bit HEVC).

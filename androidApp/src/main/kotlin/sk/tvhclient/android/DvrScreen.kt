@@ -859,7 +859,7 @@ private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int) {
             if (info != null && !info.completed && info.posMs > 0) {
                 Spacer(Modifier.height(3.dp))
                 Text(
-                    stringResource(R.string.dvr_resume_at, fmtPos(info.posMs)),
+                    stringResource(R.string.dvr_resume_at, fmtMs(info.posMs)   // M679: UiTime.kt),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     maxLines = 1
@@ -877,15 +877,6 @@ private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int) {
         Text("\u25B6", Modifier.padding(start = 8.dp),
             color = MaterialTheme.colorScheme.primary)
     }
-}
-
-private fun fmtPos(ms: Long): String {
-    val totalSec = ms / 1000
-    val h = totalSec / 3600
-    val m = (totalSec % 3600) / 60
-    val s = totalSec % 60
-    return if (h > 0) "$h:" + m.toString().padStart(2, '0') + ":" + s.toString().padStart(2, '0')
-    else "$m:" + s.toString().padStart(2, '0')
 }
 
 @Composable

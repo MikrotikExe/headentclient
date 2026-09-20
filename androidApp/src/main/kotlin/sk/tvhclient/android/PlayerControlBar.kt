@@ -135,10 +135,7 @@ internal fun PlayerControlsOverlay(
             val order = playerControlOrder(onPrevChannel != null, seekable, pipButton, timeshiftEngaged, profileSwitch,
                 dvrActivity?.dvrRecordVisible() == true, dvrActivity?.teletextVisible() == true)
             // fokusove zvyraznenie len na TV (D-pad); na telefone (dotyk) ziadne "vybrate" tlacidlo
-            val isTvDevice = remember {
-                val um = ctx.getSystemService(android.content.Context.UI_MODE_SERVICE) as? android.app.UiModeManager
-                um?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
-            }
+            val isTvDevice = remember { isTvUiMode(ctx) }   // M679
             val selCtrl = if (isTvDevice) order.getOrNull(controlNavIndex) else null
             val curCh = liveChannels.getOrNull(liveCurrentIndex)
             val infoLoader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
