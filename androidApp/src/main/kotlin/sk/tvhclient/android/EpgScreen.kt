@@ -77,7 +77,7 @@ fun EpgScreen(channelUuid: String, channelName: String, onBack: () -> Unit) {
             }
             state = EpgState.Loaded(events)
         } catch (e: Exception) {
-            state = EpgState.Error(e.message ?: "Chyba")
+            state = EpgState.Error(e.message ?: "Error")
         }
     }
 

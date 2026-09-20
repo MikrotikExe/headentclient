@@ -1040,18 +1040,18 @@ private fun FolderCard(
 @Composable
 private fun subLabel(key: String): String {
     val resId = when (key) {
-        DvrClassifier.MV_AKCNY -> R.string.sub_mv_akcny
-        DvrClassifier.MV_KOMEDIA -> R.string.sub_mv_komedia
-        DvrClassifier.MV_KRIMI -> R.string.sub_mv_krimi
+        DvrClassifier.MV_ACTION -> R.string.sub_mv_action
+        DvrClassifier.MV_COMEDY -> R.string.sub_mv_comedy
+        DvrClassifier.MV_CRIME -> R.string.sub_mv_crime
         DvrClassifier.MV_DRAMA -> R.string.sub_mv_drama
         DvrClassifier.MV_SCIFI -> R.string.sub_mv_scifi
-        DvrClassifier.MV_ROMANTIKA -> R.string.sub_mv_romantika
-        DvrClassifier.MV_HOROR -> R.string.sub_mv_horor
-        DvrClassifier.MV_DOBRODR -> R.string.sub_mv_dobrodruzny
-        DvrClassifier.MV_ANIMAK -> R.string.sub_mv_animovany
-        DvrClassifier.MV_HISTORICKY -> R.string.sub_mv_historicky
+        DvrClassifier.MV_ROMANCE -> R.string.sub_mv_romance
+        DvrClassifier.MV_HORROR -> R.string.sub_mv_horror
+        DvrClassifier.MV_ADVENTURE -> R.string.sub_mv_adventure
+        DvrClassifier.MV_ANIMATED -> R.string.sub_mv_animated
+        DvrClassifier.MV_HISTORICAL -> R.string.sub_mv_historical
         DvrClassifier.MV_WESTERN -> R.string.sub_mv_western
-        DvrClassifier.MV_INE -> R.string.sub_mv_ine
+        DvrClassifier.MV_OTHER -> R.string.sub_mv_other
         DvrClassifier.SP_FUTBAL -> R.string.sub_sp_futbal
         DvrClassifier.SP_HOKEJ -> R.string.sub_sp_hokej
         DvrClassifier.SP_BASKETBAL -> R.string.sub_sp_basketbal
@@ -1067,40 +1067,40 @@ private fun subLabel(key: String): String {
         DvrClassifier.SP_NEWS -> R.string.sub_sp_news
         DvrClassifier.NW_HLAVNE -> R.string.sub_nw_hlavne
         DvrClassifier.NW_POLITIKA -> R.string.sub_nw_politika
-        DvrClassifier.NW_KRIMI -> R.string.sub_nw_krimi
+        DvrClassifier.NW_CRIME -> R.string.sub_nw_crime
         DvrClassifier.NW_MAGAZINY -> R.string.sub_nw_magaziny
         DvrClassifier.NW_POCASIE -> R.string.sub_nw_pocasie
-        DvrClassifier.NW_INE -> R.string.sub_nw_ine
+        DvrClassifier.NW_OTHER -> R.string.sub_nw_other
         DvrClassifier.SH_REALITY -> R.string.sub_sh_reality
         DvrClassifier.SH_TALK -> R.string.sub_sh_talk
         DvrClassifier.SH_SUTAZ -> R.string.sub_sh_sutaz
         DvrClassifier.SH_KUCHARSKE -> R.string.sub_sh_kucharske
         DvrClassifier.SH_ZABAVA -> R.string.sub_sh_zabava
         DvrClassifier.SH_MAGAZINY -> R.string.sub_sh_magaziny
-        DvrClassifier.SH_INE -> R.string.sub_sh_ine
-        DvrClassifier.CH_ANIMAK -> R.string.sub_ch_animak
+        DvrClassifier.SH_OTHER -> R.string.sub_sh_other
+        DvrClassifier.CH_ANIMATED -> R.string.sub_ch_animated
         DvrClassifier.CH_ROZPRAVKY -> R.string.sub_ch_rozpravky
         DvrClassifier.CH_VZDELAVAC -> R.string.sub_ch_vzdelavac
-        DvrClassifier.CH_FILMY -> R.string.sub_ch_filmy
-        DvrClassifier.CH_INE -> R.string.sub_ch_ine
+        DvrClassifier.CH_MOVIES -> R.string.sub_ch_movies
+        DvrClassifier.CH_OTHER -> R.string.sub_ch_other
         DvrClassifier.MU_KLASIKA -> R.string.sub_mu_klasika
         DvrClassifier.MU_KONCERT -> R.string.sub_mu_koncert
         DvrClassifier.MU_HITY -> R.string.sub_mu_hity
         DvrClassifier.MU_FOLK -> R.string.sub_mu_folk
         DvrClassifier.MU_MAGAZINY -> R.string.sub_mu_magaziny
-        DvrClassifier.MU_INE -> R.string.sub_mu_ine
+        DvrClassifier.MU_OTHER -> R.string.sub_mu_other
         DvrClassifier.AR_DIVADLO -> R.string.sub_ar_divadlo
         DvrClassifier.AR_VYTVARNE -> R.string.sub_ar_vytvarne
         DvrClassifier.AR_LITERATURA -> R.string.sub_ar_literatura
-        DvrClassifier.AR_FILM -> R.string.sub_ar_film
-        DvrClassifier.AR_INE -> R.string.sub_ar_ine
+        DvrClassifier.AR_MOVIE -> R.string.sub_ar_movie
+        DvrClassifier.AR_OTHER -> R.string.sub_ar_other
         DvrClassifier.DC_PRIRODA -> R.string.sub_dc_priroda
         DvrClassifier.DC_HISTORIA -> R.string.sub_dc_historia
         DvrClassifier.DC_VEDA -> R.string.sub_dc_veda
         DvrClassifier.DC_CESTOPIS -> R.string.sub_dc_cestopis
         DvrClassifier.DC_OSOBNOSTI -> R.string.sub_dc_osobnosti
         DvrClassifier.DC_SPOLOCNOST -> R.string.sub_dc_spolocnost
-        DvrClassifier.DC_INE -> R.string.sub_dc_ine
+        DvrClassifier.DC_OTHER -> R.string.sub_dc_other
         DvrClassifier.HB_ZAHRADA -> R.string.sub_hb_zahrada
         DvrClassifier.HB_BYVANIE -> R.string.sub_hb_byvanie
         DvrClassifier.HB_VARENIE -> R.string.sub_hb_varenie
@@ -1108,8 +1108,8 @@ private fun subLabel(key: String): String {
         DvrClassifier.HB_CESTOVANIE -> R.string.sub_hb_cestovanie
         DvrClassifier.HB_ZDRAVIE -> R.string.sub_hb_zdravie
         DvrClassifier.HB_DIY -> R.string.sub_hb_diy
-        DvrClassifier.HB_INE -> R.string.sub_hb_ine
-        else -> R.string.sub_mv_ine
+        DvrClassifier.HB_OTHER -> R.string.sub_hb_other
+        else -> R.string.sub_mv_other
     }
     return stringResource(resId)
 }
@@ -1849,7 +1849,7 @@ private fun ArcDetail(f: DvrEntry) {
 private fun catLabel(key: String): String {
     val resId = when (key) {
         DvrClassifier.FILM -> R.string.cat_film
-        DvrClassifier.SERIAL -> R.string.cat_serial
+        DvrClassifier.SERIAL -> R.string.cat_series
         DvrClassifier.SPORT -> R.string.cat_sport
         DvrClassifier.NEWS -> R.string.cat_news
         DvrClassifier.SHOW -> R.string.cat_show

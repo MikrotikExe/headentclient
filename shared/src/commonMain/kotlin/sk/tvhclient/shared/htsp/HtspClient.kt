@@ -108,7 +108,7 @@ class HtspClient(
                 aSocket(sel).tcp().connect(host, port)
             } ?: run {
                 sel.close()
-                throw IllegalStateException("port $port nedostupný (timeout) — je HTSP forwardnutý?")
+                throw IllegalStateException("port $port unreachable (timeout) — is HTSP forwarded?")
             }
             socket = s
             read = s.openReadChannel()
@@ -118,11 +118,11 @@ class HtspClient(
                 auth()
             } ?: run {
                 close()
-                throw IllegalStateException("HTSP handshake timeout (odpovedá port HTSP serverom?)")
+                throw IllegalStateException("HTSP handshake timeout (is an HTSP server answering on that port?)")
             }
             if (!ok) {
                 close()
-                throw IllegalStateException("HTSP autentifikácia zlyhala")
+                throw IllegalStateException("HTSP authentication failed")
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
             // Cancelled during connecting (the app is shutting down) — we tidy up the socket cleanly,
@@ -172,7 +172,7 @@ class HtspClient(
         // error — throw an exception (the connection will be re-established) instead of trying to
         // allocate a huge array, which used to crash the app (OutOfMemoryError).
         if (len < 0 || len > MAX_MSG_LEN) {
-            throw IllegalStateException("HTSP: neplatna dlzka spravy=$len (poskodeny stream)")
+            throw IllegalStateException("HTSP: invalid message length=$len (corrupted stream)")
         }
         val body = if (len > 0) r.readByteArray(len.toInt()) else ByteArray(0)
         // Protection: parsing corrupted data (e.g. leftovers from an old connection on a
@@ -181,9 +181,9 @@ class HtspClient(
         return try {
             Htsmsg.deserializeMap(body)
         } catch (e: OutOfMemoryError) {
-            throw IllegalStateException("HTSP: poskodena sprava (OOM pri parsovani)")
+            throw IllegalStateException("HTSP: corrupted message (OOM while parsing)")
         } catch (e: Exception) {
-            throw IllegalStateException("HTSP: chyba parsovania spravy: ${e.message}")
+            throw IllegalStateException("HTSP: message parsing error: ${e.message}")
         }
     }
 
@@ -198,7 +198,7 @@ class HtspClient(
             val m = recv()
             if ((m["seq"] as? Long)?.toInt() == s) return m
         }
-        throw IllegalStateException("HTSP: nedorazila odpoveď seq=$s")
+        throw IllegalStateException("HTSP: no reply arrived for seq=$s")
     }
 
     private suspend fun hello() {

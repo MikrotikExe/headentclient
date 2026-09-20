@@ -1,4 +1,4 @@
-name: Release (tag -> APK na GitHub Release)
+name: Release (tag -> APK on GitHub Release)
 
 # M402: when a v* tag is pushed, CI builds a SIGNED release APK and publishes
 # a GitHub Release with the attachment and its sha256. Manual run: workflow_dispatch
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existujuci tag (napr. v1.0.0)'
+        description: 'Existing tag (e.g. v1.0.0)'
         required: true
 
 permissions:
@@ -37,7 +37,7 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Set up Android SDK (sdkmanager na PATH)
+      - name: Set up Android SDK (sdkmanager on PATH)
         uses: android-actions/setup-android@v3
         with:
           # M615: by default the action tries to install the `tools` package, which
@@ -46,27 +46,27 @@ jobs:
           # needs; the action accepts the licenses itself.
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
 
-      - name: Set up signing (z GitHub secrets)
+      - name: Set up signing (from GitHub secrets)
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "Chyba KEYSTORE_BASE64 secret — release musi byt podpisany produkcnym klucom." >&2
+            echo "Missing KEYSTORE_BASE64 secret — the release must be signed with the production key." >&2
             exit 1
           fi
           echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
           printf 'storeFile=keystore.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
 
-      - name: Build release APK (splity)
+      - name: Build release APK (splits)
         run: |
           gradle :androidApp:assembleRelease
           # move the splits aside, the next build uses the same output directory
           mkdir -p /tmp/rel-apks
           cp androidApp/build/outputs/apk/release/*.apk /tmp/rel-apks/
 
-      - name: Build release APK (univerzalny, samostatne)
+      - name: Build release APK (universal, separately)
         run: |
           gradle :androidApp:assembleRelease -PuniversalApk
           cp androidApp/build/outputs/apk/release/androidApp-release.apk /tmp/rel-apks/ 2>/dev/null \
@@ -75,7 +75,7 @@ jobs:
           # M544: mapping.txt for the release build (the splits and the universal APK share the same code)
           cp androidApp/build/outputs/mapping/release/mapping.txt "mapping-${REL_TAG#v}.txt" || true
 
-      - name: Priprav artefakty (nazov + sha256)
+      - name: Prepare artifacts (name + sha256)
         run: |
           # M424: assembleRelease produces several APKs (one per ABI + the universal one).
           # Previously this was "ls | head -1", which alphabetically picked arm64 and threw the rest away
@@ -86,7 +86,7 @@ jobs:
           FOUND=0
           for APK in "$DIR"/*.apk; do
             [ -e "$APK" ] || continue
-            case "$APK" in *unsigned*) echo "APK je NEPODPISANE — skontroluj signing secrets" >&2; exit 1;; esac
+            case "$APK" in *unsigned*) echo "APK is UNSIGNED — check the signing secrets" >&2; exit 1;; esac
             case "$(basename "$APK")" in
               *universal*)    OUT="HeadentClient-$VER-universal.apk" ;;
               *arm64-v8a*)    OUT="HeadentClient-$VER-arm64-v8a.apk" ;;
@@ -98,7 +98,7 @@ jobs:
             echo "-> $OUT ($(du -h "$OUT" | cut -f1))"
             FOUND=$((FOUND+1))
           done
-          if [ "$FOUND" -eq 0 ]; then echo "Release APK sa nenasiel" >&2; exit 1; fi
+          if [ "$FOUND" -eq 0 ]; then echo "Release APK not found" >&2; exit 1; fi
           # A safeguard against the same bug coming back. The release must be installable
           # on both 32-bit and 64-bit, which holds when either the universal APK exists, or
           # both splits do. The second case happens on a manual run over an older
@@ -106,12 +106,12 @@ jobs:
           if [ ! -f "HeadentClient-$VER-universal.apk" ] &&
              { [ ! -f "HeadentClient-$VER-arm64-v8a.apk" ] ||
                [ ! -f "HeadentClient-$VER-armeabi-v7a.apk" ]; }; then
-            echo "Vydanie by pokrylo len jednu architekturu — zastavene" >&2
+            echo "The release would cover only one architecture — stopped" >&2
             exit 1
           fi
           cat HeadentClient-*.apk.sha256
 
-      - name: Poznamky k vydaniu
+      - name: Release notes
         id: notes
         run: |
           if [ -f ".github/release-notes/${REL_TAG}.md" ]; then
@@ -121,7 +121,7 @@ jobs:
             echo "path=/tmp/auto-notes.md" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Publikuj GitHub Release
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.REL_TAG }}

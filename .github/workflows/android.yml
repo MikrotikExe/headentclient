@@ -26,7 +26,7 @@ jobs:
         with:
           gradle-version: '9.5.0'
 
-      - name: Set up Android SDK (sdkmanager na PATH)
+      - name: Set up Android SDK (sdkmanager on PATH)
         uses: android-actions/setup-android@v3
         with:
           # M615: by default the action tries to install the `tools` package, which
@@ -35,7 +35,7 @@ jobs:
           # needs; the action accepts the licenses itself.
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
 
-      - name: Set up signing (z GitHub secrets)
+      - name: Set up signing (from GitHub secrets)
         if: ${{ env.KEYSTORE_BASE64 != '' }}
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -58,7 +58,7 @@ jobs:
           set +e
           gradle :shared:testAndroidHostTest
           rc=$?
-          echo "==== vysledky testov ===="
+          echo "==== test results ===="
           find shared/build -path "*test-results*" -name "TEST-*.xml" | while read f; do
             grep -h -E "<testsuite " "$f" | sed "s/ timestamp=.*//"
             grep -h -E "<failure" "$f" | head -10
@@ -79,7 +79,7 @@ jobs:
             androidApp/build/outputs/apk/debug/*-arm64-v8a-*.apk
             androidApp/build/outputs/apk/debug/*-armeabi-v7a-*.apk
 
-      - name: Build release APK (R8, na test na zariadeni)
+      - name: Build release APK (R8, for on-device testing)
         run: gradle :androidApp:assembleRelease
       - name: Upload release APK
         uses: actions/upload-artifact@v5
@@ -90,7 +90,7 @@ jobs:
             androidApp/build/outputs/apk/release/*-arm64-v8a-*.apk
             androidApp/build/outputs/apk/release/*-armeabi-v7a-*.apk
 
-      - name: Build release AAB (pre Google Play)
+      - name: Build release AAB (for Google Play)
         run: gradle :androidApp:bundleRelease
       - name: Upload AAB
         uses: actions/upload-artifact@v5

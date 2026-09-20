@@ -21,7 +21,7 @@ class TsMuxerTimingTest {
 
     private fun parse(ts: ByteArray): Parsed {
         val out = Parsed()
-        assertEquals(0, ts.size % 188, "TS musi byt nasobok 188 B")
+        assertEquals(0, ts.size % 188, "TS must be a multiple of 188 B")
         var off = 0
         while (off + 188 <= ts.size) {
             val p = ts.copyOfRange(off, off + 188)
@@ -87,10 +87,10 @@ class TsMuxerTimingTest {
             dts += 3_600L
         }
         val parsed = parse(all)
-        assertTrue(parsed.pcr.isNotEmpty(), "video snimky musia niest PCR")
-        assertTrue(parsed.pcr.all { it.second > 0L }, "PCR sa nesmie orezat na 0 (M659): ${parsed.pcr.take(5)}")
+        assertTrue(parsed.pcr.isNotEmpty(), "video frames must carry PCR")
+        assertTrue(parsed.pcr.all { it.second > 0L }, "PCR must not be clamped to 0 (M659): ${parsed.pcr.take(5)}")
         var last = -1L
-        for ((_, v) in parsed.pcr) { assertTrue(v >= last, "PCR musi byt neklesajuce"); last = v }
+        for ((_, v) in parsed.pcr) { assertTrue(v >= last, "PCR must be non-decreasing"); last = v }
     }
 
     @Test
@@ -103,7 +103,7 @@ class TsMuxerTimingTest {
         val audio = parsed.pes.first { it.pid == 0x1002 }
         val video = parsed.pes.first { it.pid == 0x1001 }
         assertNotNull(video.dts)
-        assertTrue(video.dts!! > 0L, "video DTS pred prvym audiom sa nesmie orezat na 0")
+        assertTrue(video.dts!! > 0L, "video DTS before the first audio must not be clamped to 0")
         // the difference between the audio PTS and the video DTS must stay at 10 000 ticks, as on the input
         assertEquals(10_000L, audio.pts!! - video.dts!!)
         assertEquals(7_200L, video.pts!! - video.dts!!)
@@ -145,15 +145,15 @@ class TsMuxerTimingTest {
         var audioOnly = ByteArray(0)
         for (i in 0 until 80) { audioOnly += m.mux(2, es, pts = apts, dts = null, randomAccess = false); apts += 2_160L }
         val stall = parse(audioOnly)
-        assertTrue(stall.pcr.isNotEmpty(), "pocas vypadku videa musia ist PCR-only pakety")
+        assertTrue(stall.pcr.isNotEmpty(), "PCR-only packets must be sent while video is stalled")
         assertTrue(stall.pcr.all { it.first == 0x1001 }, "PCR ostava na povodnom PCR PID (video)")
         var last = lastVideoPcr
-        for ((_, v) in stall.pcr) { assertTrue(v >= last, "PCR musi rast aj bez videa: $last -> $v"); last = v }
+        for ((_, v) in stall.pcr) { assertTrue(v >= last, "PCR must keep rising even without video: $last -> $v"); last = v }
         // the spacing of the PCR-only packets is ~250 ms, not on every audio packet
         assertTrue(stall.pcr.size in 5..12, "PCR-only paketov: ${stall.pcr.size}")
         // video returns: the PCR does not go backwards
         val resumed = parse(m.mux(1, es, pts = apts + 7_200L, dts = apts, randomAccess = true))
-        assertTrue(resumed.pcr.first().second >= last, "PCR po navrate videa nesmie ist dozadu")
+        assertTrue(resumed.pcr.first().second >= last, "PCR must not go backwards after video returns")
     }
 
     /** M674: a PCR-only packet = just an adaptation field, without a payload; it does not change the CC of the video track. */

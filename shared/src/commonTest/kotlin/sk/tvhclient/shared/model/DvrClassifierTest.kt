@@ -24,83 +24,83 @@ class DvrClassifierTest {
     // --- classify(): the DVB content_type takes priority ---
 
     @Test
-    fun film_z_dvb_nibble() {
+    fun filmFromDvbNibble() {
         assertEquals(DvrClassifier.FILM, DvrClassifier.classify(entry(title = "Hocico", contentType = 1)))
     }
 
     @Test
-    fun sport_z_dvb_nibble() {
-        assertEquals(DvrClassifier.SPORT, DvrClassifier.classify(entry(title = "Zapas", contentType = 4)))
+    fun sportFromDvbNibble() {
+        assertEquals(DvrClassifier.SPORT, DvrClassifier.classify(entry(title = "Match", contentType = 4)))
     }
 
     @Test
-    fun news_z_dvb_nibble() {
+    fun newsFromDvbNibble() {
         assertEquals(DvrClassifier.NEWS, DvrClassifier.classify(entry(title = "Bulletin", contentType = 2)))
     }
 
     @Test
-    fun dokument_z_dvb_nibble() {
-        assertEquals(DvrClassifier.DOCUMENTARY, DvrClassifier.classify(entry(title = "Nieco", contentType = 9)))
+    fun documentaryFromDvbNibble() {
+        assertEquals(DvrClassifier.DOCUMENTARY, DvrClassifier.classify(entry(title = "Something", contentType = 9)))
     }
 
     @Test
-    fun plny_dvb_bajt_sa_normalizuje_na_nibble() {
+    fun fullDvbByteIsNormalizedToNibble() {
         // 0x41 = 65 -> /16 = 4 -> SPORT
-        assertEquals(DvrClassifier.SPORT, DvrClassifier.classify(entry(title = "Zapas", contentType = 0x41)))
+        assertEquals(DvrClassifier.SPORT, DvrClassifier.classify(entry(title = "Match", contentType = 0x41)))
     }
 
     // --- classify(): series based on the subtitle / episode suffix ---
 
     @Test
-    fun serial_podla_podnazvu_cislo_lomka() {
+    fun seriesFromSubtitleNumberSlash() {
         assertEquals(DvrClassifier.SERIAL, DvrClassifier.classify(entry(title = "Otec Brown", subtitle = "3/12")))
     }
 
     @Test
-    fun serial_podla_epizodneho_sufixu() {
+    fun seriesFromEpisodeSuffix() {
         assertEquals(DvrClassifier.SERIAL, DvrClassifier.classify(entry(title = "Otec Brown IV (1)")))
     }
 
     // --- classify(): channel hint ---
 
     @Test
-    fun detsky_kanal() {
+    fun childrenChannel() {
         assertEquals(DvrClassifier.CHILDREN, DvrClassifier.classify(entry(title = "Program", channel = "Disney Channel")))
     }
 
     @Test
-    fun dokument_kanal_pri_neznamom_zanri() {
+    fun documentaryChannelWithUnknownGenre() {
         assertEquals(DvrClassifier.DOCUMENTARY, DvrClassifier.classify(entry(title = "Program", channel = "National Geographic")))
     }
 
     // --- classify(): fallback based on keywords ---
 
     @Test
-    fun sport_podla_klucoveho_slova() {
+    fun sportFromKeyword() {
         assertEquals(DvrClassifier.SPORT, DvrClassifier.classify(entry(title = "Futbal: Slovan - Trnava")))
     }
 
     // --- classify(): film based on the year in the title and on a movie channel ---
 
     @Test
-    fun film_podla_roku_v_nazve() {
+    fun filmFromYearInTitle() {
         assertEquals(DvrClassifier.FILM, DvrClassifier.classify(entry(title = "Matrix (1999)")))
     }
 
     @Test
-    fun film_podla_filmoveho_kanala() {
-        assertEquals(DvrClassifier.FILM, DvrClassifier.classify(entry(title = "Akcny trhak", channel = "HBO")))
+    fun filmFromMovieChannel() {
+        assertEquals(DvrClassifier.FILM, DvrClassifier.classify(entry(title = "Action blockbuster", channel = "HBO")))
     }
 
     @Test
-    fun neznamy_program_je_other() {
-        assertEquals(DvrClassifier.OTHER, DvrClassifier.classify(entry(title = "Testovaci program", channel = "Test kanal")))
+    fun unknownProgrammeIsOther() {
+        assertEquals(DvrClassifier.OTHER, DvrClassifier.classify(entry(title = "Test programme", channel = "Test Channel")))
     }
 
     // --- isSeriesLike: films/sport/other are not grouped ---
 
     @Test
-    fun isSeriesLike_spravne() {
+    fun isSeriesLikeIsCorrect() {
         assertFalse(DvrClassifier.isSeriesLike(DvrClassifier.FILM))
         assertFalse(DvrClassifier.isSeriesLike(DvrClassifier.SPORT))
         assertFalse(DvrClassifier.isSeriesLike(DvrClassifier.OTHER))
@@ -112,24 +112,24 @@ class DvrClassifierTest {
     // --- seriesCanonicalTitle: removes the episode suffix, keeps the year ---
 
     @Test
-    fun kanonicky_nazov_odstrani_epizodu() {
+    fun canonicalTitleStripsEpisode() {
         assertEquals("Otec Brown IV", DvrClassifier.seriesCanonicalTitle("Otec Brown IV (1)"))
     }
 
     @Test
-    fun kanonicky_nazov_necha_rok() {
+    fun canonicalTitleKeepsYear() {
         assertEquals("Matrix (1999)", DvrClassifier.seriesCanonicalTitle("Matrix (1999)"))
     }
 
     @Test
-    fun kanonicky_nazov_bulletinu_zostane() {
+    fun canonicalTitleKeepsBulletin() {
         assertEquals("TV Noviny", DvrClassifier.seriesCanonicalTitle("TV Noviny"))
     }
 
     // --- order: 11 categories, FILM first, OTHER last ---
 
     @Test
-    fun poradie_kategorii() {
+    fun categoryOrder() {
         assertEquals(11, DvrClassifier.order.size)
         assertEquals(DvrClassifier.FILM, DvrClassifier.order.first())
         assertEquals(DvrClassifier.OTHER, DvrClassifier.order.last())

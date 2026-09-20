@@ -44,23 +44,23 @@ object ImdbLookup {
     private val cache = HashMap<String, Res?>()
 
     private val genreToSub: Map<String, String> = mapOf(
-        "Action" to DvrClassifier.MV_AKCNY,
-        "Adventure" to DvrClassifier.MV_DOBRODR,
-        "Animation" to DvrClassifier.MV_ANIMAK,
-        "Biography" to DvrClassifier.MV_HISTORICKY,
-        "Comedy" to DvrClassifier.MV_KOMEDIA,
-        "Crime" to DvrClassifier.MV_KRIMI,
+        "Action" to DvrClassifier.MV_ACTION,
+        "Adventure" to DvrClassifier.MV_ADVENTURE,
+        "Animation" to DvrClassifier.MV_ANIMATED,
+        "Biography" to DvrClassifier.MV_HISTORICAL,
+        "Comedy" to DvrClassifier.MV_COMEDY,
+        "Crime" to DvrClassifier.MV_CRIME,
         "Drama" to DvrClassifier.MV_DRAMA,
-        "Family" to DvrClassifier.MV_DOBRODR,
+        "Family" to DvrClassifier.MV_ADVENTURE,
         "Fantasy" to DvrClassifier.MV_SCIFI,
-        "Film-Noir" to DvrClassifier.MV_KRIMI,
-        "History" to DvrClassifier.MV_HISTORICKY,
-        "Horror" to DvrClassifier.MV_HOROR,
-        "Mystery" to DvrClassifier.MV_KRIMI,
-        "Romance" to DvrClassifier.MV_ROMANTIKA,
+        "Film-Noir" to DvrClassifier.MV_CRIME,
+        "History" to DvrClassifier.MV_HISTORICAL,
+        "Horror" to DvrClassifier.MV_HORROR,
+        "Mystery" to DvrClassifier.MV_CRIME,
+        "Romance" to DvrClassifier.MV_ROMANCE,
         "Sci-Fi" to DvrClassifier.MV_SCIFI,
-        "Thriller" to DvrClassifier.MV_KRIMI,
-        "War" to DvrClassifier.MV_HISTORICKY,
+        "Thriller" to DvrClassifier.MV_CRIME,
+        "War" to DvrClassifier.MV_HISTORICAL,
         "Western" to DvrClassifier.MV_WESTERN
     )
 

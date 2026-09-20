@@ -35,7 +35,7 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
             val id = (r["id"] as? Long)?.toString() ?: (r["id"] as? String)
             return DvrResult(true, id = id)
         }
-        return DvrResult.fail((r["error"] as? String) ?: "Server odmietol požiadavku")
+        return DvrResult.fail((r["error"] as? String) ?: "The server rejected the request")
     }
 
     override suspend fun access(): DvrAccess = try {
@@ -71,12 +71,12 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
     } catch (e: Throwable) { DvrResult.fail(e.message) }
 
     override suspend fun cancel(id: String): DvrResult = try {
-        val n = id.toLongOrNull() ?: return DvrResult.fail("Neplatné ID nahrávky")
+        val n = id.toLongOrNull() ?: return DvrResult.fail("Invalid recording ID")
         withClient { c -> reply(c.recvReply(c.send("cancelDvrEntry", mapOf("id" to n)))) }
     } catch (e: Throwable) { DvrResult.fail(e.message) }
 
     override suspend fun delete(id: String): DvrResult = try {
-        val n = id.toLongOrNull() ?: return DvrResult.fail("Neplatné ID nahrávky")
+        val n = id.toLongOrNull() ?: return DvrResult.fail("Invalid recording ID")
         withClient { c -> reply(c.recvReply(c.send("deleteDvrEntry", mapOf("id" to n)))) }
     } catch (e: Throwable) { DvrResult.fail(e.message) }
 }

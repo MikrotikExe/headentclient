@@ -106,16 +106,16 @@ internal fun mgChipFor(key: String): MgChipColors = when (key) {
 
 /** The sub-genre's own icon (M328); null = the parent category's icon is used. */
 internal fun mgSubIcon(k: String): androidx.compose.ui.graphics.vector.ImageVector? = when (k) {
-    sk.tvhclient.shared.model.DvrClassifier.MV_AKCNY -> Icons.Filled.LocalFireDepartment
-    sk.tvhclient.shared.model.DvrClassifier.MV_KOMEDIA -> Icons.Filled.TheaterComedy
-    sk.tvhclient.shared.model.DvrClassifier.MV_KRIMI -> Icons.Filled.LocalPolice
+    sk.tvhclient.shared.model.DvrClassifier.MV_ACTION -> Icons.Filled.LocalFireDepartment
+    sk.tvhclient.shared.model.DvrClassifier.MV_COMEDY -> Icons.Filled.TheaterComedy
+    sk.tvhclient.shared.model.DvrClassifier.MV_CRIME -> Icons.Filled.LocalPolice
     sk.tvhclient.shared.model.DvrClassifier.MV_DRAMA -> Icons.Filled.Theaters
     sk.tvhclient.shared.model.DvrClassifier.MV_SCIFI -> Icons.Filled.RocketLaunch
-    sk.tvhclient.shared.model.DvrClassifier.MV_ROMANTIKA -> Icons.Filled.Favorite
-    sk.tvhclient.shared.model.DvrClassifier.MV_HOROR -> Icons.Filled.DarkMode
-    sk.tvhclient.shared.model.DvrClassifier.MV_DOBRODR -> Icons.Filled.Explore
-    sk.tvhclient.shared.model.DvrClassifier.MV_ANIMAK -> Icons.Filled.Animation
-    sk.tvhclient.shared.model.DvrClassifier.MV_HISTORICKY -> Icons.Filled.AccountBalance
+    sk.tvhclient.shared.model.DvrClassifier.MV_ROMANCE -> Icons.Filled.Favorite
+    sk.tvhclient.shared.model.DvrClassifier.MV_HORROR -> Icons.Filled.DarkMode
+    sk.tvhclient.shared.model.DvrClassifier.MV_ADVENTURE -> Icons.Filled.Explore
+    sk.tvhclient.shared.model.DvrClassifier.MV_ANIMATED -> Icons.Filled.Animation
+    sk.tvhclient.shared.model.DvrClassifier.MV_HISTORICAL -> Icons.Filled.AccountBalance
     sk.tvhclient.shared.model.DvrClassifier.MV_WESTERN -> Icons.Filled.Landscape
     sk.tvhclient.shared.model.DvrClassifier.SP_FUTBAL -> Icons.Filled.SportsSoccer
     sk.tvhclient.shared.model.DvrClassifier.SP_HOKEJ -> Icons.Filled.SportsHockey
@@ -132,7 +132,7 @@ internal fun mgSubIcon(k: String): androidx.compose.ui.graphics.vector.ImageVect
     sk.tvhclient.shared.model.DvrClassifier.SP_NEWS -> Icons.Filled.Newspaper
     sk.tvhclient.shared.model.DvrClassifier.NW_HLAVNE -> Icons.Filled.Newspaper
     sk.tvhclient.shared.model.DvrClassifier.NW_POLITIKA -> Icons.Filled.Gavel
-    sk.tvhclient.shared.model.DvrClassifier.NW_KRIMI -> Icons.Filled.LocalPolice
+    sk.tvhclient.shared.model.DvrClassifier.NW_CRIME -> Icons.Filled.LocalPolice
     sk.tvhclient.shared.model.DvrClassifier.NW_MAGAZINY -> Icons.Filled.Article
     sk.tvhclient.shared.model.DvrClassifier.NW_POCASIE -> Icons.Filled.WbSunny
     sk.tvhclient.shared.model.DvrClassifier.SH_REALITY -> Icons.Filled.Videocam
@@ -141,10 +141,10 @@ internal fun mgSubIcon(k: String): androidx.compose.ui.graphics.vector.ImageVect
     sk.tvhclient.shared.model.DvrClassifier.SH_KUCHARSKE -> Icons.Filled.Restaurant
     sk.tvhclient.shared.model.DvrClassifier.SH_ZABAVA -> Icons.Filled.Celebration
     sk.tvhclient.shared.model.DvrClassifier.SH_MAGAZINY -> Icons.Filled.Article
-    sk.tvhclient.shared.model.DvrClassifier.CH_ANIMAK -> Icons.Filled.Animation
+    sk.tvhclient.shared.model.DvrClassifier.CH_ANIMATED -> Icons.Filled.Animation
     sk.tvhclient.shared.model.DvrClassifier.CH_ROZPRAVKY -> Icons.Filled.AutoStories
     sk.tvhclient.shared.model.DvrClassifier.CH_VZDELAVAC -> Icons.Filled.School
-    sk.tvhclient.shared.model.DvrClassifier.CH_FILMY -> Icons.Filled.Movie
+    sk.tvhclient.shared.model.DvrClassifier.CH_MOVIES -> Icons.Filled.Movie
     sk.tvhclient.shared.model.DvrClassifier.MU_KLASIKA -> Icons.Filled.Piano
     sk.tvhclient.shared.model.DvrClassifier.MU_KONCERT -> Icons.Filled.Mic
     sk.tvhclient.shared.model.DvrClassifier.MU_HITY -> Icons.Filled.Star
@@ -153,7 +153,7 @@ internal fun mgSubIcon(k: String): androidx.compose.ui.graphics.vector.ImageVect
     sk.tvhclient.shared.model.DvrClassifier.AR_DIVADLO -> Icons.Filled.TheaterComedy
     sk.tvhclient.shared.model.DvrClassifier.AR_VYTVARNE -> Icons.Filled.Palette
     sk.tvhclient.shared.model.DvrClassifier.AR_LITERATURA -> Icons.Filled.MenuBook
-    sk.tvhclient.shared.model.DvrClassifier.AR_FILM -> Icons.Filled.Movie
+    sk.tvhclient.shared.model.DvrClassifier.AR_MOVIE -> Icons.Filled.Movie
     sk.tvhclient.shared.model.DvrClassifier.DC_PRIRODA -> Icons.Filled.Forest
     sk.tvhclient.shared.model.DvrClassifier.DC_HISTORIA -> Icons.Filled.AccountBalance
     sk.tvhclient.shared.model.DvrClassifier.DC_VEDA -> Icons.Filled.Science

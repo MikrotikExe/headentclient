@@ -2,12 +2,12 @@ import SwiftUI
 import Shared
 import MobileVLCKit
 
-/// VLCKit prehravac pre live stream. Na rozdiel od AVPlayer zvlada raw
-/// MPEG-TS cez HTTP vratane MPEG-2 videa a MP2/AC3 zvuku — co je vacsina
-/// DVB-S/T2 kanalov. Server nemusi transkodovat (pass profil).
+/// VLCKit player for the live stream. Unlike AVPlayer it handles raw
+/// MPEG-TS over HTTP including MPEG-2 video and MP2/AC3 audio — which is most
+/// DVB-S/T2 channels. The server does not have to transcode (pass profile).
 ///
-/// Auth: credentials vlozene priamo do URL (user:pass@host) — VLCKit ich
-/// z URL pouzije. Pre plain aj digest funguje cez libvlc HTTP stack.
+/// Auth: credentials put straight into the URL (user:pass@host) — VLCKit takes
+/// them from the URL. Works for both plain and digest via the libvlc HTTP stack.
 struct PlayerView: UIViewRepresentable {
     let urlString: String
 
@@ -38,7 +38,7 @@ struct PlayerView: UIViewRepresentable {
     }
 }
 
-/// Obrazovka prehravaca — fullscreen, s nazvom kanalu.
+/// Player screen — fullscreen, with the channel name.
 struct PlayerScreen: View {
     let channelUuid: String
     let channelTitle: String
@@ -46,7 +46,7 @@ struct PlayerScreen: View {
 
     private var streamUrl: String? {
         guard let server = Tvh.shared.store.active() else { return nil }
-        // liveUrl s creds v URL (pre VLCKit)
+        // liveUrl with creds in the URL (for VLCKit)
         return Tvh.shared.liveUrl(
             server: server,
             channelUuid: channelUuid,

@@ -119,13 +119,13 @@ class HtsmsgTest {
         val out = rt(
             mapOf(
                 "channelId" to 12L,
-                "channelName" to "Markíza",
+                "channelName" to "Tést Chännel",
                 "channelNumber" to 3L,
                 "tags" to listOf(1L, 4L)
             )
         )
         assertEquals(12L, out["channelId"])
-        assertEquals("Markíza", out["channelName"])
+        assertEquals("Tést Chännel", out["channelName"])
         assertEquals(3L, out["channelNumber"])
         assertEquals(listOf<Any?>(1L, 4L), out["tags"])
     }

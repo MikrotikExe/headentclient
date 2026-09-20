@@ -54,9 +54,9 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
     } catch (e: Throwable) { DvrResult.fail(e.message) }
 
     private fun httpMessage(code: Int): String = when (code) {
-        403 -> "Používateľ nemá právo nahrávať"
-        401 -> "Neplatné prihlasovacie údaje"
-        404 -> "Server túto funkciu nepodporuje"
-        else -> "Server odpovedal chybou $code"
+        403 -> "User is not allowed to record"
+        401 -> "Invalid credentials"
+        404 -> "The server does not support this function"
+        else -> "The server replied with error $code"
     }
 }
