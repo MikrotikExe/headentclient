@@ -53,9 +53,22 @@ jobs:
       # uloha sa NEvola testDebugUnitTest — ten plugin nema varianty debug/release.
       # allTests je standardny KMP agregat (na Linuxe iOS ulohy sam preskoci); ak by aj ten
       # nesedel, vypiseme zoznam dostupnych testovacich uloh do logu.
+      # M660-fix2: krok nikdy nezhodi build a VZDY vypise, co sa stalo — zoznam testov
+      # s vysledkami z XML reportov a zoznam dostupnych testovacich uloh (kvoli nazvom
+      # uloh v KMP android kniznici). Podla toho sa uprav na konkretnu ulohu.
       - name: Shared unit tests
         continue-on-error: true
-        run: gradle :shared:allTests || gradle :shared:tasks --all --console=plain | grep -i -E "test|check"
+        run: |
+          set +e
+          gradle :shared:allTests --continue
+          echo "==== vysledky testov (XML reporty) ===="
+          find shared/build -path "*test-results*" -name "TEST-*.xml" | while read f; do
+            echo "-- $f"
+            grep -h -E "<testsuite |<testcase |<failure" "$f" | sed "s/<properties>.*//" | head -40
+          done
+          echo "==== dostupne testovacie ulohy ===="
+          gradle :shared:tasks --all --console=plain | grep -i -E "test" | head -40
+          exit 0
       - name: Upload debug APK
         uses: actions/upload-artifact@v5
         with:
