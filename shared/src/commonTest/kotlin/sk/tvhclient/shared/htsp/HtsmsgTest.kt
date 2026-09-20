@@ -5,13 +5,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Testy binárnej HTSMSG serializácie (Htsmsg).
- * Formát poľa: [typ:1][nameLen:1][dataLen:4 BE] + name + data.
- * Správa: [bodyLen:4 BE] + telo. deserializeMap berie telo BEZ prefixu.
+ * Tests of the binary HTSMSG serialization (Htsmsg).
+ * Field format: [type:1][nameLen:1][dataLen:4 BE] + name + data.
+ * Message: [bodyLen:4 BE] + body. deserializeMap takes the body WITHOUT the prefix.
  */
 class HtsmsgTest {
 
-    /** serialize() -> odstráň 4-bajtový prefix -> deserializeMap(). */
+    /** serialize() -> strip the 4-byte prefix -> deserializeMap(). */
     private fun rt(m: Map<String, Any?>): Map<String, Any?> {
         val bytes = Htsmsg.serialize(m)
         return Htsmsg.deserializeMap(bytes.copyOfRange(4, bytes.size))
@@ -24,7 +24,7 @@ class HtsmsgTest {
 
     @Test
     fun longRoundTrip() {
-        // jednobajtové aj viacbajtové hodnoty (little-endian min bytes)
+        // both single-byte and multi-byte values (little-endian minimum bytes)
         assertEquals(1L, rt(mapOf("v" to 1L))["v"])
         assertEquals(256L, rt(mapOf("v" to 256L))["v"])
         assertEquals(1718000000L, rt(mapOf("start" to 1718000000L))["start"])
@@ -37,7 +37,7 @@ class HtsmsgTest {
 
     @Test
     fun intComesBackAsLong() {
-        // S64 sa vždy deserializuje ako Long
+        // S64 is always deserialized as a Long
         assertEquals(42L, rt(mapOf("i" to 42))["i"])
     }
 
@@ -51,7 +51,7 @@ class HtsmsgTest {
     fun byteArrayRoundTrip() {
         val bin = byteArrayOf(0x01, 0x7F, 0x00, 0xFF.toByte(), 0x10)
         val out = rt(mapOf("chal" to bin))["chal"]
-        // M673: BIN sa deserializuje ako usek tela spravy (Htsmsg.Bin), bez kopie
+        // M673: BIN is deserialized as a slice of the message body (Htsmsg.Bin), without a copy
         assertTrue(out is Htsmsg.Bin)
         assertTrue(bin.contentEquals(out.toByteArray()))
     }
@@ -103,19 +103,19 @@ class HtsmsgTest {
 
     @Test
     fun truncatedHeaderDoesNotThrow() {
-        // príliš krátke na hlavičku poľa -> prázdna mapa, žiadny pád
+        // too short for a field header -> an empty map, no crash
         assertTrue(Htsmsg.deserializeMap(byteArrayOf(3, 1, 0)).isEmpty())
     }
 
     @Test
     fun declaredLengthBeyondBufferDoesNotThrow() {
-        // dataLen tvrdí 9 bajtov, ale nasleduje len 1 -> break, prázdna mapa
+        // dataLen claims 9 bytes, but only 1 follows -> break, an empty map
         assertTrue(Htsmsg.deserializeMap(byteArrayOf(3, 1, 0, 0, 0, 9, 97)).isEmpty())
     }
 
     @Test
     fun realisticChannelMessage() {
-        // ako reálny HTSP channelAdd -> mapovanie v HtspData (longOf/strOf)
+        // like a real HTSP channelAdd -> mapping in HtspData (longOf/strOf)
         val out = rt(
             mapOf(
                 "channelId" to 12L,

@@ -11,34 +11,34 @@ import sk.tvhclient.shared.model.TvhServer
 import sk.tvhclient.shared.currentTimeSeconds
 
 /**
- * HTSP dátový zdroj: pripojí sa cez 9982, stiahne metadáta (enableAsyncMetadata)
- * a namapuje HTSP polia na modely appky (rovnaké ako z HTTP /api). Mapovanie
- * prebraté z pluginu (_htsp_api.py). Jednoduchá TTL cache podľa servera, aby
- * sa nepripájalo pri každej karte.
+ * HTSP data source: connects over 9982, downloads the metadata (enableAsyncMetadata)
+ * and maps the HTSP fields onto the app's models (the same ones as from HTTP /api). The mapping is
+ * taken over from the plugin (_htsp_api.py). A simple TTL cache per server, so that
+ * it does not connect for every card.
  *
- * Streaming a picony ostávajú HTTP (HTSP tu rieši len dáta).
+ * Streaming and picons stay on HTTP (HTSP only handles data here).
  */
 object HtspData {
-    /** M550-fix: posledna chyba per-kanaloveho getEvents (inak sa potichu preskakuje) —
-     *  appka si ju vie vypytat a zapisat do diagnostickeho logu. */
+    /** M550-fix: the last error of a per-channel getEvents (otherwise it is silently skipped) —
+     *  the app can ask for it and write it into the diagnostic log. */
     var lastEpgError: String? = null
-    /** M551-fix: koľko kanálov pri poslednom epgUpcomingMap zlyhalo (getEvents vyhodilo výnimku). */
+    /** M551-fix: how many channels failed in the last epgUpcomingMap (getEvents threw an exception). */
     @kotlin.concurrent.Volatile var lastEpgFailed: Int = 0
-    /** M551-fix2: kanály, pre ktoré getEvents nevrátilo žiadnu aktuálnu/nasledujúcu udalosť. */
+    /** M551-fix2: channels for which getEvents returned no current/next event. */
     @kotlin.concurrent.Volatile var lastEpgEmpty: List<Long> = emptyList()
     /**
-     * M595: pocet BEZIACICH HTSP prenosov (zivy kanal / timeshift). Tvheadend ma
-     * na pouzivatela limit spojeni (bezne 1); ked appka pocas prehravania otvori
-     * DRUHE spojenie (now/next, denny program, archiv), server ho odmietne —
-     * „multiple connections are not allowed for user X (limit 1…)" — a v horsom
-     * pripade zhodi to, ktore prehrava. Pouzivatel to vidi tak, ze sa mu kanal
-     * alebo nahravka po chvili zastavi. Kym prenos bezi, doplnkove HTSP dotazy
-     * sa preto preskocia a pouzije sa to, co uz mame v cache.
+     * M595: the number of RUNNING HTSP streams (live channel / timeshift). Tvheadend has
+     * a per-user connection limit (usually 1); when the app opens a SECOND connection
+     * during playback (now/next, daily programme, archive), the server refuses it —
+     * "multiple connections are not allowed for user X (limit 1…)" — and in the worse
+     * case it drops the one that is playing. The user sees it as the channel
+     * or the recording stopping after a while. So while a stream is running, supplementary HTSP
+     * queries are skipped and whatever we already have in the cache is used.
      */
     @kotlin.concurrent.Volatile private var streamCount: Int = 0
     val streaming: Boolean get() = streamCount > 0
-    /** M603: posledny epgUpcomingMap sa PRESKOCIL, lebo bezal prenos (vratil len cache).
-     *  Volajuci to nema brat ako neuplne EPG — nelogovat, neopakovat, nic nezlyhalo. */
+    /** M603: the last epgUpcomingMap was SKIPPED because a stream was running (it only returned the cache).
+     *  The caller must not take this as an incomplete EPG — do not log, do not retry, nothing failed. */
     @kotlin.concurrent.Volatile var lastEpgSkipped: Boolean = false
     fun streamStarted() { streamCount++ }
     fun streamStopped() { if (streamCount > 0) streamCount-- }
@@ -47,13 +47,13 @@ object HtspData {
         lastEpgError = (e::class.simpleName ?: "Throwable") + ": " + (e.message ?: "")
     }
 
-    /** M471: prava z posledneho HTSP spojenia (accessUpdate), prelozene do
-     *  spolocneho tvaru pre UI. */
+    /** M471: rights from the last HTSP connection (accessUpdate), translated into
+     *  the common shape for the UI. */
 
     /**
-     * M476: zoznam stream profilov cez HTSP (`getProfiles`, HTSPv16+).
-     * Doteraz sa profily citali len cez HTTP API — na cistom HTSP pripojeni
-     * (otvoreny len port 9982) tak zoznam nebol dostupny vobec.
+     * M476: the list of stream profiles over HTSP (`getProfiles`, HTSPv16+).
+     * Until now the profiles were read only over the HTTP API — on a pure HTSP connection
+     * (only port 9982 open) the list was thus not available at all.
      */
     suspend fun streamProfiles(server: TvhServer): List<String> = runCatching {
         val c = connectWithRetry(server)   // M621
@@ -71,9 +71,9 @@ object HtspData {
     }.getOrDefault(emptyList())
 
     /**
-     * M486: DVR profily (konfiguracie nahravania) cez HTSP `getDvrConfigs`.
-     * Vracia dvojice uuid/nazov; prazdny nazov ma predvoleny profil servera.
-     * Chyba = prazdny zoznam, volajuci potom ponuku profilu nezobrazi.
+     * M486: DVR profiles (recording configurations) over HTSP `getDvrConfigs`.
+     * Returns uuid/name pairs; the server's default profile has an empty name.
+     * An error = an empty list, and the caller then does not show the profile picker.
      */
     suspend fun dvrConfigs(server: TvhServer): List<sk.tvhclient.shared.api.DvrConfig> = runCatching {
         val c = connectWithRetry(server)   // M621
@@ -109,55 +109,55 @@ object HtspData {
         if (c != null && nowSec - c.ts < ttl && (!withEpg || c.withEpg)) {
             return c.meta
         }
-        // M595: pocas prehravania neotvarat druhe spojenie — radsej starsia cache
+        // M595: do not open a second connection during playback — an older cache is preferable
         if (streaming && c != null && (!withEpg || c.withEpg)) return c.meta
-        // M621: aj metadata (kanaly, DVR, archiv) idu cez connectWithRetry. Doteraz
-        // mala opakovanie a zalohu na zapamatanu IP len cesta now/next (M581), takze
-        // vypadok DNS pri prepnuti siete zhodil zoznam kanalov aj archiv na prvy pokus
-        // (UnresolvedAddressException v zazname), hoci appka IP servera poznala.
+        // M621: metadata (channels, DVR, archive) goes through connectWithRetry too. Until now
+        // only the now/next path had retries and the fallback to the remembered IP (M581), so
+        // a DNS outage when switching networks took down the channel list and the archive on the first attempt
+        // (UnresolvedAddressException in the log), even though the app knew the server's IP.
         val client = connectWithRetry(server)
         val meta = try {
             client.fetchMetadata(withEpg = withEpg, epgMaxDays = epgMaxDays, nowSec = nowSec)
         } catch (e: kotlinx.coroutines.CancellationException) {
-            // Appka sa ukoncuje pocas nacitavania — socket ZATVOR CISTO (NonCancellable,
-            // inak visi a FinalizerWatchdog zhodi appku pri dalsom spusteni), a
-            // znovu vyhod zrusenie (coroutine sa ma korektne ukoncit).
+            // The app is shutting down during loading — CLOSE the socket CLEANLY (NonCancellable,
+            // otherwise it hangs and FinalizerWatchdog crashes the app on the next start), and
+            // rethrow the cancellation (the coroutine is supposed to terminate correctly).
             withContext(NonCancellable) { client.close() }
             throw e
         } catch (e: Throwable) {
-            // Ina chyba (napr. poskodene data z rozsynchronizovaneho spojenia pri
-            // rychlom restarte). NEZHADZUJEME appku — ak mame stare cache data,
-            // vratime ich; inak vyhodime chybu, aby volajuci skusil znovu.
-            // NEUKLADAME prazdne do cache (inak by dalsie spustenie ukazalo prazdno).
+            // A different error (e.g. corrupted data from a desynchronized connection on a
+            // fast restart). WE DO NOT CRASH the app — if we have old cache data,
+            // we return it; otherwise we throw the error so the caller tries again.
+            // WE DO NOT STORE an empty result in the cache (otherwise the next start would show nothing).
             withContext(NonCancellable) { client.close() }
             c?.meta?.let { return it }
             throw e
         } finally {
-            // Poistka: socket zatvor cisto aj pri normalnom dobehu / zruseni.
+            // Safety net: close the socket cleanly on a normal finish / cancellation too.
             withContext(NonCancellable) { client.close() }
         }
-        // Kompletne data (dokonceny sync) -> uloz do cache a vrat.
+        // Complete data (finished sync) -> store in the cache and return.
         if (meta.syncDone && meta.channels.isNotEmpty()) {
             cache[key] = Cache(nowSec, meta, withEpg)
             return meta
         }
-        // Nekompletne (napr. prerusene ukoncenim appky pocas nacitavania):
-        // ak mame stare kompletne cache data, radsej vratime tie; inak vratime
-        // co je (aspon ciastocne) a NEcachujeme, nech dalsie spustenie stiahne znovu.
+        // Incomplete (e.g. interrupted by the app shutting down during loading):
+        // if we have old complete cache data, we would rather return that; otherwise we return
+        // what there is (at least partial) and DO NOT cache it, so the next start downloads it again.
         return c?.meta ?: meta
     }
 
-    /** M581-fix: posledna funkcna IP podla mena servera (host -> ip, cas). */
+    /** M581-fix: the last working IP by server name (host -> ip, time). */
     private val hostIp = HashMap<String, Pair<String, Long>>()
 
     private fun isIpLiteral(h: String): Boolean =
         h.all { it.isDigit() || it == '.' } || h.contains(':')
 
     /**
-     * M581: pripojenie s opakovanim. Na mobilnej sieti (LTE) obcas zlyha DNS preklad mena
-     * servera (UnresolvedAddressException) — a nie len na sekundu. Kazdy pokus ide najprv
-     * cez meno; ked zlyha a mame zapamatanu IP z predosleho uspesneho spojenia (M581-fix,
-     * platna 6 h), skusi sa rovno IP. Tri kola: 0 s, 1 s, 3 s.
+     * M581: connecting with retries. On a mobile network (LTE) the DNS resolution of the server's
+     * name occasionally fails (UnresolvedAddressException) — and not just for a second. Every attempt goes
+     * through the name first; when that fails and we have a remembered IP from a previous successful connection
+     * (M581-fix, valid for 6 h), the IP is tried directly. Three rounds: 0 s, 1 s, 3 s.
      */
     internal suspend fun connectWithRetry(server: TvhServer): HtspClient {
         var last: Throwable? = null
@@ -172,7 +172,7 @@ object HtspData {
                 try {
                     c.connect()
                     if (h == server.host && !isIpLiteral(h)) {
-                        // spojenie cez meno preslo -> zapamataj IP na horsie casy
+                        // the connection via the name went through -> remember the IP for worse times
                         withContext(Dispatchers.Default) { sk.tvhclient.shared.net.resolveHostBlocking(h) }
                             ?.let { hostIp[h] = it to nowMs }
                     }
@@ -185,30 +185,30 @@ object HtspData {
         throw last ?: IllegalStateException("connect failed")
     }
 
-    /** now/next mapa: pre kazdy kanal aktualne beziaci program. Cez getEvents
-     *  na jednom otvorenom spojeni — async dump je tu nepouzitelny, lebo
-     *  posiela najprv tisice DVR zaznamov a eventy sa nestihnu. */
-    /** Mapa kanal -> zoznam nadchadzajucich relacii (aktualna + dalsie).
-     *  Zoznam umozni klientovi prepnut na dalsiu relaciu bez noveho stahovania. */
+    /** now/next map: for each channel the currently running programme. Via getEvents
+     *  on a single open connection — the async dump is unusable here, because it
+     *  first sends thousands of DVR entries and the events do not make it in time. */
+    /** Map channel -> list of upcoming programmes (the current one + the following ones).
+     *  The list lets the client switch to the next programme without a new download. */
     suspend fun epgUpcomingMap(server: TvhServer, nowSec: Long): Map<String, List<EpgEvent>> {
         val nc = nowCache[server.id]
         lastEpgSkipped = false
         if (nc != null && nowSec - nc.ts < 600) return nc.map
-        // M595: kym bezi prenos, now/next nepytame — druhe spojenie by server s
-        // limitom 1 odmietol a mohol by zhodit aj prehravanie. Vrati sa cache
-        // (aj starsia nez 10 min); dotiahne sa po skonceni prehravania.
-        // M603: preskocenie NIE je chyba — pocitadla sa vynuluju a nastavi sa
-        // lastEpgSkipped, inak volajuci (prehravac, zoznam kanalov) zapisoval do
-        // zaznamu „EPG incomplete: 0/497" a kazdych 20 s to skusal znova.
+        // M595: while a stream is running we do not ask for now/next — a server with
+        // a limit of 1 would refuse the second connection and could take down playback too. The cache
+        // is returned (even one older than 10 min); it is fetched once playback ends.
+        // M603: a skip is NOT an error — the counters are zeroed and
+        // lastEpgSkipped is set, otherwise the caller (player, channel list) wrote
+        // "EPG incomplete: 0/497" into the log and retried it every 20 s.
         if (streaming) {
             lastEpgSkipped = true
             lastEpgFailed = 0
             lastEpgEmpty = emptyList()
             return nc?.map ?: emptyMap()
         }
-        // M572: pocitadla plati vzdy len pre prave bezhiace kolo — ked kolo skoncilo
-        // vynimkou (napr. nedostupny server), v zazname sa inak zopakovalo cislo
-        // zo starsieho kola ("0 ok, failed=552")
+        // M572: the counters always apply only to the round currently running — when a round ended
+        // with an exception (e.g. an unreachable server), the log otherwise repeated the number
+        // from an older round ("0 ok, failed=552")
         lastEpgFailed = 0
         lastEpgEmpty = emptyList()
         val meta = metadata(server, withEpg = false, nowSec = nowSec)
@@ -218,18 +218,18 @@ object HtspData {
         val out = HashMap<String, List<EpgEvent>>()
         var failed = 0
         val empty = ArrayList<Long>()
-        // M572: now/next ide po jednom spojeni cez stovky getEvents. Ked spojenie
-        // medzitym umre (Broken pipe / server odpoji klienta), doterajsi kod isiel
-        // dalej a kazdy zvysny kanal len pripocital chybu — v zazname to vyzeralo
-        // ako "failed=552". Teraz sa po troch chybach za sebou spojenie obnovi
-        // (najviac dvakrat) a ked sa obnovit neda, kolo sa ukonci hned.
+        // M572: now/next goes over one connection through hundreds of getEvents. When the connection
+        // dies in the meantime (Broken pipe / the server disconnects the client), the existing code went
+        // on and every remaining channel just added another error — in the log it looked
+        // like "failed=552". Now, after three errors in a row the connection is re-established
+        // (at most twice) and when it cannot be re-established, the round ends immediately.
         var streak = 0
         var reconnects = 0
-        /** Zaznamena chybu; vrati false, ked uz nema zmysel pokracovat (spojenie sa
-         *  nedalo obnovit alebo sa obnovovalo prilis casto). */
+        /** Records an error; returns false when there is no point in continuing (the connection
+         *  could not be re-established or it was re-established too often). */
         suspend fun onFailure(e: Exception): Boolean {
-            // M572-fix: zrusenie coroutine (odchod z obrazovky) nie je chyba EPG —
-            // nesmie spustit obnovu spojenia, ide dalej do finally
+            // M572-fix: cancelling the coroutine (leaving the screen) is not an EPG error —
+            // it must not trigger a reconnect, it goes on to finally
             if (e is kotlinx.coroutines.CancellationException) throw e
             noteEpgError(e); failed++; streak++
             if (streak < 3) return true
@@ -248,15 +248,15 @@ object HtspData {
                     client.getEvents(cid, numFollowing = 5, maxTime = 0)
                         .mapNotNull { mapEvent(it) }.filter { it.stop > nowSec }
                 } catch (e: Exception) { if (onFailure(e)) continue else break }
-                // M551-fix2: niektoré kanály vrátia bez maxTime nič (server nemá "now"
-                // ukazovateľ, napr. medzera v EPG) — druhý pokus s časovým oknom ako
-                // v dennom programe, ktorý pre ten istý kanál udalosti vracia.
-                // M619: druhy pokus je teraz TAKY ISTY dotaz ako v mriezke (numFollowing
-                // 80, okno 3 dni, filter na kanal a deduplikacia). Issue #13: server
-                // vracal na numFollowing=5 pat udalosti od kotvy, ktora je na niektorych
-                // kanaloch v MINULOSTI (EPG s historiou) — vsetkych pat malo stop < now,
-                // takze po filtri zostalo prazdno a kanal sa zapisal ako "without EPG",
-                // hoci mriezka (numFollowing=80) na tom istom kanali data ukazala.
+                // M551-fix2: some channels return nothing without maxTime (the server has no "now"
+                // pointer, e.g. a gap in the EPG) — a second attempt with a time window as
+                // in the daily programme, which does return events for that same channel.
+                // M619: the second attempt is now THE SAME query as in the grid (numFollowing
+                // 80, a 3-day window, a channel filter and deduplication). Issue #13: for
+                // numFollowing=5 the server returned five events from the anchor, which is on some
+                // channels in the PAST (EPG with history) — all five had stop < now,
+                // so after filtering nothing was left and the channel was logged as "without EPG",
+                // even though the grid (numFollowing=80) did show data for that same channel.
                 if (mapped.isEmpty()) {
                     mapped = try {
                         client.getEvents(cid, numFollowing = 80, maxTime = nowSec + 3 * 86400)
@@ -276,9 +276,9 @@ object HtspData {
             client.close()
         }
         lastEpgEmpty = empty
-        // M551: prazdny alebo neuplny vysledok (getEvents zlyhalo) sa NEcachuje —
-        // inak sa 10 minut vracala prazdna mapa a EPG v prehravaci sa "zaseklo"
-        // (videne po prepnuti servera z HTTP na HTSP rezim pocas behu appky).
+        // M551: an empty or incomplete result (getEvents failed) is NOT cached —
+        // otherwise an empty map was returned for 10 minutes and the EPG in the player "got stuck"
+        // (seen after switching the server from HTTP to HTSP mode while the app was running).
         if (out.isNotEmpty() && failed == 0) nowCache[server.id] = NowCache(nowSec, out)
         else nowCache.remove(server.id)
         lastEpgFailed = failed
@@ -288,17 +288,17 @@ object HtspData {
     fun clear(serverId: String) { cache.remove(serverId); nowCache.remove(serverId); capCache.remove(serverId) }
 
     /**
-     * M160 — schopnosti HTSP servera z `hello` (servercapability). Pripoji sa
-     * na server.htspPort (cokolvek si uzivatel nastavi, default 9982), precita
-     * capability a hned zavrie. Vysledok cachuje per server (TTL). Pri akomkolvek
-     * zlyhani (port vypnuty/firewall/auth) -> reachable=false, prazdne caps.
+     * M160 — the HTSP server's capabilities from `hello` (servercapability). Connects
+     * to server.htspPort (whatever the user sets, default 9982), reads the
+     * capabilities and closes immediately. The result is cached per server (TTL). On any
+     * failure (port off/firewall/auth) -> reachable=false, empty caps.
      */
     suspend fun capabilities(server: TvhServer, nowSec: Long, ttl: Long = 600): Pair<Boolean, List<String>> {
         val c = capCache[server.id]
         if (c != null && nowSec - c.ts < ttl) return c.reachable to c.caps
-        // M621: tu ZAMERNE bez connectWithRetry — je to rychla sonda "je server na
-        // HTSP porte?" (napr. pri ukladani servera). Tri pokusy s cakanim by spravili
-        // z nedostupneho servera 4-sekundove cakanie v nastaveniach.
+        // M621: DELIBERATELY without connectWithRetry here — this is a quick probe "is the server on
+        // the HTSP port?" (e.g. when saving a server). Three attempts with waiting would turn
+        // an unreachable server into a 4-second wait in the settings.
         val client = HtspClient(server.host, server.htspPort, server.username, server.password)
         val res = try {
             client.connect()
@@ -313,24 +313,24 @@ object HtspData {
     }
 
     /**
-     * M160 — je timeshift na serveri dostupny? True len ak je HTSP port dostupny,
-     * auth presla a server hlasi capability "timeshift". Inak false (timeshift
-     * sa v prehravaci nezapne, appka bezi dalej cez hlavny rezim/9981).
+     * M160 — is timeshift available on the server? True only if the HTSP port is reachable,
+     * auth went through and the server reports the "timeshift" capability. Otherwise false (timeshift
+     * is not enabled in the player, the app keeps running through the main mode/9981).
      */
     suspend fun timeshiftAvailable(server: TvhServer, nowSec: Long): Boolean {
         val (reachable, caps) = capabilities(server, nowSec)
         return reachable && caps.contains("timeshift")
     }
 
-    // ---- mapovanie ----
+    // ---- mapping ----
 
     fun channels(meta: HtspClient.Metadata): List<Channel> =
         meta.channels.mapNotNull { ch ->
             val cid = longOf(ch, "channelId") ?: return@mapNotNull null
             @Suppress("UNCHECKED_CAST")
             val tagIds = (ch["tags"] as? List<Any?>)?.mapNotNull { (it as? Long)?.toString() } ?: emptyList()
-            // M504: `services` (HTSPv5+) nesie typ sluzby — podla neho sa rozlisi
-            // radio od TV rovnako ako v Kodi, nezavisle od pomenovania tagov.
+            // M504: `services` (HTSPv5+) carries the service type — it distinguishes
+            // radio from TV the same way as Kodi, independently of how the tags are named.
             @Suppress("UNCHECKED_CAST")
             val svcTypes = (ch["services"] as? List<Any?>)?.mapNotNull { sv ->
                 (sv as? Map<String, Any?>)?.get("type") as? String
@@ -358,35 +358,35 @@ object HtspData {
         }
 
     /**
-     * M474: naplanovane a prave beziace nahravky (state "scheduled"/"recording").
-     * Sluzi na to, aby appka neponukala nahravanie relacie, ktora uz nahravanie ma.
+     * M474: scheduled and currently running recordings (state "scheduled"/"recording").
+     * Its purpose is to keep the app from offering to record a programme that already has a recording.
      */
     fun dvrScheduled(meta: HtspClient.Metadata): List<DvrEntry> =
         meta.dvr.mapNotNull { d ->
             val state = strOf(d, "state")
             if (state != "scheduled" && state != "recording") return@mapNotNull null
             val e = mapDvrEntry(d) ?: return@mapNotNull null
-            // M475: HTSP prikazy (cancelDvrEntry/deleteDvrEntry) beru CISELNE id,
-            // nie textove uuid — do uuid preto dame id, aby sa dala nahravka zrusit.
+            // M475: the HTSP commands (cancelDvrEntry/deleteDvrEntry) take a NUMERIC id,
+            // not a textual uuid — so we put the id into uuid, so that the recording can be cancelled.
             val numId = longOf(d, "id")
             if (numId != null) e.copy(uuid = numId.toString()) else e
         }
 
-    /** Dokončené DVR nahrávky (state == "completed"). */
+    /** Finished DVR recordings (state == "completed"). */
     fun dvrFinished(meta: HtspClient.Metadata): List<DvrEntry> =
         meta.dvr.mapNotNull { d ->
             val state = strOf(d, "state")
             if (state.isNotBlank() && state != "completed") return@mapNotNull null
-            // M439: "Removed Recordings" — TVH drzi zaznam ako "completed" aj po
-            // zmazani suboru (podla retencie), ale dataSize uz neposiela / je 0.
-            // Do archivu nepatria: subor neexistuje, prehratie by vratilo 404.
+            // M439: "Removed Recordings" — TVH keeps the entry as "completed" even after
+            // the file has been deleted (according to retention), but it no longer sends dataSize / it is 0.
+            // These do not belong in the archive: the file does not exist, playback would return 404.
             val ds = longOf(d, "dataSize")
             if (ds == null || ds <= 0) return@mapNotNull null
             mapDvrEntry(d)
         }
 
-    /** Prebiehajuce nahravky (state == "recording") — prehratelne od zaciatku
-     *  po nahratu hranu cez /dvrfile/<uuid>. */
+    /** In-progress recordings (state == "recording") — playable from the start
+     *  up to the recorded edge via /dvrfile/<uuid>. */
     fun dvrRecording(meta: HtspClient.Metadata): List<DvrEntry> =
         meta.dvr.mapNotNull { d ->
             if (strOf(d, "state") != "recording") return@mapNotNull null
@@ -395,7 +395,7 @@ object HtspData {
 
     private fun mapDvrEntry(d: Map<String, Any?>): DvrEntry? {
         val id = longOf(d, "id") ?: return null
-        // /dvrfile potrebuje hex uuid; HTSP ho dava v "uuid" (ak je), inak id
+        // /dvrfile needs the hex uuid; HTSP gives it in "uuid" (if present), otherwise the id
         val uuid = (d["uuid"] as? String)?.ifBlank { null } ?: id.toString()
         val start = longOf(d, "start") ?: 0
         val stop = longOf(d, "stop") ?: 0
@@ -405,7 +405,7 @@ object HtspData {
             dispSubtitle = strOf(d, "subtitle"),
             dispDescription = strOf(d, "description").ifBlank { strOf(d, "summary") },
             channelName = strOf(d, "channelName"),
-            // HTSP: "channel" = channelId; Channel.uuid je tiez channelId.toString()
+            // HTSP: "channel" = channelId; Channel.uuid is also channelId.toString()
             channelUuid = longOf(d, "channel")?.toString() ?: "",
             start = start,
             stop = stop,
@@ -415,13 +415,13 @@ object HtspData {
             fileSize = longOf(d, "dataSize") ?: 0,
             status = strOf(d, "state"),
             contentType = longOf(d, "contentType")?.toInt() ?: 0,
-            // M483: ciselne id pre cancelDvrEntry/deleteDvrEntry — uuid ostava
-            // hex (na /dvrfile), inak by sa dokoncena nahravka nedala zmazat.
+            // M483: the numeric id for cancelDvrEntry/deleteDvrEntry — uuid stays
+            // hex (for /dvrfile), otherwise a finished recording could not be deleted.
             dvrId = id.toString()
         )
     }
 
-    /** Všetky EPG eventy (len ak meta načítané withEpg). */
+    /** All EPG events (only if the metadata was loaded withEpg). */
 
     private fun mapEvent(e: Map<String, Any?>): EpgEvent? {
         val cid = longOf(e, "channelId") ?: return null
@@ -443,7 +443,7 @@ object HtspData {
         )
     }
 
-    /** Program pre kanal cez HTSP getEvents (rychle, per-kanal). */
+    /** Programme for a channel via HTSP getEvents (fast, per-channel). */
     suspend fun epgForChannel(server: TvhServer, channelId: String, nowSec: Long): List<EpgEvent> {
         val cid = channelId.toLongOrNull() ?: return emptyList()
         val client = connectWithRetry(server)   // M621
@@ -456,10 +456,10 @@ object HtspData {
         }
     }
 
-    /** EPG pre mriezku PROGRESIVNE na JEDNOM spojeni: prejde vsetky kanaly v
-     *  poradi a po kazdom zavola onChannel (uuid, eventy), takze UI ich vie
-     *  zobrazovat priebezne. Jedno spojenie = nezahltime server (na rozdiel od
-     *  spojenia per kanal, ktore HTSP server nezvlada). */
+    /** EPG for the grid PROGRESSIVELY on ONE connection: it goes through all channels in
+     *  order and after each one calls onChannel (uuid, events), so the UI can
+     *  display them as they come. One connection = we do not overload the server (unlike
+     *  a connection per channel, which the HTSP server cannot handle). */
     suspend fun epgProgressive(
         server: TvhServer,
         nowSec: Long,
@@ -474,11 +474,11 @@ object HtspData {
                 val evs = try {
                     client.getEvents(cid, numFollowing = 80, maxTime = nowSec + 3 * 86400)
                         .mapNotNull { mapEvent(it) }
-                        // M398: niektore buildy Tvheadendu (napr. 4.3~dev, HTSP v44)
-                        // vratia na getEvents udalosti VSETKYCH kanalov naraz —
-                        // mriezka mala potom v kazdom riadku identicky zjednoteny
-                        // zoznam s prekryvajucimi sa blokmi. Odpoved preto vzdy
-                        // filtrujeme podla pozadovaneho kanala a deduplikujeme.
+                        // M398: some Tvheadend builds (e.g. 4.3~dev, HTSP v44)
+                        // return the events of ALL channels at once for getEvents —
+                        // the grid then had an identical merged list with overlapping
+                        // blocks in every row. We therefore always
+                        // filter the response by the requested channel and deduplicate it.
                         .filter { it.channelUuid == cid.toString() }
                         .distinctBy { it.eventId ?: "${'$'}{it.start}-${'$'}{it.title}" }
                         .sortedBy { it.start }

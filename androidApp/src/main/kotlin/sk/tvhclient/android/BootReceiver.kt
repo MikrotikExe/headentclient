@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 
-/** Nastavenie automatickeho spustenia po zapnuti zariadenia. */
+/** Setting for automatic start after the device is powered on. */
 object AutostartPref {
     private const val PREFS = "app_prefs"
     private const val KEY = "autostart_enabled"
@@ -22,15 +22,15 @@ object AutostartPref {
 }
 
 /**
- * M535: spolocne spustenie appky z autostartu (boot aj prebudenie).
+ * M535: shared start-up of the app from autostart (both boot and wake-up).
  *
- * Ak uloha appky uz existuje (proces prezil standby, alebo Amlogic box poslal
- * QUICKBOOT_POWERON pri prebudeni, nie pri skutocnom boote), staci ju presunut
- * dopredu. Povodne sa vzdy startovala MainActivity s NEW_TASK — a kedze je
- * singleTask, system pri tom zavrel vsetko nad nou, teda aj beziaci prehravac.
- * Kazde prebudenie tak zhodilo prehravanie a k tomu narazilo na zaseknute
- * ukoncenie libVLC (pozri PlayerActivity.teardownPlayerAsync). Novu MainActivity
- * startujeme len vtedy, ked ziadna uloha appky nebezi.
+ * If an app task already exists (the process survived standby, or an Amlogic box sent
+ * QUICKBOOT_POWERON on wake-up, not on a real boot), it is enough to move it
+ * to the front. Originally MainActivity was always started with NEW_TASK — and since it is
+ * singleTask, the system closed everything above it in the process, including a running player.
+ * Every wake-up thus killed playback and on top of that ran into a stuck
+ * libVLC shutdown (see PlayerActivity.teardownPlayerAsync). We start a new MainActivity
+ * only when no app task is running.
  */
 object AutostartLaunch {
     fun bringToFrontOrStart(context: Context) {
@@ -48,7 +48,7 @@ object AutostartLaunch {
     }
 }
 
-/** Po nabootovani setoboxu spusti appku, ak je to v nastaveniach zapnute. */
+/** After the set-top box boots, start the app if it is enabled in settings. */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val action = intent?.action ?: return

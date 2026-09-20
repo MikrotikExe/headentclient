@@ -6,9 +6,9 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * M659: casovanie vystupu TsMuxera — PCR sa nesmie orezavat na 0 a video, ktore pride
- * po audiu s mensim DTS, nesmie dostat splostene znacky. Test rozobera vyrobeny TS
- * (188 B pakety, adaptation field s PCR, PES hlavicka s PTS/DTS) bez libVLC.
+ * M659: timing of the TsMuxer output — the PCR must not be clipped to 0, and video that
+ * arrives after audio with a smaller DTS must not get flattened timestamps. The test takes apart
+ * the produced TS (188 B packets, adaptation field with PCR, PES header with PTS/DTS) without libVLC.
  */
 class TsMuxerTimingTest {
 
@@ -79,7 +79,7 @@ class TsMuxerTimingTest {
     fun pcrNeverZeroAndMonotonic() {
         val m = muxer()
         var all = m.start()
-        // audio ako prvy paket (typicke pre Tvheadend), video s DTS o 10 ms skor
+        // audio as the first packet (typical for Tvheadend), video with a DTS 10 ms earlier
         all += m.mux(2, es, pts = 1_000_000L, dts = null, randomAccess = false)
         var dts = 990_000L
         for (i in 0 until 30) {
@@ -104,7 +104,7 @@ class TsMuxerTimingTest {
         val video = parsed.pes.first { it.pid == 0x1001 }
         assertNotNull(video.dts)
         assertTrue(video.dts!! > 0L, "video DTS pred prvym audiom sa nesmie orezat na 0")
-        // rozdiel medzi audio PTS a video DTS musi ostat 10 000 tikov ako na vstupe
+        // the difference between the audio PTS and the video DTS must stay at 10 000 ticks, as on the input
         assertEquals(10_000L, audio.pts!! - video.dts!!)
         assertEquals(7_200L, video.pts!! - video.dts!!)
     }
@@ -114,7 +114,7 @@ class TsMuxerTimingTest {
         val m = muxer()
         m.start()
         m.mux(2, es, pts = 1_234_567L, dts = null, randomAccess = false)
-        // titulky sa synchronizuju cez (pts - origin) — origin musi byt povodny vstupny pts
+        // subtitles are synchronized via (pts - origin) — origin must be the original input pts
         assertEquals(1_234_567L, m.timelineOriginPts())
     }
 
@@ -125,13 +125,13 @@ class TsMuxerTimingTest {
         var dts = 5_000_000L
         for (i in 0 until 5) { all += m.mux(1, es, pts = dts + 3_600L, dts = dts, randomAccess = i == 0); dts += 3_600L }
         val before = parse(all).pes.last { it.pid == 0x1001 }.dts!!
-        // skok o 10 minut (subscriptionSkip) -> vystupna os musi pokracovat tesne za predoslym
+        // a jump of 10 minutes (subscriptionSkip) -> the output axis must continue right after the previous one
         val jumped = m.mux(1, es, pts = dts + 54_000_000L + 3_600L, dts = dts + 54_000_000L, randomAccess = true)
         val after = parse(jumped).pes.first { it.pid == 0x1001 }.dts!!
         assertTrue(after > before && after - before < 90_000L, "po skoku ma os pokracovat plynulo: $before -> $after")
     }
 
-    /** M674: video mlci > 250 ms, audio bezi -> PCR-only pakety na video PID, PCR rastie dalej. */
+    /** M674: video is silent for > 250 ms, audio keeps running -> PCR-only packets on the video PID, the PCR keeps growing. */
     @Test
     fun pcrKeepsRunningWhenVideoStalls() {
         val m = muxer()
@@ -140,7 +140,7 @@ class TsMuxerTimingTest {
         for (i in 0 until 5) { all += m.mux(1, es, pts = vdts + 7_200L, dts = vdts, randomAccess = i == 0); vdts += 3_600L }
         val beforeStall = parse(all)
         val lastVideoPcr = beforeStall.pcr.last().second
-        // 2 s len audio (kazdych 24 ms), video stoji
+        // 2 s of audio only (every 24 ms), video is stalled
         var apts = vdts
         var audioOnly = ByteArray(0)
         for (i in 0 until 80) { audioOnly += m.mux(2, es, pts = apts, dts = null, randomAccess = false); apts += 2_160L }
@@ -149,20 +149,20 @@ class TsMuxerTimingTest {
         assertTrue(stall.pcr.all { it.first == 0x1001 }, "PCR ostava na povodnom PCR PID (video)")
         var last = lastVideoPcr
         for ((_, v) in stall.pcr) { assertTrue(v >= last, "PCR musi rast aj bez videa: $last -> $v"); last = v }
-        // rozostup PCR-only paketov ~250 ms, nie na kazdom audio pakete
+        // the spacing of the PCR-only packets is ~250 ms, not on every audio packet
         assertTrue(stall.pcr.size in 5..12, "PCR-only paketov: ${stall.pcr.size}")
-        // navrat videa: PCR nejde dozadu
+        // video returns: the PCR does not go backwards
         val resumed = parse(m.mux(1, es, pts = apts + 7_200L, dts = apts, randomAccess = true))
         assertTrue(resumed.pcr.first().second >= last, "PCR po navrate videa nesmie ist dozadu")
     }
 
-    /** M674: PCR-only paket = len adaptation field, bez payloadu; CC video stopy sa nim nemeni. */
+    /** M674: a PCR-only packet = just an adaptation field, without a payload; it does not change the CC of the video track. */
     @Test
     fun pcrOnlyPacketHasNoPayloadAndKeepsCc() {
         val m = muxer()
         m.start()
         m.mux(1, es, pts = 1_007_200L, dts = 1_000_000L, randomAccess = true)
-        val out = m.mux(2, es, pts = 1_000_000L + 30_000L, dts = null, randomAccess = false)   // audio 333 ms za videom
+        val out = m.mux(2, es, pts = 1_000_000L + 30_000L, dts = null, randomAccess = false)   // audio 333 ms behind the video
         val first = out.copyOfRange(0, 188)
         assertEquals(0x47, first[0].toInt() and 0xFF)
         val pid = ((first[1].toInt() and 0x1F) shl 8) or (first[2].toInt() and 0xFF)
@@ -170,7 +170,7 @@ class TsMuxerTimingTest {
         assertEquals(0x2, (first[3].toInt() shr 4) and 0x3, "AFC=10: len adaptation field")
         assertEquals(183, first[4].toInt() and 0xFF)
         assertEquals(0x10, first[5].toInt() and 0xFF, "PCR_flag")
-        // dalsi video paket pokracuje s CC, ktore PCR-only paket neposunul
+        // the next video packet continues with the CC that the PCR-only packet did not advance
         val nextVideo = parse(m.mux(1, es, pts = 1_010_800L, dts = 1_003_600L, randomAccess = false))
         assertTrue(nextVideo.pes.any { it.pid == 0x1001 })
     }

@@ -5,10 +5,10 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 
 /**
- * Pozadie piconu (loga kanala/radia). Default = doterajsie spravanie (neutralna
- * seda podla temy), aby sa existujucim pouzivatelom nic nezmenilo. Volitelne
- * priehladne alebo jedna z prednastavenych farieb (swatch). Zivy stav (MutableState),
- * aby sa zmena prejavila okamzite vsade bez restartu. Dostupne na TV aj telefone.
+ * Picon (channel/radio logo) background. Default = the existing behaviour (neutral
+ * grey per the theme) so nothing changes for existing users. Optionally
+ * transparent or one of the preset colours (swatch). Live state (MutableState)
+ * so a change takes effect everywhere at once without a restart. Available on TV and phone.
  */
 object PiconBgPref {
     private const val PREFS = "app_prefs"
@@ -17,14 +17,14 @@ object PiconBgPref {
     const val DEFAULT = "default"
     const val TRANSPARENT = "transparent"
 
-    // Prednastavene farby (swatch) — hodnota je hex, ktory vie piconBackground() rozparsovat.
+    // Preset colours (swatch) — the value is a hex that piconBackground() can parse.
     const val BLACK = "#000000"
     const val WHITE = "#FFFFFF"
     const val DARK = "#2B2F36"
     const val LIGHT = "#C3C8D0"
     const val NAVY = "#12294E"
 
-    /** Poradie zobrazenia vo swatch-picker-i. */
+    /** Display order in the swatch picker. */
     val options = listOf(DEFAULT, TRANSPARENT, BLACK, WHITE, DARK, LIGHT, NAVY)
 
     private var state: MutableState<String>? = null

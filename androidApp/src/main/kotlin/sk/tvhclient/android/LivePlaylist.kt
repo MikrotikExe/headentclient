@@ -1,8 +1,8 @@
 package sk.tvhclient.android
 
 /**
- * Zdielany zoznam live kanalov pre prepinanie (zapping) a zoznam kanalov
- * priamo v prehravaci. Naplna sa pri zobrazeni zoznamu kanalov / mriezky.
+ * Shared list of live channels for switching (zapping) and for the channel list
+ * directly in the player. It is populated when the channel list / grid is shown.
  */
 object LivePlaylist {
     data class LiveChannel(
@@ -22,25 +22,25 @@ object LivePlaylist {
     @Volatile
     var channels: List<LiveChannel> = emptyList()
 
-    // M369: plny (needlefiltrovany podla skupiny) zoznam + skupiny/tagy pre filter.
-    // 'channels' je aktualne zobrazena podmnozina; 'allChannels' je vzdy cely zoznam,
-    // z ktoreho sa pri zmene skupiny prestavuje. Skupiny su len tagy; Vsetky/Oblubene
-    // su implicitne (Oblubene sa citaju dynamicky z Favorites v prehravaci).
+    // M369: the full (group-unfiltered) list + groups/tags for the filter.
+    // 'channels' is the currently shown subset; 'allChannels' is always the whole list,
+    // from which it is rebuilt when the group changes. The groups are only tags; All/Favourites
+    // are implicit (Favourites are read dynamically from Favorites in the player).
     data class Group(val key: String, val label: String, val uuids: Set<String>)
 
     const val GROUP_ALL = ""
     const val GROUP_FAV = "\u0000fav"
-    /** M541: pseudo-skupina skrytych kanalov (len v prehravaci, aby sa dali odkryt). */
+    /** M541: pseudo-group of hidden channels (only in the player, so they can be unhidden). */
     const val GROUP_HIDDEN = "\u0000hidden"
 
-    /** M541: poradie oblubenych (uuid) — v skupine Oblubene sa kanaly cisluju 1..n podla neho. */
+    /** M541: favourites order (uuid) — in the Favourites group the channels are numbered 1..n by it. */
     @Volatile
     var favOrder: List<String> = emptyList()
-    /** M541: skryte kanaly (nie su v allChannels ani v skupinach). */
+    /** M541: hidden channels (they are neither in allChannels nor in the groups). */
     @Volatile
     var hiddenChannels: List<LiveChannel> = emptyList()
 
-    /** M541: oblubene v ulozenom poradi, precislovane 1..n. */
+    /** M541: favourites in the saved order, renumbered 1..n. */
     fun favChannels(): List<LiveChannel> {
         val byUuid = allChannels.associateBy { it.uuid }
         return favOrder.mapNotNull { byUuid[it] }.mapIndexed { i, ch -> ch.copy(number = i + 1) }
@@ -53,7 +53,7 @@ object LivePlaylist {
     @Volatile
     var activeGroupKey: String = GROUP_ALL
 
-    /** M391: uplny reset (zmena sposobu pripojenia servera — stare id neplatia). */
+    /** M391: full reset (a change of the server's connection method — the old ids are invalid). */
     fun reset() {
         allChannels = emptyList()
         channels = emptyList()
@@ -64,12 +64,12 @@ object LivePlaylist {
     }
 
     /**
-     * Naplni zoznam aj skupiny.
+     * Populates both the list and the groups.
      *
-     * M506: [restoreKey] = naposledy zvolena skupina (z LastTag). Ak sa medzi
-     * skupinami najde, filter sa na nu nastavi — inak sa zacina od „Vsetky".
-     * Vdaka tomu prehravac po restarte appky nabehne v tej istej skupine, v akej
-     * pouzivatel skoncil, rovnako ako zoznam Kanaly.
+     * M506: [restoreKey] = the last selected group (from LastTag). If it is found among
+     * the groups, the filter is set to it — otherwise it starts from "All".
+     * Thanks to that the player comes up after an app restart in the same group the
+     * user finished in, just like the Channels list.
      */
     fun setChannels(
         full: List<LiveChannel>, grps: List<Group>, restoreKey: String? = null,
@@ -79,7 +79,7 @@ object LivePlaylist {
         groups = grps
         favOrder = favs
         hiddenChannels = hidden
-        // M541: aj Oblubene sa pamataju ako skupina
+        // M541: Favourites are remembered as a group too
         if (restoreKey == GROUP_FAV) {
             val f = favChannels()
             if (f.isNotEmpty()) { activeGroupKey = GROUP_FAV; channels = f; return }
@@ -89,8 +89,8 @@ object LivePlaylist {
         channels = if (g != null) full.filter { it.uuid in g.uuids } else full
     }
 
-    // M271: procesova cache EPG (uuid -> relacie) + cas poslednej uspesnej obnovy.
-    // Prezije zatvorenie/otvorenie prehravaca, takze sa nesťahuje znova pri kazdom otvoreni.
+    // M271: process EPG cache (uuid -> programmes) + the time of the last successful refresh.
+    // It survives closing/opening the player, so it is not downloaded again on every open.
     @Volatile
     var epgUpcoming: Map<String, List<sk.tvhclient.shared.model.EpgEvent>> = emptyMap()
     @Volatile

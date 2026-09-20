@@ -16,16 +16,16 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 
 /**
- * Text, ktory sa sam zmensi, aby sa zmestil do dostupnej sirky/vysky.
- * Urcene pre stiesnene UI (taby, tlacidla, cipy, titulky v uzkych riadkoch),
- * kde sa text na roznych rozliseniach/skalovani pisma inak lame alebo orezava.
+ * Text that shrinks itself to fit into the available width/height.
+ * Intended for cramped UI (tabs, buttons, chips, labels in narrow rows),
+ * where the text wraps or gets clipped differently at various resolutions/font scalings.
  *
- * Bezny prozaicky text NECHAJ normalne zalamovat — toto nie je nahrada za Text vsade,
- * len pre miesta s pevne obmedzenou sirkou.
+ * LEAVE ordinary prose text to wrap normally — this is not a replacement for Text everywhere,
+ * only for places with a hard width limit.
  *
- * Funguje aj na starsom Compose (bez natívneho autoSize): postupne znizuje fontSize,
- * kym sa obsah nezmesti, alebo kym nedosiahne minTextSize. Vykresli sa az ked je
- * velkost vyriesena (ziadne blikanie pocas merania).
+ * Works on older Compose too (without native autoSize): it gradually lowers fontSize
+ * until the content fits, or until it reaches minTextSize. It is drawn only once the
+ * size is resolved (no flicker during measuring).
  */
 @Composable
 fun AutoSizeText(

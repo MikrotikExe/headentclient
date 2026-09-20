@@ -4,8 +4,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Tag/kategoria z api/channeltag/grid. uuid sa pouziva na filtrovanie
- * kanalov (Channel.tags obsahuje tieto uuid).
+ * Tag/category from api/channeltag/grid. The uuid is used to filter
+ * channels (Channel.tags contains these uuids).
  */
 @Serializable
 data class ChannelTag(

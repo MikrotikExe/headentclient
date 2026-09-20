@@ -1,16 +1,16 @@
 package sk.tvhclient.shared.model
 
 /**
- * ZALOZNE rozpoznanie radia podla nazvov tagov (prebrane z Enigma2 pluginu,
+ * FALLBACK radio detection based on tag names (taken from the Enigma2 plugin,
  * _bouquet_tags.py _is_radio_by_tags).
  *
- * M504: hlavna cesta je teraz typ sluzby z DVB tabuliek (Channel.isRadioByService),
- * rovnako ako v Kodi. Tato heuristika sa pouzije len ked server typy neposkytne —
- * je krehka, lebo zavisi od toho, ako si kto tagy pomenoval (nemecke „Hoerfunk"
- * alebo turecke „Radyo" tu nenajde).
+ * M504: the main path is now the service type from the DVB tables (Channel.isRadioByService),
+ * the same as in Kodi. This heuristic is only used when the server does not provide the types —
+ * it is fragile, because it depends on how each person has named their tags (it will not find
+ * the German "Hoerfunk" or the Turkish "Radyo" here).
  */
 object RadioDetector {
-    // M504: doplnene dalsie jazyky — zaloha ma zabrat aspon v beznych pripadoch
+    // M504: more languages added — the fallback should at least work in the common cases
     private val radioTokens = listOf(
         "radio", "radia", "radia fm", "radio fm",
         "radiostanice", "radiostanica", "rozhlas",
@@ -43,7 +43,7 @@ object RadioDetector {
         return sb.toString().trim()
     }
 
-    /** Je kanal radio podla nazvov jeho tagov? */
+    /** Is the channel a radio station according to its tag names? */
     fun isRadio(tagNames: List<String>): Boolean {
         for (raw in tagNames) {
             val n = normalize(raw)

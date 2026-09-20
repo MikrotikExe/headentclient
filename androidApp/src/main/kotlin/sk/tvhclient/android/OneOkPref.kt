@@ -3,16 +3,16 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * M596: „Prepnúť kanál jedným OK".
+ * M596: "Switch channel with a single OK".
  *
- * V zozname kanálov v prehrávači sa kanál bežne prepne až po UVOĽNENÍ tlačidla OK
- * (podržanie OK je kontextové menu) a pri práve nahrávanom kanáli sa ešte pýta
- * „naživo / od začiatku". Niektoré diaľkové ovládače (IR/CEC) posielajú OK tak,
- * že to používateľ vníma ako potrebu stlačiť OK dvakrát.
+ * In the player's channel list a channel is normally switched only on RELEASE of the OK button
+ * (holding OK is the context menu) and for a channel currently being recorded it also asks
+ * "live / from the start". Some remotes (IR/CEC) send OK in such a way
+ * that the user perceives it as having to press OK twice.
  *
- * Ked je voľba zapnutá, OK v zozname prepne kanál hned pri stlačení, bez otázky
- * na archív a s kratším ochranným oknom po otvorení zoznamu. Platí rovnako pre
- * moderný aj klasický režim. Predvolene vypnuté (pôvodné správanie).
+ * With the option on, OK in the list switches the channel right on the press, with no archive
+ * question and with a shorter guard window after the list opens. Applies equally to
+ * modern and classic mode. Off by default (the original behaviour).
  */
 object OneOkPref {
     private const val PREFS = "app_prefs"

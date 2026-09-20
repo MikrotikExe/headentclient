@@ -46,7 +46,7 @@ import sk.tvhclient.shared.model.TvhServer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-// Obrazovky nastaveni (vyclenene z MainActivity.kt kvoli prehladnosti).
+// Settings screens (extracted from MainActivity.kt for readability).
 
 @Composable
 internal fun SettingsCategory(
@@ -60,7 +60,7 @@ internal fun SettingsCategory(
     onClick: () -> Unit
 ) {
     if (isModernUi() && icon != null) {
-        // Moderny rezim: karta s farebnym ikonovym cipom, podtitulkom a badge
+        // Modern mode: a card with a coloured icon chip, a subtitle and a badge
         val cs = MaterialTheme.colorScheme
         val light = isLightTheme()
         Row(
@@ -149,9 +149,9 @@ internal fun SettingsCategory(
 }
 
 /**
- * Skupina nastaveni moderneho rezimu: teal kapitalkovy nadpis + karta,
- * v ktorej su riadky oddelene jemnou linkou (pouzije M318 v podkategoriach).
- * V klasiku vykresli len obsah bez ramca (fallback pre spolocne pouzitie).
+ * A modern-mode settings group: a teal small-caps heading + a card
+ * in which the rows are separated by a subtle line (used by M318 in subcategories).
+ * In classic it renders just the content without a frame (fallback for shared use).
  */
 @Composable
 internal fun SettingsGroup(
@@ -160,8 +160,8 @@ internal fun SettingsGroup(
     content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit
 ) {
     if (!isModernUi()) {
-        // Klasik: bez ramca; nadpis len tam, kde bol povodne (classicTitle);
-        // rozostup 16dp za skupinou drzi povodny rytmus zoznamu
+        // Classic: no frame; a heading only where it originally was (classicTitle);
+        // a 16dp gap after the group keeps the original rhythm of the list
         if (classicTitle && title != null) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(8.dp))
@@ -189,14 +189,14 @@ internal fun SettingsGroup(
             .clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
             .background(if (light) cs.surfaceContainerLowest else cs.surfaceContainer)
             .border(1.dp, cs.outlineVariant, androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
-            // M336: plynula zmena vysky karty (napr. ked prepinac odhali notu)
+            // M336: smooth change of the card height (e.g. when a switch reveals a note)
             .animateContentSize(animationSpec = androidx.compose.animation.core.tween(180))
             .padding(horizontal = 14.dp, vertical = 6.dp),
         content = content
     )
 }
 
-/** Oddelenie riadkov v SettingsGroup: moderny rezim jemna linka, klasik povodny 16dp rozostup. */
+/** Row separation in SettingsGroup: a subtle line in modern mode, the original 16dp gap in classic. */
 @Composable
 internal fun SettingsGroupDivider() {
     if (!isModernUi()) {
@@ -210,8 +210,8 @@ internal fun SettingsGroupDivider() {
 }
 
 /**
- * Riadok s prepinacom: moderny rezim nazov (+ volitelny popis) vlavo a Switch
- * vpravo; klasik povodne rozlozenie Switch + text (a popis pod tym).
+ * A row with a switch: in modern mode the name (+ an optional description) on the left and a Switch
+ * on the right; in classic the original layout of Switch + text (and the description underneath).
  */
 @Composable
 internal fun SettingsSwitchRow(
@@ -220,10 +220,10 @@ internal fun SettingsSwitchRow(
     checked: Boolean,
     onChange: (Boolean) -> Unit
 ) {
-    // M367: jediny fokusovatelny/klikatelny prvok je CELY riadok (dpad ram + OK
-    // prepina, dotyk kdekolvek na riadku). Vnutorny Switch je len zobrazovaci
-    // (onCheckedChange = null -> nefokusovatelny), inak by na TV kradol D-pad
-    // fokus a vonkajsi ram by sa nikdy neukazal.
+    // M367: the only focusable/clickable element is the WHOLE row (dpad frame + OK
+    // toggles, touch anywhere on the row). The inner Switch is display-only
+    // (onCheckedChange = null -> not focusable), otherwise on TV it would steal D-pad
+    // focus and the outer frame would never appear.
     if (isModernUi()) {
         Box(
             Modifier
@@ -282,11 +282,11 @@ internal fun SettingsSwitchRow(
     }
 }
 
-// --- Vseobecne: jazyk + autostart ---
+// --- General: language + autostart ---
 @Composable
 internal fun AppearanceSettings(ctx: android.content.Context) {
     SettingsGroup(null) {
-    // Rezim rozhrania: klasicky / moderny
+    // Interface mode: classic / modern
     var uiMode by remember { mutableStateOf(UiModePref.get(ctx)) }
     val uiModeLabel: @Composable (String) -> String = { v ->
         when (v) {
@@ -307,7 +307,7 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
     )
     SettingsGroupDivider()
 
-    // Format hodin: automaticky (system) / 24 hodin / 12 hodin (M423)
+    // Clock format: automatic (system) / 24 hour / 12 hour (M423)
     var clock by remember { mutableStateOf(ClockPref.get(ctx)) }
     val clockLabel: @Composable (String) -> String = { v ->
         when (v) {
@@ -329,10 +329,10 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
     )
     SettingsGroupDivider()
 
-    // M430-fix: prekryv pri prepinani kanalov (CH+/CH-); vypnute (predvolene)
-    // = kompaktny zap pas s piconou, cislom, programom a priebehom.
-    // M434-fix: len TV/leanback — telefon CH+/CH- tlacidla nema, predvolba by
-    // tam nic neovladala.
+    // M430-fix: overlay when switching channels (CH+/CH-); off (default)
+    // = a compact zapping bar with the picon, number, programme and progress.
+    // M434-fix: TV/leanback only — a phone has no CH+/CH- buttons, the preference would
+    // control nothing there.
     if (ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)) {
         var zapOv by remember { mutableStateOf(ZapOverlayPref.get(ctx)) }
         SettingsSwitchRow(
@@ -348,7 +348,7 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
         SettingsGroupDivider()
     }
 
-    // Tema aplikacie: automaticky (system) / svetla / tmava
+    // App theme: automatic (system) / light / dark
     var theme by remember { mutableStateOf(ThemePref.get(ctx)) }
     val themeLabel: @Composable (String) -> String = { v ->
         when (v) {
@@ -370,7 +370,7 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
     )
     SettingsGroupDivider()
 
-    // Tema prehravaca (samostatne od temy aplikacie)
+    // Player theme (separate from the app theme)
     var playerTheme by remember { mutableStateOf(PlayerThemePref.get(ctx)) }
     val playerThemeLabel: @Composable (String) -> String = { v ->
         when (v) {
@@ -391,8 +391,8 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
         }
     )
 
-    // Plny podklad informacnej listy prehravaca — len na TV v modernom rezime
-    // (na telefone taky overlay nie je, preto sa tam nezobrazuje). Default vypnute.
+    // Solid backdrop for the player info bar — TV only, in modern mode
+    // (there is no such overlay on a phone, so it is not shown there). Off by default.
     val isTvDevice = ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
     if (isModernUi() && isTvDevice) {
         SettingsGroupDivider()
@@ -410,8 +410,8 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
     }
 
     SettingsGroupDivider()
-    // Pozadie piconu (loga kanala) — Predvolene / Priehladne / farebne swatche.
-    // Ovladatelne D-padom (TV) aj dotykom (telefon), prejavi sa vsade cez piconBackground().
+    // Picon (channel logo) background — Default / Transparent / colour swatches.
+    // Controllable by D-pad (TV) and by touch (phone), applies everywhere via piconBackground().
     val light = isLightTheme()
     val piconSel = PiconBgPref.stateOf(ctx).value
     Text(
@@ -473,7 +473,7 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
         }
     }
     }
-    // M605: dlazdica TV kanaly otvori najprv zoznam (len TV)
+    // M605: the TV channels tile opens the list first (TV only)
     if (ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)) {
         SettingsGroup(stringResource(R.string.tile_list_group), classicTitle = true) {
             var listFirst by remember { mutableStateOf(TileListPref.get(ctx)) }
@@ -485,7 +485,7 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
             )
         }
     }
-    // M602: cislovanie radii od 1
+    // M602: radio numbering from 1
     SettingsGroup(stringResource(R.string.tab_radio), classicTitle = true) {
         var fromOne by remember { mutableStateOf(RadioNumberingPref.get(ctx)) }
         SettingsSwitchRow(
@@ -552,7 +552,7 @@ internal fun GeneralSettings(ctx: android.content.Context) {
     }
     SettingsGroup("EPG") {
 
-    // EPG: kolko dni dozadu si appka pamata (lokalny cache) a kolko dopredu nacita
+    // EPG: how many days back the app remembers (local cache) and how many forward it loads
     var epgBack by remember { mutableStateOf(EpgRangePref.daysBack(ctx)) }
     DropdownField(
         label = stringResource(R.string.epg_days_back_title),
@@ -599,8 +599,8 @@ internal fun GeneralSettings(ctx: android.content.Context) {
             }
         }
     }
-    // M434-fix2: Autostart len na TV/leanback — boot-do-appky a prebudenie
-    // boxu su TV veci, telefon appku pri starte spustat nema.
+    // M434-fix2: Autostart on TV/leanback only — boot-into-app and waking
+    // the box are TV things, a phone should not launch the app at start-up.
     if (ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK))
     SettingsGroup(stringResource(R.string.set_grp_autostart)) {
     var autostart by remember { mutableStateOf(AutostartPref.isEnabled(ctx)) }
@@ -623,7 +623,7 @@ internal fun GeneralSettings(ctx: android.content.Context) {
             if (on) requestOverlay()
         }
     )
-    // M494: pokracovanie tam, kde pouzivatel skoncil (zivy kanal / nahravka)
+    // M494: resume where the user left off (live channel / recording)
     var resumeLast by remember { mutableStateOf(ResumeLastPref.get(ctx)) }
     SettingsSwitchRow(
         label = stringResource(R.string.resume_last_enable),
@@ -643,7 +643,7 @@ internal fun GeneralSettings(ctx: android.content.Context) {
     }
 }
 
-// --- Prehravanie: predvolene audio stopy ---
+// --- Playback: default audio tracks ---
 @Composable
 internal fun PlaybackSettings(ctx: android.content.Context) {
     SettingsGroup(stringResource(R.string.audio_pref_title), classicTitle = true) {
@@ -668,11 +668,11 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
     DropdownField(stringResource(R.string.audio_pref_3), audio[2], audioOptions, audioLabels) { setSlot(2, it) }
     }
 
-    // Predvolene otacanie obrazovky v prehravaci — na TV/STB nema zmysel, skry
+    // Default screen rotation in the player — makes no sense on TV/STB, hide it
     val isTvDev = remember { isTvUiMode(ctx) }   // M679
     SettingsGroup(stringResource(R.string.set_grp_video)) {
-    // M447: vynutene softverove dekodovanie — zachrana pre zariadenia
-    // s pokazenym HW dekoderom (Mi Box S a 10-bit HEVC).
+    // M447: forced software decoding — a rescue for devices
+    // with a broken HW decoder (Mi Box S and 10-bit HEVC).
     run {
         var swDec by remember { mutableStateOf(SwDecodePref.get(ctx)) }
         SettingsSwitchRow(
@@ -686,8 +686,8 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
             }
         )
     }
-    // AFR — automaticka obnovovacia frekvencia (M346; M348 aj telefony
-    // cez Surface.setFrameRate — tam bez pauzy, system prepina plynulo)
+    // AFR — automatic frame rate (M346; M348 phones too
+    // via Surface.setFrameRate — no pause there, the system switches smoothly)
     run {
         var afr by remember { mutableStateOf(AfrPref.get(ctx)) }
         SettingsSwitchRow(
@@ -715,8 +715,8 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
                     TabController.settingsDirty.value = true
                 }
             )
-            // Prepnutie do HDR: vypnutim sa AFR obmedzi na plynulu zmenu
-            // frekvencie (bez HDMI re-syncu), takze box neflipne do HDR.
+            // Switching into HDR: turning it off limits AFR to a smooth frame rate
+            // change (without an HDMI re-sync), so the box does not flip into HDR.
             var hdrSwitch by remember { mutableStateOf(AfrHdrSwitchPref.get(ctx)) }
             SettingsSwitchRow(
                 label = stringResource(R.string.afr_hdr_switch),
@@ -754,9 +754,9 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         SettingsGroupDivider()
     }
 
-    // Deinterlacing — odstranuje hrebenove pasy (combing) pri prekladanom DVB
-    // videu na rychlych zaberoch. AUTO deinterlacuje len ked treba.
-    // M406: velkost sietoveho bufferu — vacsi = odolnejsie na wifi/mobil (menej sekov)
+    // Deinterlacing — removes comb bands (combing) on interlaced DVB
+    // video in fast shots. AUTO deinterlaces only when needed.
+    // M406: network buffer size — bigger = more resilient on wifi/mobile (fewer stutters)
     run {
         var buf by remember { mutableStateOf(BufferPref.get(ctx)) }
         val bufLabel: @Composable (String) -> String = { v ->
@@ -808,13 +808,13 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         }
     )
 
-    // Zvukovy vystup — riesi rozchadzajuci sa / oneskoreny zvuk. PASSTHROUGH
-    // (priamy prenos) posiela zvuk priamo do TV/AVR (zarovna sync na niektorych boxoch).
-    // M441: zobrazuje sa aj na telefone. Od M436 je predvolene PCM (natvrdo
-    // setAudioOutputDevice("pcm")), predtym telefon dostaval AUTO = detekcia
-    // libVLC. Bez tejto volby by pouzivatel telefonu nemal ako sa z predvolby
-    // dostat, keby mu nesadla. PASSTHROUGH na telefone zmysel nema, ale
-    // AUTO/STEREO ano — a nic sa nerozbije, ak ho niekto zvoli.
+    // Audio output — deals with drifting / delayed audio. PASSTHROUGH
+    // (direct transport) sends the audio straight to the TV/AVR (fixes sync on some boxes).
+    // M441: shown on a phone too. Since M436 the default is PCM (hard-coded
+    // setAudioOutputDevice("pcm")), previously a phone got AUTO = libVLC
+    // detection. Without this option a phone user would have no way out of the
+    // default if it did not suit them. PASSTHROUGH makes no sense on a phone, but
+    // AUTO/STEREO do — and nothing breaks if someone picks it.
     }
     SettingsGroup(stringResource(R.string.set_grp_sound)) {
     run {
@@ -840,8 +840,8 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         )
     }
 
-    // Zvukovy vystup (telefon) — pri rozchadzajucom sa / oneskorenom zvuku, ktory
-    // narasta v case, skus prepnut na OpenSL ES (ina sprava latencie).
+    // Audio output (phone) — with drifting / delayed audio that
+    // grows over time, try switching to OpenSL ES (different latency handling).
     if (!isTvDev) {
         var amod by remember { mutableStateOf(AudioModulePref.get(ctx)) }
         val amodLabel: @Composable (String) -> String = { v ->
@@ -865,7 +865,7 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
 
     }
     SettingsGroup(stringResource(R.string.set_grp_behavior)) {
-    // Automaticky PiP rezim (len zariadenia s podporou PiP - telefony/tablety)
+    // Automatic PiP mode (only devices with PiP support - phones/tablets)
     if (ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
         var autoPip by remember { mutableStateOf(AutoPipPref.get(ctx)) }
         SettingsSwitchRow(
@@ -879,8 +879,8 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         )
     }
 
-    // M623: radio hra na pozadi (telefon aj TV) — odchod z prehravaca (zhasnutie,
-    // zamok, domovska obrazovka, ina appka) radio nepozastavi
+    // M623: radio plays in the background (phone and TV) — leaving the player (screen off,
+    // lock, home screen, another app) does not pause the radio
     run {
         var radioBg by remember { mutableStateOf(RadioBackgroundPref.get(ctx)) }
         SettingsSwitchRow(
@@ -895,7 +895,7 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         )
     }
 
-    // Vyber pri archivovanom kanali v prehravaci (nazivo / od zaciatku) — len TV/box
+    // Choice for an archived channel in the player (live / from the start) — TV/box only
     if (isTvDev) {
         SettingsGroupDivider()
         var archiveChoice by remember { mutableStateOf(ArchiveChoicePref.get(ctx)) }
@@ -911,7 +911,7 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         )
     }
 
-    // M606: vyber DVR profilu pri kazdej nahravke (predvolene vypnute)
+    // M606: pick the DVR profile for every recording (off by default)
     SettingsGroupDivider()
     var dvrAsk by remember { mutableStateOf(DvrAskPref.get(ctx)) }
     SettingsSwitchRow(
@@ -925,7 +925,7 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         }
     )
 
-    // Timeshift (pauza/pretacanie zivej TV) — len pri HTSP pripojeni (9982); pri HTTP nema zmysel
+    // Timeshift (pause/seek of live TV) — only with an HTSP connection (9982); makes no sense with HTTP
     val htspMode = remember { sk.tvhclient.shared.Tvh.store.active()?.connectionMode == "htsp" }
     if (htspMode) {
         SettingsGroupDivider()
@@ -944,7 +944,7 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
 
     }
     SettingsGroup(stringResource(R.string.set_grp_maintenance)) {
-    // M272: rucne obnovenie zoznamu kanalov, EPG a piconov — vymaze cache a stiahne nanovo.
+    // M272: manual refresh of the channel list, EPG and picons — clears the cache and downloads afresh.
     val reloadDone = stringResource(R.string.reload_data_done)
     OutlinedButton(onClick = {
         val srv = sk.tvhclient.shared.Tvh.store.active()
@@ -966,7 +966,7 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
     }
 }
 
-// --- Playlist: rodicovsky zamok (PIN) ---
+// --- Playlist: parental lock (PIN) ---
 @Composable
 internal fun ParentalSettings(ctx: android.content.Context) {
     var lockEnabled by remember { mutableStateOf(ParentalLock.isEnabled(ctx)) }
@@ -997,7 +997,7 @@ internal fun ParentalSettings(ctx: android.content.Context) {
         )
     }
 
-    // Sposob zadavania PIN
+    // PIN entry method
     SettingsGroupDivider()
     var pinInput by remember { mutableStateOf(ParentalLock.pinInput(ctx)) }
     DropdownField(
@@ -1015,7 +1015,7 @@ internal fun ParentalSettings(ctx: android.content.Context) {
         }
     )
 
-    // Okno po odomknuti (kym sa PIN znovu nepyta)
+    // Window after unlocking (until the PIN is asked for again)
     SettingsGroupDivider()
     val graceOpts = listOf("0", "5", "10", "30", "60", "120")
     var grace by remember { mutableStateOf(ParentalLock.graceMinutes(ctx).toString()) }
@@ -1040,7 +1040,7 @@ internal fun ParentalSettings(ctx: android.content.Context) {
     )
 
     }
-    // Co PIN chrani
+    // What the PIN protects
     SettingsGroup(stringResource(R.string.plock_scope_title), classicTitle = true) {
     var protCh by remember { mutableStateOf(ParentalLock.protectChannels(ctx)) }
     SettingsSwitchRow(
@@ -1077,7 +1077,7 @@ internal fun ParentalSettings(ctx: android.content.Context) {
     }
 }
 
-// --- Servery: zoznam serverov + zaloha/obnova ---
+// --- Servers: server list + backup/restore ---
 @Composable
 internal fun ServersSettings(
     vm: ServersViewModel,
@@ -1119,7 +1119,7 @@ internal fun ServersSettings(
     }
 }
 
-// --- Informacie: verzia appky + aktivny server ---
+// --- Information: app version + active server ---
 @Composable
 internal fun RemoteSettings(
     ctx: android.content.Context,
@@ -1135,7 +1135,7 @@ internal fun RemoteSettings(
         onChange = { v -> on = v; RemoteDebugPref.setEnabled(ctx, v) }
     )
     }
-    // M596: prepnutie kanala jednym OK (moderny aj klasicky rezim)
+    // M596: switch the channel with a single OK (modern and classic mode)
     SettingsGroup(stringResource(R.string.one_ok_title), classicTitle = true) {
         var oneOk by remember { mutableStateOf(OneOkPref.get(ctx)) }
         SettingsSwitchRow(
@@ -1161,10 +1161,10 @@ internal fun InfoSettings(
         }.getOrNull() ?: "?"
     }
     SettingsGroup(null) {
-    // M395: na TV je informacny blok fokusovatelna karta — inak D-pad skoci rovno
-    // na Dokumenty, obsah sa odroluje a vrchne informacie sa nedaju precitat.
-    // M395-fix2: neviditelny fokus (dpadReadable) — blok nevyzera klikatelne,
-    // ale D-pad sa nan vie postavit a odroluje sa do vyhladu
+    // M395: on TV the information block is a focusable card — otherwise the D-pad jumps straight
+    // to Documents, the content scrolls away and the information at the top cannot be read.
+    // M395-fix2: invisible focus (dpadReadable) — the block does not look clickable,
+    // but the D-pad can land on it and it scrolls into view
     Column(
         Modifier
             .fillMaxWidth()
@@ -1172,7 +1172,7 @@ internal fun InfoSettings(
             .padding(8.dp)
     ) {
     Text(
-        // M401: verziovanie uz len semver (1.0.0) — cislo buildu sa nezobrazuje
+        // M401: versioning is now semver only (1.0.0) — the build number is not shown
         stringResource(R.string.info_app_version) + ": " + version +
             " \u2022 " + BuildConfig.BUILD_DATE,
         style = MaterialTheme.typography.bodyLarge
@@ -1220,9 +1220,9 @@ internal fun InfoSettings(
     InfoLinkRow(stringResource(R.string.terms_of_use)) { onOpenDoc(LegalText.terms(lang)) }
     }
 
-    // Diagnosticky log (M353) — zobrazit / odoslat / vymazat
+    // Diagnostic log (M353) — show / send / clear
     SettingsGroup(stringResource(R.string.set_grp_diag)) {
-    // M448: podrobny zaznam prehravaca — na diagnostiku trhania/zamrzania
+    // M448: detailed player log — for diagnosing stuttering/freezing
     run {
         var vlcVerbose by remember { mutableStateOf(VlcVerbosePref.get(ctx)) }
         SettingsSwitchRow(
@@ -1242,11 +1242,11 @@ internal fun InfoSettings(
             stringResource(R.string.diag_note),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.dpadReadable()   // M395-fix2: docitatelne D-padom
+            modifier = Modifier.dpadReadable()   // M395-fix2: readable to the end with the D-pad
                 .padding(horizontal = 8.dp, vertical = 6.dp)
         )
-        // M399: viditelne chyby dekodovania odpovedi servera (inak sa zaznamy
-        // ticho zahadzovali a napr. Archiv bol prazdny bez akejkolvek stopy)
+        // M399: visible errors from decoding server responses (otherwise the records
+        // were silently discarded and e.g. the Archive was empty without any trace)
         if (sk.tvhclient.shared.api.TvhApi.decodeFailCount > 0) {
             Text(
                 stringResource(
@@ -1273,7 +1273,7 @@ internal fun InfoSettings(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .dpadReadable()   // M395-fix2: dlhy log sa da docitat D-padom
+                    .dpadReadable()   // M395-fix2: a long log can be read to the end with the D-pad
                     .padding(horizontal = 8.dp)
                     .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHighest)

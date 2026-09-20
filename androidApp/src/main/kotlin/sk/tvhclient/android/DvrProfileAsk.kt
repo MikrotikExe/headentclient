@@ -31,13 +31,13 @@ import androidx.compose.ui.unit.dp
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * M606: „Pýtať sa na profil nahrávania" (Nastavenia → Prehrávanie, predvolene vypnuté).
+ * M606: "Ask for the recording profile" (Settings → Playback, off by default).
  *
- * Tvheadend má DVR profily (cesta na disk, doba uchovania, stream profil…) a
- * niektorí používatelia si nimi triedia nahrávky do priečinkov. Appka doteraz
- * nahrávala vždy do profilu zvoleného pri serveri (M486). So zapnutou voľbou sa
- * po stlačení „Nahrať" ukáže zoznam profilov zo servera (len ak sú aspoň dva);
- * kurzor stojí na naposledy použitom. Zrušenie nahrávky sa nepýta.
+ * Tvheadend has DVR profiles (path on disk, retention period, stream profile…) and
+ * some users use them to sort recordings into folders. Until now the app always
+ * recorded into the profile selected for the server (M486). With the option on,
+ * pressing "Record" shows the list of profiles from the server (only if there are at least two);
+ * the cursor stands on the last used one. Cancelling a recording does not ask.
  */
 object DvrAskPref {
     private const val PREFS = "app_prefs"
@@ -65,10 +65,10 @@ object DvrProfileAsk {
     private val cache = HashMap<String, List<String>>()
 
     /**
-     * Zoznam profilov na výber, alebo prázdny, keď sa netreba pýtať (voľba vypnutá,
-     * server má len jeden profil, alebo sa zoznam nepodarilo načítať — vtedy sa
-     * nahrá ako doteraz, bez otázky). Poradie: naposledy použitý (alebo profil zo
-     * servera) prvý, potom serverové poradie.
+     * The list of profiles to choose from, or empty when there is no need to ask (the option is off,
+     * the server has only one profile, or the list could not be loaded — then it records
+     * as before, without asking). Order: the last used one (or the profile from the
+     * server) first, then the server order.
      */
     suspend fun options(context: Context, server: TvhServer): List<String> {
         if (!DvrAskPref.get(context)) return emptyList()
@@ -86,8 +86,8 @@ object DvrProfileAsk {
 }
 
 /**
- * Dialóg „Nahrať do profilu". `selected` = index zvýraznenej položky (D-pad na TV),
- * na telefóne sa klikne priamo. Prvá položka je naposledy použitá.
+ * The "Record into profile" dialog. `selected` = the index of the highlighted item (D-pad on TV),
+ * on a phone it is clicked directly. The first item is the last used one.
  */
 @Composable
 fun DvrProfilePickDialog(
@@ -101,9 +101,9 @@ fun DvrProfilePickDialog(
 ) {
     val firstFocus = androidx.compose.runtime.remember { androidx.compose.ui.focus.FocusRequester() }
     if (dpad) androidx.compose.runtime.LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
-    // dpad = obrazovky mimo prehravaca (mriezka, detail): vlastne okno, ktore rieši
-    // BACK aj fokus D-padu samo; prehravac (dpad = false) kresli prekrytie sam a
-    // klavesy spracuva vo svojom dispatchKeyEvent
+    // dpad = screens outside the player (grid, detail): its own window, which handles
+    // both BACK and D-pad focus itself; the player (dpad = false) draws the overlay itself and
+    // processes keys in its own dispatchKeyEvent
     if (dpad) {
         androidx.compose.ui.window.Dialog(
             onDismissRequest = onDismiss,
@@ -132,7 +132,7 @@ private fun PickBody(
             Modifier.fillMaxWidth(0.8f).widthIn(max = 460.dp)
                 .clip(RoundedCornerShape(20.dp))
                 .background(Color(0xFF1B2433))
-                .pointerInput(Unit) { detectTapGestures { } }   // klik v dialogu nezatvara
+                .pointerInput(Unit) { detectTapGestures { } }   // a click in the dialog does not close it
                 .padding(horizontal = 24.dp, vertical = 24.dp)
         ) {
             Text(

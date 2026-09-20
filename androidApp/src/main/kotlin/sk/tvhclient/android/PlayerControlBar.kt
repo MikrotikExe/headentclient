@@ -56,12 +56,12 @@ import coil.request.ImageRequest
 import sk.tvhclient.shared.model.TvhServer
 
 /*
- * M661: ovladaci pruh prehravaca (AnimatedVisibility s hornym info blokom, DVR
- * seekbarom a klasickym / portretovym / modernym radom tlacidiel) vyclenený
- * z PlayerUi (PlayerActivity.kt), ktore bolo tesne pod 64 KB limitom JVM metody.
- * Cisto mechanicky presun: vsetok stav drzi PlayerUi a posiela ho sem ako hodnoty,
- * zapisy do stavov idu cez *Set lambdy. Vola sa z korenoveho Boxu PlayerUi
- * na povodnom mieste (medzi malymi prekryvmi z M630 a panelom "Viac").
+ * M661: the player control bar (AnimatedVisibility with the top info block, the DVR
+ * seekbar and the classic / portrait / modern button row) extracted
+ * from PlayerUi (PlayerActivity.kt), which was just under the 64 KB JVM method limit.
+ * A purely mechanical move: all state is held by PlayerUi and passed here as values,
+ * writes to states go through *Set lambdas. It is called from the root Box of PlayerUi
+ * at the original place (between the small overlays from M630 and the "More" panel).
  */
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -134,7 +134,7 @@ internal fun PlayerControlsOverlay(
         Box(Modifier.fillMaxSize().systemBarsPadding()) {
             val order = playerControlOrder(onPrevChannel != null, seekable, pipButton, timeshiftEngaged, profileSwitch,
                 dvrActivity?.dvrRecordVisible() == true, dvrActivity?.teletextVisible() == true)
-            // fokusove zvyraznenie len na TV (D-pad); na telefone (dotyk) ziadne "vybrate" tlacidlo
+            // focus highlight only on TV (D-pad); on a phone (touch) no "selected" button
             val isTvDevice = remember { isTvUiMode(ctx) }   // M679
             val selCtrl = if (isTvDevice) order.getOrNull(controlNavIndex) else null
             val curCh = liveChannels.getOrNull(liveCurrentIndex)
@@ -149,10 +149,10 @@ internal fun PlayerControlsOverlay(
             val elapsed = (liveNowSec - progStart).coerceIn(0, total)
             val fracNow = elapsed.toFloat() / total.toFloat()
             val remainMin = if (hasNow) ((progStop - liveNowSec) / 60).coerceAtLeast(0) else 0
-            // skalovanie podla rozlisenia boxu (kompaktny, citatelny pruh)
-            // Meraj skutocnu sirku okna (BoxWithConstraints), nie Configuration.screenWidthDp —
-            // ten na niektorych zariadeniach hlasi zlu hodnotu (kompaktny layout na sirku).
-            // maxWidth odraza realne pixely okna, takze siroke okno vzdy dostane landscape layout.
+            // scaling by the box resolution (a compact, readable bar)
+            // Measure the real window width (BoxWithConstraints), not Configuration.screenWidthDp —
+            // on some devices it reports a wrong value (compact layout in landscape).
+            // maxWidth reflects the real window pixels, so a wide window always gets the landscape layout.
             BoxWithConstraints(
                 Modifier
                     .align(Alignment.BottomStart)
@@ -161,7 +161,7 @@ internal fun PlayerControlsOverlay(
                 val k = (maxWidth.value / 640f).coerceIn(0.9f, 1.25f)
                 val portrait = maxWidth < 600.dp
 
-                // Jeden spolocny info+ovladaci pruh dole
+                // One shared info + control bar at the bottom
                 Column(
                     Modifier
                         .fillMaxWidth()
@@ -169,7 +169,7 @@ internal fun PlayerControlsOverlay(
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                 Row(verticalAlignment = Alignment.Top) {
-                    // cislo + logo + nazov kanala (len live; pri DVR netreba)
+                    // number + logo + channel name (live only; not needed for DVR)
                     if (!seekable) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -204,7 +204,7 @@ internal fun PlayerControlsOverlay(
                     }
                     Spacer(Modifier.width(14.dp))
                     }
-                    // popis relacie: nazov, cas, priebeh, popis, dalej
+                    // programme description: title, time, progress, description, next
                     Column(Modifier.weight(1f)) {
                         val headline = if (seekable) title else progTitle
                         Row(verticalAlignment = Alignment.Top) {
@@ -291,7 +291,7 @@ internal fun PlayerControlsOverlay(
                     Spacer(Modifier.width(12.dp))
                 }
                 Spacer(Modifier.height((4 * k).dp))
-                // DVR: pretacacia lista (zvyraznena pri vybere "seek")
+                // DVR: seek bar (highlighted when "seek" is selected)
                 if (seekable && barLengthMs > 0) {
                     val seekFocused = selCtrl == "seek"
                     val frac = when {
@@ -299,7 +299,7 @@ internal fun PlayerControlsOverlay(
                         dragging -> dragValue
                         else -> (posTimeMs.toFloat() / barLengthMs).coerceIn(0f, 1f)
                     }
-                    // Lava strana: pocas tahania/vyberu cielovy cas, inak skutocny cas prehravania
+                    // Left side: during dragging/selection the target time, otherwise the actual playback time
                     val cur = if (dragging || seekFocused) (frac * barLengthMs).toLong() else posTimeMs
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -323,23 +323,23 @@ internal fun PlayerControlsOverlay(
                                 value = frac.coerceIn(0f, 1f),
                                 onValueChange = { onDraggingSet(true); onDragValueSet(it) },
                                 onValueChangeFinished = {
-                                    // ciel v case relacie (v ramci dosiahnutelneho rozsahu)
+                                    // target within the programme time (within the reachable range)
                                     val progMs = (dragValue.coerceIn(0f, 1f) * barLengthMs).toLong()
                                         .coerceIn(0L, barLengthMs)
-                                    onPosTimeMsSet(progMs)           // okamzita odozva UI
+                                    onPosTimeMsSet(progMs)           // immediate UI feedback
                                     onPosFractionSet(if (lengthMs > 0)
                                         ((recordingOffsetMs + progMs).toFloat() /
                                             (recordingOffsetMs + lengthMs)).coerceIn(0f, 1f)
                                     else 0f)
                                     onDraggingSet(false)
-                                    // skutocny seek prebudovanim streamu (feeder byte-restart /
-                                    // direct :start-time) - player.position na pipe nefunguje
+                                    // the real seek by rebuilding the stream (feeder byte-restart /
+                                    // direct :start-time) - player.position does not work on a pipe
                                     onSeekToMs(progMs)
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             )
-                            // Znacky relacie: cervena = zaciatok (koniec okraja pred),
-                            // svetlejsia = koniec relacie (zaciatok okraja po).
+                            // Programme markers: red = start (end of the leading margin),
+                            // lighter = end of the programme (start of the trailing margin).
                             if (progStartFrac > 0.002f || progStopFrac < 0.998f) {
                                 androidx.compose.foundation.Canvas(
                                     modifier = Modifier.matchParentSize()
@@ -347,7 +347,7 @@ internal fun PlayerControlsOverlay(
                                     val thumb = 10.dp.toPx()
                                     val usable = (size.width - 2 * thumb).coerceAtLeast(0f)
                                     val w = 3.dp.toPx()
-                                    // vyska presne cez listu (~16 dp track), vystredene
+                                    // height exactly across the bar (~16 dp track), centred
                                     val half = 8.dp.toPx()
                                     val cy = size.height / 2f
                                     fun tick(f: Float, c: Color) {
@@ -366,15 +366,15 @@ internal fun PlayerControlsOverlay(
                     }
                 }
                 Spacer(Modifier.height((6 * k).dp))
-                // Tlacidla: zavriet, zoznam, prev, play, next, audio, titulky, sw
+                // Buttons: close, list, prev, play, next, audio, subtitles, sw
                 val bk = if (portrait) 0.95f else (0.78f * k)
-                // tlacidlo zamku otacania ma zmysel len ked je orientacia automaticka;
-                // pri pevnej orientacii (na vysku/sirku) ho skry
+                // the rotation lock button only makes sense when the orientation is automatic;
+                // hide it when the orientation is fixed (portrait/landscape)
                 val lockVisible = remember {
                     pipSupported && OrientationPref.get(ctx) == OrientationPref.AUTO
                 }
                 fun has(id: String) = order.contains(id)
-                // jedno tlacidlo podla id (zachytava okolity stav)
+                // a single button by id (captures the surrounding state)
                 @Composable
                 fun barCtrl(c: String) {
                     when (c) {
@@ -407,7 +407,7 @@ internal fun PlayerControlsOverlay(
                         "pip" -> CircleButton(
                             icon = Icons.Default.PictureInPictureAlt, selected = selCtrl == "pip", scale = bk, onClick = onEnterPip
                         )
-                        // M490: nahrat / zrusit nahravku prave beziacej relacie
+                        // M490: record / cancel the recording of the currently running programme
                         "rec" -> CircleButton(
                             icon = if (dvrActivity?.dvrExistingState?.value != null)
                                 Icons.Default.Stop else Icons.Default.FiberManualRecord,
@@ -422,7 +422,7 @@ internal fun PlayerControlsOverlay(
                             icon = Icons.Default.Timer, selected = selCtrl == "sleep", scale = bk,
                             onClick = onOpenSleep
                         )
-                        // M553: teletext (len živý kanál; HTSP ak stopu má)
+                        // M553: teletext (live channel only; HTSP if it has the track)
                         "txt" -> CircleButton(
                             icon = Icons.AutoMirrored.Filled.Article, selected = selCtrl == "txt", scale = bk,
                             onClick = { dvrActivity?.openTeletext() }
@@ -451,8 +451,8 @@ internal fun PlayerControlsOverlay(
                 }
                 val gap = Arrangement.spacedBy((8 * k).dp)
                 if (isModernUi() && !isTvDevice) {
-                    // Moderny rezim (telefon): 3 hlavne tlacidla + pas s popiskami;
-                    // zvysne funkcie su vo vysuvacom paneli "Viac" (showMoreSheet).
+                    // Modern mode (phone): 3 main buttons + a strip with labels;
+                    // the remaining functions are in the "More" slide-out panel (showMoreSheet).
                     ModernPhoneControls(
                         isPlaying = isPlaying,
                         timeshiftEngaged = timeshiftEngaged,
@@ -472,8 +472,8 @@ internal fun PlayerControlsOverlay(
                         onMore = { onShowMoreSheetSet(true) },
                     )
                 } else if (portrait) {
-                    // PORTRET: tlacidla vo viacerych radoch a vacsie (jeden rad bol nepouzitelne maly).
-                    // Rad 1: navigacia/okno, Rad 2: prehravanie (play v strede), Rad 3: zvuk/extra.
+                    // PORTRAIT: buttons in several rows and larger (a single row was unusably small).
+                    // Row 1: navigation/window, Row 2: playback (play in the middle), Row 3: audio/extras.
                     val rowGap = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -498,7 +498,7 @@ internal fun PlayerControlsOverlay(
                             barCtrl("audio")
                             barCtrl("subs")
                             if (has("profile")) barCtrl("profile")
-                            if (has("rec")) barCtrl("rec")     // M490-fix: aj trojriadkovy bar
+                            if (has("rec")) barCtrl("rec")     // M490-fix: the three-row bar too
                             if (has("txt")) barCtrl("txt")     // M553
                             barCtrl("sleep")
                             if (lockVisible) barCtrl("lock")
@@ -509,7 +509,7 @@ internal fun PlayerControlsOverlay(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // vlavo: zavriet, zoznam, EPG
+                    // left: close, list, EPG
                     Row(
                         horizontalArrangement = gap,
                         verticalAlignment = Alignment.CenterVertically,
@@ -519,10 +519,10 @@ internal fun PlayerControlsOverlay(
                         if (has("pip")) barCtrl("pip")
                         if (has("list") && liveChannels.isNotEmpty()) barCtrl("list")
                         if (has("epg")) barCtrl("epg")
-                        if (has("txt")) barCtrl("txt")     // M554: vľavo
-                        barCtrl("info")                    // M554: vľavo
+                        if (has("txt")) barCtrl("txt")     // M554: left
+                        barCtrl("info")                    // M554: left
                     }
-                    // stred: prepinanie + play/stop
+                    // middle: switching + play/stop
                     Row(
                         horizontalArrangement = gap,
                         verticalAlignment = Alignment.CenterVertically
@@ -533,12 +533,12 @@ internal fun PlayerControlsOverlay(
                         if (has("next")) barCtrl("next")
                         if (timeshiftEngaged) barCtrl("tsff")
                     }
-                    // vpravo: audio, titulky, info, SW
+                    // right: audio, subtitles, info, SW
                     Row(
                         horizontalArrangement = gap,
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.weight(1f),
-                        // zarovnaj k pravej hrane
+                        // align to the right edge
                     ) {
                         Spacer(Modifier.weight(1f))
                         barCtrl("audio")

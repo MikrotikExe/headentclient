@@ -59,16 +59,16 @@ fun genreLabel(topNibble: Int): String? {
 fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
     BackHandler { onBack() }
 
-    // ---- M472: nahravanie programu ----
+    // ---- M472: recording a programme ----
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     var canRecord by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var recording by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var recMessage by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
-    // M484: chybu odlisime farbou od potvrdenia
+    // M484: we distinguish an error from a confirmation by colour
     var recOk by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(true) }
-    // M484: ta ista logika ako v mriezke — ak nahravka uz existuje, ponukneme
-    // jej zrusenie namiesto toho, aby sme dali naplanovat druhu
+    // M484: the same logic as in the grid — if the recording already exists, we offer
+    // to cancel it instead of letting a second one be scheduled
     var existingRec by androidx.compose.runtime.remember {
         androidx.compose.runtime.mutableStateOf<sk.tvhclient.shared.model.DvrEntry?>(null)
     }
@@ -77,8 +77,8 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
         androidx.compose.runtime.mutableStateOf<sk.tvhclient.shared.model.TvhServer?>(null)
     }
 
-    // Prava zistime raz pri otvoreni; ak ich server neoznami, tlacidlo ukazeme
-    // a pripadnu chybu zobrazime az z odpovede.
+    // The rights are determined once on opening; if the server does not report them, we show the button
+    // and display any error only from the response.
     androidx.compose.runtime.LaunchedEffect(event.eventId, recReload) {
         val s = sk.tvhclient.shared.Tvh.store.active()
         server = s
@@ -110,7 +110,7 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // Cas: den + od-do
+            // Time: day + from-to
             val timeLine = buildString {
                 if (event.start > 0) {
                     append(formatDayLabel(event.start))
@@ -128,7 +128,7 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
                 Spacer(Modifier.height(8.dp))
             }
 
-            // Riadok metadat: zaner, vek, epizoda
+            // The metadata row: genre, age rating, episode
             val genre = genreLabel(event.dvbGenreTop)
             val meta = buildList {
                 if (genre != null) add(genre)
@@ -142,20 +142,20 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
                 Spacer(Modifier.height(12.dp))
             }
 
-            // Podtitul (epizoda nazov)
+            // Subtitle (episode title)
             if (event.subtitle.isNotBlank()) {
                 Text(event.subtitle, style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
             }
 
-            // M472: nahravanie — len ak ma pouzivatel pravo a ide o buduci program
-            // M484: tlacidlo sa prepina Nahrat <-> Zrusit, ako v mriezke
+            // M472: recording — only if the user has the right and it is a future programme
+            // M484: the button toggles Record <-> Cancel, as in the grid
             val nowSec = System.currentTimeMillis() / 1000
             val rec = existingRec
             if (canRecord && event.eventId != null && event.stop > nowSec) {
                 Spacer(Modifier.height(4.dp))
-                // M606: volitelny vyber DVR profilu pred nahravanim
+                // M606: an optional DVR profile selection before recording
                 var askProfiles by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<List<String>>(emptyList()) }
                 fun doRecord(profile: String?) {
                     val s = server ?: return
@@ -241,7 +241,7 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
                 Spacer(Modifier.height(12.dp))
             }
 
-            // Plny popis
+            // The full description
             val desc = event.bestDescription
             Text(
                 desc.ifBlank { stringResource(R.string.epg_no_description) },

@@ -63,12 +63,12 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 
 /**
- * Moderny ovladaci panel prehravaca pre TELEFON (UiModePref.MODERN):
- * 3 hlavne tlacidla (prev / velke Play / next, pri timeshiftu aj -30/+30)
- * + pas 5 ikon s popiskami (Spat, PiP, Kanaly, Program, Viac). Zvysne
- * funkcie (zvuk, titulky, casovac, zamok, info) su vo vysuvacom paneli
- * ModernMoreSheet. Vsetky akcie su te iste lambdy ako klasicky panel —
- * meni sa len usporiadanie; klasik ostava nedotknuty.
+ * The modern player control panel for a PHONE (UiModePref.MODERN):
+ * 3 main buttons (prev / big Play / next, plus -30/+30 with timeshift)
+ * + a strip of 5 icons with labels (Back, PiP, Channels, Guide, More). The remaining
+ * functions (audio, subtitles, timer, lock, info) are in the ModernMoreSheet
+ * slide-out panel. All the actions are the same lambdas as in the classic panel —
+ * only the arrangement changes; the classic one stays untouched.
  */
 @Composable
 internal fun ModernPhoneControls(
@@ -95,7 +95,7 @@ internal fun ModernPhoneControls(
         verticalArrangement = Arrangement.spacedBy(18.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        // transport: prev | PLAY | next (+ timeshift skoky)
+        // transport: prev | PLAY | next (+ timeshift jumps)
         Row(
             horizontalArrangement = Arrangement.spacedBy(22.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
@@ -120,7 +120,7 @@ internal fun ModernPhoneControls(
             if (hasNext && onNext != null) ModernSmallCircle(Icons.Default.SkipNext, onNext)
             if (timeshiftEngaged) ModernSmallCircle(Icons.Default.Forward30, onSkipFwd)
         }
-        // pas ikon s popiskami
+        // strip of icons with labels
         Row(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
@@ -149,7 +149,7 @@ private fun ModernSmallCircle(icon: ImageVector, onClick: () -> Unit) {
     }
 }
 
-/** Jemne kruhove pozadie citatelne na navy aj svetlom paneli. */
+/** A subtle circular background readable on both the navy and the light panel. */
 @Composable
 private fun Color.compositeOverPanel(): Color =
     if (isLightTheme()) Color(0x14000000) else Color(0x1FFFFFFF)
@@ -175,28 +175,28 @@ private fun ModernLabeled(icon: ImageVector, label: String, onClick: () -> Unit)
 }
 
 /**
- * Vysuvaci panel "Viac" zdola: zvukova stopa, titulky, casovac spanku,
- * zamok otocenia (ak je k dispozicii) a informacie o relacii. Stmavene
- * pozadie, tuknutim mimo panel sa zavrie.
+ * The "More" slide-out panel from the bottom: audio track, subtitles, sleep timer,
+ * rotation lock (if available) and programme information. A dimmed
+ * background, tapping outside the panel closes it.
  */
 @Composable
 internal fun ModernMoreSheet(
     lockVisible: Boolean,
     orientationLocked: Boolean,
-    // PiP polozka (M349-fix5): len ked je Auto-PiP vypnuty — rucny vstup do PiP
+    // PiP item (M349-fix5): only when Auto-PiP is off — manual entry into PiP
     pipVisible: Boolean = false,
     onPip: () -> Unit = {},
-    // M383: prepinac stream profilu (len HTTP live)
+    // M383: stream profile switch (HTTP live only)
     profileVisible: Boolean = false,
     onProfile: () -> Unit = {},
     onSubs: () -> Unit,
-    // M473: nahravanie prave beziacej relacie — len ak ma pouzivatel pravo
-    // a ak vieme, ktora relacia bezi (eventId z EPG)
+    // M473: recording the currently running programme — only if the user has the right
+    // and if we know which programme is running (eventId from the EPG)
     recordVisible: Boolean = false,
-    /** M475: true = nahravka uz existuje, polozka ponuka jej zrusenie */
+    /** M475: true = the recording already exists, the item offers to cancel it */
     recordIsCancel: Boolean = false,
     onRecord: () -> Unit = {},
-    // M559: teletext (len zivy kanal, HTSP ak ma stopu)
+    // M559: teletext (live channel only, HTSP if it has the track)
     teletextVisible: Boolean = false,
     onTeletext: () -> Unit = {},
     onSleep: () -> Unit,
@@ -208,21 +208,21 @@ internal fun ModernMoreSheet(
         Modifier
             .fillMaxSize()
             .background(Color(0x8C000000))
-            .consumeAllPointer()   // M563: gesta (hlasitost, zoznam, prepnutie kanala) nesmu ist pod panel
+            .consumeAllPointer()   // M563: gestures (volume, list, channel switching) must not go underneath the panel
             .clickable { onDismiss() },
         contentAlignment = Alignment.BottomCenter
     ) {
         Column(
             Modifier
-                // M561: na sirku (a s viac polozkami) sa panel nezmestil a nedal sa posuvat;
-                // obmedzena sirka (na sirku nie cez celu obrazovku), max 85 % vysky, rolovanie
-                // M563: widthIn MUSI byt pred fillMaxWidth (inak fillMaxWidth vynuti celu sirku)
+                // M561: in landscape (and with more items) the panel did not fit and could not be scrolled;
+                // limited width (in landscape not across the whole screen), max 85 % of the height, scrolling
+                // M563: widthIn MUST come before fillMaxWidth (otherwise fillMaxWidth forces the full width)
                 .widthIn(max = 520.dp)
                 .fillMaxWidth()
                 .heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.85f).dp)
                 .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
                 .background(playerScrim())
-                .clickable(enabled = false) {}   // pohlti klik, nech nezavrie panel
+                .clickable(enabled = false) {}   // swallow the click so that it does not close the panel
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp)
                 .verticalScroll(rememberScrollState())
@@ -317,10 +317,10 @@ private fun ModernSheetRow(icon: ImageVector, label: String, onClick: () -> Unit
 
 
 /**
- * Moderny riadok zoznamu kanalov v prehravaci — ina stavba nez klasik:
- * obsah na prvom mieste (velky picon, nazov kanala drobne NAD tucnym nazvom
- * prave beziacej relacie, "Dalej:" ktore klasik neukazuje), vpravo zostavajuce
- * minuty a decentne cislo kanala. Klasicky riadok ostava nezmeneny.
+ * The modern channel list row in the player — a different build from the classic one:
+ * content first (a large picon, the channel name in small type ABOVE the bold title
+ * of the currently running programme, "Next:" which the classic one does not show), on the right the remaining
+ * minutes and a discreet channel number. The classic row stays unchanged.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -344,7 +344,7 @@ internal fun ModernPlayerChannelRow(
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // velky picon
+        // large picon
         Box(
             Modifier.size(52.dp, 42.dp).clip(RoundedCornerShape(10.dp)).background(piconBackground()),
             contentAlignment = Alignment.Center

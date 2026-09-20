@@ -58,13 +58,13 @@ import sk.tvhclient.shared.model.TvhServer
 import kotlin.math.roundToInt
 
 /*
- * M630: malé prekryvy prehrávača vyclenené z PlayerUi (PlayerActivity.kt), ktoré bolo
- * na hranici 64 KB limitu JVM metódy. Čisté composables s malým počtom parametrov,
- * bez väzby na aktivitu. Volajú sa z koreňového Boxu PlayerUi v pôvodnom poradí.
+ * M630: the small player overlays extracted from PlayerUi (PlayerActivity.kt), which was
+ * at the edge of the 64 KB JVM method limit. Pure composables with few parameters,
+ * with no ties to the activity. They are called from the root Box of PlayerUi in the original order.
  */
 
-/** Audio-only (rozhlas): namiesto čiernej vycentrované logo stanice; keď je na TV otvorený
- *  zoznam kanálov, logo sa presunie do náhľadového obdĺžnika [previewRect]. */
+/** Audio-only (radio): instead of black, the centred station logo; when the channel list is
+ *  open on TV, the logo moves into the preview rectangle [previewRect]. */
 @Composable
 internal fun RadioCenterLogo(centerLogoUrl: String?, server: TvhServer?, previewRect: Rect?) {
     val ctxLogo = LocalContext.current
@@ -91,7 +91,7 @@ internal fun RadioCenterLogo(centerLogoUrl: String?, server: TvhServer?, preview
                 modifier = Modifier.size(side)
             )
         } else {
-            // Predvolená grafika rádia (keď stanica nemá picon alebo sa nenačíta)
+            // The default radio graphic (when the station has no picon or it does not load)
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     modifier = Modifier
@@ -108,7 +108,7 @@ internal fun RadioCenterLogo(centerLogoUrl: String?, server: TvhServer?, preview
     }
 }
 
-/** Indikátor opätovného pripájania (výpadok siete pri živom vysielaní). */
+/** Reconnection indicator (network dropout during a live broadcast). */
 @Composable
 internal fun ReconnectingOverlay() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -126,7 +126,7 @@ internal fun ReconnectingOverlay() {
     }
 }
 
-/** Koliesko v strede počas pretáčania timeshiftu (resync). */
+/** The spinner in the middle during timeshift seeking (resync). */
 @Composable
 internal fun SeekingSpinner() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -134,7 +134,7 @@ internal fun SeekingSpinner() {
     }
 }
 
-/** YouTube-style hint pri dvojkliku (skok o 10 s), na strane kliknutia, akumuluje sa. */
+/** A YouTube-style hint on a double tap (a 10 s jump), on the side of the tap, accumulating. */
 @Composable
 internal fun SeekHintOverlay(seekHint: Int) {
     val fwd = seekHint > 0
@@ -150,7 +150,7 @@ internal fun SeekHintOverlay(seekHint: Int) {
     }
 }
 
-/** MX Player overlay: hlasitosť alebo jas (vystredené). Volajúci zaručí, že aspoň jedno je >= 0. */
+/** MX Player overlay: volume or brightness (centred). The caller guarantees that at least one is >= 0. */
 @Composable
 internal fun GestureLevelOverlay(volPct: Int, brightPct: Int) {
     val isVol = volPct >= 0
@@ -175,7 +175,7 @@ internal fun GestureLevelOverlay(volPct: Int, brightPct: Int) {
     }
 }
 
-/** Seek-scrub overlay (hore v strede): ±m:ss alebo ±Ns podľa [scrubSec]. */
+/** Seek-scrub overlay (top centre): ±m:ss or ±Ns depending on [scrubSec]. */
 @Composable
 internal fun ScrubSecondsOverlay(scrubSec: Int) {
     val a = kotlin.math.abs(scrubSec)
@@ -191,7 +191,7 @@ internal fun ScrubSecondsOverlay(scrubSec: Int) {
     }
 }
 
-/** Prekrytie s práve zadávaným číslom kanála (hore v strede koreňového Boxu). */
+/** Overlay with the channel number currently being entered (top centre of the root Box). */
 @Composable
 internal fun BoxScope.NumberEntryOverlay(numberEntry: String) {
     Box(
@@ -206,9 +206,9 @@ internal fun BoxScope.NumberEntryOverlay(numberEntry: String) {
     }
 }
 
-/** Info o relácii (detail) — overlay v štýle prehrávača (M280). [recordLabel] null = bez
- *  položky nahrávania; M490: položka sa na TV vyberá šípkou dole ([recordSelected]),
- *  lebo dialóg pohlcuje klávesy a OK ho zatvára. */
+/** Programme info (detail) — an overlay in the player's style (M280). [recordLabel] null = no
+ *  recording item; M490: on TV the item is selected with the down arrow ([recordSelected]),
+ *  because the dialog swallows the keys and OK closes it. */
 @Composable
 internal fun ChannelInfoOverlay(
     channel: String,

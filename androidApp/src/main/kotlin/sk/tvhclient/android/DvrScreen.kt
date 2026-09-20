@@ -76,7 +76,7 @@ import sk.tvhclient.shared.model.DvrEntry
 import sk.tvhclient.shared.model.ImdbLookup
 import androidx.compose.foundation.lazy.grid.items as gridItems
 
-// Navigacia v archive (read-only zlozky)
+// Navigation in the archive (read-only folders)
 private sealed class DvrNav {
     data object Root : DvrNav()
     data object Recent : DvrNav()
@@ -89,27 +89,27 @@ private sealed class DvrNav {
 }
 
 /**
- * M483: ziadost o zmazanie nahravky z archivu.
+ * M483: a request to delete a recording from the archive.
  *
- * Riadok aj kartu vykresluju funkcie volane z desiatok miest, takze pretlacit
- * callback az dole by znamenalo zmenit kazde volanie. Ziadost preto ide cez
- * tento maly zdielany stav a dialog vykresli obrazovka, ktora ma po ruke
- * ViewModel na obnovenie zoznamu.
+ * Both the row and the card are rendered by functions called from dozens of places, so pushing
+ * a callback all the way down would mean changing every call. The request therefore goes through
+ * this small shared state and the dialog is rendered by the screen that has the
+ * ViewModel at hand for refreshing the list.
  */
 internal object DvrDeleteRequest {
-    /** Zaznam cakajuci na potvrdenie; null = dialog sa nezobrazuje. */
+    /** The entry awaiting confirmation; null = the dialog is not shown. */
     var pending by mutableStateOf<DvrEntry?>(null)
-    /** Ma pouzivatel pravo nahravat/mazat? Zisti sa raz pri otvoreni archivu. */
+    /** Does the user have the right to record/delete? Determined once when the archive is opened. */
     var allowed by mutableStateOf(false)
 
     fun ask(entry: DvrEntry) { if (allowed) pending = entry }
 }
 
 /**
- * M483: potvrdenie a vykonanie zmazania (telefon aj TV archiv).
+ * M483: confirming and performing the deletion (phone and TV archive alike).
  *
- * Mazanie je nevratne — server zmaze aj subor — preto sa vzdy pyta. Po uspechu
- * sa zoznam nacita znova, aby nahravka zmizla aj z mriezky v TV programe.
+ * Deleting is irreversible — the server deletes the file too — so it always asks. After success
+ * the list is loaded again, so that the recording disappears from the TV guide grid as well.
  */
 @Composable
 internal fun DvrDeleteDialog(vm: DvrViewModel) {
@@ -165,8 +165,8 @@ internal fun DvrDeleteDialog(vm: DvrViewModel) {
 fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
     val state by vm.state.collectAsState()
     val context = LocalContext.current
-    // M589: obnovenie drzi stare data, takze pri nezmenenom archive nebolo nic vidno —
-    // tlacidlo sa pocas nacitania meni na kruzok a neuspech sa oznami hlaskou
+    // M589: a refresh keeps the old data, so with an unchanged archive nothing was visible —
+    // the button turns into a spinner during the load and failure is reported by a message
     val refreshing by vm.refreshing.collectAsState()
     val refreshFailed by vm.refreshFailed.collectAsState()
     var seenRefreshFail by remember { mutableStateOf(refreshFailed) }
@@ -182,12 +182,12 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
     var search by remember { mutableStateOf("") }
     var viewMode by remember { mutableStateOf(DvrViewPref.get(context)) }
     var viewMenu by remember { mutableStateOf(false) }
-    // Klik na tab Archiv (aj uz vybrany) vrati na zaciatok (root + zrusene hladanie)
+    // A click on the Archive tab (even an already selected one) returns to the start (root + search cancelled)
     LaunchedEffect(resetSignal) {
         nav = DvrNav.Root
         search = ""
     }
-    // Korpus titulov pre podzanre (nacita sa raz z assetu)
+    // The corpus of titles for sub-genres (loaded once from an asset)
     var corpusReady by remember { mutableStateOf(DvrClassifier.hasCorpus()) }
     LaunchedEffect(Unit) {
         if (!DvrClassifier.hasCorpus()) {
@@ -196,7 +196,7 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
         }
     }
 
-    // Po navrate z prehravaca obnov priznaky sledovania (hviezdicka/pozicia)
+    // After returning from the player, refresh the watch flags (star/position)
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     var progressTick by remember { mutableStateOf(0) }
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
@@ -209,8 +209,8 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
 
     LaunchedEffect(Unit) { vm.loadIfNeeded() }
 
-    // IMDb online lookup: nacitaj cache z disku + dopln na pozadi necachnute
-    // filmy/serialy (slovenske/ceske nazvy ktore korpus nepozna).
+    // IMDb online lookup: load the cache from disk + fill in uncached
+    // films/series in the background (Slovak/Czech titles the corpus does not know).
     var imdbTick by remember { mutableStateOf(0) }
     LaunchedEffect(state) {
         val s = state
@@ -219,7 +219,7 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
             loadImdbCache(context)
         }
         imdbTick++
-        // tituly filmov/serialov co treba dohladat
+        // the titles of films/series that need looking up
         val pending = LinkedHashSet<String>()
         for (e in s.entries) {
             val cat = DvrClassifier.classify(e)
@@ -234,16 +234,16 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
                 done++
                 if (done % 20 == 0) {
                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { saveImdbCache(context) }
-                    imdbTick++  // priebezne prekreslenie
+                    imdbTick++  // incremental redraw
                 }
-                kotlinx.coroutines.delay(1100)  // rate-limit IMDb
+                kotlinx.coroutines.delay(1100)  // IMDb rate-limit
             }
         }
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { saveImdbCache(context) }
         imdbTick++
     }
 
-    // Spat: ak hladame, zrus hladanie; inak ak nie sme v root, vrat sa vyssie
+    // Back: if we are searching, cancel the search; otherwise, if we are not at the root, go up
     BackHandler(enabled = nav != DvrNav.Root || search.isNotBlank()) {
         if (search.isNotBlank()) {
             search = ""
@@ -261,10 +261,10 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
         }
     }
 
-    DvrDeleteDialog(vm)   // M483: mazanie nahravky (dlhe podrzanie na polozke)
+    DvrDeleteDialog(vm)   // M483: deleting a recording (long press on an item)
 
     Column(Modifier.fillMaxSize()) {
-        // Vyhladavanie nahravok (cez vsetky, podla nazvu) — klavesnica az po OK
+        // Searching recordings (across all of them, by title) — the keyboard only after OK
         val searchFocus = remember { FocusRequester() }
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -322,8 +322,8 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
             }
         }
         val contentFocus = remember { FocusRequester() }
-        // Po nacitani / zmene urovne daj focus na obsah (prvu zlozku), nech sa
-        // pri vstupe do archivu neoznaci hladanie a nevyskoci klavesnica.
+        // After a load / level change, put focus on the content (the first folder), so that
+        // entering the archive does not select the search and pop up the keyboard.
         LaunchedEffect(state is DvrState.Loaded, nav) {
             if (state is DvrState.Loaded && search.isBlank()) {
                 runCatching { contentFocus.requestFocus() }
@@ -337,7 +337,7 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
             when (val s = state) {
                 is DvrState.Loading -> LoadingStatus()
                 is DvrState.NoServer -> NoServerStatus()
-                is DvrState.Error -> ErrorStatus(   // M491: prazdna sprava -> preklad
+                is DvrState.Error -> ErrorStatus(   // M491: empty message -> translation
                     s.message.ifBlank { stringResource(R.string.load_error) },
                     onRetry = { vm.load() })
                 is DvrState.Loaded -> {
@@ -380,14 +380,14 @@ private fun DvrContent(
 ) {
     val server = remember { Tvh.store.active() }
     val piconLoader = remember(server?.id) { PiconImageLoader.get(context, server) }
-    // Klasifikacia je draha (strip diakritiky + regexy nad title/subtitle/popis/kanal).
-    // Klasifikuj kazdu nahravku RAZ na nacitanie (memoizovane podla entries), nie pri
-    // kazdej rekompozicii/navigacii - pri ~7000 nahravkach to inak sekalo pri kazdom kliku.
+    // Classification is expensive (stripping diacritics + regexes over title/subtitle/description/channel).
+    // Classify each recording ONCE per load (memoised by entries), not on
+    // every recomposition/navigation - with ~7000 recordings it otherwise stuttered on every click.
     val catOf = remember(entries) { entries.associateWith { DvrClassifier.classify(it) } }
     val byCatAll = remember(entries) { entries.groupBy { catOf.getValue(it) } }
     when (nav) {
         is DvrNav.Root -> {
-            // Zlozky: Posledne sledovane + Podla kanalov + kategorie
+            // Folders: Recently watched + By channel + categories
             val byCat = byCatAll
             val recentCount = remember(progressTick, entries) {
                 if (server == null) 0 else {
@@ -454,8 +454,8 @@ private fun DvrContent(
         }
 
         is DvrNav.Channels -> {
-            // Kanaly ktore maju nahravky, zoradene podla cisla kanala (ako v zozname),
-            // kanaly bez cisla na koniec podla abecedy.
+            // Channels that have recordings, sorted by channel number (as in the list),
+            // channels without a number at the end, alphabetically.
             val byChannel = remember(entries) { entries.groupBy { it.channelName.ifBlank { "—" } } }
             val channels = remember(byChannel, channelOrder) {
                 byChannel.keys.sortedWith(
@@ -546,7 +546,7 @@ private fun DvrContent(
         is DvrNav.Category -> {
             val inCat = byCatAll[nav.catKey].orEmpty()
             if (DvrClassifier.hasSubgenres(nav.catKey)) {
-                // Zlozky sub-zanrov ktore maju zaznamy (serialovy konsenzus) - memoizovane
+                // Sub-genre folders that have entries (series consensus) - memoised
                 val bySub = remember(inCat, nav.catKey) {
                     val consensus = DvrClassifier.consensusSubgenres(inCat, nav.catKey)
                     inCat.groupBy { DvrClassifier.subgenreOf(it, nav.catKey, consensus) }
@@ -584,8 +584,8 @@ private fun DvrContent(
                 }
             }
             if (DvrClassifier.isSeriesLike(nav.catKey)) {
-                // Zoskup epizody pod serial (canonical title). Vzdy zlozka,
-                // aj ked ma serial len jednu epizodu (konzistentne).
+                // Group episodes under a series (canonical title). Always a folder,
+                // even if the series has only one episode (for consistency).
                 val bySeries = remember(inSub) { inSub.groupBy { DvrClassifier.seriesCanonicalTitle(it.title) } }
                 val titles = remember(bySeries) { bySeries.keys.sortedBy { it.lowercase() } }
                 if (viewMode == ChannelViewMode.LIST) {
@@ -680,7 +680,7 @@ private fun Modifier.playOnMediaKey(onPlay: () -> Unit): Modifier = this.onPrevi
     handleMediaPlayKey(k, onPlay)
 }
 
-/** Spusti prehravanie DVR nahravky. */
+/** Starts playback of a DVR recording. */
 internal fun playDvr(context: Context, entry: DvrEntry) {
     val srv = Tvh.store.active() ?: return
     val url = Tvh.dvrUrl(srv, entry.uuid)
@@ -717,7 +717,7 @@ private fun RecordingCard(entry: DvrEntry, context: Context, progressTick: Int) 
                 else Modifier.dpadFocusable()
             )
             .playOnMediaKey { playDvr(context, entry) }
-            // M483: dlhe podrzanie = ponuka zmazat nahravku
+            // M483: long press = offer to delete the recording
             .combinedClickable(
                 onClick = { playDvr(context, entry) },
                 onLongClick = { DvrDeleteRequest.ask(entry) }
@@ -810,7 +810,7 @@ private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int) {
                 else Modifier.dpadFocusable()
             )
             .playOnMediaKey { playDvr(context, entry) }
-            // M483: dlhe podrzanie = ponuka zmazat nahravku
+            // M483: long press = offer to delete the recording
             .combinedClickable(
                 onClick = { playDvr(context, entry) },
                 onLongClick = { DvrDeleteRequest.ask(entry) }
@@ -818,7 +818,7 @@ private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int) {
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Dopozerane: moderny = teal fajka v cipe, klasik = hviezdicka
+        // Watched to the end: modern = a teal tick in the chip, classic = a star
         if (info?.completed == true) {
             if (modernRec) {
                 Box(
@@ -855,7 +855,7 @@ private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            // Rozpozeranie (nie dopozerane): pozicia + ciara priebehu
+            // Partly watched (not watched to the end): position + progress line
             if (info != null && !info.completed && info.posMs > 0) {
                 Spacer(Modifier.height(3.dp))
                 Text(
@@ -904,9 +904,9 @@ private fun Header(text: String) {
     )
 }
 
-// --- Moderny archiv (M316): karty priecinkov s farebnymi ikonovymi cipmi ---
+// --- Modern archive (M316): folder cards with coloured icon chips ---
 
-/** Farby cipu ikony: pozadie/popredie pre svetly a tmavy rezim. */
+/** Icon chip colours: background/foreground for light and dark mode. */
 
 @Composable
 private fun ChannelFolderRow(
@@ -980,7 +980,7 @@ private fun ChannelFolderRow(
 @Composable
 private fun FolderRow(label: String, sub: String, iconKey: String = "folder", onClick: () -> Unit) {
     if (isModernUi()) {
-        // Emoji prefix (📁/📺/▶/📅) v modernom rezime nahradza ikonovy cip
+        // The emoji prefix (📁/📺/▶/📅) is replaced by the icon chip in modern mode
         val clean = label.trimStart { !it.isLetterOrDigit() }
         ModernFolderRow(clean, sub, iconKey, onClick = onClick)
         return
@@ -1003,7 +1003,7 @@ private fun FolderRow(label: String, sub: String, iconKey: String = "folder", on
     }
 }
 
-/** Priecinok ako dlazdica (mriezka/dlazdice) — zachovava nazov aj pocet. */
+/** A folder as a tile (grid/tiles) — keeps both the name and the count. */
 @Composable
 private fun FolderCard(
     label: String,
@@ -1115,18 +1115,18 @@ private fun subLabel(key: String): String {
 }
 
 @Composable
-/** TV/box Archiv: lavy panel (Hladat, Podla kanalu, Vsetko + zanre) + mriezka relacii + popis. */
+/** TV/box Archive: left panel (Search, By channel, All + genres) + programme grid + description. */
 fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
     val context = LocalContext.current
     val state by vm.state.collectAsState()
     val refreshingTv by vm.refreshing.collectAsState()   // M589
     val server = remember { Tvh.store.active() }
     val loader = remember(server?.id) { PiconImageLoader.get(context, server) }
-    // M528: pri kazdom otvoreni archivu si vyziadaj cerstvy zoznam.
-    // `loadIfNeeded` sa vrati hned, ked uz data ma, takze prave dokoncena
-    // nahravka sa objavila az po restarte appky. `refresh` drzi stare data
-    // a dotiahne nove bez blikania. TV archiv navyse nema tlacidlo obnovy
-    // (to je len v telefonnej verzii), takze inak sa obnovit ani neda.
+    // M528: request a fresh list on every opening of the archive.
+    // `loadIfNeeded` returns immediately when it already has data, so a just-finished
+    // recording only appeared after an app restart. `refresh` keeps the old data
+    // and pulls the new one in without flicker. The TV archive moreover has no refresh button
+    // (that is only in the phone version), so there is no other way to refresh it.
     LaunchedEffect(Unit) { vm.loadIfNeeded(); vm.refresh() }
     LaunchedEffect(Unit) {
         if (!DvrClassifier.hasCorpus())
@@ -1187,12 +1187,12 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
         }
     }
 
-    DvrDeleteDialog(vm)   // M483: mazanie nahravky (dlhe OK -> info -> Zmazat)
+    DvrDeleteDialog(vm)   // M483: deleting a recording (long OK -> info -> Delete)
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        // M530: nadpis vlavo, rucna obnova vpravo hore. Archiv sa obnovuje aj sam
-        // pri otvoreni (M528), ale ked appka ostane otvorena, prave dokoncena
-        // nahravka sa inak neobjavi.
+        // M530: the heading on the left, the manual refresh top right. The archive also refreshes itself
+        // on opening (M528), but when the app stays open, a just-finished
+        // recording would otherwise not appear.
         Row(
             Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -1298,8 +1298,8 @@ private fun ColumnScope.ArcRecGrid(list: List<DvrEntry>, loaded: DvrState.Loaded
     var infoEntry by remember { mutableStateOf<DvrEntry?>(null) }
     LazyVerticalGrid(GridCells.Fixed(4), Modifier.fillMaxWidth().weight(1f).padding(8.dp)) {
         gridItems(list, key = { it.uuid }) { e ->
-            // M514-fix: aj mriezka nahravok — po vybere datumu ma fokus pristat
-            // na prvej relacii, nie odskocit na „Posledne sledovane"
+            // M514-fix: the recordings grid as well — after picking a date, focus should land
+            // on the first programme, not hop back to "Recently watched"
             Box(Modifier.arcAutoFocus(e.uuid == list.firstOrNull()?.uuid)) {
                 ArcRecCard(e, loaded.channelPicons[e.channelName], loader, context, progressTick,
                     onFocus = { focused = e }, onClick = { playDvr(context, e) }, onLong = { infoEntry = e })
@@ -1313,13 +1313,13 @@ private fun ColumnScope.ArcRecGrid(list: List<DvrEntry>, loaded: DvrState.Loaded
 
 
 /**
- * M514: prva dlazdica novej mriezky si vypyta fokus hned pri svojom vzniku.
+ * M514: the first tile of a new grid requests focus right when it is created.
  *
- * Ked pouzivatel vyberie zlozku, stara mriezka zmizne aj s prvkom, na ktorom
- * stal fokus. Compose ho vtedy hlada od zaciatku stromu a najde „Posledne
- * sledovane" v lavom pase — to bolo vidiet ako kratke bliknutie. Ziadat fokus
- * az z vonkajsieho LaunchedEffectu je neskoro (bliknutie uz prebehlo); musi si
- * ho vypytat sama dlazdica v tej istej kompozicii, v ktorej sa objavi.
+ * When the user picks a folder, the old grid disappears together with the element that
+ * held focus. Compose then searches for it from the start of the tree and finds "Recently
+ * watched" in the left rail — which was visible as a brief flicker. Requesting focus
+ * only from an outer LaunchedEffect is too late (the flicker has already happened); the tile
+ * itself must request it in the very composition in which it appears.
  */
 @Composable
 private fun Modifier.arcAutoFocus(active: Boolean): Modifier {
@@ -1356,7 +1356,7 @@ private fun ColumnScope.ArcFolderGrid(
     }
 }
 
-/** Karta priecinka moderneho archivu: farebny ikonovy cip + tucny nazov + badge poctu + sipka. */
+/** A folder card of the modern archive: a coloured icon chip + a bold name + a count badge + an arrow. */
 @Composable
 private fun ModernFolderRow(
     label: String,
@@ -1439,7 +1439,7 @@ private fun ArcFolderHeader(text: String) {
 @Composable
 private fun ArcFolderCard(glyph: String, label: String, count: Int, iconKey: String? = null, onClick: () -> Unit) {
     if (isModernUi() && iconKey != null) {
-        // Moderna dlazdica (M321): cip vlavo hore, tucny nazov, badge pocet
+        // A modern tile (M321): the chip top left, a bold name, a count badge
         val cs = MaterialTheme.colorScheme
         val light = isLightTheme()
         val chip = mgChipFor(iconKey)
@@ -1496,11 +1496,11 @@ private fun ArcFolderCard(glyph: String, label: String, count: Int, iconKey: Str
 @Composable
 private fun ArcInfoDialog(e: DvrEntry, onDismiss: () -> Unit) {
     val desc = e.dispDescription.ifBlank { e.dispSubtitle }
-    // Zavri az po novom celom stlaceni OK (cerstve DOWN repeatCount==0). Chvost dlheho OK (uvolnenie) sa ignoruje.
+    // Close only after a new full press of OK (a fresh DOWN with repeatCount==0). The tail of a long OK (the release) is ignored.
     var sawFreshDown by remember { mutableStateOf(false) }
-    // M498: Surface pohlcuje vsetky klavesy (OK zatvara dialog), takze focusovatelne
-    // tlacidlo sa k nim nikdy nedostane. Polozka mazania sa preto vybera SIPKOU DOLE
-    // a potvrdzuje OK — rovnako ako info prekrytie v prehravaci.
+    // M498: the Surface swallows all keys (OK closes the dialog), so a focusable
+    // button never gets to them. The delete item is therefore selected with the DOWN ARROW
+    // and confirmed with OK — the same as the info overlay in the player.
     var delSel by remember { mutableStateOf(false) }
     val fr = remember { FocusRequester() }
     Dialog(onDismissRequest = onDismiss) {
@@ -1513,7 +1513,7 @@ private fun ArcInfoDialog(e: DvrEntry, onDismiss: () -> Unit) {
                 .focusable()
                 .onKeyEvent { ev ->
                     val k = ev.nativeKeyEvent
-                    // M498: sipky prepinaju vyber polozky mazania
+                    // M498: the arrows toggle the selection of the delete item
                     if (k.keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN) {
                         if (k.action == android.view.KeyEvent.ACTION_DOWN &&
                             DvrDeleteRequest.allowed) delSel = true
@@ -1531,7 +1531,7 @@ private fun ArcInfoDialog(e: DvrEntry, onDismiss: () -> Unit) {
                         android.view.KeyEvent.ACTION_DOWN -> { if (k.repeatCount == 0) sawFreshDown = true; true }
                         android.view.KeyEvent.ACTION_UP -> {
                             if (sawFreshDown) {
-                                // M498: OK na vybratej polozke = zmazat, inak zavriet
+                                // M498: OK on the selected item = delete, otherwise close
                                 val del = delSel
                                 onDismiss()
                                 if (del) DvrDeleteRequest.ask(e)
@@ -1552,7 +1552,7 @@ private fun ArcInfoDialog(e: DvrEntry, onDismiss: () -> Unit) {
                     Text(if (desc.isNotBlank()) desc else "\u2014", style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface)
                 }
-                // M483: mazanie z TV archivu — sipka dole na tlacidlo, OK potvrdi
+                // M483: deleting from the TV archive — down arrow onto the button, OK confirms
                 if (DvrDeleteRequest.allowed) {
                     Spacer(Modifier.height(12.dp))
                     Text(
@@ -1562,7 +1562,7 @@ private fun ArcInfoDialog(e: DvrEntry, onDismiss: () -> Unit) {
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier
                             .clip(RoundedCornerShape(10.dp))
-                            // M498: vyber sa kresli sam — fokus tu nefunguje
+                            // M498: the selection draws itself — focus does not work here
                             .background(
                                 if (delSel) MaterialTheme.colorScheme.error.copy(alpha = 0.18f)
                                 else androidx.compose.ui.graphics.Color.Transparent
@@ -1573,7 +1573,7 @@ private fun ArcInfoDialog(e: DvrEntry, onDismiss: () -> Unit) {
                 }
                 Spacer(Modifier.height(14.dp))
                 Text(
-                    // M498: napoveda podla toho, co OK prave spravi
+                    // M498: the hint depends on what OK will actually do
                     if (delSel) stringResource(R.string.dvr_delete_button) + "  (OK)"
                     else stringResource(R.string.close) + "  (OK)",
                     color = if (delSel) MaterialTheme.colorScheme.error
@@ -1587,11 +1587,11 @@ private fun ArcInfoDialog(e: DvrEntry, onDismiss: () -> Unit) {
 }
 
 /**
- * M530: tlacidlo obnovy v pravom hornom rohu archivu.
+ * M530: the refresh button in the top right corner of the archive.
  *
- * Vzhlad sa riadi zvolenym rozhranim, nech nepovsi z celku:
- *  - MODERNY: obla karta s farebnym ikonovym cipom, ako polozky laveho pasu
- *  - KLASICKY: plochy obrys, ako ostatne klasicke ovladace
+ * Its look follows the chosen interface, so that it does not stand out from the whole:
+ *  - MODERN: a rounded card with a coloured icon chip, like the items in the left rail
+ *  - CLASSIC: a flat outline, like the other classic controls
  */
 @Composable
 private fun ArcReloadButton(loading: Boolean = false, onClick: () -> Unit) {   // M589
@@ -1613,7 +1613,7 @@ private fun ArcReloadButton(loading: Boolean = false, onClick: () -> Unit) {   /
                 }
             )
             .then(
-                // klasicky rezim: obrys namiesto vyplne
+                // classic mode: an outline instead of a fill
                 if (!modern) Modifier.border(
                     1.dp,
                     if (focused) cs.primary else cs.outline.copy(alpha = 0.5f),
@@ -1626,12 +1626,12 @@ private fun ArcReloadButton(loading: Boolean = false, onClick: () -> Unit) {   /
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (loading) {   // M589: viditelny priebeh aj na TV
+        if (loading) {   // M589: visible progress on TV as well
             androidx.compose.material3.CircularProgressIndicator(
                 modifier = Modifier.size(if (modern) 26.dp else 18.dp), strokeWidth = 2.dp
             )
         } else if (modern) {
-            // ikonovy cip ako v lavom pase
+            // an icon chip as in the left rail
             val chip = mgChipFor("dates")
             Box(
                 Modifier.size(26.dp)
@@ -1665,7 +1665,7 @@ private fun ArcReloadButton(loading: Boolean = false, onClick: () -> Unit) {   /
 @Composable
 private fun ArcRailItem(label: String, count: Int?, selected: Boolean, iconKey: String? = null, onClick: () -> Unit) {
     if (isModernUi() && iconKey != null) {
-        // Moderny rail (M321): karta s farebnym ikonovym cipom a badge poctom
+        // Modern rail (M321): a card with a coloured icon chip and a count badge
         val cs = MaterialTheme.colorScheme
         val light = isLightTheme()
         val chip = mgChipFor(iconKey)
@@ -1771,8 +1771,8 @@ private fun ArcRecCard(e: DvrEntry, picon: String?, loader: coil.ImageLoader, co
                 if (!ok) return@onPreviewKeyEvent false
                 when (k.action) {
                     android.view.KeyEvent.ACTION_DOWN -> when (k.repeatCount) {
-                        0 -> { longFired = false; false }          // nechaj clickable trackovat kratky klik
-                        1 -> { longFired = true; onLong(); true }   // dlhe OK -> info, pohlt
+                        0 -> { longFired = false; false }          // let clickable keep tracking the short click
+                        1 -> { longFired = true; onLong(); true }   // long OK -> info, consume
                         else -> true
                     }
                     android.view.KeyEvent.ACTION_UP -> if (longFired) { longFired = false; true } else false
@@ -1807,7 +1807,7 @@ private fun ArcRecCard(e: DvrEntry, picon: String?, loader: coil.ImageLoader, co
         Text(formatDateFull(e.start) + "  \u00B7  " + formatTimeHm(e.start),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall, maxLines = 1,
-            overflow = TextOverflow.Ellipsis)   // M425: dlhsi 12-hodinovy cas
+            overflow = TextOverflow.Ellipsis)   // M425: the longer 12-hour time
     }
 }
 
@@ -1880,7 +1880,7 @@ private fun normalizeSearch(s: String): String {
     return sb.toString()
 }
 
-/** Nacita korpus titulov z assetu a vlozi do DvrClassifier. Volat raz, na IO. */
+/** Loads the corpus of titles from an asset and feeds it into DvrClassifier. Call once, on IO. */
 private fun loadCorpusFromAssets(context: Context) {
     if (DvrClassifier.hasCorpus()) return
     try {
@@ -1904,7 +1904,7 @@ private fun loadCorpusFromAssets(context: Context) {
     }
 }
 
-/** Nacita IMDb cache z filesDir/imdb_cache.json do ImdbLookup. */
+/** Loads the IMDb cache from filesDir/imdb_cache.json into ImdbLookup. */
 private fun loadImdbCache(context: Context) {
     try {
         val f = java.io.File(context.filesDir, "imdb_cache.json")
@@ -1913,7 +1913,7 @@ private fun loadImdbCache(context: Context) {
     }
 }
 
-/** Ulozi IMDb cache na disk. */
+/** Saves the IMDb cache to disk. */
 private fun saveImdbCache(context: Context) {
     try {
         java.io.File(context.filesDir, "imdb_cache.json").writeText(ImdbLookup.exportJson())

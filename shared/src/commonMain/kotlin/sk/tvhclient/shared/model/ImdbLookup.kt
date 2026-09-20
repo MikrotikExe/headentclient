@@ -18,13 +18,13 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 
 /**
- * Online vyhladavanie zanru podla nazvu cez IMDb GraphQL (port imdb_lookup.py).
- * Riesi tituly ktore nie su v korpuse — najma slovenske/ceske nazvy
- * medzinarodnych serialov (Priatelia=Friends, Carodejky=Charmed...).
+ * Online genre lookup by title through the IMDb GraphQL API (a port of imdb_lookup.py).
+ * It handles titles that are not in the corpus — above all the Slovak/Czech names of
+ * international series (Priatelia=Friends, Carodejky=Charmed...).
  *
- * Nezablokujuce: klasifikator sa pyta len cache (cachedSub). Necachnute
- * tituly sa stahuju na pozadi (fetch) s rate-limitom; cache sa persistuje
- * na disk cez export/importJson (robi Android vrstva).
+ * Non-blocking: the classifier only queries the cache (cachedSub). Uncached
+ * titles are downloaded in the background (fetch) with a rate limit; the cache is
+ * persisted to disk via export/importJson (done by the Android layer).
  */
 object ImdbLookup {
     private const val GRAPHQL_URL = "https://caching.graphql.imdb.com/"
@@ -40,7 +40,7 @@ object ImdbLookup {
 
     data class Res(val top: String?, val sub: String?)
 
-    // canonical -> Res; hodnota null = negativny cache (ziadna zhoda)
+    // canonical -> Res; a null value = a negative cache entry (no match)
     private val cache = HashMap<String, Res?>()
 
     private val genreToSub: Map<String, String> = mapOf(
@@ -104,7 +104,7 @@ object ImdbLookup {
         return true
     }
 
-    /** Stiahne a zacachuje vysledok pre titul. Vrati true ak pribudol zaznam. */
+    /** Downloads and caches the result for a title. Returns true if a record was added. */
     suspend fun fetch(title: String): Boolean {
         val key = DvrClassifier.canonicalForImdb(title)
         if (key.isEmpty() || cache.containsKey(key)) return false
@@ -113,7 +113,7 @@ object ImdbLookup {
         } catch (e: Exception) {
             null
         }
-        cache[key] = res  // ulozit aj negativ (null)
+        cache[key] = res  // store the negative result too (null)
         return true
     }
 
@@ -160,7 +160,7 @@ object ImdbLookup {
         return null
     }
 
-    // ---- persistencia (Android cita/pise filesDir/imdb_cache.json) ----
+    // ---- persistence (Android reads/writes filesDir/imdb_cache.json) ----
     fun exportJson(): String {
         val o = buildJsonObject {
             for ((k, v) in cache) {

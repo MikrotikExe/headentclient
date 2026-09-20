@@ -4,8 +4,8 @@ import android.view.KeyEvent
 import androidx.compose.runtime.MutableState
 
 /**
- * M644: spoločné klávesové vzory dialógov prehrávača (vyclenené z dispatchKeyEvent).
- * Na boxe dialógy v Compose nemajú fokus, preto šípky/OK/BACK rieši aktivita sama.
+ * M644: shared key patterns for the player dialogs (extracted from dispatchKeyEvent).
+ * On a box, Compose dialogs do not have focus, so arrows/OK/BACK are handled by the activity itself.
  */
 internal object DialogKeys {
     fun isOk(kc: Int): Boolean =
@@ -15,9 +15,9 @@ internal object DialogKeys {
         kc == KeyEvent.KEYCODE_VOLUME_UP || kc == KeyEvent.KEYCODE_VOLUME_DOWN || kc == KeyEvent.KEYCODE_VOLUME_MUTE
 
     /**
-     * Dialóg s dvoma voľbami vedľa seba (0/1): VĽAVO/VPRAVO prepína [sel], OK (len prvé
-     * stlačenie, nie opakovanie) potvrdí cez [onOk] s aktuálnou voľbou, BACK zavolá [onBack].
-     * Vždy spotrebuje (aj UP udalosti), dialóg blokuje vstup do pozadia.
+     * A dialog with two options side by side (0/1): LEFT/RIGHT toggles [sel], OK (first
+     * press only, not repeats) confirms via [onOk] with the current choice, BACK calls [onBack].
+     * Always consumes (including UP events), the dialog blocks input to the background.
      */
     fun twoChoice(kc: Int, down: Boolean, event: KeyEvent, sel: MutableState<Int>,
                   onOk: (Int) -> Unit, onBack: () -> Unit): Boolean {
@@ -31,10 +31,10 @@ internal object DialogKeys {
     }
 
     /**
-     * Vertikálny zoznam: HORE/DOLE posúva [sel] (s pretočením), OK potvrdí, BACK (a pri
-     * [leftCloses] aj VĽAVO) zavrie. [okFirstPressOnly] = OK len pri repeatCount 0.
-     * Vráti false pre klávesy hlasitosti, ak [passVolume] — volajúci ich pošle systému;
-     * inak vždy true.
+     * Vertical list: UP/DOWN moves [sel] (with wrap-around), OK confirms, BACK (and, with
+     * [leftCloses], LEFT as well) closes. [okFirstPressOnly] = OK only at repeatCount 0.
+     * Returns false for the volume keys if [passVolume] — the caller passes them to the system;
+     * otherwise always true.
      */
     fun verticalList(kc: Int, down: Boolean, event: KeyEvent, count: Int, sel: MutableState<Int>,
                      okFirstPressOnly: Boolean = false, leftCloses: Boolean = false, passVolume: Boolean = false,

@@ -8,8 +8,8 @@ import com.russhwolf.settings.Settings
 import com.russhwolf.settings.SharedPreferencesSettings
 
 /**
- * Drzi application context pre shared modul.
- * Inicializuje sa v Application.onCreate() volanim initSecureStorage(this).
+ * Holds the application context for the shared module.
+ * It is initialised in Application.onCreate() by calling initSecureStorage(this).
  */
 @SuppressLint("StaticFieldLeak")
 object AppContextHolder {
@@ -38,18 +38,18 @@ private fun buildEncrypted(ctx: Context): Settings {
 }
 
 /**
- * M512: sifrovane ulozisko odolne voci strate kluca.
+ * M512: encrypted storage resilient against the loss of the key.
  *
- * Kluc zije v Android Keystore a je viazany na instalaciu. Ked sa appka
- * preinstaluje (alebo sa zasifrovany subor vrati z automatickej zalohy
- * Androidu, kym kluc uz je novy), desifrovanie vyhodi AEADBadTagException —
- * a kedze sa ulozisko vytvara v Application.onCreate, appka spadla este pred
- * prvou obrazovkou a dala sa ozivit len vymazanim dat.
+ * The key lives in the Android Keystore and is bound to the installation. When the app
+ * is reinstalled (or the encrypted file comes back from Android's automatic
+ * backup while the key is already a new one), decryption throws AEADBadTagException —
+ * and since the storage is created in Application.onCreate, the app crashed before
+ * the first screen and could only be revived by clearing its data.
  *
- * Pri takom nesulade preto poskodeny subor aj kluc zahodime a zalozime cisté
- * ulozisko. Cena je strata ulozenych hesiel k serverom — to je vsak jediny
- * mozny vysledok, ked ich uz nie je cim rozsifrovat, a je to nekonecne lepsie
- * nez appka, ktora sa neda spustit.
+ * On such a mismatch we therefore throw away both the corrupted file and the key and create a clean
+ * storage. The price is the loss of the stored server passwords — but that is the only
+ * possible outcome once there is nothing left to decrypt them with, and it is infinitely better
+ * than an app that cannot be started.
  */
 actual fun createSecureSettings(): Settings {
     val ctx = AppContextHolder.context
@@ -64,7 +64,7 @@ actual fun createSecureSettings(): Settings {
             java.security.KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
                 .deleteEntry(MASTER_KEY_ALIAS)
         }
-        // druhy pokus uz s cistym stavom; ak by zlyhal aj ten, nech padne nahlas
+        // the second attempt already with clean state; if even that fails, let it crash loudly
         buildEncrypted(ctx)
     }
 }

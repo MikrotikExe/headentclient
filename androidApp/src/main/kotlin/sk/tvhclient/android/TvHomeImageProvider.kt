@@ -9,14 +9,14 @@ import java.io.File
 import java.io.FileNotFoundException
 
 /**
- * M580-fix: obrazky dlazdic pre riadok na domovskej obrazovke Android TV.
+ * M580-fix: tile images for the row on the Android TV home screen.
  *
- * Launcher (iny proces) si obrazky programov stahuje sam; content:// URI cez
- * FileProvider potreboval grantUriPermission pre konkretny balik launchera, co na
- * niektorych boxoch nefungovalo (siva dlazdica) a nepreziva restart. Tento provider
- * je exportovany bez opravnenia a servuje VYLUCNE PNG z cache/tvhome — su to len
- * loga kanalov na tmavom podklade, nic citlive. Nic ine nevie (query/insert/delete
- * nie su podporovane).
+ * The launcher (another process) downloads the programme images itself; a content:// URI via
+ * FileProvider needed grantUriPermission for the launcher's specific package, which on
+ * some boxes did not work (grey tile) and does not survive a restart. This provider
+ * is exported without a permission and serves EXCLUSIVELY PNGs from cache/tvhome — they are only
+ * channel logos on a dark background, nothing sensitive. It can do nothing else (query/insert/delete
+ * are not supported).
  */
 class TvHomeImageProvider : ContentProvider() {
 
@@ -39,8 +39,8 @@ class TvHomeImageProvider : ContentProvider() {
     override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?): Int = 0
 
     companion object {
-        /** ?v= podla casu suboru — launcher si obrazky cachuje podla URI, po zmene piconu
-         *  (alebo po neuspesnom pokuse) by inak drzal staru/prazdnu verziu. */
+        /** ?v= from the file's timestamp — the launcher caches the images by URI, so after a picon change
+         *  (or after a failed attempt) it would otherwise hold on to the old/empty version. */
         fun uriFor(ctx: android.content.Context, file: File): Uri =
             Uri.parse("content://" + ctx.packageName + ".tvhome/" + file.name + "?v=" + file.lastModified())
     }

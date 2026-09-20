@@ -53,7 +53,7 @@ import androidx.compose.ui.unit.dp
 import sk.tvhclient.shared.api.ConnectionResult
 import sk.tvhclient.shared.model.TvhServer
 
-// Uvodna obrazovka / onboarding (pridanie prveho servera). Vyclenene z MainActivity.kt.
+// Initial screen / onboarding (adding the first server). Extracted from MainActivity.kt.
 
 @Composable
 fun WelcomeScreen(vm: ServersViewModel) {
@@ -62,7 +62,7 @@ fun WelcomeScreen(vm: ServersViewModel) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var advanced by remember { mutableStateOf(false) }
-    // pokrocile
+    // advanced
     var name by remember { mutableStateOf("") }
     var port by remember { mutableStateOf("9981") }
     var useHttps by remember { mutableStateOf(false) }
@@ -72,7 +72,7 @@ fun WelcomeScreen(vm: ServersViewModel) {
     var profile by remember { mutableStateOf("pass") }
     var localError by remember { mutableStateOf(false) }
     val hostFocus = remember { androidx.compose.ui.focus.FocusRequester() }
-    // Pociatocny D-pad fokus (TV) na prve pole Host/IP, nech sa zacina zhora
+    // Initial D-pad focus (TV) on the first Host/IP field, so that it starts from the top
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(200)
         runCatching { hostFocus.requestFocus() }
@@ -81,7 +81,7 @@ fun WelcomeScreen(vm: ServersViewModel) {
     val testState by vm.testState.collectAsState()
     var pending by remember { mutableStateOf<TvhServer?>(null) }
 
-    // Po uspesnom teste uloz server a vojdi do appky
+    // After a successful test save the server and enter the app
     LaunchedEffect(testState) {
         val st = testState
         if (st is TestState.Done && st.result is ConnectionResult.Success) {
@@ -90,13 +90,13 @@ fun WelcomeScreen(vm: ServersViewModel) {
         }
     }
 
-    // Pozadie aj text podla temy (svetla/tmava). Prepinac temy je hore,
-    // lebo pred prihlasenim sa pouzivatel do nastaveni nedostane.
+    // Both the background and the text follow the theme (light/dark). The theme switcher is at the top,
+    // because before logging in the user cannot get into the settings.
     val bgColors = if (isLightTheme())
         listOf(Color(0xFFEDEAF5), Color(0xFFF6F4FB), Color(0xFFFFFFFF))
     else
         listOf(Color(0xFF1B1430), Color(0xFF120F1A), Color(0xFF0C0B10))
-    // Kompaktnejsi layout na sirku (Android TV / setobox / tablet na sirku), nech sa zmesti vsetko vratane loga
+    // A more compact landscape layout (Android TV / set-top box / tablet in landscape), so that everything fits including the logo
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     val compact = configuration.screenWidthDp > configuration.screenHeightDp
     val logoSize = if (compact) 64.dp else 96.dp
@@ -104,10 +104,10 @@ fun WelcomeScreen(vm: ServersViewModel) {
     val gapLogo = if (compact) 10.dp else 18.dp
     val gapForm = if (compact) 20.dp else 36.dp
     val vPad = if (compact) 8.dp else 16.dp
-    // M401: verziovanie uz len semver — cislo buildu sa nezobrazuje
+    // M401: versioning is semver only now — the build number is not shown
     val versionLabel = "v${BuildConfig.VERSION_NAME} \u2022 ${BuildConfig.BUILD_DATE}"
 
-    // Branding (logo + nazov + popis) - zdielane pre oba layouty
+    // Branding (logo + name + description) - shared by both layouts
     val modernUi = isModernUi()
     val branding: @Composable () -> Unit = {
         Box(
@@ -141,7 +141,7 @@ fun WelcomeScreen(vm: ServersViewModel) {
         )
     }
 
-    // Formular (polia + tlacidlo + viac moznosti + pokrocile) - zdielane; prepinac temy sa prida zvlast
+    // Form (fields + button + more options + advanced) - shared; the theme switcher is added separately
     val formFields: @Composable () -> Unit = {
         val chipLight = isLightTheme()
         TvTextField(
@@ -219,10 +219,10 @@ fun WelcomeScreen(vm: ServersViewModel) {
                         useHttps = useHttps,
                         username = username.trim(),
                         password = password,
-                        // M479: pri HTSP profil NEURCUJEME — "pass" je profil pre
-                        // HTTP prenos (MPEG-TS passthrough), HTSP prenasa elementarne
-                        // streamy. Prazdna hodnota = server pouzije profil podla
-                        // nastavenia konta, co je spravne predvolene spravanie.
+                        // M479: with HTSP we DO NOT specify a profile — "pass" is the profile for
+                        // the HTTP transport (MPEG-TS passthrough), HTSP carries elementary
+                        // streams. An empty value = the server uses the profile from the
+                        // account settings, which is the correct default behaviour.
                         profile = if (connMode == "htsp") ""
                         else profile.trim().ifBlank { "pass" },
                         authMode = authMode,
@@ -295,7 +295,7 @@ fun WelcomeScreen(vm: ServersViewModel) {
                     .clickable { useHttps = !useHttps },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Switch len zobrazovaci — fokus/klik ma cely riadok (M367)
+                // The switch is display-only — focus/click belongs to the whole row (M367)
                 Switch(checked = useHttps, onCheckedChange = null)
                 Spacer(Modifier.width(8.dp))
                 Text(
@@ -318,12 +318,12 @@ fun WelcomeScreen(vm: ServersViewModel) {
                     }
                 }
             ) { authMode = it }
-            // M478: na uvodnej obrazovke sa profil UZ NEPONUKA. Zoznam sa tu
-            // nedal nacitat zo servera (este nie je kam sa pripojit), takze
-            // pouzivatel vyberal z predvolenych nazvov, ktore jeho server
-            // nemusi mat vobec. Novy server sa zalozi s "pass" a profil sa da
-            // zmenit po prihlaseni — v uprave servera alebo priamo v prehravaci,
-            // kde uz zoznam prichadza zo servera.
+            // M478: the profile is NO LONGER OFFERED on the initial screen. The list could
+            // not be loaded from the server here (there is nowhere to connect yet), so the
+            // user was choosing from default names that his server
+            // need not have at all. A new server is created with "pass" and the profile can be
+            // changed after logging in — in the server editor or directly in the player,
+            // where the list already comes from the server.
             Spacer(Modifier.height(8.dp))
             BackupControls(compact = true, onImported = { vm.refresh() })
         }
@@ -335,7 +335,7 @@ fun WelcomeScreen(vm: ServersViewModel) {
             .background(Brush.verticalGradient(bgColors))
     ) {
         if (compact) {
-            // Dva stlpce: vlavo logo+nazov, vpravo prepinac+formular. Vsetko sa zmesti na sirku (TV / box / tablet).
+            // Two columns: logo+name on the left, switcher+form on the right. Everything fits in landscape (TV / box / tablet).
             Row(
                 modifier = Modifier
                     .fillMaxSize()
@@ -384,7 +384,7 @@ fun WelcomeScreen(vm: ServersViewModel) {
                 }
             }
         } else {
-            // Jeden stlpec (telefon na vysku)
+            // One column (phone in portrait)
             Column(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -404,7 +404,7 @@ fun WelcomeScreen(vm: ServersViewModel) {
                 formFields()
                 Spacer(Modifier.height(28.dp))
                 UiModePicker(ctx)
-                // Verzia je sucastou skrolovacieho obsahu — neprekryva volbu vzhladu
+                // The version is part of the scrolling content — it does not cover the look selection
                 Spacer(Modifier.height(24.dp))
                 Text(
                     versionLabel,
@@ -420,10 +420,10 @@ fun WelcomeScreen(vm: ServersViewModel) {
 
 
 /**
- * Volba vzhladu rozhrania (M319) — na privitacej obrazovke pri prvom spusteni.
- * Dve karty s mini nahladmi (klasik = ploche riadky, moderny = karty s cipmi);
- * vyber sa aplikuje okamzite cez UiModePref (zivy stav), takze pouzivatel hned
- * vidi rozdiel na samotnom prihlaseni. Volba sa da neskor zmenit v nastaveniach.
+ * Interface look selection (M319) — on the welcome screen at first launch.
+ * Two cards with mini previews (classic = flat rows, modern = cards with chips);
+ * the choice is applied immediately via UiModePref (live state), so the user
+ * sees the difference straight away on the login screen itself. The choice can be changed later in the settings.
  */
 @Composable
 private fun UiModePicker(ctx: android.content.Context) {
@@ -466,7 +466,7 @@ private fun UiModePicker(ctx: android.content.Context) {
     }
 }
 
-/** Karta jednej volby vzhladu: mini nahlad + radio + nazov (+ badge NOVE). */
+/** Card of a single look option: mini preview + radio + name (+ NEW badge). */
 @Composable
 private fun UiModeCard(
     label: String,
@@ -496,7 +496,7 @@ private fun UiModeCard(
                 .clickable { onClick() }
                 .padding(12.dp)
         ) {
-            // mini nahlad
+            // mini preview
             Column(
                 Modifier
                     .fillMaxWidth()
@@ -594,7 +594,7 @@ private fun UiModeCard(
     }
 }
 
-/** Kompaktny prepinac temy (Auto / svetla / tmava) — hore na prihlasovacej obrazovke. */
+/** Compact theme switcher (Auto / light / dark) — at the top of the login screen. */
 @Composable
 private fun ThemeSwitch(ctx: android.content.Context) {
     val mode = ThemePref.get(ctx)
@@ -608,8 +608,8 @@ private fun ThemeSwitch(ctx: android.content.Context) {
     ) {
         val items = listOf(
             ThemePref.AUTO to "Auto",
-            ThemePref.LIGHT to "\u2600",   // slnko
-            ThemePref.DARK to "\u263D"     // mesiac
+            ThemePref.LIGHT to "\u2600",   // sun
+            ThemePref.DARK to "\u263D"     // moon
         )
         items.forEach { (m, glyph) ->
             val sel = mode == m

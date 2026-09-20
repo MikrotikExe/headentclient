@@ -11,11 +11,11 @@ import android.view.View
 import sk.tvhclient.shared.htsp.DvbSubtitleDecoder
 
 /**
- * Overlay nad videom, ktory vykresluje DVB titulky dekódované nami (DvbSubtitleDecoder).
- * libVLC sa titulkov vobec nedotyka — o zobrazeni rozhodujeme len my, takze nic nevypadne.
+ * An overlay above the video that renders DVB subtitles decoded by us (DvbSubtitleDecoder).
+ * libVLC does not touch the subtitles at all — we alone decide about display, so nothing gets dropped.
  *
- * Kazda stranka pride s cielovym casom (ms v osi prehravaca). Tiker cita aktualny cas
- * prehravaca a zobrazi najnovsiu stranku s targetMs <= teraz; prazdna stranka = skry.
+ * Every page arrives with a target time (ms on the player axis). A ticker reads the player's current
+ * time and shows the newest page with targetMs <= now; an empty page = hide.
  */
 class SubtitleOverlayView(context: Context) : View(context) {
 
@@ -24,7 +24,7 @@ class SubtitleOverlayView(context: Context) : View(context) {
         val w: Int, val h: Int, val pixels: IntArray?, val empty: Boolean
     )
 
-    private val queue = ArrayList<Timed>()   // zoradene podla targetMs
+    private val queue = ArrayList<Timed>()   // sorted by targetMs
     private val lock = Any()
     private var clock: (() -> Long)? = null
     private var aspect: (() -> Float)? = null
@@ -52,7 +52,7 @@ class SubtitleOverlayView(context: Context) : View(context) {
 
     fun stopTicker() { running = false; handler.removeCallbacks(tick) }
 
-    /** Nova dekódovana stranka s cielovym casom (ms v osi prehravaca). */
+    /** A newly decoded page with a target time (ms on the player axis). */
     fun onPage(page: DvbSubtitleDecoder.DecodedPage, targetMs: Long) {
         val t = Timed(
             targetMs,
@@ -66,7 +66,7 @@ class SubtitleOverlayView(context: Context) : View(context) {
         }
     }
 
-    /** Vycisti stav (prepnutie kanala/jazyka, vypnutie titulkov). */
+    /** Clears the state (channel/language switch, subtitles turned off). */
     fun reset() {
         synchronized(lock) { queue.clear() }
         current = null
@@ -75,8 +75,8 @@ class SubtitleOverlayView(context: Context) : View(context) {
     }
 
     private fun update() {
-        // clock siaha na mediaPlayer.time; po uvolneni prehravaca hodi getTime()
-        // IllegalStateException ("can't get VLCObject instance") — nesmie zhodit appku.
+        // clock touches mediaPlayer.time; after the player is released getTime() throws
+        // IllegalStateException ("can't get VLCObject instance") — it must not bring the app down.
         val now = runCatching { clock?.invoke() }.getOrNull() ?: return
         var chosen: Timed? = null
         synchronized(lock) {
@@ -84,7 +84,7 @@ class SubtitleOverlayView(context: Context) : View(context) {
             for (k in queue.indices) { if (queue[k].targetMs <= now) idx = k else break }
             if (idx >= 0) {
                 chosen = queue[idx]
-                repeat(idx) { queue.removeAt(0) }   // zahod uz minule stranky (chosen ostane na zaciatku)
+                repeat(idx) { queue.removeAt(0) }   // discard already past pages (chosen stays at the beginning)
             }
         }
         val c = chosen ?: return
@@ -105,9 +105,9 @@ class SubtitleOverlayView(context: Context) : View(context) {
 
     override fun onDraw(canvas: Canvas) {
         val bmp = bitmap ?: return
-        // Titulkova plocha zodpoveda celemu obrazu videa. Video sa do view-u vklada
-        // so zachovanim pomeru stran (letterbox/pillarbox), takze titulky mapujeme na
-        // ten isty obdlznik — inak by na vysku spadli do cierneho pruhu.
+        // The subtitle area corresponds to the whole video picture. The video is inserted into the view
+        // preserving the aspect ratio (letterbox/pillarbox), so we map the subtitles onto
+        // the same rectangle — otherwise vertically they would fall into the black bar.
         val va = (aspect?.invoke() ?: (16f / 9f)).let { if (it > 0f) it else 16f / 9f }
         val vw = width.toFloat()
         val vh = height.toFloat()

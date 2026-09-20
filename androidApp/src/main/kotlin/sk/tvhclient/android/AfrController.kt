@@ -10,19 +10,19 @@ import android.view.ViewGroup
 import org.videolan.libvlc.MediaPlayer
 
 /**
- * M346 / M626: AFR — automaticka obnovovacia frekvencia (vyclenene z PlayerActivity).
+ * M346 / M626: AFR — automatic refresh rate (split out of PlayerActivity).
  *
- * Precita fps z video stopy (libVLC frameRateNum/Den) a vyberie rezim displeja
- * s rovnakym rozlisenim, ktoreho Hz je celociselnym nasobkom fps (25 fps -> 50 Hz;
- * 60 Hz sa odmietne, 60/25 = 2.4). Preferuje 2x nasobok, potom 1x. Predvolene
- * vypnute (AfrPref), len TV/box. Pri odchode sa preferencia vrati systemu ([clear]).
+ * Reads fps from the video track (libVLC frameRateNum/Den) and picks a display mode
+ * with the same resolution whose Hz is an integer multiple of the fps (25 fps -> 50 Hz;
+ * 60 Hz is rejected, 60/25 = 2.4). Prefers the 2x multiple, then 1x. Off by
+ * default (AfrPref), TV/box only. On exit the preference is returned to the system ([clear]).
  *
- * Telefon/tablet (M348): Surface.setFrameRate — system sam rozhodne, ci panel
- * prepne (LTPO plynulo, bez resyncu). TV/box ide display-mode cestou; ak je
- * prepnutie do HDR vypnute (AfrHdrSwitchPref), len plynula ziadost o frekvenciu.
+ * Phone/tablet (M348): Surface.setFrameRate — the system itself decides whether the panel
+ * switches (LTPO smoothly, without a resync). TV/box goes the display-mode way; if
+ * switching to HDR is disabled (AfrHdrSwitchPref), only a smooth frame-rate request.
  *
- * [player] a [videoLayout] su lambdy, lebo prehravac sa v PlayerActivity
- * vytvara a rusi (M539 recreate) — controller nikdy nedrzi vlastny odkaz.
+ * [player] and [videoLayout] are lambdas, because the player is created and destroyed
+ * in PlayerActivity (M539 recreate) — the controller never holds its own reference.
  */
 class AfrController(
     private val activity: Activity,
@@ -40,7 +40,7 @@ class AfrController(
         val num = vt?.frameRateNum ?: 0
         val den = vt?.frameRateDen ?: 0
         if (num <= 0 || den <= 0) {
-            // stopa este nie je pripravena — jeden odlozeny pokus
+            // the track is not ready yet — one deferred attempt
             if (!retryPosted) {
                 retryPosted = true
                 activity.window.decorView.postDelayed({ retryPosted = false; apply() }, 900L)
@@ -67,14 +67,14 @@ class AfrController(
             val k = m.refreshRate / fps
             val kr = kotlin.math.round(k)
             if (kr < 1f || kotlin.math.abs(k - kr) > 0.02f * kr) return Int.MIN_VALUE
-            return when (kr.toInt()) { 2 -> 3; 1 -> 2; else -> 1 }  // 2x (50 Hz pre 25 fps) > 1x > vyssie
+            return when (kr.toInt()) { 2 -> 3; 1 -> 2; else -> 1 }  // 2x (50 Hz for 25 fps) > 1x > higher
         }
         val best = candidates.maxByOrNull { score(it) } ?: return
         if (score(best) == Int.MIN_VALUE) return
         if (best.modeId == cur.modeId) return
-        // Prepnutie do HDR vypnute -> ziadne tvrde prepnutie rezimu (to vyvolava
-        // HDMI re-sync a HDR flip firmwaru). Namiesto toho len plynula ziadost
-        // o frekvenciu; system ju splni iba ak to panel zvladne bez re-syncu.
+        // Switching to HDR is disabled -> no hard mode switch (that triggers an
+        // HDMI re-sync and an HDR flip in the firmware). Instead only a smooth request
+        // for the frame rate; the system grants it only if the panel can do it without a re-sync.
         if (!AfrHdrSwitchPref.get(activity)) {
             if (Build.VERSION.SDK_INT >= 31) {
                 findVideoSurface()?.let { surf ->
@@ -93,9 +93,9 @@ class AfrController(
             val lp = activity.window.attributes
             lp.preferredDisplayModeId = best.modeId
             activity.window.attributes = lp
-            // Pauza po zmene rezimu (M347, ako Kodi): pocas HDMI resyncu TV
-            // nic neukazuje ani nehra — pauza zabrani stratenemu zaciatku
-            // a audio desyncu. Po uplynuti sa prehravanie samo obnovi.
+            // Pause after a mode change (M347, like Kodi): during the HDMI resync the TV
+            // shows nothing and plays nothing — the pause prevents a lost start
+            // and audio desync. Once it elapses playback resumes by itself.
             val delaySec = AfrDelayPref.get(activity)
             if (delaySec > 0 && mp.isPlaying) {
                 mp.pause()
@@ -106,7 +106,7 @@ class AfrController(
         }
     }
 
-    /** Najde SurfaceView videa vo VLCVideoLayout (rekurzivne) — pre setFrameRate. */
+    /** Finds the video SurfaceView inside VLCVideoLayout (recursively) — for setFrameRate. */
     private fun findVideoSurface(): Surface? {
         fun find(v: View): SurfaceView? {
             if (v is SurfaceView) return v
@@ -121,7 +121,7 @@ class AfrController(
         return if (surf != null && surf.isValid) surf else null
     }
 
-    /** Vrati preferovany rezim displeja systemu (pri odchode z prehravaca). */
+    /** Returns the preferred display mode to the system (when leaving the player). */
     fun clear() {
         if (Build.VERSION.SDK_INT < 23) return
         runCatching {

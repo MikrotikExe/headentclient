@@ -28,11 +28,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /*
- * M661: info okno prehrávača vyclenené z PlayerUi (PlayerActivity.kt) — limit 64 kB na metódu.
- * Čistý composable; stav (showInfo) drží volajúci a zatvára ho cez [setShowInfo].
+ * M661: the player info window extracted from PlayerUi (PlayerActivity.kt) — the 64 kB method limit.
+ * A pure composable; the state (showInfo) is held by the caller and closed via [setShowInfo].
  */
 
-/** Info okno: detail práve bežiacej relácie (INFO kláves / tlačidlo). Volať len keď je showInfo == true. */
+/** Info window: detail of the currently running programme (INFO key / button). Call only when showInfo == true. */
 @Composable
 internal fun PlayerInfoWindow(
     setShowInfo: (Boolean) -> Unit,
@@ -50,7 +50,7 @@ internal fun PlayerInfoWindow(
     liveCurrentIndex: Int,
     dvrActivity: PlayerActivity?
 ) {
-    // Info okno: detail prave beziacej relacie (INFO kláves / tlacidlo)
+    // Info window: detail of the currently running programme (INFO key / button)
     androidx.activity.compose.BackHandler { setShowInfo(false) }
     val clk: (Long) -> String = { sec ->
         if (sec <= 0) "" else java.text.SimpleDateFormat(sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault())
@@ -75,7 +75,7 @@ internal fun PlayerInfoWindow(
                     .padding(28.dp)
                     .verticalScroll(androidx.compose.foundation.rememberScrollState())
             ) {
-                // hlavicka kanala (len pri zivom vysielani)
+                // channel header (live broadcast only)
                 val infoCh = liveChannels.getOrNull(liveCurrentIndex)
                 if (infoCh != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -108,7 +108,7 @@ internal fun PlayerInfoWindow(
                     Spacer(Modifier.height(6.dp))
                     Text(tRange, color = playerFgDim(), fontSize = 15.sp)
                 }
-                // priebeh + zostavajuci cas (len zive vysielanie)
+                // progress + remaining time (live broadcast only)
                 if (!seekable && progStart > 0 && progStop > progStart) {
                     val totalI = (progStop - progStart).coerceAtLeast(1)
                     val fracI = ((liveNowSec - progStart).toFloat() / totalI.toFloat())
@@ -127,7 +127,7 @@ internal fun PlayerInfoWindow(
                     Spacer(Modifier.height(14.dp))
                     Text(progDesc, color = playerFgDim(), fontSize = 16.sp, lineHeight = 22.sp)
                 }
-                // M490: nahravanie aj z info okna (telefon — dotyk, bez fokusu)
+                // M490: recording from the info window too (phone — touch, without focus)
                 if (dvrActivity?.dvrRecordVisible() == true) {
                     Spacer(Modifier.height(16.dp))
                     androidx.compose.material3.OutlinedButton(
@@ -155,7 +155,7 @@ internal fun PlayerInfoWindow(
                         else -> ""
                     }
                     Text(
-                        // M491: bolo natvrdo po slovensky
+                        // M491: it was hardcoded in Slovak
                         stringResource(R.string.mh_next) + " " + nr + nextTitle,
                         color = playerFgFaint(),
                         fontSize = 14.sp

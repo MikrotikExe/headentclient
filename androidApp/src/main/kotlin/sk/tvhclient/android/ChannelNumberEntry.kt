@@ -7,9 +7,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * M635: zadávanie čísla kanála z diaľkového (vyclenené z PlayerActivity) — číslice sa
- * zbierajú (max 4), po 1,5 s bez ďalšej alebo po OK sa potvrdia cez [onCommit]
- * (aktivita nájde kanál podľa čísla a prepne). [entryState] číta NumberEntryOverlay.
+ * M635: entering a channel number from the remote (split out of PlayerActivity) — the digits are
+ * collected (max 4), after 1.5 s without another one or after OK they are committed via [onCommit]
+ * (the activity finds the channel by number and switches). [entryState] is read by NumberEntryOverlay.
  */
 class ChannelNumberEntry(private val scope: CoroutineScope, private val onCommit: (Int) -> Unit) {
     val entryState = mutableStateOf("")
@@ -28,7 +28,7 @@ class ChannelNumberEntry(private val scope: CoroutineScope, private val onCommit
         }
     }
 
-    /** Potvrdí rozpísané číslo hneď (OK) — bez čakania na časovač. */
+    /** Commits the number being typed immediately (OK) — without waiting for the timer. */
     fun commitNow() { job?.cancel(); commit() }
 
     private fun commit() {

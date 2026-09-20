@@ -2,9 +2,9 @@ package sk.tvhclient.android
 
 import android.content.Context
 
-/** Pauza po zmene obnovovacej frekvencie (M347, ako Kodi "Delay after change
- *  of refresh rate"): TV pri HDMI resyncu na 1-2 s strati obraz aj zvuk —
- *  kratka pauza prehravania zabrani stratenemu zaciatku a rozsynchronizovaniu. */
+/** Pause after a refresh-rate change (M347, like Kodi "Delay after change
+ *  of refresh rate"): during the HDMI resync the TV loses picture and sound for 1-2 s —
+ *  a short playback pause prevents a lost start and desynchronisation. */
 object AfrDelayPref {
     private const val PREFS = "app_prefs"
     private const val KEY = "afr_delay_sec"

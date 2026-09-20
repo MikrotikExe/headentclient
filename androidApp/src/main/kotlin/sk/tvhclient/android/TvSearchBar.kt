@@ -30,10 +30,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 
 /**
- * Vyhladavacie pole pre TV. Po zamerani (sipkami) sa NEZOBRAZI klavesnica —
- * je to len zvyraznene pole. Klavesnica sa otvori az po stlaceni OK; vtedy sa
- * objavi skutocne textove pole s IME. BACK / potvrdenie klavesnice ho zatvori
- * a fokus sa vrati na pole. Tym sa klavesnica nikdy nevyskoci sama.
+ * Search field for TV. On being focused (with the arrows) the keyboard is NOT shown —
+ * it is only a highlighted field. The keyboard opens only after pressing OK; at that point
+ * a real text field with an IME appears. BACK / confirming the keyboard closes it
+ * and focus returns to the field. This way the keyboard never pops up on its own.
  */
 @Composable
 fun TvSearchBar(
@@ -66,8 +66,8 @@ fun TvSearchBar(
         )
         LaunchedEffect(Unit) { runCatching { imeFocus.requestFocus() } }
     } else {
-        // Vratenie fokusu na pole po zatvoreni klavesnice (nech nezostane visiet)
-        // moderny rezim: pilulka s jemnym pozadim; klasik: povodny ramik
+        // Return focus to the field after the keyboard closes (so it does not hang)
+        // modern mode: a pill with a subtle background; classic: the original border
         val modern = isModernUi()
         val shape = if (modern) RoundedCornerShape(999.dp) else RoundedCornerShape(4.dp)
         Box(

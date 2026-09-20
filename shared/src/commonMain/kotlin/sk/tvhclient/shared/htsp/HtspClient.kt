@@ -17,12 +17,12 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * HTSP klient pre Tvheadend (port 9982). Prenos jadra z pluginu (htsp.py):
- * handshake (hello), SHA1 digest auth, enableAsyncMetadata dump kanalov,
- * tagov, EPG a DVR. Streaming sa NEROBI cez HTSP (ostava HTTP), tu len
- * metadata transport ako alternativa k /api endpointom.
+ * HTSP client for Tvheadend (port 9982). The core is ported from the plugin (htsp.py):
+ * handshake (hello), SHA1 digest auth, enableAsyncMetadata dump of channels,
+ * tags, EPG and DVR. Streaming is NOT done over HTSP (it stays HTTP), here it is only
+ * a metadata transport as an alternative to the /api endpoints.
  *
- * Pouziva ktor-network coroutine sockety (funguju na Android aj iOS).
+ * Uses ktor-network coroutine sockets (they work on both Android and iOS).
  */
 class HtspClient(
     private val host: String,
@@ -40,13 +40,13 @@ class HtspClient(
     private var seq = 0
     private val writeMutex = Mutex()
     private var streamSubId: Int = -1
-    private var liveMuxer: TsMuxer? = null   // aktivny muxer streamu (pre pôvod časovej osi)
+    private var liveMuxer: TsMuxer? = null   // the active stream muxer (for the timeline origin)
 
     private val subDecoder = DvbSubtitleDecoder()
-    private var subDecodeEs = -1             // ktory ES sa dekóduje na titulky (-1 = ziadny)
+    private var subDecodeEs = -1             // which ES is decoded into subtitles (-1 = none)
 
-    /** Nastav titulkovu stopu, ktora sa ma dekódovať a vykresľovať (esIndex; -1 = ziadna).
-     *  Titulky sa do libVLC NEposielaju — dekódujeme a renderujeme ich sami. */
+    /** Set the subtitle track that is to be decoded and rendered (esIndex; -1 = none).
+     *  Subtitles are NOT sent to libVLC — we decode and render them ourselves. */
     fun selectSubtitle(esIndex: Int) {
         subDecodeEs = esIndex
         subDecoder.reset()
@@ -63,10 +63,10 @@ class HtspClient(
     private var challenge: ByteArray? = null
 
     /**
-     * M471: prava prihlaseneho pouzivatela z asynchronnej spravy `accessUpdate`.
-     * Tvheadend ju posiela sam po prihlaseni (htsp_server.c). Pole `dvr`
-     * zodpoveda pravu ACCESS_HTSP_RECORDER — podla neho appka zobrazi alebo
-     * skryje nahravanie. Server prava aj tak vynuti, toto je len pre UI.
+     * M471: the logged-in user's rights from the asynchronous `accessUpdate` message.
+     * Tvheadend sends it by itself after login (htsp_server.c). The `dvr` field
+     * corresponds to the ACCESS_HTSP_RECORDER right — the app shows or
+     * hides recording based on it. The server enforces the rights anyway, this is only for the UI.
      */
     data class Access(
         val admin: Boolean = false,
@@ -76,7 +76,7 @@ class HtspClient(
         val connLimitDvr: Int = 0
     )
 
-    /** Naposledy prijate prava (null = server ich neposlal). */
+    /** The last received rights (null = the server did not send them). */
     var access: Access? = null
         private set
 
@@ -125,8 +125,8 @@ class HtspClient(
                 throw IllegalStateException("HTSP autentifikácia zlyhala")
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
-            // Zrusene pocas pripajania (appka sa ukoncuje) — upraceme socket cisto,
-            // nech nevisi a nezhodi FinalizerWatchdog. Potom znovu vyhodime zrusenie.
+            // Cancelled during connecting (the app is shutting down) — we tidy up the socket cleanly,
+            // so it does not hang and take down FinalizerWatchdog. Then we rethrow the cancellation.
             withContext(NonCancellable) { close() }
             throw e
         } catch (e: Throwable) {
@@ -141,7 +141,7 @@ class HtspClient(
         socket = null; selector = null; read = null; write = null
     }
 
-    /** M472: pristupne aj mimo triedy — DVR prikazy (addDvrEntry a spol.). */
+    /** M472: accessible from outside the class too — DVR commands (addDvrEntry and friends). */
     internal suspend fun send(method: String, args: Map<String, Any?> = emptyMap(), withSeq: Boolean = true): Int {
         val msg = HashMap<String, Any?>(args)
         msg["method"] = method
@@ -161,23 +161,23 @@ class HtspClient(
     private suspend fun recv(): Map<String, Any?> {
         val r = read!!
         val hdr = r.readByteArray(4)
-        // dlzka ako Long (unsigned 32-bit) — cez Int by najvyssi bit daval zaporne
+        // length as a Long (unsigned 32-bit) — via Int the highest bit would give a negative number
         val len = (((hdr[0].toLong() and 0xFF) shl 24) or
                 ((hdr[1].toLong() and 0xFF) shl 16) or
                 ((hdr[2].toLong() and 0xFF) shl 8) or
                 (hdr[3].toLong() and 0xFF))
-        // Ochrana proti OOM: platna HTSP sprava nema realne viac nez par MB. Ak
-        // prefix hlasi nezmyselnu dlzku (poskodene / rozsynchronizovane data,
-        // napr. zvysky po starom spojeni pri rychlom restarte appky), je to chyba
-        // protokolu — vyhod vynimku (spojenie sa znovu nadviaze) namiesto pokusu
-        // alokovat obrovske pole, ktore predtym zhodilo appku (OutOfMemoryError).
+        // Protection against OOM: a valid HTSP message realistically has no more than a few MB. If
+        // the prefix reports a nonsensical length (corrupted / desynchronized data,
+        // e.g. leftovers from an old connection on a fast app restart), it is a protocol
+        // error — throw an exception (the connection will be re-established) instead of trying to
+        // allocate a huge array, which used to crash the app (OutOfMemoryError).
         if (len < 0 || len > MAX_MSG_LEN) {
             throw IllegalStateException("HTSP: neplatna dlzka spravy=$len (poskodeny stream)")
         }
         val body = if (len > 0) r.readByteArray(len.toInt()) else ByteArray(0)
-        // Ochrana: parsovanie poskodenych dat (napr. zvysky po starom spojeni pri
-        // rychlom restarte) moze hodit OutOfMemoryError. Zachytime ho a premenime
-        // na normalnu vynimku, nech appka nespadne — spojenie sa znovu nadviaze.
+        // Protection: parsing corrupted data (e.g. leftovers from an old connection on a
+        // fast restart) can throw OutOfMemoryError. We catch it and turn it
+        // into a normal exception, so the app does not crash — the connection will be re-established.
         return try {
             Htsmsg.deserializeMap(body)
         } catch (e: OutOfMemoryError) {
@@ -187,7 +187,7 @@ class HtspClient(
         }
     }
 
-    /** M472: precita jednu asynchronnu spravu (napr. accessUpdate) a spracuje ju. */
+    /** M472: reads one asynchronous message (e.g. accessUpdate) and processes it. */
     internal suspend fun pumpOnce() {
         val m = kotlinx.coroutines.withTimeoutOrNull(1_500L) { recv() } ?: return
         if ((m["method"] as? String) == "accessUpdate") applyAccessUpdate(m)
@@ -202,8 +202,8 @@ class HtspClient(
     }
 
     private suspend fun hello() {
-        // M511: `language` — bez neho server pouzije svoju predvolbu a klient moze
-        // dostat inu jazykovu mutaciu EPG (napr. OTA namiesto XMLTV). Kodi ju posiela.
+        // M511: `language` — without it the server uses its own default and the client may
+        // get a different language variant of the EPG (e.g. OTA instead of XMLTV). Kodi sends it.
         val args = HashMap<String, Any?>()
         args["htspversion"] = 35L
         args["clientname"] = sk.tvhclient.shared.ClientIdent.userAgent
@@ -230,25 +230,25 @@ class HtspClient(
             send("authenticate", mapOf("username" to user))
         }
         val r = recvReply(s)
-        // noaccess=1 => zamietnute
+        // noaccess=1 => denied
         return ((r["noaccess"] as? Long) ?: 0L) == 0L
     }
 
     /**
-     * Nacita metadata cez enableAsyncMetadata. Cita spravy kym nepride
-     * initialSyncCompleted (+ pri EPG kratky idle), potom vypne async.
-     * epgMaxDays obmedzi EPG (0 = bez limitu). channelsOnly = rychla cesta.
+     * Loads metadata via enableAsyncMetadata. Reads messages until
+     * initialSyncCompleted arrives (+ a short idle for EPG), then turns async off.
+     * epgMaxDays limits the EPG (0 = no limit). channelsOnly = the fast path.
      */
     /**
-     * Program pre jeden kanal (HTSP getEvents) — synchronny reply, ovela
-     * rychlejsie nez cely async EPG dump. Vrati zoznam event map.
+     * Programme for one channel (HTSP getEvents) — a synchronous reply, far
+     * faster than the whole async EPG dump. Returns a list of event maps.
      */
     suspend fun getEvents(channelId: Long, numFollowing: Int = 60, maxTime: Long = 0): List<Map<String, Any?>> {
         val args = HashMap<String, Any?>()
         args["channelId"] = channelId
         if (numFollowing > 0) args["numFollowing"] = numFollowing.toLong()
         if (maxTime > 0) args["maxTime"] = maxTime
-        // M511: jazykova preferencia aj pri per-kanalovom dotaze
+        // M511: language preference for the per-channel query too
         sk.tvhclient.shared.ClientIdent.lang2.takeIf { it.isNotBlank() }
             ?.let { args["language"] = it }
         val s = send("getEvents", args)
@@ -270,7 +270,7 @@ class HtspClient(
         if (withEpg && epgMaxDays > 0) {
             args["epgMaxTime"] = nowSec + epgMaxDays * 86400L
         }
-        // M511: aj pri async dumpe EPG
+        // M511: in the async EPG dump as well
         sk.tvhclient.shared.ClientIdent.lang2.takeIf { it.isNotBlank() }
             ?.let { args["language"] = it }
         send("enableAsyncMetadata", args, withSeq = false)
@@ -282,14 +282,14 @@ class HtspClient(
         var syncDone = false
 
         val result = withTimeoutOrNull(overallTimeoutMs) {
-            // fast path (bez EPG): koniec hned po initialSyncCompleted.
-            // EPG path: cita kym chodia spravy; ked 8s ticho -> koniec.
+            // fast path (without EPG): finish right after initialSyncCompleted.
+            // EPG path: read while messages keep coming; after 8s of silence -> finish.
             val idleMs = 8_000L
             while (true) {
                 if (channelsOnly && channels.isNotEmpty() && dvr.isNotEmpty()) break
                 if (syncDone && !withEpg) break
                 val m = if (withEpg) withTimeoutOrNull(idleMs) { recv() } else recv()
-                if (m == null) break  // idle timeout pri EPG -> hotovo
+                if (m == null) break  // idle timeout during EPG -> done
                 when (m["method"] as? String) {
                     "channelAdd" -> channels.add(m)
                     "tagAdd" -> tags.add(m)
@@ -310,11 +310,11 @@ class HtspClient(
     }
 
     /**
-     * M162 — zivy HTSP subscription premuxovany na MPEG-TS. Po subscriptionStart
-     * postavi TsMuxer a cez `onTs` posiela TS bajty (PAT/PMT + PES). Ziada 90khz
-     * timebase a normts (vhodne pre PES). timeshiftPeriodSec>0 zapne aj server
-     * buffer (pre buduce ovladanie); 0 = ciste zive. Bezi kym sa korutina nezrusi
-     * alebo nepride subscriptionStop. Na konci unsubscribe.
+     * M162 — a live HTSP subscription remuxed into MPEG-TS. After subscriptionStart
+     * it builds a TsMuxer and sends TS bytes through `onTs` (PAT/PMT + PES). It asks for a 90khz
+     * timebase and normts (suitable for PES). timeshiftPeriodSec>0 also turns on the server
+     * buffer (for future control); 0 = purely live. Runs until the coroutine is cancelled
+     * or subscriptionStop arrives. At the end it unsubscribes.
      */
     suspend fun streamSubscribe(
         channelId: Long,
@@ -322,19 +322,19 @@ class HtspClient(
         profile: String? = null,
         onTs: suspend (ByteArray) -> Unit,
         /**
-         * M508-fix2: stav timeshift buffera (`timeshiftStatus`, raz za sekundu).
-         *  - [shift] = AKTUALNA POZICIA voci zivemu (0 = na zivo), nie dlzka buffera
-         *  - [startPts] / [endPts] = PTS prveho a posledneho snimku v buffri;
-         *    z ich rozdielu vychadza, kolko sa da naozaj pretocit
-         * Vsetko v 90 kHz tikoch (subscribe posiela "90khz").
+         * M508-fix2: state of the timeshift buffer (`timeshiftStatus`, once per second).
+         *  - [shift] = the CURRENT POSITION relative to live (0 = at live), not the buffer length
+         *  - [startPts] / [endPts] = the PTS of the first and last frame in the buffer;
+         *    their difference gives how far one can really rewind
+         * Everything in 90 kHz ticks (subscribe sends "90khz").
          */
         onStatus: (shift: Long, full: Boolean, startPts: Long, endPts: Long) -> Unit = { _, _, _, _ -> },
         onStop: (String?) -> Unit = {},
         onSubtitles: (List<TsMuxer.SubtitleInfo>) -> Unit = {},
         onSubtitlePage: (DvbSubtitleDecoder.DecodedPage, Long) -> Unit = { _, _ -> },
-        /** M552: kanál má teletextovú stopu (zo subscriptionStart). */
+        /** M552: the channel has a teletext track (from subscriptionStart). */
         onTeletextAvailable: (Boolean) -> Unit = {},
-        /** M552: PES payload teletextu (stopa TELETEXT do libVLC nejde, dekóduje ju appka). */
+        /** M552: the teletext PES payload (the TELETEXT track does not go to libVLC, the app decodes it). */
         onTeletext: (ByteArray) -> Unit = {}
     ) {
         seq += 1
@@ -371,7 +371,7 @@ class HtspClient(
                             val sri = (sm["rate"] as? Long)?.toInt() ?: 0   // es_sri = sample-rate index
                             TsMuxer.Stream(idx, typ, lang, comp, anc, ch, sri)
                         }
-                        // M552: teletext — prvá stopa typu TELETEXT
+                        // M552: teletext — the first track of type TELETEXT
                         teletextEs = streams.firstOrNull { it.type == "TELETEXT" }?.index ?: -1
                         onTeletextAvailable(teletextEs >= 0)
                         val existing = muxer
@@ -382,20 +382,20 @@ class HtspClient(
                             onSubtitles(mx.subtitleStreams())
                             if (mx.hasTracks()) onTs(mx.start())
                         } else {
-                            // dalsi subscriptionStart (napr. po skoku) — zachovaj spojitu
-                            // casovu os, len znova posli PAT/PMT
+                            // another subscriptionStart (e.g. after a seek) — keep a continuous
+                            // timeline, just send PAT/PMT again
                             onTs(existing.start())
                         }
                     }
                     "muxpkt" -> {
                         val mx = muxer ?: continue
-                        val esBin = (m["payload"] as? Htsmsg.Bin) ?: continue   // M673: usek bez kopie
+                        val esBin = (m["payload"] as? Htsmsg.Bin) ?: continue   // M673: a slice without a copy
                         val streamIdx = (m["stream"] as? Long)?.toInt() ?: continue
                         val pts = m["pts"] as? Long
                         val dts = m["dts"] as? Long
                         if (streamIdx == teletextEs) { onTeletext(esBin.toByteArray()); continue }   // M552
                         if (streamIdx == subDecodeEs) {
-                            // vybrana titulkova stopa: dekóduj a renderuj sami (do libVLC nejde)
+                            // the selected subtitle track: we decode and render it ourselves (it does not go to libVLC)
                             val page = if (pts != null) subDecoder.decode(pts, esBin.toByteArray()) else null
                             if (page != null) {
                                 val origin = mx.timelineOriginPts()
@@ -411,7 +411,7 @@ class HtspClient(
                     "timeshiftStatus" -> {
                         val shift = (m["shift"] as? Long) ?: 0L
                         val full = ((m["full"] as? Long) ?: 0L) != 0L
-                        // start/end su nepovinne — ked chybaju, volajuci pouzije zalohu
+                        // start/end are optional — when they are missing, the caller uses a fallback
                         val st = (m["start"] as? Long) ?: 0L
                         val en = (m["end"] as? Long) ?: 0L
                         onStatus(shift, full, st, en)
@@ -428,14 +428,14 @@ class HtspClient(
         }
     }
 
-    /** subscriptionSpeed: 0 = pauza, 100 = normal (kladne FF, zaporne RW). */
-    /** M408: keepalive — lahka poziadavka, ktora drzi spojenie nazive. Tvheadend
-     *  odpovie na akukolvek metodu; getDiskSpace nic nemeni a je nenarocna.
-     *  Odpoved ignorujeme, ide len o to, aby na spojeni tiekla prevadzka. */
+    /** subscriptionSpeed: 0 = pause, 100 = normal (positive FF, negative RW). */
+    /** M408: keepalive — a lightweight request that keeps the connection alive. Tvheadend
+     *  answers any method; getDiskSpace changes nothing and is cheap.
+     *  We ignore the reply, the point is just to have traffic flowing on the connection. */
     suspend fun keepAlive() {
-        // M408-fix: poslat BEZ seq — server potom neposle reply, ktora by inak
-        // dorazila do prijimacej slucky streamu a po chvili ju zasekla (kanal
-        // po minute-dvoch prestal nabiehat). Bez seq staci na udrzanie spojenia.
+        // M408-fix: send it WITHOUT seq — the server then does not send a reply, which would otherwise
+        // arrive in the stream's receive loop and jam it after a while (the channel
+        // stopped coming up after a minute or two). Without seq it is enough to keep the connection alive.
         runCatching { send("getDiskSpace", withSeq = false) }
     }
 
@@ -446,9 +446,9 @@ class HtspClient(
     }
 
     /**
-     * Relativny skok v bufferi. Kedze subscribujeme s 90khz=1, server cita `time`
-     * v 90 kHz tikoch (htsp_server.c: skip.time = hs_90khz ? s64 : rescale). Zaporne =
-     * vzad, kladne = vpred. Bez `absolute` => relativny skok.
+     * Relative seek within the buffer. Since we subscribe with 90khz=1, the server reads `time`
+     * in 90 kHz ticks (htsp_server.c: skip.time = hs_90khz ? s64 : rescale). Negative =
+     * backwards, positive = forwards. Without `absolute` => a relative seek.
      */
     suspend fun skip(seconds: Int) {
         val id = streamSubId

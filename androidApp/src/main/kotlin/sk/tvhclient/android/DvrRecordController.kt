@@ -14,11 +14,11 @@ import sk.tvhclient.shared.model.EpgEvent
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * M490 / M669: nahrávanie práve bežiacej relácie z prehrávača (vyclenené z PlayerActivity).
- * Stav (práva, eventId, existujúca nahrávka, dialóg výberu profilu M606/M607) aj akcie
- * (nahrať / zrušiť, z kontextovej ponuky) zdieľajú všetky vstupy: klasický bar, telefónny
- * panel „Viac", moderný TV overlay, info okno. Aktivita k stavom pristupuje cez delegáty
- * s pôvodnými názvami (dvrCanRecordState…), lebo ich čítajú composables cez `dvrActivity`.
+ * M490 / M669: recording the currently running programme from the player (extracted from PlayerActivity).
+ * Both the state (rights, eventId, an existing recording, the profile selection dialog M606/M607) and the actions
+ * (record / cancel, from the context menu) are shared by all entry points: the classic bar, the phone
+ * "More" panel, the modern TV overlay, the info window. The activity accesses the states via delegates
+ * with the original names (dvrCanRecordState…), because composables read them via `dvrActivity`.
  */
 internal class DvrRecordController(
     private val ctx: Context,
@@ -26,21 +26,21 @@ internal class DvrRecordController(
     private val live: LiveSession,
     private val epgUpcoming: MutableState<Map<String, List<EpgEvent>>>,
     private val recInProgressByChan: MutableState<Map<String, DvrEntry>>,
-    /** M608: červená bodka / kazeta hneď po naplánovaní (PlayerEpgStore.refreshRecordingOnly). */
+    /** M608: the red dot / cassette right after scheduling (PlayerEpgStore.refreshRecordingOnly). */
     private val refreshRecordingOnly: () -> Unit
 ) {
     val canRecordState = mutableStateOf(false)
     val eventIdState = mutableStateOf<Long?>(null)
     val existingState = mutableStateOf<DvrEntry?>(null)
 
-    // M606: dialog vyberu DVR profilu (zoznam moznosti; prazdny = zatvoreny) + kurzor
+    // M606: the DVR profile selection dialog (the list of options; empty = closed) + cursor
     val askState = mutableStateOf<List<String>>(emptyList())
     val askSelState = mutableStateOf(0)
-    /** M607: ked dialog profilov patri kanalu z kontextovej ponuky (nie hrajucemu). */
+    /** M607: when the profile dialog belongs to a channel from the context menu (not the playing one). */
     var askTarget: Pair<LivePlaylist.LiveChannel, EpgEvent>? = null
         private set
 
-    /** Ma sa ovladac nahravania vobec ukazat? */
+    /** Should the recording control be shown at all? */
     fun recordVisible(): Boolean =
         canRecordState.value && (eventIdState.value != null || existingState.value != null)
 
@@ -55,9 +55,9 @@ internal class DvrRecordController(
     }
 
     /**
-     * M484: kanal a prave beziaca relacia — po naplanovani sa posle do
-     * DvrController, aby sa nahravka hned premietla do zoznamu a tlacidlo sa
-     * prepislo na „Zrusit" bez cakania na obnovu cache metadat.
+     * M484: the channel and the currently running programme — after scheduling it is sent to
+     * DvrController so that the recording is reflected in the list immediately and the button
+     * switches to "Cancel" without waiting for the metadata cache to refresh.
      */
     fun currentLiveEvent(): Pair<String, EpgEvent>? {
         val ch = currentChannel() ?: return null
@@ -67,13 +67,13 @@ internal class DvrRecordController(
         return ch.uuid to ev
     }
 
-    /** M521-fix: beziaca nahravka na prave sledovanom kanali z mapy cervených bodiek. */
+    /** M521-fix: the running recording on the currently watched channel from the map of red dots. */
     fun runningRecordingHere(): DvrEntry? {
         val ch = currentChannel() ?: return null
         return recInProgressByChan.value.let { it[ch.uuid] ?: it[ch.name] }
     }
 
-    /** M475: naplanovana/beziaca nahravka pre prave sledovanu relaciu (null = ziadna). */
+    /** M475: the scheduled/running recording for the currently watched programme (null = none). */
     suspend fun currentEventRecording(server: TvhServer?): DvrEntry? {
         val srv = server ?: return null
         val ch = currentChannel() ?: return null
@@ -84,27 +84,27 @@ internal class DvrRecordController(
     }
 
     /**
-     * Zisti prava a stav nahravky pre prave sledovanu relaciu.
+     * Determines the rights and the recording state for the currently watched programme.
      *
-     * Vola sa pri starte prehravaca a po prepnuti kanala — nie pri otvoreni
-     * ovladania. Poradie ovladacov sa pocita z `playerControlOrder()`, takze
-     * keby polozka pribudla az kym je lista otvorena, posunuli by sa indexy
-     * pod rukou a dpad by aktivoval nieco ine.
+     * Called when the player starts and after a channel switch — not when the
+     * controls are opened. The order of the controls is computed from `playerControlOrder()`,
+     * so if an item appeared while the list is open, the indices would shift
+     * under our hands and the dpad would activate something else.
      */
     fun refreshState() {
-        // M521: zahod stav PREDCHADZAJUCEHO kanala hned, este pred nacitanim.
-        // Nacitanie zoznamu nahravok trva cez HTTP sekundy (u velkych serverov
-        // je to vyse tisic zaznamov) a dovtedy tlacidlo ukazovalo stav kanala,
-        // z ktoreho pouzivatel prave odisiel — raz „Zrusit" tam, kde sa nenahrava,
-        // inokedy „Nahrat" tam, kde nahravka bezi.
+        // M521: discard the state of the PREVIOUS channel at once, before the load.
+        // Loading the list of recordings takes seconds over HTTP (on large servers
+        // it is over a thousand entries) and until then the button showed the state of the channel
+        // the user had just left — once "Cancel" where nothing is being recorded,
+        // another time "Record" where a recording is running.
         existingState.value = null
-        eventIdState.value = currentEventId()   // z lokalnej EPG cache, synchronne
-        // M521-fix: prebiehajucu nahravku vezmi z toho isteho zdroja, z ktoreho sa
-        // kreslia cervene bodky v zozname kanalov (fetchDvrInProgress). Je to mapa
-        // uz nacitanych BEZIACICH nahravok — dostupna okamzite a spolahliva —
-        // kym DvrController.scheduledFor() tahal cely zoznam naplanovanych
-        // (u velkeho servera vyse tisic zaznamov) a kym dobehol, tlacidlo ukazovalo
-        // nespravny stav.
+        eventIdState.value = currentEventId()   // from the local EPG cache, synchronously
+        // M521-fix: take the recording in progress from the same source that
+        // draws the red dots in the channel list (fetchDvrInProgress). It is a map
+        // of already loaded RUNNING recordings — available immediately and reliable —
+        // whereas DvrController.scheduledFor() pulled the whole list of scheduled ones
+        // (over a thousand entries on a large server) and while it ran, the button showed
+        // the wrong state.
         currentChannel()?.let { ch ->
             recInProgressByChan.value.let { it[ch.uuid] ?: it[ch.name] }
                 ?.let { existingState.value = it }
@@ -112,12 +112,12 @@ internal class DvrRecordController(
         scope.launch {
             val srv = Tvh.store.active()
             var eid = currentEventId()
-            // najprv rychly a spolahlivy zdroj, az potom pomaly zoznam naplanovanych
+            // first the fast and reliable source, only then the slow list of scheduled ones
             var rec = runningRecordingHere() ?: currentEventRecording(srv)
-            // M520: ak sa EPG pre tento kanal este nestihlo nacitat, prehravac
-            // nepozna beziacu relaciu — a bez nej sa tlacidlo nahravania vobec
-            // nezobrazi. Prave preto sa objavovalo raz ano, raz nie, podla toho,
-            // ci uz EPG doslo. Dohladame si ju teda priamo zo servera.
+            // M520: if the EPG for this channel has not been loaded yet, the player
+            // does not know the running programme — and without it the record button is not
+            // shown at all. That is exactly why it appeared once and not another time, depending
+            // on whether the EPG had arrived. So we look it up directly from the server.
             if (eid == null && srv != null) {
                 val uuid = currentChannel()?.uuid
                 if (uuid != null) {
@@ -128,7 +128,7 @@ internal class DvrRecordController(
                         }.getOrDefault(emptyList())
                     }
                     if (evs.isNotEmpty()) {
-                        // doplnime do cache, nech to dalsie otvorenie uz nemusi tahat
+                        // add it to the cache, so that the next opening does not have to pull it
                         epgUpcoming.value = epgUpcoming.value + (uuid to evs)
                         val nowSec = System.currentTimeMillis() / 1000
                         val cur = evs.firstOrNull { it.start <= nowSec && nowSec < it.stop }
@@ -145,13 +145,13 @@ internal class DvrRecordController(
         }
     }
 
-    /** Nahrat prave beziacu relaciu, alebo zrusit uz naplanovanu nahravku. */
+    /** Record the currently running programme, or cancel an already scheduled recording. */
     fun toggleRecordCurrent() {
         val srv = Tvh.store.active() ?: return
         scope.launch {
             val existing = existingState.value ?: currentEventRecording(srv)
             if (existing == null) {
-                // M606: volitelny vyber profilu — az potom nahravanie
+                // M606: optional profile selection — only then the recording
                 val opts = DvrProfileAsk.options(ctx, srv)
                 if (opts.isNotEmpty()) {
                     askTarget = null
@@ -164,7 +164,7 @@ internal class DvrRecordController(
         }
     }
 
-    /** M606: vyber v dialogu profilov (OK / klik) alebo zrusenie (BACK). */
+    /** M606: the choice in the profile dialog (OK / click) or cancellation (BACK). */
     fun resolveAsk(name: String?) {
         askState.value = emptyList()
         val target = askTarget
@@ -192,11 +192,11 @@ internal class DvrRecordController(
                 hint?.second?.title ?: "",
                 profile
             )
-            // M484: pri duplikate dohladaj, kde uz nahravka je
+            // M484: on a duplicate, look up where the recording already is
             val dup = if (r.success || existing != null) null
             else DvrController.duplicateOf(srv, hint?.second?.title ?: "")
             existingState.value = currentEventRecording(srv)
-            if (r.success) refreshRecordingOnly()   // M608: cervena bodka / kazeta hned
+            if (r.success) refreshRecordingOnly()   // M608: the red dot / cassette immediately
             Toast.makeText(
                 ctx,
                 when {
@@ -216,7 +216,7 @@ internal class DvrRecordController(
         }
     }
 
-    /** M607: nahravanie z kontextovej ponuky — s volitelnym vyberom profilu (M606). */
+    /** M607: recording from the context menu — with an optional profile selection (M606). */
     fun recordFromCtxMenu(ch: LivePlaylist.LiveChannel, ev: EpgEvent) {
         val srv = Tvh.store.active() ?: return
         scope.launch {
@@ -235,7 +235,7 @@ internal class DvrRecordController(
         val r = DvrController.recordEvent(srv, eid, ch.uuid, ev.start, ev.stop, ev.title, profile)
         val dup = if (r.success) null else DvrController.duplicateOf(srv, ev.title)
         if (r.success) {
-            refreshRecordingOnly()   // cervena bodka pri kanali
+            refreshRecordingOnly()   // the red dot next to the channel
             if (ch.uuid == live.uuidState.value) existingState.value = currentEventRecording(srv)
         }
         Toast.makeText(

@@ -3,9 +3,9 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * Pri vybere archivovaneho (prave nahravaneho) kanala v prehravaci ponuknut vyber
- * "Prehrat nazivo / Prehrat od zaciatku". Predvolene vypnute. Ked je vypnute, vyber
- * kanala rovno prepne nazivo (bez otazky). Ulozene globalne v SharedPreferences.
+ * When an archived (currently recording) channel is selected in the player, offer the choice
+ * "Play live / Play from start". Off by default. When off, selecting a
+ * channel switches straight to live (no question). Stored globally in SharedPreferences.
  */
 object ArchiveChoicePref {
     private const val PREFS = "app_prefs"

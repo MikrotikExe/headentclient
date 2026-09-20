@@ -7,8 +7,8 @@ import kotlin.test.assertTrue
 import kotlin.test.assertFalse
 
 /**
- * M504: rozpoznanie radia podla TYPU SLUZBY (ako v Kodi/pvr.hts) — typ pochadza
- * z DVB tabuliek, takze nezavisi od pomenovania tagov.
+ * M504: radio detection based on the SERVICE TYPE (as in Kodi/pvr.hts) — the type comes
+ * from the DVB tables, so it does not depend on how the tags are named.
  */
 class RadioByServiceTest {
 
@@ -28,23 +28,23 @@ class RadioByServiceTest {
         assertTrue(ch("Radio").isRadioByService!!)
         assertTrue(ch("FM Radio").isRadioByService!!)
         assertTrue(ch("MPEG2 Radio").isRadioByService!!)
-        // TVH pise typy roznymi velkostami pismen podla verzie
+        // TVH writes the types with different capitalization depending on the version
         assertTrue(ch("digital radio sound service").isRadioByService!!)
     }
 
     @Test
     fun noServiceTypesMeansUnknown() {
-        // null = server typy neposlal -> volajuci musi pouzit zalohu (tagy)
+        // null = the server did not send the types -> the caller must use the fallback (tags)
         assertNull(Channel(uuid = "1", name = "X").isRadioByService)
     }
 
     @Test
     fun anyRadioServiceWins() {
-        // kanal viazany na viac sluzieb: staci jedna rozhlasova
+        // a channel bound to several services: one radio service is enough
         assertTrue(ch("SDTV", "Radio").isRadioByService!!)
     }
 
-    // --- zaloha podla tagov ostava funkcna ---
+    // --- the tag-based fallback stays functional ---
 
     @Test
     fun tagFallbackStillDetectsRadio() {

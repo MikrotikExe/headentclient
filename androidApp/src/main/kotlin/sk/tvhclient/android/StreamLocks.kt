@@ -5,17 +5,17 @@ import android.net.wifi.WifiManager
 import android.os.PowerManager
 
 /**
- * M452 / M626: zamky pre plynuly prijem streamu — Wi-Fi lock + partial wake lock.
+ * M452 / M626: locks for smooth stream reception — Wi-Fi lock + partial wake lock.
  *
- * Bez WifiLocku Android na Wi-Fi zariadeniach (Xiaomi Mi Box a spol.) uspava
- * Wi-Fi cip a pakety dorucuje v davkach — HTSP data potom prichadzaju raz za
- * sekundu naraz a obraz sa trha (libVLC hlasi "picture is too late to be
- * displayed"). Merania: recvWait ~950 ms, tsWrite 0 ms — cakalo sa vylucne
- * na siet. Zariadenia na ethernete (Strong, Raspberry Pi) to nepocitili.
- * WakeLock drzi procesor, aby sa prijmacia slucka neuspala.
+ * Without a WifiLock, Android on Wi-Fi devices (Xiaomi Mi Box and friends) puts the
+ * Wi-Fi chip to sleep and delivers packets in batches — HTSP data then arrives once a
+ * second all at once and the picture stutters (libVLC reports "picture is too late to be
+ * displayed"). Measurements: recvWait ~950 ms, tsWrite 0 ms — the wait was purely
+ * on the network. Devices on ethernet (Strong, Raspberry Pi) did not feel it.
+ * The WakeLock holds the CPU so the receive loop does not go to sleep.
  *
- * Jedna instancia na vlastnika (PlayerActivity, RadioPlayerService); [tag] sa
- * zobrazi v battery stats. Volania su idempotentne a nikdy nehodia vynimku.
+ * One instance per owner (PlayerActivity, RadioPlayerService); [tag] is
+ * shown in battery stats. The calls are idempotent and never throw.
  */
 class StreamLocks(context: Context, private val tag: String) {
     private val appCtx = context.applicationContext

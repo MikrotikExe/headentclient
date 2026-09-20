@@ -8,25 +8,25 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Diagnostika pádov a chýb (M353). Zapisuje neodchytené výnimky aj ručne
- * hlásené chyby z kritických miest do súboru v internom úložisku appky
- * (filesDir/diag/crash.log). Log si používateľ vie zobraziť a odoslať
- * e-mailom z Nastavenia → O aplikácii → Diagnostický log.
+ * Crash and error diagnostics (M353). Writes both uncaught exceptions and
+ * manually reported errors from critical places into a file in the app's
+ * internal storage (filesDir/diag/crash.log). The user can view the log and
+ * send it by e-mail from Settings → About → Diagnostic log.
  *
- * Súbor je v privátnom úložisku appky, zdieľa sa cez FileProvider (žiadne
- * povolenia na úložisko netreba).
+ * The file is in the app's private storage and is shared via FileProvider (no
+ * storage permissions needed).
  */
 object CrashLogger {
     private const val DIR = "diag"
     private const val FILE = "crash.log"
-    private const val MAX_BYTES = 256 * 1024   // rotácia po 256 kB
+    private const val MAX_BYTES = 256 * 1024   // rotation after 256 kB
 
     fun logFile(context: Context): File {
         val dir = File(context.filesDir, DIR).apply { mkdirs() }
         return File(dir, FILE)
     }
 
-    /** Nainštaluje globálny handler neodchytených výnimiek (volané z Application). */
+    /** Installs the global uncaught exception handler (called from Application). */
     fun install(context: Context) {
         val appContext = context.applicationContext
         val previous = Thread.getDefaultUncaughtExceptionHandler()
@@ -34,12 +34,12 @@ object CrashLogger {
             runCatching {
                 write(appContext, "FATAL", "thread=${thread.name}", throwable)
             }
-            // odovzdaj povodnemu handleru (systemovy dialog "appka spadla")
+            // hand over to the original handler (system "app crashed" dialog)
             previous?.uncaughtException(thread, throwable)
         }
     }
 
-    /** Ručné hlásenie zachytenej chyby z kritického miesta (nepadne appka). */
+    /** Manual report of a caught error from a critical place (the app does not crash). */
     fun report(context: Context, where: String, throwable: Throwable) {
         runCatching { write(context.applicationContext, "ERROR", where, throwable) }
     }
@@ -54,7 +54,7 @@ object CrashLogger {
     ) {
         val f = logFile(context)
         if (f.exists() && f.length() > MAX_BYTES) {
-            // jednoduchá rotácia — ponechaj len hlavičku, staré zahoď
+            // simple rotation — keep only the header, discard the old content
             runCatching { f.writeText(header(context) + "\n[log rotated]\n") }
         } else if (!f.exists()) {
             runCatching { f.writeText(header(context) + "\n") }

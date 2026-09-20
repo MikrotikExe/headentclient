@@ -9,7 +9,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.encodeURLParameter
 import io.ktor.client.statement.HttpResponse
-import kotlin.concurrent.Volatile   // M678: kotlin.jvm.Volatile je v common kode deprecated
+import kotlin.concurrent.Volatile   // M678: kotlin.jvm.Volatile is deprecated in common code
 import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -24,31 +24,31 @@ import sk.tvhclient.shared.model.EpgEvent
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * HTTP klient pre Tvheadend 4.3 JSON API.
+ * HTTP client for the Tvheadend 4.3 JSON API.
  *
- * Vzory prebrane z odladeneho Enigma2 pluginu (plugin_video_tvheadend,
+ * Patterns taken over from the debugged Enigma2 plugin (plugin_video_tvheadend,
  * tvheadend.py / _data_api.py):
- *  - retry-with-backoff (3 pokusy, 0.5/1/2s) pre transient chyby (FIX 0.48)
- *  - stranky cez start/limit az do total (api_get_all)
- *  - kratky timeout pre test pripojenia (fail-fast 5s)
- *  - endpoint konstanty zhodne s pluginom
+ *  - retry-with-backoff (3 attempts, 0.5/1/2s) for transient errors (FIX 0.48)
+ *  - paging via start/limit up to total (api_get_all)
+ *  - short timeout for the connection test (fail-fast 5s)
+ *  - endpoint constants identical to the plugin
  *
- * Auth: Ktor Basic + Digest s auto-detekciou cez 401 challenge. Plugin mal
- * vlastny digest kvoli SHA-256/SHA-512-256 (stock requests zvladal len MD5);
- * ak by tvoj server pouzival SHA digest a Ktor zlyhal, doriesime to ako v
- * pluginnom HTTPDigestAuthMulti. M1 sa pripojil so stock Ktor, takze tvoj
- * server je zatial OK.
+ * Auth: Ktor Basic + Digest with auto-detection via the 401 challenge. The plugin had
+ * its own digest because of SHA-256/SHA-512-256 (stock requests only handled MD5);
+ * if your server used SHA digest and Ktor failed, we would sort it out as in
+ * the plugin's HTTPDigestAuthMulti. M1 connected with stock Ktor, so your
+ * server is OK for now.
  */
 class TvhApi(private val server: TvhServer) {
 
-    // M399: coerceInputValues + isLenient — dev buildy Tvheadendu obcas menia
-    // typy poli (cislo <-> string, null); bez tolerancie cely zaznam potichu
-    // vypadol (runCatching -> null) a DVR/Archiv boli prazdne bez chyby.
+    // M399: coerceInputValues + isLenient — dev builds of Tvheadend sometimes change
+    // the types of fields (number <-> string, null); without this tolerance the whole entry
+    // silently dropped out (runCatching -> null) and DVR/Archive were empty without an error.
     private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true; isLenient = true }
 
     private val client = sk.tvhclient.shared.net.tvhHttpClient(server, json)
 
-    // ---- retry vzor z pluginu (FIX 0.48) ----
+    // ---- retry pattern from the plugin (FIX 0.48) ----
     private val retryAttempts = 3
     private val retryBackoffBaseMs = 500L
     private val retryStatusCodes = setOf(500, 502, 503, 504, 408, 429)
@@ -57,8 +57,8 @@ class TvhApi(private val server: TvhServer) {
         server.baseUrl.trimEnd('/') + "/" + path.trimStart('/')
 
     /**
-     * GET na TVH API s retry/backoff. Vracia surovy JsonObject.
-     * 401/403/404 → TvhHttpException bez retry (retry nema zmysel).
+     * GET on the TVH API with retry/backoff. Returns the raw JsonObject.
+     * 401/403/404 → TvhHttpException without retry (a retry makes no sense).
      */
     private suspend fun apiGet(
         path: String,
@@ -85,7 +85,7 @@ class TvhApi(private val server: TvhServer) {
                 lastErr = TvhHttpException(status)
             }
             if (attempt < retryAttempts - 1) {
-                // exponencialny backoff 0.5/1/2s
+                // exponential backoff 0.5/1/2s
                 delay(retryBackoffBaseMs shl attempt)
             }
         }
@@ -93,7 +93,7 @@ class TvhApi(private val server: TvhServer) {
     }
 
     /**
-     * Stránkovanie cez start/limit az do total (api_get_all z pluginu).
+     * Paging via start/limit up to total (api_get_all from the plugin).
      */
     private suspend fun apiGetAll(
         path: String,
@@ -123,9 +123,9 @@ class TvhApi(private val server: TvhServer) {
         return entries
     }
 
-    /** Odstrani duplicitne DVR zaznamy podla uuid (stranky grid_* sa
-     *  vedia prekryvat -> ta ista nahravka pride viackrat). Prazdne uuid
-     *  nechame tak (nemame podla coho deduplikovat). */
+    /** Removes duplicate DVR entries by uuid (the grid_* pages
+     *  can overlap -> the same recording arrives several times). Empty uuids
+     *  are left as they are (we have nothing to deduplicate by). */
     private fun List<sk.tvhclient.shared.model.DvrEntry>.dedupByUuid(): List<sk.tvhclient.shared.model.DvrEntry> {
         val seen = HashSet<String>()
         return filter { it.uuid.isBlank() || seen.add(it.uuid) }
@@ -139,13 +139,13 @@ class TvhApi(private val server: TvhServer) {
             throw t
         }
 
-    /** M399: pocitadlo + posledna chyba dekodovania (zobrazitelne v diagnostike). */
+    /** M399: counter + last decoding error (can be shown in diagnostics). */
     companion object {
         @Volatile var decodeFailCount: Int = 0
         @Volatile var lastDecodeError: String? = null
     }
 
-    // ---- verejne API ----
+    // ---- public API ----
 
     suspend fun testConnection(): ConnectionResult = try {
         val resp = client.get(url("api/serverinfo"))
@@ -159,14 +159,14 @@ class TvhApi(private val server: TvhServer) {
     }
 
     /**
-     * M504: kanaly + typy ich sluzieb.
+     * M504: channels + the types of their services.
      *
-     * api/channel/grid vracia v `services` len UUID sluzieb, nie ich typ, preto
-     * si typy dotahujeme z api/mpegts/service/grid a parujeme podla UUID. HTSP
-     * to ma jednoduchsie — typ posiela priamo v channelAdd.
+     * api/channel/grid returns only the UUIDs of the services in `services`, not their type,
+     * so we fetch the types from api/mpegts/service/grid and pair them by UUID. HTSP
+     * has it easier — it sends the type directly in channelAdd.
      *
-     * Ak sa service grid nepodari nacitat (starsi server, obmedzene prava),
-     * typy ostanu prazdne a radio sa rozpozna zalohou podla nazvov tagov.
+     * If the service grid cannot be loaded (older server, limited rights),
+     * the types stay empty and radio is recognized by the fallback based on tag names.
      */
     suspend fun channels(): List<Channel> {
         val list = apiGetAll("api/channel/grid", pageLimit = 1000).mapNotNull {
@@ -181,7 +181,7 @@ class TvhApi(private val server: TvhServer) {
         }
     }
 
-    /** M504: uuid sluzby -> jej typ ("SDTV", "HDTV", "Radio"...). */
+    /** M504: service uuid -> its type ("SDTV", "HDTV", "Radio"...). */
     private suspend fun serviceTypes(): Map<String, String> =
         apiGetAll("api/mpegts/service/grid", pageLimit = 1000).mapNotNull { o ->
             val uuid = (o["uuid"] as? JsonPrimitive)?.content ?: return@mapNotNull null
@@ -192,10 +192,10 @@ class TvhApi(private val server: TvhServer) {
         }.toMap()
 
     /**
-     * M380: stream profily servera (api/profile/list). Vracia nazvy profilov
-     * v poradi zo servera — vratane vlastnych transcode profilov, takze appka
-     * uz nehada zoznam natvrdo. Odpoved ma tvar
-     * {"entries":[{"key":"<uuid>","val":"<nazov>"}, ...]}; beriem "val".
+     * M380: the server's stream profiles (api/profile/list). Returns the profile names
+     * in the order from the server — including custom transcode profiles, so the app
+     * no longer guesses the list from hardcoded values. The response has the shape
+     * {"entries":[{"key":"<uuid>","val":"<name>"}, ...]}; I take "val".
      */
     suspend fun streamProfiles(): List<String> =
         (apiGet("api/profile/list")["entries"] as? JsonArray)
@@ -214,15 +214,15 @@ class TvhApi(private val server: TvhServer) {
         }
 
     /**
-     * EPG práve bežiacich programov: dict channelUuid -> event.
-     * Vzor get_epg_now z pluginu (mode=now).
+     * EPG of currently running programmes: dict channelUuid -> event.
+     * The get_epg_now pattern from the plugin (mode=now).
      */
     /**
-     * M511: parametre EPG dotazu + jazykova preferencia.
+     * M511: EPG query parameters + language preference.
      *
-     * `lang` urcuje, ktoru jazykovu mutaciu nazvu/popisu server vrati. Bez neho
-     * pouzije jazyk nastaveny pre konto, inak systemovu predvolbu — a klient tak
-     * moze dostat inu verziu, nez ma napr. Kodi.
+     * `lang` determines which language variant of the title/description the server returns.
+     * Without it, it uses the language set for the account, otherwise the system default — and
+     * the client may then get a different version than, e.g., Kodi has.
      */
     private fun epgArgs(vararg pairs: Pair<String, String>): Map<String, String> {
         val m = LinkedHashMap<String, String>()
@@ -245,9 +245,9 @@ class TvhApi(private val server: TvhServer) {
     }
 
     /**
-     * EPG program pre konkretny kanal (denny grid). TVH api/epg/events/grid
-     * vie filtrovat podla channel uuid priamo na serveri (efektivnejsie ako
-     * klientsky filter cely grid ako robil plugin). Zoradene podla start.
+     * EPG programme for a specific channel (daily grid). TVH api/epg/events/grid
+     * can filter by channel uuid directly on the server (more efficient than
+     * filtering the whole grid on the client as the plugin did). Sorted by start.
      */
     suspend fun epgForChannel(channelUuid: String, limit: Int = 500): List<EpgEvent> {
         val data = runCatching {
@@ -261,31 +261,31 @@ class TvhApi(private val server: TvhServer) {
         return ((data["entries"] as? JsonArray)?.mapNotNull { el ->
             (el as? JsonObject)?.let { runCatching { decode<EpgEvent>(it) }.getOrNull() }
         } ?: emptyList())
-            // M398-fix: niektore buildy Tvheadendu (napr. 4.3~dev) ignoruju
-            // parameter channel a vratia globalny grid — kazdy kanal by potom
-            // mal identicky zjednoteny zoznam s prekryvmi. Odpoved preto vzdy
-            // filtrujeme podla kanala udalosti (na korektnych serveroch no-op;
-            // udalosti bez channelUuid nechavame, nevieme ich posudit).
+            // M398-fix: some Tvheadend builds (e.g. 4.3~dev) ignore
+            // the channel parameter and return the global grid — every channel would then
+            // have an identical merged list with overlaps. We therefore always
+            // filter the response by the event's channel (on correct servers a no-op;
+            // events without a channelUuid are kept, we cannot judge them).
             .filter { it.channelUuid.isNullOrBlank() || it.channelUuid == channelUuid }
             .distinctBy { it.eventId ?: "${'$'}{it.start}-${'$'}{it.title}" }
             .sortedBy { it.start }
     }
 
-    /** Dokoncene DVR nahravky (grid_finished). */
+    /** Finished DVR recordings (grid_finished). */
     suspend fun dvrFinished(): List<sk.tvhclient.shared.model.DvrEntry> =
         apiGetAll("api/dvr/entry/grid_finished", pageLimit = 500).mapNotNull {
             runCatching { decode<sk.tvhclient.shared.model.DvrEntry>(it) }.getOrNull()
         }.dedupByUuid()
 
-    /** Naplanovane/prebiehajuce nahravky (grid_upcoming). */
+    /** Scheduled/in-progress recordings (grid_upcoming). */
     suspend fun dvrUpcoming(): List<sk.tvhclient.shared.model.DvrEntry> =
         apiGetAll("api/dvr/entry/grid_upcoming", pageLimit = 500).mapNotNull {
             runCatching { decode<sk.tvhclient.shared.model.DvrEntry>(it) }.getOrNull()
         }.dedupByUuid()
 
     /**
-     * M472: POST na JSON API. Tvheadend berie parametre ako formularove pole
-     * (application/x-www-form-urlencoded) a vracia JSON objekt.
+     * M472: POST to the JSON API. Tvheadend takes the parameters as form fields
+     * (application/x-www-form-urlencoded) and returns a JSON object.
      */
     internal suspend fun apiPost(path: String, params: Map<String, String>): JsonObject {
         val resp = client.post(url(path)) {
@@ -302,13 +302,13 @@ class TvhApi(private val server: TvhServer) {
     }
 
     /**
-     * M471: prava prihlaseneho pouzivatela cez HTTP.
+     * M471: the logged-in user's rights over HTTP.
      *
-     * `api/access/whoami` pribudlo v Tvheadend API v20 (2026-07) a vracia
-     * prava aktualnej session vratane zoznamu `dvr`. Na starsich serveroch
-     * endpoint neexistuje (404) — vtedy vratime UNKNOWN a nahravanie
-     * ponukneme; ak pouzivatel prava nema, server volanie odmietne (403)
-     * a chybu zobrazime.
+     * `api/access/whoami` was added in Tvheadend API v20 (2026-07) and returns
+     * the rights of the current session including the `dvr` list. On older servers the
+     * endpoint does not exist (404) — then we return UNKNOWN and offer
+     * recording; if the user does not have the rights, the server refuses the call (403)
+     * and we display the error.
      */
     suspend fun dvrAccess(): DvrAccess = try {
         val o = apiGet("api/access/whoami")
@@ -317,11 +317,11 @@ class TvhApi(private val server: TvhServer) {
                 ?.mapNotNull { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
                 ?: emptyList()
         /**
-         * M517: `api/access/whoami` vracia prava ako CISLA (`"dvr":1,"admin":0`),
-         * nie ako zoznam retazcov ani ako "true"/"false". Doteraz sa citali len
-         * ako zoznam, takze pri HTTP pripojeni vysiel `canRecord` vzdy na false
-         * a tlacidlo nahravania sa vobec nezobrazilo. Beriem oba tvary — starsie
-         * verzie TVH posielaju zoznam, novsie cislo.
+         * M517: `api/access/whoami` returns the rights as NUMBERS (`"dvr":1,"admin":0`),
+         * not as a list of strings nor as "true"/"false". Until now they were read only
+         * as a list, so with an HTTP connection `canRecord` always came out false
+         * and the record button did not show up at all. I take both shapes — older
+         * TVH versions send a list, newer ones a number.
          */
         fun flag(key: String): Boolean {
             val p = o[key] as? kotlinx.serialization.json.JsonPrimitive ?: return false
@@ -330,7 +330,7 @@ class TvhApi(private val server: TvhServer) {
         }
         val dvrRights = strList("dvr")
         DvrAccess(
-            // zoznam (starsie TVH) alebo priznak cislom (novsie)
+            // list (older TVH) or a flag as a number (newer)
             canRecord = if (dvrRights.isNotEmpty())
                 dvrRights.any { it in setOf("basic", "htsp", "all", "all_rw") }
             else flag("dvr"),
@@ -340,13 +340,13 @@ class TvhApi(private val server: TvhServer) {
             known = true
         )
     } catch (e: TvhHttpException) {
-        // 404 = stary server bez whoami, 403 = bez prav na tento endpoint
+        // 404 = old server without whoami, 403 = no rights for this endpoint
         if (e.httpCode == 403) DvrAccess.DENIED else DvrAccess.UNKNOWN
     } catch (_: Throwable) {
         DvrAccess.UNKNOWN
     }
 
-    /** M472: DVR profily (api/dvr/config/grid). */
+    /** M472: DVR profiles (api/dvr/config/grid). */
     suspend fun dvrConfigs(): List<DvrConfig> = runCatching {
         apiGetAll("api/dvr/config/grid", pageLimit = 100).mapNotNull { o ->
             val uuid = (o["uuid"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: return@mapNotNull null

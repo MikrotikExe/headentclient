@@ -4,10 +4,10 @@ import kotlinx.serialization.json.Json
 import sk.tvhclient.shared.model.EpgEvent
 
 /**
- * Cista (platformovo-nezavisla) logika cache EPG: serializacia mapy
- * kanal -> zoznam relacii, orezanie starych dni a zlucenie novych dat.
- * Samotne citanie/zapis suboru robi platformova vrstva (na Androide EpgCache),
- * lebo k suborovemu systemu sa pristupuje cez Context.
+ * Pure (platform-independent) EPG cache logic: serialization of the
+ * channel -> list of programmes map, trimming of old days and merging of new data.
+ * The actual file reading/writing is done by the platform layer (EpgCache on Android),
+ * because the file system is accessed through the Context.
  */
 object EpgCacheCodec {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
@@ -23,11 +23,11 @@ object EpgCacheCodec {
         }
 
     /**
-     * Serializacia JEDNEHO kanala (pole relacii) — pre prudovy zapis po riadkoch.
-     * Vysledok je jednoriadkovy JSON (retazce maju \n escapnute), takze sa da
-     * bezpecne ulozit ako jeden riadok suboru. Peak pamat = jeden kanal, nie cela
-     * mapa (riesi OOM na velkych serveroch, kde cela mapa bola desiatky MB v jednom
-     * Stringu). encode()/decode() ostavaju pre spatnu kompatibilitu.
+     * Serialization of a SINGLE channel (its array of programmes) — for a streaming,
+     * line-by-line write. The result is single-line JSON (strings have \n escaped), so it
+     * can safely be stored as one line of the file. Peak memory = one channel, not the whole
+     * map (this fixes the OOM on large servers, where the whole map was tens of MB in a single
+     * String). encode()/decode() remain for backward compatibility.
      */
     fun encodeChannel(events: List<EpgEvent>): String =
         json.encodeToString(events)
@@ -39,7 +39,7 @@ object EpgCacheCodec {
             emptyList()
         }
 
-    /** Odstrani relacie, ktore skoncili skor ako (nowSec - daysBack), a prazdne kanaly. */
+    /** Removes programmes that ended earlier than (nowSec - daysBack), and empty channels. */
     fun prune(
         data: Map<String, List<EpgEvent>>,
         nowSec: Long,
@@ -55,9 +55,9 @@ object EpgCacheCodec {
     }
 
     /**
-     * Zluci cerstve relacie jedneho kanala do mapy: deduplikacia podla casu zaciatku
-     * (cerstve prepisu stare), vysledok zoradeny podla startu. Stare relacie, ktore
-     * uz server neposiela, ostavaju zachovane (pamat dozadu).
+     * Merges fresh programmes for a single channel into the map: deduplication by start time
+     * (fresh ones overwrite old ones), the result sorted by start. Old programmes that the
+     * server no longer sends are kept (memory of the past).
      */
     fun mergeChannel(
         base: Map<String, List<EpgEvent>>,

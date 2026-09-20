@@ -31,14 +31,14 @@ class ServersViewModel : ViewModel() {
     val testState: StateFlow<TestState> = _testState
 
     /**
-     * M380: stream profily nacitane zo servera pre ponuku v nastaveniach.
-     * Prazdny zoznam = zatial nenacitane / server nedostupny -> formular
-     * pouzije predvoleny zoznam (ChannelPrefs.profileOptions).
+     * M380: stream profiles loaded from the server for the menu in settings.
+     * An empty list = not loaded yet / server unreachable -> the form
+     * uses the default list (ChannelPrefs.profileOptions).
      */
     private val _profiles = MutableStateFlow<List<String>>(emptyList())
     val profiles: StateFlow<List<String>> = _profiles
 
-    /** Automaticke nacitanie profilov; chyby sa ignoruju (ostane fallback). */
+    /** Automatic loading of profiles; errors are ignored (the fallback stays). */
     fun loadProfiles(server: TvhServer) {
         viewModelScope.launch {
             val list = withContext(Dispatchers.IO) { Tvh.streamProfiles(server) }
@@ -49,8 +49,8 @@ class ServersViewModel : ViewModel() {
     fun clearProfiles() { _profiles.value = emptyList() }
 
     /**
-     * M486: DVR profily (konfiguracie nahravania) zo servera. Prazdny zoznam =
-     * nenacitane alebo server ich neponuka -> volba sa v nastaveniach neukaze.
+     * M486: DVR profiles (recording configurations) from the server. An empty list =
+     * not loaded or the server does not offer them -> the choice is not shown in settings.
      */
     private val _dvrConfigs = MutableStateFlow<List<sk.tvhclient.shared.api.DvrConfig>>(emptyList())
     val dvrConfigs: StateFlow<List<sk.tvhclient.shared.api.DvrConfig>> = _dvrConfigs
@@ -72,10 +72,10 @@ class ServersViewModel : ViewModel() {
     fun save(server: TvhServer) {
         val old = store.list().firstOrNull { it.id == server.id }
         store.upsert(server)
-        // zmena konfiguracie servera (napr. sposob pripojenia) -> stara cache je neplatna
+        // a change of server configuration (e.g. the connection method) -> the old cache is invalid
         sk.tvhclient.shared.htsp.HtspData.clear(server.id)
-        // M557: iny sposob pripojenia = ine identifikatory kanalov (HTSP channelId vs HTTP
-        // uuid) -> procesovy playlist prehravaca a zapamatane "posledne sledovane" su neplatne
+        // M557: a different connection method = different channel identifiers (HTSP channelId vs HTTP
+        // uuid) -> the player's process playlist and the remembered "last watched" are invalid
         if (old != null && old.connectionMode != server.connectionMode) {
             LivePlaylist.reset()
             runCatching {
@@ -98,7 +98,7 @@ class ServersViewModel : ViewModel() {
     fun setActive(id: String) {
         store.activeId = id
         refresh()
-        // iny aktivny server -> znovu nacitaj data
+        // a different active server -> reload the data
         TabController.dataReload.value++
     }
 
@@ -106,10 +106,10 @@ class ServersViewModel : ViewModel() {
 
 
     /**
-     * Otestuje server PRESNE tak, ako je nastaveny vo formulari (tlacidlo
-     * „Otestovat pripojenie"). Na rozdiel od [testAuto] neskusa fallback medzi
-     * HTSP a HTTP a rezim nemeni — pouzivatel chce vediet, ci funguje to, co
-     * prave zadal. Vola sa referenciou `vm::test`.
+     * Tests the server EXACTLY as it is configured in the form (the
+     * "Test connection" button). Unlike [testAuto] it does not try the fallback between
+     * HTSP and HTTP and does not change the mode — the user wants to know whether what
+     * they have just entered works. Called by reference as `vm::test`.
      */
     fun test(server: TvhServer) {
         _testState.value = TestState.Running
@@ -119,11 +119,11 @@ class ServersViewModel : ViewModel() {
         }
     }
 
-    // Server s funkcnym rezimom po poslednom testAuto (HTSP <-> HTTP fallback). Ulozi sa tento.
+    // The server with the mode that worked in the last testAuto (HTSP <-> HTTP fallback). This one gets saved.
     var resolvedServer: TvhServer? = null
         private set
 
-    /** Test s auto-detekciou pripojenia (HTSP 9982 default -> ak nedostupne, poistka HTTP 9981). */
+    /** Test with connection auto-detection (HTSP 9982 default -> if unreachable, HTTP 9981 as a safety net). */
     fun testAuto(server: TvhServer) {
         _testState.value = TestState.Running
         resolvedServer = null

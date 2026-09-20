@@ -3,9 +3,9 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * Skryte kanaly (per server). Skryty kanal sa NEZOBRAZUJE v prehravaci
- * (zapping CH+/CH-, zoznam v prehravaci), ale v zozname kanalov (obrazovka
- * Kanaly) ostava viditelny — aby ho uzivatel mohol opat odkryt.
+ * Hidden channels (per server). A hidden channel is NOT SHOWN in the player
+ * (CH+/CH- zapping, the list in the player), but stays visible in the channel list
+ * (the Channels screen) — so that the user can unhide it again.
  */
 object HiddenChannels {
     private const val PREFS = "app_prefs"

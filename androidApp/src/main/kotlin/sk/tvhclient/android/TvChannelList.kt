@@ -58,12 +58,12 @@ import sk.tvhclient.shared.model.EpgEvent
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * M632: zoznam kanálov v prehrávači na TV — celoobrazovkový scrim s dierou pre náhľad
- * hraného kanála ([previewRect], BlendMode.Clear, M266), vľavo stránkovaný zoznam po 7
- * alebo výsledky hľadania (M370), hore dátum / pilulka skupiny (M369b) / hodiny, vpravo
- * detail hraného kanála (EPG cez [onLoadChannelEpg]) a ďalšie relácie.
- * [onPreviewRect] hlási polohu náhľadového obdĺžnika volajúcemu (kreslí doň logo rádia).
- * Vyclenené z PlayerUi (PlayerActivity.kt), správanie nezmenené.
+ * M632: channel list in the player on TV — a full-screen scrim with a hole for the preview
+ * of the playing channel ([previewRect], BlendMode.Clear, M266), on the left a list paged by 7
+ * or the search results (M370), at the top the date / group pill (M369b) / clock, on the right
+ * the detail of the playing channel (EPG via [onLoadChannelEpg]) and further programmes.
+ * [onPreviewRect] reports the position of the preview rectangle to the caller (which draws the radio logo into it).
+ * Extracted from PlayerUi (PlayerActivity.kt), behaviour unchanged.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -93,16 +93,16 @@ internal fun TvChannelListOverlay(
     val ctx = LocalContext.current
     val loaderT = remember(server?.id) { PiconImageLoader.get(ctx, server) }
     val selT = channelNavIndex.coerceIn(0, liveChannels.size - 1)
-    // strankovanie po 7: zobraz presne aktualnu sedmicku, po prekroceni sa preklopi dalsia
+    // paging by 7: show exactly the current group of seven, once past it the next one flips in
     val pageSizeT = 7
     val pageStartT = (selT / pageSizeT) * pageSizeT
     val pageItemsT = liveChannels.drop(pageStartT).take(pageSizeT)
-    // pravy panel (EPG, nahlad, relacie) sleduje HRANY kanal — meni sa az po prepnuti (OK)
+    // the right panel (EPG, preview, programmes) follows the PLAYING channel — it changes only after switching (OK)
     val detT = liveCurrentIndex.coerceIn(0, liveChannels.size - 1)
     val detUuid = liveChannels.getOrNull(detT)?.uuid
     var epgT by remember { mutableStateOf<List<sk.tvhclient.shared.model.EpgEvent>>(emptyList()) }
-    // M370-fix: kluc na UUID (nie index) — pri zmene tagu ostava rovnaky kanal,
-    // takze sa EPG zbytocne nenacitava znova.
+    // M370-fix: key on the UUID (not the index) — on a tag change the channel stays the same,
+    // so the EPG is not needlessly reloaded.
     LaunchedEffect(detUuid) {
         val uuid = detUuid ?: return@LaunchedEffect
         epgT = emptyList()
@@ -119,7 +119,7 @@ internal fun TvChannelListOverlay(
     val selTintC = playerSelTint()
 
     val scrimC = playerScrim()
-    // M370: fokus pre textove pole hladania (ziadame pri otvoreni/navrate na pole)
+    // M370: focus for the search text field (requested on opening/returning to the field)
     val searchFocus = remember { androidx.compose.ui.focus.FocusRequester() }
     val keyboardCtrl = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
     LaunchedEffect(searchFocusSignal, searchFieldFocused, searchActive) {
@@ -132,8 +132,8 @@ internal fun TvChannelListOverlay(
     Column(
         Modifier
             .fillMaxSize()
-            // M266: offscreen buffer je drahy a treba ho LEN pre BlendMode.Clear
-            // (vyrez nahladu). Bez nahladu ho nealokujeme -> svizne prve otvorenie.
+            // M266: the offscreen buffer is expensive and is needed ONLY for BlendMode.Clear
+            // (the preview cut-out). Without a preview we do not allocate it -> snappy first open.
             .then(
                 if (inPreview)
                     Modifier.graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
@@ -151,14 +151,14 @@ internal fun TvChannelListOverlay(
                     )
             }
     ) {
-        // horna lista: datum vlavo, hodiny vpravo
+        // top bar: date on the left, clock on the right
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(dateStr, color = playerFgDim(), style = MaterialTheme.typography.titleMedium)
             if (searchActive) {
-                // M370: pole hladania (systemova klavesnica na TV)
+                // M370: search field (system keyboard on TV)
                 Spacer(Modifier.width(14.dp))
                 androidx.compose.material3.OutlinedTextField(
                     value = searchQuery,
@@ -176,7 +176,7 @@ internal fun TvChannelListOverlay(
                     modifier = Modifier.weight(1f).focusRequester(searchFocus)
                 )
             } else {
-                // M369b: pilulka filtra skupiny v hornom pruhu (neukrojuje vysku zoznamu)
+                // M369b: group filter pill in the top bar (does not eat into the list height)
                 if (channelGroupLabel.isNotEmpty()) {
                     Spacer(Modifier.width(14.dp))
                     Row(
@@ -206,7 +206,7 @@ internal fun TvChannelListOverlay(
                             Text("\u203A", color = accentC, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
                     }
-                    // M370-fix2: viditelna lupa vedla pilulky (hladanie sa otvori sipkou HORE)
+                    // M370-fix2: visible magnifier next to the pill (search opens with the UP arrow)
                     Spacer(Modifier.width(10.dp))
                     androidx.compose.material3.Icon(
                         androidx.compose.material.icons.Icons.Default.Search,
@@ -234,13 +234,13 @@ internal fun TvChannelListOverlay(
                 style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         }
         Row(Modifier.fillMaxWidth().weight(1f)) {
-            // LAVA: zoznam kanalov (karty s ramikom)
+            // LEFT: channel list (cards with a border)
             Column(
                 modifier = Modifier.fillMaxHeight().fillMaxWidth(0.46f)
                     .padding(horizontal = 12.dp, vertical = 4.dp)
             ) {
               if (searchActive) {
-                // M370: vysledky hladania (napriec vsetkymi kanalmi)
+                // M370: search results (across all channels)
                 val hits = searchHits
                 if (hits.isEmpty()) {
                     Text(
@@ -379,7 +379,7 @@ internal fun TvChannelListOverlay(
                 }
               }
             }
-            // PRAVA: detail vybraneho + nahlad hraneho + dalsie programy
+            // RIGHT: detail of the selected + preview of the playing + further programmes
             Column(Modifier.fillMaxHeight().weight(1f).padding(horizontal = 22.dp, vertical = 6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     Text(
@@ -401,7 +401,7 @@ internal fun TvChannelListOverlay(
                     Text(fmtClock(curT.start) + " – " + fmtClock(curT.stop), color = accentC,
                         style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.padding(top = 4.dp))
-                // nahlad: zive video hraneho kanala — VLC povrch presvita cez dieru v scrime
+                // preview: live video of the playing channel — the VLC surface shows through the hole in the scrim
                 Box(
                     Modifier.padding(top = 12.dp).height(156.dp).aspectRatio(16f / 9f)
                         .clip(RoundedCornerShape(10.dp))
@@ -414,13 +414,13 @@ internal fun TvChannelListOverlay(
                         }
                         .border(1.dp, borderC, RoundedCornerShape(10.dp))
                 )
-                // popis: max 3 riadky, orezany
+                // description: max 3 lines, clipped
                 val desc = curT?.bestDescription ?: ""
                 if (desc.isNotBlank())
                     Text(desc, color = playerFgDim(), style = MaterialTheme.typography.bodyMedium,
                         maxLines = 3, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 12.dp))
-                // relacie hned pod popisom (prirodzeny tok zhora)
+                // programmes right below the description (natural flow from the top)
                 if (nextT.isNotEmpty()) {
                     Spacer(Modifier.height(12.dp))
                     nextT.forEach { ev ->

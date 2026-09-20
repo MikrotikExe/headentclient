@@ -3,18 +3,18 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * Prepnutie do HDR pri AFR (len TV/box). Tvrde prepnutie rezimu displeja
- * (preferredDisplayModeId) vyvola HDMI re-negociaciu a firmware niektorych
- * boxov pri nej prepne vystup do HDR (podla vlastnej HDR politiky, appka to
- * priamo zakazat nevie). Ked je tento prepinac VYPNUTY, AFR tvrde prepnutie
- * preskoci a poziada o zmenu frekvencie len plynulou cestou
- * (Surface.setFrameRate, bez re-syncu) — ziadna cierna obrazovka, ziadny
- * HDR flip; ci panel frekvenciu realne zmeni, rozhodne system.
+ * Switching to HDR during AFR (TV/box only). A hard display-mode switch
+ * (preferredDisplayModeId) triggers an HDMI re-negotiation and the firmware of some
+ * boxes switches the output to HDR during it (following its own HDR policy, the app
+ * cannot forbid it directly). When this switch is OFF, AFR skips the hard switch
+ * and asks for the frame-rate change only the smooth way
+ * (Surface.setFrameRate, without a re-sync) — no black screen, no
+ * HDR flip; whether the panel really changes the frame rate is up to the system.
  *
- * M500: default VYPNUTE. Tvrde prepnutie rezimu je na roznych boxoch
- * nepredvidatelne (cierna obrazovka pri kazdej zmene frekvencie, flip do HDR aj
- * pri SDR obsahu) a appka firmwaru do jeho HDR politiky nevidi. Kto to chce,
- * zapne si to sam v Nastaveniach pri AFR.
+ * M500: default OFF. A hard mode switch is unpredictable on various boxes
+ * (black screen on every frame-rate change, a flip to HDR even with
+ * SDR content) and the app cannot see into the firmware's HDR policy. Whoever wants it
+ * turns it on themselves in Settings next to AFR.
  */
 object AfrHdrSwitchPref {
     private const val PREFS = "app_prefs"
@@ -22,7 +22,7 @@ object AfrHdrSwitchPref {
 
     fun get(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY, false)   // M500: predvolene vypnute
+            .getBoolean(KEY, false)   // M500: off by default
 
     fun set(context: Context, on: Boolean) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

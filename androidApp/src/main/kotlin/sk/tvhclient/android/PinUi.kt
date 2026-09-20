@@ -43,10 +43,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 
 /**
- * PIN dialog (4 cislice). Navigaciu po klavesnici riadime sami (sipky + OK),
- * lebo Compose focus na lacnych Android TV boxoch nefunguje spolahlivo.
- * Funguju aj cislice priamo z dialkoveho (0-9). [onComplete] dostane 4 cislice
- * a vrati true = prijate (zavrie volajuci), false = nespravne (vynuluje).
+ * PIN dialog (4 digits). We drive keyboard navigation ourselves (arrows + OK),
+ * because Compose focus is not reliable on cheap Android TV boxes.
+ * Digits straight from the remote (0-9) work too. [onComplete] receives the 4 digits
+ * and returns true = accepted (the caller closes it), false = wrong (it clears it).
  */
 @Composable
 fun PinDialog(
@@ -75,7 +75,7 @@ private fun PinDialogGrid(
     val fr = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { fr.requestFocus() } }
 
-    // mriezka klaves: 1-9, potom [zmazat] 0 [zrusit]
+    // key grid: 1-9, then [delete] 0 [cancel]
     val grid = listOf(
         listOf("1", "2", "3"),
         listOf("4", "5", "6"),
@@ -135,7 +135,7 @@ private fun PinDialogGrid(
                                 activate(grid[selRow][selCol]); true
                             }
                             kc == android.view.KeyEvent.KEYCODE_DEL -> { del(); true }
-                            else -> false  // BACK necha zavriet dialog
+                            else -> false  // BACK is left to close the dialog
                         }
                     },
                 horizontalAlignment = Alignment.CenterHorizontally

@@ -18,19 +18,19 @@ import sk.tvhclient.shared.teletext.TeletextTsTap
 import java.util.concurrent.TimeUnit
 
 /**
- * M552 — teletext aktuálneho živého kanála: jeden dekodér, dva zdroje dát.
+ * M552 — teletext of the current live channel: one decoder, two data sources.
  *
- *  - HTSP: HtspTsFeeder podáva PES payload stopy TELETEXT cez [feedHtsp]
- *    (tečie stále, kým hrá kanál — stránky sa zbierajú aj keď teletext nie je
- *    otvorený, takže po otvorení je väčšina hneď k dispozícii).
- *  - HTTP: TS ide priamo do libVLC, k dátam sa nedostaneme. Pri otvorení
- *    teletextu preto otvoríme druhé spojenie na ten istý kanál (profil pass,
- *    aby server teletextový PID nezahodil) a [TeletextTsTap] z neho vyberá len
- *    teletext. Spojenie žije, kým je teletext otvorený (+ krátky dobeh).
+ *  - HTSP: HtspTsFeeder feeds the PES payload of the TELETEXT track via [feedHtsp]
+ *    (it flows the whole time the channel is playing — pages are collected even when teletext is not
+ *    open, so after opening most of them are available immediately).
+ *  - HTTP: the TS goes straight into libVLC, we cannot get at the data. So when teletext
+ *    is opened we open a second connection to the same channel (the pass profile,
+ *    so the server does not drop the teletext PID) and [TeletextTsTap] extracts only the
+ *    teletext from it. The connection lives as long as teletext is open (+ a short run-out).
  *
- * Stav pre UI: [availableState] (kanál teletext má), [pageVersion] (rastie pri
- * každej prijatej stránke — Compose sa prekreslí), [httpNoTeletext] (HTTP: PMT
- * prečítaná, teletextový PID chýba).
+ * State for the UI: [availableState] (the channel has teletext), [pageVersion] (grows with
+ * every received page — Compose redraws), [httpNoTeletext] (HTTP: the PMT was
+ * read, the teletext PID is missing).
  */
 class TeletextSession(private val ctx: Context) {
 
@@ -45,13 +45,13 @@ class TeletextSession(private val ctx: Context) {
 
     init {
         decoder.onPageUpdated = { _ ->
-            // M567 (audit): diagnosticky log prvej stranky odstraneny — v beznej prevadzke
-            // len zaplnal diagnosticky zaznam pri kazdom kanali
+            // M567 (audit): the diagnostic log of the first page was removed — in normal operation
+            // it only filled up the diagnostic record on every channel
             mainHandler.post { pageVersion.value++ ; if (!availableState.value) availableState.value = true }
         }
     }
 
-    /** Nový kanál / zastavenie: zahoď stránky aj HTTP odbočku. */
+    /** New channel / stop: discard the pages and the HTTP side branch. */
     fun reset() {
         stopHttp()
         decoder.clear()
@@ -71,8 +71,8 @@ class TeletextSession(private val ctx: Context) {
     val httpRunning: Boolean get() = httpJob?.isActive == true
 
     /**
-     * Otvorí odbočku na živý HTTP stream kanála a číta z nej len teletext.
-     * Volať pri otvorení teletextu v HTTP režime; [stopHttp] pri zatvorení.
+     * Opens a side branch onto the channel's live HTTP stream and reads only teletext from it.
+     * Call it when teletext is opened in HTTP mode; [stopHttp] on close.
      */
     fun startHttp(server: TvhServer, channelUuid: String, scope: CoroutineScope) {
         if (httpRunning) return
@@ -114,13 +114,13 @@ class TeletextSession(private val ctx: Context) {
                         if (n < 0) break
                         total += n
                         tap.feed(buf, 0, n)
-                        // PMT prečítaná a teletext v nej nie je -> kanál teletext nevysiela
+                        // the PMT was read and teletext is not in it -> the channel does not broadcast teletext
                         if (tap.pmtSeen && tap.teletextPid < 0) {
                             mainHandler.post { httpNoTeletext.value = true }
                             CrashLogger.report(ctx, "Teletext", "http tap: no teletext PID in PMT")
                             break
                         }
-                        // pokiaľ bežíme dlho bez PMT (nie TS?), skonči
+                        // if we have been running for a long time without a PMT (not TS?), finish
                         if (!tap.pmtSeen && total > 4L * 1024 * 1024) {
                             CrashLogger.report(ctx, "Teletext", "http tap: no PMT in 4 MB, giving up")
                             break

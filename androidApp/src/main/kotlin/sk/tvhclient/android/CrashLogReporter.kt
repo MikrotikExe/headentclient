@@ -8,10 +8,10 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Odoslanie diagnostického logu (M353, telo M354) — otvorí systémový share
- *  sheet s e-mailom na support: predmet s dátumom a časom, telo s
- *  predvyplneným zariadením/Androidom/verziou appky a prázdnym riadkom na
- *  popis problému, plus priložený log súbor. */
+/** Sending the diagnostic log (M353, body M354) — opens the system share
+ *  sheet with an e-mail to support: subject with date and time, body with
+ *  a pre-filled device/Android/app version and a blank line for a
+ *  description of the problem, plus the attached log file. */
 object CrashLogReporter {
     private const val SUPPORT = "support@headentclient.com"
 
@@ -32,8 +32,8 @@ object CrashLogReporter {
             "${pi.versionName} ($code)"
         }.getOrDefault("?")
 
-        // Predvyplnene telo: zariadenie/Android/verzia automaticky, pouzivatel
-        // dopise len co robil ked nastal problem.
+        // Pre-filled body: device/Android/version automatically, the user
+        // only adds what they were doing when the problem occurred.
         val body = context.getString(R.string.diag_email_body) + "\n\n" +
             "————————————\n" +
             "Device: ${Build.MANUFACTURER} ${Build.MODEL}\n" +

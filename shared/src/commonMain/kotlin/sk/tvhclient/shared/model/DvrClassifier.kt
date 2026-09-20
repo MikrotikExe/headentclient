@@ -1,22 +1,22 @@
 package sk.tvhclient.shared.model
 
 /**
- * Klasifikator DVR nahravok do top kategorii. Prenos jadra z Enigma2 pluginu
- * (classifier.py _determine_top_cat + _is_series_entry +
+ * Classifier that sorts DVR recordings into top-level categories. A port of the
+ * core of the Enigma2 plugin (classifier.py _determine_top_cat + _is_series_entry +
  * _guess_top_category_from_keywords + _channel_top_hint).
  *
- * Poradie signalov (ako plugin):
- *  1) dokumentarne kanaly override-uju ct=0/1/2/9
- *  2) explicit DVB ct=2-10 -> kategoria
- *  3) channel hint (detske/sport/hudba/spravodajstvo kanal)
- *  4) detekcia serialu -> Serial
+ * Order of the signals (same as the plugin):
+ *  1) documentary channels override ct=0/1/2/9
+ *  2) explicit DVB ct=2-10 -> category
+ *  3) channel hint (children's/sport/music/news channel)
+ *  4) series detection -> Series
  *  5) ct=1 -> Film
- *  6) ct=5 -> Detske
- *  7) keyword fallback pre ct=0/11
- *  8) film heuristika: rok v nazve "(YYYY)" -> Film
+ *  6) ct=5 -> Children
+ *  7) keyword fallback for ct=0/11
+ *  8) film heuristic: a year in the title "(YYYY)" -> Film
  *
- * Vynechane (advanced, dalsia faza): 1945-titulovy corpus, sub-zanre
- * (Akcny/Krimi/Sci-fi...), IMDb lookup.
+ * Left out (advanced, next phase): the 1945-title corpus, sub-genres
+ * (Action/Crime/Sci-fi...), IMDb lookup.
  */
 object DvrClassifier {
     const val FILM = "film"
@@ -68,8 +68,8 @@ object DvrClassifier {
         "docubox" to DOCUMENTARY
     )
 
-    // Filmove kanaly -> ak nie je serial, je to film. (plugin to riesi corpusom;
-    // toto je lacny nahradny signal kym corpus nie je portovany)
+    // Movie channels -> if it is not a series, it is a film. (the plugin solves this with the corpus;
+    // this is a cheap substitute signal until the corpus is ported)
     private val movieChannelHints: List<String> = listOf(
         "hbo", "cinemax", "cinema", "amc", "filmbox", "film europe", "film+",
         "film +", "filmplus", "kviff", "canal+ film", "canal+ action", "warner tv",
@@ -126,7 +126,7 @@ object DvrClassifier {
                     'ő' -> 'o'
                     'ă', 'ą' -> 'a'
                     'ę' -> 'e'
-                    // grecky tonos/dialytika (EPG greckych stanic)
+                    // Greek tonos/dialytika (EPG of Greek stations)
                     'ά' -> 'α'
                     'έ' -> 'ε'
                     'ή' -> 'η'
@@ -134,7 +134,7 @@ object DvrClassifier {
                     'ό' -> 'ο'
                     'ύ', 'ΰ', 'ϋ' -> 'υ'
                     'ώ' -> 'ω'
-                    // ruske ё -> е
+                    // Russian ё -> е
                     'ё' -> 'е'
                     else -> c
                 }
@@ -197,13 +197,13 @@ object DvrClassifier {
             for ((pattern, cat) in fallback) {
                 if (pattern.containsMatchIn(text)) return cat
             }
-            // M330: medzinarodne tokeny (31 jazykov) az po domacich regexoch
+            // M330: international tokens (31 languages) only after the native regexes
             intlMatch(text, intlTopCat)?.let { return it }
         }
 
         if (yearSuffix.containsMatchIn(entry.dispTitle)) return FILM
 
-        // Filmovy kanal + nie serial -> Film (nahrada za corpus)
+        // Movie channel + not a series -> Film (a substitute for the corpus)
         val ch = entry.channelName.lowercase()
         if (ch.isNotBlank() && movieChannelHints.any { ch.contains(it) }) return FILM
 
@@ -211,12 +211,12 @@ object DvrClassifier {
     }
 
     // ----------------------------------------------------------------------
-    // Sub-zanre (Level 2). Prebrate z classifier.py keyword map pre kazdu
-    // kategoriu. Pouzite: Film/Serial (movie), Sport, Spravodajstvo, Sou,
-    // Detske, Hudba, Umenie, Dokumenty, Hobby.
+    // Sub-genres (Level 2). Taken from the classifier.py keyword map for each
+    // category. Used for: Film/Series (movie), Sport, News, Show,
+    // Children, Music, Arts, Documentaries, Hobby.
     // ----------------------------------------------------------------------
 
-    // -- Film/Serial sub-zanre --
+    // -- Film/Series sub-genres --
     const val MV_AKCNY = "mv_akcny"
     const val MV_KOMEDIA = "mv_komedia"
     const val MV_KRIMI = "mv_krimi"
@@ -247,16 +247,16 @@ object DvrClassifier {
     )
     private val horrorTitle = Regex("""\b(horor|horror|hruza|strasidel|zombie|upir|krvav|haunted|exorcis|nightmare|geister|damon )""")
 
-    // ---- Korpus titulov (~1945) + DVB full-byte mapa (port z classifier.py) ----
-    // Korpus: kanonicky nazov -> MV_ konstanta. Plni ho platforma zo zdroja
-    // (Android asset title_genre_corpus.json) cez setCorpus().
+    // ---- Title corpus (~1945) + DVB full-byte map (port of classifier.py) ----
+    // Corpus: canonical title -> MV_ constant. The platform fills it from its source
+    // (the Android asset title_genre_corpus.json) via setCorpus().
     private var corpus: Map<String, String> = emptyMap()
     fun setCorpus(m: Map<String, String>) { corpus = m }
     fun hasCorpus(): Boolean = corpus.isNotEmpty()
 
-    // Plny DVB genre bajt -> sub-kategoria (ETSI EN 300 468, tab. 28) — M329.
-    // Jazykovo NEZAVISLE: plati pre nemecke, britske, polske... vysielanie.
-    // Dostupne ak server dava full byte (HTSP s minor nibblom); HTTP dava len major.
+    // Full DVB genre byte -> sub-category (ETSI EN 300 468, table 28) — M329.
+    // Language INDEPENDENT: valid for German, British, Polish... broadcasts.
+    // Available if the server provides the full byte (HTSP with the minor nibble); HTTP gives only the major one.
     private val dvbGenreToSubcat: Map<Int, String> = mapOf(
         // 0x1 Movie/Drama
         0x11 to MV_KRIMI, 0x12 to MV_DOBRODR, 0x13 to MV_SCIFI, 0x14 to MV_KOMEDIA,
@@ -276,17 +276,17 @@ object DvrClassifier {
         // 0x7 Arts/Culture
         0x71 to AR_DIVADLO, 0x72 to AR_VYTVARNE, 0x75 to AR_LITERATURA,
         0x76 to AR_FILM, 0x77 to AR_FILM,
-        // 0x9 Education/Science/Factual (dokumenty)
+        // 0x9 Education/Science/Factual (documentaries)
         0x91 to DC_PRIRODA, 0x92 to DC_VEDA, 0x93 to DC_VEDA, 0x94 to DC_CESTOPIS
     )
 
     private val yearSuffixEnd = Regex("""\s*\(\s*(?:19|20)\d{2}\s*\)\s*$""")
-    // Pripona serie na konci: rimske cislo (i, ii, viii, xxv...) alebo cislo
+    // Series suffix at the end: a Roman numeral (i, ii, viii, xxv...) or a number
     private val seasonSuffix = Regex("""\s+(?:[ivxlcdm]{1,6}|\d{1,3})$""")
 
-    /** Konsenzus podzanru pre cely serial: vsetky epizody serialu dostanu
-     *  rovnaky podzaner (najcastejsi non-INE), aby sa serial neobjavoval vo
-     *  viacerych priecinkoch naraz. Pre ne-serialove kategorie prazdna mapa. */
+    /** Sub-genre consensus for a whole series: every episode of a series gets the
+     *  same sub-genre (the most frequent non-OTHER one), so that a series does not
+     *  show up in several folders at once. Empty map for non-series categories. */
     fun consensusSubgenres(catEntries: List<DvrEntry>, topCat: String): Map<String, String> {
         if (!isSeriesLike(topCat)) return emptyMap()
         val out = HashMap<String, String>()
@@ -296,7 +296,7 @@ object DvrClassifier {
             val pool = if (nonIne.isNotEmpty()) nonIne else votes
             val counts = pool.groupingBy { it }.eachCount()
             val order = subOrderFor(topCat)
-            // najcastejsi; pri zhode skor v poradi (nizsi index)
+            // the most frequent one; on a tie the earlier one in the order (lower index)
             out[key] = counts.entries.maxWith(
                 compareBy({ it.value }, { -(order.indexOf(it.key).let { i -> if (i < 0) 999 else i }) })
             ).key
@@ -304,25 +304,25 @@ object DvrClassifier {
         return out
     }
 
-    /** Podzaner pre zaznam s ohladom na serialovy konsenzus. */
+    /** Sub-genre for a record, taking the series consensus into account. */
     fun subgenreOf(entry: DvrEntry, topCat: String, consensus: Map<String, String>): String =
         consensus[seriesCanonicalTitle(entry.title)] ?: subgenre(entry, topCat)
 
-    /** Kanonizacia nazvu pre korpus lookup (musi ladit s tvorbou korpus JSON). */
+    /** Canonicalization of a title for the corpus lookup (must match how the corpus JSON is built). */
     private fun canonicalTitleForCorpus(title: String): String {
         if (title.isBlank()) return ""
-        val noEp = seriesCanonicalTitle(title)        // strip tech markery + epizodny sufix
+        val noEp = seriesCanonicalTitle(title)        // strip technical markers + the episode suffix
         val noYear = yearSuffixEnd.replace(noEp, "").trim()
         return stripAccentsLower(noYear)
     }
 
-    /** Public: zakladny nazov bez pripony serie (pre IMDb query — viac zhod). */
+    /** Public: the base title without the series suffix (for the IMDb query — more matches). */
     fun canonicalForImdb(title: String): String {
         val k = canonicalTitleForCorpus(title)
         return seasonSuffix.replace(k, "").trim()
     }
 
-    // -- Sport sub-zanre --
+    // -- Sport sub-genres --
     const val SP_FUTBAL = "sp_futbal"
     const val SP_HOKEJ = "sp_hokej"
     const val SP_BASKETBAL = "sp_basketbal"
@@ -359,7 +359,7 @@ object DvrClassifier {
         Regex("""\b(plavan|vodne|kanoist|veslov|water polo|swimming|schwimmen|rowing)""") to SP_VODNE
     )
 
-    // -- Spravodajstvo sub-zanre --
+    // -- News sub-genres --
     const val NW_HLAVNE = "nw_hlavne"
     const val NW_POLITIKA = "nw_politika"
     const val NW_KRIMI = "nw_krimi"
@@ -375,7 +375,7 @@ object DvrClassifier {
         Regex("""\b(noviny|spravy|spravi|zprav|udalosti|hlavni sprav|hlavne sprav|tv noviny|telerano|spravodajstv|nachrichten|tagesschau|tagesthemen|evening news)""") to NW_HLAVNE
     )
 
-    // -- Sou sub-zanre --
+    // -- Show sub-genres --
     const val SH_REALITY = "sh_reality"
     const val SH_TALK = "sh_talk"
     const val SH_SUTAZ = "sh_sutaz"
@@ -393,7 +393,7 @@ object DvrClassifier {
         Regex("""\b(zabavn|humor|estrad|skecz|stand-?up|parodi|sranda|veselohra|kabaret|satira|comedy|kabarett|sketch)""") to SH_ZABAVA
     )
 
-    // -- Detske sub-zanre --
+    // -- Children sub-genres --
     const val CH_ANIMAK = "ch_animak"
     const val CH_ROZPRAVKY = "ch_rozpravky"
     const val CH_VZDELAVAC = "ch_vzdelavac"
@@ -407,7 +407,7 @@ object DvrClassifier {
         Regex("""\b(detsky film|pre deti film|family film|rodinny film)""") to CH_FILMY
     )
 
-    // -- Hudba sub-zanre --
+    // -- Music sub-genres --
     const val MU_KLASIKA = "mu_klasika"
     const val MU_KONCERT = "mu_koncert"
     const val MU_HITY = "mu_hity"
@@ -423,7 +423,7 @@ object DvrClassifier {
         Regex("""\b(hudobn. magaz|music news|hudobnik)""") to MU_MAGAZINY
     )
 
-    // -- Umenie sub-zanre --
+    // -- Arts sub-genres --
     const val AR_DIVADLO = "ar_divadlo"
     const val AR_VYTVARNE = "ar_vytvarne"
     const val AR_LITERATURA = "ar_literatura"
@@ -437,7 +437,7 @@ object DvrClassifier {
         Regex("""\b(filmov. umen|filmov. klasik|filmovi tvorco|reziser|kameraman|filmari)""") to AR_FILM
     )
 
-    // -- Dokumenty sub-zanre --
+    // -- Documentary sub-genres --
     const val DC_PRIRODA = "dc_priroda"
     const val DC_HISTORIA = "dc_historia"
     const val DC_VEDA = "dc_veda"
@@ -455,7 +455,7 @@ object DvrClassifier {
         Regex("""\b(spoloc|spolecn|ekonom|politick. dokum|kapitalizm|globali|chudoba|migra)""") to DC_SPOLOCNOST
     )
 
-    // -- Hobby sub-zanre --
+    // -- Hobby sub-genres --
     const val HB_ZAHRADA = "hb_zahrada"
     const val HB_BYVANIE = "hb_byvanie"
     const val HB_VARENIE = "hb_varenie"
@@ -476,13 +476,13 @@ object DvrClassifier {
     )
 
     // =====================================================================
-    // M330: Medzinarodne klucove slova (31 jazykov aplikacie) — substring
-    // parovanie na stripAccentsLower texte. Latinske/cyrilske/grecke tokeny
-    // pisat bez diakritiky a malymi; CJK/thajcina funguje ako substring
-    // priamo (word-boundary \b tam neexistuje). Tokeny su kuratorovane
-    // dlhe/jednoznacne, aby nevznikali falosne zhody medzi jazykmi.
-    // Aplikuje sa AZ PO domacich SK/CS/EN/DE regexoch — nic nemeni na
-    // doterajsom spravani, len rozsiruje pokrytie.
+    // M330: International keywords (the app's 31 languages) — substring
+    // matching on stripAccentsLower text. Latin/Cyrillic/Greek tokens must be
+    // written without diacritics and in lower case; CJK/Thai works as a substring
+    // directly (there is no word boundary \b there). The tokens are curated to be
+    // long/unambiguous, so that no false matches arise between languages.
+    // It is applied ONLY AFTER the native SK/CS/EN/DE regexes — it changes nothing
+    // about the existing behaviour, it only widens the coverage.
     // =====================================================================
     private fun intlMatch(text: String, table: List<Pair<List<String>, String>>): String? {
         for ((toks, sub) in table) for (t in toks) if (text.contains(t)) return sub
@@ -562,7 +562,7 @@ object DvrClassifier {
         else -> null
     }
 
-    // Mapa kategoria -> (poradie sub-zanrov, keyword mapa, "ine" kluc)
+    // Map category -> (sub-genre order, keyword map, "other" key)
     private fun subConfig(topCat: String): Triple<List<String>, List<Pair<Regex, String>>, String>? =
         when (topCat) {
             FILM, SERIAL -> Triple(movieSubOrder, movieKeyword, MV_INE)
@@ -577,39 +577,39 @@ object DvrClassifier {
             else -> null
         }
 
-    /** Ma dana top kategoria sub-zanre? (vsetky okrem Nezaradene) */
+    /** Does the given top-level category have sub-genres? (all except Unsorted) */
     fun hasSubgenres(topCat: String): Boolean = subConfig(topCat) != null
 
-    /** Zoskupovat zaznamy pod nazov programu? (opakovane programy: serialy,
-     *  spravy, sou, detske, hudba, umenie, dokumenty, hobby). Filmy a sport nie. */
+    /** Group records under the programme name? (recurring programmes: series,
+     *  news, shows, children's, music, arts, documentaries, hobby). Films and sport are not. */
     fun isSeriesLike(topCat: String): Boolean =
         topCat != FILM && topCat != SPORT && topCat != OTHER
 
     fun subOrderFor(topCat: String): List<String> =
         subConfig(topCat)?.first ?: emptyList()
 
-    /** Sub-zaner pre zaznam v danej top kategorii. */
+    /** Sub-genre for a record in the given top-level category. */
     fun subgenre(entry: DvrEntry, topCat: String): String {
         val cfg = subConfig(topCat) ?: return ""
-        // DVB full byte z EIT — jazykovo nezavisly signal, prioritne pre VSETKY
-        // kategorie (M329); sub-kod sa pouzije, len ak patri do danej kategorie
+        // DVB full byte from EIT — a language-independent signal, taking priority for ALL
+        // categories (M329); the sub-code is only used if it belongs to the given category
         val ctFull = entry.contentType
         if (ctFull > 0x0F) dvbGenreToSubcat[ctFull]?.let { sub ->
             if (cfg.first.contains(sub)) return sub
         }
-        // Film/serial: potom korpus titulov, IMDb, az potom keyword
+        // Film/series: then the title corpus, IMDb, and only then the keywords
         if (topCat == FILM || topCat == SERIAL) {
             if (corpus.isNotEmpty()) {
                 val key = canonicalTitleForCorpus(entry.dispTitle)
                 if (key.isNotEmpty()) {
                     corpus[key]?.let { return it }
-                    // serial ma casto priponu serie (rimske cislo / cislo) ktoru
-                    // korpus nema — skus zakladny nazov
+                    // a series often has a series suffix (Roman numeral / number) that the
+                    // corpus does not have — try the base title
                     val base = seasonSuffix.replace(key, "").trim()
                     if (base != key && base.isNotEmpty()) corpus[base]?.let { return it }
                 }
             }
-            // 3) IMDb online lookup (z cache; plni sa na pozadi)
+            // 3) IMDb online lookup (from the cache; filled in the background)
             ImdbLookup.cachedSub(entry.dispTitle)?.let { return it }
         }
         val text = stripAccentsLower(
@@ -618,16 +618,16 @@ object DvrClassifier {
         )
         if (text.isNotBlank()) {
             for ((p, sub) in cfg.second) if (p.containsMatchIn(text)) return sub
-            // M330: medzinarodne tokeny (31 jazykov) az po domacich regexoch
+            // M330: international tokens (31 languages) only after the native regexes
             intlSubFor(topCat)?.let { tbl -> intlMatch(text, tbl)?.let { return it } }
         }
-        // film/serial: horor len v nazve
+        // film/series: horror only in the title
         if (topCat == FILM || topCat == SERIAL) {
             val titleOnly = stripAccentsLower(entry.dispTitle)
             if (titleOnly.isNotBlank() && horrorTitle.containsMatchIn(titleOnly)) return MV_HOROR
         }
-        // detske: na detsko-animovanych kanaloch (jojko, minimax...) je obsah
-        // takmer vzdy animovany — default na Animovane namiesto Ostatne
+        // children's: on children's animation channels (jojko, minimax...) the content is
+        // almost always animated — default to Animated instead of Other
         if (topCat == CHILDREN) {
             val ch = stripAccentsLower(entry.channelName)
             if (ch.isNotBlank() && kidsChannel.containsMatchIn(ch)) return CH_ANIMAK
@@ -639,9 +639,9 @@ object DvrClassifier {
         """(jojko|minimax|cartoon|nickelodeon|nick jr|disney|boomerang|duck ?tv|baby tv|decko|ct :?d|megamax|jim jam)"""
     )
 
-    /** Kanonicky nazov programu (bez epizodneho sufixu a tech markerov) na
-     *  zoskupenie. "Otec Brown IV (1)" -> "Otec Brown IV",
-     *  "TV Noviny" zostane "TV Noviny" (vsetky bulletiny pod jednou zlozkou). */
+    /** Canonical programme name (without the episode suffix and technical markers) for
+     *  grouping. "Otec Brown IV (1)" -> "Otec Brown IV",
+     *  "TV Noviny" stays "TV Noviny" (all bulletins under a single folder). */
     fun seriesCanonicalTitle(title: String): String {
         if (title.isBlank()) return ""
         var clean = techMarker.replace(title, " ").trim()

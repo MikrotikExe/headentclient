@@ -6,9 +6,9 @@ import sk.tvhclient.shared.storage.EpgCacheCodec
 import java.io.File
 
 /**
- * Diskovy cache EPG na Androide. Per server jeden JSON subor v internom ulozisku.
- * Tvheadend stare relacie z EPG postupne maze; tymto si appka pamata uplynule dni
- * (kolko presne urcuje EpgRangePref.daysBack).
+ * The on-disk EPG cache on Android. One JSON file per server in internal storage.
+ * Tvheadend gradually deletes old programmes from the EPG; with this the app remembers past days
+ * (exactly how many is determined by EpgRangePref.daysBack).
  */
 object EpgCache {
 
@@ -20,19 +20,19 @@ object EpgCache {
     }
 
     /**
-     * Prudovy zapis cache po riadkoch: kazdy kanal = jeden riadok "uuid\t<json pola relacii>".
-     * Peak pamat = najvacsi jeden kanal, nie cela mapa (predtym encode() skladal jeden
-     * obrovsky String cez celu mapu -> OutOfMemoryError na velkych serveroch, ~96 MB).
-     * Zapis cez .tmp + rename, aby pri zlyhani neostal poskodeny subor.
+     * Streaming write of the cache line by line: each channel = one line "uuid\t<json array of programmes>".
+     * Peak memory = the largest single channel, not the whole map (previously encode() assembled one
+     * huge String over the whole map -> OutOfMemoryError on large servers, ~96 MB).
+     * Written via .tmp + rename, so that no corrupted file is left behind on failure.
      */
     private fun writeStreamed(f: File, data: Map<String, List<EpgEvent>>) {
         val tmp = File(f.parentFile, f.name + ".tmp")
         tmp.bufferedWriter().use { w ->
             for ((uuid, evs) in data) {
-                // uuid je hex/ciselny identifikator kanala — bez tab/newline, bezpecne v riadku
+                // the uuid is a hex/numeric channel identifier — no tab/newline, safe within a line
                 w.write(uuid)
                 w.write("\t")
-                w.write(EpgCacheCodec.encodeChannel(evs))   // jednoriadkovy JSON
+                w.write(EpgCacheCodec.encodeChannel(evs))   // single-line JSON
                 w.write("\n")
             }
         }
@@ -40,7 +40,7 @@ object EpgCache {
         if (!tmp.renameTo(f)) { tmp.copyTo(f, overwrite = true); tmp.delete() }
     }
 
-    /** Prudove citanie cache po riadkoch — peak pamat = jeden kanal. */
+    /** Streaming read of the cache line by line — peak memory = one channel. */
     private fun readStreamed(f: File): Map<String, List<EpgEvent>> {
         val out = LinkedHashMap<String, List<EpgEvent>>()
         f.bufferedReader().useLines { lines ->
@@ -69,12 +69,12 @@ object EpgCache {
             val pruned = EpgCacheCodec.prune(data, nowSec, daysBack)
             writeStreamed(file(ctx, serverId), pruned)
         } catch (e: Throwable) {
-            // cache je len optimalizacia — zlyhanie zapisu (vratane OOM) ignorujeme, nesmie zhodit appku
+            // the cache is only an optimisation — a write failure (including OOM) is ignored, it must not bring the app down
         }
     }
 
-    // M275: samostatny „live" cache pre prehravac (now/next + detail), aby neprepisoval
-    // bohatsiu cache EPG mriezky (ta pouziva zakladny subor bez suffixu).
+    // M275: a separate "live" cache for the player (now/next + detail), so that it does not overwrite
+    // the richer EPG grid cache (that one uses the base file without a suffix).
     fun loadLive(ctx: Context, serverId: String, nowSec: Long, daysBack: Int): Map<String, List<EpgEvent>> {
         return try {
             val f = file(ctx, serverId, "live")
@@ -93,20 +93,20 @@ object EpgCache {
         }
     }
 
-    /** M275: cas posledneho ulozenia live cache (lastModified suboru), 0 ak neexistuje. */
+    /** M275: the time of the last save of the live cache (the file's lastModified), 0 if it does not exist. */
     fun lastSavedLive(ctx: Context, serverId: String): Long =
         try {
             val f = file(ctx, serverId, "live")
             if (f.exists()) f.lastModified() else 0L
         } catch (e: Exception) { 0L }
 
-    /** M275: zmazanie live EPG cache servera (pre rucne „Obnovit" v nastaveniach). */
+    /** M275: deleting the server's live EPG cache (for the manual "Refresh" in settings). */
     fun clearLive(ctx: Context, serverId: String) {
         try { file(ctx, serverId, "live").delete() } catch (e: Exception) {}
     }
 
-    /** M391: kompletne zmazanie EPG cache servera (mriezka aj live) — po zmene
-     *  sposobu pripojenia su identifikatory kanalov neplatne. */
+    /** M391: complete deletion of the server's EPG cache (both grid and live) — after a change
+     *  of the connection method the channel identifiers are invalid. */
     fun clearAll(ctx: Context, serverId: String) {
         try { file(ctx, serverId).delete() } catch (e: Exception) {}
         clearLive(ctx, serverId)

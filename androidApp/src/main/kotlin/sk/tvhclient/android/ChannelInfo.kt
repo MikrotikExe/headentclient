@@ -10,11 +10,11 @@ import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.model.EpgEvent
 
 /**
- * M643: info o relácii (detail) v prehrávači — stav, načítanie a klávesy, vyclenené
- * z PlayerActivity. Vykreslenie robí ChannelInfoOverlay (PlayerOverlays.kt).
- * Okamžite ukáže now-polia z kanála, popis doplní z EPG cache alebo asynchrónne zo servera
- * (a uloží do cache cez [cacheChannelEpg], M274). M490: šípka dole vyberie položku
- * nahrávania, OK ju vykoná cez [toggleRecord].
+ * M643: programme info (detail) in the player — state, loading and keys, split out
+ * of PlayerActivity. The drawing is done by ChannelInfoOverlay (PlayerOverlays.kt).
+ * It immediately shows the now fields from the channel, the description is filled in from the EPG cache or asynchronously from the server
+ * (and stored in the cache via [cacheChannelEpg], M274). M490: the down arrow selects the recording
+ * item, OK performs it via [toggleRecord].
  */
 internal class ChannelInfo(
     private val scope: CoroutineScope,
@@ -26,7 +26,7 @@ internal class ChannelInfo(
     private val onShown: () -> Unit
 ) {
     val visible = mutableStateOf(false)
-    // M490: v info prekryti je vybrata polozka nahravania (sipka dole)
+    // M490: the recording item is selected in the info overlay (down arrow)
     val recSel = mutableStateOf(false)
     val channel = mutableStateOf("")
     val title = mutableStateOf("")
@@ -41,14 +41,14 @@ internal class ChannelInfo(
         desc.value = ev.bestDescription
     }
 
-    /** Zobrazi detail aktualnej relacie kanala (z EPG); okamzite ukaze now-polia, popis doplni async. */
+    /** Shows the detail of the channel's current programme (from the EPG); shows the now fields immediately, fills in the description async. */
     fun show(idx: Int) {
         val ch = live.channelsState.value.getOrNull(idx) ?: return
         channel.value = ch.name
         title.value = ch.nowTitle
         time.value = fmtRange(ch.nowStart, ch.nowStop)
         desc.value = ""
-        onShown()  // M446: skry zap pas
+        onShown()  // M446: hide the zapping bar
         recSel.value = false   // M490
         visible.value = true
         val srv = Tvh.store.active() ?: return
@@ -63,7 +63,7 @@ internal class ChannelInfo(
                 val list = runCatching {
                     withContext(Dispatchers.IO) { Tvh.fetchEpgForChannel(srv, Tvh.apiFor(srv), ch.uuid) }
                 }.getOrDefault(emptyList())
-                cacheChannelEpg(ch.uuid, list)   // M274: memoizuj pre dalsie zobrazenia/reopen
+                cacheChannelEpg(ch.uuid, list)   // M274: memoize for further displays/reopens
                 if (visible.value) pick(list)?.let { applyInfo(it) }
             }
         }
@@ -71,7 +71,7 @@ internal class ChannelInfo(
 
     fun close() { visible.value = false }
 
-    /** Klávesy pri otvorenom info: dole/hore = položka nahrávania, OK vykoná/zavrie, BACK/VĽAVO zavrie. */
+    /** Keys while info is open: down/up = the recording item, OK performs/closes, BACK/LEFT closes. */
     fun handleKey(kc: Int, down: Boolean): Boolean {
         if (down) when (kc) {
             KeyEvent.KEYCODE_DPAD_DOWN -> { if (dvrRecordVisible()) recSel.value = true; return true }
@@ -87,5 +87,5 @@ internal class ChannelInfo(
         return true
     }
 
-    // M679: fmtClock/fmtRange su v UiTime.kt (spolocne pre prehravac aj zoznamy)
+    // M679: fmtClock/fmtRange are in UiTime.kt (shared by the player and the lists)
 }

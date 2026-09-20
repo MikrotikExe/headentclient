@@ -3,17 +3,17 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * Preferencia audio stop: az 3 jazyky v poradi priority. Prehravac vyberie
- * prvy dostupny (napr. SK -> CZ -> EN). Prazdny zoznam = automaticky
- * (necha vyber na serveri/VLC). Ulozene v SharedPreferences ako CSV kodov.
+ * Audio-track preference: up to 3 languages in priority order. The player picks
+ * the first available one (e.g. SK -> CZ -> EN). An empty list = automatic
+ * (leaves the choice to the server/VLC). Stored in SharedPreferences as CSV codes.
  */
 object AudioPref {
     private const val PREFS = "app_prefs"
     private const val KEY = "audio_langs"
 
-    /** Default: ak nie je nic ulozene, odvod sa od jazyka appky/systemu
-     *  (1. slot = ten jazyk, zvysne prazdne). Vracia kody v poradi (moze
-     *  obsahovat prazdne sloty — prehravac ich ignoruje). */
+    /** Default: if nothing is stored, derive it from the app/system language
+     *  (1st slot = that language, the rest empty). Returns the codes in order (may
+     *  contain empty slots — the player ignores them). */
     fun get(context: Context): List<String> {
         val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY, null)
@@ -21,27 +21,27 @@ object AudioPref {
         return defaultFromLocale(context)
     }
 
-    /** Predvolba podla jazyka: jazyk appky (ak je zvoleny v Nastaveniach),
-     *  inak jazyk systemu, na 1. slot; ostatne sloty prazdne. Ak jazyk
-     *  nepozname v ponuke, nechaj vsetko prazdne (= automaticky). */
+    /** Preset by language: the app language (if one is chosen in Settings),
+     *  otherwise the system language, in the 1st slot; the other slots empty. If the language
+     *  is not in the menu, leave everything empty (= automatic). */
     fun defaultFromLocale(context: Context): List<String> {
         val appLang = LocaleHelper.getLang(context)
         val raw = if (appLang.isNotBlank()) appLang
                   else (java.util.Locale.getDefault().language ?: "")
-        // historicke kody Androidu -> kody pouzite v ponuke audia
+        // historical Android codes -> codes used in the audio menu
         val code = when (raw) { "in" -> "id"; "iw" -> "he"; "ji" -> "yi"; else -> raw }
         val supported = code.isNotBlank() && options.any { it.first == code }
         return if (supported) listOf(code, "", "") else listOf("", "", "")
     }
 
     fun set(context: Context, langs: List<String>) {
-        // zachovaj pozicie slotov (aj prazdne), oddelene ciarkou
+        // keep the slot positions (including empty ones), comma-separated
         val csv = langs.joinToString(",")
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putString(KEY, csv).apply()
     }
 
-    /** Ponuka jazykov pre vyber (kod -> zobrazeny nazov). "" = nezvolene. */
+    /** Language menu for selection (code -> displayed name). "" = not selected. */
     val options: List<Pair<String, String>> = listOf(
         "" to "—",
         "id" to "Bahasa Indonesia",
@@ -129,17 +129,17 @@ object AudioPref {
         else -> emptyList()
     }
 
-    /** Zodpoveda nazov stopy danemu jazyku? */
+    /** Does the track name match the given language? */
     fun matches(trackName: String, code: String): Boolean {
         val n = stripAccents(trackName)
         return tokens(code).any { n.contains(it) }
     }
 
-    // M378: heuristika pre stopy so zvukovym komentarom pre nevidiacich
-    // (audio description / narrated). Take stopy nikdy nevyberame automaticky —
-    // len ked ich pouzivatel zvoli rucne. Rozpoznavame bezne oznacenia:
-    // "AD" ako samostatne slovo/zatvorka, "audio description", "described",
-    // "narrat...", "komentar" (CZ/SK audiokomentar), "vi"/"vis. impaired".
+    // M378: heuristic for tracks with audio description for the blind
+    // (audio description / narrated). We never select such tracks automatically —
+    // only when the user picks them manually. We recognise the usual markings:
+    // "AD" as a standalone word/in brackets, "audio description", "described",
+    // "narrat...", "komentar" (CZ/SK audio commentary), "vi"/"vis. impaired".
     private val adWord = Regex("(^|[^a-z])ad([^a-z]|$)")
     fun isDescriptive(trackName: String): Boolean {
         val n = stripAccents(trackName)

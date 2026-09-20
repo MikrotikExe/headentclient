@@ -3,11 +3,11 @@ package sk.tvhclient.shared.api
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * M472: nahravanie cez HTTP JSON API — pouzije sa, ked appka nejde cez HTSP.
+ * M472: recording over the HTTP JSON API — used when the app does not go through HTSP.
  *
- * Endpointy vyzaduju pravo ACCESS_RECORDER, takze server prava vynuti sam;
- * `access()` sluzi len na to, aby sa pouzivatelovi nezobrazovalo nieco,
- * co mu server odmietne.
+ * The endpoints require the ACCESS_RECORDER right, so the server enforces the rights itself;
+ * `access()` only serves to keep the user from being shown something
+ * the server will refuse.
  */
 class HttpDvrService(private val server: TvhServer) : DvrService {
 
@@ -16,19 +16,19 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
     override suspend fun access(): DvrAccess = api.dvrAccess()
 
     /**
-     * M486: HTTP API chce uuid profilu, appka si vsak uklada nazov (HTSP berie
-     * nazov). Nazov preto prelozime na uuid; ak sa profil na serveri nenajde,
-     * radsej nepošleme nic a necháme rozhodnut server, nez aby sme nahravali
-     * do cudzieho profilu.
+     * M486: the HTTP API wants the profile's uuid, but the app stores the name (HTSP takes
+     * the name). We therefore translate the name to a uuid; if the profile is not found on
+     * the server, we would rather send nothing and let the server decide than record
+     * into someone else's profile.
      */
     private suspend fun configUuidByName(name: String): String? = runCatching {
         api.dvrConfigs().firstOrNull { it.name.equals(name, ignoreCase = true) }?.uuid
     }.getOrNull()
 
     override suspend fun recordEvent(eventId: Long, configId: String?): DvrResult = try {
-        // M487: bez zvoleneho profilu neposielame nic a necháme rozhodnut server
-        // — rovnako ako HTSP cesta. Do M486 sa tu bral PRVY profil zo zoznamu,
-        // co je poradie z api/dvr/config/grid, nie predvolba servera.
+        // M487: without a chosen profile we send nothing and let the server decide
+        // — the same as the HTSP path. Until M486 the FIRST profile from the list was taken here,
+        // which is the order from api/dvr/config/grid, not the server's default.
         val cfg = if (configId.isNullOrBlank()) null else configUuidByName(configId)
         val params = HashMap<String, String>()
         params["event_id"] = eventId.toString()

@@ -8,18 +8,18 @@ import sk.tvhclient.shared.api.DvrService
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * M472: nahravanie cez HTSP (addDvrEntry, cancelDvrEntry, deleteDvrEntry).
+ * M472: recording over HTSP (addDvrEntry, cancelDvrEntry, deleteDvrEntry).
  *
- * Kazda operacia si otvara vlastne kratke spojenie — appka nedrzi HTSP session
- * otvorenu a ucty s limitom pripojeni by inak prisli o slot. Prikazy su rychle
- * (jeden request/reply), takze rezia je zanedbatelna.
+ * Every operation opens its own short-lived connection — the app does not keep an HTSP session
+ * open and accounts with a connection limit would otherwise lose a slot. The commands are fast
+ * (one request/reply), so the overhead is negligible.
  */
 class HtspDvrService(private val server: TvhServer) : DvrService {
 
     private suspend fun <T> withClient(block: suspend (HtspClient) -> T): T {
-        // M621: aj DVR prikazy (naplanovat, zrusit, zmazat, zoznam) idu cez
-        // connectWithRetry — tri pokusy a zaloha na zapamatanu IP. Vypadok DNS pri
-        // prepnuti siete inak zhodil prikaz na prvy pokus (UnresolvedAddressException).
+        // M621: DVR commands (schedule, cancel, delete, list) also go through
+        // connectWithRetry — three attempts and a fallback to the remembered IP. A DNS outage when
+        // switching networks otherwise took the command down on the first attempt (UnresolvedAddressException).
         val c = HtspData.connectWithRetry(server)
         return try {
             block(c)
@@ -28,7 +28,7 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
         }
     }
 
-    /** Odpoved servera: success=1, alebo error s citatelnym textom. */
+    /** The server's response: success=1, or an error with readable text. */
     private fun reply(r: Map<String, Any?>): DvrResult {
         val ok = ((r["success"] as? Long) ?: 0L) == 1L
         if (ok) {
@@ -40,10 +40,10 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
 
     override suspend fun access(): DvrAccess = try {
         withClient { c ->
-            // prava chodia asynchronne hned po prihlaseni — staci chvilu pockat
+            // the rights arrive asynchronously right after login — a short wait is enough
             c.send("enableAsyncMetadata", mapOf("epg" to 0L))
-            // M480: prava chodia hned po prihlaseni; cakame najviac par sprav,
-            // nie 20 (kazda s 1,5 s timeoutom = az 30 s cakania a ANR).
+            // M480: the rights arrive right after login; we wait for at most a few messages,
+            // not 20 (each with a 1.5 s timeout = up to 30 s of waiting and an ANR).
             var acc = c.access
             var guard = 0
             while (acc == null && guard++ < 4) {

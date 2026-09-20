@@ -3,16 +3,16 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * M623: "Rádio hrá na pozadí" (telefón aj TV, predvolene vypnuté).
+ * M623: "Radio plays in the background" (phone and TV, off by default).
  *
- * Zapnuté: keď prehrávač rádia ide na pozadie (zhasnutie, zámok, domovská
- * obrazovka, iná appka/prehliadač), rádio hrá ďalej — telefón (moderný aj
- * klasický režim, M624) cez RadioPlayerService s notifikáciou a mini lištou,
- * TV ostane hrať samotný prehrávač (drží wake/wifi lock z M452).
- * V samotnom prehrávači obrazovka svieti ďalej (KEEP_SCREEN_ON ako pri TV) —
- * rádio na pozadí je len pre čas mimo prehrávača.
+ * On: when the radio player goes into the background (screen off, lock, home
+ * screen, another app/browser), the radio keeps playing — the phone (both modern and
+ * classic mode, M624) via RadioPlayerService with a notification and a mini bar,
+ * on TV the player itself keeps playing (it holds the wake/wifi lock from M452).
+ * In the player itself the screen stays on (KEEP_SCREEN_ON as on TV) —
+ * radio in the background is only for the time outside the player.
  *
- * Vypnuté (predvolené): pôvodné správanie — odchod na pozadie rádio pozastaví.
+ * Off (the default): the original behaviour — going into the background pauses the radio.
  */
 object RadioBackgroundPref {
     private const val PREFS = "app_prefs"

@@ -9,12 +9,12 @@ import androidx.lifecycle.lifecycleScope
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * M553 / M627: stav a ovládanie teletextu v prehrávači (vyclenene z PlayerActivity).
- * Vykreslenie robí TeletextOverlay, dekódovanie [session] (TeletextSession, M552).
+ * M553 / M627: teletext state and control in the player (extracted from PlayerActivity).
+ * Rendering is done by TeletextOverlay, decoding by [session] (TeletextSession, M552).
  *
- * Z aktivity potrebuje len tri veci ako lambdy: aktuálny server (HTSP vs HTTP cesta),
- * uuid živého kanála (pamäť poslednej strany, HTTP odbočka) a či ide o pretáčateľné
- * prehrávanie (archív — teletext sa neponúka). [onOpened] zavrie moderný overlay.
+ * From the activity it needs only three things as lambdas: the current server (HTSP vs HTTP path),
+ * the uuid of the live channel (memory of the last page, the HTTP side branch) and whether this is seekable
+ * playback (archive — teletext is not offered). [onOpened] closes the modern overlay.
  */
 class TeletextController(
     private val activity: ComponentActivity,
@@ -23,7 +23,7 @@ class TeletextController(
     private val seekable: () -> Boolean,
     private val onOpened: () -> Unit
 ) {
-    /** M552: teletext aktuálneho kanála (HTSP: dáta z feedera, HTTP: vlastná odbočka). */
+    /** M552: teletext of the current channel (HTSP: data from the feeder, HTTP: our own side branch). */
     val session: TeletextSession by lazy { TeletextSession(activity) }
 
     val openState = mutableStateOf(false)
@@ -32,14 +32,14 @@ class TeletextController(
     val entryState = mutableStateOf("")
     val transparentState = mutableStateOf(false)
     val revealState = mutableStateOf(false)
-    private val lastPage = HashMap<String, Int>()   // kanál -> posledná strana
+    private val lastPage = HashMap<String, Int>()   // channel -> last page
     private val entryHandler = Handler(Looper.getMainLooper())
     private val entryTimeout = Runnable { entryState.value = "" }
 
     fun isHtspLiveServer(): Boolean = liveServer()?.connectionMode == "htsp"
 
-    /** Položka Teletext sa ponúka len pri živom kanáli: HTSP keď kanál stopu má, HTTP vždy
-     *  (či vysiela, sa zistí až z PMT po otvorení). */
+    /** The Teletext item is offered only for a live channel: HTSP when the channel has the track, HTTP always
+     *  (whether it is broadcast is only learnt from the PMT after opening). */
     fun visible(): Boolean {
         if (seekable() || liveUuid() == null) return false
         return if (isHtspLiveServer()) session.availableState.value else true
@@ -64,7 +64,7 @@ class TeletextController(
         session.stopHttp()
     }
 
-    /** Zatvor a zahoď dekódované dáta — pri prepnutí kanála / zdroja (M552/M553). */
+    /** Close and discard the decoded data — on a channel / source switch (M552/M553). */
     fun reset() { close(); session.reset() }
 
     fun toggleTransparent() { transparentState.value = !transparentState.value }
@@ -77,7 +77,7 @@ class TeletextController(
         revealState.value = false
     }
 
-    /** Ďalšia/predošlá strana: najbližšia už prijatá, inak ±1 (hex číslovanie 100..8FF, len desiatkové). */
+    /** Next/previous page: the nearest one already received, otherwise ±1 (hex numbering 100..8FF, decimal only). */
     fun step(dir: Int) {
         val cur = pageState.value
         val known = session.decoder.knownPages().filter { isDecimalPage(it) }
@@ -107,7 +107,7 @@ class TeletextController(
     fun digit(d: Int) {
         entryHandler.removeCallbacks(entryTimeout)
         var e = entryState.value
-        if (e.isEmpty() && (d < 1 || d > 8)) return   // strana 100..899
+        if (e.isEmpty() && (d < 1 || d > 8)) return   // page 100..899
         e += d
         if (e.length >= 3) { goto(e.toInt(16)); return }
         entryState.value = e
@@ -120,7 +120,7 @@ class TeletextController(
         if (target > 0) goto(target)
     }
 
-    /** Klávesy pri otvorenom teletexte. Hlasitosť prepúšťa systému, ostatné spotrebuje. */
+    /** Keys while teletext is open. Volume is passed through to the system, everything else is consumed. */
     fun handleKey(kc: Int, down: Boolean, event: KeyEvent): Boolean {
         when (kc) {
             KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN,
@@ -141,7 +141,7 @@ class TeletextController(
             KeyEvent.KEYCODE_PROG_YELLOW -> fastext(2)
             KeyEvent.KEYCODE_PROG_BLUE -> fastext(3)
             KeyEvent.KEYCODE_INFO, KeyEvent.KEYCODE_MENU ->
-                revealState.value = !revealState.value   // odkryť skryté (conceal) znaky
+                revealState.value = !revealState.value   // reveal concealed (conceal) characters
             KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_TV_TELETEXT -> close()
         }
         return true

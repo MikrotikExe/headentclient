@@ -55,8 +55,8 @@ import androidx.compose.ui.unit.dp
 import sk.tvhclient.shared.api.ConnectionResult
 import sk.tvhclient.shared.model.TvhServer
 
-// UI servera: zoznam-riadok, formular pridania/upravy, vysledok testu, rozbalovacie pole
-// (vyclenene z MainActivity.kt kvoli prehladnosti).
+// Server UI: list row, add/edit form, test result, dropdown field
+// (extracted from MainActivity.kt for readability).
 
 @Composable
 fun ServerRow(
@@ -111,18 +111,18 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
     var useHttps by remember { mutableStateOf(existing?.useHttps ?: false) }
     var username by remember { mutableStateOf(existing?.username ?: "") }
     var password by remember { mutableStateOf(existing?.password ?: "") }
-    // M502: novy server bez profilu = „podla nastavenia servera". „pass" je profil
-    // pre HTTP prenos (MPEG-TS passthrough) a ako predvolba nedavala zmysel — pri
-    // HTSP uz vobec, ten prenasa elementarne streamy. WelcomeScreen to ma spravne
-    // od M479, tento formular na to zabudol.
+    // M502: a new server without a profile = "as per server setting". "pass" is a profile
+    // for HTTP transport (MPEG-TS passthrough) and made no sense as a default — with
+    // HTSP even less so, that carries elementary streams. WelcomeScreen has had it right
+    // since M479, this form forgot about it.
     var profile by remember { mutableStateOf(existing?.profile ?: "") }
-    // M486: DVR profil (do ktoreho sa nahrava); prazdne = podla nastavenia servera
+    // M486: DVR profile (the one recordings go into); empty = as per server setting
     var dvrConfig by remember { mutableStateOf(existing?.dvrConfig ?: "") }
     var authMode by remember { mutableStateOf(existing?.authMode ?: "auto") }
     var connMode by remember { mutableStateOf(existing?.connectionMode ?: "htsp") }
     var htspPort by remember { mutableStateOf((existing?.htspPort ?: 9982).toString()) }
 
-    // Pociatocny D-pad fokus (TV) na prve pole, nech sa da hned navigovat zhora dole
+    // Initial D-pad focus (TV) on the first field, so you can navigate top to bottom right away
     val firstFocus = remember { FocusRequester() }
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(200)
@@ -132,8 +132,8 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
     val testState by vm.testState.collectAsState()
     val ctxReset = androidx.compose.ui.platform.LocalContext.current
 
-    // M389: neulozene zmeny — porovnanie aktualnych poli s hodnotami pri otvoreni.
-    // Pri odchode (BACK / Zrusit / prepnutie tabu cez guardLeave) sa vypyta potvrdenie.
+    // M389: unsaved changes — comparison of the current fields with the values at open time.
+    // On leaving (BACK / Cancel / tab switch via guardLeave) a confirmation is requested.
     fun formSig() = listOf(name, host, port, useHttps, username, password, profile, dvrConfig, authMode, connMode, htspPort)
     val initSig = remember { formSig() }
     val dirty = formSig() != initSig
@@ -179,8 +179,8 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
             useHttps = useHttps,
             username = username.trim(),
             password = password,
-            // M502: prazdne necha rozhodnut server; NEprepisuj to na „pass" —
-            // prave to vracalo HTTP profil aj serverom nastavenym na HTSP
+            // M502: empty lets the server decide; do NOT rewrite it to "pass" —
+            // that is exactly what returned the HTTP profile even for servers set to HTSP
             profile = profile.trim(),
             dvrConfig = dvrConfig.trim(),
             authMode = authMode,
@@ -189,17 +189,17 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
         )
     }
 
-    // M380: profily sa tahaju zo servera automaticky — ziadne tlacidlo.
-    // Existujuci server (ma ulozene prihlasenie) sa nacita hned po otvoreni;
-    // novy hned ako su vyplnene adresa a prihlasenie. Debounce 800 ms, nech
-    // sa nestriela dotaz pri kazdom pismene. Zlyhanie = ticho, ostane fallback.
+    // M380: profiles are fetched from the server automatically — no button.
+    // An existing server (with stored credentials) is loaded right after opening;
+    // a new one as soon as the address and credentials are filled in. Debounce 800 ms, so
+    // a request is not fired on every letter. Failure = silence, the fallback stays.
     val serverProfiles by vm.profiles.collectAsState()
-    // M486: DVR profily sa tahaju rovnako ako stream profily
+    // M486: DVR profiles are fetched the same way as stream profiles
     val serverDvrConfigs by vm.dvrConfigs.collectAsState()
     LaunchedEffect(Unit) { vm.clearProfiles(); vm.clearDvrConfigs() }
     LaunchedEffect(host, port, username, password, useHttps, authMode, connMode) {
-        // M476: profily sa nacitavaju aj pre HTSP — protokol ma vlastny
-        // getProfiles (v16+), takze netreba HTTP port
+        // M476: profiles are loaded for HTSP too — the protocol has its own
+        // getProfiles (v16+), so no HTTP port is needed
         kotlinx.coroutines.delay(800)
         buildServer()?.let { vm.loadProfiles(it); vm.loadDvrConfigs(it) }
     }
@@ -279,35 +279,35 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                 value = password, onValueChange = { password = it },
                 modifier = Modifier.fillMaxWidth(), password = true
             )
-            // M478: volba profilu sa ukaze az ked zoznam naozaj prisiel zo servera.
-            // Predtym sa zobrazovala hned s nahradnym zoznamom (pass, matroska...),
-            // takze pouzivatel pri zakladani servera vyberal z profilov, ktore
-            // jeho server nemusi mat vobec. Pri uprave uz uloženeho servera ju
-            // ukazeme vzdy — profil je sucastou nastavenia a ma sa dat zmenit aj
-            // ked je server prave nedostupny.
+            // M478: the profile choice is only shown once the list has actually arrived from the server.
+            // Previously it was shown immediately with a substitute list (pass, matroska...),
+            // so when creating a server the user picked from profiles their server
+            // may not have at all. When editing an already saved server we
+            // always show it — the profile is part of the settings and must be changeable even
+            // when the server happens to be unreachable.
             if (serverProfiles.isNotEmpty() || existing != null) {
                 DropdownField(
                     label = stringResource(R.string.field_profile),
                     value = profile,
-                    // M380: zoznam zo servera (vratane vlastnych transcode
-                    // profilov) tak, ako ho vratil; fallback len pri uprave
-                    // existujuceho servera, ked sa zoznam nepodarilo nacitat.
-                    // M479: prva moznost je prazdna = "podla nastavenia servera".
-                    // Pri HTSP je to spravna predvolba (profil urci konto na serveri),
-                    // pri HTTP je to tiez legitimne — server pouzije svoj default.
-                    // M501: ulozenu hodnotu ukaz aj vtedy, ked ju server v zozname
-                    // nema (napr. profil bol premenovany/zruseny). Inak sa v ponuke
-                    // zvyraznila prva polozka a vyzeralo to, ze je nastavene „podla
-                    // servera“, hoci sa posielal nazov, ktoremu server nerozumie a
-                    // ticho spadol na svoj predvoleny profil.
+                    // M380: the list from the server (including custom transcode
+                    // profiles) exactly as it returned it; fallback only when editing
+                    // an existing server and the list could not be loaded.
+                    // M479: the first option is empty = "as per server setting".
+                    // For HTSP that is the correct default (the profile is determined by the account on the server),
+                    // for HTTP it is legitimate too — the server uses its own default.
+                    // M501: show the stored value even when the server does not have it
+                    // in the list (e.g. the profile was renamed/removed). Otherwise the menu
+                    // highlighted the first item and it looked as if "as per
+                    // server" was set, although a name the server does not understand was being sent and it
+                    // silently fell back to its own default profile.
                     options = (listOf("") + serverProfiles.ifEmpty {
                         ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
                     } + profile.trim()).distinct(),
                     optionLabel = { if (it.isBlank()) stringResource(R.string.profile_server_default) else it },
                     onSelect = { profile = it }
                 )
-                // M501: profil, ktory server neponuka, je takmer isto preklep alebo
-                // zvyšok po premenovani — server ho ignoruje a pouzije svoj default
+                // M501: a profile the server does not offer is almost certainly a typo or
+                // a leftover after a rename — the server ignores it and uses its own default
                 if (serverProfiles.isNotEmpty() && profile.isNotBlank() &&
                     profile.trim() !in serverProfiles
                 ) {
@@ -318,12 +318,12 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                         modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
                     )
                 }
-                // M382: nie kazdy profil sa da prehrat (kontajner/kodeky) —
-                // napr. Vorbis v MP4 je neštandardny a zvuk nejde ani v inych
-                // prehravacoch. Odporucany je pass (bez transkodovania).
-                // M503: pri HTSP ma poznamka inu podobu — „pass" je HTTP profil
-                // (MPEG-TS passthrough) a server ho v ponuke ani nema; HTSP
-                // prenasa elementarne streamy a profil urci konto na serveri.
+                // M382: not every profile can be played (container/codecs) —
+                // e.g. Vorbis in MP4 is non-standard and the audio does not work in other
+                // players either. The recommended one is pass (no transcoding).
+                // M503: with HTSP the note takes a different form — "pass" is an HTTP profile
+                // (MPEG-TS passthrough) and the server does not even offer it in the menu; HTSP
+                // carries elementary streams and the profile is determined by the account on the server.
                 Text(
                     stringResource(
                         if (connMode == "htsp") R.string.profile_note_htsp
@@ -334,18 +334,18 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                     modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
                 )
             }
-            // M486: profil nahravania. Ukazeme len ked server nejake vratil
-            // (alebo pri uprave uz uloženeho servera), rovnako ako stream profil.
-            // Prazdna volba = server rozhodne podla prav konta.
+            // M486: recording profile. We only show it when the server returned some
+            // (or when editing an already saved server), same as the stream profile.
+            // An empty choice = the server decides according to the account's rights.
             if (serverDvrConfigs.isNotEmpty() || (existing != null && dvrConfig.isNotBlank())) {
                 DropdownField(
                     label = stringResource(R.string.field_dvr_config),
                     value = dvrConfig,
                     options = listOf("") + serverDvrConfigs.map { it.name }
                         .filter { it.isNotBlank() }.distinct(),
-                    // M487: pri DVR profile nejde o „podla nastavenia servera" —
-                    // TVH prazdny nazov vzdy prelozi na predvoleny profil, tak to
-                    // aj pomenujme
+                    // M487: for the DVR profile it is not "as per server setting" —
+                    // TVH always translates an empty name to the default profile, so let us
+                    // name it that way too
                     optionLabel = {
                         if (it.isBlank()) stringResource(R.string.dvr_config_default) else it
                     },
@@ -384,8 +384,8 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                 }
                 Button(onClick = {
                     buildServer()?.let {
-                        // M391: zmena sposobu pripojenia = novy priestor identifikatorov
-                        // -> zahod EPG cache, posledny kanal/stanicu a playlist v pamati
+                        // M391: a change of connection method = a new namespace of identifiers
+                        // -> discard the EPG cache, last channel/station and the in-memory playlist
                         val modeChanged = existing != null && existing.connectionMode != it.connectionMode
                         vm.save(it)
                         if (modeChanged) ServerDataReset.onConnectionModeChanged(ctxReset, it.id)
@@ -436,9 +436,9 @@ fun TestResultView(state: TestState) {
     }
 }
 
-// TV-friendly rozbalovacie pole: kotva je obycajny Box (ziadne textove pole =>
-// na boxoch nevyskoci klavesnica), vyber prebieha v dialogu s manualnou D-pad
-// navigaciou (sipky + OK), co na lacnych boxoch funguje spolahlivo.
+// TV-friendly dropdown field: the anchor is a plain Box (no text field =>
+// no keyboard pops up on boxes), selection happens in a dialog with manual D-pad
+// navigation (arrows + OK), which works reliably on cheap boxes.
 @Composable
 fun DropdownField(
     label: String,
@@ -449,7 +449,7 @@ fun DropdownField(
 ) {
     var open by remember { mutableStateOf(false) }
     if (isModernUi()) {
-        // Moderny rezim: riadok — nazov vlavo, hodnota ako pilulka s sipkou vpravo
+        // Modern mode: a row — name on the left, value as a pill with an arrow on the right
         val cs = MaterialTheme.colorScheme
         Row(
             Modifier
@@ -524,10 +524,10 @@ private fun TvSelectDialog(
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit
 ) {
-    // M380-fix: index vyberu prepocitaj, ked sa zmeni zoznam moznosti — profily
-    // sa tahaju zo servera asynchronne, takze sa mozu vymenit pod otvorenym
-    // dialogom (fallback -> zoznam zo servera). Bez key(options) by kurzor
-    // ostal na starom indexe a ukazoval na iny profil.
+    // M380-fix: recompute the selection index when the list of options changes — profiles
+    // are fetched from the server asynchronously, so they can be swapped under an open
+    // dialog (fallback -> list from the server). Without key(options) the cursor
+    // would stay on the old index and point at a different profile.
     var sel by remember(options) { mutableStateOf(options.indexOf(current).coerceAtLeast(0)) }
     val fr = remember { FocusRequester() }
     val listState = rememberLazyListState()
@@ -535,7 +535,7 @@ private fun TvSelectDialog(
         runCatching { listState.scrollToItem(sel) }
         runCatching { fr.requestFocus() }
     }
-    // pri pohybe sipkami drz vybranu polozku vo viditelnej casti zoznamu
+    // while moving with the arrows keep the selected item in the visible part of the list
     LaunchedEffect(sel) { runCatching { listState.animateScrollToItem(sel) } }
     Dialog(
         onDismissRequest = onDismiss,

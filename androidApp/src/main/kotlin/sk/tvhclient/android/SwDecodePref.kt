@@ -3,14 +3,14 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * M447: vynutene softverove dekodovanie videa.
+ * M447: forced software video decoding.
  *
- * Predvolene VYPNUTE — appka pouziva hardverovy dekoder zariadenia (spravne
- * spravanie na drvivej vacsine boxov). Zapina sa tam, kde je HW dekoder
- * pokazeny: napr. Xiaomi Mi Box S (Android 9, stary Amlogic OMX) trha
- * 10-bit HEVC v sekundovych intervaloch, kym H.264 s vyssim tokom hra
- * plynulo. Softverove dekodovanie zaberie viac CPU (1080p H.264/HEVC 8-bit
- * bezne boxy zvladnu), preto sa nezapina samo.
+ * OFF by default — the app uses the device's hardware decoder (the correct
+ * behaviour on the vast majority of boxes). It is switched on where the HW decoder
+ * is broken: e.g. the Xiaomi Mi Box S (Android 9, old Amlogic OMX) stutters on
+ * 10-bit HEVC at one-second intervals, while H.264 at a higher bitrate plays
+ * smoothly. Software decoding takes more CPU (1080p H.264/HEVC 8-bit is
+ * manageable for ordinary boxes), which is why it does not switch itself on.
  */
 object SwDecodePref {
     private const val PREFS = "app_prefs"

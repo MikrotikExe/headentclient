@@ -80,21 +80,21 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import sk.tvhclient.shared.model.TvhServer
 
-/** Most medzi farebnymi tlacidlami dialkoveho (dispatchKeyEvent) a Compose tabmi. */
+/** Bridge between the coloured remote-control buttons (dispatchKeyEvent) and the Compose tabs. */
 object TabController {
     val requested = mutableStateOf(-1)
     fun request(tab: Int) { requested.value = tab }
-    // EPG (TV program) kláves dialkoveho -> otvor mriezku v Kanaloch
+    // EPG (TV guide) key of the remote -> open the grid in Channels
     val epgGrid = mutableStateOf(0)
     var epgFromPlayer = false
     var epgReturnUuid: String? = null
-    // M591: mriezka sa ma otvorit rovno pri rozhlasovych staniciach (z prehravaca radia)
+    // M591: the grid should open right at the radio stations (from the radio player)
     var epgRadio = false
-    // Otvorenie mriezky aj pri cerstvom mounte Kanalov (napr. z modernej Domov
-    // obrazovky) — bez tohto by baseline signal zhltol a otvoril sa len zoznam.
+    // Open the grid also on a fresh mount of Channels (e.g. from the modern Home
+    // screen) — without this the baseline would swallow the signal and only the list would open.
     var epgColdOpen = false
-    // M397: jednorazovy priznak "otvor mriezku hned" — hosty ho konzumuju uz
-    // pocas kompozicie, takze sa nestihne mihnut uvodna obrazovka
+    // M397: one-shot flag "open the grid now" — the hosts consume it already
+    // during composition, so the intro screen has no time to flash
     var epgPending = false
     fun openEpgGrid(fromPlayer: Boolean = false, returnUuid: String? = null, radio: Boolean = false) {
         epgFromPlayer = fromPlayer
@@ -103,23 +103,23 @@ object TabController {
         epgPending = true
         epgGrid.value = epgGrid.value + 1
     }
-    // INFO kláves -> detail vybranej relacie (v mriezke)
+    // INFO key -> detail of the selected programme (in the grid)
     val infoKey = mutableStateOf(0)
     fun pressInfo() { infoKey.value = infoKey.value + 1 }
-    // ci boli v aktualnej podsekcii nastaveni vykonane zmeny (kvoli potvrdeniu pri odchode)
+    // whether changes were made in the current settings subsection (for the confirmation when leaving)
     val settingsDirty = mutableStateOf(false)
-    // M389-fix: true = zmeny s explicitnym Ulozit (formular servera) -> dialog "bez ulozenia"
+    // M389-fix: true = changes with an explicit Save (server form) -> "without saving" dialog
     val settingsDirtyUnsaved = mutableStateOf(false)
-    // zvysenim sa vynuti znovunacitanie kanalov/radii/archivu/EPG (po ulozeni/zmene servera)
+    // incrementing it forces a reload of channels/radios/archive/EPG (after saving/changing a server)
     val dataReload = mutableStateOf(0)
 }
 
 class MainActivity : ComponentActivity() {
 
-    /** M429 (len TV): ked pouzivatel odide z appky a prehravac visi v PiP
-     *  miniature, zavri ju aj s pripnutym oknom. PiP na TV zije len vnutri
-     *  appky (miniatura nad TV programom); nad launcherom/YouTube nema co robit.
-     *  Telefonov sa netyka — tam je PiP nad inymi appkami ziaduce. */
+    /** M429 (TV only): when the user leaves the app and the player hangs in a PiP
+     *  thumbnail, close it along with the pinned window. PiP on TV only lives inside
+     *  the app (a thumbnail over the TV guide); it has no business over the launcher/YouTube.
+     *  It does not concern phones — there PiP over other apps is desirable. */
     override fun onStop() {
         super.onStop()
         val isTv = isTvUiMode(this)   // M679
@@ -133,39 +133,39 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * M494: po spusteni appky pokracuj tam, kde pouzivatel skoncil (len TV).
+     * M494: after the app starts, continue where the user left off (TV only).
      *
-     * Len pri STUDENOM starte — `savedInstanceState != null` znamena, ze sa
-     * aktivita len obnovuje (otocenie, navrat z pozadia) a otvarat prehravac
-     * znova by pouzivatela vyhodilo zo zoznamu. Rovnako sa preskoci navrat
-     * z prehravaca (open_epg), inak by sa hned otvoril spat a nedal by sa
-     * opustit.
+     * Only on a COLD start — `savedInstanceState != null` means the activity is
+     * merely being recreated (rotation, return from the background) and opening the player
+     * again would throw the user out of the list. The return from the player
+     * (open_epg) is skipped likewise, otherwise it would immediately open again and
+     * could not be left.
      */
     private fun maybeResumeLastPlayback(savedInstanceState: Bundle?) {
         if (savedInstanceState != null) return
         if (intent?.getBooleanExtra("open_epg", false) == true) return
         if (!isTvUiMode(this)) return   // M679
         if (!ResumeLastPref.get(this)) return
-        // M496: len priprav poziadavku — vykona ju UI, ktore vie pockat na kanaly
+        // M496: only prepare the request — it is carried out by the UI, which can wait for the channels
         LastPlayback.prepareRestore(this, sk.tvhclient.shared.Tvh.store.active()?.id)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Kresli pod systemove pruhy (edge-to-edge), aby pozadie appky vyplnilo celu obrazovku
-        // vratane oblasti navigacneho pruhu / okolo klavesnice (inak tam vznikal cierny pruh).
-        // Pruhy su priehladne -> presviti cez ne pozadie okna (surface), takze vyzeraju vo farbe povrchu.
+        // Draw under the system bars (edge-to-edge), so that the app background fills the whole screen
+        // including the navigation bar area / around the keyboard (otherwise a black strip appeared there).
+        // The bars are transparent -> the window background (surface) shows through them, so they look the colour of the surface.
         //
-        // M538: povodne enableEdgeToEdge() z androidx.activity. Jeho vnutorna trieda
-        // EdgeToEdgeApi28 nastavuje LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES, co Play
-        // Console hlasi ako zastarane API (SDK 35) — v nasom kode to nikdy nebolo, ale
-        // kniznica sa do APK zabali cela. Rovnaky vysledok dosiahneme bez nej: priehladne
-        // pruhy, vypnuty kontrastny scrim a rezim vyrezu su atributy temy (Theme.Headent,
-        // values / values-v28 / values-v29 / values-v35), tu ostava len vypnutie
-        // fitSystemWindows. R8 potom nepouzitu EdgeToEdge triedu z APK odstrani.
+        // M538: originally enableEdgeToEdge() from androidx.activity. Its internal class
+        // EdgeToEdgeApi28 sets LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES, which the Play
+        // Console reports as a deprecated API (SDK 35) — it was never in our code, but
+        // the library is packed into the APK whole. We achieve the same result without it: transparent
+        // bars, the contrast scrim off and the cutout mode are theme attributes (Theme.Headent,
+        // values / values-v28 / values-v29 / values-v35), only turning off fitSystemWindows
+        // stays here. R8 then strips the unused EdgeToEdge class out of the APK.
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        // M573: headentclient://channel/<uuid> — len pri studenom starte; pri obnove
-        // aktivity (zmena jazyka, hustoty…) by sa inak prehravac otvoril znova
+        // M573: headentclient://channel/<uuid> — only on a cold start; on a recreation of
+        // the activity (language change, density…) the player would otherwise open again
         if (savedInstanceState == null) DeepLink.handle(intent)
         if (intent?.getBooleanExtra("open_epg", false) == true) {
             TabController.openEpgGrid(
@@ -181,8 +181,8 @@ class MainActivity : ComponentActivity() {
                 ThemePref.LIGHT -> false
                 else -> isSystemInDarkTheme()
             }
-            // Moderny rezim ma vlastnu teal paletu v tmavom (navy) aj svetlom variante;
-            // respektuje volbu temy (svetla/tmava/auto) ako klasik
+            // The modern mode has its own teal palette in both the dark (navy) and light variant;
+            // it respects the theme choice (light/dark/auto) just like the classic one
             val modernUi = UiModePref.stateOf(this).value == UiModePref.MODERN
             MaterialTheme(colorScheme = when {
                 modernUi && dark -> modernColorScheme()
@@ -195,10 +195,10 @@ class MainActivity : ComponentActivity() {
                 if (!view.isInEditMode) {
                     SideEffect {
                         val window = (view.context as android.app.Activity).window
-                        // Pozadie okna na farbu povrchu, aby nepokryta plocha (napr. pri vyskoceni
-                        // klavesnice, ked sa okno zmensi) neukazovala cierny pruh. Priehladne
-                        // systemove pruhy potom presvitaju touto farbou (nahrada za zastarale
-                        // window.statusBarColor / navigationBarColor, ktore SDK 35 ignoruje).
+                        // The window background set to the surface colour, so that an uncovered area (e.g. when the
+                        // keyboard pops up and the window shrinks) does not show a black strip. Transparent
+                        // system bars then show through in this colour (a replacement for the deprecated
+                        // window.statusBarColor / navigationBarColor, which SDK 35 ignores).
                         window.setBackgroundDrawable(
                             android.graphics.drawable.ColorDrawable(barColor.toArgb())
                         )
@@ -225,19 +225,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Farebne tlacidla na dialkovom -> prepnutie tabu
+    // Coloured buttons on the remote -> tab switch
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
         if (event.action == android.view.KeyEvent.ACTION_DOWN) {
             val t = when (event.keyCode) {
-                android.view.KeyEvent.KEYCODE_PROG_RED -> 0     // Kanaly
+                android.view.KeyEvent.KEYCODE_PROG_RED -> 0     // Channels
                 android.view.KeyEvent.KEYCODE_PROG_GREEN -> 1   // Radio
-                android.view.KeyEvent.KEYCODE_PROG_YELLOW -> 2  // Archiv
-                android.view.KeyEvent.KEYCODE_PROG_BLUE -> 3    // Nastavenie
+                android.view.KeyEvent.KEYCODE_PROG_YELLOW -> 2  // Archive
+                android.view.KeyEvent.KEYCODE_PROG_BLUE -> 3    // Settings
                 else -> -1
             }
             if (t >= 0) { TabController.request(t); return true }
             when (event.keyCode) {
-                // EPG / TV program kláves (ikona vlavo od 0)
+                // EPG / TV guide key (icon to the left of 0)
                 android.view.KeyEvent.KEYCODE_GUIDE,
                 android.view.KeyEvent.KEYCODE_CAPTIONS,
                 android.view.KeyEvent.KEYCODE_TV_DATA_SERVICE,
@@ -245,7 +245,7 @@ class MainActivity : ComponentActivity() {
                 android.view.KeyEvent.KEYCODE_TV_MEDIA_CONTEXT_MENU -> {
                     TabController.openEpgGrid(); return true
                 }
-                // INFO kláves (ikona vpravo od 0)
+                // INFO key (icon to the right of 0)
                 android.view.KeyEvent.KEYCODE_INFO -> { TabController.pressInfo(); return true }
             }
         }
@@ -257,16 +257,16 @@ class MainActivity : ComponentActivity() {
 fun App() {
     val serversVm: ServersViewModel = viewModel()
     val servers by serversVm.servers.collectAsState()
-    // Ziadny server -> uvitacia obrazovka
+    // No server -> welcome screen
     if (servers.isEmpty()) { WelcomeScreen(serversVm); return }
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val isTv = remember { isTvUiMode(ctx) }   // M679
     if (isTv) TvHomeHost() else AppMain()
 }
 
-/** TV/box: uvodny launcher + samostatne sekcie (bez spodneho baru). Spat = launcher.
- *  Kanaly/Radia idu rovno do prehravaca (zoznam sa prednacita a naplni LivePlaylist,
- *  aby fungoval prepinaci zoznam v prehravaci). */
+/** TV/box: intro launcher + separate sections (without the bottom bar). Back = launcher.
+ *  Channels/Radios go straight into the player (the list is preloaded and populates LivePlaylist,
+ *  so that the switching list in the player works). */
 @Composable
 private fun TvHomeHost() {
     val ctx = androidx.compose.ui.platform.LocalContext.current
@@ -275,44 +275,44 @@ private fun TvHomeHost() {
     val chState by chVm.state.collectAsState()
     val epgMap by chVm.epgMap.collectAsState()
     val raState by raVm.state.collectAsState()
-    LaunchedEffect(Unit) { chVm.loadIfNeeded(); raVm.load() }   // prednacitaj kanaly aj radia
-    // M557: zmena konfiguracie servera (napr. HTTP <-> HTSP) zvysi dataReload — kanaly sa
-    // musia nacitat znova HNED, nie az pri otvoreni zoznamu. Domovska obrazovka (Sledovat,
-    // rad oblubenych) inak drzala kanaly so starymi identifikatormi (HTSP channelId vs
-    // HTTP uuid) a prehravac s nimi nevedel spustit stream.
+    LaunchedEffect(Unit) { chVm.loadIfNeeded(); raVm.load() }   // preload both channels and radios
+    // M557: a change of the server configuration (e.g. HTTP <-> HTSP) increments dataReload — the channels
+    // must be loaded again NOW, not only when the list is opened. The home screen (Watch,
+    // the favourites row) otherwise held channels with stale identifiers (HTSP channelId vs
+    // HTTP uuid) and the player could not start a stream with them.
     val reloadTok = TabController.dataReload.value
     LaunchedEffect(reloadTok) { if (reloadTok > 0) { chVm.loadIfNeeded(); raVm.load() } }
 
-    // sekcia: "", "epg", "archive", "settings"; play: "", "tv", "radio"
-    // M601: ked prehravac ziada TV program (aj z rozhlasu), zacneme rovno v mriezke.
-    // Doteraz sa signal spracoval az v tele kompozicie, takze pri starte hosta
-    // (napr. po prehravani rozhlasu, ked sa obrazovka skladala nanovo) preblikol uvod.
+    // section: "", "epg", "archive", "settings"; play: "", "tv", "radio"
+    // M601: when the player asks for the TV guide (even from radio), we start right in the grid.
+    // Until now the signal was handled only in the body of the composition, so when the host started
+    // (e.g. after playing radio, when the screen was being composed anew) the intro flashed up.
     var section by remember { mutableStateOf(if (TabController.epgPending) "epg" else "") }
-    // Prehravac ziada TV program (open_epg intent) -> otvor mriezku aj v TV launcheri (M323)
+    // The player asks for the TV guide (open_epg intent) -> open the grid in the TV launcher too (M323)
     val epgSigTv by TabController.epgGrid
-    // M397: signal konzumujeme UZ POCAS kompozicie — LaunchedEffect bezal az po
-    // prvom frame, takze pri otvoreni TV programu z prehravaca preblikol uvod.
-    // Citanie epgSigTv zabezpeci rekompoziciu aj pri teplom onNewIntent.
+    // M397: we consume the signal ALREADY DURING composition — LaunchedEffect only ran after
+    // the first frame, so when opening the TV guide from the player the intro flashed up.
+    // Reading epgSigTv ensures a recomposition on a warm onNewIntent too.
     if (epgSigTv > 0 && TabController.epgPending) {
         TabController.epgPending = false
         if (section != "epg") section = "epg"
     }
     var lastTile by remember { mutableStateOf("channels") }
     var play by remember { mutableStateOf("") }
-    // M605: volba „dlazdice otvoria zoznam" — prehravac sa otvori s otvorenym zoznamom
-    // nad hrajucim poslednym kanalom (dlazdice TV kanaly / Radia, obnova po starte)
+    // M605: the option "tiles open the list" — the player opens with the list open
+    // over the last channel playing (the TV channels / Radios tiles, the restore after startup)
     var tileListFirst by remember { mutableStateOf(false) }
-    // M613: farebne tlacidla na dialkovom aj na TV — cervena Kanaly, zelena Radio,
-    // zlta Archiv, modra Nastavenia. Doteraz ich spracuval len telefonovy hostitel
-    // (AppMain); na TV sa signal z MainActivity.dispatchKeyEvent nikdy nekonzumoval,
-    // takze farebne klavesy na boxe nerobili nic. Plati v modernom aj klasickom rezime.
+    // M613: coloured buttons on the remote on TV as well — red Channels, green Radio,
+    // yellow Archive, blue Settings. Until now they were handled only by the phone host
+    // (AppMain); on TV the signal from MainActivity.dispatchKeyEvent was never consumed,
+    // so the coloured keys on a box did nothing. Applies in both the modern and the classic mode.
     val reqTabTv by TabController.requested
     LaunchedEffect(reqTabTv) {
         if (reqTabTv !in 0..3) return@LaunchedEffect
         val t = reqTabTv
         TabController.requested.value = -1
         when (t) {
-            0 -> {   // Kanaly: prehravac s poslednym kanalom (rovnako ako dlazdica)
+            0 -> {   // Channels: the player with the last channel (the same as the tile)
                 lastTile = "channels"; section = ""
                 tileListFirst = TileListPref.get(ctx); chVm.loadIfNeeded(); play = "tv"
             }
@@ -324,10 +324,10 @@ private fun TvHomeHost() {
             3 -> { lastTile = "settings"; play = ""; section = "settings" }
         }
     }
-    // M599: cakajuce spustenie (obnova posledneho kanala po starte, autostart) sa ZRUSI,
-    // ked pouzivatel medzitym odide inam — do archivu, TV programu, nastaveni. Inak sa
-    // po dotiahnuti kanalov otvoril prehravac cez rozrobenu obrazovku: appka sa sekala,
-    // na slabsich boxoch aj spadla.
+    // M599: a pending start (restoring the last channel after startup, autostart) is CANCELLED
+    // when the user goes elsewhere in the meantime — to the archive, the TV guide, the settings. Otherwise
+    // once the channels were fetched the player opened over a half-built screen: the app stuttered,
+    // and on weaker boxes it even crashed.
     LaunchedEffect(section) {
         if (section.isNotEmpty() && play.isNotEmpty()) {
             play = ""
@@ -335,37 +335,37 @@ private fun TvHomeHost() {
             LastPlayback.pendingKind = null
         }
     }
-    // M531: poistka proti zaseknutiu uvodnej obrazovky.
+    // M531: a safeguard against the intro screen getting stuck.
     //
-    // Kym `play` caka na nacitanie, su dlazdice hluche. Ked nacitanie uviazne v
-    // stave „nacitava sa" (napr. server neodpovie a stav sa uz nezmeni), ostala
-    // obrazovka zablokovana az do restartu appky. Po 20 s cakanie zrusime, nech
-    // sa da appka opat ovladat.
+    // While `play` waits for the load, the tiles are dead. When the load got stuck in the
+    // "loading" state (e.g. the server does not answer and the state never changes again), the
+    // screen stayed blocked until the app was restarted. After 20 s we cancel the wait so
+    // that the app can be controlled again.
     LaunchedEffect(play) {
         if (play.isNotEmpty()) {
             kotlinx.coroutines.delay(20_000)
             play = ""
         }
     }
-    // M496: obnovenie posledneho prehravania po starte appky (TV).
-    // Zivy kanal sa NESMIE spustat priamo — prehravac dostava zoznam kanalov cez
-    // LivePlaylist, ktory pri studenom starte este nie je naplneny, takze by hral
-    // jediny kanal a CH+/- by nefungovalo. Preto ho pustime tou istou cestou ako
-    // autostart (play = "tv"): pocka sa na nacitanie kanalov, naplni sa
-    // LivePlaylist a az potom sa otvori prehravac.
+    // M496: restoring the last playback after the app starts (TV).
+    // A live channel MUST NOT be started directly — the player gets the channel list through
+    // LivePlaylist, which on a cold start is not yet populated, so it would play
+    // a single channel and CH+/- would not work. That is why we start it the same way as
+    // autostart (play = "tv"): it waits for the channels to load, LivePlaylist is populated
+    // and only then does the player open.
     androidx.compose.runtime.LaunchedEffect(Unit) {
         val kind = LastPlayback.pendingKind
         if (kind != null && play.isEmpty() && section.isEmpty()) {   // M599
             LastPlayback.pendingKind = null
-            // M605-fix2: obnova posledneho kanala po starte appky respektuje volbu
-            // „dlazdice otvoria zoznam" — inak sa po zapnuti boxu zoznam neotvoril
+            // M605-fix2: restoring the last channel after the app starts respects the option
+            // "tiles open the list" — otherwise the list did not open after switching the box on
             tileListFirst = TileListPref.get(ctx)
             if (kind == "radio") { raVm.load(); chVm.loadIfNeeded(); play = "radio" }
             else { chVm.loadIfNeeded(); play = "tv" }
         }
     }
-    // M573: deep link na kanal (skratka oblubeneho) ide tou istou cestou — pocka
-    // na kanaly, naplni LivePlaylist a pusti prave ten kanal
+    // M573: a deep link to a channel (a favourite's shortcut) goes the same way — it waits
+    // for the channels, populates LivePlaylist and plays exactly that channel
     val deepUuid = DeepLink.pending.value
     androidx.compose.runtime.LaunchedEffect(deepUuid) {
         if (deepUuid != null) {
@@ -376,7 +376,7 @@ private fun TvHomeHost() {
             play = "tv"
         }
     }
-    // M573: skratky oblubenych podla aktualneho zoznamu kanalov
+    // M573: favourites shortcuts from the current channel list
     LaunchedEffect(chState, epgMap) {
         (chState as? ChannelsState.Loaded)?.let {
             FavoriteShortcuts.rowsLoaded(ctx, sk.tvhclient.shared.Tvh.store.active()?.id, it.allRows, epgMap)   // M573 / M580
@@ -395,7 +395,7 @@ private fun TvHomeHost() {
         }
     }
 
-    // Kanaly: po nacitani naplni LivePlaylist a pusti posledny/prvy kanal
+    // Channels: once loaded it populates LivePlaylist and plays the last/first channel
     LaunchedEffect(play, chState) {
         if (play == "tv") {
             val st = chState
@@ -414,7 +414,7 @@ private fun TvHomeHost() {
                     val u = cat.rows.map { it.channel.uuid }.filter { it !in hidden }.toSet()
                     if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
                 }
-                // M541: skryte kanaly zvlast (pseudo-skupina v prehravaci na odkrytie)
+                // M541: hidden channels separately (a pseudo-group in the player for unhiding)
                 val hiddenList = st.allRows.filter { it.channel.uuid in hidden }.map { r ->
                     LivePlaylist.LiveChannel(
                         uuid = r.channel.uuid, name = r.channel.name,
@@ -422,14 +422,14 @@ private fun TvHomeHost() {
                         nowTitle = r.nowTitle ?: "", nowStart = r.nowStart, nowStop = r.nowStop
                     )
                 }
-                // M506: obnov naposledy zvolenu skupinu (rovnaka ako v zalozke Kanaly)
+                // M506: restore the last selected group (the same as in the Channels tab)
                 LivePlaylist.setChannels(
                     full, grps, LastTag.toGroupKey(LastTag.get(ctx, sid, radio = false)),
                     favs = if (sid != null) Favorites.list(ctx, sid) else emptyList(), hidden = hiddenList
                 )
-                // M573: kanal z deep linku (skratka oblubeneho) — ak nie je v obnovenej
-                // skupine, prepni na Vsetky; ak ho server nema (skryty / zmazany), nehraj
-                // nic namiesto nahodneho prveho kanala
+                // M573: the channel from the deep link (a favourite's shortcut) — if it is not in the restored
+                // group, switch to All; if the server does not have it (hidden / deleted), play
+                // nothing instead of a random first channel
                 val want = LastPlayback.pendingUuid
                 if (want != null && LivePlaylist.channels.none { it.uuid == want }) {
                     if (full.any { it.uuid == want }) {
@@ -443,7 +443,7 @@ private fun TvHomeHost() {
                         return@LaunchedEffect
                     }
                 }
-                // M496: ak obnovujeme posledne vysielanie, ma prednost ten kanal
+                // M496: if we are restoring the last broadcast, that channel takes precedence
                 val target = (LastPlayback.pendingUuid ?: LastChannel.get(ctx, sid))
                     ?.takeIf { u -> LivePlaylist.channels.any { it.uuid == u } }
                     ?: LivePlaylist.channels.firstOrNull()?.uuid
@@ -460,17 +460,17 @@ private fun TvHomeHost() {
             }
         }
     }
-    // Radia: po nacitani naplni LivePlaylist a pusti poslednu/prvu stanicu
+    // Radios: once loaded it populates LivePlaylist and plays the last/first station
     LaunchedEffect(play, raState) {
         if (play == "radio") {
             val st = raState
             if (st is RadioState.Loaded) {
                 val sid = sk.tvhclient.shared.Tvh.store.active()?.id
-                // M506: aj radio ma skupiny podla tagov — prehravac tak vie
-                // prepinat medzi nimi (podrzanie OK) rovnako ako pri TV.
+                // M506: radio has groups by tags too — the player can thus
+                // switch between them (long-press OK) just as with TV.
                 val hiddenR = HiddenChannels.all(ctx, sid)
-                // M586: „prave hra" pre radia zo spolocnej now/next mapy (HTSP) —
-                // prehravac tak ma program hned, nie az po vlastnom dotiahnuti EPG
+                // M586: "now playing" for radios from the shared now/next map (HTSP) —
+                // the player thus has the programme right away, not only after fetching the EPG itself
                 val nowSecR = System.currentTimeMillis() / 1000
                 fun radioCh(r: sk.tvhclient.shared.api.ChannelRow): LivePlaylist.LiveChannel {
                     val ev = epgMap[r.channel.uuid]?.firstOrNull { nowSecR in it.start until it.stop }
@@ -481,27 +481,27 @@ private fun TvHomeHost() {
                         nowStart = ev?.start ?: r.nowStart, nowStop = ev?.stop ?: r.nowStop
                     )
                 }
-                // M602: cislovanie radii 1…n podla poradia (bez skrytych), ak je volba zapnuta
+                // M602: numbering of radios 1…n by their order (excluding hidden ones), if the option is on
                 val fullR = RadioNumberingPref.apply(ctx, st.rows.filter { it.channel.uuid !in hiddenR }).map { radioCh(it) }
                 val grpsR = st.categories.mapNotNull { cat ->
                     val t = cat.tag ?: return@mapNotNull null
                     val u = cat.rows.map { it.channel.uuid }.filter { it !in hiddenR }.toSet()
                     if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
                 }
-                // M582: skryte radia zvlast (pseudo-skupina v prehravaci na odkrytie) — parita s TV
-                // M602-fix: aj skryte sa cisluju 1…n (doteraz ostali serverove cisla)
+                // M582: hidden radios separately (a pseudo-group in the player for unhiding) — parity with TV
+                // M602-fix: hidden ones are numbered 1…n too (until now they kept the server numbers)
                 val hiddenListR = RadioNumberingPref.apply(ctx, st.rows.filter { it.channel.uuid in hiddenR }).map { radioCh(it) }
                 LivePlaylist.setChannels(
                     fullR, grpsR, LastTag.toGroupKey(LastTag.get(ctx, sid, radio = true)),
                     favs = if (sid != null) Favorites.list(ctx, sid) else emptyList(), hidden = hiddenListR
                 )
-                // M497: obnovovana stanica ma prednost pred poslednou
+                // M497: the station being restored takes precedence over the last one
                 val target = (LastPlayback.pendingUuid ?: LastRadio.get(ctx, sid))
                     ?.takeIf { u -> LivePlaylist.channels.any { it.uuid == u } }
                     ?: LivePlaylist.channels.firstOrNull()?.uuid
                 LastPlayback.pendingUuid = null
                 play = ""
-                val listFirstR = tileListFirst   // M605-fix: aj dlazdica Radia
+                val listFirstR = tileListFirst   // M605-fix: the Radios tile as well
                 tileListFirst = false
                 if (target != null) {
                     LivePlaylist.setIndexForUuid(target)
@@ -515,11 +515,11 @@ private fun TvHomeHost() {
 
     when {
         section == "epg" -> {
-            // M396: TV program otvoreny Z PREHRAVACA -> BACK vrati do prehravaca
-            // na povodny kanal (ako v zalozke Kanaly), nie na uvod launchera.
-            // M397-fix: mriezku pri navrate NEZHASINAME hned (preblikol by uvod,
-            // kym sa prehravac spusta) — ostane zobrazena, kym ju prehravac
-            // neprekryje, a zhasne az po navrate z neho (vzor ChannelsScreen).
+            // M396: the TV guide opened FROM THE PLAYER -> BACK returns to the player
+            // on the original channel (as in the Channels tab), not to the launcher intro.
+            // M397-fix: we do NOT blank the grid on the return straight away (the intro would flash up
+            // while the player starts) — it stays shown until the player covers
+            // it, and is blanked only after the return from it (the ChannelsScreen pattern).
             var pendingEpgDismiss by remember { mutableStateOf(false) }
             val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
             DisposableEffect(lifecycleOwner) {
@@ -541,9 +541,9 @@ private fun TvHomeHost() {
                         LivePlaylist.setIndexForUuid(uuid)
                         val title = LivePlaylist.channels.firstOrNull { it.uuid == uuid }?.name ?: ""
                         pendingEpgDismiss = true
-                        // M604: navrat z programu do prehravaca ROZHLASU musi ist ako
-                        // radio — inak sa stanica pustila ako TV kanal (bez rozhlasoveho
-                        // rozhrania a zoznamu stanic)
+                        // M604: the return from the guide to the RADIO player must go as
+                        // radio — otherwise the station was played as a TV channel (without the radio
+                        // interface and the station list)
                         playUuid(uuid, title, if (TabController.epgRadio) "radio" else "tv")
                     } else {
                         section = ""
@@ -562,7 +562,7 @@ private fun TvHomeHost() {
                     focusUuid = TabController.epgReturnUuid,   // M592
                     openToken = TabController.epgGrid.value,   // M593-fix
 
-                    // M587: rozhlasove stanice ako dalsia skupina vo filtri mriezky
+                    // M587: radio stations as a further group in the grid filter
                     radioRows = RadioNumberingPref.apply(ctx, (raState as? RadioState.Loaded)?.rows ?: emptyList()),   // M602
                     radioCategories = ((raState as? RadioState.Loaded)?.categories ?: emptyList())
                         .map { c -> c.copy(rows = RadioNumberingPref.apply(ctx, c.rows)) }
@@ -576,11 +576,11 @@ private fun TvHomeHost() {
         }
         section == "settings" -> {
             androidx.activity.compose.BackHandler { section = "" }
-            // M620 (issue #15): rodicovsky zamok pre nastavenia platil len na telefone
-            // (AppMain). Na TV sa Nastavenia otvarali priamo, takze volba
-            // „PIN vyzadovat pre -> Nastavenia" tu nerobila nic. Rovnaka branka ako
-            // na telefone: bez spravneho PINu sa ServersTab vobec nezlozi, zrusenie
-            // dialogu (BACK) vracia na domovsku obrazovku.
+            // M620 (issue #15): the parental lock for the settings applied only on a phone
+            // (AppMain). On TV the Settings opened directly, so the option
+            // "require PIN for -> Settings" did nothing here. The same gate as
+            // on a phone: without the correct PIN ServersTab is not composed at all, cancelling
+            // the dialog (BACK) returns to the home screen.
             var setUnlocked by remember { mutableStateOf(!ParentalLock.settingsNeedsPin(ctx)) }
             androidx.compose.material3.Surface(
                 modifier = Modifier.fillMaxSize(),
@@ -601,17 +601,17 @@ private fun TvHomeHost() {
         else -> {
             androidx.activity.compose.BackHandler(enabled = !showExit) { showExit = true }
             Box(Modifier.fillMaxSize()) {
-                // Rezim rozhrania: klasicky launcher (default) alebo moderny (UiModePref);
-                // cita sa pri kazdom navrate na home, takze prepnutie v nastaveniach
-                // sa prejavi hned bez restartu.
+                // Interface mode: the classic launcher (default) or the modern one (UiModePref);
+                // it is read on every return to home, so switching it in the settings
+                // takes effect immediately without a restart.
                 if (UiModePref.get(ctx) == UiModePref.MODERN) {
                     ModernTvHomeScreen(
                         chState = chState,
                         epgMap = epgMap,
                         onPlayChannel = { uuid, title ->
                             lastTile = "channels"
-                            // napln playlist ako klasicky tok (play="tv"), inak by
-                            // v prehravaci neslo prepinanie kanalov
+                            // populate the playlist as in the classic flow (play="tv"), otherwise
+                            // channel switching would not work in the player
                             (chState as? ChannelsState.Loaded)?.let { st ->
                                 val sid2 = sk.tvhclient.shared.Tvh.store.active()?.id
                                 val hidden = HiddenChannels.all(ctx, sid2)
@@ -627,9 +627,9 @@ private fun TvHomeHost() {
                                     val u = cat.rows.map { it.channel.uuid }.filter { it !in hidden }.toSet()
                                     if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
                                 }
-                                // M506: obnov skupinu, ale len ak zvoleny kanal do nej
-                                // patri — inak by pouzivatel klikol na kanal a v
-                                // zozname na CH+/- by ho nemal
+                                // M506: restore the group, but only if the selected channel belongs
+                                // to it — otherwise the user would click a channel and would not have
+                                // it in the CH+/- list
                                 val favs2 = if (sid2 != null) Favorites.list(ctx, sid2) else emptyList()
                                 val hiddenList2 = st.allRows.filter { it.channel.uuid in hidden }.map { r ->
                                     LivePlaylist.LiveChannel(
@@ -655,7 +655,7 @@ private fun TvHomeHost() {
                         onSettings = { lastTile = "settings"; section = "settings" },
                     )
                 } else {
-                TvHomeScreen(   // pocas pending (play) zostava viditelny launcher, kym naskoci prehravac
+                TvHomeScreen(   // during a pending (play) the launcher stays visible until the player comes up
                     focusKey = lastTile,
                     onChannels = { lastTile = "channels"; tileListFirst = TileListPref.get(ctx); chVm.loadIfNeeded(); play = "tv" },   // M531, M605
                     onRadio = { lastTile = "radio"; tileListFirst = TileListPref.get(ctx); raVm.load(); chVm.loadIfNeeded(); play = "radio" },   // M531, M605-fix
@@ -668,8 +668,8 @@ private fun TvHomeHost() {
                     androidx.activity.compose.BackHandler { showExit = false }
                     TvExitDialog(
                         onConfirm = {
-                            // Ukoncenie appky zastavi aj mini radio (M344-fix5);
-                            // HOME klavesa appku neukoncuje, radio tam hra dalej
+                            // Quitting the app also stops the mini radio (M344-fix5);
+                            // the HOME key does not quit the app, the radio plays on there
                             RadioPlayerService.stop(ctx)
                             (ctx as? android.app.Activity)?.finish()
                         },
@@ -688,12 +688,12 @@ private fun CenterLoading() {
     }
 }
 
-/** Potvrdenie ukoncenia aplikacie na uvodnom launcheri (TV/box, D-pad).
- *  Vyber riadime sami (sipky vlavo/vpravo + OK), lebo Compose focus na lacnych
- *  boxoch nie je spolahlivy (prvy stlac sa "prehltol" na nadviazanie fokusu). */
+/** Confirmation of quitting the application on the intro launcher (TV/box, D-pad).
+ *  We drive the selection ourselves (left/right arrows + OK), because Compose focus on cheap
+ *  boxes is not reliable (the first press was "swallowed" to establish focus). */
 @Composable
 private fun TvExitDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
-    var sel by remember { mutableStateOf(0) }   // 0 = Zrusit (predvolba), 1 = Ukoncit
+    var sel by remember { mutableStateOf(0) }   // 0 = Cancel (default), 1 = Quit
     val fr = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { fr.requestFocus() } }
     Box(
@@ -716,15 +716,15 @@ private fun TvExitDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
                         KeyEventType.KeyDown -> when (code) {
                             android.view.KeyEvent.KEYCODE_DPAD_LEFT -> { sel = 0; true }
                             android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> { sel = 1; true }
-                            // M268: aktivaciu (OK/Enter) spravime az na KeyUp a spotrebujeme aj ten.
-                            // Inak sa po zavreti dialogu (Zrusit) KeyUp prenesie na domovsku dlazdicu,
-                            // ktorej clickable sa spusti a omylom otvori prehravac. KeyDown len spotrebuj.
+                            // M268: we do the activation (OK/Enter) only on KeyUp and consume that one too.
+                            // Otherwise, after the dialog is closed (Cancel), the KeyUp is passed to the home tile,
+                            // whose clickable fires and opens the player by mistake. Just consume the KeyDown.
                             else -> activate
                         }
                         KeyEventType.KeyUp ->
                             if (activate) { if (sel == 1) onConfirm() else onCancel(); true }
                             else false
-                        else -> false   // BACK necha zavriet cez BackHandler
+                        else -> false   // BACK is left to close it via BackHandler
                     }
                 },
             horizontalAlignment = Alignment.CenterHorizontally
@@ -797,7 +797,7 @@ fun BackupControls(compact: Boolean = false, onImported: () -> Unit = {}) {
             ).show()
             if (ok) {
                 onImported()
-                // znovu vykresli appku (nacita obnovene servery aj jazyk), bez zabitia procesu
+                // redraw the app (loads the refreshed servers and language), without killing the process
                 (ctx as? android.app.Activity)?.recreate()
             }
         }
@@ -831,14 +831,14 @@ private fun TabLabel(dot: Color, text: String) {
 fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
     val homeCtx = androidx.compose.ui.platform.LocalContext.current
     val modernPhone = UiModePref.stateOf(homeCtx).value == UiModePref.MODERN
-    // Pevne logicke ID tabov (nezavisia od pritomnosti tabu "Domov"). Vdaka tomu
-    // prepnutie rezimu (klasik<->moderny) neposunie indexy ani nesposobi preblik
-    // na iny tab. Tab "Domov" existuje len v modernom rezime (inak sa nezobrazi).
+    // Fixed logical tab IDs (independent of the presence of the "Home" tab). Thanks to that
+    // switching the mode (classic<->modern) neither shifts the indices nor causes a flash
+    // of another tab. The "Home" tab exists only in the modern mode (otherwise it is not shown).
     val chIdx = 1; val radioIdx = 2; val dvrIdx = 3; val setIdx = 4
-    // Vychodiskovy tab: moderny -> Domov(0), klasik -> Kanaly(1).
+    // Default tab: modern -> Home(0), classic -> Channels(1).
     val homeTab = if (modernPhone) 0 else chIdx
     var tab by remember { mutableStateOf(if (initialTab != 0) initialTab else homeTab) }
-    // Reset signaly: klik na tab (aj uz vybrany) vrati danu obrazovku na zaciatok
+    // Reset signals: a click on a tab (even an already selected one) returns that screen to the start
     var resetCh by remember { mutableStateOf(0) }
     var resetDvr by remember { mutableStateOf(0) }
     var resetRadio by remember { mutableStateOf(0) }
@@ -846,13 +846,13 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
     val navFocus = remember { FocusRequester() }
     val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
     var showExit by remember { mutableStateOf(false) }
-    // odchod z nastaveni s neulozenymi/vykonanymi zmenami -> potvrdenie
+    // leaving the settings with unsaved/made changes -> confirmation
     var leaveConfirm by remember { mutableStateOf<(() -> Unit)?>(null) }
     fun guardLeave(action: () -> Unit) {
         if (tab == setIdx && TabController.settingsDirty.value) leaveConfirm = action else action()
     }
 
-    // Farebne tlacidla na dialkovom (cez TabController) prepnu tab
+    // Coloured buttons on the remote (via TabController) switch the tab
     val reqTab by TabController.requested
     LaunchedEffect(reqTab) {
         if (reqTab in 0..3) {
@@ -867,13 +867,13 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
         }
     }
 
-    // EPG kláves -> prepni na Kanaly (bez resetu, nech zostane mriezka otvorena)
+    // EPG key -> switch to Channels (without a reset, so that the grid stays open)
     val epgSig by TabController.epgGrid
     LaunchedEffect(epgSig) { if (epgSig > 0) tab = chIdx }
 
-    // M573: deep link na kanal (skratka oblubeneho na telefone). Prehravac potrebuje
-    // naplneny LivePlaylist, preto sa pocka na nacitanie kanalov (rovnaky ViewModel
-    // ako zalozka Kanaly) a az potom sa spusti.
+    // M573: a deep link to a channel (a favourite's shortcut on a phone). The player needs
+    // a populated LivePlaylist, which is why it waits for the channels to load (the same ViewModel
+    // as the Channels tab) and only then starts.
     val deepUuid = DeepLink.pending.value
     val deepVm: ChannelsViewModel = viewModel()
     val deepState by deepVm.state.collectAsState()
@@ -885,7 +885,7 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
                 val sid = sk.tvhclient.shared.Tvh.store.active()?.id
                 val hidden = HiddenChannels.all(homeCtx, sid)
                 val row = st.allRows.firstOrNull { it.channel.uuid == deepUuid && it.channel.uuid !in hidden }
-                    ?: return@LaunchedEffect   // neznamy alebo skryty kanal -> nic
+                    ?: return@LaunchedEffect   // unknown or hidden channel -> nothing
                 val full = st.allRows.filter { it.channel.uuid !in hidden }.map { r ->
                     LivePlaylist.LiveChannel(
                         uuid = r.channel.uuid, name = r.channel.name,
@@ -917,11 +917,11 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
         }
     }
 
-    // Spat: z ineho tabu spat na Kanaly; na Kanaloch -> potvrdenie ukoncenia.
-    // (Vnutorne obrazovky maju vlastny BackHandler, ten ma prednost.)
+    // Back: from another tab back to Channels; on Channels -> the quit confirmation.
+    // (Inner screens have their own BackHandler, which takes precedence.)
     androidx.activity.compose.BackHandler(enabled = !showExit) {
         if (tab != homeTab) { resetCh++; tab = homeTab }
-        else if (onExitToHome != null) onExitToHome()   // TV: spat na launcher
+        else if (onExitToHome != null) onExitToHome()   // TV: back to the launcher
         else showExit = true
     }
 
@@ -969,7 +969,7 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
                 NavigationBarItem(
                     selected = tab == setIdx,
                     onClick = {
-                        if (tab == setIdx) guardLeave { resetSet++ }   // re-tap: spat na koren nastaveni
+                        if (tab == setIdx) guardLeave { resetSet++ }   // re-tap: back to the root of the settings
                         else tab = setIdx
                     },
                     icon = { androidx.compose.material3.Icon(
@@ -1018,9 +1018,9 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
                     }
                 }
             }
-            // Vzdy rovnaka struktura (AnimatedContent), aby prepnutie rezimu klasik<->moderny
-            // neodmontovalo obsah tabu (inak by sa napr. stratila podstranka v Nastaveniach).
-            // Prechodovy fade len v modernom rezime; klasik = okamzita zmena (bez animacie).
+            // Always the same structure (AnimatedContent), so that switching the classic<->modern mode
+            // does not unmount the tab content (otherwise e.g. a subpage in the Settings would be lost).
+            // The transition fade only in the modern mode; classic = an instant change (no animation).
             val modernNow = isModernUi()
             androidx.compose.animation.AnimatedContent(
                 targetState = tab,
@@ -1038,9 +1038,9 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
                 },
                 label = "tabFade"
             ) { t ->
-                // M482: pocas prechodu su na obrazovke obe karty naraz a bez
-                // vlastneho pozadia bolo vidiet jednu cez druhu (texty sa
-                // prekryvali). Nepriehladne pozadie to odstrani.
+                // M482: during the transition both cards are on screen at once and without
+                // their own background one was visible through the other (the texts
+                // overlapped). An opaque background removes that.
                 androidx.compose.foundation.layout.Box(
                     Modifier
                         .fillMaxSize()
@@ -1133,10 +1133,10 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
     LaunchedEffect(resetSignal) {
         if (resetSignal > 0) { legalDoc = null; section = null; lastSection = null; showForm = false; editing = null; TabController.settingsDirty.value = false }
     }
-    // pri kazdej zmene sekcie zacni s "ciste" (zmeny oznaci az uzivatelska akcia)
+    // on every section change start "clean" (changes are marked only by a user action)
     LaunchedEffect(section) { TabController.settingsDirty.value = false }
-    // po navrate do zoznamu vrat fokus na kategoriu, z ktorej sa odislo;
-    // pri vstupe do sekcie daj fokus na prvy ovladaci prvok
+    // after the return to the list put the focus back on the category it was left from;
+    // on entering a section give the focus to the first control
     LaunchedEffect(section) {
         if (section == null) {
             val target = (lastSection?.let { catFocus[it] }) ?: catFocus["general"]
@@ -1144,7 +1144,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
         } else runCatching { sectionFocus.requestFocus() }
     }
 
-    // Spat: formular -> zoznam serverov (sekcia ostava); legal -> sekcia; sekcia -> koren.
+    // Back: form -> server list (the section stays); legal -> section; section -> root.
     BackHandler(enabled = showForm || legalDoc != null || section != null) {
         when {
             showForm -> { showForm = false; editing = null; vm.resetTest(); restoreFocusSignal++ }
@@ -1153,7 +1153,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
         }
     }
 
-    // Po zatvoreni formulara vrat fokus tam, odkial sa vchadzalo (upravovany server / Pridat)
+    // After the form is closed put the focus back where it was entered from (the server being edited / Add)
     LaunchedEffect(restoreFocusSignal) {
         if (restoreFocusSignal > 0) {
             kotlinx.coroutines.delay(120)
@@ -1172,13 +1172,13 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
     }
 
     val wide = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 600
-    // M393: sekcia Dialkove ovladanie ma zmysel len na TV (zapina prijimac na boxe);
-    // na telefone ju skryvame — telefon je ovladac, nie ovladane zariadenie.
+    // M393: the Remote control section only makes sense on TV (it enables the receiver on the box);
+    // on a phone we hide it — a phone is the remote, not the controlled device.
     val ctxTvChk = androidx.compose.ui.platform.LocalContext.current
     val isTvSettings = remember { isTvUiMode(ctxTvChk) }   // M679
     val effective = section ?: "general"
 
-    // spolocny obsah sekcie (pouzity v sidebar aj drill-down rezime)
+    // shared section content (used in both the sidebar and the drill-down mode)
     val renderContent: @Composable (String) -> Unit = { sec ->
         when (sec) {
             "general" -> GeneralSettings(ctx)
@@ -1215,7 +1215,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
             TopAppBar(
                 title = { Text(title) },
                 navigationIcon = {
-                    // sipka spat: pri pravnom dokumente vzdy; na uzkej obrazovke aj v sekcii
+                    // back arrow: always with a legal document; on a narrow screen also within a section
                     if (legalDoc != null || (!wide && section != null)) {
                         androidx.compose.material3.IconButton(onClick = {
                             if (legalDoc != null) legalDoc = null
@@ -1232,7 +1232,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
         if (legal != null) {
             LegalScreen(legal, Modifier.padding(padding)) { legalDoc = null }
         } else if (wide) {
-            // TV / sirsia obrazovka: bocny panel s kategoriami (ikony) + obsah vpravo
+            // TV / wider screen: side panel with categories (icons) + content on the right
             Row(
                 Modifier
                     .fillMaxSize()
@@ -1296,7 +1296,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
                 }
             }
         } else {
-            // Telefon: povodny drill-down (zoznam kategorii -> detail)
+            // Phone: the original drill-down (list of categories -> detail)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -1347,7 +1347,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
 
 
 
-// Polozka bocneho panela nastaveni (ikona + nazov) pre TV/sirsie obrazovky.
+// Settings side panel item (icon + name) for TV/wider screens.
 @Composable
 private fun SettingsNavItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -1361,7 +1361,7 @@ private fun SettingsNavItem(
     onClick: () -> Unit
 ) {
     if (isModernUi()) {
-        // Moderny sidebar (M320): karta s farebnym ikonovym cipom, podtitulkom a badge
+        // Modern sidebar (M320): a card with a coloured icon chip, a subtitle and a badge
         val cs = MaterialTheme.colorScheme
         val light = isLightTheme()
         Row(

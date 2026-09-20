@@ -6,12 +6,12 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
 /**
- * Farebne schemy moderneho UI rezimu (UiModePref.MODERN). Tmavy variant:
- * navy povrchy + teal akcent; svetly variant: vzdusna modro-biela + teal.
- * Rezim respektuje volbu temy (svetla/tmava/auto) ako klasik. Kedze vsetky
- * obrazovky citaju MaterialTheme.colorScheme, prepnutim schemy dostanu moderny
- * vzhlad EPG, archiv, nastavenia aj dialogy bez prepisovania jednotlivych
- * obrazoviek; fokus D-padu (dpadFocusable) pouziva primary -> teal ramiky.
+ * Colour schemes of the modern UI mode (UiModePref.MODERN). Dark variant:
+ * navy surfaces + teal accent; light variant: airy blue-and-white + teal.
+ * The mode respects the theme choice (light/dark/auto) just like classic. Since all
+ * screens read MaterialTheme.colorScheme, switching the scheme gives the EPG,
+ * archive, settings and dialogs a modern look without rewriting the individual
+ * screens; D-pad focus (dpadFocusable) uses primary -> teal outlines.
  */
 fun modernColorScheme(): ColorScheme = darkColorScheme(
     primary = Color(0xFF1D9E75),
@@ -38,7 +38,7 @@ fun modernColorScheme(): ColorScheme = darkColorScheme(
     outlineVariant = Color(0xFF1B2C52),
 )
 
-/** Svetly variant modernej schemy: teal akcent na vzdusnych modro-bielych povrchoch. */
+/** Light variant of the modern scheme: teal accent on airy blue-and-white surfaces. */
 fun modernLightColorScheme(): ColorScheme = lightColorScheme(
     primary = Color(0xFF0F8A63),
     onPrimary = Color(0xFFFFFFFF),

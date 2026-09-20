@@ -5,15 +5,15 @@ import android.view.KeyEvent
 import androidx.compose.runtime.mutableStateOf
 
 /**
- * M629: PIN výzva rodičovského zámku v prehrávači (vyclenené z PlayerActivity).
- * Vykreslenie robí PinDialog v PlayerUi; tu je stav, zadávanie číslic, D-pad
- * mriežka (M265) a klávesy počas výzvy.
+ * M629: the parental lock PIN prompt in the player (split out of PlayerActivity).
+ * Drawing is done by PinDialog in PlayerUi; here are the state, digit entry, the D-pad
+ * grid (M265) and the keys during the prompt.
  *
- * Z aktivity potrebuje: či ide o TV (mriežka), počet kanálov v zozname
- * (M267: „zoznam" má zmysel len pri 2+), otvorenie zoznamu kanálov, prepnutie na
- * susedný kanál počas výzvy (M262, cez switchToIndex, ktorý zámok znova vyhodnotí)
- * a [onRequested] — aktivita si tam vynuluje OK gesto (okLongFired), lebo výzva
- * preberá vstup.
+ * From the activity it needs: whether this is a TV (grid), the number of channels in the list
+ * (M267: "list" only makes sense with 2+), opening the channel list, switching to
+ * a neighbouring channel during the prompt (M262, via switchToIndex, which re-evaluates the lock)
+ * and [onRequested] — there the activity clears the OK gesture (okLongFired), because the prompt
+ * takes over input.
  */
 class PinPrompt(
     private val ctx: Context,
@@ -26,15 +26,15 @@ class PinPrompt(
     val promptState = mutableStateOf(false)
     val entryState = mutableStateOf("")
     val errorState = mutableStateOf(false)
-    // M265: výber v PIN mriežke (D-pad). Mriežka 1-9 / del 0 zoznam.
+    // M265: selection in the PIN grid (D-pad). Grid 1-9 / del 0 list.
     val gridRowState = mutableStateOf(0)
     val gridColState = mutableStateOf(0)
 
     private var onSuccess: (() -> Unit)? = null
     private var onCancel: (() -> Unit)? = null
     private var markUnlock = true
-    // M262: index kanála, ktorého prehrávanie výzva blokuje (null = iné použitie,
-    // napr. zamykanie z menu). Umožňuje počas výzvy prepnúť na susedný kanál.
+    // M262: index of the channel whose playback the prompt is blocking (null = another use,
+    // e.g. locking from the menu). Allows switching to a neighbouring channel during the prompt.
     private var channelIndex: Int? = null
 
     val isOpen: Boolean get() = promptState.value
@@ -61,9 +61,9 @@ class PinPrompt(
         close(); c?.invoke()
     }
 
-    /** M267: z PIN výzvy zamknutého kanála otvor zoznam kanálov, nech si používateľ vyberie
-     *  iný (nezamknutý). Výzvu zatvoríme bez onCancel (teda bez finish), aby prehrávač
-     *  nezhasol. Ak je len jeden kanál, niet kam prepnúť -> cancel (finish). */
+    /** M267: from a locked channel's PIN prompt open the channel list so the user can pick
+     *  another (unlocked) one. We close the prompt without onCancel (that is, without finish) so the player
+     *  does not go dark. If there is only one channel there is nowhere to switch -> cancel (finish). */
     fun openList() {
         if (channelCount() < 2) { cancel(); return }
         close()
@@ -104,8 +104,8 @@ class PinPrompt(
         }
     }
 
-    /** M262: prepnutie počas výzvy — zruší výzvu (bez ukončenia prehrávača) a prepne
-     *  relatívne k blokovanému kanálu; switchToIndex zámok znova vyhodnotí. */
+    /** M262: switching during the prompt — cancels the prompt (without ending the player) and switches
+     *  relative to the blocked channel; switchToIndex re-evaluates the lock. */
     private fun switchFrom(fromIndex: Int, delta: Int) {
         val n = channelCount()
         if (n < 2) return
@@ -113,7 +113,7 @@ class PinPrompt(
         switchToIndex(((fromIndex + delta) % n + n) % n)
     }
 
-    /** Klávesy počas výzvy — číslice zadávame my; na TV aj D-pad mriežka. Vždy spotrebuje. */
+    /** Keys during the prompt — we take the digits ourselves; on TV the D-pad grid too. Always consumes. */
     fun handleKey(kc: Int, down: Boolean, event: KeyEvent): Boolean {
         if (!down) return true
         val digit = when (kc) {
@@ -121,17 +121,17 @@ class PinPrompt(
             in KeyEvent.KEYCODE_NUMPAD_0..KeyEvent.KEYCODE_NUMPAD_9 -> kc - KeyEvent.KEYCODE_NUMPAD_0
             else -> -1
         }
-        // priame číslice z diaľkového (ak ich ovládač má)
+        // direct digits from the remote (if the remote has them)
         if (digit >= 0) { digit(digit); return true }
         when (kc) {
             KeyEvent.KEYCODE_DEL -> { del(); return true }
-            // M267-fix: šípka Späť počas PIN výzvy zamknutého kanála vráti používateľa
-            // k zoznamu kanálov (nech si vyberie nezamknutý), neukončuje prehrávač.
+            // M267-fix: the Back key during a locked channel's PIN prompt returns the user
+            // to the channel list (to pick an unlocked one), it does not end the player.
             KeyEvent.KEYCODE_BACK -> { openList(); return true }
         }
-        // M262: počas výzvy sa dá prepnúť na iný kanál — len hardvérové CHANNEL +/-
-        // (D-pad ovláda PIN mriežku). Voľný kanál sa začne hrať, ďalší zamknutý
-        // si opäť vypýta PIN.
+        // M262: during the prompt you can switch to another channel — hardware CHANNEL +/- only
+        // (the D-pad drives the PIN grid). A free channel starts playing, the next locked one
+        // asks for the PIN again.
         val pci = channelIndex
         if (pci != null && channelCount() > 1 && event.repeatCount == 0) {
             when (kc) {
@@ -139,7 +139,7 @@ class PinPrompt(
                 KeyEvent.KEYCODE_CHANNEL_DOWN -> { switchFrom(pci, -1); return true }
             }
         }
-        // M265: D-pad mriežka na zadanie PIN — pre ovládače bez číselných kláves.
+        // M265: a D-pad grid for entering the PIN — for remotes without number keys.
         if (isTv()) {
             when (kc) {
                 KeyEvent.KEYCODE_DPAD_LEFT -> { gridColState.value = (gridColState.value - 1 + 3) % 3; return true }

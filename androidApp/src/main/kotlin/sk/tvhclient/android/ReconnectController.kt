@@ -7,15 +7,15 @@ import android.widget.Toast
 import androidx.compose.runtime.mutableStateOf
 
 /**
- * M636: časovanie a stav opätovného pripojenia (vyclenené z PlayerActivity). Čo presne sa
- * pri pokuse spraví (HTSP resubscribe / feeder / priame HTTP / DVR reopen) ostáva v
- * aktivite — sem chodí len ako lambda, lebo to siaha na mediaPlayer, feedery a stream URL.
+ * M636: reconnection timing and state (extracted from PlayerActivity). What exactly
+ * an attempt does (HTSP resubscribe / feeder / direct HTTP / DVR reopen) stays in the
+ * activity — it only arrives here as a lambda, because it touches mediaPlayer, the feeders and the stream URL.
  *
- * - Živý stream: [scheduleReconnect] s narastajúcim oneskorením (1,5 s × pokus, max 8 s),
- *   najviac [MAX_LIVE] pokusov, potom Toast; watchdog po 12 s zopakuje, ak sa nehrá.
- * - In-progress nahrávka: [reopenDvrLive] po 2,5 s, najviac [MAX_DVR] pokusov (backoff
- *   proti slučke, keď nič nové nepribúda); [resetDvrReopen] pri Playing / manuálnom play.
- * [reconnecting] číta PlayerUi (spinner „Opätovné pripájanie").
+ * - Live stream: [scheduleReconnect] with a growing delay (1.5 s × attempt, max 8 s),
+ *   at most [MAX_LIVE] attempts, then a Toast; a watchdog retries after 12 s if nothing is playing.
+ * - In-progress recording: [reopenDvrLive] after 2.5 s, at most [MAX_DVR] attempts (backoff
+ *   against a loop when nothing new arrives); [resetDvrReopen] on Playing / manual play.
+ * [reconnecting] is read by PlayerUi (the "Reconnecting" spinner).
  */
 class ReconnectController(
     private val ctx: Context,
@@ -29,14 +29,14 @@ class ReconnectController(
 
     val attempts: Int get() = liveAttempts
 
-    /** Zruší naplánované znovupripojenie a skryje indikátor. */
+    /** Cancels the scheduled reconnect and hides the indicator. */
     fun cancel() {
         handler.removeCallbacksAndMessages(null)
         liveAttempts = 0
         reconnecting.value = false
     }
 
-    /** Zruší čakajúce úlohy bez zmeny indikátora (seek = krátky reštart streamu, nie výpadok). */
+    /** Cancels pending tasks without changing the indicator (seek = a short stream restart, not an outage). */
     fun clearPending() {
         handler.removeCallbacksAndMessages(null)
         dvrAttempts = 0
@@ -44,10 +44,10 @@ class ReconnectController(
 
     fun resetDvrReopen() { dvrAttempts = 0 }
 
-    /** Skryje indikátor bez rušenia počítadiel (chyba, ktorú už ďalej neriešime). */
+    /** Hides the indicator without resetting the counters (an error we are no longer dealing with). */
     fun hide() { reconnecting.value = false }
 
-    /** Naplánuje znovupripojenie živého streamu; [retry] dostane číslo pokusu (1..). */
+    /** Schedules a live stream reconnect; [retry] receives the attempt number (1..). */
     fun scheduleReconnect(retry: (attempt: Int) -> Unit) {
         if (!playerReady()) return
         if (liveAttempts >= MAX_LIVE) {
@@ -62,16 +62,16 @@ class ReconnectController(
         handler.postDelayed({
             if (!playerReady()) return@postDelayed
             runCatching { retry(liveAttempts) }
-            // watchdog: ak sa do 12 s neobjavi prehravanie (spinner ostal), skus znova;
-            // po vycerpani pokusov scheduleReconnect ohlasi chybu -> ziadne trvale zaseknutie.
-            // 12 s nechava HTSP subscription cas nabehnut a nabufrovat (kratsie sa dvojilo)
+            // watchdog: if playback does not appear within 12 s (the spinner stayed), try again;
+            // once the attempts are exhausted scheduleReconnect reports an error -> no permanent stall.
+            // 12 s gives the HTSP subscription time to come up and buffer (shorter doubled it up)
             handler.postDelayed({
                 if (playerReady() && reconnecting.value && !isPlaying()) scheduleReconnect(retry)
             }, 12000)
         }, delay)
     }
 
-    /** Znovu otvorí in-progress nahrávku po 2,5 s; false = pokusy vyčerpané. */
+    /** Reopens an in-progress recording after 2.5 s; false = attempts exhausted. */
     fun reopenDvrLive(reopen: () -> Unit): Boolean {
         if (!playerReady()) return false
         if (dvrAttempts >= MAX_DVR) {

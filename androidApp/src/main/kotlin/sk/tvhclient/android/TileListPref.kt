@@ -3,13 +3,13 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * M605: „Dlaždica TV kanály otvorí zoznam" (Nastavenia → Vzhľad, len TV).
+ * M605: "The TV channels tile opens the list" (Settings → Appearance, TV only).
  *
- * Predvolene dlaždica na úvodnej obrazovke TV spustí posledný sledovaný kanál a
- * zoznam sa otvára až v prehrávači cez OK. So zapnutou voľbou sa prehrávač otvorí
- * rovno so zoznamom kanálov (v poslednej skupine, kurzor na poslednom kanáli) a
- * nič nehrá, kým používateľ kanál nepotvrdí; BACK zo zoznamu vráti na úvod.
- * Netýka sa obnovy posledného kanála po štarte, skratiek, radu obľúbených ani rádií.
+ * By default the tile on the TV home screen starts the last watched channel and
+ * the list is opened only in the player via OK. With the option on, the player opens
+ * straight with the channel list (in the last group, cursor on the last channel) and
+ * nothing plays until the user confirms a channel; BACK from the list returns to home.
+ * It does not affect restoring the last channel after start-up, shortcuts, the favourites row or radios.
  */
 object TileListPref {
     private const val PREFS = "app_prefs"

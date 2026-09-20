@@ -3,12 +3,12 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * Predvolene otacanie obrazovky v prehravaci.
- *  - AUTO: podla senzora / nastavenia zariadenia (sprava sa ako doteraz, da sa zamknut zamkom)
- *  - PORTRAIT: vynutene na vysku
- *  - LANDSCAPE: vynutene na sirku
- * Pri PORTRAIT/LANDSCAPE je orientacia uz pevna, takze tlacidlo zamku v prehravaci nema zmysel
- * a skryva sa. Ulozene globalne v SharedPreferences.
+ * Default screen rotation in the player.
+ *  - AUTO: by the sensor / device setting (behaves as before, can be pinned with the lock)
+ *  - PORTRAIT: forced portrait
+ *  - LANDSCAPE: forced landscape
+ * With PORTRAIT/LANDSCAPE the orientation is already fixed, so the lock button in the player makes no sense
+ * and is hidden. Stored globally in SharedPreferences.
  */
 object OrientationPref {
     private const val PREFS = "app_prefs"

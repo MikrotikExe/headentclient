@@ -7,10 +7,10 @@ import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * Mini prehravac radia (M340) — zdielany stav medzi RadioPlayerService a UI.
- * Service stav plni (active/playing/nazov), MiniRadioBar ho kresli a ovlada
- * cez intenty. Radio tak hra na pozadi appky (foreground service s
- * notifikaciou), kym si clovek prezera kanaly/EPG/archiv.
+ * The radio mini player (M340) — state shared between RadioPlayerService and the UI.
+ * The service fills the state (active/playing/name), MiniRadioBar draws it and controls it
+ * via intents. The radio thus plays in the background of the app (a foreground service with
+ * a notification) while a person browses channels/EPG/the archive.
  */
 object RadioCenter {
     val active = mutableStateOf(false)
@@ -18,19 +18,19 @@ object RadioCenter {
     val stationName = mutableStateOf("")
     val stationUuid = mutableStateOf("")
     val piconUrl = mutableStateOf<String?>(null)
-    // EPG prave hranej stanice (ak ju stanica ma) — zobrazi sa v liste aj notifikacii
+    // the EPG of the station currently playing (if the station has one) — shown in the bar and in the notification
     val nowTitle = mutableStateOf("")
     val nowStart = mutableStateOf(0L)
     val nowStop = mutableStateOf(0L)
 
-    /** Zoznam stanic pre prepinanie z panelu (M344-fix3) — snapshot pri spusteni. */
+    /** The list of stations for switching from the bar (M344-fix3) — a snapshot taken at start. */
     data class RadioStation(
         val uuid: String, val name: String, val picon: String?,
         val nowTitle: String, val nowStart: Long, val nowStop: Long
     )
     var stations: List<RadioStation> = emptyList()
 
-    /** Prepne na dalsiu/predoslu stanicu zo snapshotu (wrap). */
+    /** Switches to the next/previous station from the snapshot (wrap). */
     fun switchStation(context: Context, delta: Int) {
         if (stations.isEmpty()) return
         val server = Tvh.store.active() ?: return
@@ -41,12 +41,12 @@ object RadioCenter {
             epgStart = next.nowStart, epgStop = next.nowStop)
     }
 
-    /** Spusti stanicu v service (telefon, moderny rezim). */
+    /** Starts a station in the service (phone, modern mode). */
     fun play(
         context: Context, server: TvhServer, uuid: String, name: String,
         picon: String? = null, epgTitle: String = "", epgStart: Long = 0L, epgStop: Long = 0L
     ) {
-        // M383: profil je jednotny pre cely server
+        // M383: the profile is uniform for the whole server
         val url = Tvh.liveUrl(server, uuid, name, server.profile.ifBlank { "pass" })
         piconUrl.value = picon
         nowTitle.value = epgTitle
@@ -74,7 +74,7 @@ object RadioCenter {
         })
     }
 
-    /** Klik na listu: zavrie mini prehravac a otvori plny prehravac radia. */
+    /** Tap on the bar: closes the mini player and opens the full radio player. */
     fun openFull(context: Context) {
         val uuid = stationUuid.value
         val name = stationName.value

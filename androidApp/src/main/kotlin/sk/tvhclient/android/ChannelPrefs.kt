@@ -3,8 +3,8 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * Per-kanal nastavenia: profil prehravania (override servera) a zapamatana
- * posledna audio stopa (podla nazvu, aby prezila restart). Klucovane serverId+uuid.
+ * Per-channel settings: playback profile (overriding the server) and the remembered
+ * last audio track (by name, so it survives a restart). Keyed by serverId+uuid.
  */
 object ChannelPrefs {
     private const val PREFS = "channel_prefs"
@@ -20,13 +20,13 @@ object ChannelPrefs {
     }
 
     /**
-     * Ponuka profilov (kod -> popis). "" = predvolený zo servera.
+     * Profile menu (code -> description). "" = the default from the server.
      *
-     * M379: zoznam zodpoveda predvolenym stream profilom cisteho Tvheadend
-     * servera (Configuration -> Stream -> Stream Profiles). Predtym tu bol
-     * vymysleny "mpegts" (na servery neexistuje — MPEG-TS passthrough robi
-     * prave "pass") a chybali htsp, webtv-h264-vorbis-mp4 a webtv-vp8-vorbis-webm.
-     * Predvolba appky je "pass" (najvyssia kvalita, bez transkodovania).
+     * M379: the list matches the default stream profiles of a clean Tvheadend
+     * server (Configuration -> Stream -> Stream Profiles). Previously there was an
+     * invented "mpegts" here (it does not exist on the server — MPEG-TS passthrough is done
+     * by "pass") and htsp, webtv-h264-vorbis-mp4 and webtv-vp8-vorbis-webm were missing.
+     * The app's default is "pass" (the highest quality, without transcoding).
      */
     val profileOptions: List<Pair<String, String>> = listOf(
         "" to "—",

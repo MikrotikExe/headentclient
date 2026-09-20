@@ -5,11 +5,11 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 
 /**
- * Rozsah EPG v mriezke:
- *  - daysBack: kolko dni dozadu si appka pamata EPG (lokalny cache, lebo Tvheadend
- *    stare relacie z EPG zahadzuje) — 1..7, predvolene 7
- *  - daysForward: kolko dni dopredu sa zobrazuje/nacitava EPG — 1..7, predvolene 6
- * Drzime aj zivy stav (MutableState), aby sa zmena prejavila v mriezke hned.
+ * EPG range in the grid:
+ *  - daysBack: how many days back the app remembers the EPG (local cache, because Tvheadend
+ *    throws old programmes out of the EPG) — 1..7, 7 by default
+ *  - daysForward: how many days ahead the EPG is shown/loaded — 1..7, 6 by default
+ * We also keep live state (MutableState) so a change shows up in the grid immediately.
  */
 object EpgRangePref {
     private const val PREFS = "app_prefs"
@@ -19,10 +19,10 @@ object EpgRangePref {
     const val DEFAULT_BACK = 7
     const val DEFAULT_FWD = 6
 
-    /** M445: predvolby pre zariadenia s malou haldou (Xiaomi Mi Box a spol.).
-     *  7+6 dni EPG pri velkej ponuke kanalov tam vyhodi OutOfMemoryError uz pri
-     *  nacitavani. Plati LEN ako predvolena hodnota — kto si rozsah nastavi
-     *  rucne, ten ho ma; a kto ma silny box, dostane povodnych 7+6. */
+    /** M445: defaults for devices with a small heap (Xiaomi Mi Box and friends).
+     *  With a large channel offering, 7+6 days of EPG throws OutOfMemoryError there already while
+     *  loading. Applies ONLY as a default value — whoever sets the range
+     *  manually keeps it; and whoever has a powerful box gets the original 7+6. */
     const val LOW_RAM_BACK = 2
     const val LOW_RAM_FWD = 2
 
@@ -34,7 +34,7 @@ object EpgRangePref {
     private fun defBack(c: Context) = if (lowRam(c)) LOW_RAM_BACK else DEFAULT_BACK
     private fun defFwd(c: Context) = if (lowRam(c)) LOW_RAM_FWD else DEFAULT_FWD
 
-    /** Volby pre rozbalovacie pole (1..7) ako stringy. */
+    /** Options for the drop-down field (1..7) as strings. */
     val dayOptions: List<String> = (1..7).map { it.toString() }
 
     private var backState: MutableState<Int>? = null

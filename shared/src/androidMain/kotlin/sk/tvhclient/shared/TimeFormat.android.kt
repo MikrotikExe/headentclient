@@ -5,13 +5,13 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Vzor pre hodiny a minuty (M423).
+ * The pattern for hours and minutes (M423).
  *
- * Zdielany modul nema pristup ku Context, preto sa hodnota nastavuje zvonku:
- * ClockPref v androidApp ju zapise pri starte (TvhApplication) a pri kazdej
- * zmene predvolby Hodiny (Automaticky / 24 hodin / 12 hodin).
- * Predvolena hodnota je 24-hodinova, aby sa nic nerozbilo, keby sa apply()
- * z akehokolvek dovodu nestihol zavolat.
+ * The shared module has no access to a Context, so the value is set from outside:
+ * ClockPref in androidApp writes it at start-up (TvhApplication) and on every
+ * change of the Clock preference (Automatic / 24 hours / 12 hours).
+ * The default value is the 24-hour one, so that nothing breaks if apply()
+ * for any reason does not get called in time.
  */
 object TimeFormatConfig {
     @Volatile

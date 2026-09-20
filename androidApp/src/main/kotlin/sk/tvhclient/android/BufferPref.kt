@@ -2,11 +2,11 @@ package sk.tvhclient.android
 
 import android.content.Context
 
-/** M406: velkost sietoveho bufferu prehravaca. Vacsi buffer = viac dat dopredu,
- *  takze kratke vypadky wifi / mobilnej siete sa preklenu bez seku ("buffering").
- *  Cena je vyssia latencia od ziveho a mierne pomalsie prepnutie kanala.
- *  STREDNY (default) je bezpecny kompromis pre wifi aj mobil; VELKY pre slabsie
- *  alebo kolisave siete; MALY pre rychle LAN, kde ide o najnizsiu latenciu. */
+/** M406: size of the player's network buffer. A bigger buffer = more data ahead,
+ *  so short wifi / mobile network dropouts are bridged without a stutter ("buffering").
+ *  The price is higher latency behind live and slightly slower channel switching.
+ *  MEDIUM (default) is a safe compromise for wifi and mobile alike; LARGE for weaker
+ *  or fluctuating networks; SMALL for fast LANs, where the lowest latency matters. */
 object BufferPref {
     private const val PREFS = "app_prefs"
     private const val KEY = "net_buffer"
@@ -25,18 +25,18 @@ object BufferPref {
             .edit().putString(KEY, value).apply()
     }
 
-    /** Hlbka bufferu v ms pre HTTP cestu (server sklada hotovy stream — moze plny). */
+    /** Buffer depth in ms for the HTTP path (the server assembles a finished stream — it can be full). */
     fun ms(context: Context): Int = when (get(context)) {
-        SMALL -> 1500     // povodne spravanie — rychla LAN, najnizsia latencia
-        LARGE -> 6000     // kolisava wifi / mobil — max odolnost
-        else -> 3500      // STREDNY default — vyvazene pre wifi aj mobilne data
+        SMALL -> 1500     // the original behaviour — fast LAN, lowest latency
+        LARGE -> 6000     // fluctuating wifi / mobile — maximum resilience
+        else -> 3500      // MEDIUM default — balanced for wifi and mobile data
     }
 
-    /** M406-fix: hlbka bufferu pre HTSP cestu (stream skladame MY cez TsMuxer).
-     *  Velky buffer tu rozladi nase PCR a A/V sa rozide pri nabehu, preto drzime
-     *  konzervativnejsie hodnoty — stale citelne vacsie nez povodnych 1500 ms
-     *  (lepsia odolnost na wifi/mobil), ale nie tak vela, aby remux odplaval. */
-    /** Hlbka bufferu pre HTSP cestu (stream skladame MY cez TsMuxer). */
+    /** M406-fix: buffer depth for the HTSP path (WE assemble the stream via TsMuxer).
+     *  A big buffer here throws our PCR off and A/V drifts apart during ramp-up, so we keep
+     *  more conservative values — still noticeably larger than the original 1500 ms
+     *  (better resilience on wifi/mobile), but not so much that the remux floats away. */
+    /** Buffer depth for the HTSP path (WE assemble the stream via TsMuxer). */
     fun htspMs(context: Context): Int = when (get(context)) {
         SMALL -> 1500
         LARGE -> 3000

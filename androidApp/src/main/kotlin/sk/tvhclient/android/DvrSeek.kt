@@ -9,15 +9,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * M594 / M648: výpočet cieľa pretáčania v nahrávke a pomocná logika okolo neho, vyclenené
- * z PlayerActivity. Samotné PREBUDOVANIE streamu (nová Media s :start-time alebo reštart
- * feedera na byte-offsete) ostáva v aktivite ([performSeek]) — siaha na URL, feeder, player.
+ * M594 / M648: computing the seek target within a recording and the helper logic around it, extracted
+ * from PlayerActivity. The actual REBUILDING of the stream (a new Media with :start-time or a restart
+ * of the feeder at a byte offset) stays in the activity ([performSeek]) — it touches the URL, the feeder, the player.
  *
- * - Cieľ: playhead prehrávacích hodín (player.position je pre rastúci TS aj pipe nestabilná),
- *   rezerva od konca: in-progress 45 s (zapísané dáta zaostávajú), dokončená 5 s (súbor býva
- *   kratší než trvanie z EPG, M594). Skoky pod 1 s sa ignorujú.
- * - M594 zotavenie: chyba/koniec do 15 s po pretočení = trafený EOF → ustúp o 30 s (max 2×).
- * - Dvojklik (YouTube-style): hint ±10 s sa akumuluje, pretočí sa raz ~0,45 s po poslednom kliku.
+ * - Target: the playhead of the playback clock (player.position is unstable both for a growing TS and for a pipe),
+ *   margin from the end: in-progress 45 s (the written data lags behind), finished 5 s (the file tends to be
+ *   shorter than the duration from the EPG, M594). Jumps under 1 s are ignored.
+ * - M594 recovery: an error/end within 15 s after a seek = we hit EOF → back off by 30 s (max 2×).
+ * - Double-click (YouTube-style): the ±10 s hint accumulates, the seek happens once ~0.45 s after the last click.
  */
 internal class DvrSeek(
     private val ctx: Context,
@@ -28,7 +28,7 @@ internal class DvrSeek(
     private val seekable: () -> Boolean,
     private val performSeek: (targetMs: Long, fromMs: Long, dur: Long) -> Unit
 ) {
-    /** Hint ±s pri dvojkliku (0 = skrytý); číta SeekHintOverlay. */
+    /** The ±s hint on a double-click (0 = hidden); read by SeekHintOverlay. */
     val hint = mutableStateOf(0)
     private var hintJob: Job? = null
     private var accumBaseMs = -1L
@@ -41,19 +41,19 @@ internal class DvrSeek(
     private fun maxMs(dur: Long): Long =
         if (recording()) (dur - 45_000L).coerceAtLeast(0L) else (dur - 5_000L).coerceAtLeast(0L)
 
-    /** Volá aktivita po každom reálnom pretočení (seekDvrTo) — pre M594 zotavenie. */
+    /** Called by the activity after every real seek (seekDvrTo) — for the M594 recovery. */
     fun markSeek(targetMs: Long) {
         lastSeekAtMs = SystemClock.elapsedRealtime()
         lastSeekTargetMs = targetMs
     }
 
-    /** Playing dorazil → pretočenie sa podarilo, vynuluj pokusy o zotavenie. */
+    /** Playing has arrived → the seek succeeded, reset the recovery attempts. */
     fun onPlaying() { recoverTries = 0 }
 
     private fun justSeeked(): Boolean =
         lastSeekAtMs > 0L && SystemClock.elapsedRealtime() - lastSeekAtMs < 15_000L
 
-    /** Vrati true, ak sa po pretoceni podarilo ustupit spat a skusit znova. */
+    /** Returns true if, after a seek, we managed to back off and try again. */
     fun recoverAfterSeek(): Boolean {
         if (!seekable() || recording() || !justSeeked() || recoverTries >= 2) return false
         recoverTries++
@@ -63,7 +63,7 @@ internal class DvrSeek(
         return true
     }
 
-    /** Absolutny seek na program-relativny cas (spodna lista / D-pad / kurzor). */
+    /** An absolute seek to a programme-relative time (bottom bar / D-pad / cursor). */
     fun seekAbsolute(targetMs: Long) {
         if (!seekable()) return
         val dur = durMs()
@@ -84,12 +84,12 @@ internal class DvrSeek(
         performSeek(targetMs, curMs, dur)
     }
 
-    /** Dvojklik: akumuluj hint; pri nahrávke pretoč raz po ~0,45 s od posledného kliku.
-     *  [applyImmediately] = live timeshift (skok hned, len hint). */
+    /** Double-click: accumulate the hint; for a recording, seek once ~0.45 s after the last click.
+     *  [applyImmediately] = live timeshift (jump at once, hint only). */
     fun doubleTap(forward: Boolean, applyImmediately: Boolean) {
         val step = if (forward) 10 else -10
         if (!applyImmediately) {
-            // zafixuj vychodzi playhead na zaciatku serie klikov (dalsie kliky len pridavaju)
+            // pin the starting playhead at the beginning of the series of clicks (further clicks only add to it)
             if (accumBaseMs < 0L) accumBaseMs = playheadMs()
         }
         val cur = hint.value
@@ -101,7 +101,7 @@ internal class DvrSeek(
             hint.value = 0
         }
         if (!applyImmediately) {
-            // DVR: pretoc az ~0,5 s po poslednom kliku na akumulovany sucet (1 restart namiesto N)
+            // DVR: seek only ~0.5 s after the last click, to the accumulated total (1 restart instead of N)
             commitJob?.cancel()
             commitJob = scope.launch {
                 delay(450)
@@ -114,7 +114,7 @@ internal class DvrSeek(
         }
     }
 
-    /** Nové médium / nová subscription: zahoď akumulátor dvojkliku aj hint (M492). */
+    /** New media / new subscription: discard both the double-click accumulator and the hint (M492). */
     fun resetForNewMedia() {
         hintJob?.cancel(); hint.value = 0
         commitJob?.cancel(); commitJob = null

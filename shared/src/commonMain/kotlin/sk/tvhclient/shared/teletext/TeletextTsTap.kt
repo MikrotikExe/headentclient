@@ -1,17 +1,17 @@
 package sk.tvhclient.shared.teletext
 
 /**
- * M552 — vyberie z MPEG-TS teletextový elementárny stream (stream_type 0x06 s
- * deskriptorom 0x56) a jeho PES payload podáva do [TeletextDecoder]. Používa sa
- * v HTTP režime, kde TS tečie priamo do libVLC a appka si otvorí druhé,
- * krátkodobé spojenie len kvôli teletextu.
+ * M552 — picks the teletext elementary stream out of the MPEG-TS (stream_type 0x06 with
+ * descriptor 0x56) and feeds its PES payload into [TeletextDecoder]. It is used
+ * in HTTP mode, where the TS flows straight into libVLC and the app opens a second,
+ * short-lived connection just for the teletext.
  */
 class TeletextTsTap(private val decoder: TeletextDecoder) {
 
-    /** PID teletextu; -1 = ešte neznámy. */
+    /** Teletext PID; -1 = not known yet. */
     var teletextPid: Int = -1
         private set
-    /** PMT už prečítaná — ak je [teletextPid] stále -1, kanál teletext nevysiela. */
+    /** The PMT has already been read — if [teletextPid] is still -1, the channel does not broadcast teletext. */
     var pmtSeen: Boolean = false
         private set
     private var pmtPid = -1
@@ -20,7 +20,7 @@ class TeletextTsTap(private val decoder: TeletextDecoder) {
     private val carry = ByteArrayBuilder()
 
     fun feed(buf: ByteArray, off: Int = 0, len: Int = buf.size - off) {
-        // zarovnanie na 188 B pakety cez prenos zvyšku
+        // alignment to 188 B packets by carrying over the remainder
         carry.append(buf, off, len)
         val data = carry.toByteArray()
         var p = 0
@@ -37,7 +37,7 @@ class TeletextTsTap(private val decoder: TeletextDecoder) {
         val pusi = (d[o + 1].toInt() and 0x40) != 0
         val pid = ((d[o + 1].toInt() and 0x1F) shl 8) or (d[o + 2].toInt() and 0xFF)
         val afc = (d[o + 3].toInt() shr 4) and 0x3
-        if (afc == 0 || afc == 2) return   // bez payloadu
+        if (afc == 0 || afc == 2) return   // no payload
         var p = o + 4
         if (afc == 3) p += 1 + (d[o + 4].toInt() and 0xFF)
         val end = o + 188
@@ -107,7 +107,7 @@ class TeletextTsTap(private val decoder: TeletextDecoder) {
         decoder.feedPes(b, start, b.size - start)
     }
 
-    /** Jednoduchý rastúci buffer (common kód, bez java.io). */
+    /** A simple growing buffer (common code, without java.io). */
     private class ByteArrayBuilder {
         private var buf = ByteArray(4096)
         private var size = 0

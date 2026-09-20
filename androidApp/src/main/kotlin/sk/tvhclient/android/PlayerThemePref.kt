@@ -5,10 +5,10 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 
 /**
- * Rezim temy overlay-u prehravaca — NEZAVISLE od temy aplikacie.
- *  - AUTO: podla systemu (predvolene)
- *  - LIGHT / DARK: vynutene
- * Drzime aj zivy stav, aby sa prejavila zmena bez restartu.
+ * The theme mode of the player overlay — INDEPENDENT of the app theme.
+ *  - AUTO: follow the system (default)
+ *  - LIGHT / DARK: forced
+ * We also keep live state so that a change takes effect without a restart.
  */
 object PlayerThemePref {
     private const val PREFS = "app_prefs"

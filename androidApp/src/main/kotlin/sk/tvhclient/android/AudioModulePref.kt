@@ -3,13 +3,13 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * Zvukovy vystupny modul libVLC (telefony). Pri rozchadzajucom sa zvuku, ktory
- * narasta v case (drift), na niektorych telefonoch pomaha prepnut z predvoleneho
- * AudioTrack na OpenSL ES — ten ma inu, casto presnejsiu spravu latencie, takze
- * sa zvuk neoneskoruje od obrazu.
+ * libVLC audio output module (phones). With drifting audio that grows
+ * over time (drift), on some phones it helps to switch from the default
+ * AudioTrack to OpenSL ES — that one has different, often more accurate latency handling, so
+ * the audio does not lag behind the picture.
  *  - AUTO: android_audiotrack (default)
  *  - OPENSLES: opensles
- * Mapuje sa na MediaPlayer.setAudioOutput. Ulozene globalne v SharedPreferences.
+ * Maps to MediaPlayer.setAudioOutput. Stored globally in SharedPreferences.
  */
 object AudioModulePref {
     private const val PREFS = "app_prefs"
@@ -20,7 +20,7 @@ object AudioModulePref {
 
     val options = listOf(AUTO, OPENSLES)
 
-    /** aout modul pre setAudioOutput; null = nechaj default (AudioTrack). */
+    /** aout module for setAudioOutput; null = leave the default (AudioTrack). */
     fun module(context: Context): String? =
         if (get(context) == OPENSLES) "opensles" else null
 

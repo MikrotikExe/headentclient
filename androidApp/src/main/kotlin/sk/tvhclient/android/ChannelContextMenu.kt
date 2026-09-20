@@ -10,12 +10,12 @@ import sk.tvhclient.shared.model.DvrEntry
 import sk.tvhclient.shared.model.EpgEvent
 
 /**
- * M641: kontextové menu kanála v prehrávači (long-press OK / dlhý klik), vyclenené
- * z PlayerActivity. Položky podľa kanála: info, prehrať od začiatku (ak sa nahráva),
- * nahrať (M607), obľúbený (M368), usporiadať (M541), zámok, skryť/odkryť (M541).
- * Skrytie/odkrytie priamo prestavuje [live] (zoznam, index) a LivePlaylist.
+ * M641: channel context menu in the player (long-press OK / long click), split out
+ * of PlayerActivity. Items depend on the channel: info, play from start (if it is recording),
+ * record (M607), favourite (M368), reorder (M541), lock, hide/unhide (M541).
+ * Hiding/unhiding directly rearranges [live] (list, index) and LivePlaylist.
  *
- * Akcie, ktoré siahajú do prehrávača alebo DVR, dostáva ako lambdy ([actions]).
+ * Actions that reach into the player or DVR are passed in as lambdas ([actions]).
  */
 internal class ChannelContextMenu(
     private val ctx: Context,
@@ -37,35 +37,35 @@ internal class ChannelContextMenu(
         fun enterReorder()
     }
 
-    val idxState = mutableStateOf(-1)  // index kanala, -1 = zatvorene
-    val selState = mutableStateOf(0)   // zvyraznena polozka
+    val idxState = mutableStateOf(-1)  // channel index, -1 = closed
+    val selState = mutableStateOf(0)   // highlighted item
 
     val isOpen: Boolean get() = idxState.value >= 0
 
     private fun serverId(): String? = (live.server ?: Tvh.store.active())?.id
 
-    /** Polozky menu pre dany kanal (v poradi). "lock" len ak je zamok zapnuty,
-     *  "fromstart" len ak sa relacia prave nahrava (da sa prehrat od zaciatku). */
+    /** Menu items for the given channel (in order). "lock" only if the lock is enabled,
+     *  "fromstart" only if the programme is currently recording (it can be played from the start). */
     fun keys(idx: Int): List<String> {
         val ch = live.channelsState.value.getOrNull(idx) ?: return emptyList()
         val keys = mutableListOf("info")
         if (recInProgress().let { it[ch.uuid] ?: it[ch.name] } != null) keys.add("fromstart")
-        // M607: nahrat prave beziacu relaciu vybrateho kanala priamo zo zoznamu
-        // (kanal nemusi hrat) — len ked mame jej EPG s eventId a este sa nenahrava
+        // M607: record the programme currently running on the selected channel straight from the list
+        // (the channel need not be playing) — only when we have its EPG with an eventId and it is not recording yet
         else if (canRecord() && eventOf(ch) != null) keys.add("rec")
-        // M368: oblubene a skrytie kanala aj na TV (predtym len na telefone)
+        // M368: favourites and hiding a channel on TV too (previously phone only)
         keys.add("fav")
-        // M541: usporiadanie oblubenych (len v skupine Oblubene, len D-pad)
+        // M541: reordering favourites (only in the Favourites group, D-pad only)
         if (LivePlaylist.activeGroupKey == LivePlaylist.GROUP_FAV && live.channelsState.value.size > 1) keys.add("reorder")
         if (ParentalLock.isEnabled(ctx)) keys.add("lock")
-        // M541-fix: skryty kanal (kdekolvek, nie len v skupine Skryte) -> „Odkryt kanal"
+        // M541-fix: a hidden channel (anywhere, not just in the Hidden group) -> "Unhide channel"
         val hiddenCh = LivePlaylist.activeGroupKey == LivePlaylist.GROUP_HIDDEN ||
             HiddenChannels.isHidden(ctx, serverId(), ch.uuid)
         keys.add(if (hiddenCh) "unhide" else "hide")
         return keys
     }
 
-    /** M607: prave beziaca relacia kanala (z now/next cache), ak ma eventId. */
+    /** M607: the programme currently running on the channel (from the now/next cache), if it has an eventId. */
     fun eventOf(ch: LivePlaylist.LiveChannel): EpgEvent? {
         val nowSec = System.currentTimeMillis() / 1000
         return epgUpcoming()[ch.uuid]?.firstOrNull { it.start <= nowSec && nowSec < it.stop && it.eventId != null }
@@ -81,9 +81,9 @@ internal class ChannelContextMenu(
     fun close() { idxState.value = -1 }
 
     /**
-     * Pridanie/odobratie kanala z oblubenych (kontextova ponuka, M579: klaves ZALOZKA
-     * na ovladaci). [announce] ukaze potvrdenie — pri klavese bez ponuky by inak
-     * pouzivatel nevidel, co sa stalo.
+     * Adding/removing a channel from favourites (context menu, M579: the BOOKMARK key
+     * on the remote). [announce] shows a confirmation — with the key and no menu the
+     * user would otherwise not see what happened.
      */
     fun toggleFavoriteAt(idx: Int, announce: Boolean) {
         val ch = live.channelsState.value.getOrNull(idx) ?: return
@@ -91,7 +91,7 @@ internal class ChannelContextMenu(
         Favorites.toggle(ctx, sid, ch.uuid)
         val nowFav = Favorites.isFav(ctx, sid, ch.uuid)
         groups.refreshFavOrder()   // M541
-        // M541: v skupine Oblubene sa zoznam zmenil (odobrany kanal / precislovanie)
+        // M541: in the Favourites group the list has changed (channel removed / renumbering)
         if (LivePlaylist.activeGroupKey == LivePlaylist.GROUP_FAV) {
             if (LivePlaylist.favChannels().isEmpty()) groups.apply(LivePlaylist.GROUP_ALL) else groups.apply(LivePlaylist.GROUP_FAV)
             navIndex.value = navIndex.value.coerceIn(0, (live.uuids.size - 1).coerceAtLeast(0))
@@ -107,13 +107,13 @@ internal class ChannelContextMenu(
         close()
         if (ch == null) return
         when (key) {
-            "info" -> actions.showInfo(idx)                       // detail relacie priamo v prehravaci
+            "info" -> actions.showInfo(idx)                       // programme detail directly in the player
             "fromstart" -> {
                 val rec = recInProgress().let { it[ch.uuid] ?: it[ch.name] }
                 if (rec != null) actions.playFromStart(rec, ch.nowStart, ch.nowStop)
-                else if (idx != live.index) actions.switchTo(idx)   // ak kanal este nehra a nie je archiv -> aspon prepni nazivo
+                else if (idx != live.index) actions.switchTo(idx)   // if the channel is not playing yet and is not archive -> at least switch to live
             }
-            "lock" -> actions.toggleLock(idx)                     // uz riesi PIN + grace okno
+            "lock" -> actions.toggleLock(idx)                     // already handles the PIN + grace window
             "fav" -> toggleFavoriteAt(idx, announce = false)
             "rec" -> eventOf(ch)?.let { actions.record(ch, it) }   // M607
             "reorder" -> actions.enterReorder()   // M541
@@ -122,7 +122,7 @@ internal class ChannelContextMenu(
         }
     }
 
-    /** M541: odkryt kanal — spat medzi vsetky kanaly (podla cisla), von zo Skrytych. */
+    /** M541: unhide a channel — back among all channels (by number), out of Hidden. */
     private fun unhide(ch: LivePlaylist.LiveChannel, idx: Int) {
         val sid = serverId() ?: return
         HiddenChannels.setHidden(ctx, sid, ch.uuid, false)
@@ -138,7 +138,7 @@ internal class ChannelContextMenu(
                 navIndex.value = idx.coerceIn(0, (live.uuids.size - 1).coerceAtLeast(0))
             }
         } else if (LivePlaylist.activeGroupKey == LivePlaylist.GROUP_ALL) {
-            groups.apply(LivePlaylist.GROUP_ALL)   // odkryty kanal sa objavi na svojom mieste
+            groups.apply(LivePlaylist.GROUP_ALL)   // an unhidden channel appears in its place
             navIndex.value = live.uuids.indexOf(ch.uuid).coerceAtLeast(0)
         }
     }
@@ -146,15 +146,15 @@ internal class ChannelContextMenu(
     private fun hide(ch: LivePlaylist.LiveChannel, idx: Int) {
         val sid = serverId() ?: return
         HiddenChannels.setHidden(ctx, sid, ch.uuid, true)
-        // M541: presun do zoznamu skrytych (pseudo-skupina), von zo vsetkych.
-        // Povodne cislo vezmi z allChannels (v Oblubenych je `ch.number` poradie 1..n).
+        // M541: move to the hidden list (pseudo-group), out of all.
+        // Take the original number from allChannels (in Favourites `ch.number` is the position 1..n).
         val orig = LivePlaylist.allChannels.firstOrNull { it.uuid == ch.uuid } ?: ch
         LivePlaylist.allChannels = LivePlaylist.allChannels.filter { it.uuid != ch.uuid }
         if (LivePlaylist.hiddenChannels.none { it.uuid == ch.uuid }) {
             LivePlaylist.hiddenChannels = LivePlaylist.hiddenChannels + orig
         }
-        // Skryty kanal hned odstranit zo zap zoznamu (ak prave nehra);
-        // posun liveIndex, aby CH+/- dalej sedeli.
+        // Remove a hidden channel from the zapping list right away (if it is not playing);
+        // shift liveIndex so that CH+/- still match.
         if (idx != live.index) {
             val cur = live.channelsState.value.toMutableList()
             if (idx in cur.indices) {
@@ -170,15 +170,15 @@ internal class ChannelContextMenu(
         }
     }
 
-    /** Klavesy pri otvorenom menu: hore/dole + OK (na uvolnenie) + BACK/VLAVO. Vzdy spotrebuje. */
+    /** Keys while the menu is open: up/down + OK (on release) + BACK/LEFT. Always consumes. */
     fun handleKey(kc: Int, down: Boolean): Boolean {
         val ks = keys(idxState.value)
         val cnt = ks.size
         val isOk = kc == KeyEvent.KEYCODE_DPAD_CENTER || kc == KeyEvent.KEYCODE_ENTER || kc == KeyEvent.KEYCODE_NUMPAD_ENTER
         if (isOk) {
-            if (okLongFired()) return true                 // prehltni up z otvaracieho long-pressu
+            if (okLongFired()) return true                 // swallow the up from the opening long-press
             if (!down && cnt > 0) activate(ks.getOrElse(selState.value) { ks.first() })
-            return true                                    // OK aktivuje az na uvolnenie
+            return true                                    // OK activates only on release
         }
         if (down && cnt > 0) {
             when (kc) {

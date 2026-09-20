@@ -61,12 +61,12 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Moderny TV overlay: spodny "channel surf" — rad kariet kanalov + ovladacia
- * lista s transportom v strede (Zvuk | -30 Pauza +30 | Titulky, po krajoch
- * Casovac/TV program a Info). Pri aktivnom timeshiftu sa nad listou zobrazi
- * seek bar a fokusovana karta upozorni, ze prepnutie posun v case ukonci.
- * Fokus riadi Activity cez indexy (row/card/strip) — D-pad routing v
- * dispatchKeyEvent; tu sa len kresli. Klasicky rezim nedotknuty.
+ * Modern TV overlay: the bottom "channel surf" — a row of channel cards + a control
+ * bar with transport in the middle (Audio | -30 Pause +30 | Subtitles, with
+ * Timer/TV guide and Info at the edges). With timeshift active a seek bar appears
+ * above the bar and the focused card warns that switching will end the time shift.
+ * Focus is driven by the Activity through indices (row/card/strip) — D-pad routing in
+ * dispatchKeyEvent; here we only draw. Classic mode untouched.
  */
 @Composable
 internal fun ModernTvOverlay(
@@ -94,8 +94,8 @@ internal fun ModernTvOverlay(
     val hhmm = remember(locale, clockFmt) { SimpleDateFormat(clockFmt, locale) }
     val listState = rememberLazyListState()
     LaunchedEffect(cardIndex) {
-        // Blizky posun animuj; vzdialeny skok (napr. wrap 1 -> 300 pri chprev)
-        // skoc okamzite — inak sa list "prehrabava" cez vsetky kanaly
+        // Animate a nearby move; a distant jump (e.g. wrap 1 -> 300 on chprev)
+        // jump instantly — otherwise the list "rummages" through every channel
         val target = (cardIndex - 1).coerceAtLeast(0)
         val visible = listState.layoutInfo.visibleItemsInfo
         val near = visible.any { kotlin.math.abs(it.index - target) <= 6 }
@@ -122,7 +122,7 @@ internal fun ModernTvOverlay(
                 )
                 .padding(bottom = 14.dp)
         ) {
-            // hinty (tien pre citatelnost nad jasnym videom aj bez plneho podkladu)
+            // hints (a shadow for readability over bright video even without a full backdrop)
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 28.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -133,7 +133,7 @@ internal fun ModernTvOverlay(
                     style = androidx.compose.ui.text.TextStyle(shadow = if (solidBg) null else hintShadow))
             }
 
-            // ===== karty kanalov =====
+            // ===== channel cards =====
             LazyRow(
                 state = listState,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -175,7 +175,7 @@ internal fun ModernTvOverlay(
                 Spacer(Modifier.height(8.dp))
             }
 
-            // ===== ovladacia lista: transport v strede =====
+            // ===== control bar: transport in the middle =====
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -262,7 +262,7 @@ private fun ModernSurfCard(
                 maxLines = 1, overflow = TextOverflow.Ellipsis
             )
             if (recording) {
-                // kanal sa archivuje (bezi nahravka) — cervena bodka ako vo velkom zozname
+                // the channel is being archived (a recording is running) — a red dot as in the big list
                 Spacer(Modifier.width(6.dp))
                 Box(Modifier.size(6.dp).clip(CircleShape).background(Color(0xFFEF5350)))
             }

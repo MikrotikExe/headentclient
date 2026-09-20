@@ -3,12 +3,12 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * Rodicovsky zamok (PIN). Aktivuje ho uzivatel v nastaveniach. PIN su 4 cislice
- * (0000-9999). Zamykaju sa konkretne kanaly (per server) — najma 18+.
- * Po spravnom zadani PINu plati 5-minutove okno, pocas ktoreho sa PIN nepyta;
- * po jeho uplynuti sa pri dalsom prepnuti na zamknuty kanal / vstupe do
- * nastaveni vypyta znova. Stav okna je zdielany medzi zoznamom a prehravacom
- * cez SharedPreferences (rovnaky proces).
+ * Parental lock (PIN). The user turns it on in settings. The PIN is 4 digits
+ * (0000-9999). Individual channels are locked (per server) — 18+ ones above all.
+ * After the PIN is entered correctly a 5-minute window applies during which the PIN is not asked for;
+ * once it expires the PIN is requested again on the next switch to a locked channel / entry into
+ * settings. The window's state is shared between the list and the player
+ * through SharedPreferences (same process).
  */
 object ParentalLock {
     private const val PREFS = "app_prefs"
@@ -16,7 +16,7 @@ object ParentalLock {
     private const val KEY_PIN = "plock_pin"
     private const val KEY_LOCKED = "plock_channels_" // + serverId -> Set<uuid>
     private const val KEY_UNTIL = "plock_unlocked_until"
-    private const val KEY_GRACE_MIN = "plock_grace_min"      // okno po odomknuti (min); 0 = vzdy vyzadovat
+    private const val KEY_GRACE_MIN = "plock_grace_min"      // window after unlocking (min); 0 = always require
     private const val KEY_PROTECT_CHANNELS = "plock_protect_channels"
     private const val KEY_PROTECT_SETTINGS = "plock_protect_settings"
     private const val KEY_PIN_INPUT = "plock_pin_input"
@@ -31,21 +31,21 @@ object ParentalLock {
     fun setPin(c: Context, pin: String) = p(c).edit().putString(KEY_PIN, pin).apply()
     fun checkPin(c: Context, pin: String): Boolean = p(c).getString(KEY_PIN, "") == pin
 
-    // Okno po odomknuti (v minutach). 0 = vzdy vyzadovat PIN.
+    // Window after unlocking (in minutes). 0 = always require the PIN.
     fun graceMinutes(c: Context): Int = p(c).getInt(KEY_GRACE_MIN, DEFAULT_GRACE_MIN)
     fun setGraceMinutes(c: Context, min: Int) {
-        // zmena pravidla -> zavri aktivne odomknute okno, nech nove nastavenie plati hned
-        // (napr. prepnutie na "vzdy vyziadat" musi zacat platit okamzite)
+        // rule change -> close the active unlocked window so the new setting applies immediately
+        // (e.g. switching to "always require" has to take effect at once)
         p(c).edit().putInt(KEY_GRACE_MIN, min).putLong(KEY_UNTIL, 0L).apply()
     }
 
-    // Co PIN chrani (predvolene oboje).
+    // What the PIN protects (both by default).
     fun protectChannels(c: Context) = p(c).getBoolean(KEY_PROTECT_CHANNELS, true)
     fun setProtectChannels(c: Context, on: Boolean) = p(c).edit().putBoolean(KEY_PROTECT_CHANNELS, on).apply()
     fun protectSettings(c: Context) = p(c).getBoolean(KEY_PROTECT_SETTINGS, true)
     fun setProtectSettings(c: Context, on: Boolean) = p(c).edit().putBoolean(KEY_PROTECT_SETTINGS, on).apply()
 
-    // Sposob zadavania PIN: "picker" (mriezka) alebo "keyboard" (systemova klavesnica)
+    // PIN entry method: "picker" (grid) or "keyboard" (the system keyboard)
     fun pinInput(c: Context): String = p(c).getString(KEY_PIN_INPUT, "picker") ?: "picker"
     fun setPinInput(c: Context, mode: String) = p(c).edit().putString(KEY_PIN_INPUT, mode).apply()
 
@@ -71,34 +71,34 @@ object ParentalLock {
 
     fun markUnlocked(c: Context) {
         val min = graceMinutes(c)
-        // 0 = vzdy vyzadovat -> ziadne okno
+        // 0 = always require -> no window
         val until = if (min <= 0) 0L else System.currentTimeMillis() + min * 60_000L
         p(c).edit().putLong(KEY_UNTIL, until).apply()
     }
 
     /**
-     * M263 — zatvor aktivne grace okno. Pouzite pri otvoreni/navrate prehravaca na
-     * zamknuty kanal: stare (aj cezsesiove) odomknutie nesmie umoznit pozeranie
-     * zamknuteho kanala bez zadania PINu (napr. po prepnuti prec a spat bez PINu).
+     * M263 — close the active grace window. Used when the player is opened on / returned to
+     * a locked channel: an old (even cross-session) unlock must not allow watching
+     * a locked channel without entering the PIN (e.g. after switching away and back without a PIN).
      */
     fun clearGrace(c: Context) = p(c).edit().putLong(KEY_UNTIL, 0L).apply()
 
 
-    /** Treba teraz vypytat PIN? (zamok zapnuty, PIN nastaveny a nie sme v okne) */
+    /** Does the PIN need to be asked for now? (lock on, PIN set and we are not inside the window) */
     fun needsPin(c: Context): Boolean = isEnabled(c) && hasPin(c) && !isUnlocked(c)
 
-    /** Treba PIN pre dany kanal? (+ rešpektuje ci je ochrana kanalov zapnuta) */
+    /** Is a PIN needed for the given channel? (+ respects whether channel protection is on) */
     fun channelNeedsPin(c: Context, serverId: String?, uuid: String?): Boolean =
         needsPin(c) && protectChannels(c) && isChannelLocked(c, serverId, uuid)
 
     /**
-     * Je kanal zamknuty a chraneny PINom — BEZ ohladu na grace okno.
-     * Pouzite pri starte prehravaca: kazde otvorenie zamknuteho kanala ma vypytat PIN,
-     * grace okno ("nepytat X min") plati len pri prepinani v ramci otvoreneho prehravaca.
+     * Is the channel locked and PIN-protected — REGARDLESS of the grace window.
+     * Used at player start: every opening of a locked channel must ask for the PIN,
+     * the grace window ("do not ask for X min") applies only when switching inside an open player.
      */
     fun channelLockedProtected(c: Context, serverId: String?, uuid: String?): Boolean =
         isEnabled(c) && hasPin(c) && protectChannels(c) && isChannelLocked(c, serverId, uuid)
 
-    /** Treba PIN pre vstup do nastaveni? */
+    /** Is a PIN needed to enter settings? */
     fun settingsNeedsPin(c: Context): Boolean = needsPin(c) && protectSettings(c)
 }

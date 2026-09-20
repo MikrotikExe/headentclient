@@ -6,16 +6,16 @@ import androidx.compose.runtime.mutableStateOf
 import org.videolan.libvlc.MediaPlayer
 
 /**
- * M650: spracovanie udalostí libVLC MediaPlayer-a (vyclenené z PlayerActivity.createPlayer).
+ * M650: handling of the libVLC MediaPlayer events (extracted from PlayerActivity.createPlayer).
  *
- * Poradie a význam vetiev je zhodný s pôvodným listenerom: chyba/koniec živého streamu ->
- * reconnect, in-progress nahrávka -> reopen, dokončená nahrávka -> ústup po pretočení (M594)
- * alebo koniec; Playing nuluje pokusy, spúšťa AFR, hlídača a obnovu stôp; ES* udalosti
- * presadzujú voľbu titulkov. Drží aj [hasVideo] (rozhlas = logo namiesto videa) a jeho
- * oneskorenú kontrolu po Playing (videoTracksCount je spoľahlivý až po ~1,5 s).
+ * The order and meaning of the branches is identical to the original listener: error/end of a live stream ->
+ * reconnect, in-progress recording -> reopen, finished recording -> back off after a seek (M594)
+ * or end; Playing resets the attempts, starts AFR, the watchdog and the track refresh; ES* events
+ * enforce the subtitle choice. It also holds [hasVideo] (radio = logo instead of video) and its
+ * delayed check after Playing (videoTracksCount is only reliable after ~1.5 s).
  *
- * Všetko, čo siaha na stream / feedery / UI aktivity, chodí cez [Actions] — beží na
- * libVLC vlákne rovnako ako predtým, coroutine ošetrenie (lifecycleScope) rieši aktivita.
+ * Everything that touches the stream / the feeders / the activity UI goes through [Actions] — it runs on
+ * the libVLC thread just as before, the coroutine handling (lifecycleScope) is done by the activity.
  */
 internal class VlcEvents(
     private val player: () -> MediaPlayer?,
@@ -32,7 +32,7 @@ internal class VlcEvents(
         fun resetDvrReopen()
         fun hideReconnecting()
         fun reopenDvrLive()
-        /** M594: false = nič na zotavenie (chyba nie je následkom pretočenia). */
+        /** M594: false = nothing to recover (the error is not a consequence of a seek). */
         fun recoverAfterSeek(): Boolean
         fun setPlaying(playing: Boolean)
         fun refreshPipIfActive()
@@ -51,24 +51,24 @@ internal class VlcEvents(
         fun showPlaybackError()
     }
 
-    /** true = stream má video; false = rozhlas (PlayerUi ukáže logo). */
+    /** true = the stream has video; false = radio (PlayerUi shows the logo). */
     val hasVideo = mutableStateOf(true)
     private val videoCheckHandler = Handler(Looper.getMainLooper())
 
     override fun onEvent(event: MediaPlayer.Event) {
         when (event.type) {
             MediaPlayer.Event.EncounteredError -> {
-                // zivé vysielanie: skus znovu pripojit (vypadok siete)
+                // live broadcast: try to reconnect (network dropout)
                 if (!seekable()) {
                     actions.scheduleReconnect()
                 } else if (dvrRecording()) {
-                    // DVR seek/feeder zlyhal -> znovu otvor stream na aktualnom playheade
-                    // (reopenDvrLive ma backoff a po vycerpani pokusov vycisti spinner),
-                    // nech to neostane zaseknute na "Opatovne pripajanie"
+                    // the DVR seek/feeder failed -> reopen the stream at the current playhead
+                    // (reopenDvrLive has a backoff and clears the spinner once the attempts are exhausted),
+                    // so that it does not stay stuck on "Opatovne pripajanie"
                     actions.reopenDvrLive()
                 } else if (actions.recoverAfterSeek()) {
-                    // M594: dokoncena nahravka — chyba hned po pretoceni znamena
-                    // ciel za koncom suboru; ustup a skus znova namiesto zastavenia
+                    // M594: a finished recording — an error right after a seek means
+                    // the target is past the end of the file; back off and retry instead of stopping
                 } else {
                     actions.hideReconnecting()
                     actions.showPlaybackError()
@@ -79,18 +79,18 @@ internal class VlcEvents(
                 actions.onPlayingForSeek()   // M594
                 actions.onPlayingForStall()   // M539
                 if (!htspStream()) actions.applyPendingSpuRestore()  // M392-fix2
-                actions.maybeApplyAfr()  // AFR (M346): prepni Hz displeja podla fps streamu
-                actions.keepScreenOn(true)  // pocas prehravania nedovol setric/ambient na boxoch
-                actions.cancelReconnect()  // uspesne pripojenie -> vynuluj pokusy
-                actions.resetDvrReopen()  // uspesne pokracovanie -> vynuluj pokusy o znovu-otvorenie
-                actions.hideSeekSpinner()  // resync po skoku dobehol
-                // po nabehnuti zisti ci stream ma video; ak nie -> rozhlas (logo)
+                actions.maybeApplyAfr()  // AFR (M346): switch the display Hz according to the stream fps
+                actions.keepScreenOn(true)  // during playback do not allow the screensaver/ambient mode on boxes
+                actions.cancelReconnect()  // successful connection -> reset the attempts
+                actions.resetDvrReopen()  // successful continuation -> reset the reopen attempts
+                actions.hideSeekSpinner()  // the resync after the seek has completed
+                // once it is up, find out whether the stream has video; if not -> radio (logo)
                 videoCheckHandler.removeCallbacksAndMessages(null)
                 videoCheckHandler.postDelayed({
                     val n = runCatching { player()?.videoTracksCount }.getOrNull()
                     if (n != null && n >= 0) hasVideo.value = n > 0
                 }, 1500)
-                // doplnenie audio jazykov / DVB titulkov, ktore libVLC doparsuje az po starte
+                // filling in the audio languages / DVB subtitles that libVLC only finishes parsing after start
                 actions.scheduleTrackRefresh()
                 actions.maybeReparseForTracks()
             }
@@ -101,34 +101,34 @@ internal class VlcEvents(
             MediaPlayer.Event.Stopped -> { actions.setPlaying(false); actions.keepScreenOn(false); actions.refreshPipIfActive() }
             MediaPlayer.Event.Vout -> { if (event.voutCount > 0) hasVideo.value = true }
             MediaPlayer.Event.ESSelected -> {
-                // M392-fix2: libVLC si prave sam zvolil stopu (napr. default titulky
-                // v matroske) — presad zelanie pouzivatela (vypnute / konkretny jazyk)
+                // M392-fix2: libVLC has just picked a track on its own (e.g. the default subtitles
+                // in a matroska) — enforce the user's wish (off / a specific language)
                 if (!htspStream()) actions.applyPendingSpuRestore()
             }
             MediaPlayer.Event.ESAdded,
             MediaPlayer.Event.ESDeleted -> {
-                // libVLC priebezne registruje stopy (DVB titulky / audio jazyky sa
-                // objavia az par sekund po starte) -> obnov otvorene track menu
+                // libVLC registers tracks as it goes (DVB subtitles / audio languages
+                // only appear a few seconds after start) -> refresh the open track menu
                 actions.bumpTrackList()
-                // ak pouzivatel zvolil titulkovy jazyk, ktory este nebol k dispozicii,
-                // nastav ho hned ako jeho stopa pribudne (mimo libVLC callbacku)
+                // if the user picked a subtitle language that was not available yet,
+                // set it as soon as its track appears (outside the libVLC callback)
                 if (htspStream()) actions.applyDesiredSpu()
-                // M392: HTTP live po zmene profilu — obnov povodnu volbu titulkov
+                // M392: HTTP live after a profile change — restore the original subtitle choice
                 if (!htspStream()) actions.applyPendingSpuRestore()
             }
             MediaPlayer.Event.EndReached -> {
                 actions.setPlaying(false)
                 if (!seekable()) {
-                    // zivý stream "skoncil" = vypadok -> znovu pripojit
+                    // a live stream "ended" = a dropout -> reconnect
                     actions.scheduleReconnect()
                 } else if (dvrRecording() &&
                     (dvrProgStopSec() <= 0 || System.currentTimeMillis() / 1000 < dvrProgStopSec())) {
-                    // prebiehajuca nahravka dobehla na koniec zapisanych dat -> znovu otvor
-                    // stream (novy GET prinesie novsie data), nie koniec prehravania
+                    // an in-progress recording has reached the end of the written data -> reopen
+                    // the stream (a new GET brings newer data), not the end of playback
                     actions.saveDvrProgress()
                     actions.reopenDvrLive()
                 } else if (actions.recoverAfterSeek()) {
-                    // M594: skok trafil koniec suboru — ustup a hraj dalej
+                    // M594: the seek hit the end of the file — back off and keep playing
                 } else {
                     actions.onReachedEnd()
                     actions.keepScreenOn(false)

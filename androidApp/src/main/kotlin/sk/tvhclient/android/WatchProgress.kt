@@ -3,9 +3,9 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * Sledovanie pozicie prehravania DVR/archiv relacii. Pre kazdu polozku (podla
- * serverId + uuid) drzi poziciu, dlzku, priznak dopozerane a cas posledneho
- * sledovania. Ulozene v SharedPreferences ako "posMs|durMs|completed|ts".
+ * Tracking of the playback position of DVR/archive programmes. For each item (by
+ * serverId + uuid) it holds the position, the duration, the watched-to-the-end flag and the time of the last
+ * viewing. Stored in SharedPreferences as "posMs|durMs|completed|ts".
  */
 object WatchProgress {
     private const val PREFS = "watch_progress"
@@ -48,14 +48,14 @@ object WatchProgress {
             .edit().putString(key(serverId, uuid), v).apply()
     }
 
-    /** Oznac ako cele dopozerane (napr. pri EndReached). */
+    /** Mark as fully watched (e.g. on EndReached). */
     fun markCompleted(context: Context, serverId: String, uuid: String, durMs: Long) {
         if (uuid.isBlank()) return
         val d = if (durMs > 0) durMs else 1
         save(context, serverId, uuid, d, d)
     }
 
-    /** uuid -> Info pre dany server, zoradene od najnovsie sledovaneho. */
+    /** uuid -> Info for the given server, ordered from the most recently watched. */
     fun recent(context: Context, serverId: String, limit: Int = 100): List<Pair<String, Info>> {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val prefix = "wp:$serverId:"

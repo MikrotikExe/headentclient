@@ -42,10 +42,10 @@ import coil.request.ImageRequest
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * M631: zoznam kanálov priamo v prehrávači na TELEFÓNE — vysúva sa zhora podľa [listFrac]
- * (0..1, animuje volajúci), hlavička je úchyt (ťah hore / klik zatvorí), spodných ~10 %
- * je zóna na zatvorenie ťahom. Riadky: moderný (ModernPlayerChannelRow) alebo klasický.
- * Vyclenené z PlayerUi (PlayerActivity.kt), správanie nezmenené.
+ * M631: the channel list inside the player on the PHONE — it slides down from the top per [listFrac]
+ * (0..1, animated by the caller), the header is the handle (drag up / tap closes it), the bottom ~10 %
+ * is a zone for closing by dragging. Rows: modern (ModernPlayerChannelRow) or classic.
+ * Split out of PlayerUi (PlayerActivity.kt), behaviour unchanged.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -68,7 +68,7 @@ internal fun PhoneChannelListOverlay(
     val listState = rememberLazyListState(
         initialFirstVisibleItemIndex = liveCurrentIndex.coerceAtLeast(0)
     )
-    // efektivny vyber: pri D-pad navigacii navIndex, inak aktualny kanal
+    // effective selection: navIndex during D-pad navigation, otherwise the current channel
     val sel = if (channelNavIndex >= 0) channelNavIndex else liveCurrentIndex
     LaunchedEffect(channelNavIndex) {
         val i = channelNavIndex
@@ -76,7 +76,7 @@ internal fun PhoneChannelListOverlay(
             val vis = listState.layoutInfo.visibleItemsInfo
             val first = vis.firstOrNull()?.index ?: 0
             val last = vis.lastOrNull()?.index ?: 0
-            // skoc len ked je ciel mimo obrazovky — okamzite, bez pretacania cez vsetky polozky
+            // jump only when the target is off screen — instantly, without scrolling through every item
             if (vis.isEmpty() || i < first || i > last) listState.scrollToItem(i)
         }
     }
@@ -85,13 +85,13 @@ internal fun PhoneChannelListOverlay(
       Column(
         Modifier
             .fillMaxWidth()
-            .height(fullH * listFrac.coerceIn(0f, 1f))   // rastie zhora nadol
+            .height(fullH * listFrac.coerceIn(0f, 1f))   // grows from top to bottom
             .align(Alignment.TopStart)
             .clipToBounds()
             .background(playerScrim())
       ) {
-        Column(Modifier.fillMaxWidth().height(fullH)) {   // obsah v plnej vyske, klipovany zhora
-        // hlavicka = uchyt: tah hore zatvori (nebrani rolovaniu zoznamu), klik tiez zatvori
+        Column(Modifier.fillMaxWidth().height(fullH)) {   // content at full height, clipped from the top
+        // header = handle: dragging up closes it (does not block list scrolling), a tap closes it too
         Column(
             Modifier
                 .fillMaxWidth()
@@ -140,10 +140,10 @@ internal fun PhoneChannelListOverlay(
                     .weight(1f)
                     .fillMaxWidth()
                     .pointerInput(Unit) {
-                        // Spodnych ~10% je vyhradenych na zatvaranie: tah zdola hore tam
-                        // zoznam zatvori (namiesto rolovania). Klik na kanal aj rolovanie
-                        // inde ostavaju zachovane - gesto citame na Initial passe a berieme
-                        // ho LEN ked tah zacne v spodnej zone a ide nahor.
+                        // The bottom ~10% is reserved for closing: a drag from the bottom upwards there
+                        // closes the list (instead of scrolling). Tapping a channel and scrolling
+                        // elsewhere are preserved - we read the gesture on the Initial pass and take
+                        // it ONLY when the drag starts in the bottom zone and goes upwards.
                         awaitPointerEventScope {
                             while (true) {
                                 val down = awaitPointerEvent(
@@ -164,9 +164,9 @@ internal fun PhoneChannelListOverlay(
                                     totalDy += ch.position.y - ch.previousPosition.y
                                     if (!decided && kotlin.math.abs(totalDy) > 12f) {
                                         decided = true
-                                        closing = totalDy < 0f   // tah nahor -> zatvarame
+                                        closing = totalDy < 0f   // drag upwards -> we close
                                     }
-                                    if (closing) ch.consume()     // zober gesto LazyColumnu
+                                    if (closing) ch.consume()     // take the gesture from the LazyColumn
                                 }
                                 if (closing && totalDy < -60f) onClose()
                             }
@@ -175,7 +175,7 @@ internal fun PhoneChannelListOverlay(
             ) {
             LazyColumn(
                 state = listState,
-                userScrollEnabled = listFrac >= 0.999f,   // rolovat az ked je zoznam uplne otvoreny
+                userScrollEnabled = listFrac >= 0.999f,   // scroll only once the list is fully open
                 modifier = Modifier.fillMaxSize()
             ) {
                 itemsIndexed(liveChannels) { idx, ch ->
@@ -184,7 +184,7 @@ internal fun PhoneChannelListOverlay(
                         ParentalLock.isChannelLocked(ctx, serverId, ch.uuid)
                     }
                     if (isModernUi()) {
-                        // moderny riadok: ina stavba (picon velky, "Dalej:", minuty) — zdielany komponent
+                        // modern row: a different build (big picon, "Next:", minutes) — a shared component
                         ModernPlayerChannelRow(
                             ch = ch,
                             selected = selected,

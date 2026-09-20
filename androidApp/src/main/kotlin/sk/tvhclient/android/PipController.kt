@@ -18,14 +18,14 @@ import android.view.KeyEvent
 import androidx.annotation.RequiresApi
 
 /**
- * M653: Picture-in-Picture prehrávača (vyclenené z PlayerActivity) — parametre PiP okna
- * (akcie play/pauza + Zavrieť na TV, M576), vstup do PiP (ručný aj auto), obnova ikony
- * podľa stavu prehrávania, BroadcastReceiver pre akcie okna a MediaSession počas PiP
- * (M578: mediálne klávesy diaľkového idú aktívnej session bez ohľadu na fokus; STOP a
- * dlhé PLAY/PAUSE okno zavrú, issue #11).
+ * M653: the player's Picture-in-Picture (split out of PlayerActivity) — the PiP window's parameters
+ * (play/pause actions + Close on TV, M576), entering PiP (manual and auto), refreshing the icon
+ * to match the playback state, a BroadcastReceiver for the window's actions and a MediaSession during PiP
+ * (M578: the remote's media keys go to the active session regardless of focus; STOP and
+ * a long PLAY/PAUSE close the window, issue #11).
  *
- * Rádio brány (handoff do RadioPlayerService namiesto PiP) ostávajú v aktivite — sem
- * chodí len TV prehrávanie. [close] = LastPlayback.clear + finish.
+ * The radio gates (handoff to RadioPlayerService instead of PiP) stay in the activity — only
+ * TV playback comes here. [close] = LastPlayback.clear + finish.
  */
 internal class PipController(
     private val activity: Activity,
@@ -35,7 +35,7 @@ internal class PipController(
     private val togglePlayPause: () -> Unit,
     private val close: () -> Unit
 ) {
-    /** Zariadenie PiP podporuje (API 26+ a systémová funkcia). */
+    /** The device supports PiP (API 26+ and the system feature). */
     val supported: Boolean by lazy {
         Build.VERSION.SDK_INT >= 26 &&
             activity.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
@@ -59,9 +59,9 @@ internal class PipController(
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val action = RemoteAction(icon, label, label, pi)
-        // M576 (issue #11): akcia Zavriet — na TV je PiP okno mimo dosahu dialkoveho,
-        // jedina cesta k nemu je systemova ponuka PiP (dlhe Home); tam sa tato akcia
-        // zobrazi a okno sa da zavriet jednym potvrdenim. Na telefone je priamo v okne.
+        // M576 (issue #11): the Close action — on TV the PiP window is out of the remote's reach,
+        // the only way to it is the system PiP menu (long Home); this action shows up there
+        // and the window can be closed with a single confirmation. On a phone it is right in the window.
         val closeLabel = activity.getString(R.string.pip_close)
         val closePi = PendingIntent.getBroadcast(
             activity, 2,
@@ -72,9 +72,9 @@ internal class PipController(
             Icon.createWithResource(activity, android.R.drawable.ic_menu_close_clear_cancel),
             closeLabel, closeLabel, closePi
         )
-        // M576-fix: telefon/tablet ma systemovy krizik v PiP okne vzdy -> nasa akcia by bola
-        // druhe X vedla neho; na TV ostava (system tam vlastne ovladanie okna nema alebo ho
-        // skryva v ponuke PiP)
+        // M576-fix: a phone/tablet always has the system X in the PiP window -> our action would be
+        // a second X next to it; on TV it stays (there the system has no window controls of its own, or it
+        // hides them in the PiP menu)
         val actions = if (isTv()) listOf(action, closeAction) else listOf(action)
         return PictureInPictureParams.Builder()
             .setActions(actions)
@@ -82,7 +82,7 @@ internal class PipController(
             .build()
     }
 
-    /** Ručný vstup do PiP (tlačidlo / BACK). */
+    /** Manual entry into PiP (button / BACK). */
     fun enterIfPossible(): Boolean {
         if (Build.VERSION.SDK_INT >= 26 &&
             activity.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
@@ -94,8 +94,8 @@ internal class PipController(
     }
 
     /**
-     * Auto-PiP pri navigácii v rámci appky (EPG / návrat domov). Vstúpi len ak je Auto-PiP
-     * zapnutý, hrá a ešte nie je v PiP. Vráti true, ak prešiel do PiP.
+     * Auto-PiP when navigating inside the app (EPG / back home). It enters only if Auto-PiP
+     * is on, it is playing and it is not already in PiP. Returns true if it went into PiP.
      */
     fun autoEnterIfPossible(): Boolean {
         if (AutoPipPref.get(activity) && supported && isPlaying() &&
@@ -104,14 +104,14 @@ internal class PipController(
             playerReady() &&
             !activity.isInPictureInPictureMode
         ) {
-            // enterPictureInPictureMode vrati true, ak realne vstupil do PiP (nespoliehaj sa
-            // na isInPictureInPictureMode hned po volani - aktualizuje sa az asynchronne)
+            // enterPictureInPictureMode returns true if it really entered PiP (do not rely
+            // on isInPictureInPictureMode right after the call - it updates asynchronously)
             return runCatching { activity.enterPictureInPictureMode(buildParams()) }.getOrDefault(false)
         }
         return false
     }
 
-    /** Aktualizuj ikonu play/pauza v PiP (a stav MediaSession) podľa skutočného stavu prehrávania. */
+    /** Update the play/pause icon in PiP (and the MediaSession state) to match the real playback state. */
     fun refreshIfActive() {
         if (Build.VERSION.SDK_INT >= 26 && activity.isInPictureInPictureMode) {
             runCatching { activity.setPictureInPictureParams(buildParams()) }
@@ -119,7 +119,7 @@ internal class PipController(
         }
     }
 
-    /** Volať z onPictureInPictureModeChanged: session + receiver podľa režimu. */
+    /** Call from onPictureInPictureModeChanged: session + receiver according to the mode. */
     fun onModeChanged(inPip: Boolean) {
         if (inPip) {
             startMediaSession()   // M578
@@ -151,12 +151,12 @@ internal class PipController(
         receiver = null
     }
 
-    // ---- M578: medialne klavesy v PiP cez MediaSession ----
-    // Plavajuce PiP okno nedostava klavesy (na TV sa nan neda ani zamerat), ale medialne
-    // tlacidla dialkoveho system doruci aktivnej MediaSession bez ohladu na fokus. Pocas
-    // PiP preto drzime aktivnu session: STOP okno zavrie, PLAY/PAUSE prepina pauzu a
-    // DLHE podrzanie PLAY/PAUSE zavrie tiez — pre ovladace, ktore maju len to jedno
-    // tlacidlo (issue #11). Mimo PiP sa klavesy spracuvaju v dispatchKeyEvent ako doteraz.
+    // ---- M578: media keys in PiP via MediaSession ----
+    // The floating PiP window gets no keys (on TV it cannot even be focused), but the remote's
+    // media buttons are delivered by the system to the active MediaSession regardless of focus. During
+    // PiP we therefore keep an active session: STOP closes the window, PLAY/PAUSE toggles pause and
+    // a LONG hold of PLAY/PAUSE closes it as well — for remotes that have only that one
+    // button (issue #11). Outside PiP the keys are handled in dispatchKeyEvent as before.
     private fun startMediaSession() {
         if (session != null) return
         val ms = runCatching { MediaSession(activity, "headent-pip") }.getOrNull() ?: return
@@ -213,7 +213,7 @@ internal class PipController(
         longFired = false
     }
 
-    /** onDestroy: session aj receiver preč. */
+    /** onDestroy: session and receiver gone. */
     fun destroy() {
         stopMediaSession()
         unregisterReceiver()

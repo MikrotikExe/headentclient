@@ -6,12 +6,12 @@ import androidx.compose.ui.res.stringResource
 import org.videolan.libvlc.MediaPlayer
 
 /*
- * M661: menu stôp (audio / titulky / profil) vyclenené z PlayerUi (PlayerActivity.kt) — limit 64 kB
- * na metódu. Stav [menu] drží volajúci a zatvára ho cez [setMenu]; vlastné vykreslenie robí
- * TrackMenu (PlayerUiComponents.kt).
+ * M661: track menu (audio / subtitles / profile) extracted from PlayerUi (PlayerActivity.kt) — 64 kB
+ * per-method limit. The caller holds the [menu] state and closes it via [setMenu]; the actual rendering
+ * is done by TrackMenu (PlayerUiComponents.kt).
  */
 
-/** Menu stôp (audio / titulky / profil). Volať len keď menu != null. */
+/** Track menu (audio / subtitles / profile). Call only when menu != null. */
 @Composable
 internal fun PlayerTrackMenu(
     menu: String?,
@@ -30,10 +30,10 @@ internal fun PlayerTrackMenu(
     liveChannelUuid: String?,
     serverId: String?
 ) {
-    // Menu stop (audio / titulky)
+    // Track menu (audio / subtitles)
     if (menu != null) {
-        // trackListVersion: cita sa zamerne, nech sa zoznam prerenderuje, ked
-        // libVLC prida stopu (DVB titulky / audio jazyky sa objavia az po starte).
+        // trackListVersion: read deliberately, so the list re-renders when
+        // libVLC adds a track (DVB subtitles / audio languages only appear after start).
         @Suppress("UNUSED_EXPRESSION") trackListVersion
         val htspSpu = menu == "spu" && onPickHtspSpu != null
         val items = when {
@@ -56,14 +56,14 @@ internal fun PlayerTrackMenu(
             },
             items = items,
             currentId = currentId,
-            allowOff = (menu == "spu"),  // titulky sa daju vypnut (-1)
+            allowOff = (menu == "spu"),  // subtitles can be turned off (-1)
             navIndex = trackNavIndex,
             onPick = { id ->
                 if (menu == "profile") {
                     profileItems.getOrNull(id)?.let { onPickProfile(it) }
                 } else if (menu == "audio") {
                     player.audioTrack = id
-                    // zapamataj vyber pre kanal (live)
+                    // remember the selection for the channel (live)
                     if (liveChannelUuid != null && serverId != null) {
                         val name = items.firstOrNull { it.id == id }?.name
                         if (!name.isNullOrBlank()) {

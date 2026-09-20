@@ -7,13 +7,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * M262 / M492 / M508 / M647: HTSP timeshift (pauza a skoky za živým), vyclenené z PlayerActivity.
+ * M262 / M492 / M508 / M647: HTSP timeshift (pause and jumps behind live), extracted from PlayerActivity.
  *
- * Drží posun za živým ([offsetMs], rastie počas pauzy 1 s/s cez ticker), či je timeshift
- * „zapnutý" ([engaged], prvá pauza) a nazbieraný skok, ktorý sa serveru pošle až po
- * ustálení tukania (350 ms) jedným relatívnym subscriptionSkip — na živé sa vracia
- * skokom dopredu, nie subscriptionLive ani reštartom (zostáva ten istý buffer).
- * Hĺbka buffera: skutočná zo servera (timeshiftStatus end−start, M508-fix2), inak wall-clock.
+ * Holds the offset behind live ([offsetMs], growing during a pause at 1 s/s via a ticker), whether timeshift
+ * is "engaged" ([engaged], the first pause) and the accumulated jump, which is sent to the server only after
+ * the tapping settles (350 ms) as a single relative subscriptionSkip — we return to live
+ * by jumping forward, not with subscriptionLive or a restart (the same buffer is kept).
+ * Buffer depth: the real one from the server (timeshiftStatus end−start, M508-fix2), otherwise wall-clock.
  */
 internal class TimeshiftController(
     private val scope: CoroutineScope,
@@ -31,9 +31,9 @@ internal class TimeshiftController(
     private var skipFlushJob: Job? = null
     private var tickerJob: Job? = null
 
-    /** Prvá pauza „zapne" timeshift; vráti true, ak to bola prvá (volajúci re-ukotví fokus). */
+    /** The first pause "engages" timeshift; returns true if it was the first (the caller re-anchors the focus). */
     fun onPaused(): Boolean {
-        // prva pauza je pri „On-demand" timeshifte moment, kedy server zacne buffer naozaj tvorit
+        // with "On-demand" timeshift the first pause is the moment the server really starts building the buffer
         if (startedAt <= 0L) startedAt = System.currentTimeMillis()
         val first = !engaged.value
         engaged.value = true
@@ -51,7 +51,7 @@ internal class TimeshiftController(
         offsetMs.value = accumMs
     }
 
-    /** Pocas pauzy rastie posun za zivym (1 s/s); aktualizuje ukazovatel kazdu sekundu. */
+    /** During a pause the offset behind live grows (1 s/s); updates the indicator every second. */
     private fun startTicker() {
         tickerJob?.cancel()
         tickerJob = scope.launch {
@@ -65,24 +65,24 @@ internal class TimeshiftController(
 
     fun stopTicker() { tickerJob?.cancel(); tickerJob = null }
 
-    /** Doruč nazbieraný skok hneď (pred pauzou/play, nech je server konzistentný). */
+    /** Deliver the accumulated jump immediately (before pause/play, so the server stays consistent). */
     fun flushNow() { skipFlushJob?.cancel(); flushSkip() }
 
-    /** Novy zivy zaciatok (cerstva subscription = na zivo) -> vynuluj timeshift. */
+    /** A new live start (a fresh subscription = live) -> reset timeshift. */
     fun reset() {
         stopTicker()
         skipFlushJob?.cancel(); skipFlushJob = null
         pendingSkipMs = 0L
         accumMs = 0L
         pauseStartedAt = 0L
-        startedAt = 0L   // novy kanal = novy buffer od nuly
+        startedAt = 0L   // a new channel = a new buffer from zero
         engaged.value = false
         offsetMs.value = 0L
     }
 
     /**
-     * Kolko sa da pretocit dozadu. Prednost ma SKUTOCNA dlzka buffera hlasena serverom
-     * (M508-fix2); wall-clock je zaloha pre starsi TVH / radio (timeshift info neposiela).
+     * How far back it is possible to seek. The REAL buffer length reported by the server takes
+     * precedence (M508-fix2); wall-clock is the backup for older TVH / radio (it does not send timeshift info).
      */
     fun maxRewindMs(): Long {
         val fromServer = (feeder()?.bufferTicks ?: 0L) / 90L   // 90 kHz -> ms
@@ -91,23 +91,23 @@ internal class TimeshiftController(
         return (System.currentTimeMillis() - startedAt).coerceAtMost(3600_000L)
     }
 
-    /** Relativny skok v timeshifte (sekundy; zaporne = vzad). Aktualizuje aj ukazovatel. */
+    /** A relative jump in timeshift (seconds; negative = backwards). Updates the indicator too. */
     fun skip(seconds: Int) {
-        // ak je pauza, po skoku spusti prehravanie (nech vidno vysledok skoku)
+        // if paused, start playback after the jump (so the result of the jump is visible)
         if (pauseStartedAt > 0L) {
             accumMs += System.currentTimeMillis() - pauseStartedAt
             pauseStartedAt = 0L
             stopTicker()
             onResumePlayback()
         }
-        // cielova pozicia za zivym, orezana na <0 .. hlbka bufferu>
+        // target position behind live, clamped to <0 .. buffer depth>
         val target = (accumMs - seconds.toLong() * 1000L).coerceIn(0L, maxRewindMs())
         val deltaMs = target - accumMs
-        if (deltaMs == 0L) return                   // niet kam (zaciatok bufferu alebo zive)
+        if (deltaMs == 0L) return                   // nowhere to go (start of the buffer or live)
         accumMs = target
         offsetMs.value = accumMs
-        // ukazovatel reaguje hned, ale realny skok posli az ked prestane tukanie —
-        // viac skokov za sebou inak nuti libVLC stale resynchronizovat (trha to)
+        // the indicator reacts immediately, but send the real jump only once the tapping stops —
+        // several jumps in a row otherwise force libVLC to keep resynchronising (it stutters)
         pendingSkipMs += deltaMs
         skipFlushJob?.cancel()
         skipFlushJob = scope.launch {
@@ -120,7 +120,7 @@ internal class TimeshiftController(
         val net = pendingSkipMs
         pendingSkipMs = 0L
         if (net != 0L) {
-            feeder()?.skip((-net / 1000L).toInt())   // dozadu => zaporne, dopredu => kladne
+            feeder()?.skip((-net / 1000L).toInt())   // backwards => negative, forwards => positive
             onSeekSpinner()
         }
     }

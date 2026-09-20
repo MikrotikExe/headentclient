@@ -6,11 +6,11 @@ import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.model.EpgEvent
 
 /**
- * M369 / M541 / M640: filter skupín v zozname kanálov prehrávača (a tým aj CH+/-),
- * vyclenený z PlayerActivity. Prestavuje [live] (uuids/names/index + compose stavy)
- * na zvolenú skupinu: Všetky, Obľúbené (uložené poradie, číslované 1..n), tagy servera,
- * Skryté kanály. Voľba sa pamätá (LastTag, M506). Now/next dopĺňa z EPG cache
- * ([epgUpcoming]), aby prepnutie tagu nikdy nestratilo program.
+ * M369 / M541 / M640: group filter in the player's channel list (and thereby of CH+/-),
+ * split out of PlayerActivity. It rebuilds [live] (uuids/names/index + compose states)
+ * for the selected group: All, Favourites (saved order, numbered 1..n), server tags,
+ * Hidden channels. The choice is remembered (LastTag, M506). Now/next is filled in from the EPG cache
+ * ([epgUpcoming]), so that switching a tag never loses the programme.
  */
 internal class LiveGroups(
     private val ctx: Context,
@@ -29,8 +29,8 @@ internal class LiveGroups(
             ?: ctx.getString(R.string.all_channels)
     }
 
-    /** Poradie skupin pre cyklenie: Vsetky, Oblubene (ak su nejake), tagy,
-     *  na konci Skryte kanaly (M541, len ak nejake su). */
+    /** Order of groups for cycling: All, Favourites (if there are any), tags,
+     *  and Hidden channels at the end (M541, only if there are any). */
     fun keys(): List<String> {
         val keys = mutableListOf(LivePlaylist.GROUP_ALL)
         if (LivePlaylist.favChannels().isNotEmpty()) keys.add(LivePlaylist.GROUP_FAV)
@@ -39,18 +39,18 @@ internal class LiveGroups(
         return keys
     }
 
-    /** M541: aktualizuj poradie oblubenych v LivePlaylist z ulozenych preferencii. */
+    /** M541: update the favourites order in LivePlaylist from the saved preferences. */
     fun refreshFavOrder() {
         val srvId = serverId() ?: return
         LivePlaylist.favOrder = Favorites.list(ctx, srvId)
     }
 
-    /** Prestavi live zoznam na zvolenu skupinu; CH+/-, karty aj zoznam potom idu v ramci nej. */
+    /** Rebuilds the live list for the selected group; CH+/-, the tabs and the list then move within it. */
     fun apply(key: String) {
         val all = LivePlaylist.allChannels
         if (all.isEmpty() && key != LivePlaylist.GROUP_HIDDEN) return
         val srvId = serverId()
-        // M541: Oblubene = ulozene poradie, cislovane 1..n; Skryte = vlastny zoznam
+        // M541: Favourites = saved order, numbered 1..n; Hidden = its own list
         val filteredRaw: List<LivePlaylist.LiveChannel> = when (key) {
             LivePlaylist.GROUP_ALL -> all
             LivePlaylist.GROUP_FAV -> LivePlaylist.favChannels()
@@ -60,9 +60,9 @@ internal class LiveGroups(
                 all.filter { it.uuid in allow }
             }
         }
-        if (filteredRaw.isEmpty()) return   // prazdna skupina -> necham stav
-        // Dopln "teraz" z procesovej EPG cache — nech prepnutie tagu nikdy nestrati program,
-        // aj keby allChannels este nebol obohateny.
+        if (filteredRaw.isEmpty()) return   // empty group -> leave the state alone
+        // Fill in "now" from the process EPG cache — so that switching a tag never loses the programme,
+        // even if allChannels has not been enriched yet.
         val nowSec = System.currentTimeMillis() / 1000
         val epg = epgUpcoming()
         val filtered = filteredRaw.map { ch ->
@@ -73,8 +73,8 @@ internal class LiveGroups(
             }
         }
         LivePlaylist.activeGroupKey = key
-        // M506: zapamataj volbu skupiny — po restarte appky sa obnovi. „Vsetky" je
-        // prazdno; M541: Oblubene sa pamataju tiez (LastTag.FAV), Skryte nikdy.
+        // M506: remember the group choice — it is restored after the app restarts. "All" is
+        // empty; M541: Favourites are remembered too (LastTag.FAV), Hidden never.
         LastTag.set(
             ctx, srvId, live.playKind == "radio",
             if (key == LivePlaylist.GROUP_ALL || key == LivePlaylist.GROUP_HIDDEN) null else LastTag.fromGroupKey(key)
@@ -84,13 +84,13 @@ internal class LiveGroups(
         live.uuids = filtered.map { it.uuid }
         live.names = filtered.map { it.name }
         val ni = live.uuids.indexOf(live.uuidState.value)
-        live.index = if (ni >= 0) ni else 0     // ak aktualny kanal nie je v skupine, CH+/- zacne od 0
+        live.index = if (ni >= 0) ni else 0     // if the current channel is not in the group, CH+/- starts from 0
         live.indexState.value = live.index
         navIndex.value = live.index
         groupLabel.value = labelFor(key)
     }
 
-    /** Prepne na susednu skupinu (dir +1 / -1). */
+    /** Switches to the neighbouring group (dir +1 / -1). */
     fun cycle(dir: Int) {
         val ks = keys()
         if (ks.size < 2) return

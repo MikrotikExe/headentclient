@@ -81,8 +81,8 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     val epgMap by vm.epgMap.collectAsState()
     val viewMode by vm.viewMode.collectAsState()
     var viewMenu by remember { mutableStateOf(false) }
-    var selectedTag by remember { mutableStateOf<String?>(null) } // tag uuid alebo null = vsetky
-    // M505: posledna volba skupiny sa obnovi (nastavuje sa nizsie, ked je znamy serverId)
+    var selectedTag by remember { mutableStateOf<String?>(null) } // tag uuid or null = all
+    // M505: the last group choice is restored (it is set below, once the serverId is known)
     var tagRestored by remember { mutableStateOf(false) }
     var favOnly by remember { mutableStateOf(false) }
     var epgFor by remember { mutableStateOf<ChannelRow?>(null) }
@@ -90,13 +90,13 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     var favTick by remember { mutableStateOf(0) }
     var lockTick by remember { mutableStateOf(0) }
     var hiddenTick by remember { mutableStateOf(0) }
-    // Pri zamknutom kanali / nastaveniach: akcia, ktora sa vykona po spravnom PINe
+    // For a locked channel / settings: the action performed after the correct PIN
     var pinAction by remember { mutableStateOf<(() -> Unit)?>(null) }
-    // EPG kláves dialkoveho -> otvor TV program (mriezku). Odvodene priamo zo
-    // signalu (nie cez oneskoreny LaunchedEffect), nech sa neblikne zoznam.
+    // EPG key on the remote -> open the TV guide (the grid). Derived directly from
+    // the signal (not via a delayed LaunchedEffect), so that the list does not flash.
     val epgSignal by TabController.epgGrid
-    // baseline: pri cerstvom vstupe sa mriezka neotvori; pri cold-starte z
-    // prehravaca (epgFromPlayer, signal uz zvyseny v onCreate) sa otvori
+    // baseline: on a fresh entry the grid does not open; on a cold start from
+    // the player (epgFromPlayer, the signal already incremented in onCreate) it does
     var epgDismissedGen by remember {
         mutableStateOf(
             if (TabController.epgFromPlayer || TabController.epgColdOpen) TabController.epgGrid.value - 1
@@ -105,8 +105,8 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     }
     androidx.compose.runtime.SideEffect { TabController.epgColdOpen = false }
     val showGrid = epgSignal > epgDismissedGen
-    // pri navrate do prehravaca nechame mriezku zobrazenu (nech neblikne zoznam)
-    // a skryjeme ju az ked sa MainActivity vrati na popredie (po zatvoreni prehravaca)
+    // when returning to the player we leave the grid displayed (so the list does not flash)
+    // and hide it only once MainActivity comes back to the foreground (after the player closes)
     var pendingGridDismiss by remember { mutableStateOf(false) }
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -119,21 +119,21 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
         lifecycleOwner.lifecycle.addObserver(obs)
         onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
     }
-    // Zdielany DvrViewModel — vieme ktore kanaly sa prave nahravaju
+    // Shared DvrViewModel — we know which channels are currently recording
     val dvrVm: DvrViewModel = viewModel()
-    // M587: rozhlas ako dalsia skupina v mriezke TV programu (zdielany VM, activity scope)
+    // M587: radio as another group in the TV guide grid (shared VM, activity scope)
     val raVm: RadioViewModel = viewModel()
     val raState by raVm.state.collectAsState()
     val dvrState by dvrVm.state.collectAsState()
-    // Indikator nahravania parujeme na kanal podla UUID (nie nazvu) — inak by
-    // pri duplicitnych nazvoch/LCN (napr. regionalne "ITV1 HD" 103) svietilo na
-    // vsetkych. Nazov je len fallback pre stare servery bez UUID v DVR zazname.
+    // We match the recording indicator to a channel by UUID (not by name) — otherwise it would
+    // light up on all of them with duplicate names/LCNs (e.g. the regional "ITV1 HD" 103).
+    // The name is only a fallback for old servers without a UUID in the DVR entry.
     val recordingFor: (ChannelRow) -> sk.tvhclient.shared.model.DvrEntry? = remember(dvrState, state) {
         val recs = (dvrState as? DvrState.Loaded)?.recording ?: emptyList()
         val byUuid = recs.filter { it.channelUuid.isNotBlank() }.associateBy { it.channelUuid }
-        // M556: fallback podla nazvu aj pre zaznamy, ktorych channelUuid nesedi na ZIADEN
-        // kanal v zozname — po prepnuti HTSP <-> HTTP nesie stary DVR stav ine kluce
-        // (HTSP channelId vs HTTP hex uuid) a bodky zmizli, kym sa DVR nenacitalo znova.
+        // M556: the name fallback also for entries whose channelUuid matches NO
+        // channel in the list — after switching HTSP <-> HTTP the old DVR state carries different keys
+        // (HTSP channelId vs HTTP hex uuid) and the dots disappeared until the DVR was loaded again.
         val known = (state as? ChannelsState.Loaded)?.allRows?.map { it.channel.uuid }?.toSet() ?: emptySet()
         val byName = recs.filter { it.channelUuid.isBlank() || it.channelUuid !in known }.associateBy { it.channelName }
         val resolver: (ChannelRow) -> sk.tvhclient.shared.model.DvrEntry? =
@@ -143,30 +143,30 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     var recChoice by remember { mutableStateOf<Pair<ChannelRow, sk.tvhclient.shared.model.DvrEntry>?>(null) }
     val ctx = LocalContext.current
     val serverId = remember { Tvh.store.active()?.id }
-    // M505: obnov naposledy zvolenu skupinu kanalov pre tento server
+    // M505: restore the last selected channel group for this server
     LaunchedEffect(serverId) {
         if (!tagRestored) {
             tagRestored = true
             val t = LastTag.get(ctx, serverId, radio = false)
-            if (t == LastTag.FAV) favOnly = true else selectedTag = t   // M541: aj Oblubene
+            if (t == LastTag.FAV) favOnly = true else selectedTag = t   // M541: Favourites too
         }
     }
-    // Scroll pozicie prezivaju odskok do EPG a spat (remember v scope obrazovky)
+    // The scroll positions survive a hop into the EPG and back (remember in the screen's scope)
     val listStateMain = androidx.compose.foundation.lazy.rememberLazyListState()
     val listStateSearch = androidx.compose.foundation.lazy.rememberLazyListState()
     val searchFocus = remember { FocusRequester() }
 
     LaunchedEffect(Unit) { vm.loadIfNeeded() }
-    // M529: `loadIfNeeded` sa pri opatovnom otvoreni vrati hned, ked uz data ma —
-    // prave zalozena nahravka sa preto v zozname neprejavila. `refresh` drzi stare
-    // data a dotiahne nove bez blikania.
+    // M529: `loadIfNeeded` returns immediately on reopening when it already has the data —
+    // a recording just scheduled therefore did not show up in the list. `refresh` keeps the old
+    // data and fetches the new without flicker.
     LaunchedEffect(Unit) { dvrVm.loadIfNeeded(); dvrVm.refresh() }
 
-    // Zoznam kanalov pre zapping a zoznam v prehravaci (CH+/CH-, overlay).
-    // Skryte kanaly sem nepatria (v prehravaci sa nezobrazuju).
-    // M566: aj pri zmene zvoleneho tagu / Oblubenych / poradia oblubenych — prehravac dostane
-    // rovnaku skupinu, aku ma pouzivatel zvolenu v zozname (CH+/- a zoznam v prehravaci
-    // prepinaju len v nej), nie vzdy „Vsetky"
+    // The channel list for zapping and the list in the player (CH+/CH-, overlay).
+    // Hidden channels do not belong here (they are not shown in the player).
+    // M566: also on a change of the selected tag / Favourites / the order of favourites — the player gets
+    // the same group the user has selected in the list (CH+/- and the list in the player
+    // switch only within it), not always "All"
     LaunchedEffect(state, epgMap, hiddenTick, favOnly, selectedTag, favTick) {
         val srv = Tvh.store.active()
         (state as? ChannelsState.Loaded)?.let { st ->
@@ -194,7 +194,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                 val u = cat.rows.map { it.channel.uuid }.filter { it !in hidden }.toSet()
                 if (u.isEmpty()) null else LivePlaylist.Group(t.uuid, t.name, u)
             }
-            // M541: skryte kanaly a poradie oblubenych aj pre prehravac na telefone
+            // M541: hidden channels and the order of favourites for the player on a phone too
             val hiddenList = st.allRows.filter { it.channel.uuid in hidden }.map { r ->
                 LivePlaylist.LiveChannel(
                     uuid = r.channel.uuid, name = r.channel.name,
@@ -203,7 +203,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                 )
             }
             val favList = srv?.id?.let { Favorites.list(ctx, it) } ?: emptyList()
-            // M566: skupina prehravaca = aktualny vyber v zozname (Oblubene / tag / Vsetky)
+            // M566: the player's group = the current selection in the list (Favourites / tag / All)
             val restore = when {
                 favOnly && favList.isNotEmpty() -> LivePlaylist.GROUP_FAV
                 selectedTag != null && grps.any { it.key == selectedTag } -> selectedTag
@@ -213,8 +213,8 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
         }
     }
 
-    // Klik na tab Kanaly (aj uz vybrany) vrati obrazovku na zaciatok.
-    // Prve (inicialne) spustenie preskocime, nech sa nezhasne mriezka otvorena cez EPG.
+    // A click on the Channels tab (even an already selected one) returns the screen to the start.
+    // We skip the first (initial) run, so that a grid opened via EPG is not extinguished.
     var resetInitDone by remember { mutableStateOf(false) }
     LaunchedEffect(resetSignal) {
         if (!resetInitDone) { resetInitDone = true; return@LaunchedEffect }
@@ -222,14 +222,14 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
         epgDismissedGen = epgSignal
         TabController.epgFromPlayer = false
         selectedTag = null
-        LastTag.set(ctx, serverId, false, null)   // M505: reset = aj zabudnut
+        LastTag.set(ctx, serverId, false, null)   // M505: reset = forget as well
         favOnly = false
         contextRow = null
         recChoice = null
         vm.setQuery("")
     }
 
-    // tikajuci cas pre live ciaru priebehu (prekreslenie kazdych 30s)
+    // a ticking clock for the live progress line (redraw every 30s)
     var nowTick by remember { mutableStateOf(System.currentTimeMillis() / 1000) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -268,7 +268,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                                 putExtra(PlayerActivity.EXTRA_UUID, uuid)
                                 putExtra(PlayerActivity.EXTRA_TITLE, title)
                             }
-                            // mriezku necham zobrazenu, skryje sa az po navrate z prehravaca
+                            // I leave the grid displayed, it is hidden only after returning from the player
                             pendingGridDismiss = true
                             runCatching { ctx.startActivity(pi) }
                         } else {
@@ -278,8 +278,8 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                         epgDismissedGen = epgSignal
                     }
                 },
-                // M587: polozka „Rádiá" vo filtri; spustenie ide rovnakou cestou ako
-                // zo zalozky Radia (mini prehravac na telefone, PIN, LastRadio)
+                // M587: the "Radios" item in the filter; starting goes the same way as
+                // from the Radios tab (the mini player on a phone, PIN, LastRadio)
                 startInRadio = TabController.epgRadio,   // M591
                 focusUuid = TabController.epgReturnUuid,   // M592
                 openToken = TabController.epgGrid.value,   // M593-fix
@@ -297,7 +297,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                 }
             )
         } else {
-            // kym sa kanaly nacitaju, nech sa neblikne zoznam
+            // until the channels load, so that the list does not flash
             androidx.compose.foundation.layout.Box(
                 Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -322,7 +322,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                     contentDescription = stringResource(R.string.tv_guide)
                 )
             }
-            // M529: obnov aj zoznam nahravok, nech sa prekresli cervena bodka
+            // M529: refresh the recordings list too, so the red dot is redrawn
             androidx.compose.material3.IconButton(onClick = { vm.load(true); dvrVm.refresh() }) {
                 androidx.compose.material3.Icon(
                     Icons.Default.Refresh,
@@ -370,14 +370,14 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
             is ChannelsState.Error -> ErrorStatus(s.message, onRetry = { vm.load(true) })
             is ChannelsState.Loaded -> {
                 if (query.isNotBlank()) {
-                    // Vyhladavanie: plochy filtrovany zoznam
+                    // Search: a flat filtered list
                     val q = query.trim().lowercase()
                     val results = s.allRows.filter { it.channel.name.lowercase().contains(q) }
                     ChannelView(viewMode, results, listStateSearch, nowTick, epgMap, recordingFor, onRecordingTap = { r, rec -> recChoice = r to rec }, onTopUp = { runCatching { searchFocus.requestFocus() } }, onShowEpg = { contextRow = it }, lockTick = lockTick, hiddenTick = hiddenTick)
                 } else {
-                    // Filtre podla tagov
+                    // Filters by tags
                     val tags = s.categories.mapNotNull { it.tag }
-                    // M505: ulozena skupina uz na serveri nemusi byt -> spadni na „vsetky"
+                    // M505: the stored group may no longer exist on the server -> fall back to "all"
                     if (selectedTag != null && tags.none { it.uuid == selectedTag }) selectedTag = null
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         item("fav") {
@@ -416,13 +416,13 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                         if (serverId != null) Favorites.list(ctx, serverId) else emptyList()
                     }
                     val rows = when {
-                        // M541: v poradi oblubenych a cislovane 1..n
+                        // M541: in the order of favourites and numbered 1..n
                         favOnly -> favs.mapNotNull { u -> s.allRows.firstOrNull { it.channel.uuid == u } }
                             .mapIndexed { i, r -> r.copy(channel = r.channel.copy(number = i + 1)) }
-                        // M533: „Vsetky" musi byt zotriedene podla CISLA kanala.
-                        // Doteraz sa kategorie len spojili za sebou, takze poradie
-                        // urcovalo poradie tagov — kanal s inym tagom skoncil mimo
-                        // svojho miesta (napr. 155 a 156 az za 167).
+                        // M533: "All" must be sorted by channel NUMBER.
+                        // Until now the categories were merely concatenated, so the order
+                        // was determined by the order of the tags — a channel with a different tag ended up out of
+                        // its place (e.g. 155 and 156 only after 167).
                         selectedTag == null ->
                             s.categories.flatMap { it.rows }
                                 .distinctBy { it.channel.uuid }
@@ -435,21 +435,21 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                         else ->
                             s.categories.firstOrNull { it.tag?.uuid == selectedTag }?.rows ?: emptyList()
                     }
-                    // M571: skok na naposledy sledovany kanal je vec dialkoveho ovladaca —
-                    // na TV na nom musi byt fokus. Na dotykovom zariadeni to pouzivatel vidi
-                    // ako „zoznam sa otvara niekde v strede / na konci", preto tam zacina hore.
+                    // M571: jumping to the last watched channel is a remote-control matter —
+                    // on TV it must have the focus. On a touch device the user sees it
+                    // as "the list opens somewhere in the middle / at the end", so there it starts at the top.
                     val focusUuid = remember(rows, serverId) {
                         if (isTvUiMode(ctx))
                             LastChannel.get(ctx, serverId)?.takeIf { u -> rows.any { it.channel.uuid == u } }
                                 ?: rows.firstOrNull()?.channel?.uuid
                         else null
                     }
-                    // M560: v skupine Oblubene na dotykovom zariadeni sa da poradie menit tahanim
-                    // za rukovat; uklada sa hned (Favorites.move, rovnake data ako TV rezim)
+                    // M560: in the Favourites group on a touch device the order can be changed by dragging
+                    // by the handle; it is saved immediately (Favorites.move, the same data as in TV mode)
                     val moveFav: ((Int, Int) -> Unit)? =
                         if (favOnly && serverId != null && !isTvUiMode(ctx)) { from, to ->
-                            // M583: podla uuid — zoznam oblubenych je spolocny s radiami,
-                            // index v zobrazenom (TV) zozname nie je index v ulozenom poradi
+                            // M583: by uuid — the favourites list is shared with radios,
+                            // the index in the displayed (TV) list is not the index in the stored order
                             val a = rows.getOrNull(from)?.channel?.uuid
                             val b = rows.getOrNull(to)?.channel?.uuid
                             if (a != null && b != null) { Favorites.moveUuid(ctx, serverId, a, b); favTick++ }
@@ -461,7 +461,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
         }
     }
 
-    // Kanal sa nahrava — vyber: naživo alebo od zaciatku (prebiehajuca nahravka)
+    // The channel is recording — a choice: live or from the start (the ongoing recording)
     val rc = recChoice
     if (rc != null) {
         val (rcRow, rcRec) = rc
@@ -485,7 +485,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                     }
                 }
             },
-            // nazivo vlavo (fokus), od zaciatku vpravo — roztiahnute na celu sirku
+            // live on the left (focus), from start on the right — stretched to the full width
             confirmButton = {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically) {
@@ -504,7 +504,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
         )
     }
 
-    // Kontextove menu kanala (dlhy klik): Program / Oblubene / Profil / Zamok
+    // Channel context menu (long click): Guide / Favourites / Profile / Lock
     val cr = contextRow
     if (cr != null && serverId != null) {
         val dlgServer = remember { Tvh.store.active() }
@@ -544,7 +544,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
         )
     }
 
-    // PIN dialog (zamykanie kanala / odomknutie pred chranenou akciou)
+    // PIN dialog (locking a channel / unlocking before a protected action)
     val pa = pinAction
     if (pa != null) {
         PinDialog(
@@ -578,8 +578,8 @@ fun ChannelActionDialog(
     piconLoader: coil.ImageLoader? = null,
 ) {
     if (isModernUi()) {
-        // moderny variant: hlavicka s piconom + riadky s ikonami v kruzkoch
-        // (rovnaky jazyk ako "Viac" panel v prehravaci); klasik nizsie nedotknuty
+        // modern variant: a header with the picon + rows with icons in circles
+        // (the same language as the "More" panel in the player); the classic one below is untouched
         val cs = MaterialTheme.colorScheme
         androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
             androidx.compose.material3.Surface(
@@ -728,7 +728,7 @@ private fun playChannel(
     context.startActivity(intent)
 }
 
-/** Prehratie prebiehajucej/dokoncenej nahravky od zaciatku cez /dvrfile/<uuid>. */
+/** Playing an ongoing/finished recording from the start via /dvrfile/<uuid>. */
 private fun playDvrFile(
     context: android.content.Context,
     rec: sk.tvhclient.shared.model.DvrEntry,
@@ -737,9 +737,9 @@ private fun playDvrFile(
 ) {
     val server = Tvh.store.active() ?: return
     val url = Tvh.dvrUrl(server, rec.uuid)
-    // Hranice relacie: primarne z EPG (spolahlive), fallback na hranice z nahravky
-    // (tie byvaju pri prebiehajucom archive prazdne/neuplne). Dopocitavanie pocitame
-    // relativne k ZACIATKU RELACIE, nie k realnemu zaciatku suboru.
+    // Programme boundaries: primarily from the EPG (reliable), falling back to the boundaries from the recording
+    // (those tend to be empty/incomplete for an ongoing archive). We compute the offset
+    // relative to the START OF THE PROGRAMME, not to the real start of the file.
     val pStart = if (progStart > 0) progStart else rec.start
     val pStop = if (progStop > progStart && progStop > 0) progStop else rec.stop
     val nowSec = System.currentTimeMillis() / 1000
@@ -757,7 +757,7 @@ private fun playDvrFile(
     context.startActivity(intent)
 }
 
-/** Aktualna relacia z HTSP zoznamu (auto-prechod) alebo z row (HTTP). */
+/** The current programme from the HTSP list (auto-transition) or from the row (HTTP). */
 private fun currentNow(
     row: ChannelRow,
     epgList: List<sk.tvhclient.shared.model.EpgEvent>?,
@@ -785,8 +785,8 @@ private fun ChannelView(
     onShowEpg: (ChannelRow) -> Unit,
     lockTick: Int = 0,
     hiddenTick: Int = 0,
-    onMove: ((Int, Int) -> Unit)? = null,   // M560: presun tahanim (len Oblubene, dotyk)
-    favUuids: Set<String> = emptySet()      // M564: hviezdicka pri oblubenych mimo skupiny Oblubene
+    onMove: ((Int, Int) -> Unit)? = null,   // M560: move by dragging (Favourites only, touch)
+    favUuids: Set<String> = emptySet()      // M564: a star next to favourites outside the Favourites group
 ) {
     when (mode) {
         ChannelViewMode.LIST -> ChannelList(rows, listState, nowSec, epgMap, recordingFor, onRecordingTap, focusUuid, onTopUp, onShowEpg, lockTick, hiddenTick, onMove, favUuids)
@@ -928,17 +928,17 @@ private fun ChannelList(
         EmptyStatus(stringResource(R.string.no_channels))
         return
     }
-    // M560: stav tahania — uuid tahaneho riadka + posun prsta voci jeho aktualnej pozicii.
-    // Riadky su klucovane uuid, takze pri vymene poradia sa composable (aj bezici gesture)
-    // presunie s riadkom; posun sa po kazdej vymene zmensi o vysku riadka.
+    // M560: drag state — the uuid of the dragged row + the finger offset relative to its current position.
+    // The rows are keyed by uuid, so when the order is swapped the composable (and the running gesture)
+    // moves with the row; the offset shrinks by the row height after every swap.
     var dragUuid by remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
     var dragOffset by remember { androidx.compose.runtime.mutableStateOf(0f) }
     val dragScope = androidx.compose.runtime.rememberCoroutineScope()
-    // M583: onMove teraz mapuje indexy na uuid cez aktualne `rows`; pointerInput
-    // (klucovany uuid) by inak drzal lambdu z prvej kompozicie so starymi riadkami
+    // M583: onMove now maps indexes to uuids via the current `rows`; pointerInput
+    // (keyed by uuid) would otherwise hold the lambda from the first composition with the old rows
     val moveNow by androidx.compose.runtime.rememberUpdatedState(onMove)
-    // Pociatocny focus na posledny zvoleny (alebo prvy) kanal -> nech sa pri
-    // starte neoznaci vyhladavacie pole a nevyskoci klavesnica.
+    // Initial focus on the last selected (or the first) channel -> so that at
+    // start the search field is not selected and the keyboard does not pop up.
     val firstFocus = remember { FocusRequester() }
     val jumpFocus = remember { FocusRequester() }
     var jumpTarget by remember { androidx.compose.runtime.mutableStateOf(-1) }
@@ -953,8 +953,8 @@ private fun ChannelList(
             didFocus = true
         }
     }
-    // Skok na index (wrap hore/dole, posun po 5): najprv doscrolluj, pockaj
-    // snimku nech sa polozka vytvori, az potom ju zameraj.
+    // Jump to an index (wrap up/down, step by 5): first scroll there, wait
+    // a frame so the item is created, and only then focus it.
     LaunchedEffect(jumpTarget) {
         val t = jumpTarget
         if (t >= 0) {
@@ -975,17 +975,17 @@ private fun ChannelList(
             val keyMod = focusMod.onPreviewKeyEvent { e ->
                 if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (e.nativeKeyEvent.keyCode) {
-                    // Na 1. kanali hore -> skoc na vyhladavacie pole (a odtial
-                    // dalsim hore na spodne menu). Dole na poslednom -> spodne menu.
+                    // On the 1st channel, up -> jump to the search field (and from there
+                    // with another up to the bottom menu). Down on the last one -> the bottom menu.
                     android.view.KeyEvent.KEYCODE_DPAD_UP ->
                         if (idx == 0) { onTopUp(); true } else false
                     android.view.KeyEvent.KEYCODE_DPAD_LEFT -> {
-                        // -5; ak uz si na zaciatku, skoc na koniec (wrap)
+                        // -5; if you are already at the start, jump to the end (wrap)
                         jumpTarget = if (idx == 0) last else (idx - 5).coerceAtLeast(0)
                         true
                     }
                     android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                        // +5; ak uz si na konci, skoc na zaciatok (wrap)
+                        // +5; if you are already at the end, jump to the start (wrap)
                         jumpTarget = if (idx == last) 0 else (idx + 5).coerceAtMost(last)
                         true
                     }
@@ -998,7 +998,7 @@ private fun ChannelList(
                     itemModifier = keyMod, lockTick = lockTick, hiddenTick = hiddenTick,
                     favorite = row.channel.uuid in favUuids)
             } else {
-                // M560: riadok + rukovat na tahanie; tahany riadok nadvihnuty (posun, tien, okraj)
+                // M560: the row + the drag handle; the dragged row is lifted (offset, shadow, border)
                 val dragging = dragUuid == row.channel.uuid
                 val accent = MaterialTheme.colorScheme.primary
                 Row(
@@ -1039,13 +1039,13 @@ private fun ChannelList(
                                             ?: return@detectDragGestures
                                         val cur = me.index
                                         val h = me.size.toFloat().coerceAtLeast(1f)
-                                        // vymena so susedom, ked je riadok prevlecený cez polovicu jeho vysky
+                                        // swap with the neighbour once the row is dragged past half of its height
                                         if (dragOffset > h / 2f && cur < rows.lastIndex) {
                                             moveNow?.invoke(cur, cur + 1); dragOffset -= h
                                         } else if (dragOffset < -h / 2f && cur > 0) {
                                             moveNow?.invoke(cur, cur - 1); dragOffset += h
                                         }
-                                        // autoscroll pri okrajoch zoznamu
+                                        // autoscroll at the edges of the list
                                         val y = me.offset + dragOffset + h / 2f
                                         val vpStart = info.viewportStartOffset.toFloat()
                                         val vpEnd = info.viewportEndOffset.toFloat()
@@ -1090,8 +1090,8 @@ private fun ChannelItem(
         HiddenChannels.isHidden(context, Tvh.store.active()?.id, row.channel.uuid)
     }
     if (isModernUi()) {
-        // moderny riadok: karta s "Dalej:" a minutami — zdielany komponent;
-        // klasicky riadok nizsie ostava nedotknuty
+        // modern row: a card with "Next:" and the minutes — a shared component;
+        // the classic row below stays untouched
         val next = remember(epgList, curStop, nowSec) {
             epgList?.firstOrNull {
                 it.start >= (if (curStop > 0) curStop else nowSec) && it.title.isNotBlank()
@@ -1207,7 +1207,7 @@ private fun ChannelItem(
                     )
                 }
             }
-            // Aktualna relacia uz vypocitana hore (curTitle/curStart/curStop)
+            // The current programme has already been computed above (curTitle/curStart/curStop)
             if (curTitle != null) {
                 Text(
                     curTitle,
@@ -1230,7 +1230,7 @@ private fun ChannelItem(
                 }
             }
         }
-        // Ikona sipky -> otvori EPG kanala
+        // Arrow icon -> opens the channel's EPG
         Text(
             "\u203A",
             style = MaterialTheme.typography.headlineSmall,

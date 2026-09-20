@@ -8,9 +8,9 @@ import okhttp3.Interceptor
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * Android: OkHttp engine. Auth riesi rovnaky DigestAuthenticator ako picony a
- * prehravanie — pokryje MD5/SHA-256/SHA-512-256 digest aj basic. Tym API vrstva
- * (kanaly/EPG/DVR zoznam) funguje na vsetkych auth konfiguraciach servera.
+ * Android: OkHttp engine. Auth is handled by the same DigestAuthenticator as picons and
+ * playback — it covers MD5/SHA-256/SHA-512-256 digest as well as basic. This makes the API layer
+ * (channel/EPG/DVR list) work with all of the server's auth configurations.
  */
 actual fun tvhHttpClient(server: TvhServer, json: Json): HttpClient {
     val hasCreds = server.username.isNotEmpty()

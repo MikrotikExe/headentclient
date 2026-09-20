@@ -5,14 +5,14 @@ import android.view.KeyEvent
 import androidx.compose.runtime.MutableState
 
 /**
- * M541 / M638: režim usporiadania obľúbených D-padom v zozname kanálov prehrávača
- * (vyclenené z PlayerActivity). Zapína sa z menu kanála v skupine Obľúbené. OK uchopí /
- * položí kanál pod kurzorom, HORE/DOLE uchopený kanál posúvajú (poradie sa uloží hneď a
- * zoznam sa prečísluje), BACK režim ukončí. Nápoveda je v pilulke skupiny
- * ([groupLabel]) — žiadny nový UI kód v PlayerUi.
+ * M541 / M638: D-pad favourites reordering mode in the player's channel list
+ * (split out of PlayerActivity). Switched on from the channel menu in the Favourites group. OK grabs /
+ * drops the channel under the cursor, UP/DOWN move the grabbed channel (the order is saved immediately and
+ * the list is renumbered), BACK ends the mode. The hint is in the group pill
+ * ([groupLabel]) — no new UI code in PlayerUi.
  *
- * M541-fix: uchopený riadok je odlíšený dátami — pred názvom „↕" a namiesto relácie
- * nápoveda; zobrazovaný stav ([liveChannels]) je kópia, LivePlaylist.channels ostáva čistý.
+ * M541-fix: the grabbed row is distinguished by data — "↕" before the name and a hint
+ * instead of the programme; the displayed state ([liveChannels]) is a copy, LivePlaylist.channels stays clean.
  */
 class FavReorder(
     private val ctx: Context,
@@ -41,7 +41,7 @@ class FavReorder(
         active = false
         grabbed = false
         groupLabel.value = groupLabelFor(LivePlaylist.activeGroupKey)
-        liveChannels.value = LivePlaylist.channels   // M541-fix: zrus dekoraciu
+        liveChannels.value = LivePlaylist.channels   // M541-fix: clear the decoration
     }
 
     private fun updateLabel() {
@@ -62,26 +62,26 @@ class FavReorder(
         }
     }
 
-    /** Posun uchopeneho kanala o [dir] (+1 dole / -1 hore) v poradi oblubenych. */
+    /** Moves the grabbed channel by [dir] (+1 down / -1 up) in the favourites order. */
     private fun moveGrabbed(dir: Int) {
         val sid = serverId() ?: return
         val from = navIndex.value
         val to = from + dir
         val order = Favorites.list(ctx, sid)
         if (from !in order.indices || to !in order.indices) return
-        // zobrazovany zoznam Oblubenych = favOrder v tom istom poradi (favChannels),
-        // ale kanaly, ktore server uz nema, v nom chybaju -> mapuj cez uuid
+        // the displayed Favourites list = favOrder in that same order (favChannels),
+        // but channels the server no longer has are missing from it -> map via uuid
         val uuid = liveChannels.value.getOrNull(from)?.uuid ?: return
         val target = liveChannels.value.getOrNull(to)?.uuid ?: return
         val fi = order.indexOf(uuid); val ti = order.indexOf(target)
         if (fi < 0 || ti < 0) return
         Favorites.move(ctx, sid, fi, ti)
-        reapplyFavGroup()   // refreshFavOrder + applyGroup(FAV): precisluje 1..n a prepocita liveIndex
+        reapplyFavGroup()   // refreshFavOrder + applyGroup(FAV): renumbers 1..n and recomputes liveIndex
         navIndex.value = liveUuids().indexOf(uuid).coerceAtLeast(0)
         updateLabel()
     }
 
-    /** Klavesy v rezime usporiadania. Vracia true, ak bola udalost spracovana. */
+    /** Keys in reordering mode. Returns true if the event was handled. */
     fun handleKey(kc: Int, down: Boolean, isOk: Boolean): Boolean {
         if (!active) return false
         val n = liveUuids().size

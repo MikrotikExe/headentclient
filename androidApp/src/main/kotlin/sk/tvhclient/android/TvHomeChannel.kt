@@ -22,20 +22,20 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * M580 — riadok „Obľúbené" na domovskej obrazovke Android TV (preview channel cez
- * TV provider, to iste API, cez ktore maju svoje riadky Netflix / YouTube).
+ * M580 — the "Favourites" row on the Android TV home screen (a preview channel via
+ * the TV provider, the same API through which Netflix / YouTube have their rows).
  *
- * Kazdy oblubeny kanal je dlazdica 16:9 (picon na tmavom podklade), pod nou nazov
- * kanala, „Teraz: relacia · cas" a „Potom: relacia · cas" z now/next EPG. OK na
- * dlazdici spusti prehravac cez deep link (M573). Riadok sa prepisuje spolu so
- * skratkami ([FavoriteShortcuts]) — pri zmene oblubenych a po nacitani kanalov;
- * medzi spusteniami appky sa EPG v riadku samo neobnovuje.
+ * Each favourite channel is a 16:9 tile (picon on a dark background), below it the channel
+ * name, "Now: programme · time" and "Next: programme · time" from the now/next EPG. OK on
+ * a tile starts the player via a deep link (M573). The row is rewritten together with
+ * the shortcuts ([FavoriteShortcuts]) — on a change of favourites and after the channels load;
+ * between app launches the EPG in the row does not refresh by itself.
  *
- * Obrazky dlazdic si launcher stahuje sam, picony za heslom servera by nenacital —
- * preto sa kreslia lokalne do cache a launcheru sa pustia cez [TvHomeImageProvider].
+ * The launcher downloads the tile images itself and would not load picons behind the server password —
+ * so they are drawn locally into the cache and handed to the launcher via [TvHomeImageProvider].
  *
- * Len TV (UI_MODE_TYPE_TELEVISION) a Android 8+ (preview channels). Google TV home
- * riadky appiek zobrazuje inak/menej; na Android TV home (boxy) je to plny riadok.
+ * TV only (UI_MODE_TYPE_TELEVISION) and Android 8+ (preview channels). Google TV home
+ * shows app rows differently/less; on Android TV home (boxes) it is a full row.
  */
 object TvHomeChannel {
 
@@ -49,24 +49,24 @@ object TvHomeChannel {
     }
 
     /**
-     * Prepise riadok podla [favs] (v poradi). [epg] = now/next mapa (uuid -> relacie),
-     * moze byt prazdna — potom sa pouzije now z [ChannelRow]. Volat z IO vlakna.
+     * Rewrites the row according to [favs] (in order). [epg] = now/next map (uuid -> programmes),
+     * may be empty — then the now from [ChannelRow] is used. Call from an IO thread.
      */
     suspend fun publish(app: Context, favs: List<ChannelRow>, epg: Map<String, List<EpgEvent>>) {
         if (!supported(app)) return
         val server = sk.tvhclient.shared.Tvh.store.active() ?: return
         val resolver = app.contentResolver
         if (favs.isEmpty()) {
-            // bez oblubenych riadok nevytvarame (a system by sa pytal na prazdny riadok);
-            // existujuci len vyprazdnime
+            // without favourites we do not create the row (and the system would ask about an empty row);
+            // an existing one we merely empty
             findChannelId(app)?.let { id ->
                 runCatching { resolver.delete(TvContractCompat.buildPreviewProgramsUriForChannel(id), null, null) }
             }
             return
         }
         val channelId = ensureChannel(app) ?: return
-        // Existujuce programy podla uuid -> aktualizuju sa na mieste (nove _ID pri kazdom
-        // prepise by launcheru menili riadok pri kazdej zmene relacie); zvysne sa zmazu.
+        // Existing programmes matched by uuid -> updated in place (a new _ID on every
+        // rewrite would make the launcher change the row on every programme change); the rest are deleted.
         val existing = HashMap<String, Long>()
         runCatching {
             resolver.query(
@@ -97,7 +97,7 @@ object TvHomeChannel {
             val line2 = if (next != null && next.title.isNotBlank()) "$nextLabel ${next.title}" + span(next.start, next.stop) else ""
 
             val poster = posterUri(app, server, row)
-            // intent viazany na tuto appku (nie holy deep link, ktory by mohla prevziat ina appka)
+            // intent bound to this app (not a bare deep link that another app could take over)
             val intent = Intent(Intent.ACTION_VIEW, DeepLink.channelUri(row.channel.uuid), app, MainActivity::class.java)
             val b = PreviewProgram.Builder()
                 .setChannelId(channelId)
@@ -108,8 +108,8 @@ object TvHomeChannel {
                 .setInternalProviderId(row.channel.uuid)
                 .setLive(true)
                 .setWeight(1000 - i)
-            // M580-fix: launcher pri type „kanal" ukazuje pod nazvom len popis (nie episodeTitle)
-            // -> Teraz aj Dalej idu do jedneho popisu
+            // M580-fix: for the "channel" type the launcher shows only the description under the name (not episodeTitle)
+            // -> both Now and Next go into a single description
             val desc = listOf(line1, line2).filter { it.isNotEmpty() }.joinToString("   ")
             if (desc.isNotEmpty()) b.setDescription(desc)
             if (curStart > 0 && curStop > 0) { b.setStartTimeUtcMillis(curStart * 1000); b.setEndTimeUtcMillis(curStop * 1000) }
@@ -126,7 +126,7 @@ object TvHomeChannel {
         for ((uuid, id) in existing) if (uuid !in keep) runCatching { resolver.delete(TvContractCompat.buildPreviewProgramUri(id), null, null) }
     }
 
-    /** Odstrani cely riadok (napr. pri odstraneni servera). */
+    /** Removes the whole row (e.g. when a server is removed). */
     fun remove(app: Context) {
         if (!supported(app)) return
         runCatching { File(app.cacheDir, "tvhome").listFiles()?.forEach { it.delete() } }
@@ -134,7 +134,7 @@ object TvHomeChannel {
         runCatching { app.contentResolver.delete(TvContractCompat.buildChannelUri(id), null, null) }
     }
 
-    // ---- kanal (riadok) ----
+    // ---- channel (row) ----
 
     private fun findChannelId(app: Context): Long? {
         val c = runCatching {
@@ -172,25 +172,25 @@ object TvHomeChannel {
             r.exceptionOrNull()?.let { CrashLogger.report(app, "TvHomeChannel", it) }
             val uri = r.getOrNull() ?: return null
             val newId = ContentUris.parseId(uri)
-            // logo riadku = ikona appky
+            // row logo = app icon
             runCatching {
                 val logo = app.packageManager.getApplicationIcon(app.packageName).toBitmap(160, 160)
                 ChannelLogoUtils.storeChannelLogo(app, newId, logo)
             }
-            // Novy riadok nie je „browsable" — system sa raz spyta, ci ho pridat na domovsku
-            // obrazovku. Existujuci riadok je bud uz povoleny, alebo ho pouzivatel odmietol.
+            // A new row is not "browsable" — the system asks once whether to add it to the home
+            // screen. An existing row has either already been allowed, or the user declined it.
             runCatching { TvContractCompat.requestChannelBrowsable(app, newId) }
             newId
         }
         return id
     }
 
-    // ---- dlazdice ----
+    // ---- tiles ----
 
     /**
-     * 16:9 dlazdica: picon (uz stiahnuty v Coil cache, [PiconImageLoader]) v strede na
-     * tmavom podklade; bez piconu ikona appky. Ulozi sa do cache/tvhome/<uuid>.png a
-     * vrati content:// URI z [TvHomeImageProvider].
+     * 16:9 tile: the picon (already downloaded in the Coil cache, [PiconImageLoader]) centred on
+     * a dark background; without a picon the app icon. It is saved to cache/tvhome/<uuid>.png and
+     * a content:// URI from [TvHomeImageProvider] is returned.
      */
     private suspend fun posterUri(app: Context, server: sk.tvhclient.shared.model.TvhServer, row: ChannelRow): Uri? {
         val logo: Bitmap? = row.piconUrl?.let { FavoriteShortcuts.loadPicon(app, server, it) }
@@ -215,7 +215,7 @@ object TvHomeChannel {
         }
         file.outputStream().use { out.compress(Bitmap.CompressFormat.PNG, 100, it) }
         out.recycle()
-        // M580-fix: vlastny exportovany provider — bez grantov, prezije restart
+        // M580-fix: our own exported provider — no grants, survives a restart
         return TvHomeImageProvider.uriFor(app, file)
     }
 }

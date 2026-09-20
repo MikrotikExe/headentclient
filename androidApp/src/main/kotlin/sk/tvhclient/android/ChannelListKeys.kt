@@ -6,11 +6,11 @@ import android.view.KeyEvent
 import androidx.compose.runtime.MutableState
 
 /**
- * M645: klávesy otvoreného zoznamu kanálov v prehrávači (vyclenené z dispatchKeyEvent).
- * Poradie stráží je správanie: hľadanie (výsledky) → pilulka skupiny (M369) → režim
- * usporiadania (M541) → OK (ochranné okno po otvorení, podržanie = menu kanála,
- * režim „jedno OK" M596) → navigácia (hore z vrchu = pilulka; vľavo/vpravo po 7; BACK).
- * Vráti false len pre hlasitosť (nech ide systému), inak vždy spotrebuje.
+ * M645: keys of the open channel list in the player (split out of dispatchKeyEvent).
+ * The order of the guards is the behaviour: search (results) → group pill (M369) → reorder
+ * mode (M541) → OK (protective window after opening, holding = channel menu,
+ * "single OK" mode M596) → navigation (up from the top = the pill; left/right by 7; BACK).
+ * Returns false only for volume (let it go to the system), otherwise always consumes.
  */
 internal class ChannelListKeys(
     private val ctx: Context,
@@ -26,27 +26,27 @@ internal class ChannelListKeys(
         var okLongFired: Boolean
         fun openContextMenu(idx: Int)
         fun closeList()
-        /** M600-fix: „jedno OK" — zoznam sa zavrie a prepnutie príde s oneskorením (video späť na celú obrazovku). */
+        /** M600-fix: "single OK" — the list closes and the switch comes with a delay (video back to full screen). */
         fun switchDelayed(idx: Int)
         fun selectOrArchive(idx: Int)
-        /** OK na už hrajúcom kanáli: zavri zoznam a ukáž ovládanie / moderný overlay. */
+        /** OK on an already playing channel: close the list and show the controls / the modern overlay. */
         fun reselectCurrent()
     }
 
-    /** Kedy sa zoznam otvoril — OK eventy tesne po otvorení (zvyšky otváracieho dlhého
-     *  stlačenia, ghost DOWN/UP páry z IR/CEC ovládačov) sa ignorujú (M330-fix2). */
+    /** When the list was opened — OK events right after opening (leftovers of the opening long
+     *  press, ghost DOWN/UP pairs from IR/CEC remotes) are ignored (M330-fix2). */
     var openedAt = 0L
 
     fun handleKey(kc: Int, down: Boolean, event: KeyEvent): Boolean {
         val n = live.uuids.size
-        // M370: aktivne hladanie, fokus na vysledkoch (pole riesi skory bypass v aktivite)
+        // M370: active search, focus on the results (the field handles the early bypass in the activity)
         if (search.isActive) {
             if (search.handleResultsKey(kc, down)) return true
             return !DialogKeys.isVolume(kc)
         }
         val isOk = DialogKeys.isOk(kc)
-        // M369: fokus na pilulke skupiny (nad zoznamom) — VLAVO/VPRAVO meni skupinu,
-        // DOLE/OK naspat do zoznamu, HORE hladanie, BACK zavrie pilulku.
+        // M369: focus on the group pill (above the list) — LEFT/RIGHT changes the group,
+        // DOWN/OK back to the list, UP search, BACK closes the pill.
         if (groupPicker.value) {
             if (down) when (kc) {
                 KeyEvent.KEYCODE_DPAD_LEFT -> { groups.cycle(-1); return true }
@@ -58,40 +58,40 @@ internal class ChannelListKeys(
             }
             return !DialogKeys.isVolume(kc)
         }
-        // M541: rezim usporiadania oblubenych ma prednost pred beznou navigaciou
+        // M541: the favourites reorder mode takes precedence over ordinary navigation
         if (reorder.active) {
             if (DialogKeys.isVolume(kc)) return false
             reorder.handleKey(kc, down, isOk)
             return true
         }
         if (isOk) {
-            // pocas drzania otvaracieho OK (a jeho opakovani) nereaguj
+            // do not react while the opening OK (and its repeats) is held
             if (actions.okLongFired) return true
-            // M596: rezim „jedno OK" — kratsie ochranne okno a prepnutie hned
+            // M596: "single OK" mode — a shorter protective window and an immediate switch
             val oneOk = OneOkPref.get(ctx)
-            // debounce po otvoreni: niektore ovladace (IR/CEC) poslu po dlhom
-            // stlaceni este ghost DOWN/UP par — ten by okamzite potvrdil kanal
-            // a zoznam zavrel; vsetko OK do 400 ms od otvorenia sa zahodi
+            // debounce after opening: some remotes (IR/CEC) send another ghost DOWN/UP
+            // pair after a long press — that would immediately confirm the channel
+            // and close the list; every OK within 400 ms of opening is discarded
             val guardMs = if (oneOk) 150L else 400L
             if (SystemClock.uptimeMillis() - openedAt < guardMs) return true
             if (down) {
-                // podrzanie OK v zozname = kontextove menu kanala (Info / od zaciatku / zamok)
+                // holding OK in the list = the channel context menu (Info / from start / lock)
                 if (event.isLongPress && n > 0) {
-                    actions.okLongFired = true               // OK-up sa potom prehltne (nevyberie kanal)
+                    actions.okLongFired = true               // the OK-up is then swallowed (it does not select a channel)
                     actions.openContextMenu(navIndex.value)
                     return true
                 }
-                return true                          // na DOWN nevyberaj (cakame na uvolnenie)
+                return true                          // do not select on DOWN (we wait for the release)
             } else if (n > 0) {
                 if (oneOk) {
-                    // M596-fix/M596-fix2/M600-fix: jedno OK = kanal rovno na celu obrazovku,
-                    // prepina sa az pri UVOLNENI a s oneskorenim po zatvoreni zoznamu
+                    // M596-fix/M596-fix2/M600-fix: a single OK = the channel straight to full screen,
+                    // it switches only on RELEASE and with a delay after the list closes
                     val idx = navIndex.value
                     actions.closeList()
                     if (idx != live.index) actions.switchDelayed(idx)
                     return true
                 }
-                // uvolnenie OK (kratky klik) = vyber/prepnutie kanala
+                // releasing OK (a short click) = selecting/switching the channel
                 if (navIndex.value == live.indexState.value) actions.reselectCurrent()
                 else actions.selectOrArchive(navIndex.value)
             }
@@ -99,7 +99,7 @@ internal class ChannelListKeys(
         }
         if (down && n > 0) when (kc) {
             KeyEvent.KEYCODE_DPAD_UP -> {
-                // z vrchu zoznamu HORE -> fokus na pilulku skupiny (ak su nejake skupiny)
+                // UP from the top of the list -> focus on the group pill (if there are any groups)
                 if (navIndex.value == 0 && groups.keys().size > 1) groupPicker.value = true
                 else navIndex.value = (navIndex.value - 1 + n) % n
                 return true

@@ -3,19 +3,19 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * M494/M497: zapamatanie posledneho ZIVEHO vysielania (TV kanal alebo radio),
- * aby po zapnuti setoboxu appka nabehla rovnako, ako ked ju pustis rucne —
- * teda s nacitanym zoznamom kanalov a spustenym tym istym kanalom.
+ * M494/M497: remembering the last LIVE broadcast (TV channel or radio),
+ * so that after switching the set-top box on the app comes up just as when you start it by hand —
+ * that is, with the channel list loaded and that same channel playing.
  *
- * Archiv sem zamerne NEPATRI: dopozerana nahravka by sa otvarala znova a na
- * pokracovanie v rozpozeranej sluzi WatchProgress.
+ * The archive deliberately does NOT belong here: a recording watched to the end would open again and
+ * WatchProgress serves for resuming one in progress.
  *
- * Zaznam sa zapisuje, kym prehravac bezi, a maze sa vo chvili, ked z neho
- * pouzivatel zamerne odide (BACK na zoznam, zatvorenie). Vdaka tomu sa stav
- * obnovi len vtedy, ked bol prehravac na obrazovke v momente vypnutia — ak
- * pouzivatel skoncil na zozname kanalov, otvori sa zoznam.
+ * The record is written while the player is running and is deleted the moment the
+ * user deliberately leaves it (BACK to the list, closing). Thanks to that the state
+ * is restored only when the player was on screen at the moment of switching off — if the
+ * user ended up on the channel list, the list opens.
  *
- * Funkcia je urcena pre TV/Leanback; na telefone sa neuplatnuje.
+ * The feature is intended for TV/Leanback; on a phone it does not apply.
  */
 object LastPlayback {
     private const val PREFS = "app_prefs"
@@ -25,7 +25,7 @@ object LastPlayback {
 
     private fun prefs(c: Context) = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    /** Zapamataj beziace zive vysielanie. [kind] je "tv" alebo "radio". */
+    /** Remember the running live broadcast. [kind] is "tv" or "radio". */
     fun setLive(c: Context, serverId: String?, channelUuid: String?, kind: String) {
         if (serverId == null || channelUuid.isNullOrBlank()) return
         prefs(c).edit()
@@ -35,7 +35,7 @@ object LastPlayback {
             .apply()
     }
 
-    /** Pouzivatel odisiel z prehravaca — uz niet co obnovovat. */
+    /** The user has left the player — there is nothing left to restore. */
     fun clear(c: Context) {
         prefs(c).edit()
             .remove(KEY_KIND).remove(KEY_SERVER).remove(KEY_UUID)
@@ -43,20 +43,20 @@ object LastPlayback {
     }
 
     /**
-     * M496/M497: poziadavka na obnovenie. Vykona ju UI, nie Activity v onCreate —
-     * prehravac dostava zoznam kanalov cez LivePlaylist a ten pri studenom starte
-     * este nie je naplneny. Priame otvorenie by hralo jediny kanal a CH+/- by
-     * nefungovalo, preto sa pouzije ta ista cesta ako pri autostarte: pocka sa na
-     * nacitanie kanalov/radii a az potom sa spusti.
+     * M496/M497: a request to restore. It is carried out by the UI, not by the Activity in onCreate —
+     * the player gets the channel list through LivePlaylist and on a cold start that is
+     * not yet populated. Opening directly would play a single channel and CH+/- would
+     * not work, which is why the same path as for autostart is used: it waits for the
+     * channels/radios to load and only then starts.
      */
     @Volatile
     var pendingKind: String? = null     // "tv" | "radio" | null
 
-    /** uuid, ktore ma po nacitani zoznamu prednost pred LastChannel/LastRadio. */
+    /** uuid that takes precedence over LastChannel/LastRadio once the list has loaded. */
     @Volatile
     var pendingUuid: String? = null
 
-    /** Priprav obnovenie podla ulozeneho stavu. */
+    /** Prepare the restore from the saved state. */
     fun prepareRestore(c: Context, activeServerId: String?) {
         if (activeServerId == null) return
         val p = prefs(c)
@@ -69,10 +69,10 @@ object LastPlayback {
 }
 
 /**
- * M494/M497: spustit po starte appky posledny zivy kanal? Len TV/Leanback.
+ * M494/M497: start the last live channel after the app starts? TV/Leanback only.
  *
- * Predvolene zapnute — na setoboxe je ocakavane, ze sa po zapnuti vratis na
- * kanal, ktory si pozeral. Kto to nechce, vypne si to v nastaveniach.
+ * On by default — on a set-top box it is expected that after switching on you return to the
+ * channel you were watching. Whoever does not want that turns it off in the settings.
  */
 object ResumeLastPref {
     private const val PREFS = "app_prefs"

@@ -36,7 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// Spolocne UI prvky a pomocnici prehravaca (vyclenene z PlayerActivity.kt kvoli prehladnosti).
+// Shared UI elements and helpers of the player (extracted from PlayerActivity.kt for clarity).
 
 @Composable
 internal fun TrackMenu(
@@ -49,16 +49,16 @@ internal fun TrackMenu(
     onDismiss: () -> Unit
 ) {
     val listState = rememberLazyListState()
-    // M385: zvyraznenie riadka je D-pad fokus — ma zmysel len na TV. Na telefone
-    // (dotyk) inak trvalo svieti vrchny riadok menu (Zvuk / Titulky / Stream profil).
+    // M385: the row highlight is D-pad focus — it only makes sense on TV. On a phone
+    // (touch) the top row of the menu (Audio / Subtitles / Stream profile) was otherwise permanently lit.
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val isTvDevice = remember { isTvUiMode(ctx) }   // M679
     val nav = if (isTvDevice) navIndex else -1
-    // TV D-pad: drz zvyrazneny riadok vo vyhlade pri posuvani
+    // TV D-pad: keep the highlighted row in view while scrolling
     LaunchedEffect(nav) {
         if (nav >= 0) runCatching { listState.animateScrollToItem(nav) }
     }
-    // M558-fix: farby podla rezimu (moderny = tmavomodry panel / teal akcent, klasik nezmeneny)
+    // M558-fix: colours by mode (modern = dark blue panel / teal accent, classic unchanged)
     val modern = isModernUi()
     Box(
         Modifier
@@ -73,7 +73,7 @@ internal fun TrackMenu(
     ) {
         Column(
             Modifier
-                // uzky ohraniceny dialog (nie cez celu sirku TV); riadky vnutri su posuvatelne
+                // a narrow bounded dialog (not across the whole TV width); the rows inside are scrollable
                 .widthIn(min = 280.dp, max = 460.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(if (modern) playerScrim() else Color(0xEE202020))
@@ -85,7 +85,7 @@ internal fun TrackMenu(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(12.dp)
             )
-            // poradie riadkov musi sediet s trackMenuIds() v Activity: [Vypnute] + items (pre titulky)
+            // the order of the rows must match trackMenuIds() in the Activity: [Off] + items (for subtitles)
             val offset = if (allowOff) 1 else 0
             if (items.isEmpty() && !allowOff) {
                 Text(
@@ -150,15 +150,15 @@ internal fun TextChip(label: String, selected: Boolean = false, scale: Float = 1
     }
 }
 
-// Velke stredove tlacidlo play/pauza. Ikonu kreslime cez Canvas, aby
-// pauza nemala farebny "emoji" (VLC) vzhlad a sedela so stylom play trojuholnika.
+// The big central play/pause button. We draw the icon with a Canvas so that
+// the pause does not have a coloured "emoji" (VLC) look and matches the style of the play triangle.
 @Composable
 internal fun PlayPauseButton(isPlaying: Boolean, selected: Boolean, scale: Float = 1f, onClick: () -> Unit) {
     Box(
         Modifier
             .size(76.dp * scale)
             .clip(CircleShape)
-            // play/pauza = primarna akcia -> vzdy modra (odlisena); biely ramik len pri D-pad fokuse (TV)
+            // play/pause = the primary action -> always blue (set apart); a white frame only on D-pad focus (TV)
             .background(playerAccent().copy(alpha = 0.8f))
             .then(if (selected) Modifier.border(3.dp, Color.White, CircleShape) else Modifier)
             .clickable { onClick() },
@@ -168,7 +168,7 @@ internal fun PlayPauseButton(isPlaying: Boolean, selected: Boolean, scale: Float
             val w = size.width
             val h = size.height
             if (isPlaying) {
-                // dve zvisle ciary = pauza
+                // two vertical bars = pause
                 val barW = w * 0.26f
                 val gap = w * 0.18f
                 drawRect(
@@ -182,7 +182,7 @@ internal fun PlayPauseButton(isPlaying: Boolean, selected: Boolean, scale: Float
                     size = androidx.compose.ui.geometry.Size(barW, h)
                 )
             } else {
-                // trojuholnik = play
+                // triangle = play
                 val p = androidx.compose.ui.graphics.Path().apply {
                     moveTo(w * 0.14f, 0f)
                     lineTo(w * 0.14f, h)
@@ -232,36 +232,36 @@ internal fun CircleButton(
     }
 }
 
-// Poradie ovladacich prvkov v paneli prehravaca pre D-pad navigaciu (Activity ich navriguje).
-// Musi sediet s vykreslenim v PlayerUi (rovnaka podmienka canZap).
+// The order of the controls in the player panel for D-pad navigation (the Activity navigates them).
+// Must match the rendering in PlayerUi (the same canZap condition).
 internal fun playerControlOrder(canZap: Boolean, seekable: Boolean = false, pip: Boolean = true, timeshift: Boolean = false, profile: Boolean = false, record: Boolean = false, teletext: Boolean = false): List<String> = buildList {
-    // vlavo
+    // left
     add("close")
     if (pip) add("pip")
     if (canZap) { add("list"); add("epg") }
-    // M554: teletext a info vľavo (pravá skupina bola prepchatá)
+    // M554: teletext and info on the left (the right group was overcrowded)
     if (teletext) add("txt")
     add("info")
-    // stred (transport)
+    // middle (transport)
     if (timeshift) add("tsrew")
     if (canZap) add("prev")
     add("play")
     if (canZap) add("next")
     if (timeshift) add("tsff")
     if (seekable) add("seek")
-    // vpravo — M383: prepinac stream profilu hned za titulkami (len HTTP live)
+    // right — M383: the stream profile switch right after subtitles (HTTP live only)
     add("audio"); add("subs")
     if (profile) add("profile")
-    if (record) add("rec")   // M490: nahrat / zrusit nahravku beziacej relacie
+    if (record) add("rec")   // M490: record / cancel the recording of the running programme
     add("sleep")
 }
 
-// M679: fmtMs presunute do UiTime.kt (spolu s fmtClock/fmtRange)
+// M679: fmtMs moved into UiTime.kt (together with fmtClock/fmtRange)
 
 /**
- * M563: spotrebuje vsetky dotykove udalosti (aj tahanie), aby gesta prehravaca pod
- * overlayom (hlasitost/jas svihnutim, otvorenie zoznamu, prepnutie kanala) nereagovali,
- * kym je otvorene menu. Samotny klik riesi clickable za tymto modifikatorom.
+ * M563: consumes all touch events (including dragging), so that the player gestures under the
+ * overlay (volume/brightness by swipe, opening the list, switching the channel) do not react
+ * while a menu is open. The click itself is handled by the clickable behind this modifier.
  */
 internal fun Modifier.consumeAllPointer(): Modifier = this.pointerInput(Unit) {
     awaitEachGesture {

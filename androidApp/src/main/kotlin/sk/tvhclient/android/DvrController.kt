@@ -11,12 +11,12 @@ import sk.tvhclient.shared.htsp.HtspDvrService
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * M472: vyber spravnej DVR cesty a cache prav.
+ * M472: choosing the right DVR path and caching rights.
  *
- * Appka moze byt na server pripojena cez HTSP alebo HTTP — nahravanie musi
- * fungovat v oboch pripadoch. Tato vrstva rozhodne, ktoru implementaciu
- * pouzit, a drzi si zistene prava, aby sa neoverovali pri kazdom otvoreni
- * detailu programu.
+ * The app can be connected to the server via HTSP or HTTP — recording must
+ * work in both cases. This layer decides which implementation to use, and
+ * holds on to the rights it has determined so that they are not checked on
+ * every opening of a programme detail.
  */
 object DvrController {
 
@@ -26,13 +26,13 @@ object DvrController {
         if (server.connectionMode == "htsp") HtspDvrService(server) else HttpDvrService(server)
 
     /**
-     * Prava pouzivatela; prvykrat sa zistia zo servera, potom sa drzia.
+     * User rights; determined from the server the first time, then held.
      *
-     * M480: VSETKY volania bezia na Dispatchers.IO s casovym stropom. UI ich
-     * spusta z LaunchedEffect, teda z hlavneho vlakna — otvorenie HTSP spojenia
-     * a jeho zatvorenie su blokujuce operacie a appka po nich prestala reagovat
-     * (ANR). Ak server neodpovie do limitu, tvarime sa, ze prava nepoznamé
-     * — radsej nez zamrznut.
+     * M480: ALL calls run on Dispatchers.IO with a time cap. The UI launches them
+     * from LaunchedEffect, i.e. from the main thread — opening an HTSP connection
+     * and closing it are blocking operations, and the app stopped responding after
+     * them (ANR). If the server does not answer within the limit, we pretend the
+     * rights are unknown — better than freezing.
      */
     suspend fun access(server: TvhServer): DvrAccess {
         accessCache[server.id]?.let { return it }
@@ -41,32 +41,32 @@ object DvrController {
                 runCatching { serviceFor(server).access() }.getOrNull()
             }
         }
-        // M519: NEUKLADAJ neuspech natrvalo.
+        // M519: do NOT store failure permanently.
         //
-        // Cache prav nema expiraciu, takze ked prve zistenie zlyhalo alebo
-        // nestihlo 8 s limit, ulozilo sa UNKNOWN a appka az do restartu verila,
-        // ze nahravat sa neda — tlacidlo sa preto raz zobrazilo a inokedy nie,
-        // podla toho, ci sa prve volanie po starte podarilo. Neuspech si preto
-        // nepamatame a pri dalsom pokuse sa prava zistia znova.
+        // The rights cache has no expiry, so when the first check failed or
+        // did not make the 8 s limit, UNKNOWN was stored and the app believed
+        // until a restart that recording was impossible — so the button showed up
+        // once and not another time, depending on whether the first call after
+        // start succeeded. We therefore do not remember failure and re-check the rights next time.
         if (a == null || !a.known) return DvrAccess.UNKNOWN
         accessCache[server.id] = a
         return a
     }
 
-    // ---- M474: uz naplanovane nahravky (aby sa neponukalo dvakrat) ----
+    // ---- M474: already scheduled recordings (so they are not offered twice) ----
     private class Sched(val ts: Long, val list: List<sk.tvhclient.shared.model.DvrEntry>)
     private val schedCache = HashMap<String, Sched>()
     private const val SCHED_TTL_MS = 60_000L
 
     /**
-     * M484: lokalne prekrytie zoznamu nahravok.
+     * M484: local overlay over the list of recordings.
      *
-     * HTSP metadata maju vlastnu 120 s cache (HtspData.metadata), takze tesne po
-     * naplanovani alebo zruseni nahravky chodi zo servera este stary zoznam a UI
-     * by sa dve minuty neprepinalo. Zahodit celu metadata cache nejde — nasledne
-     * otvorenie mriezky by znovu tahalo cele EPG, co je na slabych boxoch drahe.
-     * Drzime si preto lokalne, co sme prave pridali a co zrusili, a na zoznam zo
-     * servera to aplikujeme. Prekrytie sa samo zahodi, len co ho server potvrdi.
+     * HTSP metadata has its own 120 s cache (HtspData.metadata), so right after scheduling
+     * or cancelling a recording the server still returns the old list and the UI would not
+     * switch for two minutes. Discarding the whole metadata cache is not an option — the next
+     * opening of the grid would pull the entire EPG again, which is expensive on weak boxes.
+     * So we keep locally what we have just added and what we have cancelled, and apply that
+     * to the list from the server. The overlay discards itself once the server confirms it.
      */
     private class Pending {
         val added = ArrayList<sk.tvhclient.shared.model.DvrEntry>()
@@ -74,18 +74,18 @@ object DvrController {
     }
     private val pendingOps = HashMap<String, Pending>()
 
-    /** Ta ista relacia? Rovnaky kanal a casovy prekryv — DVR zaznam nema eventId. */
+    /** The same programme? Same channel and time overlap — a DVR entry has no eventId. */
     private fun sameSlot(
         a: sk.tvhclient.shared.model.DvrEntry, b: sk.tvhclient.shared.model.DvrEntry
     ): Boolean = a.channelUuid.isNotBlank() && a.channelUuid == b.channelUuid &&
         a.start < b.stop && b.start < a.stop
 
     /**
-     * Co uz server potvrdil, netreba dalej prekryvat.
+     * What the server has already confirmed no longer needs overlaying.
      *
-     * Prazdny zoznam sa ignoruje — nevieme rozlisit „ziadne nahravky" od
-     * neuspesneho nacitania (timeout vracia tiez prazdno), a zahodit prekrytie
-     * kvoli vypadku spojenia by vratilo UI do stareho stavu.
+     * An empty list is ignored — we cannot tell "no recordings" from a failed
+     * load (a timeout also returns empty), and discarding the overlay because
+     * of a connection drop would return the UI to the old state.
      */
     private fun reconcile(serverId: String, fresh: List<sk.tvhclient.shared.model.DvrEntry>) {
         if (fresh.isEmpty()) return
@@ -95,7 +95,7 @@ object DvrController {
         if (p.added.isEmpty() && p.removed.isEmpty()) pendingOps.remove(serverId)
     }
 
-    /** Zoznam zo servera + nase zmeny, ktore este nestihol premietnut. */
+    /** The list from the server + our changes that it has not managed to reflect yet. */
     private fun overlay(
         serverId: String, list: List<sk.tvhclient.shared.model.DvrEntry>
     ): List<sk.tvhclient.shared.model.DvrEntry> {
@@ -106,11 +106,11 @@ object DvrController {
     }
 
     /**
-     * M608: beziace nahravky zo servera + tie, ktore sme prave naplanovali a este
-     * bezia (relacia uz zacala). V HTSP rezime sa pocas prehravania metadata
-     * neobnovuju (M595 — druhe spojenie by server s limitom 1 odmietol), takze
-     * cervena bodka pri prave naplanovanej nahravke by sa inak ukazala az po
-     * skonceni prehravania. Zoznam zo servera ma prednost, prekryv len dopĺňa.
+     * M608: running recordings from the server + the ones we have just scheduled and that are
+     * already running (the programme has already started). In HTSP mode, metadata is not
+     * refreshed during playback (M595 — a second connection would be refused by a server with
+     * a limit of 1), so the red dot on a just-scheduled recording would otherwise only appear
+     * after playback ended. The list from the server takes precedence, the overlay only adds to it.
      */
     fun overlayInProgress(
         serverId: String, list: List<sk.tvhclient.shared.model.DvrEntry>
@@ -124,8 +124,8 @@ object DvrController {
     }
 
     /**
-     * Naplanovane/beziace nahravky. Kratka cache — zoznam sa pouziva pri kazdom
-     * otvoreni detailu relacie a nema zmysel kvoli tomu zatazovat server.
+     * Scheduled/running recordings. Short cache — the list is used on every opening
+     * of a programme detail and there is no point in loading the server because of that.
      */
     private suspend fun scheduled(server: TvhServer): List<sk.tvhclient.shared.model.DvrEntry> {
         val now = System.currentTimeMillis()
@@ -147,13 +147,13 @@ object DvrController {
                 }.getOrNull()
             }
         }
-        // M518: NEUKLADAJ neuspech do cache.
+        // M518: do NOT store failure in the cache.
         //
-        // `null` = vyprsal 8 s limit alebo volanie zlyhalo. Doteraz sa v takom
-        // pripade ulozil prazdny zoznam a appka celu minutu verila, ze ziadne
-        // nahravky neexistuju — tlacidlo sa preto raz ukazalo ako „Zrusit" a
-        // inokedy ako „Nahrat", podla toho, ci sa nacitanie prave podarilo.
-        // Pri neuspechu radsej vratime posledny znamy stav a skusime nabuduce.
+        // `null` = the 8 s limit expired or the call failed. Until now an empty
+        // list was stored in such a case and the app believed for a whole minute
+        // that no recordings existed — so the button showed up once as "Cancel" and
+        // another time as "Record", depending on whether the load happened to succeed.
+        // On failure we rather return the last known state and try again next time.
         if (list == null) return overlay(server.id, schedCache[server.id]?.list ?: emptyList())
         schedCache[server.id] = Sched(now, list)
         reconcile(server.id, list)          // M484
@@ -161,8 +161,8 @@ object DvrController {
     }
 
     /**
-     * M475: naplanovana nahravka pre danu relaciu (null = ziadna). Vracia cely
-     * zaznam, aby sa dala rovno zrusit — na to treba jej id/uuid.
+     * M475: the scheduled recording for a given programme (null = none). Returns the whole
+     * entry so that it can be cancelled directly — that needs its id/uuid.
      */
     suspend fun scheduledFor(
         server: TvhServer, channelUuid: String, start: Long, stop: Long
@@ -171,15 +171,15 @@ object DvrController {
         sameChannel && r.start < stop && start < r.stop
     }
 
-    /** Po naplanovani nahravky zoznam zneplatni, nech sa hned prejavi v UI. */
+    /** After scheduling a recording, invalidate the list so it shows in the UI immediately. */
     fun invalidateScheduled(serverId: String? = null) {
         if (serverId == null) schedCache.clear() else schedCache.remove(serverId)
     }
 
     /**
-     * M484: volitelny popis relacie (kanal a cas) — po uspesnom naplanovani sa
-     * zaznam hned premietne do zoznamu, aby sa tlacidlo prepislo na „Zrusit"
-     * bez cakania na to, kym sa obnovi cache metadat.
+     * M484: an optional description of the programme (channel and time) — after successful
+     * scheduling the entry is reflected in the list immediately, so that the button switches
+     * to "Cancel" without waiting for the metadata cache to refresh.
      */
     suspend fun recordEvent(
         server: TvhServer,
@@ -188,18 +188,18 @@ object DvrController {
         start: Long = 0,
         stop: Long = 0,
         title: String = "",
-        profile: String? = null   // M606: profil vybrany v dialogu (ma prednost)
+        profile: String? = null   // M606: the profile selected in the dialog (takes precedence)
     ): DvrResult {
-        // M486: nahravaj do profilu zvoleneho v nastaveniach servera; prazdne
-        // = necha rozhodnut server (predvolba konta)
+        // M486: record into the profile selected in the server settings; empty
+        // = let the server decide (the account's default)
         val cfg = profile?.takeIf { it.isNotBlank() } ?: server.dvrConfig.ifBlank { null }
         val r = ioResult { serviceFor(server).recordEvent(eventId, cfg) }
         if (r.success) {
             invalidateScheduled(server.id)   // M474
             if (channelUuid.isNotBlank() && stop > start) {
                 val id = r.id.orEmpty()
-                // M485: relacia, ktora uz bezi, sa zacne nahravat okamzite —
-                // stav musi sediet, inak by detail hlasil „Naplanovane"
+                // M485: a programme that is already running starts recording immediately —
+                // the state must match, otherwise the detail would report "Scheduled"
                 val nowSec = System.currentTimeMillis() / 1000
                 val live = nowSec in start until stop
                 pendingOps.getOrPut(server.id) { Pending() }.added.add(
@@ -215,11 +215,11 @@ object DvrController {
     }
 
     /**
-     * M484: uz naplanovana nahravka tej istej relacie (aj na inom kanali).
+     * M484: an already scheduled recording of the same programme (even on another channel).
      *
-     * Tvheadend novy zaznam vyhodnoti ako duplikat, zmaze ho a cez HTSP vrati len
-     * strohe „Could not add dvrEntry" — konkretny zaznam si teda dohladame podla
-     * nazvu sami, nech vieme pouzivatelovi povedat, kde uz nahravka je.
+     * Tvheadend evaluates the new entry as a duplicate, deletes it and returns over HTSP only
+     * a terse "Could not add dvrEntry" — so we look up the specific entry by title ourselves,
+     * to be able to tell the user where the recording already is.
      */
     suspend fun duplicateOf(
         server: TvhServer, title: String
@@ -229,14 +229,14 @@ object DvrController {
         return scheduled(server).firstOrNull { it.title.trim().lowercase() == key }
     }
 
-    /** M480: operacia na IO vlakne s casovym stropom; timeout = citatelna chyba. */
+    /** M480: the operation on the IO thread with a time cap; timeout = a readable error. */
     private suspend fun ioResult(block: suspend () -> DvrResult): DvrResult =
         withContext(Dispatchers.IO) {
             withTimeoutOrNull(15_000L) {
                 runCatching { block() }.getOrElse { DvrResult.fail(it.message) }
             }
-        // M491: DvrController je objekt bez kontextu, takze hlasku nevie prelozit.
-        // Vrati timeout priznak a text doplni UI.
+        // M491: DvrController is an object without a context, so it cannot translate the message.
+        // It returns a timeout flag and the UI fills in the text.
         } ?: DvrResult.fail(null, timeout = true)
 
     suspend fun cancel(server: TvhServer, id: String): DvrResult {
@@ -252,11 +252,11 @@ object DvrController {
     }
 
     /**
-     * M483: zrusenie/zastavenie a mazanie podla celeho zaznamu.
+     * M483: cancelling/stopping and deleting by the whole entry.
      *
-     * Volajuci nema ako vediet, ci server bezi cez HTSP (ciselne id) alebo HTTP
-     * (hex uuid) — `commandId` vrati to spravne. Pri dokoncenych HTSP nahravkach
-     * je `uuid` hex (kvoli /dvrfile), takze mazanie cez `uuid` by vzdy zlyhalo.
+     * The caller has no way of knowing whether the server runs over HTSP (numeric id) or HTTP
+     * (hex uuid) — `commandId` returns the right one. For finished HTSP recordings
+     * `uuid` is hex (because of /dvrfile), so deleting via `uuid` would always fail.
      */
     suspend fun cancel(server: TvhServer, entry: sk.tvhclient.shared.model.DvrEntry): DvrResult =
         cancel(server, entry.commandId).also { if (it.success) forgetEntry(server.id, entry) }
@@ -264,7 +264,7 @@ object DvrController {
     suspend fun delete(server: TvhServer, entry: sk.tvhclient.shared.model.DvrEntry): DvrResult =
         delete(server, entry.commandId).also { if (it.success) forgetEntry(server.id, entry) }
 
-    /** M484: zruseny/zmazany zaznam skry, kym ho server prestane posielat. */
+    /** M484: hide a cancelled/deleted entry until the server stops sending it. */
     private fun forgetEntry(serverId: String, entry: sk.tvhclient.shared.model.DvrEntry) {
         val p = pendingOps.getOrPut(serverId) { Pending() }
         p.added.removeAll { sameSlot(it, entry) }

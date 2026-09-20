@@ -7,11 +7,11 @@ import sk.tvhclient.shared.model.EpgEvent
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * M663: efekty živej relácie v PlayerUi (vyclenené kvôli 64 KB limitu metódy):
- * sekundový tik [onTick] (liveNowSec) a načítanie plného EPG kanála hneď po prepnutí
- * a potom vždy, keď aktuálna relácia dobehne (popis + ďalšia relácia). Stav relácie
- * drží PlayerUi (progStart/progStop… `by remember(liveChannelUuid)`), sem chodia gettery
- * a jeden callback [onProgramme]. Podmienky a kľúče LaunchedEffect sú zhodné s pôvodným kódom.
+ * M663: live programme effects in PlayerUi (split out because of the 64 KB method limit):
+ * the one-second tick [onTick] (liveNowSec) and loading the channel's full EPG right after a switch
+ * and then whenever the current programme runs out (description + next programme). The programme state is
+ * held by PlayerUi (progStart/progStop… `by remember(liveChannelUuid)`), getters
+ * and a single [onProgramme] callback come in here. The conditions and LaunchedEffect keys are identical to the original code.
  */
 @Composable
 internal fun LiveProgrammeEffects(
@@ -26,15 +26,15 @@ internal fun LiveProgrammeEffects(
 ) {
     if (!seekable && liveChannelUuid != null && server != null) {
         LaunchedEffect(Unit) {
-            // tik kazdu sekundu
+            // tick every second
             while (true) {
                 onTick(System.currentTimeMillis() / 1000)
                 kotlinx.coroutines.delay(1000)
             }
         }
         LaunchedEffect(liveChannelUuid) {
-            // hned po prepnuti nacitaj plne EPG (popis + dalsia relacia),
-            // potom obnovuj ked aktualna relacia dobehne
+            // right after a switch load the full EPG (description + next programme),
+            // then refresh when the current programme runs out
             var firstDone = false
             while (true) {
                 val now = System.currentTimeMillis() / 1000

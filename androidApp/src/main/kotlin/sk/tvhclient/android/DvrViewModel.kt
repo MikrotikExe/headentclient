@@ -13,8 +13,8 @@ import sk.tvhclient.shared.model.DvrEntry
 sealed class DvrState {
     data object Loading : DvrState()
     data object NoServer : DvrState()
-    // channelOrder: meno kanala -> cislo (pre zoradenie archivu ako v zozname)
-    // channelPicons: meno kanala -> picon URL (logo v archive)
+    // channelOrder: channel name -> number (for sorting the archive as in the list)
+    // channelPicons: channel name -> picon URL (the logo in the archive)
     data class Loaded(
         val entries: List<DvrEntry>,
         val channelOrder: Map<String, Int>,
@@ -25,9 +25,9 @@ sealed class DvrState {
 }
 
 /**
- * DVR je read-only archiv (mazanie/planovanie su admin funkcie, tu nie su).
- * Nacita vsetky dokoncene nahravky + zoznam kanalov (pre poradie) raz;
- * navigaciu cez zlozky robi obrazovka v pamati.
+ * DVR is a read-only archive (deleting/scheduling are admin functions, they are not here).
+ * Loads all finished recordings + the list of channels (for the ordering) once;
+ * navigation through folders is done by the screen in memory.
  */
 class DvrViewModel : ViewModel() {
 
@@ -37,16 +37,16 @@ class DvrViewModel : ViewModel() {
     private var loadedOnce = false
     private var reloadToken = -1
 
-    // M589: prebiehajuce obnovenie (tlacidlo „Obnovit") — bez toho sa pri nezmenenom
-    // archive nic viditelne nedialo a vyzeralo to, ze tlacidlo nefunguje.
+    // M589: a refresh in progress (the "Refresh" button) — without it nothing visible happened
+    // with an unchanged archive and it looked as if the button did not work.
     private val _refreshing = MutableStateFlow(false)
     val refreshing: StateFlow<Boolean> = _refreshing
-    // pocitadlo neuspesnych obnoveni (data ostavaju stare) — obrazovka na to
-    // upozorni hlaskou, inak by tichy neuspech vyzeral ako uspech
+    // a counter of failed refreshes (the data stays old) — the screen warns about it
+    // with a message, otherwise a silent failure would look like success
     private val _refreshFailed = MutableStateFlow(0)
     val refreshFailed: StateFlow<Int> = _refreshFailed
 
-    /** Nacita len ak este nemame data, alebo ak sa zmenil server (reload token). */
+    /** Loads only if we do not have data yet, or if the server has changed (reload token). */
     fun loadIfNeeded() {
         val tok = TabController.dataReload.value
         val changed = tok != reloadToken
@@ -55,9 +55,9 @@ class DvrViewModel : ViewModel() {
         load(showLoading = true)
     }
 
-    /** Vynutene obnovenie (napr. tlacidlo) — bez blikania, drzi stare data. */
+    /** A forced refresh (e.g. the button) — without flicker, keeps the old data. */
     fun refresh() {
-        if (_refreshing.value) return   // M589: dvojklik nespusti druhe nacitanie
+        if (_refreshing.value) return   // M589: a double-click does not start a second load
         Tvh.store.active()?.let { sk.tvhclient.shared.htsp.HtspData.clear(it.id) }
         load(showLoading = false, refreshing = true)
     }
@@ -92,16 +92,16 @@ class DvrViewModel : ViewModel() {
                         api.close()
                     }
                 }
-                // M588: server obcas zavrie necinne spojenie („Software caused connection
-                // abort" / reset) alebo telefon prepne Wi-Fi<->LTE. Prvy taky pad sa
-                // potichu zopakuje — do zaznamu ide az druhy neuspech.
+                // M588: the server occasionally closes an idle connection ("Software caused connection
+                // abort" / reset) or the phone switches Wi-Fi<->LTE. The first such failure is
+                // quietly retried — only the second failure goes into the log.
                 val result = try {
                     fetch()
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    // len sietove pady (Ktor ich balí do vlastnych typov — hladame
-                    // IOException v retazci pricin), nie napr. zle prihlasenie
+                    // only network failures (Ktor wraps them in its own types — we look for
+                    // an IOException in the cause chain), not e.g. a bad login
                     val io = generateSequence(e as Throwable) { it.cause }
                         .any { it is java.io.IOException }
                     if (!io) throw e
@@ -119,13 +119,13 @@ class DvrViewModel : ViewModel() {
                 loadedOnce = true
             } catch (e: kotlinx.coroutines.CancellationException) {
                 _refreshing.value = false   // M589
-                throw e   // M588: odchod z obrazovky / novy load nie je chyba
+                throw e   // M588: leaving the screen / a new load is not an error
             } catch (e: Exception) {
-                runCatching { CrashLogger.report(sk.tvhclient.shared.storage.AppContextHolder.context, "DvrViewModel.load", e) }   // M556: doteraz potichu
+                runCatching { CrashLogger.report(sk.tvhclient.shared.storage.AppContextHolder.context, "DvrViewModel.load", e) }   // M556: silent until now
                 if (_state.value !is DvrState.Loaded) {
-                    _state.value = DvrState.Error(e.message ?: "")   // M491: prazdne = UI doplni preklad
+                    _state.value = DvrState.Error(e.message ?: "")   // M491: empty = the UI fills in the translation
                 } else if (refreshing) {
-                    _refreshFailed.value = _refreshFailed.value + 1   // M589: stare data ostavaju
+                    _refreshFailed.value = _refreshFailed.value + 1   // M589: the old data stays
                 }
             } finally {
                 if (refreshing) _refreshing.value = false   // M589

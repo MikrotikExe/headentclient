@@ -1,18 +1,18 @@
 package sk.tvhclient.shared.api
 
 /**
- * M472: vysledok DVR operacie.
+ * M472: result of a DVR operation.
  *
- * `error` je text zo servera (HTSP aj HTTP ho posielaju v citatelnej podobe,
- * napr. "User does not have access") — appka ho zobrazi tak, ako prisiel,
- * nech pouzivatel vie, preco to neproslo.
+ * `error` is the text from the server (both HTSP and HTTP send it in a readable form,
+ * e.g. "User does not have access") — the app displays it exactly as it arrived,
+ * so the user knows why it did not go through.
  */
 data class DvrResult(
     val success: Boolean,
     val error: String? = null,
-    /** ID vytvoreneho zaznamu, ak ho server vratil. */
+    /** ID of the created entry, if the server returned one. */
     val id: String? = null,
-    /** M491: server neodpovedal v limite — text hlasky doplni UI (preklad). */
+    /** M491: the server did not answer within the limit — the message text is filled in by the UI (translation). */
     val timeout: Boolean = false
 ) {
     companion object {
@@ -23,22 +23,22 @@ data class DvrResult(
 }
 
 /**
- * Spolocne rozhranie pre nahravanie — implementuje ho HTSP aj HTTP cesta,
- * takze UI nemusi vediet, ktorou sa pouzivatel pripaja.
+ * Common interface for recording — implemented by both the HTSP and the HTTP path,
+ * so the UI does not need to know which one the user connects through.
  */
 interface DvrService {
-    /** Prava pouzivatela; UI podla nich zobrazi alebo skryje nahravanie. */
+    /** The user's rights; the UI shows or hides recording based on them. */
     suspend fun access(): DvrAccess
 
-    /** Naplanuje nahravku podla EPG udalosti. */
+    /** Schedules a recording for an EPG event. */
     suspend fun recordEvent(eventId: Long, configId: String? = null): DvrResult
 
-    /** Zrusi naplanovanu/beziacu nahravku, zaznam ostane. */
+    /** Cancels a scheduled/running recording, the entry remains. */
     suspend fun cancel(id: String): DvrResult
 
-    /** Zmaze nahravku aj so suborom. */
+    /** Deletes the recording together with its file. */
     suspend fun delete(id: String): DvrResult
 }
 
-/** M472: DVR profil (konfiguracia nahravania) na serveri. */
+/** M472: DVR profile (recording configuration) on the server. */
 data class DvrConfig(val uuid: String, val name: String)

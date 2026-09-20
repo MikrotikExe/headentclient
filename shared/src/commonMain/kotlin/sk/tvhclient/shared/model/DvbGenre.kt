@@ -1,9 +1,9 @@
 package sk.tvhclient.shared.model
 
 /**
- * Mapovanie DVB content-type (horny nibble) na nazov zanru. Prebrate z
- * Enigma2 pluginu (classifier.py _CT_TO_CAT_BASE). Vracia kluc, ktory si
- * UI prelozi cez svoje stringy (SK/CZ/EN), aby zanr respektoval jazyk appky.
+ * Mapping of the DVB content-type (upper nibble) to a genre name. Taken from
+ * the Enigma2 plugin (classifier.py _CT_TO_CAT_BASE). Returns a key which the
+ * UI translates through its own strings (SK/CZ/EN), so the genre respects the app's language.
  *
  * DVB EN 300 468 content_descriptor, level 1 nibble:
  *  1 Film/Drama, 2 News, 3 Show, 4 Sport, 5 Children, 6 Music,
@@ -21,7 +21,7 @@ object DvbGenre {
     const val EDUCATION = "education"
     const val LEISURE = "leisure"
 
-    /** null ak neznamy/0. */
+    /** null if unknown/0. */
     fun keyFor(topNibble: Int): String? = when (topNibble) {
         1 -> FILM
         2 -> NEWS

@@ -6,12 +6,12 @@ import org.videolan.libvlc.util.VLCVideoLayout
 import sk.tvhclient.shared.Tvh
 
 /**
- * M672: odchod prehrávača na pozadie a návrat (telá onStop / onStart, vyclenené z PlayerActivity).
+ * M672: the player going to the background and coming back (the onStop / onStart bodies, split out of PlayerActivity).
  *
- * onStop: uloží pozíciu DVR, v PiP nechá hrať, pri ukončovaní odovzdá libVLC pracovnému vláknu
- * (M535), rádio s voľbou „hrá na pozadí" nechá hrať / odovzdá službe (M623/M624), inak pauza
- * a odpojenie surface. onStart: návrat po standby na TV = nový prehrávač a znovunaladenie
- * (M540), rodičovský zámok = PIN znova (M263), inak attachViews + play.
+ * onStop: saves the DVR position, in PiP keeps playing, when finishing hands libVLC to a worker thread
+ * (M535), radio with the "plays in background" option keeps playing / is handed to the service (M623/M624), otherwise pause
+ * and detach the surface. onStart: return after standby on TV = a new player and retuning
+ * (M540), parental lock = PIN again (M263), otherwise attachViews + play.
  */
 internal class BackgroundResume(
     private val activity: Activity,
@@ -35,41 +35,41 @@ internal class BackgroundResume(
     }
 
     private var wasPlaying = false
-    /** M540: kedy sme naposledy isli do pozadia (elapsedRealtime). */
+    /** M540: when we last went to the background (elapsedRealtime). */
     private var stoppedAt = 0L
 
-    /** Volať z onStop PRED super.onStop(); vráti true, ak má aktivita hned zavolať super a skončiť (PiP). */
+    /** Call from onStop BEFORE super.onStop(); returns true if the activity should call super immediately and finish (PiP). */
     fun onStopBeforeSuper(): Boolean {
         stoppedAt = SystemClock.elapsedRealtime()
         hooks.saveDvrProgress()
-        // PiP okno nechaj hrat LEN ak sme realne v PiP (vlastny priznak z callbacku, nie zivy
-        // isInPictureInPictureMode - ten pri zatvarani PiP casto este hlasi true) a appka len ide
-        // na pozadie. Ak sa aktivita ukoncuje, prepadni dole a zastav prehravanie.
+        // Let the PiP window keep playing ONLY if we really are in PiP (our own flag from the callback, not the live
+        // isInPictureInPictureMode - that one often still reports true while PiP is closing) and the app is only going
+        // to the background. If the activity is finishing, fall through and stop playback.
         if (android.os.Build.VERSION.SDK_INT >= 24 && hooks.inPip() && !activity.isFinishing) return true
         wasPlaying = engine.ready && engine.player.isPlaying
         return false
     }
 
-    /** Volať z onStop PO super.onStop() (keď [onStopBeforeSuper] vrátil false). */
+    /** Call from onStop AFTER super.onStop() (when [onStopBeforeSuper] returned false). */
     fun onStopAfterSuper() {
         if (!engine.ready) return
         val mp = engine.player
         if (activity.isFinishing) {
-            // M535: stop() sa NESMIE volat na hlavnom vlakne — pozri teardownPlayerAsync
+            // M535: stop() MUST NOT be called on the main thread — see teardownPlayerAsync
             hooks.teardownPlayerAsync()
             return
         }
-        // M623: "Radio hra na pozadi" — zhasnutie/zamok/ina appka radio nepozastavi.
-        // HOME riesi onUserLeaveHint (handoff + finish -> vetva vyssie); sem sa
-        // dostane zhasnutie obrazovky a prekrytie inou aktivitou. Moderny
-        // rezim (M624: aj klasik na telefone): handoff do RadioPlayerService
-        // (notifikacia + mini lista; finish() -> onDestroy uvolni tento prehravac).
-        // Kde handoff nie je (TV), ostane hrat samotny prehravac — wake/wifi lock
-        // (M452) drzi az do onDestroy; surface neodpajame, po navrate onStart len
-        // znova attachViews (runCatching).
-        // TV: ziadny handoff — TvHomeHost nema mini listu, radio by hralo bez ovladania;
-        // prehravac ostane hrat sam (napr. prekryty inou appkou; po standby M540
-        // v onStart prehravac obnovi a naladi znova).
+        // M623: "Radio plays in background" — screen off/lock/another app does not pause the radio.
+        // HOME is handled by onUserLeaveHint (handoff + finish -> the branch above); what gets
+        // here is the screen turning off and being covered by another activity. Modern
+        // mode (M624: classic on a phone too): handoff to RadioPlayerService
+        // (notification + mini bar; finish() -> onDestroy releases this player).
+        // Where there is no handoff (TV), the player itself keeps playing — the wake/wifi lock
+        // (M452) holds until onDestroy; we do not detach the surface, on return onStart only
+        // does attachViews again (runCatching).
+        // TV: no handoff — TvHomeHost has no mini bar, the radio would play with no controls;
+        // the player stays playing on its own (e.g. covered by another app; after standby M540
+        // onStart recreates the player and retunes).
         if (wasPlaying && hooks.radioBackground()) {
             if (hooks.isTvDevice() || !hooks.radioHandoffIfPossible()) {
                 CrashLogger.report(activity, "PlayerActivity.radioBg", "keep playing in background (tv=${hooks.isTvDevice()})")
@@ -79,22 +79,22 @@ internal class BackgroundResume(
         if (mp.isPlaying) {
             mp.pause()
         }
-        // uvolni surface, nech sa po navrate da znova pripojit (inak cierna obrazovka)
+        // release the surface so it can be attached again after returning (otherwise a black screen)
         runCatching { mp.detachViews() }
     }
 
-    /** Volať z onStart po super.onStart(). */
+    /** Call from onStart after super.onStart(). */
     fun onStart() {
-        // navrat z pozadia: znova pripoj video na surface a obnov prehravanie
+        // return from the background: attach the video to the surface again and resume playback
         if (!engine.ready) return
         val mp = engine.player
         val seekable = hooks.seekable()
         val curUuid = live.uuids.getOrNull(live.index)
         val locked = wasPlaying && !seekable && !hooks.pinPromptShown() &&
             ParentalLock.channelLockedProtected(activity, live.server?.id ?: Tvh.store.active()?.id, curUuid)
-        // M540: navrat po standby (obrazovka zhasla, kym sme boli zastaveni) — na
-        // Amlogicu je stary AudioTrack po prebudeni mrtvy (M539). Namiesto 5 s
-        // cakania na hlidac rovno novy prehravac a znovunaladenie; PIN plati dalej.
+        // M540: return after standby (the screen went off while we were stopped) — on
+        // Amlogic the old AudioTrack is dead after wake-up (M539). Instead of 5 s
+        // waiting for the watchdog, go straight to a new player and retune; the PIN still applies.
         if (wasPlaying && !seekable && !engine.tornDown && hooks.isTvDevice() &&
             WakeTracker.screenWentOffSince(stoppedAt)
         ) {
@@ -113,11 +113,11 @@ internal class BackgroundResume(
             return
         }
         hooks.videoLayout()?.let { runCatching { mp.attachViews(it, null, false, false) } }
-        // rodicovsky zamok: ak sa vraciame z pozadia na zamknuty ZIVY kanal,
-        // vyziadaj PIN znova (kazdy navrat do prehravaca = PIN, ako pri starte).
+        // parental lock: if we are returning from the background to a locked LIVE channel,
+        // ask for the PIN again (every return to the player = PIN, as at start).
         if (locked) {
             runCatching { if (mp.isPlaying) mp.pause() }
-            ParentalLock.clearGrace(activity)   // M263: rovnako ako pri starte
+            ParentalLock.clearGrace(activity)   // M263: same as at start
             hooks.requestPin(
                 onOk = { runCatching { engine.player.play() } },
                 onCancel = { activity.finish() },

@@ -3,16 +3,16 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * M391: reset per-server dat po zmene sposobu pripojenia (HTSP <-> HTTP).
- * Kazdy rezim ma vlastny priestor identifikatorov kanalov/EPG/archivu, takze
- * po prepnuti su vsetky ulozene id neplatne — stara cache by viedla na
- * HTTP 400 pri streame a pomiesane EPG (M390).
+ * M391: reset of per-server data after the connection method changes (HTSP <-> HTTP).
+ * Each mode has its own namespace of channel/EPG/archive identifiers, so
+ * after switching all stored ids are invalid — the old cache would lead to
+ * HTTP 400 on the stream and mixed-up EPG (M390).
  *
- * Co sa maze: EPG cache (mriezka + live), posledny kanal / stanica,
- * playlist v pamati. HtspData a dataReload riesi ServersViewModel.save().
- * Oblubene / skryte kanaly / rodicovske zamky su tiez viazane na id — tie
- * nemazeme (pouzivatel by o ne prisiel), po prepnuti jednoducho prestanu
- * sediet a treba ich nastavit znova.
+ * What gets cleared: EPG cache (grid + live), last channel / station,
+ * in-memory playlist. HtspData and dataReload are handled by ServersViewModel.save().
+ * Favourites / hidden channels / parental locks are tied to ids too — we do not
+ * clear those (the user would lose them), after switching they simply stop
+ * matching and have to be set up again.
  */
 object ServerDataReset {
     fun onConnectionModeChanged(ctx: Context, serverId: String) {

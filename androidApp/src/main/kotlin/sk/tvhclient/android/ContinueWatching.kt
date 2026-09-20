@@ -45,11 +45,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import sk.tvhclient.shared.Tvh
 
 /**
- * "Pokracovat v pozerani" (M333) — vodorovny rad rozpozeranych nahravok na
- * domovskej obrazovke (telefon aj TV, len moderny rezim). Data: prienik
- * WatchProgress (lokalne pozicie) a nacitanych DVR poloziek. Dopozerane a
- * polozky pod 1 min sa nezobrazuju; klik pokracuje cez playDvr (resume dialog
- * / logika prehravaca ostava nedotknuta).
+ * "Continue watching" (M333) — a horizontal row of partly watched recordings on
+ * the home screen (phone and TV, modern mode only). Data: the intersection of
+ * WatchProgress (local positions) and the loaded DVR items. Finished items and
+ * items under 1 min are not shown; a click continues via playDvr (the resume dialog
+ * / the player logic stays untouched).
  */
 @Composable
 internal fun ContinueWatchingRail(
@@ -65,7 +65,7 @@ internal fun ContinueWatchingRail(
     val st by dvrVm.state.collectAsState()
     val entries = (st as? DvrState.Loaded)?.entries ?: return
 
-    // obnova po navrate z prehravaca (nova pozicia/dopozerane)
+    // refresh after returning from the player (new position/finished)
     var tick by remember { mutableStateOf(0) }
     val owner = LocalLifecycleOwner.current
     DisposableEffect(owner) {

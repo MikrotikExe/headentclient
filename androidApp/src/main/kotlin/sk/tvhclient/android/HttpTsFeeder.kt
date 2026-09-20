@@ -14,15 +14,15 @@ import java.io.FileDescriptor
 import java.io.OutputStream
 
 /**
- * M253 — premostí HTTP stream (dvrfile/<uuid>) do libVLC cez lokalny pipe.
- * Dovod: libVLC dostava URL s creds ako user:pass@host, co funguje len pre
- * plain/basic auth; digest-only server vrati 401 a archiv nehra. Tu stahuje
- * appka sama cez OkHttp + DigestAuthenticator (rovnako ako picony v M251),
- * takze digest aj basic su pokryte identicky ako curl --digest.
+ * M253 — bridges the HTTP stream (dvrfile/<uuid>) into libVLC through a local pipe.
+ * Reason: libVLC gets the URL with creds as user:pass@host, which only works for
+ * plain/basic auth; a digest-only server returns 401 and the archive does not play. Here the
+ * app downloads it itself via OkHttp + DigestAuthenticator (the same as the picons in M251),
+ * so digest and basic are both covered identically to curl --digest.
  *
- * Seek: pipe sa neda seekovat, takze pripadny start-offset riesime HTTP
- * Range hlavickou (Tvheadend dvrfile Range podporuje). `startByte` = od ktoreho
- * bajtu zacat (0 = od zaciatku).
+ * Seek: a pipe cannot be seeked, so any start offset is handled with the HTTP
+ * Range header (Tvheadend dvrfile supports Range). `startByte` = which byte to
+ * start from (0 = from the beginning).
  */
 class HttpTsFeeder(
     private val server: TvhServer,
@@ -35,17 +35,17 @@ class HttpTsFeeder(
     private var writePfd: ParcelFileDescriptor? = null
     private var out: OutputStream? = null
 
-    /** Kolko bajtov uz preteklo (pre pokracovanie in-progress cez Range). */
+    /** How many bytes have already flowed through (for continuing an in-progress one via Range). */
     @Volatile var bytesWritten: Long = startByte
         private set
 
-    /** Celkova velkost suboru na serveri (z Content-Range "/N" alebo Content-Length).
-     *  Pri in-progress nahravke rastie. 0 = zatial nezname. Pouziva sa na presny
-     *  prepocet cas->byte pri pretacani (globalny priemerny bitrate). */
+    /** Total size of the file on the server (from Content-Range "/N" or Content-Length).
+     *  With an in-progress recording it grows. 0 = not known yet. Used for the precise
+     *  time->byte conversion when seeking (global average bitrate). */
     @Volatile var totalBytes: Long = 0L
         private set
 
-    /** Spusti stahovanie a vrati read FileDescriptor pre Media(libVlc, fd). */
+    /** Starts the download and returns the read FileDescriptor for Media(libVlc, fd). */
     fun start(scope: CoroutineScope): FileDescriptor {
         val pipe = ParcelFileDescriptor.createPipe()
         val read = pipe[0]
@@ -83,7 +83,7 @@ class HttpTsFeeder(
         job = scope.launch(Dispatchers.IO) {
             try {
                 ok.newCall(req).execute().use { resp ->
-                    // celkova velkost suboru: z Content-Range "bytes A-B/TOTAL", inak Content-Length
+                    // total file size: from Content-Range "bytes A-B/TOTAL", otherwise Content-Length
                     val cr = resp.header("Content-Range")
                     val total = cr?.substringAfter('/', "")?.toLongOrNull()
                         ?: resp.header("Content-Length")?.toLongOrNull()
@@ -99,7 +99,7 @@ class HttpTsFeeder(
                     }
                 }
             } catch (_: Throwable) {
-                // zrusenie / zlomeny pipe / chyba spojenia
+                // cancellation / broken pipe / connection error
             } finally {
                 try { os.close() } catch (_: Throwable) {}
             }

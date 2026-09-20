@@ -6,11 +6,11 @@ import androidx.compose.runtime.LaunchedEffect
 import org.videolan.libvlc.MediaPlayer
 
 /*
- * M662: auto-výber audio stopy vyčlenený z PlayerUi (PlayerActivity.kt) — limit 64 kB na metódu.
- * Telo 1:1; volajúci odovzdáva prehrávač, kontext a preferencie ako hodnoty.
+ * M662: automatic audio-track selection split out of PlayerUi (PlayerActivity.kt) — the 64 kB method limit.
+ * Body 1:1; the caller passes the player, the context and the preferences as values.
  */
 
-/** Auto-výber audio stopy po načítaní média (zapamätaná pre kanál / jazykové priority / mimo AD). */
+/** Automatic audio-track selection after the media loads (remembered for the channel / language priorities / non-AD). */
 @Composable
 internal fun AudioAutoSelectEffect(
     player: MediaPlayer,
@@ -19,10 +19,10 @@ internal fun AudioAutoSelectEffect(
     serverId: String?,
     preferredAudio: List<String>
 ) {
-    // Auto-vyber audio stopy po nacitani: 1) zapamatana pre kanal, 2) jazykove
-    // priority (AD/narrated stopy preskakujeme), 3) fallback mimo AD stopy.
-    // M378: kluc = liveChannelUuid, nech vyber prebehne aj pri prepnuti kanala
-    // v ramci prehravaca (predtym LaunchedEffect(Unit) bezal len raz).
+    // Automatic audio-track selection after loading: 1) remembered for the channel, 2) language
+    // priorities (AD/narrated tracks are skipped), 3) fallback to a non-AD track.
+    // M378: key = liveChannelUuid, so that the selection also runs when the channel is switched
+    // within the player (previously LaunchedEffect(Unit) ran only once).
     LaunchedEffect(liveChannelUuid) {
         repeat(30) {
             kotlinx.coroutines.delay(500)
@@ -39,9 +39,9 @@ internal fun AudioAutoSelectEffect(
                     }
                 }
                 for (code in preferredAudio) {
-                    // M378: v ramci jazyka preferuj beznu stopu pred AD/narrated
-                    // (obe casto nesu rovnaky jazykovy kod, napr. "English" a
-                    // "English AD" — predtym vyhrala ta, co bola v zozname prva)
+                    // M378: within a language prefer a normal track over AD/narrated
+                    // (both often carry the same language code, e.g. "English" and
+                    // "English AD" — previously the one first in the list won)
                     val cands = real.filter { AudioPref.matches(it.name ?: "", code) }
                     val m = cands.firstOrNull { !AudioPref.isDescriptive(it.name ?: "") }
                         ?: cands.firstOrNull()
@@ -50,9 +50,9 @@ internal fun AudioAutoSelectEffect(
                         return@LaunchedEffect
                     }
                 }
-                // M378: ziadna jazykova zhoda — ak by default (aktualna stopa)
-                // bol AD/narrated, prepni na prvu beznu stopu. Riesi kanaly,
-                // kde je AD stopa prva v poradi a vyhrala by ako default.
+                // M378: no language match — if the default (the current track)
+                // were AD/narrated, switch to the first normal track. Handles channels
+                // where the AD track is first in order and would win as the default.
                 val curName = real.firstOrNull { it.id == player.audioTrack }?.name ?: ""
                 if (AudioPref.isDescriptive(curName)) {
                     val plain = real.firstOrNull { !AudioPref.isDescriptive(it.name ?: "") }

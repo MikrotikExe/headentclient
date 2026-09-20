@@ -1,17 +1,17 @@
 package sk.tvhclient.shared.htsp
 
 /**
- * Vlastný dekodér DVB titulkov (ETSI EN 300 743) — portovaný z overeného FFmpeg
- * libavcodec/dvbsubdec.c. Vstup: holé titulkové segmenty z HTSP (jeden display-set
- * na volanie decode()). Výstup: zložená RGBA stránka (DecodedPage) pripravená na
- * vykreslenie ako overlay nad videom. libVLC sa titulkov vôbec nedotýka, takže
- * o zobrazení rozhodujeme len my a nič sa nezahadzuje.
+ * Custom DVB subtitle decoder (ETSI EN 300 743) — ported from the proven FFmpeg
+ * libavcodec/dvbsubdec.c. Input: bare subtitle segments from HTSP (one display-set
+ * per decode() call). Output: a composed RGBA page (DecodedPage) ready to be
+ * drawn as an overlay on top of the video. libVLC does not touch the subtitles at all, so
+ * we alone decide about the display and nothing gets dropped.
  *
- * Farby sú v ARGB_8888 (0xAARRGGBB), priamo použiteľné pre Android Bitmap.
+ * Colours are in ARGB_8888 (0xAARRGGBB), directly usable for an Android Bitmap.
  */
 class DvbSubtitleDecoder {
 
-    /** Zložená titulková stránka. pixels==null alebo isEmpty=true znamená "skry titulok". */
+    /** Composed subtitle page. pixels==null or isEmpty=true means "hide the subtitle". */
     class DecodedPage(
         val pts: Long,
         val timeoutMs: Int,
@@ -35,7 +35,7 @@ class DvbSubtitleDecoder {
         var depth = 0
         var clutId = 0
         var bgcolor = 0
-        var pbuf = ByteArray(0)   // CLUT indexy
+        var pbuf = ByteArray(0)   // CLUT indices
     }
 
     private class ObjDisplay(val objectId: Int, val regionId: Int, val xPos: Int, val yPos: Int)
@@ -48,7 +48,7 @@ class DvbSubtitleDecoder {
     private var pageTimeOut = 0
     private var pageVersion = -1
 
-    // display definition (rozlíšenie titulkovej plochy); default 720x576
+    // display definition (resolution of the subtitle surface); default 720x576
     private var ddsW = 720
     private var ddsH = 576
     private var ddsX = 0
@@ -57,7 +57,7 @@ class DvbSubtitleDecoder {
 
     private val defaultClut = Clut().also { buildDefaultClut(it) }
 
-    /** Resetuj celý stav (pri prepnutí kanála / jazyka). */
+    /** Reset the whole state (on channel / language switch). */
     fun reset() {
         regions.clear(); cluts.clear(); objectDisplays.clear()
         pageDisplays = ArrayList(); pageTimeOut = 0; pageVersion = -1
@@ -65,9 +65,9 @@ class DvbSubtitleDecoder {
     }
 
     /**
-     * Dekóduj jeden display-set. data = obsah jedného HTSP muxpkt titulku (zreťazené
-     * segmenty 0x0F ...). Vráti zloženú stránku, alebo null ak set neukončil display
-     * (chýba 0x80) — v praxi HTSP posiela kompletný set, takže vracia vždy.
+     * Decode one display-set. data = the contents of one HTSP muxpkt subtitle (concatenated
+     * segments 0x0F ...). Returns the composed page, or null if the set did not end the display
+     * (0x80 missing) — in practice HTSP sends a complete set, so it always returns one.
      */
     fun decode(pts: Long, data: ByteArray): DecodedPage? {
         var i = 0
@@ -88,11 +88,11 @@ class DvbSubtitleDecoder {
             }
             i = segStart + segLen
         }
-        // ak set neobsahoval 0x80 (nemalo by sa stať), zlož aj tak
+        // if the set did not contain 0x80 (should not happen), compose it anyway
         return produced ?: compose(pts)
     }
 
-    // ---- segment parsery ----
+    // ---- segment parsers ----
 
     private fun parsePage(d: ByteArray, off: Int, len: Int) {
         if (len < 2) return
@@ -146,7 +146,7 @@ class DvbSubtitleDecoder {
         }
         if (fill == 1) region.pbuf.fill(region.bgcolor.toByte())
 
-        // delete_region_display_list pre tento región, potom pridaj nové objekty
+        // delete_region_display_list for this region, then add the new objects
         objectDisplays.removeAll { it.regionId == regionId }
         while (p + 5 < off + len) {
             val objectId = ((d[p].toInt() and 0xFF) shl 8) or (d[p + 1].toInt() and 0xFF)
@@ -154,7 +154,7 @@ class DvbSubtitleDecoder {
             val yPos = (((d[p + 4].toInt() and 0xFF) shl 8) or (d[p + 5].toInt() and 0xFF)) and 0x0FFF
             val objType = (d[p + 2].toInt() and 0xFF) ushr 6
             p += 6
-            if ((objType == 1 || objType == 2) && p + 1 < off + len) p += 2  // fg/bg color (preskoč)
+            if ((objType == 1 || objType == 2) && p + 1 < off + len) p += 2  // fg/bg color (skip)
             if (xPos < region.width && yPos < region.height) {
                 objectDisplays.add(ObjDisplay(objectId, regionId, xPos, yPos))
             }
@@ -165,7 +165,7 @@ class DvbSubtitleDecoder {
         var p = off
         val clutId = d[p++].toInt() and 0xFF
         val version = ((d[p++].toInt() and 0xFF) ushr 4) and 0x0F
-        val clut = cluts.getOrPut(clutId) { Clut() }   // vynulovana (nedefinovane = priehladne)
+        val clut = cluts.getOrPut(clutId) { Clut() }   // zeroed out (undefined = transparent)
         if (clut.version == version) return
         clut.version = version
         val end = off + len
@@ -203,7 +203,7 @@ class DvbSubtitleDecoder {
         val b = d[p++].toInt() and 0xFF
         val codingMethod = (b ushr 2) and 3
         val nonMod = (b ushr 1) and 1
-        if (codingMethod != 0) return   // 1/2 (text/progresívne) nepodporované, ako FFmpeg
+        if (codingMethod != 0) return   // 1/2 (text/progressive) not supported, same as FFmpeg
         if (p + 4 > off + len) return
         val topLen = ((d[p].toInt() and 0xFF) shl 8) or (d[p + 1].toInt() and 0xFF); p += 2
         val botLen = ((d[p].toInt() and 0xFF) shl 8) or (d[p + 1].toInt() and 0xFF); p += 2
@@ -296,7 +296,7 @@ class DvbSubtitleDecoder {
         fun bytesConsumed() = (bitPos + 7) ushr 3
     }
 
-    /** Vráti (newXPos, bytesConsumed). Pri skipe (non-mod) posunie pozíciu bez prepisu. */
+    /** Returns (newXPos, bytesConsumed). On a skip (non-mod) it advances the position without overwriting. */
     private fun read2bit(dest: ByteArray, destOff: Int, dbufLen: Int, src: ByteArray, srcOff: Int, srcLen: Int, nonMod: Int, map: IntArray?, xPosIn: Int): Pair<Int, Int> {
         val gb = BitReader(src, srcOff, srcLen)
         var pixels = xPosIn
@@ -334,7 +334,7 @@ class DvbSubtitleDecoder {
                 }
             }
         }
-        gb.getBits(6)   // FFmpeg parity: dočítaj koncový/zarovnávaci kód reťazca, nech kurzor sedí
+        gb.getBits(6)   // FFmpeg parity: read the terminating/padding code of the string so the cursor lines up
         return Pair(pixels, gb.bytesConsumed())
     }
 
@@ -378,7 +378,7 @@ class DvbSubtitleDecoder {
                 }
             }
         }
-        gb.getBits(8)   // FFmpeg parity: dočítaj koncový/zarovnávaci kód 4-bit reťazca
+        gb.getBits(8)   // FFmpeg parity: read the terminating/padding code of the 4-bit string
         return Pair(pixels, gb.bytesConsumed())
     }
 
@@ -407,11 +407,11 @@ class DvbSubtitleDecoder {
                 while (run-- > 0 && pixels < dbufLen) { if (v >= 0) dest[d] = v.toByte(); d++; pixels++ }
             }
         }
-        if (i < end) i++   // FFmpeg parity: dočítaj koncový bajt 8-bit reťazca
+        if (i < end) i++   // FFmpeg parity: read the terminating byte of the 8-bit string
         return Pair(pixels, i - srcOff)
     }
 
-    // ---- kompozícia ----
+    // ---- composition ----
 
     private fun compose(pts: Long): DecodedPage {
         val w = ddsW
@@ -445,7 +445,7 @@ class DvbSubtitleDecoder {
         return DecodedPage(pts, pageTimeOut * 1000, w, h, if (painted) out else null, !painted)
     }
 
-    // ---- farby ----
+    // ---- colours ----
 
     private fun yuvToArgb(y0: Int, cb0: Int, cr0: Int, alpha: Int): Int {
         val cb = cb0 - 128

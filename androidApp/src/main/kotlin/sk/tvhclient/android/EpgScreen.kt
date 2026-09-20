@@ -52,10 +52,10 @@ fun EpgScreen(channelUuid: String, channelName: String, onBack: () -> Unit) {
     var state by remember { mutableStateOf<EpgState>(EpgState.Loading) }
     var detail by remember { mutableStateOf<EpgEvent?>(null) }
 
-    // Systemove tlacidlo Spat zavrie EPG (navrat na zoznam), nie celu appku
+    // The system Back button closes the EPG (returns to the list), not the whole app
     BackHandler { onBack() }
 
-    // Detail relacie ako samostatna obrazovka
+    // Programme detail as a separate screen
     val sel = detail
     if (sel != null) {
         EpgDetailScreen(event = sel, onBack = { detail = null })
@@ -121,7 +121,7 @@ private fun EpgList(events: List<EpgEvent>, onClick: (EpgEvent) -> Unit) {
     }
     val now = currentTimeSeconds()
 
-    // Zoskupenie po dnoch (label podla zaciatku)
+    // Grouping by days (label taken from the start)
     val grouped = events.groupBy { formatDayLabel(it.start) }
 
     LazyColumn(Modifier.fillMaxSize()) {
@@ -159,8 +159,8 @@ private fun EpgRow(ev: EpgEvent, isNow: Boolean, onClick: () -> Unit) {
             color = if (isNow) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
-            // M425: pevnych 56.dp stacilo na "23:30", ale nie na "11:30 PM" —
-            // text sa zalomil na dva riadky a rozhodil vysku riadka zoznamu.
+            // M425: a fixed 56.dp was enough for "23:30" but not for "11:30 PM" —
+            // the text wrapped onto two lines and threw off the list row height.
             modifier = Modifier.widthIn(min = 56.dp)
         )
         Spacer(Modifier.width(8.dp))

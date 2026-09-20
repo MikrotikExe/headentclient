@@ -63,11 +63,11 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Moderny UI rezim TV domovskej obrazovky (UiModePref.MODERN): hero karta
- * s aktualnym programom naposledy sledovaneho kanala (nazov, cas, progres,
- * "Dalej:"), rad oblubenych kanalov s prave beziacimi relaciami a navigacne
- * dlazdice. Data berie z tych istych zdrojov ako klasicky rezim (ChannelsState,
- * epgMap, Favorites, LastChannel) — nic nove sa nenacitava.
+ * Modern UI mode of the TV home screen (UiModePref.MODERN): a hero card
+ * with the current programme of the last watched channel (name, time, progress,
+ * "Next:"), a row of favourite channels with their currently running programmes and navigation
+ * tiles. It takes data from the same sources as classic mode (ChannelsState,
+ * epgMap, Favorites, LastChannel) — nothing new is loaded.
  */
 @Composable
 fun ModernTvHomeScreen(
@@ -90,7 +90,7 @@ fun ModernTvHomeScreen(
     val fg = cs.onBackground
     val fgDim = cs.onSurfaceVariant
 
-    // hodiny (pol minuty staci na progres bary aj cas v rohu)
+    // clock (half a minute is enough for both the progress bars and the time in the corner)
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) { now = System.currentTimeMillis(); kotlinx.coroutines.delay(30_000) }
@@ -105,18 +105,18 @@ fun ModernTvHomeScreen(
     val sid = remember { Tvh.store.active()?.id ?: "default" }
     val server = remember { Tvh.store.active() }
     val piconLoader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
-    val favUuids = remember(rows) { Favorites.list(ctx, sid) }   // M541: v poradi
+    val favUuids = remember(rows) { Favorites.list(ctx, sid) }   // M541: in order
     val lastUuid = remember(rows) { LastChannel.get(ctx, sid) }
 
-    // hero kanal: posledny sledovany -> prvy obluбeny -> prvy v zozname
+    // hero channel: last watched -> first favourite -> first in the list
     val hero: ChannelRow? = remember(rows, lastUuid) {
         rows.firstOrNull { it.channel.uuid == lastUuid }
             ?: rows.firstOrNull { it.channel.uuid in favUuids }
             ?: rows.firstOrNull()
     }
-    // rad: oblubene (v poradi zoznamu), fallback prvych 8 kanalov
+    // row: favourites (in list order), fallback the first 8 channels
     val railRows: List<ChannelRow> = remember(rows, favUuids) {
-        val favs = favUuids.mapNotNull { u -> rows.firstOrNull { it.channel.uuid == u } }   // M541: poradie oblubenych
+        val favs = favUuids.mapNotNull { u -> rows.firstOrNull { it.channel.uuid == u } }   // M541: order of the favourites
         if (favs.isNotEmpty()) favs.take(12) else rows.take(8)
     }
 
@@ -132,17 +132,17 @@ fun ModernTvHomeScreen(
 
     val heroFocus = remember { FocusRequester() }
     val homeScroll = rememberScrollState()
-    // Bug2-fix2: kym je fokus na hornych tlacidlach (Sledovat / TV program),
-    // drzime scroll uplne hore (0), aby nad nimi bola vidno hlavicka datum/cas.
-    // Jednorazovy animateScrollTo(0) Compose "bring into view" prebijal — preto
-    // scroll drzime aktivne, kolko trva fokus hore.
+    // Bug2-fix2: while focus is on the top buttons (Watch / TV guide),
+    // we hold the scroll right at the top (0) so the date/time header is visible above them.
+    // A one-off animateScrollTo(0) was overridden by Compose's "bring into view" — so
+    // we hold the scroll actively for as long as focus stays up top.
     var watchFocused by remember { mutableStateOf(false) }
     var tvpFocused by remember { mutableStateOf(false) }
     val topFocused = watchFocused || tvpFocused
     LaunchedEffect(hero?.channel?.uuid) { runCatching { heroFocus.requestFocus() } }
-    // Bug2-fix5: ked je fokus na hornych tlacidlach, nechame scroll pohltit
-    // scrollovanie cez nestedScroll spojku — tym k bring-into-view skoku vobec
-    // nedojde (ziadne blikanie) a vrch (datum/cas) ostane vidno.
+    // Bug2-fix5: when focus is on the top buttons we let the scrolling be absorbed
+    // through a nestedScroll connection — that way the bring-into-view jump never
+    // happens at all (no flicker) and the top (date/time) stays visible.
     val topHold = remember {
         object : NestedScrollConnection {
             var active = false
@@ -161,14 +161,14 @@ fun ModernTvHomeScreen(
             .verticalScroll(homeScroll)
             .padding(horizontal = 40.dp, vertical = 24.dp)
     ) {
-        // horna lista: datum | cas
+        // top bar: date | time
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(dateStr.replaceFirstChar { it.uppercase() }, color = fgDim, fontSize = 15.sp)
             Text(timeStr, color = fg, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         }
         Spacer(Modifier.height(14.dp))
 
-        // ===== HERO (+ radio panel vpravo, ked hra mini radio — M344-fix2) =====
+        // ===== HERO (+ radio panel on the right when the mini radio is playing — M344-fix2) =====
         Row(
             Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -177,8 +177,8 @@ fun ModernTvHomeScreen(
             Modifier
                 .weight(1f)
                 .clip(RoundedCornerShape(18.dp))
-                // Zrkadlo radio panelu (M344-fix12): vlavo plna farba s oblymi
-                // rohmi, doprava sa hero uplne rozpusti do pozadia
+                // Mirror of the radio panel (M344-fix12): solid colour with rounded
+                // corners on the left, towards the right the hero dissolves fully into the background
                 .background(
                     Brush.horizontalGradient(
                         0f to cs.surfaceContainerHighest,
@@ -250,10 +250,10 @@ fun ModernTvHomeScreen(
                             Modifier
                                 .dpadFocusable(RoundedCornerShape(999.dp))
                                 .focusRequester(heroFocus)
-                                // Bug2-fix: pri fokuse Sledovat posun zoznam uplne
-                                // na vrch, aby sa ukazala hlavicka (datum/cas) —
-                                // inak fokus posunul scroll len po tlacidlo a
-                                // hlavicka zostala skryta nad viditelnou oblastou.
+                                // Bug2-fix: when Watch has focus, scroll the list all the way
+                                // to the top so the header (date/time) shows —
+                                // otherwise focus scrolled only as far as the button and
+                                // the header stayed hidden above the visible area.
                                 .onFocusChanged { st ->
                                     watchFocused = st.isFocused
                                 }
@@ -269,8 +269,8 @@ fun ModernTvHomeScreen(
                         Box(
                             Modifier
                                 .dpadFocusable(RoundedCornerShape(999.dp))
-                                // Bug2-fix2: aj TV program drzi scroll hore, nech
-                                // je nad nim vidno datum/cas.
+                                // Bug2-fix2: TV guide holds the scroll up top as well, so
+                                // the date/time is visible above it.
                                 .onFocusChanged { st -> tvpFocused = st.isFocused }
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(cs.surfaceContainerHigh)
@@ -281,7 +281,7 @@ fun ModernTvHomeScreen(
                         }
                     }
                 } else {
-                    // este sa nacitava / bez servera: znacka + nazov, navigacia nizsie funguje
+                    // still loading / no server: logo + name, the navigation below works
                     Text("Headent Client", color = fg, fontSize = 30.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(6.dp))
                     Text(dateStr, color = fgDim, fontSize = 15.sp)
@@ -295,7 +295,7 @@ fun ModernTvHomeScreen(
 
         Spacer(Modifier.height(18.dp))
 
-        // ===== navigacne dlazdice =====
+        // ===== navigation tiles =====
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             ModernNavPill(stringResource(R.string.tab_channels), Icons.Default.LiveTv, onChannels)
             ModernNavPill(stringResource(R.string.tab_radio), Icons.Default.Radio, onRadio)
@@ -305,11 +305,11 @@ fun ModernTvHomeScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        // ===== pokracovat v pozerani (M333) =====
+        // ===== continue watching (M333) =====
         ContinueWatchingRail(headerFontSize = 18.sp, cardWidth = 230.dp)
         Spacer(Modifier.height(20.dp))
 
-        // ===== rad: oblubene kanaly · teraz =====
+        // ===== row: favourite channels · now =====
         if (railRows.isNotEmpty()) {
             Text(stringResource(R.string.mh_fav_now), color = fg, fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold)

@@ -5,10 +5,10 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 
 /**
- * Rezim rozhrania: klasicky vzhlad alebo moderny (navy/teal paleta; na TV navyse
- * hero domovska obrazovka + rady kariet). Default = klasicky, aby existujuci
- * pouzivatelia po update nevideli ziadnu zmenu. Drzime aj zivy stav (MutableState),
- * aby sa vzhlad prepol okamzite po zmene v nastaveniach, bez restartu.
+ * Interface mode: the classic look or the modern one (navy/teal palette; on TV additionally
+ * a hero home screen + rows of cards). Default = classic, so that existing
+ * users see no change after an update. We also hold live state (MutableState),
+ * so the look switches immediately after a change in the settings, without a restart.
  */
 object UiModePref {
     private const val PREFS = "app_prefs"
@@ -25,7 +25,7 @@ object UiModePref {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY, CLASSIC) ?: CLASSIC
 
-    /** Zivy stav rezimu — citanim .value v @Composable sa vzhlad obnovi pri zmene. */
+    /** Live state of the mode — reading .value in a @Composable makes the look refresh on a change. */
     fun stateOf(context: Context): MutableState<String> =
         state ?: mutableStateOf(load(context)).also { state = it }
 

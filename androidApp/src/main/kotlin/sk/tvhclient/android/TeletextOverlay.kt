@@ -46,31 +46,31 @@ import sk.tvhclient.shared.teletext.TeletextCell
 import sk.tvhclient.shared.teletext.TeletextRenderer
 
 /**
- * M553 — zobrazenie teletextovej stránky (mockup schválený): 40×25 mriežka
- * vykreslená na Canvas (text + mozaika obdĺžnikmi), predvolene nepriehľadná,
- * OK prepína priehľadný „mix“ režim, dole riadok s nápovedou. Ovládanie rieši
- * PlayerActivity (dispatchKeyEvent), tu je len vykreslenie stavu.
+ * M553 — display of a teletext page (mockup approved): a 40×25 grid
+ * rendered on a Canvas (text + mosaic as rectangles), opaque by default,
+ * OK toggles the transparent "mix" mode, a hint row at the bottom. Control is handled by
+ * PlayerActivity (dispatchKeyEvent), here it is only the rendering of the state.
  *
- * Samostatný composable — PlayerUi je na hranici veľkosti metódy.
+ * A separate composable — PlayerUi is at the limit of method size.
  */
 @Composable
 fun TeletextOverlay(
     session: TeletextSession,
-    pageNumber: Int,          // požadovaná strana (hex, 0x100..0x8FF)
-    subpage: Int,             // -1 = posledná prijatá podstránka
-    entry: String,            // rozpísané číslice pri zadávaní ("", "1", "12")
+    pageNumber: Int,          // requested page (hex, 0x100..0x8FF)
+    subpage: Int,             // -1 = the last received subpage
+    entry: String,            // digits spelled out during entry ("", "1", "12")
     transparent: Boolean,
     reveal: Boolean,
     isHttp: Boolean,
     onClose: () -> Unit,
-    onStep: (Int) -> Unit,            // dotyk: horná polovica +1, dolná −1
-    onToggleTransparent: () -> Unit,  // dotyk: dlhé podržanie
-    touchUi: Boolean = false,         // M559: telefón — spodná lišta s tlačidlami a číselník
+    onStep: (Int) -> Unit,            // touch: upper half +1, lower −1
+    onToggleTransparent: () -> Unit,  // touch: long press
+    touchUi: Boolean = false,         // M559: phone — a bottom bar with buttons and a keypad
     onSubStep: (Int) -> Unit = {},
     onDigit: (Int) -> Unit = {}
 ) {
     var keypad by remember { mutableStateOf(false) }   // M559
-    // prekreslenie pri každej prijatej stránke
+    // redraw on every received page
     @Suppress("UNUSED_VARIABLE") val ver = session.pageVersion.value
     val page = session.decoder.page(pageNumber, subpage)
     val cells = remember(page, reveal) { page?.let { TeletextRenderer.render(it, reveal) } }
@@ -96,15 +96,15 @@ fun TeletextOverlay(
                 val density = LocalDensity.current
                 val availH = with(density) { maxHeight.toPx() } * 0.96f
                 val availW = with(density) { maxWidth.toPx() } * 0.96f
-                // M553-fix2: mriežka 40×25 sa roztiahne na obrazovku (ako VLC / TV v 16:9),
-                // nie 4:3 v strede — bunky nie sú viazané pomerom, text sa natiahne na šírku bunky.
-                // M569: pomer bunky je ohraničený, aby na telefóne na šírku (20:9) nebol
-                // teletext neúmerne roztiahnutý; na 16:9 TV vychádza 1.11 -> plná šírka ostáva
+                // M553-fix2: the 40×25 grid is stretched across the screen (like VLC / a TV in 16:9),
+                // not 4:3 in the middle — the cells are not bound by an aspect ratio, the text is stretched to the cell width.
+                // M569: the cell aspect ratio is bounded so that on a phone in landscape (20:9) the
+                // teletext is not disproportionately stretched; on a 16:9 TV it comes out at 1.11 -> full width stays
                 var ch = availH / 25f
                 var cw = availW / 40f
                 val ratio = cw / ch
-                if (ratio > 1.15f) cw = ch * 1.15f       // príliš široká obrazovka -> stránka v strede
-                else if (ratio < 0.75f) ch = cw / 0.75f  // úzka (na výšku) -> stránka nižšia
+                if (ratio > 1.15f) cw = ch * 1.15f       // too wide a screen -> the page in the middle
+                else if (ratio < 0.75f) ch = cw / 0.75f  // narrow (portrait) -> a shorter page
                 val pageW = cw * 40f
                 val pageH = ch * 25f
                 val fontPx = ch / 1.15f
@@ -114,7 +114,7 @@ fun TeletextOverlay(
                     fontSize = with(density) { fontPx.toSp() },
                     color = Color.White
                 )
-                // skutočná šírka glyfu -> vodorovné natiahnutie na šírku bunky
+                // the glyph's real width -> horizontal stretch to the cell width
                 val glyph = remember(fontPx) { measurer.measure("M", style) }
                 val glyphW = glyph.size.width.toFloat().coerceAtLeast(1f)
                 val glyphH = glyph.size.height.toFloat().coerceAtLeast(1f)
@@ -132,7 +132,7 @@ fun TeletextOverlay(
                             )
                         }
                         .pointerInput(Unit) {
-                            // M559-fix2: švihnutie doľava/doprava = podstránka ±1
+                            // M559-fix2: a swipe left/right = subpage ±1
                             var acc = 0f
                             detectHorizontalDragGestures(
                                 onDragStart = { acc = 0f },
@@ -142,12 +142,12 @@ fun TeletextOverlay(
                         }
                 ) {
                     if (!transparent) drawRect(Color.Black, Offset.Zero, Size(pageW, pageH))
-                    // --- hlavička (riadok 0): stĺpce 0..7 = číslo strany, 8..39 = text z vysielania
+                    // --- header (row 0): columns 0..7 = page number, 8..39 = text from the broadcast
                     val hdrRow: Array<TeletextCell>? = cells?.get(0)
                     drawTextRun(label + subLabel, 0, 0, cw, ch, sx, textTop, Color.White, null, 1f, style, measurer)
-                    // M553-fix: nájdená strana zobrazí VLASTNÚ hlavičku (stĺpce 8..31), len hodiny
-                    // (posledných 8 stĺpcov) sa berú zo živej hlavičky; kým sa strana hľadá,
-                    // beží celá „rolujúca“ hlavička práve vysielaných strán (ako na TV).
+                    // M553-fix: a found page shows its OWN header (columns 8..31), only the clock
+                    // (the last 8 columns) is taken from the live header; while the page is being searched for,
+                    // the whole "rolling" header of the pages currently being broadcast runs (as on a TV).
                     if (hdrRow != null) {
                         drawRow(hdrRow, 0, 8, cw, ch, sx, textTop, transparent, style, measurer, toCol = 32)
                         if (header.length >= 32) {
@@ -156,7 +156,7 @@ fun TeletextOverlay(
                     } else if (header.isNotEmpty()) {
                         drawTextRun(header, 8, 0, cw, ch, sx, textTop, Color.White, null, 1f, style, measurer)
                     }
-                    // --- riadky 1..24
+                    // --- rows 1..24
                     if (cells != null) {
                         for (r in 1 until 25) {
                             val row = cells[r] ?: continue
@@ -177,16 +177,16 @@ fun TeletextOverlay(
                 }
             }
             if (touchUi) {
-                // M559: dotyková lišta — číselník, podstránky, priehľadnosť, zavrieť
+                // M559: touch bar — keypad, subpages, transparency, close
                 Row(
                     Modifier.fillMaxWidth().height(48.dp).background(Color(0xD90B1220)),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // M559-fix2: ◀ ▶ = strana ±1 (podstránky má málo strán; tie idú švihnutím
-                    // do strany po stránke), inak tlačidlá "nič nerobili"
+                    // M559-fix2: ◀ ▶ = page ±1 (few pages have subpages; those are reached by a swipe
+                    // page by page), otherwise the buttons "did nothing"
                     TouchKey(if (keypad) "▾ 123" else "123", accent = keypad) { keypad = !keypad }
-                    // M563: − / + = strana, ◀ ▶ = podstránka (ako na TV), švihnutie tiež podstránka
+                    // M563: − / + = page, ◀ ▶ = subpage (as on a TV), a swipe is a subpage too
                     TouchKey("−") { onStep(-1) }
                     TouchKey("+") { onStep(+1) }
                     TouchKey("◀") { onSubStep(-1) }
@@ -204,7 +204,7 @@ fun TeletextOverlay(
                 }
             }
         }
-        // M559: číselník (telefón) — vpravo dole nad lištou
+        // M559: keypad (phone) — bottom right above the bar
         if (touchUi && keypad) {
             Column(
                 Modifier
@@ -252,7 +252,7 @@ private val TXT_COLORS = arrayOf(
     Color(0xFF0000FF), Color(0xFFFF00FF), Color(0xFF00FFFF), Color(0xFFFFFFFF)
 )
 
-/** Jeden riadok buniek od stĺpca [fromCol]; spája susedné bunky s rovnakými atribútmi. */
+/** One row of cells from column [fromCol]; merges adjacent cells with the same attributes. */
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawRow(
     row: Array<TeletextCell>, r: Int, fromCol: Int,
     cw: Float, ch: Float, sx: Float, textTop: Float, transparent: Boolean, style: TextStyle, measurer: TextMeasurer,
@@ -270,7 +270,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawRow(
         }
         val sy = if (first.doubleHeight) 2f else 1f
         val x = c * cw; val y = r * ch
-        // pozadie (v priehľadnom režime čierne pozadie = priehľadné)
+        // background (in transparent mode a black background = transparent)
         if (first.bg != 0 || !transparent) {
             drawRect(TXT_COLORS[first.bg], Offset(x, y), Size((e - c) * cw, ch * sy))
         }

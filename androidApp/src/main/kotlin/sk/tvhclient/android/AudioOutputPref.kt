@@ -3,20 +3,20 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * Rezim zvukoveho vystupu libVLC (riesi rozchadzajuci sa / oneskoreny zvuk na
- * niektorych boxoch a TV).
- *  - AUTO: detekcia (passthrough sa pouzije ak ho zariadenie podporuje)
- *    POZOR (M436): na Amlogic boxoch (Strong) passthrough cesta pridava
- *    latenciu, ktoru appka nevidi — zvuk sa posuva o stovky ms. Preto uz
- *    NIE JE predvolena.
- *  - STEREO: max 2 kanaly (kompat rezim)
- *  - PCM: zvuk dekoduje appka (max 8 kanalov) — PREDVOLENE od 1.0.2 (M436):
- *    spravna synchronizacia vsade, viackanalovy LPCM cez HDMI stale funguje;
- *    kto chce bitstream do AVR, prepne si Passthrough/Auto.
- *  - PASSTHROUGH: "priamy prenos" — zvuk ide v povodnom formate (AC3/EAC3/DTS)
- *    priamo do TV/AVR, ktory ho dekoduje sam (zarovna sync, ak box pridaval latenciu)
- * Mapuje sa na MediaPlayer.setAudioOutputDevice(null/"stereo"/"pcm"/"encoded").
- * Ulozene globalne v SharedPreferences.
+ * libVLC audio output mode (handles drifting / delayed audio on
+ * some boxes and TVs).
+ *  - AUTO: detection (passthrough is used if the device supports it)
+ *    CAUTION (M436): on Amlogic boxes (Strong) the passthrough path adds
+ *    latency the app cannot see — the audio shifts by hundreds of ms. That is why it is
+ *    NO LONGER the default.
+ *  - STEREO: max 2 channels (compat mode)
+ *  - PCM: the audio is decoded by the app (max 8 channels) — THE DEFAULT since 1.0.2 (M436):
+ *    correct synchronisation everywhere, multichannel LPCM over HDMI still works;
+ *    whoever wants a bitstream to an AVR switches to Passthrough/Auto.
+ *  - PASSTHROUGH: "direct transfer" — the audio goes in its original format (AC3/EAC3/DTS)
+ *    straight to the TV/AVR, which decodes it itself (aligns the sync if the box was adding latency)
+ * Maps to MediaPlayer.setAudioOutputDevice(null/"stereo"/"pcm"/"encoded").
+ * Stored globally in SharedPreferences.
  */
 object AudioOutputPref {
     private const val PREFS = "app_prefs"
@@ -29,7 +29,7 @@ object AudioOutputPref {
 
     val options = listOf(AUTO, PASSTHROUGH, PCM, STEREO)
 
-    /** Hodnota pre MediaPlayer.setAudioOutputDevice; null = auto detekcia. */
+    /** Value for MediaPlayer.setAudioOutputDevice; null = auto detection. */
     fun deviceId(context: Context): String? = when (get(context)) {
         STEREO -> "stereo"
         PCM -> "pcm"

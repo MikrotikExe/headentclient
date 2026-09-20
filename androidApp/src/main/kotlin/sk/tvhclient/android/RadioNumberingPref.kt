@@ -4,13 +4,13 @@ import android.content.Context
 import sk.tvhclient.shared.api.ChannelRow
 
 /**
- * M602: „Číslovať rádiá od 1".
+ * M602: "Number radios from 1".
  *
- * Rozhlasové stanice dostavaju od servera cisla, ktore nikto nepouziva (634, 635…),
- * kym pri TV kanaloch su zauzivane. Predvolene sa preto radia cisluju 1…n podla
- * poradia v prave zobrazenej skupine — v zalozke Radia, v mriezke TV programu aj
- * v zozname stanic v prehravaci (a podla toho ide aj volba cislicami). Serverove
- * cisla ostavaju nedotknute; kto ich chce vidiet, volbu vypne.
+ * Radio stations get numbers from the server that nobody uses (634, 635…),
+ * while for TV channels they are established. By default the radios are therefore numbered 1…n by
+ * their order in the currently displayed group — in the Radios tab, in the TV guide grid and
+ * in the station list in the player (and selection by digits follows this too). The server
+ * numbers stay untouched; anyone who wants to see them turns the option off.
  */
 object RadioNumberingPref {
     private const val PREFS = "app_prefs"
@@ -24,7 +24,7 @@ object RadioNumberingPref {
             .edit().putBoolean(KEY, enabled).apply()
     }
 
-    /** Precisluje zoznam 1…n (bez zmeny poradia), ak je volba zapnuta. */
+    /** Renumbers the list 1…n (without changing the order), if the option is on. */
     fun apply(context: Context, rows: List<ChannelRow>): List<ChannelRow> =
         if (!get(context)) rows
         else rows.mapIndexed { i, r -> r.copy(channel = r.channel.copy(number = i + 1)) }

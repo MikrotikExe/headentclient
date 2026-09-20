@@ -4,14 +4,14 @@ import android.os.Handler
 import android.os.Looper
 
 /**
- * M407 / M652: debounce rýchleho zappingu cez CH+/- (vyclenené z PlayerActivity).
+ * M407 / M652: debounce of fast zapping via CH+/- (extracted from PlayerActivity).
  *
- * Rýchle stisky len posúvajú cieľový index a hneď aktualizujú info na obrazovke
- * ([preview]); ťažké načítanie streamu ([commit]) sa spustí až keď sa ~350 ms neprepína
- * (ako set-top box). Bez toho každý stisk čakal na dokončenie predošlého načítania.
+ * Fast presses only move the target index and immediately update the info on screen
+ * ([preview]); the heavy stream load ([commit]) starts only once there has been no switch for ~350 ms
+ * (like a set-top box). Without it every press waited for the previous load to finish.
  *
- * [pokeOnCommit]: M444 — keď beží zap pás (prekryv vypnutý), prepnutie NESMIE štuchnúť
- * klasické ovládanie, inak sú na obrazovke dva pásy naraz (Xiaomi Mi Box).
+ * [pokeOnCommit]: M444 — when the zap bar is running (overlay off), switching MUST NOT poke
+ * the classic controls, otherwise there are two bars on screen at once (Xiaomi Mi Box).
  */
 internal class ZapDebounce(
     private val live: LiveSession,
@@ -27,7 +27,7 @@ internal class ZapDebounce(
         if (target >= 0 && target != live.index) commit(target, pokeOnCommit())
     }
 
-    /** M407: preview info kanála bez načítania streamu (pre rýchly zapping). */
+    /** M407: preview info of a channel without loading the stream (for fast zapping). */
     private fun preview(i: Int) {
         live.indexState.value = i
         live.titleState.value = live.names.getOrElse(i) { "" }
@@ -35,16 +35,16 @@ internal class ZapDebounce(
         live.showProgramme(LivePlaylist.channels.getOrNull(i))
     }
 
-    /** Prepne na susedný live kanál (delta +1 / -1) s debounce. */
+    /** Switches to the neighbouring live channel (delta +1 / -1) with a debounce. */
     fun switchLive(delta: Int) {
         haptic()
         if (live.uuids.size < 2 || live.index < 0) return
         val n = live.uuids.size
-        // od aktualneho ciela (ak uz caka) alebo od aktualneho kanala
+        // from the current target (if one is already pending) or from the current channel
         val from = if (pendingIndex >= 0) pendingIndex else live.index
         val target = ((from + delta) % n + n) % n
         pendingIndex = target
-        preview(target)                 // okamzita odozva na obrazovke
+        preview(target)                 // immediate response on screen
         handler.removeCallbacks(commitRunnable)
         handler.postDelayed(commitRunnable, DEBOUNCE_MS)
     }

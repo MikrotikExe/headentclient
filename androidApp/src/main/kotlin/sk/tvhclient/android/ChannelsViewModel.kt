@@ -36,13 +36,13 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query
 
-    // HTSP: kanal -> zoznam nadchadzajucich relacii (na auto-prechod na zozname).
-    // M278: seed z diskovej „live" cache (rovnaka ako prehravac) — now/next naskoci hned
-    // aj po restarte/obnove obrazovky, kym sa na pozadi dotiahnu cerstve data.
-    // M611: disková cache sa číta na pozadí — synchrónne čítanie v konštruktore
-    // (hlavné vlákno) trvalo pri veľkom EPG sekundy a Play hlásil ANR
-    // (EpgEvent deserialize / EpgCache.readStreamed / „I/O v hlavnom vlákne").
-    // Sieťové dáta majú prednosť: cache sa len doplní pod to, čo už prišlo.
+    // HTSP: channel -> the list of upcoming programmes (for the auto-transition in the list).
+    // M278: seed from the disk "live" cache (the same one as the player) — now/next appears immediately
+    // even after a restart/screen restore, while fresh data is fetched in the background.
+    // M611: the disk cache is read in the background — a synchronous read in the constructor
+    // (the main thread) took seconds with a large EPG and Play reported an ANR
+    // (EpgEvent deserialize / EpgCache.readStreamed / "I/O on the main thread").
+    // Network data takes precedence: the cache is only filled in underneath what has already arrived.
     private val _epgMap = MutableStateFlow<Map<String, List<sk.tvhclient.shared.model.EpgEvent>>>(emptyMap())
     val epgMap: StateFlow<Map<String, List<sk.tvhclient.shared.model.EpgEvent>>> = _epgMap
     init {
@@ -63,15 +63,15 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
     private var api: TvhApi? = null
     private var loadedOnce = false
     private var reloadToken = -1
-    // M540: prave beziace nacitanie. Na TV volali loadIfNeeded() dva LaunchedEffect-y
-    // naraz (prednacitanie + obnova posledneho kanala, M496) -> druhy load() zavrel
-    // HTTP klienta prvemu (`api?.close()`), prvy skoncil chybou „Parent job is
-    // Completed" (v diag logu pri kazdom starte) a data sa stahovali dvakrat.
+    // M540: the load currently running. On TV two LaunchedEffects called loadIfNeeded()
+    // at once (preloading + restoring the last channel, M496) -> the second load() closed
+    // the HTTP client on the first (`api?.close()`), the first ended with the error "Parent job is
+    // Completed" (in the diag log on every start) and the data was downloaded twice.
     private var loadJob: kotlinx.coroutines.Job? = null
 
     fun setQuery(q: String) { _query.value = q }
 
-    /** Nacita len ak este nebolo nacitane, alebo ak sa zmenil server (reload token). */
+    /** Loads only if it has not been loaded yet, or if the server changed (reload token). */
     fun loadIfNeeded() {
         val tok = TabController.dataReload.value
         val changed = tok != reloadToken
@@ -86,7 +86,7 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = ChannelsState.NoServer
             return
         }
-        // M540: bez force sa do beziaceho nacitania nezasahuje; s force sa stare zrusi
+        // M540: without force a running load is not interfered with; with force the old one is cancelled
         if (loadJob?.isActive == true) {
             if (!force) return
             loadJob?.cancel()
@@ -110,12 +110,12 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
                 _state.value = ChannelsState.Loaded(result.first, result.second)
                 loadedOnce = true
 
-                // HTSP: now/next nie je v rychlom dumpe -> doplnime na pozadi
+                // HTSP: now/next is not in the quick dump -> we fill it in in the background
                 if (server.connectionMode == "htsp") {
                     loadHtspNowNext(server)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e   // M540: zrusene force-reloadom — ziadna chyba, stav nastavi novy load
+                throw e   // M540: cancelled by a force reload — no error, the state is set by the new load
             } catch (e: Exception) {
                 CrashLogger.report(getApplication(), "ChannelsViewModel.load", e)
                 _state.value = ChannelsState.Error(
@@ -135,18 +135,18 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
             val map = try {
                 withContext(Dispatchers.IO) { Tvh.fetchEpgUpcoming(server) }
             } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e   // M581-fix: odchod z obrazovky nie je chyba, do zaznamu nepatri
+                throw e   // M581-fix: leaving the screen is not an error, it does not belong in the log
             } catch (e: Exception) {
                 CrashLogger.report(getApplication(), "ChannelsViewModel.nowNext", e)   // M551-fix2
                 emptyMap()
             }
-            // M551-fix2/fix3: diagnostika — kanály bez udalostí na serveri (empty) sú normálny
-            // stav (kanály bez EPG), loguje sa len počet; opakuje sa len pri skutočnej chybe
+            // M551-fix2/fix3: diagnostics — channels with no events on the server (empty) are a normal
+            // state (channels without EPG), only the count is logged; it is retried only on a real error
             val empty = sk.tvhclient.shared.htsp.HtspData.lastEpgEmpty
             val failed = sk.tvhclient.shared.htsp.HtspData.lastEpgFailed
-            // M603: kolo preskocene kvoli beziacemu prenosu (M595) — vratila sa len
-            // cache. Nie je to chyba: bez zaznamu („0 ok, 226 without EPG" bolo
-            // z predosleho kola) a bez opakovania; dotiahne sa po skonceni prehravania.
+            // M603: the round was skipped because of a running transfer (M595) — only the
+            // cache was returned. This is not an error: no log entry ("0 ok, 226 without EPG" was
+            // from the previous round) and no retry; it is fetched once playback ends.
             val skipped = sk.tvhclient.shared.htsp.HtspData.lastEpgSkipped
             if (!skipped && (failed > 0 || map.isEmpty())) {
                 CrashLogger.report(
@@ -155,21 +155,21 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
                         (sk.tvhclient.shared.htsp.HtspData.lastEpgError ?: "none")
                 )
             }
-            // M572: opakovanie s narastajucim odstupom (20 s, 60 s, 180 s). Pri
-            // nedostupnej sieti / neznamom mene servera nema zmysel klepat kazdych
-            // 20 sekund — pouzivatel to videl ako opakovane chyby v zazname.
-            // Server, ktory EPG legitimne nema (failed=0, vsetky kanaly prazdne), sa neopakuje.
+            // M572: retry with a growing interval (20 s, 60 s, 180 s). With an
+            // unreachable network / an unknown server name there is no point knocking every
+            // 20 seconds — the user saw it as repeated errors in the log.
+            // A server that legitimately has no EPG (failed=0, all channels empty) is not retried.
             if (skipped && map.isEmpty()) {
-                // M603: cache bola prazdna (appka sa spustila rovno do prehravania) —
-                // pockaj, kym prenos skonci, a now/next dotiahni potom. Jedina cakacka,
-                // najviac 2 hodiny, bez zaznamu.
+                // M603: the cache was empty (the app started straight into playback) —
+                // wait until the transfer ends and fetch now/next afterwards. A single wait,
+                // at most 2 hours, with no log entry.
                 if (streamWaitJob?.isActive != true) streamWaitJob = viewModelScope.launch {
                     var waited = 0L
                     while (sk.tvhclient.shared.htsp.HtspData.streaming && waited < 2 * 60 * 60_000L) {
                         kotlinx.coroutines.delay(5_000); waited += 5_000
                     }
                     if (!sk.tvhclient.shared.htsp.HtspData.streaming) {
-                        kotlinx.coroutines.delay(1_500)   // nech server spojenie po prehravani uvolni
+                        kotlinx.coroutines.delay(1_500)   // so the server releases the connection after playback
                         loadHtspNowNext(server, retry = true)
                     }
                 }
@@ -184,7 +184,7 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
             }
             if (map.isNotEmpty()) {
                 _epgMap.value = _epgMap.value + map
-                // M278: ulozit na disk (live cache), nech now/next prezije restart/obnovu
+                // M278: save to disk (live cache), so that now/next survives a restart/restore
                 viewModelScope.launch(Dispatchers.IO) {
                     runCatching {
                         EpgCache.saveLive(appCtx, sid(), map, System.currentTimeMillis() / 1000, EpgRangePref.daysBack(appCtx))

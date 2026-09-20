@@ -3,20 +3,20 @@ package sk.tvhclient.shared.stream
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * Stavba stream URL pre live aj DVR. Prebrate z pluginu (_stream_urls.py):
+ * Building the stream URL for both live and DVR. Taken from the plugin (_stream_urls.py):
  *  - live: stream/channel/{uuid}?profile=pass (PREFER_CHANNEL_STREAM)
  *  - DVR:  dvrfile/{id}
- *  - credentials vlozene priamo do URL (user:pass@host) — funguje pre plain
- *    auth; pri digest-only ich player riesi cez auth handler (M3).
- *  - volitelny title param.
+ *  - credentials inserted straight into the URL (user:pass@host) — works for plain
+ *    auth; with digest-only the player handles them through an auth handler (M3).
+ *  - optional title param.
  *
- * Pozn.: vkladanie credentials do URL je nutne lebo prehravac (ExoPlayer/
- * VLCKit) otvara stream samostatne, mimo Ktor klienta s jeho auth.
+ * Note: inserting the credentials into the URL is necessary because the player (ExoPlayer/
+ * VLCKit) opens the stream on its own, outside the Ktor client and its auth.
  */
 object StreamUrlBuilder {
 
-    // M678: bez %s a String.format — ten je len na JVM, v commonMain ho Kotlin/Native nepozna
-    // (iOS cielove kompilacie padali na "Unresolved reference 'format'").
+    // M678: no %s and no String.format — that one is JVM only, in commonMain Kotlin/Native does not know it
+    // (the iOS target compilations were failing with "Unresolved reference 'format'").
     private const val STREAM_CH = "stream/channel/"
     private const val STREAM_CHID = "stream/channelid/"
 
@@ -66,7 +66,7 @@ object StreamUrlBuilder {
     }
 
     /**
-     * Live URL bez creds — pre ExoPlayer/VLCKit kde auth ide cez hlavicku.
+     * Live URL without creds — for ExoPlayer/VLCKit where auth goes through a header.
      */
     fun liveUrlNoCreds(
         server: TvhServer,
@@ -88,7 +88,7 @@ object StreamUrlBuilder {
         withCreds(server, server.baseUrl.trimEnd('/') + "/dvrfile/" + dvrFileId)
 
     /**
-     * Lokalna URL piconu (imagecache). Vracia plnu URL aj s creds pre stiahnutie.
+     * Local picon URL (imagecache). Returns the full URL including the creds for downloading.
      */
     fun piconUrl(server: TvhServer, iconPublicUrl: String?): String? {
         val ipu = iconPublicUrl?.trim()?.trimStart('/') ?: return null
@@ -97,13 +97,13 @@ object StreamUrlBuilder {
     }
 
     /**
-     * Picon URL bez creds — pre Coil/OkHttp kde auth ide cez Authorization
-     * hlavicku (OkHttp neposle userinfo z URL automaticky).
+     * Picon URL without creds — for Coil/OkHttp where auth goes through the Authorization
+     * header (OkHttp does not send the userinfo from the URL automatically).
      */
     fun piconUrlNoCreds(server: TvhServer, iconPublicUrl: String?): String? {
         val raw = iconPublicUrl?.trim() ?: return null
         if (raw.isEmpty()) return null
-        // HTSP casto vracia plne URL (http://.../imagecache/N) — vrat tak ako je
+        // HTSP often returns full URLs (http://.../imagecache/N) — return it as it is
         if (raw.startsWith("http://") || raw.startsWith("https://")) return raw
         val ipu = raw.trimStart('/')
         if (!ipu.startsWith("imagecache/")) return null

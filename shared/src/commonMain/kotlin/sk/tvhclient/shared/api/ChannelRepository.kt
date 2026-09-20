@@ -5,7 +5,7 @@ import sk.tvhclient.shared.model.ChannelTag
 import sk.tvhclient.shared.model.EpgEvent
 
 /**
- * Kanal s now/next EPG a piconom — to co potrebuje UI zoznam.
+ * Channel with now/next EPG and picon — what the UI list needs.
  */
 data class ChannelRow(
     val channel: Channel,
@@ -16,16 +16,16 @@ data class ChannelRow(
 )
 
 /**
- * Skupina kanalov podla tagu (kategoria) pre TV riadky aj mobilny zoznam.
+ * Group of channels by tag (category) for the TV rows and the mobile list.
  */
 data class ChannelCategory(
-    val tag: ChannelTag?,        // null = "Vsetky" / bez tagu
+    val tag: ChannelTag?,        // null = "All" / no tag
     val rows: List<ChannelRow>
 )
 
 /**
- * Nacita kanaly + tagy + now EPG a poskladá kategorie. Cache 60s ako v
- * pluginnom get_channels (ExpiringLRUCache 60s).
+ * Loads channels + tags + now EPG and assembles the categories. Cache 60s as in
+ * the plugin's get_channels (ExpiringLRUCache 60s).
  */
 class ChannelRepository(
     private val channelsProvider: suspend () -> List<Channel>,
@@ -38,9 +38,9 @@ class ChannelRepository(
     private var cachedChannels: List<Channel>? = null
     private var cachedTags: List<ChannelTag>? = null
     private var cacheTs: Long = 0
-    // M586: now/next (HTTP) sa v ramci jedneho nacitania pyta raz — zalozka Radia
-    // si pyta rows aj categories, TV zoznam allRows; bez tejto pamate by to boli
-    // tri rovnake HTTP dotazy za sebou. Plati rovnaky TTL ako pre kanaly.
+    // M586: now/next (HTTP) is asked for only once within a single load — the Radio tab
+    // asks for both rows and categories, the TV list for allRows; without this memory that
+    // would be three identical HTTP queries in a row. The same TTL applies as for channels.
     private var cachedEpgNow: Map<String, EpgEvent>? = null
     private var epgNowTs: Long = 0
 
@@ -49,7 +49,7 @@ class ChannelRepository(
         val c = cachedEpgNow
         if (c != null && (now - epgNowTs) < cacheTtlSec) return c
         val fresh = runCatching { epgNowProvider() }.getOrDefault(emptyMap())
-        // prazdna odpoved (HTSP) sa nekesuje ako platna — nabuduce sa skusi znova
+        // an empty response (HTSP) is not cached as valid — next time it will be tried again
         if (fresh.isNotEmpty()) { cachedEpgNow = fresh; epgNowTs = now }
         return fresh
     }
@@ -60,7 +60,7 @@ class ChannelRepository(
             cachedChannels = channelsProvider().filter { it.enabled }
             cachedTags = tagsProvider().filter { it.enabled }.sortedBy { it.index }
             cacheTs = now
-            if (force) { cachedEpgNow = null; epgNowTs = 0 }   // M586: rucne obnovenie = cerstve now/next
+            if (force) { cachedEpgNow = null; epgNowTs = 0 }   // M586: manual refresh = fresh now/next
         }
         val channels = cachedChannels ?: emptyList()
         val tags = cachedTags ?: emptyList()
@@ -68,7 +68,7 @@ class ChannelRepository(
 
         val tagNameOf = tags.associate { it.uuid to it.name }
         fun isRadioCh(ch: Channel): Boolean = isRadioChannel(ch, tagNameOf)
-        // TV zoznam = vsetky okrem radia
+        // TV list = everything except radio
         val tvChannels = channels.filterNot { isRadioCh(it) }
 
         fun rowOf(ch: Channel): ChannelRow {
@@ -83,7 +83,7 @@ class ChannelRepository(
         }
 
         val categories = mutableListOf<ChannelCategory>()
-        // Kategorie podla tagov (poradie podla tag.index ako na serveri)
+        // Categories by tags (order by tag.index, as on the server)
         for (tag in tags) {
             val rows = tvChannels
                 .filter { tag.uuid in it.tags }
@@ -91,7 +91,7 @@ class ChannelRepository(
                 .map(::rowOf)
             if (rows.isNotEmpty()) categories.add(ChannelCategory(tag, rows))
         }
-        // Kanaly bez tagu — do "Ostatne", aby sa nestratili
+        // Channels without a tag — into "Other", so they don't get lost
         val tagged = tvChannels.filter { it.tags.isNotEmpty() }.map { it.uuid }.toSet()
         val untagged = tvChannels.filterNot { it.uuid in tagged }
         if (untagged.isNotEmpty()) {
@@ -105,7 +105,7 @@ class ChannelRepository(
         return categories
     }
 
-    /** Plochy zoznam vsetkych TV kanalov (pre vyhladavanie), bez radia. */
+    /** Flat list of all TV channels (for searching), without radio. */
     suspend fun allRows(force: Boolean = false): List<ChannelRow> {
         load(force)
         val channels = cachedChannels ?: emptyList()
@@ -123,12 +123,12 @@ class ChannelRepository(
     }
 
     /**
-     * M504: je kanal radio?
+     * M504: is the channel a radio?
      *
-     * Prednost ma TYP SLUZBY z DVB tabuliek (rovnako to urcuje Kodi) — je to
-     * udaj od servera, nezavisly od toho, ako si kto pomenoval tagy. Az ked
-     * server typy neposkytne (starsi TVH, IPTV bez service info, obmedzene
-     * prava), pouzije sa zaloha podla nazvov tagov.
+     * The SERVICE TYPE from the DVB tables takes precedence (Kodi determines it the
+     * same way) — it is data from the server, independent of how anyone named their
+     * tags. Only when the server does not provide the types (older TVH, IPTV without
+     * service info, limited rights) is the fallback by tag names used.
      */
     private fun isRadioChannel(ch: Channel, tagNameOf: Map<String, String>): Boolean =
         ch.isRadioByService
@@ -137,9 +137,9 @@ class ChannelRepository(
             )
 
     /**
-     * M505: radio kanaly rozdelene do kategorii podla tagov — Radio zalozka tak
-     * moze filtrovat rovnako ako Kanaly. Kanaly bez tagu idu do kategorie s
-     * tag = null, aby sa nestratili (rovnako ako pri TV).
+     * M505: radio channels split into categories by tags — the Radio tab can thus
+     * filter the same way as Channels. Channels without a tag go into the category with
+     * tag = null, so they don't get lost (the same as for TV).
      */
     suspend fun radioCategories(force: Boolean = false): List<ChannelCategory> {
         load(force)
@@ -169,15 +169,15 @@ class ChannelRepository(
         return out
     }
 
-    /** Zoznam radio kanalov (pre Radio zalozku). */
+    /** List of radio channels (for the Radio tab). */
     suspend fun radioRows(force: Boolean = false): List<ChannelRow> {
         load(force)
         val channels = cachedChannels ?: emptyList()
         val tags = cachedTags ?: emptyList()
         val tagNameOf = tags.associate { it.uuid to it.name }
-        // M586: rovnako ako allRows doplni „prave hra" (HTTP: now/next pride v dumpe
-        // kanalov). Doteraz radio dostavalo vzdy null, takze zalozka Radia aj zoznam
-        // v prehravaci ostali bez programu.
+        // M586: just like allRows it fills in "now playing" (HTTP: now/next comes in the dump
+        // of channels). Until now radio always got null, so the Radio tab and the list
+        // in the player were left without a programme.
         val epgNow = epgNow()
         return channels
             .filter { isRadioChannel(it, tagNameOf) }

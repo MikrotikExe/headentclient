@@ -8,13 +8,13 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
 /**
- * M370 / M635: hľadanie kanála podľa názvu v zozname kanálov prehrávača (TV: systémová
- * klávesnica), vyclenené z PlayerActivity. Stav pre TvChannelListOverlay + klávesy.
+ * M370 / M635: searching for a channel by name in the player's channel list (TV: the system
+ * keyboard), split out of PlayerActivity. State for TvChannelListOverlay + keys.
  *
- * Dve fázy: fokus na textovom poli ([fieldFocused] = true; text spracúva IME, my len
- * BACK a DOLE) a fokus na výsledkoch (HORE/DOLE/OK/BACK). Výber kanála rieši
- * [onSelect] (aktivita prepne aj skupinu, ak treba). [onDeactivate] sa volá pri
- * otvorení hľadania (zavrie pilulku skupiny).
+ * Two phases: focus on the text field ([fieldFocused] = true; the text is handled by the IME, we handle only
+ * BACK and DOWN) and focus on the results (UP/DOWN/OK/BACK). Channel selection is handled by
+ * [onSelect] (the activity switches the group too, if needed). [onDeactivate] is called when
+ * search is opened (it closes the group pill).
  */
 class ChannelSearch(
     private val activity: Activity,
@@ -44,7 +44,7 @@ class ChannelSearch(
         fieldFocusedState.value = true
         activeState.value = true
         focusSignalState.value = focusSignalState.value + 1
-        // Immersive okno prehravaca inak systemovu klavesnicu nepusti — vynutime ju.
+        // The player's immersive window otherwise does not let the system keyboard in — we force it.
         runCatching {
             activity.window.setSoftInputMode(
                 WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE or
@@ -65,7 +65,7 @@ class ChannelSearch(
         }
     }
 
-    /** Tiché deaktivovanie bez klávesnice (pri otvorení/zatvorení zoznamu kanálov). */
+    /** Silent deactivation without the keyboard (when the channel list is opened/closed). */
     fun deactivateSilently() { activeState.value = false }
 
     private fun focusField() {
@@ -74,9 +74,9 @@ class ChannelSearch(
     }
 
     /**
-     * Klávesy pri fokuse na textovom poli. Vráti true, ak sme kláves spotrebovali;
-     * false = nech ho dostane systém/IME (volajúci zavolá super.dispatchKeyEvent).
-     * Volať len keď [isActive] && fieldFocusedState.
+     * Keys while the text field is focused. Returns true if we consumed the key;
+     * false = let the system/IME have it (the caller calls super.dispatchKeyEvent).
+     * Call only when [isActive] && fieldFocusedState.
      */
     fun handleFieldKey(kc: Int, down: Boolean): Boolean {
         if (!down) return false
@@ -94,8 +94,8 @@ class ChannelSearch(
     }
 
     /**
-     * Klávesy pri fokuse na výsledkoch (zoznam kanálov otvorený, hľadanie aktívne).
-     * Vráti true, ak spotrebované; false = kláves nie je náš (napr. hlasitosť).
+     * Keys while the results are focused (the channel list is open, search is active).
+     * Returns true if consumed; false = the key is not ours (e.g. volume).
      */
     fun handleResultsKey(kc: Int, down: Boolean): Boolean {
         if (!down) return false

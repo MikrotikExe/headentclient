@@ -1,16 +1,16 @@
 package sk.tvhclient.shared.htsp
 
 /**
- * HTSMSG binarna serializacia (Tvheadend HTSP). Prenos z pluginu (htsp.py).
- * Pole: [typ:1][nameLen:1][dataLen:4 BE] + name + data.
- * Sprava: [bodyLen:4 BE] + serializovana mapa.
- * Typy: MAP=1, S64=2 (int, little-endian min bytes), STR=3, BIN=4, LIST=5.
+ * HTSMSG binary serialization (Tvheadend HTSP). Ported from the plugin (htsp.py).
+ * Field: [type:1][nameLen:1][dataLen:4 BE] + name + data.
+ * Message: [bodyLen:4 BE] + serialized map.
+ * Types: MAP=1, S64=2 (int, little-endian min bytes), STR=3, BIN=4, LIST=5.
  */
 internal object Htsmsg {
     /**
-     * M673: BIN pole ako usek tela spravy (bez kopie). muxpkt payload (desiatky az stovky kB
-     * pri HEVC keyframe) ide do TsMuxera priamo z tohto useku; kto potrebuje samostatne pole
-     * (challenge, titulky, teletext), zavola [toByteArray].
+     * M673: BIN field as a slice of the message body (without a copy). The muxpkt payload (tens to
+     * hundreds of kB for an HEVC keyframe) goes into TsMuxer straight from this slice; whoever needs a
+     * standalone array (challenge, subtitles, teletext) calls [toByteArray].
      */
     class Bin(val data: ByteArray, val offset: Int, val length: Int) {
         fun toByteArray(): ByteArray = data.copyOfRange(offset, offset + length)
@@ -22,7 +22,7 @@ internal object Htsmsg {
     const val BIN = 4
     const val LIST = 5
 
-    /** Hodnota moze byt: Long/Int, String, ByteArray, Map<String,Any?>, List<Any?>, Boolean. */
+    /** The value can be: Long/Int, String, ByteArray, Map<String,Any?>, List<Any?>, Boolean. */
     private fun serField(name: String, value: Any?): ByteArray {
         val nb = name.encodeToByteArray()
         val (typ, data) = when (value) {
@@ -51,7 +51,7 @@ internal object Htsmsg {
         return out
     }
 
-    /** Cela sprava s 4-bajtovym BE length prefixom. */
+    /** The whole message with a 4-byte BE length prefix. */
     fun serialize(msg: Map<String, Any?>): ByteArray {
         val body = serMap(msg)
         val len = ByteArray(4)
@@ -62,7 +62,7 @@ internal object Htsmsg {
         return len + body
     }
 
-    /** Minimalne bajty integeru, little-endian (LSB prvy) ako _int_min. */
+    /** Minimal bytes of an integer, little-endian (LSB first) as _int_min. */
     private fun intMin(n: Long): ByteArray {
         if (n == 0L) return byteArrayOf(0)
         val out = ArrayList<Byte>()
@@ -74,7 +74,7 @@ internal object Htsmsg {
         return out.toByteArray()
     }
 
-    /** M454: cislo z rozsahu pola bez kopie. */
+    /** M454: a number from a range of the array without a copy. */
     private fun bin2intRange(b: ByteArray, off: Int, len: Int): Long {
         var n = 0L
         for (i in (off + len - 1) downTo off) {
@@ -84,7 +84,7 @@ internal object Htsmsg {
     }
 
 
-    /** Deserializuje telo mapy (bez length prefixu). */
+    /** Deserializes the body of a map (without the length prefix). */
     fun deserializeMap(data: ByteArray): Map<String, Any?> {
         @Suppress("UNCHECKED_CAST")
         return deser(data, false) as Map<String, Any?>
@@ -98,33 +98,33 @@ internal object Htsmsg {
         while (pos + 6 <= n) {
             val typ = data[pos].toInt() and 0xFF
             val nl = data[pos + 1].toInt() and 0xFF
-            // dataLen ako Long (unsigned 32-bit) — cez Int by najvyssi bit daval
-            // zaporne cislo a rozbil kontrolu -> OOM pri copyOfRange (crash pri
-            // poskodenych/rozsynchronizovanych datach, napr. zvysky po starom spojeni)
+            // dataLen as a Long (unsigned 32-bit) — via Int the highest bit would give
+            // a negative number and break the check -> OOM in copyOfRange (crash on
+            // corrupted/desynchronized data, e.g. leftovers from an old connection)
             val dl = (((data[pos + 2].toLong() and 0xFF) shl 24) or
                     ((data[pos + 3].toLong() and 0xFF) shl 16) or
                     ((data[pos + 4].toLong() and 0xFF) shl 8) or
                     (data[pos + 5].toLong() and 0xFF))
             pos += 6
-            // Ochrana: dl aj nl musia byt nezaporne a zmestit sa do zvysku dat.
-            // Ak nie, sprava je poskodena/rozsynchronizovana -> prerus parsovanie
-            // namiesto pokusu alokovat obrovske pole (predtym crash OOM).
-            // nl je 1 bajt (0-255), dl az 4 bajty. Oba musia byt nezaporne a
-            // zmestit sa do zvysku dat — inak su data poskodene, preruš.
+            // Protection: both dl and nl must be non-negative and fit into the remaining data.
+            // If not, the message is corrupted/desynchronized -> abort parsing
+            // instead of trying to allocate a huge array (previously an OOM crash).
+            // nl is 1 byte (0-255), dl up to 4 bytes. Both must be non-negative and
+            // fit into the remaining data — otherwise the data is corrupted, abort.
             if (dl < 0 || nl < 0 || nl > n || pos.toLong() + nl + dl > n) break
             val dlInt = dl.toInt()
             val name = data.decodeToString(pos, pos + nl)
             pos += nl
-            // M454: kopiu robime LEN tam, kde ju naozaj potrebujeme (BIN payload
-            // ide dalej do muxera). STR/S64 citame priamo z povodneho pola a
-            // vnorene MAP/LIST parsujeme z rozsahu — usetri to jednu kopiu na
-            // kazde pole; pri muxpkt sli desiatky kB navyse do Large Object
-            // Space a GC potom bezal kazde 2-3 s takmer sekundu.
+            // M454: we make a copy ONLY where we really need one (the BIN payload
+            // goes on into the muxer). STR/S64 are read directly from the original array and
+            // nested MAP/LIST are parsed from a range — that saves one copy per
+            // field; with muxpkt tens of kB extra went into the Large Object
+            // Space and the GC then ran almost a second every 2-3 s.
             val start = pos
             pos += dlInt
             val v: Any? = when (typ) {
                 STR -> data.decodeToString(start, start + dlInt)
-                BIN -> Bin(data, start, dlInt)   // M673: bez kopie — usek tela spravy
+                BIN -> Bin(data, start, dlInt)   // M673: without a copy — a slice of the message body
                 S64 -> bin2intRange(data, start, dlInt)
                 MAP -> deser(data.copyOfRange(start, start + dlInt), false)
                 LIST -> deser(data.copyOfRange(start, start + dlInt), true)

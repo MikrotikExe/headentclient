@@ -42,12 +42,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 /*
- * M633: menu prehrávača vyclenené z PlayerUi (PlayerActivity.kt) — moderné menu „Viac"
- * (M327), výber časovača uspatia a panel PIN výzvy. Čisté composables; D-pad zvýraznenie
- * riadi volajúci cez highlight index (-1 = bez zvýraznenia, M385-fix: len na TV).
+ * M633: the player menus extracted from PlayerUi (PlayerActivity.kt) — the modern "More" menu
+ * (M327), the sleep timer selection and the PIN prompt panel. Pure composables; the D-pad highlight
+ * is driven by the caller via a highlight index (-1 = no highlight, M385-fix: TV only).
  */
 
-/** Moderné menu „Viac": Kanály / Časovač / Profil / Nahrať / Teletext / Info podľa [ids] (M383). */
+/** The modern "More" menu: Channels / Timer / Profile / Record / Teletext / Info according to [ids] (M383). */
 @Composable
 internal fun ModernMoreMenu(
     ids: List<String>,
@@ -76,8 +76,8 @@ internal fun ModernMoreMenu(
     ) {
         Column(
             Modifier
-                // M558: bez max sirky sa riadky (fillMaxWidth) roztiahli na celu obrazovku;
-                // rovnaka sirka ako TrackMenu (Zvuk/Titulky/Profil)
+                // M558: without a max width the rows (fillMaxWidth) stretched across the whole screen;
+                // the same width as TrackMenu (Audio/Subtitles/Profile)
                 .widthIn(min = 280.dp, max = 460.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(playerScrim())
@@ -96,7 +96,7 @@ internal fun ModernMoreMenu(
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // M516: ikona ku kazdej polozke — bez nej bol zoznam holy text, kym klasicky bar ikony ma
+                    // M516: an icon for every item — without it the list was bare text, while the classic bar has icons
                     Icon(
                         when (ids.getOrNull(idx)) {
                             "list" -> Icons.Default.List
@@ -118,7 +118,7 @@ internal fun ModernMoreMenu(
     }
 }
 
-/** Výber dĺžky časovača uspatia — vertikálne; poradie musí sedieť so SleepTimer.durations. */
+/** Selection of the sleep timer length — vertical; the order must match SleepTimer.durations. */
 @Composable
 internal fun SleepOptionsMenu(highlightIndex: Int, onSelect: (Int) -> Unit, onDismiss: () -> Unit) {
     val opts = listOf(stringResource(R.string.sleep_off), "15 min", "30 min", "45 min", "60 min", "90 min")
@@ -132,7 +132,7 @@ internal fun SleepOptionsMenu(highlightIndex: Int, onSelect: (Int) -> Unit, onDi
     ) {
         Column(
             Modifier
-                // M562: rovnaka sirka ako menu Viac / TrackMenu (bez max sa riadky roztiahli)
+                // M562: the same width as the More menu / TrackMenu (without a max the rows stretched)
                 .widthIn(min = 280.dp, max = 460.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(playerScrim())
@@ -158,9 +158,9 @@ internal fun SleepOptionsMenu(highlightIndex: Int, onSelect: (Int) -> Unit, onDi
     }
 }
 
-/** Rodičovský zámok: panel na zadanie PIN v prehrávači (M273 kompaktný ako PinDialogGrid).
- *  Číslice z diaľkového rieši aktivita (PinPrompt); [gridRow]/[gridCol] = D-pad zvýraznenie
- *  na TV, -1 = bez zvýraznenia. */
+/** Parental lock: the panel for entering the PIN in the player (M273 compact, like PinDialogGrid).
+ *  Digits from the remote are handled by the activity (PinPrompt); [gridRow]/[gridCol] = the D-pad highlight
+ *  on TV, -1 = no highlight. */
 @Composable
 internal fun PlayerPinPanel(
     pinLen: Int,
@@ -173,7 +173,7 @@ internal fun PlayerPinPanel(
 ) {
     Box(
         Modifier.fillMaxSize().background(Color(0x990B1220))
-            .pointerInput(Unit) { detectTapGestures { } },   // blokuj vstup do pozadia
+            .pointerInput(Unit) { detectTapGestures { } },   // block input to the background
         contentAlignment = Alignment.Center
     ) {
         Surface(
@@ -197,8 +197,8 @@ internal fun PlayerPinPanel(
                     Text(stringResource(R.string.plock_wrong), color = MaterialTheme.colorScheme.error)
                 }
                 Spacer(Modifier.height(16.dp))
-                // Ciselna mriezka: na telefone dotykova, na TV ovladana D-padom
-                // (zvyraznenie vybraneho klavesu) — pre ovladace bez ciselnych klaves.
+                // Numeric grid: touch on a phone, D-pad driven on TV
+                // (highlighting the selected key) — for remotes without number keys.
                 val padKeys = listOf(
                     listOf("1", "2", "3"),
                     listOf("4", "5", "6"),

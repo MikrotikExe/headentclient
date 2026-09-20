@@ -5,12 +5,12 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 
 /**
- * Rezim temy aplikacie.
- *  - AUTO: podla systemu (svetly/tmavy podla nastavenia zariadenia) — predvolene
- *  - LIGHT: vzdy svetla
- *  - DARK: vzdy tmava
- * Drzime aj zivy stav (MutableState), aby sa tema prepla okamzite po zmene v nastaveniach,
- * bez nutnosti restartu. Ulozene globalne v SharedPreferences.
+ * App theme mode.
+ *  - AUTO: as per the system (light/dark according to the device setting) — the default
+ *  - LIGHT: always light
+ *  - DARK: always dark
+ * We also hold live state (MutableState) so the theme switches immediately after a change in settings,
+ * without needing a restart. Stored globally in SharedPreferences.
  */
 object ThemePref {
     private const val PREFS = "app_prefs"
@@ -27,7 +27,7 @@ object ThemePref {
     private fun load(context: Context): String =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, AUTO) ?: AUTO
 
-    /** Zivy stav rezimu — citanim .value v @Composable sa tema obnovi pri zmene. */
+    /** Live state of the mode — reading .value in a @Composable refreshes the theme on change. */
     fun stateOf(context: Context): MutableState<String> =
         state ?: mutableStateOf(load(context)).also { state = it }
 

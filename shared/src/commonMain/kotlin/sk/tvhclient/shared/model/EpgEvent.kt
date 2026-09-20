@@ -4,9 +4,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * EPG event z api/epg/events/grid. Okrem now/next (channelUuid, cas, title)
- * nesie aj plny popis a metadata pre detail relacie: summary, description,
- * genre (DVB content-type kody), ageRating, cislo epizody.
+ * EPG event from api/epg/events/grid. Besides now/next (channelUuid, time, title)
+ * it also carries the full description and metadata for the programme detail: summary,
+ * description, genre (DVB content-type codes), ageRating, episode number.
  */
 @Serializable
 data class EpgEvent(
@@ -24,11 +24,11 @@ data class EpgEvent(
     @SerialName("episodeOnscreen") val episodeOnscreen: String = "",
     @SerialName("nextEventId") val nextEventId: Long? = null
 ) {
-    /** Najlepsi dostupny popis: description, fallback summary. */
+    /** The best available description: description, falling back to summary. */
     val bestDescription: String
         get() = description.ifBlank { summary }
 
-    /** Top DVB kategoria (horny nibble prveho genre kodu), 0 = neznama. */
+    /** Top-level DVB category (upper nibble of the first genre code), 0 = unknown. */
     val dvbGenreTop: Int
         get() = genre.firstOrNull()?.let { it / 16 } ?: 0
 }

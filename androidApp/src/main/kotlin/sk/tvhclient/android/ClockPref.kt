@@ -9,14 +9,14 @@ import androidx.compose.runtime.mutableStateOf
 import sk.tvhclient.shared.TimeFormatConfig
 
 /**
- * Format hodin v celej appke (M423) — vyziadane v GitHub issue #2.
- *  - AUTO: podla systemoveho nastavenia zariadenia — predvolene
- *  - H24:  vzdy 24-hodinovy (13:45)
- *  - H12:  vzdy 12-hodinovy (1:45 PM)
+ * Clock format across the whole app (M423) — requested in GitHub issue #2.
+ *  - AUTO: according to the device's system setting — the default
+ *  - H24:  always 24-hour (13:45)
+ *  - H12:  always 12-hour (1:45 PM)
  *
- * Rovnaky vzor ako ThemePref: zivy stav (MutableState), aby sa cas prepisal
- * hned po zmene v nastaveniach, bez restartu. Popisky AM/PM si SimpleDateFormat
- * lokalizuje sam podla Locale, nepiseme ich rucne.
+ * The same pattern as ThemePref: live state (MutableState), so that the time is redrawn
+ * right after a change in settings, without a restart. The AM/PM labels are localised by
+ * SimpleDateFormat itself according to the Locale, we do not write them by hand.
  */
 object ClockPref {
     private const val PREFS = "app_prefs"
@@ -31,16 +31,16 @@ object ClockPref {
     private var state: MutableState<String>? = null
 
     /**
-     * Revizia — zvysi sa, ked systemove nastavenie 12/24 zmeni pouzivatel
-     * pocas behu appky. Compose ju cita v hm(), takze sa cas prekresli
-     * bez restartu. Samotna volba v SharedPreferences sa nemeni.
+     * Revision — incremented when the user changes the system 12/24 setting
+     * while the app is running. Compose reads it in hm(), so the time is redrawn
+     * without a restart. The choice itself in SharedPreferences does not change.
      */
     private val revision: MutableIntState = mutableIntStateOf(0)
 
     private fun load(context: Context): String =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, AUTO) ?: AUTO
 
-    /** Zivy stav volby — citanim .value v @Composable sa cas prekresli pri zmene. */
+    /** Live state of the choice — reading .value in a @Composable redraws the time on a change. */
     fun stateOf(context: Context): MutableState<String> =
         state ?: mutableStateOf(load(context)).also { state = it }
 
@@ -53,26 +53,26 @@ object ClockPref {
         apply(context)
     }
 
-    /** true = 24-hodinovy format. Pri AUTO sa pytame systemu. */
+    /** true = 24-hour format. With AUTO we ask the system. */
     fun is24(context: Context): Boolean = when (get(context)) {
         H24 -> true
         H12 -> false
         else -> DateFormat.is24HourFormat(context)
     }
 
-    /** Vzor pre SimpleDateFormat. */
+    /** Pattern for SimpleDateFormat. */
     fun hm(context: Context): String {
-        revision.intValue          // odber: prekresli sa aj pri zmene v systeme
+        revision.intValue          // subscription: redrawn on a system change too
         return if (is24(context)) "HH:mm" else "h:mm a"
     }
 
-    /** Volane pri ACTION_TIME_CHANGED — system zmenil 12/24. */
+    /** Called on ACTION_TIME_CHANGED — the system changed 12/24. */
     fun onSystemFormatChanged(context: Context) {
         apply(context)
         revision.intValue++
     }
 
-    /** Prenesie aktualnu volbu do zdielaneho modulu, ktory nema Context. */
+    /** Passes the current choice to the shared module, which has no Context. */
     fun apply(context: Context) {
         TimeFormatConfig.hm = hm(context)
     }

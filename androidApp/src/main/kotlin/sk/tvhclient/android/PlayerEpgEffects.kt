@@ -4,11 +4,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 
 /*
- * M662: EPG efekty (prefetch + periodický refresh pri otvorenom zozname/páse) vyčlenené
- * z PlayerUi (PlayerActivity.kt) — limit 64 kB na metódu. Telá 1:1; stav drží volajúci.
+ * M662: EPG effects (prefetch + periodic refresh while the list/bar is open) extracted
+ * from PlayerUi (PlayerActivity.kt) — the 64 kB method limit. Bodies 1:1; the caller holds the state.
  */
 
-/** Predbežné načítanie EPG po starte a periodický refresh, kým je otvorený zoznam / pás / ovládanie. */
+/** Prefetching the EPG after start and periodic refresh while the list / bar / controls are open. */
 @Composable
 internal fun PlayerEpgEffects(
     showChannelList: Boolean,
@@ -18,30 +18,30 @@ internal fun PlayerEpgEffects(
     onRefreshEpgInitial: () -> Unit,
     onRefreshEpg: () -> Unit
 ) {
-    // M266: predbezne nacitanie EPG (now/next) na pozadi kratko po starte prehravaca,
-    // aby prvy otvoreny zoznam kanalov mal data uz z cache (epgUpcomingState) bez sietoveho
-    // cakania. Bezi na IO (refreshOverlayEpg), stream nabehne prvy a UI sa neblokuje.
+    // M266: prefetch the EPG (now/next) in the background shortly after the player starts,
+    // so that the first opened channel list already has data from the cache (epgUpcomingState) without a network
+    // wait. Runs on IO (refreshOverlayEpg), the stream comes up first and the UI is not blocked.
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(1200)
-        onPrefetchEpg()   // M274: refresh len ak je cache prazdna/zastarana
+        onPrefetchEpg()   // M274: refresh only if the cache is empty/stale
     }
 
-    // Kym je zoznam kanalov otvoreny, obnovuj EPG (now/next) aby relacie
-    // postupne prechadzali na dalsie
-    // M522: obnovuj EPG a nahravaci priznak (cervena bodka), kym je otvoreny plny
-    // zoznam kanalov ALEBO vodorovny pas. Doteraz to platilo len pre plny zoznam,
-    // takze v pase sa bodky objavovali neskoro alebo vobec — a stav tlacidla
-    // nahravania v „Viac" bol podla toho tiez nespolahlivy.
-    // Jeden efekt namiesto dvoch: PlayerUi je tesne pod 64 KB limitom metody.
-    // M525: aj MODERNY PAS (modernOvVisible) — ten sa neriadi `controlsVisible`,
-    // takze podmienka z M522 sa nan vobec nevztahovala a cervene bodky v nom
-    // nabiehali az potom, co ich stiahol velky zoznam kanalov.
+    // While the channel list is open, refresh the EPG (now/next) so that programmes
+    // gradually roll over to the next ones
+    // M522: refresh the EPG and the recording flag (red dot) while the full
+    // channel list OR the horizontal bar is open. So far this only held for the full list,
+    // so in the bar the dots appeared late or not at all — and the state of the recording
+    // button in "More" was just as unreliable.
+    // One effect instead of two: PlayerUi is just under the 64 KB method limit.
+    // M525: the MODERN BAR too (modernOvVisible) — it is not governed by `controlsVisible`,
+    // so the condition from M522 did not apply to it at all and the red dots in it
+    // only came up after the big channel list had fetched them.
     LaunchedEffect(showChannelList || controlsVisible || modernOvVisible) {
         if (showChannelList || controlsVisible || modernOvVisible) {
-            onRefreshEpgInitial()   // M270: prve nacitanie so spinnerom (len ak je cache prazdna/zastarana)
+            onRefreshEpgInitial()   // M270: first load with a spinner (only if the cache is empty/stale)
             while (true) {
                 kotlinx.coroutines.delay(60_000)
-                onRefreshEpg()      // periodicky refresh bez spinnera
+                onRefreshEpg()      // periodic refresh without a spinner
             }
         }
     }

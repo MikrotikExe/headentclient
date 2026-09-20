@@ -65,22 +65,22 @@ import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Yard
 
 /**
- * Jednotna paleta farebnych ikonovych cipov moderneho rezimu (M335).
- * Jediny zdroj pravdy pre farby a ikony kategorii/podzanrov — pouziva ju
- * archiv (telefon rady aj TV rail/dlazdice). Nastavenia, sidebar a
- * prihlasenie pouzivaju tie iste hex hodnoty vo svojich call sites.
+ * Unified palette of the modern mode's coloured icon chips (M335).
+ * The single source of truth for category/sub-genre colours and icons — used by
+ * the archive (phone rows as well as the TV rail/tiles). Settings, the sidebar and
+ * sign-in use the same hex values at their own call sites.
  */
 internal class MgChipColors(val bgL: Long, val fgL: Long, val bgD: Long, val fgD: Long)
 
 internal val mgPalette = listOf(
-    MgChipColors(0xFFFFE1E1, 0xFFD64545, 0xFF3A1D20, 0xFFEF8A88), // 0 cervena
-    MgChipColors(0xFFE3E0FB, 0xFF6A5AD8, 0xFF241F45, 0xFFA99BF5), // 1 fialova
-    MgChipColors(0xFFDCEFDA, 0xFF3D8B40, 0xFF16301C, 0xFF8ED492), // 2 zelena
-    MgChipColors(0xFFFFECCC, 0xFFC07A17, 0xFF3A2B12, 0xFFE8B96A), // 3 oranzova
-    MgChipColors(0xFFFDE2F1, 0xFFC2408F, 0xFF3A1730, 0xFFE88AC2), // 4 ruzova
-    MgChipColors(0xFFD8F0FB, 0xFF1877A8, 0xFF12283A, 0xFF7CC4E8), // 5 modra
+    MgChipColors(0xFFFFE1E1, 0xFFD64545, 0xFF3A1D20, 0xFFEF8A88), // 0 red
+    MgChipColors(0xFFE3E0FB, 0xFF6A5AD8, 0xFF241F45, 0xFFA99BF5), // 1 purple
+    MgChipColors(0xFFDCEFDA, 0xFF3D8B40, 0xFF16301C, 0xFF8ED492), // 2 green
+    MgChipColors(0xFFFFECCC, 0xFFC07A17, 0xFF3A2B12, 0xFFE8B96A), // 3 orange
+    MgChipColors(0xFFFDE2F1, 0xFFC2408F, 0xFF3A1730, 0xFFE88AC2), // 4 pink
+    MgChipColors(0xFFD8F0FB, 0xFF1877A8, 0xFF12283A, 0xFF7CC4E8), // 5 blue
     MgChipColors(0xFFE0F2EF, 0xFF0F8A63, 0xFF0F2E22, 0xFF7FE3BF), // 6 teal
-    MgChipColors(0xFFF0E9D8, 0xFF9A7B2D, 0xFF332C14, 0xFFD9C27A), // 7 jantarova
+    MgChipColors(0xFFF0E9D8, 0xFF9A7B2D, 0xFF332C14, 0xFFD9C27A), // 7 amber
 )
 
 internal fun mgChipFor(key: String): MgChipColors = when (key) {
@@ -104,7 +104,7 @@ internal fun mgChipFor(key: String): MgChipColors = when (key) {
     else -> mgPalette[kotlin.math.abs(key.hashCode()) % mgPalette.size]
 }
 
-/** Vlastna ikona podzanru (M328); null = pouzije sa ikona rodicovskej kategorie. */
+/** The sub-genre's own icon (M328); null = the parent category's icon is used. */
 internal fun mgSubIcon(k: String): androidx.compose.ui.graphics.vector.ImageVector? = when (k) {
     sk.tvhclient.shared.model.DvrClassifier.MV_AKCNY -> Icons.Filled.LocalFireDepartment
     sk.tvhclient.shared.model.DvrClassifier.MV_KOMEDIA -> Icons.Filled.TheaterComedy
@@ -171,8 +171,8 @@ internal fun mgSubIcon(k: String): androidx.compose.ui.graphics.vector.ImageVect
 }
 
 internal fun mgIconFor(rawKey: String): androidx.compose.ui.graphics.vector.ImageVector { 
-    // Podzaner ma prednostne vlastnu ikonu ("kat|sub" aj samotny sub kluc);
-    // *_ine a nezname padaju na ikonu rodicovskej kategorie.
+    // A sub-genre takes its own icon first ("kat|sub" as well as the bare sub key);
+    // *_ine and unknown ones fall back to the parent category's icon.
     mgSubIcon(rawKey.substringAfter('|', ""))?.let { return it }
     mgSubIcon(rawKey)?.let { return it }
     val key = rawKey.substringBefore('|'); return when {

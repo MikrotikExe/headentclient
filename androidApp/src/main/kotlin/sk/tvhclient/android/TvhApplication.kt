@@ -8,8 +8,8 @@ import android.content.IntentFilter
 import sk.tvhclient.shared.storage.initSecureStorage
 
 class TvhApplication : Application() {
-    // Prebudenie obrazovky -> ak je v nastaveniach zapnute, otvor appku.
-    // Funguje, len ak box pocas spanku nezabije proces (preto "nemusi fungovat vsade").
+    // Screen wake-up -> if enabled in the settings, open the app.
+    // Works only if the box does not kill the process during sleep (hence "may not work everywhere").
     private val screenOnReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent?) {
             val a = intent?.action ?: return
@@ -19,13 +19,13 @@ class TvhApplication : Application() {
             }
             if (a != Intent.ACTION_SCREEN_ON && a != Intent.ACTION_USER_PRESENT) return
             if (!AutostartPref.isWakeEnabled(context)) return
-            // M535: beziacu ulohu len presun dopredu (nezhadzuj prehravac), inak start
+            // M535: just bring a running task to the front (do not tear the player down), otherwise start
             AutostartLaunch.bringToFrontOrStart(context)
         }
     }
 
-    // Zmena systemoveho nastavenia 12/24 hodin (M423-fix). Android ju hlasi
-    // cez ACTION_TIME_CHANGED — rovnako to riesi aj systemovy TextClock.
+    // Change of the system 12/24 hour setting (M423-fix). Android reports it
+    // via ACTION_TIME_CHANGED — the system TextClock handles it the same way.
     private val timeFormatReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent?) {
             if (intent?.action != Intent.ACTION_TIME_CHANGED) return
@@ -35,28 +35,28 @@ class TvhApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // M440: verzia do jednotnej identity klienta (User-Agent, HTSP clientname)
+        // M440: version into the unified client identity (User-Agent, HTSP clientname)
         sk.tvhclient.shared.ClientIdent.version =
             runCatching { packageManager.getPackageInfo(packageName, 0).versionName }
                 .getOrNull() ?: "?"
-        // M511: jazykova preferencia pre EPG — Tvheadend podla nej vybera jazykovu
-        // mutaciu udalosti (OTA vs XMLTV). Bez nej dostaneme serverovu predvolbu.
+        // M511: language preference for the EPG — Tvheadend uses it to pick the language
+        // variant of an event (OTA vs XMLTV). Without it we get the server default.
         runCatching {
             val loc = java.util.Locale.getDefault()
             val l2 = loc.language.lowercase()
             if (l2.isNotBlank()) {
-                // RFC 2616 zoznam: vlastny jazyk, anglictina ako zaloha
+                // RFC 2616 list: own language, English as the fallback
                 sk.tvhclient.shared.ClientIdent.lang2 = if (l2 == "en") "en" else "$l2,en"
                 sk.tvhclient.shared.ClientIdent.lang3 = loc.isO3Language.lowercase()
             }
         }
-        CrashLogger.install(this)   // diagnostika pádov (M353)
+        CrashLogger.install(this)   // crash diagnostics (M353)
         initSecureStorage(this)
-        ClockPref.apply(this)       // format hodin do zdielaneho modulu (M423)
-        // SCREEN_ON sa od Androidu 8 nedá registrovať v manifeste — len za behu.
+        ClockPref.apply(this)       // clock format into the shared module (M423)
+        // Since Android 8 SCREEN_ON cannot be registered in the manifest — only at runtime.
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_ON)
-            addAction(Intent.ACTION_SCREEN_OFF)   // M540: kedy box zaspal (prehravac vymeni zvukovy vystup)
+            addAction(Intent.ACTION_SCREEN_OFF)   // M540: when the box went to sleep (the player swaps the audio output)
             addAction(Intent.ACTION_USER_PRESENT)
         }
         runCatching { registerReceiver(screenOnReceiver, filter) }
@@ -67,14 +67,14 @@ class TvhApplication : Application() {
 }
 
 /**
- * M540: cas posledneho zhasnutia obrazovky (standby). PlayerActivity podla neho
- * v onStart rozlisi navrat z pozadia po standby (AudioTrack je po nom na Amlogicu
- * mrtvy -> rovno novy prehravac, bez cakania na hlidac) od bezneho navratu
- * (TV program, PiP, ina appka).
+ * M540: the time the screen last went off (standby). PlayerActivity uses it
+ * in onStart to tell a return from the background after standby (after which AudioTrack is
+ * dead on Amlogic -> straight to a new player, without waiting for the watchdog) from an ordinary
+ * return (TV guide, PiP, another app).
  */
 object WakeTracker {
     @Volatile var lastScreenOffAt = 0L
-    /** Zhasla obrazovka od (alebo tesne pred) danym casom? */
+    /** Did the screen go off since (or just before) the given time? */
     fun screenWentOffSince(sinceElapsed: Long): Boolean =
         lastScreenOffAt > 0L && lastScreenOffAt >= sinceElapsed - 3000L
 }

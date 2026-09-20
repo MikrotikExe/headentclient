@@ -48,9 +48,9 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Uvodna "launcher" obrazovka pre Android TV / set-top box. Pouzivatel si najprv
- * vyberie sekciu (Kanaly, Radia, TV program, Archiv, Nastavenia). Hore datum (vlavo)
- * a cas (vpravo). Plne ovladatelne dialkovym (D-pad) cez fokus.
+ * The initial "launcher" screen for Android TV / set-top box. The user first
+ * picks a section (Channels, Radios, TV guide, Archive, Settings). At the top the date (left)
+ * and the time (right). Fully operable with the remote (D-pad) via focus.
  */
 @Composable
 fun TvHomeScreen(
@@ -71,7 +71,7 @@ fun TvHomeScreen(
     val fg = if (dark) Color.White else MaterialTheme.colorScheme.onSurface
     val fgDim = fg.copy(alpha = 0.65f)
 
-    // Hodiny: prepocet datumu/casu kazdu pol minutu
+    // Clock: date/time recomputed every half minute
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) { now = System.currentTimeMillis(); kotlinx.coroutines.delay(30_000) }
@@ -90,7 +90,7 @@ fun TvHomeScreen(
             .background(bg)
             .padding(horizontal = 40.dp, vertical = 28.dp)
     ) {
-        // Horna lista: datum vlavo, cas vpravo
+        // Top bar: date on the left, time on the right
         Row(
             Modifier.fillMaxWidth().align(Alignment.TopCenter),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -103,7 +103,7 @@ fun TvHomeScreen(
             Text(timeStr, color = fg, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
         }
 
-        // Stred: nazov + dlazdice (3 + 2)
+        // Centre: title + tiles (3 + 2)
         Column(
             Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally

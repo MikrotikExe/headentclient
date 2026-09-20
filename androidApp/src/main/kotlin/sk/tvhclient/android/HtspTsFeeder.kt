@@ -13,10 +13,10 @@ import java.io.FileDescriptor
 import java.io.OutputStream
 
 /**
- * M162/M163 — premostí HTSP zivy stream (premuxovany na MPEG-TS) do libVLC cez lokalny pipe.
- * `start` vytvori pipe, spusti korutinu ktora pise TS do write-endu a vrati read FileDescriptor
- * pre Media(libVlc, fd). Subscribuje s timeshift bufferom, takze sa da pauzovat cez
- * subscriptionSpeed. Pri `stop`/zatvoreni read-endu sa write zlomi a slucka skonci.
+ * M162/M163 — bridges the HTSP live stream (remuxed to MPEG-TS) into libVLC through a local pipe.
+ * `start` creates the pipe, launches a coroutine that writes TS into the write end and returns the read FileDescriptor
+ * for Media(libVlc, fd). It subscribes with a timeshift buffer, so it can be paused via
+ * subscriptionSpeed. On `stop`/closing the read end the write breaks and the loop ends.
  */
 class HtspTsFeeder(
     private val server: TvhServer,
@@ -32,44 +32,44 @@ class HtspTsFeeder(
     private var client: HtspClient? = null
     private var scope: CoroutineScope? = null
 
-    /** Posledny posun za zivym v 90kHz tikoch (z timeshiftStatus). 0 = zive. */
+    /** Last offset behind live in 90kHz ticks (from timeshiftStatus). 0 = live. */
     /**
-     * M508-fix2: DLZKA timeshift buffera v 90 kHz tikoch (end - start).
+     * M508-fix2: LENGTH of the timeshift buffer in 90 kHz ticks (end - start).
      *
-     * Toto je jediny spolahlivy udaj o tom, kolko sa da pretocit dozadu.
-     * Odhad podla uplynuteho casu neplati, ked ma server timeshift „On-demand" —
-     * vtedy sa buffer zacne tvorit az ked oň klient poziada (pauza/skok), takze
-     * skok tesne po naladeni kanala by siel do prazdna a obraz zamrzne.
-     * 0 = server rozsah nehlasi (starsi TVH, radio) -> plati zaloha.
+     * This is the only reliable indication of how far back one can rewind.
+     * An estimate from elapsed time does not hold when the server has timeshift set to "On-demand" —
+     * the buffer then only starts forming once a client asks for it (pause/seek), so
+     * a seek right after tuning a channel would go into the void and the picture freezes.
+     * 0 = the server does not report the range (older TVH, radio) -> the fallback applies.
      */
     @Volatile var bufferTicks: Long = 0L
         private set
 
 
-    /** Kompletny zoznam DVB titulkovych stop kanala zo subscriptionStart (esIndex + jazyk).
-     *  Nezavisi od libVLC, takze je rovnaky na kazdom zariadeni. Nastavi sa po subscriptionStart. */
+    /** Complete list of the channel's DVB subtitle tracks from subscriptionStart (esIndex + language).
+     *  Independent of libVLC, so it is the same on every device. Set after subscriptionStart. */
     @Volatile var subtitleStreams: List<sk.tvhclient.shared.htsp.TsMuxer.SubtitleInfo> = emptyList()
         private set
 
-    /** Callback pre hotovú titulkovú stránku (vlastný renderer). page + cieľový čas v ms. */
+    /** Callback for a finished subtitle page (custom renderer). page + target time in ms. */
     @Volatile var onSubtitlePage: ((sk.tvhclient.shared.htsp.DvbSubtitleDecoder.DecodedPage, Long) -> Unit)? = null
 
-    /** M552: kanál vysiela teletext (zo subscriptionStart). */
+    /** M552: the channel broadcasts teletext (from subscriptionStart). */
     @Volatile var hasTeletext: Boolean = false
         private set
-    /** M552: PES payload teletextu pre TeletextSession. */
+    /** M552: teletext PES payload for TeletextSession. */
     @Volatile var onTeletext: ((ByteArray) -> Unit)? = null
     @Volatile var onTeletextAvailable: ((Boolean) -> Unit)? = null
 
-    /** Spusti feed pre kanal a vrati read FileDescriptor pre libVLC. */
+    /** Starts the feed for a channel and returns the read FileDescriptor for libVLC. */
     /**
-     * M476: `profile` sa odovzdava do HTSP subscribe. HTSP profily podporuje od
-     * v16 (getProfiles + pole `profile` v subscribe), appka ich vsak doteraz
-     * posielala len na HTTP ceste — cez HTSP sa preto vzdy hralo so serverovou
-     * predvolbou. Prazdny/`null` = nechaj rozhodnut server (povodne spravanie).
+     * M476: `profile` is passed into the HTSP subscribe. HTSP has supported profiles since
+     * v16 (getProfiles + the `profile` field in subscribe), yet until now the app
+     * only sent them on the HTTP path — over HTSP it therefore always played with the server
+     * default. Empty/`null` = let the server decide (the original behaviour).
      */
-    // M595: kym bezi prenos, appka neotvara dalsie HTSP spojenia (server ich moze
-    // mat na pouzivatela obmedzene na jedno a prehravanie by zhodil)
+    // M595: while a transfer is running the app opens no further HTSP connections (the server may
+    // limit them to one per user and it would drop playback)
     private var streamMarked = false
 
     fun start(channelId: Long, scope: CoroutineScope, profile: String? = null): FileDescriptor {
@@ -83,23 +83,23 @@ class HtspTsFeeder(
         val os = ParcelFileDescriptor.AutoCloseOutputStream(write)
         out = os
 
-        // M458: zapis do pipe bezi vo VLASTNOM vlakne s frontou.
+        // M458: the write into the pipe runs on its OWN thread with a queue.
         //
-        // Linuxova pipe ma buffer 64 kB. Klucovy snimok 10-bit HEVC ma bezne
-        // 70-100 kB, takze sa do pipe naraz nezmesti a `os.write(bytes)` sa
-        // zablokuje, kym libVLC druhy koniec nevycita. Prijmacia HTSP slucka
-        // dovtedy stoji — a obraz sekol RAZ ZA GOP, teda raz za sekundu.
-        // Preto to postihovalo len HEVC (H.264 ma mensie klucove snimky),
-        // preto bol zvuk plynuly (male pakety) a preto HTTP cesta problem nema
-        // (libVLC tam cita priamo zo siete, ziadna pipe). V `top` sa to
-        // neprejavilo — blokovany zapis nespotrebuva procesor.
+        // A Linux pipe has a 64 kB buffer. A 10-bit HEVC key frame commonly has
+        // 70-100 kB, so it does not fit into the pipe at once and `os.write(bytes)`
+        // blocks until libVLC reads the other end out. The receiving HTSP loop
+        // stands still meanwhile — and the picture stuttered ONCE PER GOP, i.e. once a second.
+        // That is why it only affected HEVC (H.264 has smaller key frames),
+        // why the audio was smooth (small packets) and why the HTTP path does not have the problem
+        // (libVLC reads straight off the network there, no pipe). In `top` it did
+        // not show up — a blocked write consumes no CPU.
         val queue = java.util.concurrent.LinkedBlockingQueue<ByteArray>(256)
         tsQueue = queue
         val writer = Thread({
             try {
                 while (!Thread.currentThread().isInterrupted) {
                     val b = queue.take()
-                    if (b.isEmpty()) break          // signal na ukoncenie
+                    if (b.isEmpty()) break          // signal to finish
                     os.write(b)
                 }
             } catch (_: InterruptedException) {
@@ -113,9 +113,9 @@ class HtspTsFeeder(
         val c = HtspClient(server.host, server.htspPort, server.username, server.password)
         client = c
         job = scope.launch(Dispatchers.IO) {
-            // M408: keepalive job — kazdych 10 s posle lahku HTSP poziadavku, aby
-            // router/operator/NAT nezahodil necinne spojenie (pricina nahodnych
-            // zamrznuti na wifi/mobile). Bezi paralelne, zrusi sa vo finally.
+            // M408: keepalive job — every 10 s it sends a lightweight HTSP request so that
+            // the router/operator/NAT does not drop the idle connection (the cause of random
+            // freezes on wifi/mobile). Runs in parallel, cancelled in finally.
             val keepAlive = launch(Dispatchers.IO) {
                 try {
                     while (isActive) {
@@ -131,12 +131,12 @@ class HtspTsFeeder(
                     profile = profile?.takeIf { it.isNotBlank() },
                     timeshiftPeriodSec = timeshiftPeriodSec,
                     onTs = { bytes ->
-                        // ak by sa fronta zaplnila (libVLC dlho necita), radsej
-                        // pockame — je to ta ista spatna vazba ako predtym, len
-                        // s 256-blokovou rezervou navyse
-                        // M481: caka najviac 10 s. Blokovanie je tu zamerne (spatny
-                        // tlak, ked libVLC necita), ale po zastaveni prehravania uz
-                        // nikto frontu nevyprazdnuje a slucka by visela navzdy.
+                        // should the queue fill up (libVLC not reading for a long time), we would
+                        // rather wait — it is the same back pressure as before, just
+                        // with an extra 256-block reserve
+                        // M481: waits at most 10 s. Blocking is deliberate here (back
+                        // pressure when libVLC is not reading), but once playback has stopped
+                        // nobody drains the queue any more and the loop would hang forever.
                         if (bytes.isNotEmpty()) {
                             if (!queue.offer(bytes, 10, java.util.concurrent.TimeUnit.SECONDS)) {
                                 throw java.io.IOException("TS fronta sa neuvolnila")
@@ -152,7 +152,7 @@ class HtspTsFeeder(
                     onTeletext = { es -> onTeletext?.invoke(es) }
                 )
             } catch (_: Throwable) {
-                // zrusenie / zlomeny pipe / chyba spojenia
+                // cancellation / broken pipe / connection error
             } finally {
                 keepAlive.cancel()
                 c.close()
@@ -165,24 +165,24 @@ class HtspTsFeeder(
         return read.fileDescriptor
     }
 
-    /** Vyber titulkovej stopy posielanej do libVLC (esIndex; -1 = ziadna). */
+    /** Selection of the subtitle track sent into libVLC (esIndex; -1 = none). */
     fun selectSubtitle(esIndex: Int) {
         client?.selectSubtitle(esIndex)
     }
 
-    /** Pauza zivého prehravania (server drzi buffer). */
+    /** Pause of live playback (the server holds the buffer). */
     fun pause() {
         val c = client ?: return
         scope?.launch { runCatching { c.setSpeed(0) } }
     }
 
-    /** Obnovenie prehravania z miesta pauzy (timeshift). */
+    /** Resume playback from the point of the pause (timeshift). */
     fun resume() {
         val c = client ?: return
         scope?.launch { runCatching { c.setSpeed(100) } }
     }
 
-    /** Relativny skok v bufferi (sekundy; zaporne = vzad). */
+    /** Relative seek within the buffer (seconds; negative = backwards). */
     fun skip(seconds: Int) {
         val c = client ?: return
         scope?.launch { runCatching { c.skip(seconds) } }
@@ -192,13 +192,13 @@ class HtspTsFeeder(
         if (streamMarked) { streamMarked = false; sk.tvhclient.shared.htsp.HtspData.streamStopped() }   // M595
         job?.cancel()
         job = null
-        // M481: ukonci zapisovacie vlakno BEZ blokovania.
+        // M481: terminate the writer thread WITHOUT blocking.
         //
-        // Povodne tu bolo `tsQueue?.put(ByteArray(0))` — put() na plnej fronte
-        // CAKA. stop() pritom bezi na hlavnom vlakne (prepnutie kanala, otvorenie
-        // nahravky, koniec prehravania), takze ked bola fronta plna a zapisovacie
-        // vlakno viselo na plnej pipe, hlavne vlakno tam uviazlo a appka prestala
-        // reagovat. offer() miesto vlozenia neceka; prebudenie zaridi interrupt.
+        // Originally there was `tsQueue?.put(ByteArray(0))` here — put() on a full queue
+        // WAITS. stop() meanwhile runs on the main thread (channel switch, opening
+        // a recording, end of playback), so when the queue was full and the writer
+        // thread hung on a full pipe, the main thread got stuck there and the app stopped
+        // responding. offer() does not wait for room; the wake-up is handled by the interrupt.
         runCatching { tsQueue?.offer(ByteArray(0)) }
         runCatching { tsWriter?.interrupt() }
         tsQueue = null

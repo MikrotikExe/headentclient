@@ -6,19 +6,19 @@ import android.os.Looper
 import org.videolan.libvlc.MediaPlayer
 
 /**
- * M539 / M649: hlídač zaseknutého zvukového výstupu (vyclenené z PlayerActivity).
+ * M539 / M649: watchdog for a stalled audio output (extracted from PlayerActivity).
  *
- * Na Strongu (Amlogic) po prebudení zo standby a krátko po boote AudioTrack neodoberá
- * dáta: kanál hrá bez zvuku a každé stop()/set_media by na hlavnom vlákne čakalo na audio
- * dekodér donekonečna (ANR). libVLC drží aout v input_resource a znovu ho používa, takže
- * prepnutie kanála na tom istom MediaPlayeri mŕtvy AudioTrack nevymení — jediná cesta je
- * nový MediaPlayer (nový aout).
+ * On the Strong (Amlogic), after waking from standby and shortly after boot, AudioTrack does not take
+ * data: the channel plays with no sound and every stop()/set_media would wait on the main thread for the audio
+ * decoder forever (ANR). libVLC keeps the aout in input_resource and reuses it, so
+ * switching the channel on the same MediaPlayer does not replace the dead AudioTrack — the only way out is
+ * a new MediaPlayer (a new aout).
  *
- * Každú sekundu: ak hrá (Playing už prišlo), demux číta (demuxReadBytes rastie), ale
- * playedAbuffers stojí (M539-fix: `time` nestačí, pri mŕtvom zvuku obraz beží podľa PCR),
- * počítame vzorky. >= GUARD → [outputStalled] a každé ďalšie médium ide cez nový prehrávač;
- * >= RECREATE → [onRecreate] (nový prehrávač + znovunaladenie), max [MAX_RECREATES] za sebou,
- * počítadlo sa nuluje, keď zvuk začne bežať.
+ * Every second: if it is playing (Playing has already arrived), the demux is reading (demuxReadBytes is growing), but
+ * playedAbuffers is stuck (M539-fix: `time` is not enough, with dead audio the picture runs off the PCR),
+ * we count samples. >= GUARD → [outputStalled] and every further medium goes through a new player;
+ * >= RECREATE → [onRecreate] (a new player + retune), at most [MAX_RECREATES] in a row,
+ * the counter is reset once the audio starts running.
  */
 internal class StallWatchdog(
     private val ctx: Context,
@@ -31,7 +31,7 @@ internal class StallWatchdog(
     private var lastDemux = -1
     private var samples = 0
     private var playingSeen = false
-    /** Počet automatických obnov za sebou (číta createPlayer: od 2. skúsi OpenSL ES). */
+    /** Number of automatic recreations in a row (read by createPlayer: from the 2nd it tries OpenSL ES). */
     var recreates = 0
         private set
 
@@ -72,13 +72,13 @@ internal class StallWatchdog(
         handler.postDelayed(tick, 1000)
     }
 
-    /** Nové médium / nový prehrávač = nové počítanie; Playing musí prísť znova. */
+    /** New medium / new player = new counting; Playing has to arrive again. */
     fun reset() { lastAudio = -1; lastDemux = -1; samples = 0; playingSeen = false }
 
-    /** Event.Playing: od teraz má zmysel merať; vzorky vynuluj. */
+    /** Event.Playing: from now on measuring makes sense; reset the samples. */
     fun onPlaying() { playingSeen = true; samples = 0 }
 
-    /** Výstup nereaguje — stop() by zablokoval hlavné vlákno; nové médium má ísť cez nový prehrávač. */
+    /** The output is not responding — stop() would block the main thread; a new medium has to go through a new player. */
     fun outputStalled(): Boolean = playingSeen && samples >= GUARD
 
     fun destroy() = handler.removeCallbacksAndMessages(null)

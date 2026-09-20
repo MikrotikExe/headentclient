@@ -40,14 +40,14 @@ import kotlinx.coroutines.launch
 import sk.tvhclient.shared.Tvh
 
 /**
- * M430 / M628: kompaktný zap pás pri prepínaní kanálov (keď je prekryv vypnutý) —
- * číslo · kanál / program · čas / priebeh, na ~4 s. Dáta má z LiveChannel
- * (EPG now/next už v pamäti), nič nesťahuje. Vyclenené z PlayerActivity.
+ * M430 / M628: the compact zap bar when switching channels (when the overlay is off) —
+ * number · channel / programme · time / progress, for ~4 s. It gets its data from LiveChannel
+ * (now/next EPG already in memory), it downloads nothing. Extracted from PlayerActivity.
  *
- * [suppressed] hovorí, či je na obrazovke iný prekryv (klasické ovládanie,
- * moderný prehľad, info okno) — vtedy sa pás nezobrazí (M442: tie ukazujú ten
- * istý údaj a pri prepínaní sa samy aktualizujú; inak by na niektorých
- * zariadeniach svietili dva pásy naraz).
+ * [suppressed] says whether another overlay is on screen (the classic controls,
+ * the modern overview, the info window) — then the bar is not shown (M442: those show the
+ * same data and update themselves when switching; otherwise on some
+ * devices two bars would be lit at once).
  */
 class ZapBar(
     private val scope: CoroutineScope,
@@ -62,9 +62,9 @@ class ZapBar(
     val progress = mutableStateOf(0f)
     private var job: Job? = null
 
-    /** M446: zruší zap pás — volá sa vždy, keď sa otvára iný prekryv (moderný
-     *  prehľad, klasické ovládanie, info). Bez toho by pás ostal visieť navrchu
-     *  až do vypršania 4 s a bary by sa prekrývali. */
+    /** M446: cancels the zap bar — called whenever another overlay is opened (the modern
+     *  overview, the classic controls, info). Without it the bar would hang on top
+     *  until the 4 s expired and the bars would overlap. */
     fun hide() {
         job?.cancel()
         visible.value = false
@@ -90,7 +90,7 @@ class ZapBar(
     }
 }
 
-/** Vykreslenie zap pásu vľavo dole (volajúci rozhodne, či ho práve zobraziť). */
+/** Rendering of the zap bar at the bottom left (the caller decides whether to show it right now). */
 @Composable
 internal fun ZapBarOverlay(bar: ZapBar) {
     Box(

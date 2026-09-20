@@ -11,10 +11,10 @@ import sk.tvhclient.shared.model.TvhServer
 import sk.tvhclient.shared.net.DigestAuthenticator
 
 /**
- * Coil ImageLoader pre picony. Auth: Basic preemptivne (rychla cesta pre
- * basic/auto servery) + DigestAuthenticator na 401 challenge, takze picony
- * idu aj z digest-only servera v defaultnom rezime. Disk cache 50 MB + memory
- * cache — picony sa stahuju lazily ako sa scrolluje, ziadny upfront burst.
+ * Coil ImageLoader for picons. Auth: Basic pre-emptively (the fast path for
+ * basic/auto servers) + DigestAuthenticator on a 401 challenge, so picons
+ * come through from a digest-only server as well in the default mode. 50 MB disk cache + memory
+ * cache — picons are fetched lazily as you scroll, no upfront burst.
  */
 object PiconImageLoader {
 
@@ -34,7 +34,7 @@ object PiconImageLoader {
         }
     }
 
-    /** M272: rucne vycistenie picon cache (memory + disk) — pre „Obnovit zoznam" v nastaveniach. */
+    /** M272: manual clearing of the picon cache (memory + disk) — for "Refresh list" in settings. */
     fun clearCache(context: Context, server: TvhServer?) {
         val il = get(context, server)
         runCatching { il.memoryCache?.clear() }
@@ -43,8 +43,8 @@ object PiconImageLoader {
 
     private fun build(context: Context, server: TvhServer?): ImageLoader {
         val hasCreds = server != null && server.username.isNotEmpty()
-        // Basic posleme preemptivne len ked nie je vynuteny digest (setri roundtrip
-        // na basic/auto serveroch); pri digest-only ho vyriesi Authenticator nizsie.
+        // We send Basic pre-emptively only when digest is not forced (saves a roundtrip
+        // on basic/auto servers); for digest-only the Authenticator below sorts it out.
         val preemptiveBasic: String? = if (hasCreds && server!!.authMode != "digest") {
             val raw = "${server.username}:${server.password}"
             "Basic " + Base64.encodeToString(raw.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
@@ -58,8 +58,8 @@ object PiconImageLoader {
                 chain.proceed(req)
             })
 
-        // Digest (a Basic fallback) cez 401 challenge — aby picony isli aj z
-        // digest-only servera, nie len ked je vynuteny Basic.
+        // Digest (and the Basic fallback) via the 401 challenge — so picons come through from
+        // a digest-only server too, not only when Basic is forced.
         if (hasCreds && server!!.authMode != "none") {
             builder.authenticator(DigestAuthenticator(server.username, server.password))
         }

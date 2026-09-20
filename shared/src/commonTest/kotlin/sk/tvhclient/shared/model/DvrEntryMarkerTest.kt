@@ -4,16 +4,16 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/** Vypocet pozicie zaciatku/konca relacie v nahravke (znacka na seek bare). */
+/** Computation of the position of the programme start/end within the recording (a marker on the seek bar). */
 class DvrEntryMarkerTest {
 
-    // 60 min relacia, okraj 15 min pred a 15 min po -> subor 90 min.
+    // a 60 min programme, 15 min of padding before and 15 min after -> a 90 min file.
     // start_real = start - 900s, stop_real = stop + 900s.
     private val padded = DvrEntry(
         start = 10_000,
-        stop = 10_000 + 3600,            // relacia 60 min
-        startReal = 10_000 - 900,        // 15 min pred
-        stopReal = 10_000 + 3600 + 900   // 15 min po
+        stop = 10_000 + 3600,            // a 60 min programme
+        startReal = 10_000 - 900,        // 15 min before
+        stopReal = 10_000 + 3600 + 900   // 15 min after
     )
 
     @Test
@@ -39,7 +39,7 @@ class DvrEntryMarkerTest {
         val e = DvrEntry(
             start = 10_000,
             stop = 10_000 + 3600,
-            startExtra = 15,  // minut
+            startExtra = 15,  // minutes
             stopExtra = 15
         )
         assertEquals(5400, e.realLengthSec)
@@ -50,7 +50,7 @@ class DvrEntryMarkerTest {
     fun noPaddingMeansNoMarker() {
         val e = DvrEntry(start = 10_000, stop = 10_000 + 3600)
         assertEquals(3600, e.realLengthSec)
-        // bez okraja -> ziadna znacka (0 a 1)
+        // no padding -> no marker (0 and 1)
         assertEquals(0f, e.programStartFraction)
         assertEquals(1f, e.programStopFraction)
     }

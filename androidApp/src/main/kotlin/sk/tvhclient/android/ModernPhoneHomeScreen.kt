@@ -50,11 +50,11 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Moderna domovska obrazovka pre TELEFON (UiModePref.MODERN) — telefonne
- * rozlozenie, nie TV koncept: kompaktny hero + VERTIKALNY zoznam oblubenych
- * kanalov (plnosiroke riadky s piconom, relaciou, progresom a zostavajucim
- * casom) + riadok "Vsetky kanaly". Skratky sekcii tu nie su — dupliovali by
- * spodnu listu. Zdiela ChannelsViewModel (activity scope) s obrazovkou kanalov.
+ * Modern home screen for the PHONE (UiModePref.MODERN) — a phone
+ * layout, not the TV concept: a compact hero + a VERTICAL list of favourite
+ * channels (full-width rows with picon, programme, progress and remaining
+ * time) + an "All channels" row. There are no section shortcuts here — they would duplicate
+ * the bottom bar. Shares ChannelsViewModel (activity scope) with the channels screen.
  */
 @Composable
 fun ModernPhoneHomeScreen(
@@ -136,7 +136,7 @@ fun ModernPhoneHomeScreen(
             Spacer(Modifier.height(10.dp))
         }
 
-        // ===== kompaktny HERO =====
+        // ===== compact HERO =====
         item(key = "hero") {
             Box(
                 Modifier
@@ -233,13 +233,13 @@ fun ModernPhoneHomeScreen(
             Spacer(Modifier.height(18.dp))
         }
 
-        // ===== pokracovat v pozerani (M333) =====
+        // ===== continue watching (M333) =====
         item(key = "cwrail") {
             ContinueWatchingRail(headerFontSize = 16.sp, cardWidth = 210.dp)
             Spacer(Modifier.height(18.dp))
         }
 
-        // ===== oblubene · teraz — vertikalne riadky =====
+        // ===== favourites · now — vertical rows =====
         if (listRows.isNotEmpty()) {
             item(key = "favhdr") {
                 Text(stringResource(R.string.mh_fav_now), color = fg, fontSize = 16.sp,
@@ -301,7 +301,7 @@ fun ModernPhoneHomeScreen(
             }
         }
 
-        // ===== vsetky kanaly =====
+        // ===== all channels =====
         item(key = "allch") {
             Spacer(Modifier.height(4.dp))
             Row(

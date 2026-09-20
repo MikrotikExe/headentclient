@@ -13,15 +13,15 @@ import sk.tvhclient.shared.model.EpgEvent
 import sk.tvhclient.shared.storage.EpgCacheCodec
 
 /**
- * EPG pre mriezku. Drzi sa v cache (Activity-scoped ViewModel), takze prepnutie
- * kariet ani znovuotvorenie mriezky uz nestahuje to iste.
+ * EPG for the grid. Kept in a cache (Activity-scoped ViewModel), so switching
+ * tabs or reopening the grid no longer downloads the same thing again.
  *
- * Navyse je EPG perzistovane na disk (EpgCache) — appka si tak pamata uplynule dni
- * aj ked ich Tvheadend z EPG uz vymazal. Pri starte sa cache nacita (orezany podla
- * EpgRangePref.daysBack), cerstve data sa s nim zlucuju a priebezne ukladaju.
+ * On top of that the EPG is persisted to disk (EpgCache) — the app thus remembers past days
+ * even when Tvheadend has already deleted them from its EPG. On startup the cache is loaded (trimmed by
+ * EpgRangePref.daysBack), fresh data is merged into it and saved as it arrives.
  *
- * HTTP: per-kanal na poziadanie (ensureChannel) ked je riadok viditelny.
- * HTSP: JEDNO spojenie, vsetky kanaly progresivne (loadHtsp).
+ * HTTP: per channel on demand (ensureChannel) when the row is visible.
+ * HTSP: ONE connection, all channels progressively (loadHtsp).
  */
 class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -31,8 +31,8 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
     private fun daysBack(): Int = EpgRangePref.daysBack(appCtx)
     private fun nowSec(): Long = System.currentTimeMillis() / 1000
 
-    // M611: disková cache mriežky sa číta na pozadí (predtým synchrónne v konštruktore
-    // na hlavnom vlákne — pri veľkom EPG ANR). Čerstvé dáta majú prednosť, cache dopĺňa.
+    // M611: the grid's disk cache is read in the background (previously synchronously in the constructor
+    // on the main thread — ANR with a large EPG). Fresh data takes precedence, the cache fills in the gaps.
     private val _epg = MutableStateFlow<Map<String, List<EpgEvent>>>(emptyMap())
     val epg: StateFlow<Map<String, List<EpgEvent>>> = _epg
     private fun loadDiskAsync(replace: Boolean) {
@@ -49,17 +49,17 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading
 
-    // generacia: po refresh sa zvysi a nacitanie sa spusti nanovo
+    // generation: bumped after a refresh and loading restarts from scratch
     private val _gen = MutableStateFlow(0)
     val gen: StateFlow<Int> = _gen
 
     private val inFlight = HashSet<String>()
     private var htspStarted = false
 
-    /** HTTP: nacita EPG pre jeden kanal, ak ho este nemame (volane pri zobrazeni riadku). */
+    /** HTTP: loads the EPG for a single channel if we do not have it yet (called when the row is shown). */
     fun ensureChannel(uuid: String) {
         val server = Tvh.store.active() ?: return
-        if (server.connectionMode == "htsp") return   // HTSP ide cez loadHtsp()
+        if (server.connectionMode == "htsp") return   // HTSP goes through loadHtsp()
         if (inFlight.contains(uuid)) return
         inFlight.add(uuid)
         _loading.value = true
@@ -82,7 +82,7 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** HTSP: jedno spojenie, vsetky kanaly progresivne (eventy pribudaju po kanaloch). */
+    /** HTSP: one connection, all channels progressively (events arrive channel by channel). */
     fun loadHtsp() {
         val server = Tvh.store.active() ?: return
         if (server.connectionMode != "htsp") return
@@ -105,7 +105,7 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Ulozi aktualny EPG na disk (orezany podla daysBack). */
+    /** Saves the current EPG to disk (trimmed by daysBack). */
     private fun persist() {
         val snapshot = _epg.value
         val sid = serverId()
@@ -116,7 +116,7 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Vynutene obnovenie — z disku znova nacita pamatane dni a stiahne cerstve data. */
+    /** Forced refresh — reloads the remembered days from disk and downloads fresh data. */
     fun refresh() {
         loadDiskAsync(replace = true)   // M611
         inFlight.clear()

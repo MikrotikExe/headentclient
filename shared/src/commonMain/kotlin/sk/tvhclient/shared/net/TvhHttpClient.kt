@@ -10,15 +10,15 @@ import kotlinx.serialization.json.Json
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * M255 — platformova tovaren HTTP klienta pre TVH API.
+ * M255 — platform factory for the HTTP client for the TVH API.
  * Android: OkHttp engine + DigestAuthenticator (MD5/SHA-256/SHA-512-256) +
- * preemptivny Basic, takze API (kanaly/EPG/DVR zoznam) funguje na vsetkych
- * auth konfiguraciach servera, nielen MD5 ako stock Ktor digest.
+ * preemptive Basic, so the API (channel/EPG/DVR lists) works with all of the
+ * server's auth configurations, not just MD5 like the stock Ktor digest.
  * iOS: Darwin engine + Ktor basic/digest (MD5).
  */
 expect fun tvhHttpClient(server: TvhServer, json: Json): HttpClient
 
-/** Spolocna konfiguracia nezavisla od enginu (bez auth — to je platformove). */
+/** Shared configuration independent of the engine (without auth — that is platform specific). */
 internal fun HttpClientConfig<*>.tvhCommonConfig(json: Json) {
     expectSuccess = false
     install(UserAgent) { agent = sk.tvhclient.shared.ClientIdent.userAgent }

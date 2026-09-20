@@ -3,25 +3,25 @@ package sk.tvhclient.shared.teletext
 import kotlin.concurrent.Volatile
 
 /**
- * M552 — dekodér EBU teletextu (EN 300 706, Level 1) z DVB dátových jednotiek
- * (EN 300 472). Spoločný pre HTSP (payload muxpkt stopy TELETEXT) aj HTTP
- * (PES payload teletextového PID z TS). Zbiera stránky do pamäte, UI si ich
- * pýta cez [page]/[subpages]; o zmene sa dozvie cez [onPageUpdated].
+ * M552 — decoder for EBU teletext (EN 300 706, Level 1) from DVB data units
+ * (EN 300 472). Shared by HTSP (the payload of a muxpkt TELETEXT track) and HTTP
+ * (the PES payload of the teletext PID from the TS). It collects pages in memory, the UI
+ * asks for them through [page]/[subpages]; it learns about changes through [onPageUpdated].
  *
- * Nerobí nič s vykresľovaním — [TeletextRenderer] premení uložený riadok
- * (40 bajtov, 7-bit) na bunky s farbou, mozaikou a dvojitou výškou.
+ * It does nothing about rendering — [TeletextRenderer] turns a stored line
+ * (40 bytes, 7-bit) into cells with colour, mosaic graphics and double height.
  */
 class TeletextDecoder {
 
-    /** Prijatá stránka. [rows] = 25 riadkov × 40 bajtov (riadok 0 = hlavička, 24 = Fastext). */
+    /** A received page. [rows] = 25 rows × 40 bytes (row 0 = header, 24 = Fastext). */
     class Page(
-        val number: Int,          // hex, napr. 0x100
-        val subpage: Int,         // hex, 0 ak bez podstránok
+        val number: Int,          // hex, e.g. 0x100
+        val subpage: Int,         // hex, 0 if there are no subpages
         val rows: Array<ByteArray>,
         val rowPresent: BooleanArray,
-        val charset: Int,         // designácia znakovej sady: región×8 + národná voľba (TeletextCharset)
-        val flags: Int,           // C4..C14 bity ako v hlavičke
-        val links: IntArray,      // Fastext: 6 čísel stránok (hex) alebo -1
+        val charset: Int,         // character set designation: region×8 + national option (TeletextCharset)
+        val flags: Int,           // C4..C14 bits as in the header
+        val links: IntArray,      // Fastext: 6 page numbers (hex) or -1
         val receivedAt: Long
     ) {
         val isSubtitle: Boolean get() = (flags and FLAG_SUBTITLE) != 0
@@ -33,22 +33,22 @@ class TeletextDecoder {
         val number: Int, val subpage: Int, val natOpt: Int, val flags: Int,
         val rows: Array<ByteArray>, val rowPresent: BooleanArray, val links: IntArray
     ) {
-        /** M555: X/28/0 — úplná designácia znakovej sady stránky (región + národná voľba), -1 = nie je. */
+        /** M555: X/28/0 — the page's full character set designation (region + national option), -1 = not present. */
         var x28Set: Int = -1
     }
 
-    /** M555: M/29/0 — predvolená designácia sady pre magazín (index 0..7, mag 8 = 0), -1 = nie je. */
+    /** M555: M/29/0 — default set designation for the magazine (index 0..7, mag 8 = 0), -1 = not present. */
     private val magSet = IntArray(8) { -1 }
 
-    // stránky: number -> (subpage -> Page). Copy-on-write snapshot: zapisuje jedno
-    // vlákno (dekodér), čítá UI — bez zámku (common kód, žiadne synchronized).
+    // pages: number -> (subpage -> Page). Copy-on-write snapshot: a single thread
+    // writes (the decoder), the UI reads — without a lock (common code, no synchronized).
     @Volatile private var pages: Map<Int, Map<Int, Page>> = emptyMap()
     private val building = arrayOfNulls<Building>(8)
 
-    /** Volá sa (z vlákna dekodéra!) po prijatí kompletnej stránky. */
+    /** Called (from the decoder thread!) once a complete page has been received. */
     var onPageUpdated: ((Int) -> Unit)? = null
 
-    /** Posledná prijatá hlavička (32 znakov, už so znakovou sadou) — „rolujúce“ hodiny. */
+    /** The last received header (32 characters, already with the character set applied) — the "rolling" clock. */
     @Volatile var lastHeader: String = ""
         private set
     @Volatile var lastHeaderPage: Int = -1
@@ -70,7 +70,7 @@ class TeletextDecoder {
     fun page(number: Int, subpage: Int = -1): Page? {
         val m = pages[number] ?: return null
         if (subpage >= 0) return m[subpage]
-        // bez podstránok / neurčené: posledná prijatá
+        // no subpages / unspecified: the last one received
         return m.values.lastOrNull()
     }
 
@@ -78,12 +78,12 @@ class TeletextDecoder {
 
     fun knownPages(): List<Int> = pages.keys.sorted()
 
-    // ------------------------------------------------------------------ vstup
+    // ------------------------------------------------------------------ input
 
     /**
-     * PES payload teletextu (EN 300 472): data_identifier (0x10..0x1F) + dátové
-     * jednotky po 46 B (id, dĺžka 0x2C, field/line, framing 0xE4, 42 B dát).
-     * Tolerantné voči chýbajúcemu data_identifier.
+     * Teletext PES payload (EN 300 472): data_identifier (0x10..0x1F) + data
+     * units of 46 B each (id, length 0x2C, field/line, framing 0xE4, 42 B of data).
+     * Tolerant of a missing data_identifier.
      */
     fun feedPes(buf: ByteArray, off: Int = 0, len: Int = buf.size - off) {
         var p = off
@@ -99,15 +99,15 @@ class TeletextDecoder {
             if (p + unitLen > end) break
             if ((unitId == 0x02 || unitId == 0x03) && unitLen >= 44) {
                 // p: field/line, p+1: framing code, p+2.. 42 B
-                // framing code 0xE4 — niektoré servery ho neprenášajú spoľahlivo, riadok
-                // berieme aj tak (hamming adresy odfiltruje smeti)
+                // framing code 0xE4 — some servers do not transmit it reliably, we take the line
+                // anyway (the hamming of the address filters out the garbage)
                 feedLine(buf, p + 2)
             }
             p += unitLen
         }
     }
 
-    /** 42 bajtov VBI riadku (2 B adresa + 40 B dát), bity v prenosovom poradí (LSB first). */
+    /** 42 bytes of a VBI line (2 B address + 40 B of data), bits in transmission order (LSB first). */
     private fun feedLine(buf: ByteArray, off: Int) {
         val d = ByteArray(42)
         for (i in 0 until 42) d[i] = REV[buf[off + i].toInt() and 0xFF].toByte()
@@ -121,9 +121,9 @@ class TeletextDecoder {
             packet == 0 -> header(mag, d)
             packet in 1..24 -> row(mag, packet, d)
             packet == 27 -> fastext(mag, d)
-            packet == 28 -> x28(mag, d)          // M555: znaková sada stránky
-            packet == 29 -> m29(mag, d)          // M555: znaková sada magazínu
-            // 26/30/31: rozšírenia (Level 1.5+), broadcast service data — ignorujeme
+            packet == 28 -> x28(mag, d)          // M555: page character set
+            packet == 29 -> m29(mag, d)          // M555: magazine character set
+            // 26/30/31: extensions (Level 1.5+), broadcast service data — we ignore them
         }
     }
 
@@ -132,11 +132,11 @@ class TeletextDecoder {
         for (i in 0 until 8) { h[i] = unham(d[2 + i]); if (h[i] < 0) return }
         val units = h[0]; val tens = h[1]
         val idx = mag and 7
-        // predchádzajúca stránka tohto magazínu je hotová; v sériovom režime (C11)
-        // ukončuje hlavička stránku ktoréhokoľvek magazínu
+        // the previous page of this magazine is finished; in serial mode (C11)
+        // a header terminates the page of any magazine
         commit(idx)
         if ((h[7] and 0x1) != 0) for (i in 0 until 8) commit(i)
-        // hlavička s číslom xFF = výplň/čas, stránku nezakladá
+        // a header with number xFF = filler/time, it does not start a page
         if (units == 0xF && tens == 0xF) {
             lastHeader = headerText(d, 0); lastHeaderPage = -1
             return
@@ -152,16 +152,16 @@ class TeletextDecoder {
             (if ((h[6] and 0x4) != 0) FLAG_INTERRUPTED else 0) or
             (if ((h[6] and 0x8) != 0) FLAG_INHIBIT else 0) or
             (if ((h[7] and 0x1) != 0) FLAG_SERIAL else 0)
-        // C12 C13 C14 (bity 1..3 bajtu 8) — v tabuľke národných sád je C12 NAJVYŠŠÍ bit
-        // (M553-fix: opačné poradie dávalo pre češtinu/slovenčinu (110) taliančinu (011)).
+        // C12 C13 C14 (bits 1..3 of byte 8) — in the national sets table C12 is the HIGHEST bit
+        // (M553-fix: the reverse order gave Italian (011) for Czech/Slovak (110)).
         val natOpt = (((h[7] shr 1) and 1) shl 2) or (((h[7] shr 2) and 1) shl 1) or ((h[7] shr 3) and 1)
         val charset = TeletextCharset.compose(magSet[idx], natOpt)
-        // nová stránka: bez erase preberá riadky z uloženej verzie (prenášajú sa len zmenené)
+        // a new page: without erase it takes the rows from the stored version (only changed ones are transmitted)
         val prev = if (!erase) page(number, subpage) else null
         val rows = Array(25) { i -> if (prev != null && i > 0) prev.rows[i].copyOf() else ByteArray(40) { 0x20 } }
         val present = BooleanArray(25) { i -> prev != null && i > 0 && prev.rowPresent[i] }
         val links = if (prev != null) prev.links.copyOf() else IntArray(6) { -1 }
-        // riadok 0 = hlavička: prvých 8 bajtov nie sú znaky (adresné), zobrazuje sa od stĺpca 8
+        // row 0 = header: the first 8 bytes are not characters (they are address bytes), display starts at column 8
         for (i in 0 until 8) rows[0][i] = 0x20
         for (i in 8 until 40) rows[0][i] = parity(d[2 + i])
         present[0] = true
@@ -188,7 +188,7 @@ class TeletextDecoder {
     private fun fastext(mag: Int, d: ByteArray) {
         val b = building[mag and 7] ?: return
         val dc = unham(d[2])
-        if (dc != 0) return   // len X/27/0 = editorial links
+        if (dc != 0) return   // only X/27/0 = editorial links
         for (l in 0 until 6) {
             val o = 3 + l * 6
             val u = unham(d[o]); val t = unham(d[o + 1])
@@ -201,15 +201,15 @@ class TeletextDecoder {
         }
     }
 
-    /** X/28/0 formát 1: triplet 1, bity 8–14 = designácia G0 sady (región ×8 + národná voľba). */
+    /** X/28/0 format 1: triplet 1, bits 8–14 = designation of the G0 set (region ×8 + national option). */
     private fun x28(mag: Int, d: ByteArray) {
         val b = building[mag and 7] ?: return
-        if (unham(d[2]) != 0) return              // len designation code 0
+        if (unham(d[2]) != 0) return              // only designation code 0
         val t1 = unham24(d, 3) ?: return
         b.x28Set = (t1 shr 7) and 0x7F
     }
 
-    /** M/29/0: rovnaký formát, platí pre celý magazín (kým nepríde X/28/0 stránky). */
+    /** M/29/0: the same format, valid for the whole magazine (until an X/28/0 for the page arrives). */
     private fun m29(mag: Int, d: ByteArray) {
         if (unham(d[2]) != 0) return
         val t1 = unham24(d, 3) ?: return
@@ -217,9 +217,9 @@ class TeletextDecoder {
     }
 
     /**
-     * Hamming 24/18 (EN 300 706 8.3): 3 bajty (už s obrátenými bitmi) → 18 dátových bitov.
-     * Kontrolné bity na pozíciách 1,2,4,8,16 (+24 celková parita). Bez opravy chýb —
-     * pri nesúlade kontrol vráti null (paket sa opakuje pravidelne).
+     * Hamming 24/18 (EN 300 706 8.3): 3 bytes (already with the bits reversed) → 18 data bits.
+     * Check bits at positions 1,2,4,8,16 (+24 overall parity). Without error correction —
+     * on a check mismatch it returns null (the packet is repeated regularly).
      */
     private fun unham24(d: ByteArray, off: Int): Int? {
         val t = (d[off].toInt() and 0xFF) or ((d[off + 1].toInt() and 0xFF) shl 8) or ((d[off + 2].toInt() and 0xFF) shl 16)
@@ -240,13 +240,13 @@ class TeletextDecoder {
     private fun commit(idx: Int) {
         val b = building[idx] ?: return
         building[idx] = null
-        // M555: sada stránky: X/28/0 > (M/29/0 región + C12–C14) > (región 0 + C12–C14)
+        // M555: page set: X/28/0 > (M/29/0 region + C12–C14) > (region 0 + C12–C14)
         val charset = if (b.x28Set >= 0) b.x28Set else TeletextCharset.compose(magSet[idx], b.natOpt)
         val pg = Page(b.number, b.subpage, b.rows, b.rowPresent, charset, b.flags, b.links, now())
         val m = LinkedHashMap(pages[b.number] ?: emptyMap())
         m.remove(b.subpage)
         m[b.subpage] = pg
-        // podstránky držíme max 80 na stránku
+        // we keep at most 80 subpages per page
         if (m.size > 80) m.remove(m.keys.first())
         val np = HashMap(pages); np[b.number] = m
         pages = np
@@ -254,11 +254,11 @@ class TeletextDecoder {
         onPageUpdated?.invoke(b.number)
     }
 
-    // ------------------------------------------------------------------ pomocné
+    // ------------------------------------------------------------------ helpers
 
     private fun parity(b: Byte): Byte {
         val v = b.toInt() and 0xFF
-        // nepárna parita: počet jednotiek musí byť nepárny
+        // odd parity: the number of ones must be odd
         return if (v.countOneBits() and 1 == 1) (v and 0x7F).toByte() else 0x20
     }
 
@@ -274,15 +274,15 @@ class TeletextDecoder {
         const val FLAG_INHIBIT = 64
         const val FLAG_SERIAL = 128
 
-        /** Obrátenie bitov v bajte (VBI prenos je LSB first). */
+        /** Reversal of the bits in a byte (VBI transmission is LSB first). */
         private val REV = IntArray(256) { v ->
             var x = v; var r = 0
             for (i in 0 until 8) { r = (r shl 1) or (x and 1); x = x shr 1 }
             r
         }
 
-        /** Hamming 8/4 dekódovanie: tabuľka 256 → 0..15, -1 = neopraviteľná chyba.
-         *  Kódové slová podľa EN 300 706 tab. 8 (P1 D1 P2 D2 P3 D3 P4 D4, po obrátení bitov). */
+        /** Hamming 8/4 decoding: a table of 256 → 0..15, -1 = an uncorrectable error.
+         *  Code words according to EN 300 706 table 8 (P1 D1 P2 D2 P3 D3 P4 D4, after reversing the bits). */
         private val HAM8: IntArray = run {
             val codes = IntArray(16) { dv ->
                 val d1 = dv and 1; val d2 = (dv shr 1) and 1; val d3 = (dv shr 2) and 1; val d4 = (dv shr 3) and 1
@@ -294,7 +294,7 @@ class TeletextDecoder {
             }
             val t = IntArray(256) { -1 }
             for (v in 0 until 16) t[codes[v]] = v
-            // oprava jednobitových chýb
+            // correction of single-bit errors
             for (v in 0 until 16) for (bit in 0 until 8) {
                 val c = codes[v] xor (1 shl bit)
                 if (t[c] < 0) t[c] = v
@@ -304,12 +304,12 @@ class TeletextDecoder {
     }
 }
 
-/** Zobrazovaná bunka (Level 1). */
+/** A displayed cell (Level 1). */
 class TeletextCell(
     val ch: Char,
-    val fg: Int,           // 0..7 (čierna, červená, zelená, žltá, modrá, purpurová, azúrová, biela)
+    val fg: Int,           // 0..7 (black, red, green, yellow, blue, magenta, cyan, white)
     val bg: Int,
-    val mosaic: Int,       // -1 = text, inak 6-bit vzor (b0 ľavý horný … b5 pravý dolný)
+    val mosaic: Int,       // -1 = text, otherwise a 6-bit pattern (b0 top left … b5 bottom right)
     val separated: Boolean,
     val doubleHeight: Boolean,
     val conceal: Boolean,
@@ -317,7 +317,7 @@ class TeletextCell(
 )
 
 object TeletextRenderer {
-    /** Prevedie stránku na 25 riadkov × 40 buniek. Riadok pod dvojitou výškou = null (preskočiť). */
+    /** Converts a page into 25 rows × 40 cells. A row under a double-height one = null (skip it). */
     fun render(page: TeletextDecoder.Page, reveal: Boolean = false): Array<Array<TeletextCell>?> {
         val out = arrayOfNulls<Array<TeletextCell>>(25)
         var skipNext = false
@@ -339,7 +339,7 @@ object TeletextRenderer {
         for (i in 0 until 40) {
             val c = row[i].toInt() and 0x7F
             if (c < 0x20) {
-                // set-at atribúty platia už pre túto bunku
+                // set-at attributes already apply to this cell
                 when (c) {
                     0x09 -> flash = false
                     0x0C -> dbl = false
@@ -350,7 +350,7 @@ object TeletextRenderer {
                     0x1D -> bg = fg
                     0x1E -> hold = true
                 }
-                // riadiaci znak sa zobrazí ako medzera, alebo držaná mozaika
+                // a control character is displayed as a space, or as the held mosaic
                 if (hold && mosaic) {
                     cells.add(cell(heldChar, fg, bg, true, heldSeparated, dbl, conceal, flash, charset, reveal))
                 } else {
@@ -390,18 +390,18 @@ object TeletextRenderer {
 }
 
 /**
- * M555 — znakové sady G0 podľa EN 300 706 tab. 32/36 a nelatinské G0 (tab. 37–42).
- * Hodnota sady = región (bity 6..3, z X/28/0 alebo M/29/0, inak 0) × 8 + národná voľba
- * (bity 2..0, C12–C14 z hlavičky alebo z X/28/0). Pokryté všetky európske teletexty:
- * latinka s 13 národnými podmnožinami, cyrilika (srbská/chorvátska, ruská/bulharská,
- * ukrajinská), gréčtina, hebrejčina. Arabčina (tvary písmen podľa kontextu, RTL) sa
- * zobrazí v latinke.
+ * M555 — G0 character sets according to EN 300 706 tables 32/36 and the non-Latin G0 sets (tables 37–42).
+ * Set value = region (bits 6..3, from X/28/0 or M/29/0, otherwise 0) × 8 + national option
+ * (bits 2..0, C12–C14 from the header or from X/28/0). All European teletexts are covered:
+ * Latin with 13 national subsets, Cyrillic (Serbian/Croatian, Russian/Bulgarian,
+ * Ukrainian), Greek, Hebrew. Arabic (letter shapes depending on context, RTL) is
+ * displayed in Latin.
  */
 object TeletextCharset {
     fun compose(regionSet: Int, natOpt: Int): Int =
         if (regionSet >= 0) (regionSet and 0x78) or (natOpt and 7) else (natOpt and 7)
 
-    // národné podmnožiny latinky — pozície 0x23 0x24 0x40 0x5B 0x5C 0x5D 0x5E 0x5F 0x60 0x7B 0x7C 0x7D 0x7E
+    // national Latin subsets — positions 0x23 0x24 0x40 0x5B 0x5C 0x5D 0x5E 0x5F 0x60 0x7B 0x7C 0x7D 0x7E
     private val POS = intArrayOf(0x23, 0x24, 0x40, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x7B, 0x7C, 0x7D, 0x7E)
     private const val L_ENGLISH = 0
     private const val L_GERMAN = 1
@@ -426,7 +426,7 @@ object TeletextCharset {
         "#ůčťžýířéáěúš",     // Czech / Slovak
         "#ńąŻŚŁćóężśłź",     // Polish
         "₺ğİŞÖÇÜĞışöçü",     // Turkish
-        "#ËČĆŽĐŠëčćžđš",     // Serbian / Croatian / Slovenian (latinka)
+        "#ËČĆŽĐŠëčćžđš",     // Serbian / Croatian / Slovenian (Latin)
         "#¤ŢÂŞĂÎıţâşăî",     // Rumanian
         "#õŠÄÖŽÜÕšäöžü",     // Estonian
         "#\$ŠėęŽčūšąųžį"    // Lettish / Lithuanian
@@ -437,7 +437,7 @@ object TeletextCharset {
     private const val G_GREEK = 103
     private const val G_HEBREW = 104
 
-    /** Tab. 32: región (bity 14..11) × národná voľba (10..8) → latinská podmnožina alebo nelatinská sada. */
+    /** Table 32: region (bits 14..11) × national option (10..8) → Latin subset or a non-Latin set. */
     private fun resolve(set: Int): Int {
         val region = (set shr 3) and 0xF
         val n = set and 7
@@ -448,13 +448,13 @@ object TeletextCharset {
             3 -> intArrayOf(L_ENGLISH, L_ENGLISH, L_ENGLISH, L_ENGLISH, L_ENGLISH, L_SERBIAN_LAT, L_ENGLISH, L_RUMANIAN)[n]
             4 -> intArrayOf(G_CYR_SERBIAN, L_GERMAN, L_ESTONIAN, L_LETTISH, G_CYR_RUSSIAN, G_CYR_UKRAINIAN, L_CZECH, L_ENGLISH)[n]
             6 -> if (n == 7) G_GREEK else if (n == 6) L_TURKISH else L_ENGLISH
-            8 -> if (n == 4) L_FRENCH else L_ENGLISH          // 7 = arabčina -> latinka
-            10 -> if (n == 5) G_HEBREW else L_ENGLISH          // 7 = arabčina -> latinka
+            8 -> if (n == 4) L_FRENCH else L_ENGLISH          // 7 = Arabic -> Latin
+            10 -> if (n == 5) G_HEBREW else L_ENGLISH          // 7 = Arabic -> Latin
             else -> L_ENGLISH
         }
     }
 
-    // nelatinské G0: 0x40..0x7E (63 znakov); 0x20..0x3F ako ASCII okrem uvedených výnimiek
+    // non-Latin G0: 0x40..0x7E (63 characters); 0x20..0x3F as ASCII apart from the exceptions listed
     private const val CYR_RU_UP = "ЮАБЦДЕФГХИЙКЛМНОПЯРСТУЖВЬЪЗШЭЩЧЫ"
     private const val CYR_RU_LO = "юабцдефгхийклмнопярстужвьъзшэщч"
     private const val CYR_UA_UP = "ЮАБЦДЕФГХИЙКЛМНОПЯРСТУЖВЬІЗШЄЩЧЇ"

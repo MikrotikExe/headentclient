@@ -3,15 +3,15 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * M448: podrobny zaznam prehravaca (libVLC verbose).
+ * M448: the verbose player log (libVLC verbose).
  *
- * Predvolene VYPNUTE — appka posiela libVLC "--quiet", takze prehravac do
- * logcatu nepise nic. Po zapnuti sa posiela "-vv", cim sa objavia sprava o
- * hodinach (PCR), buffrovani a dekodovani. Sluzi na diagnostiku hlasenych
- * problemov (trhanie, zamrzanie, rozchadzajuci sa zvuk) — log potom staci
- * zachytit cez adb logcat alebo poslat cez Diagnostiku.
+ * OFF by default — the app passes "--quiet" to libVLC, so the player writes
+ * nothing into logcat. Once it is enabled, "-vv" is passed, which brings up the messages about
+ * the clock (PCR), buffering and decoding. It serves to diagnose reported
+ * problems (stuttering, freezing, drifting audio) — the log can then simply be
+ * captured with adb logcat or sent via Diagnostics.
  *
- * Zapnute stoji vykon (vela zapisov), preto sa po diagnostike vypina.
+ * Having it on costs performance (a lot of writes), so it is turned off after the diagnosis.
  */
 object VlcVerbosePref {
     private const val PREFS = "app_prefs"

@@ -8,13 +8,13 @@ import java.security.MessageDigest
 import kotlin.random.Random
 
 /**
- * OkHttp Authenticator pre HTTP Digest (RFC 2617/7616). Pokryva vsetky hash
- * typy ktore Tvheadend ponuka: MD5, SHA-256, SHA-512-256 (vratane -sess
- * variantov), qop=auth. Pouziva sa jednotne pre API (kanaly/EPG/DVR zoznam
- * cez Ktor OkHttp engine), picony aj prehravanie (DVR/live cez feeder).
+ * OkHttp Authenticator for HTTP Digest (RFC 2617/7616). Covers all the hash
+ * types Tvheadend offers: MD5, SHA-256, SHA-512-256 (including the -sess
+ * variants), qop=auth. It is used uniformly for the API (channel/EPG/DVR list
+ * via the Ktor OkHttp engine), for picons and for playback (DVR/live via the feeder).
  *
- * SHA-512/256 je v JCA dostupne od Androidu 8 (API 26); na starsich zariadeniach
- * tento jeden hash typ nebude fungovat (MD5/SHA-256 funguju vzdy).
+ * SHA-512/256 has been available in JCA since Android 8 (API 26); on older devices
+ * this one hash type will not work (MD5/SHA-256 always work).
  */
 class DigestAuthenticator(
     private val username: String,
@@ -25,7 +25,7 @@ class DigestAuthenticator(
         return try {
             buildAuth(response)
         } catch (_: Throwable) {
-            // nikdy nezhod appku kvoli auth/hashu — radsej tiche zlyhanie
+            // never crash the app over auth/hashing — a silent failure is preferable
             null
         }
     }
@@ -90,7 +90,7 @@ class DigestAuthenticator(
         return n
     }
 
-    /** Hash podla algoritmu vyzvy. Vracia hex. */
+    /** Hash according to the challenge's algorithm. Returns hex. */
     private fun h(algorithm: String, data: String): String {
         val bytes = data.toByteArray(Charsets.UTF_8)
         return when {

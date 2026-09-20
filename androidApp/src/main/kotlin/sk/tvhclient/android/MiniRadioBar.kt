@@ -41,15 +41,15 @@ import androidx.compose.runtime.remember
 import sk.tvhclient.shared.Tvh
 
 /**
- * Mini prehravac radia (M340) — lista nad spodnou navigaciou, kym radio hra
- * na pozadi cez RadioPlayerService. Klik na listu otvori plny prehravac,
- * tlacidla pauzuju/zastavia. Zobrazuje sa v modernom aj klasickom rezime
- * (M624), len ked je service aktivny.
+ * Mini radio player (M340) — a bar above the bottom navigation while the radio plays
+ * in the background via RadioPlayerService. Tapping the bar opens the full player,
+ * the buttons pause/stop it. Shown in both modern and classic mode
+ * (M624), only while the service is active.
  */
 @Composable
 fun MiniRadioBar() {
-    // M624: lista aj v klasickom rezime (ako Spotify) — farby idu z MaterialTheme,
-    // takze v klasiku prevezme jeho paletu. TV panel (TvRadioHomePanel) ostava moderny.
+    // M624: the bar in classic mode too (like Spotify) — colours come from MaterialTheme,
+    // so in classic it picks up its palette. The TV panel (TvRadioHomePanel) stays modern.
     val active by RadioCenter.active
     if (!active) return
     val playing by RadioCenter.playing
@@ -61,7 +61,7 @@ fun MiniRadioBar() {
     val cs = MaterialTheme.colorScheme
     val server = remember { Tvh.store.active() }
     val loader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
-    // EPG riadok len kym relacia realne bezi (po konci by bol zavadzajuci)
+    // EPG line only while the programme is actually running (after it ends it would be misleading)
     val epgLine = if (epgTitle.isNotBlank() &&
         (epgStop <= 0L || System.currentTimeMillis() / 1000 < epgStop)
     ) epgTitle else ""
@@ -131,10 +131,10 @@ fun MiniRadioBar() {
 
 
 /**
- * Radio panel na TV domovskej obrazovke (M344-fix2) — sucast layoutu vpravo
- * vedla hero bloku (nie plavajuci overlay). Moderny jazyk: karta 18dp s
- * obrysom, teal kapitalkovy nadpis, picon plat, EPG riadok a D-pad
- * fokusovatelne ovladanie (karta = plny prehravac, ⏯, ✕).
+ * Radio panel on the TV home screen (M344-fix2) — part of the layout on the right
+ * next to the hero block (not a floating overlay). Modern language: 18dp card with
+ * an outline, teal small-caps heading, picon plate, EPG line and D-pad
+ * focusable controls (card = full player, ⏯, ✕).
  */
 @Composable
 fun TvRadioHomePanel(modifier: Modifier = Modifier) {
@@ -156,9 +156,9 @@ fun TvRadioHomePanel(modifier: Modifier = Modifier) {
 
     Column(
         modifier
-            // Variant B (M344-fix12): vpravo plna farba s oblymi rohmi,
-            // dolava sa panel uplne rozpusti — zrkadlo hero karty, ktora sa
-            // rovnako rozpusta doprava; obe sa v strede makko stretnu.
+            // Variant B (M344-fix12): solid colour with rounded corners on the right,
+            // towards the left the panel dissolves completely — a mirror of the hero card, which
+            // dissolves towards the right in the same way; the two meet softly in the middle.
             .clip(RoundedCornerShape(18.dp))
             .background(
                 androidx.compose.ui.graphics.Brush.horizontalGradient(
@@ -215,7 +215,7 @@ fun TvRadioHomePanel(modifier: Modifier = Modifier) {
         Spacer(Modifier.weight(1f, fill = true))
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            // ✕ ukoncit (vlavo) · ⏯ stop/play · ⏭ dalsia stanica (vpravo)
+            // ✕ close (left) · ⏯ stop/play · ⏭ next station (right)
             Box(
                 Modifier.size(40.dp).clip(CircleShape)
                     .background(cs.surfaceContainerHighest)

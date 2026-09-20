@@ -3,28 +3,28 @@ package sk.tvhclient.android
 import androidx.compose.runtime.mutableStateOf
 
 /**
- * M655: stav otvoreného streamu (vyclenené z PlayerActivity) — feedery, HTSP príznaky,
- * aktuálna URL a cache „potrebuje live HTTP na tomto serveri feeder?" (M390). Držiak dát;
- * aktivita k nemu pristupuje cez delegáty s pôvodnými názvami, otváranie rieši [StreamOpener].
+ * M655: state of the opened stream (extracted from PlayerActivity) — feeders, HTSP flags,
+ * the current URL and the cache "does live HTTP on this server need a feeder?" (M390). A data holder;
+ * the activity accesses it through delegates with the original names, opening is handled by [StreamOpener].
  */
 internal class StreamState {
     var htspFeeder: HtspTsFeeder? = null
     var httpFeeder: HttpTsFeeder? = null
-    /** DVR nahrávka ide cez HttpTsFeeder (digest-only server), nie priamo cez URL. */
+    /** The DVR recording goes through HttpTsFeeder (digest-only server), not directly via the URL. */
     var dvrViaFeeder = false
-    /** HTSP subscription s timeshiftom (server ho podporuje a je zapnutý). */
+    /** HTSP subscription with timeshift (the server supports it and it is enabled). */
     var htspLive = false
     val htspStreamState = mutableStateOf(false)
-    /** Aktuálny stream ide cez HTSP (feeder), nie HTTP. */
+    /** The current stream goes through HTSP (feeder), not HTTP. */
     var htspStream: Boolean
         get() = htspStreamState.value
         set(v) { htspStreamState.value = v }
     val htspLiveState = mutableStateOf(false)
     var currentStreamUrl: String? = null
-    /** Cache: vyžaduje live HTTP na tomto serveri feeder (digest-only)? null = nezistené. */
+    /** Cache: does live HTTP on this server require a feeder (digest-only)? null = not determined. */
     var liveNeedsFeeder: Boolean? = null
 
-    /** Spoločný začiatok každého HTTP otvorenia: zastav feedery, zruš HTSP príznaky. */
+    /** Common start of every HTTP open: stop the feeders, clear the HTSP flags. */
     fun resetForHttp(keepHttpFeeder: Boolean) {
         htspFeeder?.stop(); htspFeeder = null
         httpFeeder?.stop()

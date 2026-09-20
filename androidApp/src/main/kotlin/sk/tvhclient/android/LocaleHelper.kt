@@ -5,15 +5,15 @@ import android.content.res.Configuration
 import java.util.Locale
 
 /**
- * Vyber jazyka appky nezavisle od systemu (Systém/SK/CZ/EN).
- * Ulozi sa do SharedPreferences a aplikuje cez createConfigurationContext
- * v attachBaseContext kazdej aktivity. Hodnota "" = systemovy jazyk.
+ * Choice of the app language independently of the system (System/SK/CZ/EN).
+ * It is saved into SharedPreferences and applied via createConfigurationContext
+ * in attachBaseContext of every activity. The value "" = system language.
  */
 object LocaleHelper {
     private const val PREFS = "app_prefs"
     private const val KEY_LANG = "app_lang"
 
-    /** "" = system, inak "sk"/"cs"/"en". */
+    /** "" = system, otherwise "sk"/"cs"/"en". */
     fun getLang(context: Context): String {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(KEY_LANG, "") ?: ""
@@ -24,7 +24,7 @@ object LocaleHelper {
             .edit().putString(KEY_LANG, lang).apply()
     }
 
-    /** Obali kontext zvolenym jazykom (ak nie je systemovy). */
+    /** Wraps the context with the chosen language (if it is not the system one). */
     fun wrap(context: Context): Context {
         val lang = getLang(context)
         if (lang.isBlank()) return context

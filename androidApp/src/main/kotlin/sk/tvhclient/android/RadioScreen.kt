@@ -78,9 +78,9 @@ import sk.tvhclient.shared.api.ChannelRow
 fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNav: () -> Unit = {}) {
     val state by vm.state.collectAsState()
     val query by vm.query.collectAsState()
-    // Moderny rezim: "co prave hra" — EPG zdielame s ChannelsViewModel
-    // (radia su v TVH tiez kanaly); ak pre stanicu EPG nie je, riadok
-    // zobrazi len nazov. Klasik tieto data nepouziva.
+    // Modern mode: "what is playing now" — we share the EPG with ChannelsViewModel
+    // (radios are channels in TVH too); if there is no EPG for a station, the row
+    // shows only the name. The classic mode does not use this data.
     val chVm: ChannelsViewModel = viewModel()
     val radioEpg by chVm.epgMap.collectAsState()
     var nowTick by remember { mutableStateOf(System.currentTimeMillis() / 1000) }
@@ -90,9 +90,9 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
     val context = LocalContext.current
     val server = remember { Tvh.store.active() }
     val serverId = server?.id ?: ""
-    // M505: filter podla tagov (ako v Kanaloch); null = vsetky stanice.
-    // Obnovi sa posledna volba pre TENTO server.
-    // M582: „Oblubene" ako skupina (LastTag.FAV), rovnako ako v Kanaloch
+    // M505: filter by tags (as in Channels); null = all stations.
+    // The last choice for THIS server is restored.
+    // M582: "Favourites" as a group (LastTag.FAV), the same as in Channels
     val savedTag = remember(serverId) { LastTag.get(context, serverId, radio = true) }
     var selectedTag by remember(serverId) { mutableStateOf(savedTag?.takeIf { it != LastTag.FAV }) }
     var favOnly by remember(serverId) { mutableStateOf(savedTag == LastTag.FAV) }
@@ -101,7 +101,7 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
 
     var contextRow by remember { mutableStateOf<ChannelRow?>(null) }
     var epgFor by remember { mutableStateOf<ChannelRow?>(null) }
-    var showGrid by remember { mutableStateOf(false) }   // M587: mriezka TV programu pre radia
+    var showGrid by remember { mutableStateOf(false) }   // M587: the TV guide grid for radios
     var favTick by remember { mutableStateOf(0) }
     var lockTick by remember { mutableStateOf(0) }
     var hiddenTick by remember { mutableStateOf(0) }
@@ -109,30 +109,30 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
     var viewMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) { vm.loadIfNeeded() }
-    // M586: „prave hra" pri staniciach berieme z ChannelsViewModel (radia su v TVH
-    // tiez kanaly a HTSP now/next sa tiahne pre vsetky naraz). Doteraz to nikto
-    // z tejto zalozky nespustil — kto otvoril Radia bez Kanalov, videl len nazvy.
+    // M586: "now playing" for stations is taken from ChannelsViewModel (in TVH radios are
+    // channels too and HTSP now/next is fetched for all of them at once). So far nobody
+    // triggered it from this tab — whoever opened Radios without Channels saw only names.
     LaunchedEffect(Unit) { chVm.loadIfNeeded() }
 
-    // D-pad fokus: pociatocny fokus na prve radio + presmerovanie pri reselect (znovu kliknutie na Radia)
+    // D-pad focus: initial focus on the first radio + redirection on reselect (clicking Radios again)
     val firstFocus = remember { FocusRequester() }
     val jumpFocus = remember { FocusRequester() }
     var jumpTarget by remember { mutableStateOf(-1) }
     val listState = rememberLazyListState()
     val gridState = rememberLazyGridState()
-    // M583: presun oblubenych tahanim za rukovat (len chip Oblubene, dotyk) — ako v Kanaloch (M560)
+    // M583: reordering favourites by dragging the handle (only the Favourites chip, touch) — as in Channels (M560)
     var dragUuid by remember { mutableStateOf<String?>(null) }
     var dragOffset by remember { mutableStateOf(0f) }
     val dragScope = rememberCoroutineScope()
     val touchDevice = remember { !context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK) }
-    // Po nacitani daj fokus na prvu polozku (nech sa da hned ist sipkou dole)
+    // After loading, give focus to the first item (so that you can go down with the arrow straight away)
     LaunchedEffect(state) {
         if (state is RadioState.Loaded) {
             kotlinx.coroutines.delay(150)
             runCatching { firstFocus.requestFocus() }
         }
     }
-    // Skok o 5 (LEFT/RIGHT): doscrolluj, pockaj snimku, az potom zameraj
+    // Jump by 5 (LEFT/RIGHT): scroll there, wait for a frame, only then focus
     LaunchedEffect(jumpTarget) {
         val t = jumpTarget
         if (t >= 0) {
@@ -142,11 +142,11 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
             jumpTarget = -1
         }
     }
-    // Znovu kliknutie na Radia v navigacii: skroluj na vrch a daj fokus na prve radio
+    // Clicking Radios in the navigation again: scroll to the top and give focus to the first radio
     LaunchedEffect(resetSignal) {
         if (resetSignal > 0) {
-            // M610: opatovny klik na zalozku zavrie aj program stanic (M587) a
-            // detail stanice — inak zalozka „nereagovala", mriezka ostala otvorena
+            // M610: clicking the tab again also closes the station guide (M587) and
+            // the station detail — otherwise the tab "did not react", the grid stayed open
             showGrid = false
             epgFor = null
             runCatching { listState.scrollToItem(0) }
@@ -155,7 +155,7 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
         }
     }
 
-    // EPG jedneho radia
+    // the EPG of a single radio
     val epgRow = epgFor
     if (epgRow != null) {
         EpgScreen(
@@ -166,9 +166,9 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
         return
     }
 
-    // M587: mriezka TV programu pre rozhlasove stanice (rovnaka ako pri kanaloch,
-    // len so stanicami a ich skupinami). Spustenie ide cez playRadio, nech je
-    // spravanie rovnake ako zo zoznamu (mini prehravac, PIN, LastRadio).
+    // M587: the TV guide grid for radio stations (the same as for channels,
+    // only with stations and their groups). Starting goes through playRadio, so that the
+    // behaviour is the same as from the list (mini player, PIN, LastRadio).
     val stGrid = state
     if (showGrid) {
         if (stGrid is RadioState.Loaded) {
@@ -251,19 +251,19 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                     s.message.ifBlank { stringResource(R.string.load_error) },
                     onRetry = { vm.load() })
                 is RadioState.Loaded -> Column(Modifier.fillMaxSize()) {
-                    // M505-fix: pas filtrov a zoznam musia byt POD SEBOU. Rodic je
-                    // Box (deti sa prekryvaju), takze bez tohto Column sa pas vykreslil
-                    // pod zoznamom stanic a nebolo ho vidiet.
+                    // M505-fix: the filter bar and the list must be ONE BELOW THE OTHER. The parent is
+                    // a Box (children overlap), so without this Column the bar was drawn
+                    // underneath the station list and was not visible.
                     val q = query.trim().lowercase()
-                    // pas sa ukaze len ked ma radio aspon jednu skupinu
+                    // the bar is shown only when a radio has at least one group
                     val radioTags = s.categories.mapNotNull { it.tag }
-                    // M582: zoznam oblubenych v poradi (ako v Kanaloch); pas filtrov sa ukaze
-                    // aj bez tagov, ked su nejake oblubene radia
+                    // M582: the list of favourites in order (as in Channels); the filter bar is shown
+                    // even without tags, when there are some favourite radios
                     val favs = remember(favTick, serverId) { Favorites.list(context, serverId) }
                     val favUuids = remember(favs) { favs.toSet() }
                     val radioFavs = remember(favs, s) { favs.filter { u -> s.rows.any { it.channel.uuid == u } } }
                     if (q.isBlank() && (radioTags.isNotEmpty() || radioFavs.isNotEmpty())) {
-                        // ulozeny tag uz na serveri nemusi existovat -> spadni na „vsetky"
+                        // the saved tag may no longer exist on the server -> fall back to "all"
                         val validTag = selectedTag?.takeIf { u -> radioTags.any { it.uuid == u } }
                         if (validTag != selectedTag) selectedTag = validTag
                         LazyRow(
@@ -303,7 +303,7 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                         }
                         Spacer(Modifier.height(8.dp))
                     }
-                    // Oblubene bez radii (vsetky odobrane) -> spat na Vsetky
+                    // Favourites with no radios (all removed) -> back to All
                     if (favOnly && radioFavs.isEmpty() && q.isBlank()) { favOnly = false }
                     val base = when {
                         q.isNotBlank() -> s.rows
@@ -314,7 +314,7 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                             ?: emptyList()
                     }
                     val favMarks = if (favOnly) emptySet() else favUuids
-                    // M602: cislovanie 1…n podla poradia v zvolenej skupine (Oblubene uz maju)
+                    // M602: numbering 1…n by the order in the selected group (Favourites already have it)
                     val numbered = if (favOnly) base else RadioNumberingPref.apply(context, base)
                     val rows = if (q.isBlank()) numbered
                                else numbered.filter { it.channel.name.lowercase().contains(q) }
@@ -333,15 +333,15 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                                     val keyMod = focusMod.onPreviewKeyEvent { e ->
                                         if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                                         when (e.nativeKeyEvent.keyCode) {
-                                            // Hore na 1. radiu -> vyhladavacie pole (a odtial hore na spodne menu)
+                                            // Up on the 1st radio -> the search field (and from there up to the bottom menu)
                                             android.view.KeyEvent.KEYCODE_DPAD_UP ->
                                                 if (idx == 0) { runCatching { searchFocus.requestFocus() }; true } else false
-                                            // Vlavo: -5 (wrap na koniec)
+                                            // Left: -5 (wrap to the end)
                                             android.view.KeyEvent.KEYCODE_DPAD_LEFT -> {
                                                 jumpTarget = if (idx == 0) last else (idx - 5).coerceAtLeast(0)
                                                 true
                                             }
-                                            // Vpravo: +5 (wrap na zaciatok)
+                                            // Right: +5 (wrap to the start)
                                             android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> {
                                                 jumpTarget = if (idx == last) 0 else (idx + 5).coerceAtMost(last)
                                                 true
@@ -362,7 +362,7 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                                             hiddenTick = hiddenTick,
                                         )
                                     } else {
-                                        // M583: riadok + rukovat na tahanie; tahany riadok nadvihnuty (posun, tien, okraj)
+                                        // M583: the row + the drag handle; the dragged row is lifted (offset, shadow, border)
                                         val dragging = dragUuid == row.channel.uuid
                                         val accent = MaterialTheme.colorScheme.primary
                                         Row(
@@ -408,22 +408,22 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                                                                     ?: return@detectDragGestures
                                                                 val cur = me.index
                                                                 val h = me.size.toFloat().coerceAtLeast(1f)
-                                                                // vymena so susedom, ked je riadok prevleceny cez polovicu jeho vysky
+                                                                // swap with the neighbour when the row is dragged past half of its height
                                                                 val swapWith = when {
                                                                     dragOffset > h / 2f && cur < info.totalItemsCount - 1 -> cur + 1
                                                                     dragOffset < -h / 2f && cur > 0 -> cur - 1
                                                                     else -> -1
                                                                 }
-                                                                // sused z aktualneho layoutu (kluc = uuid), nie z `rows`
-                                                                // zachytenych pri prvej kompozicii — po prvom presune by boli stare
+                                                                // the neighbour from the current layout (key = uuid), not from `rows`
+                                                                // captured at the first composition — after the first move they would be stale
                                                                 val other = info.visibleItemsInfo.firstOrNull { it.index == swapWith }?.key as? String
                                                                 if (swapWith >= 0 && other != null) {
-                                                                    // podla uuid — zoznam oblubenych je spolocny s TV kanalmi
+                                                                    // by uuid — the favourites list is shared with TV channels
                                                                     Favorites.moveUuid(context, serverId, row.channel.uuid, other)
                                                                     favTick++
                                                                     dragOffset += if (swapWith > cur) -h else h
                                                                 }
-                                                                // autoscroll pri okrajoch zoznamu
+                                                                // autoscroll at the edges of the list
                                                                 val y = me.offset + dragOffset + h / 2f
                                                                 val vpStart = info.viewportStartOffset.toFloat()
                                                                 val vpEnd = info.viewportEndOffset.toFloat()
@@ -467,7 +467,7 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
         }
     }
 
-    // Kontextove menu (dlhe podrzanie)
+    // Context menu (long press)
     val cr = contextRow
     if (cr != null) {
         val isFav = remember(favTick) { Favorites.isFav(context, serverId, cr.channel.uuid) }
@@ -522,8 +522,8 @@ private fun RadioRow(
         HiddenChannels.isHidden(context, Tvh.store.active()?.id, row.channel.uuid)
     }
     if (isModernUi()) {
-        // moderny riadok: karta s "co prave hra", progresom a minutami;
-        // posledne pocuvana stanica ma teal zvyraznenie. Klasik nizsie nedotknuty.
+        // modern row: a card with "what is playing now", progress and minutes;
+        // the last listened station has a teal highlight. The classic one below is untouched.
         val ev = epgList?.firstOrNull { nowSec in it.start until it.stop }
         val nt = ev?.title?.takeIf { it.isNotBlank() } ?: row.nowTitle
         val ns = ev?.start ?: row.nowStart
@@ -552,8 +552,8 @@ private fun RadioRow(
         )
         return
     }
-    // M609: klasicky riadok radia — „prave hra" a priebeh ako v zozname kanalov.
-    // M586 doplnilo now/next len do moderneho riadku, klasik ostal len s nazvom.
+    // M609: the classic radio row — "now playing" and progress as in the channel list.
+    // M586 added now/next only into the modern row, the classic one was left with just the name.
     val cEv = epgList?.firstOrNull { nowSec in it.start until it.stop }
     val cTitle = cEv?.title?.takeIf { it.isNotBlank() } ?: row.nowTitle?.takeIf { it.isNotBlank() }
     val cStart = cEv?.start ?: row.nowStart
@@ -618,7 +618,7 @@ private fun RadioRow(
                 }
             }
         }
-        // Sipka -> otvori menu
+        // Arrow -> opens the menu
         Text(
             "\u203A",
             style = MaterialTheme.typography.headlineSmall,
@@ -691,14 +691,14 @@ private fun RadioTile(
     }
 }
 
-/** Spusti rozhlasovu stanicu cez EXTRA_UUID a naplni LivePlaylist (zapping + zoznam v prehravaci).
- *  M587: internal — pouziva to aj mriezka TV programu (polozka „Rádiá"). */
+/** Starts a radio station via EXTRA_UUID and fills LivePlaylist (zapping + the list in the player).
+ *  M587: internal — the TV guide grid uses it too (the "Radios" item). */
 internal fun playRadio(
     context: android.content.Context,
     allRows: List<ChannelRow>,
     row: ChannelRow,
-    // EPG obohatene pri kliku (surovy row.nowTitle byva prazdny — zoznam
-    // ho plni az pri renderi z epgMap, preto sa v mini liste neukazovalo)
+    // the EPG enriched on the tap (the raw row.nowTitle is usually empty — the list
+    // only fills it at render time from epgMap, which is why it did not show in the mini bar)
     epgTitle: String = row.nowTitle ?: "",
     epgStart: Long = row.nowStart,
     epgStop: Long = row.nowStop
@@ -717,10 +717,10 @@ internal fun playRadio(
     }
     LivePlaylist.setIndexForUuid(row.channel.uuid)
     LastRadio.set(context, server.id, row.channel.uuid)
-    // M340: na telefone hra radio cez mini prehravac (foreground service + lista
-    // nad tabmi) — appka ostava pouzitelna. M624: aj v klasickom rezime.
-    // TV a zamknute stanice idu povodnou cestou (plny prehravac, ktory riesi
-    // PIN aj D-pad ovladanie).
+    // M340: on a phone the radio plays through the mini player (a foreground service + a bar
+    // above the tabs) — the app stays usable. M624: in classic mode too.
+    // TV and locked stations go the original path (the full player, which handles
+    // both PIN and D-pad control).
     val needsPin = ParentalLock.channelNeedsPin(context, server.id, row.channel.uuid)
     val tvDevice = context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
     if (!tvDevice && !needsPin) {

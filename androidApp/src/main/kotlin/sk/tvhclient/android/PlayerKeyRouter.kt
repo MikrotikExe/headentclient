@@ -7,16 +7,16 @@ import android.widget.Toast
 import androidx.compose.runtime.MutableState
 
 /**
- * M658: reťaz stráží dispatchKeyEvent prehrávača, vyclenená z PlayerActivity.
+ * M658: the chain of guards for the player's dispatchKeyEvent, extracted from PlayerActivity.
  *
- * Poradie stráží JE správanie: diagnostika → hľadanie (pole) → teletext → PIN → dialógy
- * (obnoviť, DVR profil, archív, OK-up po dlhom OK) → kontextové menu → info → potvrdenie
- * ukončenia → špeciálne klávesy (EPG, titulky, audio, MENU, INFO, mediálne) → zoznam kanálov
- * → možnosti → track menu → moderný overlay → bežné prehrávanie ([PlaybackKeys]).
+ * The order of the guards IS behaviour: diagnostics → search (field) → teletext → PIN → dialogs
+ * (resume, DVR profile, archive, OK-up after a long OK) → context menu → info → exit
+ * confirmation → special keys (EPG, subtitles, audio, MENU, INFO, media) → channel list
+ * → options → track menu → modern overlay → normal playback ([PlaybackKeys]).
  *
- * [handle] vráti true/false, keď kláves spracoval, alebo null = aktivita zavolá
- * super.dispatchKeyEvent(event) (hlasitosť, BACK pre Compose BackHandler…).
- * Logika aj poradie podmienok sú zhodné s pôvodným blokom.
+ * [handle] returns true/false when it has handled the key, or null = the activity calls
+ * super.dispatchKeyEvent(event) (volume, BACK for the Compose BackHandler…).
+ * The logic and the order of the conditions are identical to the original block.
  */
 internal class PlayerKeyRouter(
     private val ctx: Context,
@@ -76,7 +76,7 @@ internal class PlayerKeyRouter(
         fun closeOptions()
         fun selectTrackAtNav()
         fun closeTrackMenu()
-        /** Celý dispatchKeyEvent aktivity (rekurzia pre MEDIA_NEXT/PREV -> CH+/-). */
+        /** The activity's whole dispatchKeyEvent (recursion for MEDIA_NEXT/PREV -> CH+/-). */
         fun dispatchKeyEvent(event: KeyEvent): Boolean
     }
 
@@ -92,38 +92,38 @@ internal class PlayerKeyRouter(
             Log.d("HEADEND", keyCodeStr)
         }
 
-        // M370: aktivne hladanie s fokusom na textovom poli -> text spracuje system/IME;
-        // zachytime len BACK (zavri hladanie) a DOLE (prejdi na vysledky).
+        // M370: active search with focus on the text field -> the text is handled by the system/IME;
+        // we only capture BACK (close search) and DOWN (move to the results).
         if (search.isActive && search.fieldFocusedState.value) {
             if (search.handleFieldKey(kc, down)) return true
             return null
         }
 
-        // M553: otvorený teletext berie všetky klávesy okrem hlasitosti
+        // M553: an open teletext takes all keys except volume
         if (ttx.openState.value) {
             if (ttx.handleKey(kc, down, event)) return true
             return null
         }
-        // M553: kláves TEXT na diaľkovom otvorí teletext priamo
+        // M553: the TEXT key on the remote opens teletext directly
         if (kc == KeyEvent.KEYCODE_TV_TELETEXT && down && ttx.visible()) {
             ttx.open(); return true
         }
 
-        // 0) PIN rodicovskeho zamku -> cislice, D-pad mriezka, CH+/- pocas vyzvy (PinPrompt, M629)
+        // 0) Parental lock PIN -> digits, D-pad grid, CH+/- during the prompt (PinPrompt, M629)
         if (pin.isOpen) return pin.handleKey(kc, down, event)
 
-        // 0a) Dialog "Obnovit prehravanie" -> sipky vlavo/vpravo + OK riesime my (na boxe inak bez fokusu)
+        // 0a) "Resume playback" dialog -> left/right arrows + OK are handled by us (on a box it has no focus otherwise)
         if (resumePromptState.value) return DialogKeys.twoChoice(kc, down, event, resumeSelState,
             onOk = { sel -> resumeAnswerState.value = if (sel == 1) 1 else 2 },
             onBack = { resumeAnswerState.value = 2 })
 
-        // 0a2) M606: vyber DVR profilu -> hore/dole + OK + BACK riesime my
+        // 0a2) M606: DVR profile selection -> up/down + OK + BACK are handled by us
         if (dvrAskState.value.isNotEmpty()) return DialogKeys.verticalList(kc, down, event,
             count = dvrAskState.value.size, sel = dvrAskSelState, okFirstPressOnly = true,
-            // M606-fix: OK-up po zatvoreni dialogu inak dorazil do zoznamu kanalov a potvrdil (spustil) vybrany kanal
+            // M606-fix: the OK-up after closing the dialog otherwise reached the channel list and confirmed (started) the selected channel
             onOk = { actions.okLongFired = true; actions.resolveDvrAsk(dvrAskState.value.getOrNull(dvrAskSelState.value)) },
             onBack = { actions.resolveDvrAsk(null) })
-        // 0b) Vyber pri archivovanom kanali -> sipky vlavo/vpravo + OK + BACK riesime my
+        // 0b) Selection for an archived channel -> left/right arrows + OK + BACK are handled by us
         if (archiveChoiceIdxState.value >= 0) return DialogKeys.twoChoice(kc, down, event, archiveChoiceSelState,
             onOk = { sel -> actions.resolveArchiveChoice(sel == 1) },
             onBack = { archiveChoiceIdxState.value = -1 })
@@ -132,46 +132,46 @@ internal class PlayerKeyRouter(
             kc == KeyEvent.KEYCODE_NUMPAD_ENTER
         if (okKey && !down && actions.okLongFired) { actions.okLongFired = false; return true }
 
-        // 0c) Kontextove menu kanala (long-press v zozname) -> hore/dole + OK (na uvolnenie) + BACK (M641)
+        // 0c) Channel context menu (long-press in the list) -> up/down + OK (on release) + BACK (M641)
         if (ctxMenu.isOpen) return ctxMenu.handleKey(kc, down)
 
-        // 0d) Info o relacii (detail) -> hociktore OK/BACK/vlavo zatvori (M643: ChannelInfo)
+        // 0d) Programme info (detail) -> any OK/BACK/left closes it (M643: ChannelInfo)
         if (info.isOpen) return info.handleKey(kc, down)
 
-        // 0e) Potvrdenie ukoncenia ziveho prehravania (BACK) -> sipky + OK + BACK riesime my
+        // 0e) Confirmation of ending live playback (BACK) -> arrows + OK + BACK are handled by us
         if (exitConfirmState.value) return DialogKeys.twoChoice(kc, down, event, exitConfirmSelState,
             onOk = { sel -> if (sel == 1) actions.finish() else exitConfirmState.value = false },
             onBack = { exitConfirmState.value = false })
 
         if (down) {
             when (kc) {
-                // EPG klavesy roznych ovladacov (M345)
+                // EPG keys of various remotes (M345)
                 KeyEvent.KEYCODE_GUIDE,
                 KeyEvent.KEYCODE_TV_DATA_SERVICE,
                 KeyEvent.KEYCODE_TV_CONTENTS_MENU,
                 KeyEvent.KEYCODE_TV_MEDIA_CONTEXT_MENU -> { actions.openEpgInApp(); return true }
-                // Titulkovy klaves -> titulky (predtym omylom otvaral EPG)
+                // Subtitle key -> subtitles (previously it opened the EPG by mistake)
                 KeyEvent.KEYCODE_CAPTIONS -> { actions.openSpuMenu(); return true }
-                // Audio klaves (na mnohych TV/box ovladacoch) -> zvukove stopy
+                // Audio key (on many TV/box remotes) -> audio tracks
                 KeyEvent.KEYCODE_MEDIA_AUDIO_TRACK -> { actions.openAudioMenu(); return true }
-                // MENU klaves -> OSD/ovladanie pocas prehravania
+                // MENU key -> OSD/controls during playback
                 KeyEvent.KEYCODE_MENU -> {
                     if (actions.modernTvActive()) actions.openModernOverlay() else actions.showControlsFocused()
                     return true
                 }
                 KeyEvent.KEYCODE_INFO -> { actions.toggleInfo(); return true }
-                // M577 (issue #11): medialne klavesy dialkoveho — STOP zastavi prehravanie
-                // (ako Spat bez PiP a bez potvrdenia), PLAY/PAUSE/PLAY_PAUSE ovladaju pauzu,
-                // RW/FF skacu v nahravke aj v timeshifte, NEXT/PREV = dalsi/predosly kanal
-                // (v nahravke skok o minutu)
+                // M577 (issue #11): media keys on the remote — STOP stops playback
+                // (like Back without PiP and without confirmation), PLAY/PAUSE/PLAY_PAUSE control the pause,
+                // RW/FF jump within a recording and in timeshift too, NEXT/PREV = next/previous channel
+                // (within a recording a jump by a minute)
                 KeyEvent.KEYCODE_MEDIA_STOP -> { LastPlayback.clear(ctx); actions.finish(); return true }
                 KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> { actions.togglePlayPause(); actions.pokeControls(); return true }
                 KeyEvent.KEYCODE_MEDIA_PLAY -> { if (!isPlayingState.value) { actions.togglePlayPause(); actions.pokeControls() }; return true }
                 KeyEvent.KEYCODE_MEDIA_PAUSE -> { if (isPlayingState.value) { actions.togglePlayPause(); actions.pokeControls() }; return true }
                 KeyEvent.KEYCODE_MEDIA_REWIND -> { actions.scrubSeek(-30); actions.pokeControls(); return true }
                 KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> { actions.scrubSeek(+30); actions.pokeControls(); return true }
-                // M579: ZALOZKA (Google TV ovladace) = pridat/odobrat prave hrajuci kanal
-                // z oblubenych; TV klaves = z nahravky spat na zivy kanal, inak zoznam kanalov
+                // M579: BOOKMARK (Google TV remotes) = add/remove the currently playing channel
+                // from favourites; the TV key = back from a recording to the live channel, otherwise the channel list
                 KeyEvent.KEYCODE_BOOKMARK -> {
                     if (!actions.seekablePlayback && actions.liveIndex >= 0 && !actions.channelListOpen) { actions.toggleFavoriteAt(actions.liveIndex, announce = true); return true }
                 }
@@ -182,7 +182,7 @@ internal class PlayerKeyRouter(
                 KeyEvent.KEYCODE_MEDIA_NEXT, KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
                     val fwd = kc == KeyEvent.KEYCODE_MEDIA_NEXT
                     if (actions.seekablePlayback) { actions.seekRelative(if (fwd) 60_000L else -60_000L); actions.pokeControls(); return true }
-                    // zivy kanal: rovnake spracovanie ako CH+/CH- (zoznam, PIN, zap bar)
+                    // live channel: the same handling as CH+/CH- (list, PIN, zapping bar)
                     val mapped = KeyEvent(
                         event.downTime, event.eventTime, event.action,
                         if (fwd) KeyEvent.KEYCODE_CHANNEL_UP else KeyEvent.KEYCODE_CHANNEL_DOWN,
@@ -193,13 +193,13 @@ internal class PlayerKeyRouter(
             }
         }
 
-        // 1) Otvoreny zoznam kanalov -> navigujeme my (M645: ChannelListKeys)
+        // 1) The channel list is open -> we do the navigating (M645: ChannelListKeys)
         if (actions.channelListOpen) {
             if (listKeys.handleKey(kc, down, event)) return true
-            return null   // hlasitost
+            return null   // volume
         }
 
-        // 2) Otvoreny vyber casovaca uspatia -> vertikalna navigacia
+        // 2) The sleep timer selection is open -> vertical navigation
         if (actions.optionsOpen) {
             if (DialogKeys.verticalList(kc, down, event, count = sleep.durations.size, sel = optionsNavState,
                     leftCloses = true, passVolume = true,
@@ -207,7 +207,7 @@ internal class PlayerKeyRouter(
             return null
         }
 
-        // 3) Otvorene track menu (audio/titulky) -> navigujeme my (hore/dole + OK)
+        // 3) The track menu is open (audio/subtitles) -> we do the navigating (up/down + OK)
         if (actions.trackMenuOpen) {
             if (DialogKeys.verticalList(kc, down, event, count = tracks.menuIds(actions.htspStream).size, sel = tracks.navIndex,
                     leftCloses = true, passVolume = true,
@@ -215,15 +215,15 @@ internal class PlayerKeyRouter(
             return null
         }
 
-        // 3b0) "Viac" menu nad modernym overlayom (M327) — ModernOverlayController (M642)
+        // 3b0) The "More" menu above the modern overlay (M327) — ModernOverlayController (M642)
         if (modernOv.isMoreOpen) return modernOv.handleMoreKey(kc, down, event)
-        // 3b) Moderny TV overlay (karty kanalov + ovladacia lista) -> navigujeme my (M642)
+        // 3b) The modern TV overlay (channel cards + control bar) -> we do the navigating (M642)
         if (modernOv.isOpen) {
             if (modernOv.handleKey(kc, down, event)) return true
-            return null   // hlasitost
+            return null   // volume
         }
 
-        // 4) Bezne prehravanie (M651: PlaybackKeys.kt)
+        // 4) Normal playback (M651: PlaybackKeys.kt)
         if (engine.ready) {
             playbackKeys.handleKey(kc, down, event)?.let { return it }
         }

@@ -5,11 +5,11 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 
 /**
- * M388: hustota EPG mriezky na telefone (<600dp).
- *  - true (predvolene) = kompaktna: 1 min = 3 dp, nizsie riadky, uzsi stlpec kanala
- *  - false = komfortna: povodne rozmery z M387
- * Na sirokych obrazovkach (TV/tablet) sa hodnota ignoruje.
- * Drzime aj zivy stav (MutableState), aby sa prepnutie prejavilo hned.
+ * M388: the density of the EPG grid on a phone (<600dp).
+ *  - true (default) = compact: 1 min = 3 dp, lower rows, a narrower channel column
+ *  - false = comfortable: the original dimensions from M387
+ * On wide screens (TV/tablet) the value is ignored.
+ * We also hold a live state (MutableState), so that a switch takes effect immediately.
  */
 object EpgDensityPref {
     private const val PREFS = "app_prefs"

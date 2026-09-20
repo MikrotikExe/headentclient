@@ -5,9 +5,9 @@ import kotlinx.serialization.json.Json
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * Sprava zoznamu serverov v zabezpecenom ulozisku.
- * Zoznam sa serializuje ako JSON pod jednym klucom - pri jednotkach
- * serverov netreba nic sofistikovanejsie.
+ * Management of the server list in secure storage.
+ * The list is serialized as JSON under a single key - with just a handful of
+ * servers nothing more sophisticated is needed.
  */
 class ServerStore(private val settings: Settings = createSecureSettings()) {
 

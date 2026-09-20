@@ -1,8 +1,8 @@
 package sk.tvhclient.shared.htsp
 
 /**
- * Cisty Kotlin SHA-1 (FIPS 180-1) pre HTSP digest auth. Bez platform crypto,
- * aby fungoval rovnako na Androide aj iOS bez expect/actual a cinterop.
+ * Pure Kotlin SHA-1 (FIPS 180-1) for HTSP digest auth. Without platform crypto,
+ * so that it works the same on Android and iOS without expect/actual and cinterop.
  * HTSP auth = SHA1(password_bytes + challenge_bytes).
  */
 internal object Sha1 {

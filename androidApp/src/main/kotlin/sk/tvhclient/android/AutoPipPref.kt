@@ -3,13 +3,13 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * Automaticky vstup do PiP pri odchode z prehravaca (navrat domov, EPG, tlacidlo Home).
- * Predvolene zapnute na telefonoch/tabletoch, VYPNUTE na TV (M575, issue #11):
- * niektore TV boxy PiP systemovo podporuju, ale dialkovym ovladacom sa plavajuce
- * okno neda zameraat ani zavriet — pouzivatel ho vedel zrusit len ukoncenim appky.
- * Na TV preto BACK prehravac zatvori; kto PiP na TV chce, zapne si ho v nastaveniach.
- * Ked je vypnute, opustenie prehravaca ho rovno zatvori (bez PiP); manualne PiP
- * tlacidlo v ovladani funguje na telefone stale. Ulozene globalne v SharedPreferences.
+ * Automatic entry into PiP when leaving the player (back home, EPG, Home button).
+ * On by default on phones/tablets, OFF on TV (M575, issue #11):
+ * some TV boxes do support PiP at system level, but the floating window cannot be
+ * focused or closed with the remote — the user could only get rid of it by quitting the app.
+ * On TV, therefore, BACK closes the player; whoever wants PiP on TV turns it on in settings.
+ * When off, leaving the player closes it straight away (no PiP); the manual PiP
+ * button in the controls still works on a phone. Stored globally in SharedPreferences.
  */
 object AutoPipPref {
     private const val PREFS = "app_prefs"

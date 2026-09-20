@@ -77,9 +77,9 @@ import sk.tvhclient.shared.Tvh
 import kotlin.math.roundToInt
 
 /**
- * Live prehravac na libVLC. Dekoduje MPEG-2 + MP2/AC3/EAC3/DTS softverovo.
- * Ovladanie je Compose overlay: play/pause, zavriet, vyber audio stopy
- * (jazyk) a titulkov (libVLC get/setAudioTrack, get/setSpuTrack).
+ * Live player on libVLC. Decodes MPEG-2 + MP2/AC3/EAC3/DTS in software.
+ * The controls are a Compose overlay: play/pause, close, audio track selection
+ * (language) and subtitles (libVLC get/setAudioTrack, get/setSpuTrack).
  */
 class PlayerActivity : ComponentActivity() {
     override fun attachBaseContext(newBase: android.content.Context) {
@@ -87,36 +87,36 @@ class PlayerActivity : ComponentActivity() {
     }
 
 
-    // M656: libVLC + MediaPlayer zivotny cyklus vo VlcEngine.kt (M677: pristup priamo cez engine)
+    // M656: libVLC + MediaPlayer lifecycle in VlcEngine.kt (M677: accessed directly via engine)
     private val engine: VlcEngine by lazy {
         VlcEngine(this, mediaFactory, vlcEvents,
             recreates = { stall.recreates },
             bumpSurfaceGen = { videoSurfaceGen.value = videoSurfaceGen.value + 1 },
             resetStall = { stall.reset() })
     }
-    // M655: stav streamu (feedery, HTSP priznaky, URL) v StreamState.kt (M677: pristup priamo cez stream)
+    // M655: stream state (feeders, HTSP flags, URL) in StreamState.kt (M677: accessed directly via stream)
     private val stream = StreamState()
-    // HTSP titulky: kompletny zoznam jazykov berieme z metadat (feeder.subtitleStreams),
-    // nie z libVLC (to ma len jazyky, ktore uz "prehovorili"). Vyber mapujeme na realnu
-    // libVLC stopu podla anglickeho nazvu jazyka (libVLC DVB titulky netaguje kodom).
-    // M637: stav stop (zvuk/titulky/profil) v TrackState.kt
+    // HTSP subtitles: we take the complete language list from the metadata (feeder.subtitleStreams),
+    // not from libVLC (which only has the languages that have already "spoken"). We map the selection onto the real
+    // libVLC track by the English language name (libVLC does not tag DVB subtitles with a code).
+    // M637: track state (audio/subtitles/profile) in TrackState.kt
     private val tracks: TrackState by lazy {
         TrackState(this,
             player = { if (engine.ready && !engine.tornDown) engine.player else null },
             htspFeeder = { stream.htspFeeder })
     }
-    // M392: stav titulkov spred restartu streamu pri zmene profilu (HTTP live) —
-    // novy kontajner (napr. matroska) moze mat default titulkovu stopu, ktoru by
-    // libVLC sam zapol; po restarte preto obnovime povodnu volbu pouzivatela.
-    // M392-fix: trvala volba pouzivatela pre HTTP live titulky. Default OFF
-    // (zhodne s HTSP, kde null = vypnute). Vynucuje sa pri kazdom ESAdded,
-    // takze ani neskoro registrovana default stopa (matroska na pomalom boxe)
-    // titulky nezapne. Rusi ju len rucne zapnutie v menu (D-pad aj dotyk).
-    // M262: ci uz prebehlo urcenie HTSP rezimu pre toto sedenie. doPlay (startovacie
-    // prehratie) ho nastavi; ak vsak pouzivatel prepne kanal este pred doPlay (napr.
-    // odchod z PIN vyzvy zamknuteho kanala), inicializuje HTSP switchToIndex.
+    // M392: the subtitle state from before the stream restart on a profile change (HTTP live) —
+    // a new container (e.g. matroska) may have a default subtitle track that
+    // libVLC would switch on by itself; after the restart we therefore restore the user's original choice.
+    // M392-fix: the user's persistent choice for HTTP live subtitles. Default OFF
+    // (same as HTSP, where null = off). Enforced on every ESAdded,
+    // so even a late-registered default track (matroska on a slow box)
+    // will not turn subtitles on. Only switching them on manually in the menu (D-pad or touch) clears it.
+    // M262: whether the HTSP mode has already been determined for this session. doPlay (the initial
+    // playback) sets it; if, however, the user switches channel before doPlay (e.g.
+    // leaving a locked channel's PIN prompt), switchToIndex initialises HTSP.
     private var htspInitDone = false
-    // M647: HTSP timeshift v TimeshiftController.kt (M677: pristup priamo cez timeshift)
+    // M647: HTSP timeshift in TimeshiftController.kt (M677: accessed directly via timeshift)
     private val timeshift: TimeshiftController by lazy {
         TimeshiftController(lifecycleScope,
             feeder = { stream.htspFeeder },
@@ -127,9 +127,9 @@ class PlayerActivity : ComponentActivity() {
             },
             onSeekSpinner = { showSeekSpinner() })
     }
-    // timeshift "zapnuty" (po prvej pauze) -> az vtedy davaju zmysel RW/FF a dvojklik
+    // timeshift "engaged" (after the first pause) -> only then do RW/FF and the double-tap make sense
 
-    // ===== Moderny TV overlay (karty kanalov + ovladacia lista) — ModernOverlayController.kt (M642) =====
+    // ===== Modern TV overlay (channel cards + control bar) — ModernOverlayController.kt (M642) =====
     private val modernOv: ModernOverlayController by lazy {
         ModernOverlayController(live,
             seekable = { seekablePlayback },
@@ -149,7 +149,7 @@ class PlayerActivity : ComponentActivity() {
                 override fun toggleRecordCurrent() = this@PlayerActivity.toggleRecordCurrent()
                 override fun openTeletext() = this@PlayerActivity.openTeletext()
                 override fun openChannelContextMenu(cardIndex: Int) {
-                    okLongFired = true   // guard prehltne OK-up (inak by potvrdil polozku menu)
+                    okLongFired = true   // the guard swallows the OK-up (otherwise it would confirm a menu item)
                     ctxMenu.open(cardIndex)
                 }
             })
@@ -157,14 +157,14 @@ class PlayerActivity : ComponentActivity() {
 
     private val isTvBox by lazy { isTvUiMode(this) }   // M679
 
-    /** Moderny overlay ma zmysel len na TV, v modernom rezime, pri zivom so zoznamom. */
+    /** The modern overlay only makes sense on TV, in modern mode, on live with a channel list. */
     private fun modernTvActive(): Boolean =
         isTvBox && UiModePref.get(this) == UiModePref.MODERN &&
             !seekablePlayback && live.uuids.size > 1
 
-    // ===== M490 / M669: nahravanie prave beziacej relacie — DvrRecordController.kt =====
-    // Stav aj akcie zdielaju vsetky vstupy (klasicky bar, panel „Viac", TV overlay). M677: ostavaju
-    // len verejne delegaty, ktore composables citaju cez dvrActivity; ostatne idu priamo cez dvrRec.
+    // ===== M490 / M669: recording the currently running programme — DvrRecordController.kt =====
+    // Both the state and the actions are shared by all the entry points (the classic bar, the "More" panel, the TV overlay). M677: only
+    // the public delegates the composables read via dvrActivity remain; the rest go directly through dvrRec.
     private val dvrRec: DvrRecordController by lazy {
         DvrRecordController(this, lifecycleScope, live,
             epgUpcoming = epg.upcoming,
@@ -172,19 +172,19 @@ class PlayerActivity : ComponentActivity() {
             refreshRecordingOnly = { epg.refreshRecordingOnly() })
     }
     val dvrExistingState: androidx.compose.runtime.MutableState<sk.tvhclient.shared.model.DvrEntry?> get() = dvrRec.existingState
-    /** Ma sa ovladac nahravania vobec ukazat? */
+    /** Should the recording control be shown at all? */
     fun dvrRecordVisible(): Boolean = dvrRec.recordVisible()
-    /** Zisti prava a stav nahravky pre prave sledovanu relaciu (start, prepnutie kanala). */
+    /** Determines the rights and the recording state for the currently watched programme (start, channel switch). */
     fun refreshDvrState() { dvrRec.refreshState() }
-    /** Nahrat prave beziacu relaciu, alebo zrusit uz naplanovanu nahravku. */
+    /** Record the currently running programme, or cancel an already scheduled recording. */
     fun toggleRecordCurrent() { dvrRec.toggleRecordCurrent() }
 
-    // M639: stav ziveho prehravania v LiveSession (M677: pristup priamo cez live)
+    // M639: live playback state in LiveSession (M677: accessed directly via live)
     private val live = LiveSession()
-    // pre opatovne pripojenie videa po navrate z pozadia
+    // for reattaching the video after returning from the background
     private var videoLayout: VLCVideoLayout? = null
     private var subOverlay: SubtitleOverlayView? = null
-    // ===== M553 / M627: teletext — stav a ovládanie v TeletextController, vykreslenie v TeletextOverlay =====
+    // ===== M553 / M627: teletext — state and controls in TeletextController, drawing in TeletextOverlay =====
     private val ttx: TeletextController by lazy {
         TeletextController(this,
             liveServer = { live.server },
@@ -192,27 +192,27 @@ class PlayerActivity : ComponentActivity() {
             seekable = { seekablePlayback },
             onOpened = { modernOv.close() })
     }
-    /** M552: teletext aktuálneho kanála (HTSP: dáta z feedera, HTTP: vlastná odbočka). */
+    /** M552: the current channel's teletext (HTSP: data from the feeder, HTTP: a separate branch of our own). */
     val teletext: TeletextSession get() = ttx.session
     fun teletextVisible(): Boolean = ttx.visible()
     fun openTeletext() { ttx.open() }
     fun closeTeletext() { ttx.close() }
 
-    // Picture-in-Picture (obraz v obraze)
+    // Picture-in-Picture
     private val inPipState = androidx.compose.runtime.mutableStateOf(false)
-    // false = audio-only (rozhlas) -> zobraz logo namiesto ciernej
-    // automaticke znovupripojenie zivého streamu po vypadku siete
-    // M636: casovanie/stav reconnectu v ReconnectController.kt; co sa pri pokuse spravi, je nizsie
+    // false = audio-only (radio) -> show the logo instead of black
+    // automatic reconnection of the live stream after a network dropout
+    // M636: reconnect timing/state in ReconnectController.kt; what is actually done on an attempt is below
     private val reconnect: ReconnectController by lazy {
         ReconnectController(this,
             playerReady = { engine.ready },
             isPlaying = { engine.player.isPlaying })
     }
-    // tocenie pri pretacani timeshiftu (kratky resync pipe -> libVLC)
+    // the spinner while seeking in timeshift (a short pipe -> libVLC resync)
     private val seekingState = androidx.compose.runtime.mutableStateOf(false)
     private var seekSpinnerJob: kotlinx.coroutines.Job? = null
-    // YouTube-style dvojklik pretacanie: nazbierane sekundy (+/-), 0 = skryte
-    // M648: vypocet ciela pretacania, M594 zotavenie a dvojklik v DvrSeek.kt
+    // YouTube-style double-tap seeking: accumulated seconds (+/-), 0 = hidden
+    // M648: seek target calculation, M594 recovery and the double-tap in DvrSeek.kt
     private val dvrSeek: DvrSeek by lazy {
         DvrSeek(this, lifecycleScope,
             durMs = { if (dvr.durationMs > 0) dvr.durationMs else (if (engine.ready) engine.player.length else 0L) },
@@ -221,7 +221,7 @@ class PlayerActivity : ComponentActivity() {
             seekable = { engine.ready && seekablePlayback },
             performSeek = { target, from, dur -> seekDvrTo(target, from, dur) })
     }
-    // M634: EPG now/next + cache v PlayerEpgStore.kt (M677: pristup priamo cez epg)
+    // M634: EPG now/next + cache in PlayerEpgStore.kt (M677: accessed directly via epg)
     private val epg: PlayerEpgStore by lazy {
         PlayerEpgStore(this,
             liveServer = { live.server },
@@ -230,23 +230,23 @@ class PlayerActivity : ComponentActivity() {
             onDvrStateChanged = { refreshDvrState() })
     }
 
-    // D-pad / diaľkové: signál na zobrazenie ovládania, info pre seek a sw dekóder
+    // D-pad / remote: the signal to show the controls, info for seeking and the sw decoder
     private val controlsPokeState = androidx.compose.runtime.mutableStateOf(0)
     private val isPlayingState = androidx.compose.runtime.mutableStateOf(true)
-    // D-pad navigacia zoznamu kanalov v prehravaci
+    // D-pad navigation of the channel list in the player
     private val openChannelListState = androidx.compose.runtime.mutableStateOf(0)
     private val navChannelIndexState = androidx.compose.runtime.mutableStateOf(0)
-    // M369: aktivny filter skupiny v zozname kanalov + priznak, ci je fokus na pilulke skupiny.
+    // M369: the active group filter in the channel list + a flag for whether focus is on the group pill.
     private val activeGroupLabelState = androidx.compose.runtime.mutableStateOf("")
     private val groupPickerState = androidx.compose.runtime.mutableStateOf(false)
-    // M370 / M635: hladanie kanala podla nazvu — stav a klavesy v ChannelSearch.kt
+    // M370 / M635: channel search by name — state and keys in ChannelSearch.kt
     private val search: ChannelSearch by lazy {
         ChannelSearch(this,
             onSelect = { uuid -> selectLiveByUuid(uuid) },
             onDeactivate = { groupPickerState.value = false })
     }
     private var seekablePlayback = false
-    // Zadavanie kanala cislami z dialkoveho ovladaca (M635: ChannelNumberEntry.kt)
+    // Entering a channel by digits from the remote (M635: ChannelNumberEntry.kt)
     private val numEntry: ChannelNumberEntry by lazy {
         ChannelNumberEntry(lifecycleScope) { typed ->
             val idx = LivePlaylist.channels.indexOfFirst { it.number == typed }
@@ -254,10 +254,10 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    // M654: stavba libVLC Media (URL / feeder, dekodér, deinterlacing, demux) v MediaFactory.kt
+    // M654: building the libVLC Media (URL / feeder, decoder, deinterlacing, demux) in MediaFactory.kt
     private val mediaFactory: MediaFactory by lazy { MediaFactory(this) { engine.libVlc } }
 
-    // M655: otvaranie streamu (HTTP / feeder / DVR / HTSP, auth sonda) v StreamOpener.kt
+    // M655: opening the stream (HTTP / feeder / DVR / HTSP, auth probe) in StreamOpener.kt
     private val opener: StreamOpener by lazy {
         StreamOpener(this, lifecycleScope, stream, live, mediaFactory, tracks,
             player = { engine.player },
@@ -276,46 +276,46 @@ class PlayerActivity : ComponentActivity() {
 
     private fun pokeControls() {
         zapBar.hide()  // M446
-        // Moderny rezim na TV pri live: stary ovladaci panel sa nezobrazuje (M325/M327)
+        // Modern mode on TV with live: the old control panel is not shown (M325/M327)
         if (modernTvActive()) return
         controlsPokeState.value = controlsPokeState.value + 1
     }
-    // INFO kláves / tlacidlo -> okno s detailom aktualnej relacie
+    // INFO key / button -> a window with the current programme's details
     private val infoPokeState = androidx.compose.runtime.mutableStateOf(0)
     private fun toggleInfo() { infoPokeState.value = infoPokeState.value + 1 }
-    // EPG kláves / tlacidlo -> otvor TV program (mriezku) v hlavnej aplikacii
-    // M383-fix: EPG sa smie otvorit az PO dokonceni vstupu do PiP — startActivity
-    // vypaleny pocas PiP prechodu system na mnohych zariadeniach spolkne (vidno
-    // len PiP okno, EPG "dobehne" az po zvacseni). Preto: enterPip -> cakaj na
-    // onPictureInPictureModeChanged(true) -> az potom startActivity.
+    // EPG key / button -> open the TV guide (the grid) in the main app
+    // M383-fix: the EPG may only be opened AFTER the PiP transition has completed — a startActivity
+    // fired during the PiP transition is swallowed by the system on many devices (you see
+    // only the PiP window, the EPG "catches up" once it is expanded). Hence: enterPip -> wait for
+    // onPictureInPictureModeChanged(true) -> only then startActivity.
     private var pendingEpgAfterPip = false
 
     private fun launchEpgActivity() {
         val i = android.content.Intent(this, MainActivity::class.java).apply {
             putExtra("open_epg", true)
-            // M591: z prehravaca radia sa ma otvorit program STANIC, nie TV kanalov
+            // M591: from the radio player the STATIONS guide should open, not the TV channels one
             if (live.playKind == "radio") putExtra("epg_radio", true)
-            // zapamataj aktualny zivy kanal, nech BACK z EPG vrati do prehravaca nan
+            // remember the current live channel so BACK from the EPG returns to the player on it
             if (!seekablePlayback) live.uuids.getOrNull(live.index)?.let { putExtra("epg_return_uuid", it) }
         }
         runCatching { startActivity(i) }
     }
 
     private fun openEpgInApp() {
-        // M601-fix: radio nejde do PiP — autoPipIfPossible urobi handoff na pozadie
-        // (a aktivitu ukonci), ale vratil true, takze sa TV program otvoril az po
-        // 1,2 s poistke; medzitym bol vidiet uvod. Program otvor hned, handoff
-        // (moderny rezim) pride po nom; v klasiku ostane prehravac pod programom
-        // ako doteraz.
+        // M601-fix: radio does not go into PiP — autoPipIfPossible does a handoff to the background
+        // (and ends the activity), but it returned true, so the TV guide only opened after
+        // the 1.2 s fallback; in the meantime the intro was visible. Open the guide immediately, the handoff
+        // (modern mode) comes after it; in classic the player stays under the guide
+        // as before.
         if (live.playKind == "radio") {
             launchEpgActivity()
             radioHandoffIfPossible()
             return
         }
-        // na telefonoch: vstup do PiP, aby video bezalo v plavajucom okne nad EPG
+        // on phones: enter PiP so the video runs in a floating window above the EPG
         if (autoPipIfPossible()) {
             pendingEpgAfterPip = true
-            // poistka: keby callback neprisiel (PiP zlyha po ceste), otvor EPG aj tak
+            // fallback: if the callback does not arrive (PiP fails on the way), open the EPG anyway
             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                 if (pendingEpgAfterPip) { pendingEpgAfterPip = false; launchEpgActivity() }
             }, 1200)
@@ -332,14 +332,14 @@ class PlayerActivity : ComponentActivity() {
 
     private fun togglePlayPause() {
         if (!engine.ready) return
-        timeshift.flushNow()   // doruc nazbierany skok, nech je server konzistentny
+        timeshift.flushNow()   // deliver the accumulated skip so the server stays consistent
         if (isPlayingState.value) {
-            if (stream.htspStream) stream.htspFeeder?.pause()         // zastav HTSP delivery (aj bez timeshiftu)
+            if (stream.htspStream) stream.htspFeeder?.pause()         // stop HTSP delivery (even without timeshift)
             if (stream.htspLive) {
-                // prva pauza "zapne" timeshift: odtialto sa rata buffer aj cervene pocitadlo
+                // the first pause "engages" timeshift: from here on the buffer and the red counter are counted
                 timeshift.onPaused()
-                // zapnutim timeshiftu pribudnu ovladace pretacania (tsrew pred play) a posunu sa
-                // indexy — re-ukotvi fokus na play/pause, nech "neskoci" na pretacanie
+                // engaging timeshift adds the seek controls (tsrew before play) and shifts the
+                // indices — re-anchor focus on play/pause so it does not "jump" onto seeking
                 val ord = playerControlOrder(!seekablePlayback && live.uuids.size > 1, seekablePlayback, pipButtonVisible(), true, profileSwitchAvailable(), dvrRecordVisible())
                 controlNavState.value = ord.indexOf("play").coerceAtLeast(0)
             }
@@ -349,28 +349,28 @@ class PlayerActivity : ComponentActivity() {
             if (stream.htspStream) stream.htspFeeder?.resume()
             if (stream.htspLive) timeshift.onResumed()
             isPlayingState.value = true
-            reconnect.resetDvrReopen()   // manualny play -> povol nove pokusy o nacitanie novsich dat
+            reconnect.resetDvrReopen()   // manual play -> allow new attempts to load newer data
             engine.player.play()
         }
     }
 
-    /** Novy zivy zaciatok (cerstva subscription = na zivo) -> vynuluj timeshift. */
+    /** A new live start (a fresh subscription = live) -> clear the timeshift. */
     private fun resetTimeshift() {
         timeshift.reset()
         hideSeekSpinner()
-        // M492: akumulator dvojkliku a hint sa nulovat musia tiez — inak by po prepnuti
-        // media ostal vychodzi bod z predchadzajucej nahravky. Playhead vynuluj z rovnakeho dovodu.
+        // M492: the double-tap accumulator and the hint have to be cleared too — otherwise after switching
+        // media the starting point from the previous recording would remain. Clear the playhead for the same reason.
         dvrSeek.resetForNewMedia()
         dvr.playheadMsState.value = 0L
     }
 
-    /** Relativny skok v timeshifte (sekundy; zaporne = vzad). */
+    /** Relative skip within timeshift (seconds; negative = backwards). */
     private fun timeshiftSkip(seconds: Int) { if (stream.htspLive) timeshift.skip(seconds) }
 
-    /** Zhasne seek-koliesko (Playing/Buffering 100 % dobehol, alebo novy zivy zaciatok). */
+    /** Turns off the seek spinner (Playing/Buffering reached 100 %, or a new live start). */
     private fun hideSeekSpinner() { seekSpinnerJob?.cancel(); seekingState.value = false }
 
-    /** Koliesko v strede pocas resyncu; zhasne ho Playing/Buffering event, poistka po 4 s. */
+    /** The spinner in the middle during a resync; a Playing/Buffering event turns it off, fallback after 4 s. */
     private fun showSeekSpinner() {
         seekingState.value = true
         seekSpinnerJob?.cancel()
@@ -380,68 +380,68 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    /** Pretoc DVR nahravku na cielovy program-relativny cas PREBUDOVANIM streamu.
-     *  Priame URL -> nova Media s :start-time (libVLC seekuje cez HTTP Range).
-     *  Feeder/pipe -> restart HTTP feedu na odhadnutom byte-offsete (pipe sa neseekuje).
-     *  V oboch pripadoch naseeduje playhead hodiny na cielovy cas. */
+    /** Seek a DVR recording to the target programme-relative time by REBUILDING the stream.
+     *  Direct URL -> a new Media with :start-time (libVLC seeks via HTTP Range).
+     *  Feeder/pipe -> restart the HTTP feed at an estimated byte offset (a pipe cannot be seeked).
+     *  In both cases it seeds the playhead clock to the target time. */
     private fun seekDvrTo(targetMs: Long, fromMs: Long, dur: Long) {
         val url = stream.currentStreamUrl ?: return
         if (!engine.ready) return
         val offsetMs = if (dvr.progStartSec > 0 && dvr.realStartSec in 1 until dvr.progStartSec)
             (dvr.progStartSec - dvr.realStartSec) * 1000 else 0L
-        val fileMs = (offsetMs + targetMs).coerceAtLeast(0L)   // cas v subore (0 = realny zaciatok nahravky)
+        val fileMs = (offsetMs + targetMs).coerceAtLeast(0L)   // time in the file (0 = the real start of the recording)
         reconnect.clearPending()
-        // Bezny seek = kratky restart streamu; ukaz len lahky seek-spinner, NIE "Opatovne
-        // pripajanie" (to patri len skutocnemu vypadku/reconnectu). Zhasne ho Playing/Buffering,
-        // poistka po 6 s keby event nedosiel.
+        // An ordinary seek = a short stream restart; show only the light seek spinner, NOT "Reconnecting"
+        // (that belongs only to a real dropout/reconnect). A Playing/Buffering event turns it off,
+        // fallback after 6 s in case the event never arrives.
         seekingState.value = true
         seekSpinnerJob?.cancel()
         seekSpinnerJob = lifecycleScope.launch {
             kotlinx.coroutines.delay(6000)
             seekingState.value = false
         }
-        opener.seekDvrFile(url, fileMs, offsetMs, fromMs, dur)   // M670: telo v StreamOpener
-        // M594: cas a ciel posledneho pretocenia — ked hned po nom pride koniec/chyba,
-        // je to trafeny EOF (subor kratsi nez trvanie z EPG) a nie skutocny koniec
+        opener.seekDvrFile(url, fileMs, offsetMs, fromMs, dur)   // M670: the body is in StreamOpener
+        // M594: the time and target of the last seek — when an end/error arrives right after it,
+        // it is a hit EOF (the file is shorter than the duration from the EPG) and not a real end
         dvrSeek.markSeek(targetMs)
-        // playhead hned na cielovu poziciu + seed pre hodiny (po restarte je player.position
-        // neplatna, hodiny ju nesmu citat - prevezmu seed a tikaju dalej z neho)
+        // playhead straight to the target position + a seed for the clock (after the restart player.position is
+        // invalid, the clock must not read it - it takes the seed and ticks on from there)
         dvr.playheadMsState.value = targetMs
         dvr.seekSeedState.value = targetMs
     }
 
-    /** Dvojklik na lavu/pravu stranu (YouTube-style): skok o 10 s.
-     *  DVR -> seek v medii (akumulovane); aktivny timeshift -> subscriptionSkip hned. */
+    /** A double tap on the left/right side (YouTube-style): a 10 s skip.
+     *  DVR -> a seek within the media (accumulated); active timeshift -> subscriptionSkip immediately. */
     private fun doubleTapSeek(forward: Boolean) {
         when {
             seekablePlayback -> dvrSeek.doubleTap(forward, applyImmediately = false)
             stream.htspLive -> {
-                if (timeshift.maxRewindMs() <= 0L) return   // timeshift sa zapne az pauzou, dovtedy niet co pretacat
-                timeshiftSkip(if (forward) 10 else -10)   // live timeshift: lacne, pretoc hned
+                if (timeshift.maxRewindMs() <= 0L) return   // timeshift is engaged only by a pause, until then there is nothing to seek through
+                timeshiftSkip(if (forward) 10 else -10)   // live timeshift: cheap, seek immediately
                 dvrSeek.doubleTap(forward, applyImmediately = true)
             }
-            else -> return   // ziadne pretacanie (zive bez timeshiftu) -> ignoruj
+            else -> return   // no seeking (live without timeshift) -> ignore
         }
     }
 
-    /** Horizontalne tahanie (MX Player) -> skok o dany pocet sekund (zaporne = vzad). */
+    /** Horizontal dragging (MX Player) -> a skip of the given number of seconds (negative = backwards). */
     private fun scrubSeek(seconds: Int) {
         if (seconds == 0) return
         when {
             seekablePlayback -> dvrSeek.seekRelative(seconds.toLong() * 1000L)
-            stream.htspLive -> { if (timeshift.maxRewindMs() > 0L) timeshiftSkip(seconds) }  // konvencia ako seekRelative: zaporne = vzad
+            stream.htspLive -> { if (timeshift.maxRewindMs() > 0L) timeshiftSkip(seconds) }  // the same convention as seekRelative: negative = backwards
             else -> {}
         }
     }
 
-    // M473 / M669: currentEventId / currentLiveEvent / runningRecordingHere / currentEventRecording v DvrRecordController
+    // M473 / M669: currentEventId / currentLiveEvent / runningRecordingHere / currentEventRecording in DvrRecordController
 
-    /** TV/box (Android TV) — na detekciu kde sa ma archivny vyber zobrazovat. */
+    /** TV/box (Android TV) — for detecting where the archive choice should be shown. */
     private fun isTvDevice(): Boolean = isTvUiMode(this)   // M679: DeviceKind.kt
 
-    // ===== M657: jadro prepinania kanalov (selectChannelOrArchive, resolveArchiveChoice,
+    // ===== M657: the core of channel switching (selectChannelOrArchive, resolveArchiveChoice,
     // rememberPlayback, playRecordingFromStart, saveLastLive, switchToIndex) — ChannelSwitcher.kt
-    // (M677: volania priamo cez switcher) =====
+    // (M677: calls go directly through the switcher) =====
     private val switcher: ChannelSwitcher by lazy {
         ChannelSwitcher(this, lifecycleScope, live, stream, tracks, object : ChannelSwitcher.Actions {
             override fun isTvDevice(): Boolean = this@PlayerActivity.isTvDevice()
@@ -470,12 +470,12 @@ class PlayerActivity : ComponentActivity() {
         })
     }
 
-    /** Zatvorenie prehravaca: ak bol spusteny cez "od zaciatku" zo zivej TV, vrat sa na povodny kanal. */
-    /** M342/M344: BACK z hrajuceho radia = handoff do RadioPlayerService.
-     *  Vrati true, ak handoff prebehol (aktivita sa ukoncila) — radio hra dalej
-     *  na pozadi s mini listou. Moderny: telefon aj TV. M624: aj klasik na
-     *  telefone (mini lista je uz aj v klasiku); klasik na TV povodne — nema
-     *  panel, radio by hralo bez ovladania. */
+    /** Closing the player: if it was started via "from the start" from live TV, return to the original channel. */
+    /** M342/M344: BACK from playing radio = a handoff to RadioPlayerService.
+     *  Returns true if the handoff happened (the activity finished) — the radio keeps playing
+     *  in the background with the mini bar. Modern: phone and TV. M624: classic on the
+     *  phone too (the mini bar is now in classic as well); classic on TV as before — it has no
+     *  panel, so the radio would play with no controls. */
     private fun radioHandoffIfPossible(): Boolean {
         if (live.playKind != "radio") return false
         if (UiModePref.get(this) != UiModePref.MODERN && isTvDevice()) return false
@@ -499,8 +499,8 @@ class PlayerActivity : ComponentActivity() {
     }
 
     private fun closePlayer() {
-        // M494: odchod z prehravaca = uz niet co obnovovat (pouzivatel skoncil
-        // na zozname, nie na kanali). Navrat na zivy kanal z archivu odchod nie je.
+        // M494: leaving the player = there is nothing left to restore (the user ended up
+        // on the list, not on a channel). Returning to a live channel from the archive is not a departure.
         if (returnLiveUuid == null) LastPlayback.clear(this)
         if (radioHandoffIfPossible()) return
         val ru = returnLiveUuid
@@ -512,11 +512,11 @@ class PlayerActivity : ComponentActivity() {
             }
             runCatching { startActivity(i) }
             finish()
-        } else if (!autoPipIfPossible()) finish()   // M343: respektuj vypnute Auto-PiP — BACK = stop, nie PiP
+        } else if (!autoPipIfPossible()) finish()   // M343: respect Auto-PiP being off — BACK = stop, not PiP
     }
 
-    /** Prepne na susedny live kanal (delta +1 / -1). */
-    /** Kratka haptika pri prepnuti kanala — len telefon/tablet v modernom rezime (M336). */
+    /** Switches to the neighbouring live channel (delta +1 / -1). */
+    /** A short haptic tick on a channel switch — phone/tablet in modern mode only (M336). */
     private fun hapticChannelSwitch() {
         if (isTvBox) return
         if (UiModePref.get(this) != UiModePref.MODERN) return
@@ -527,7 +527,7 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    // M407 / M652: debounce rychleho zappingu v ZapDebounce.kt
+    // M407 / M652: fast-zapping debounce in ZapDebounce.kt
     private val zap: ZapDebounce by lazy {
         ZapDebounce(live,
             haptic = { hapticChannelSwitch() },
@@ -536,7 +536,7 @@ class PlayerActivity : ComponentActivity() {
     }
     private fun switchLive(delta: Int) { zap.switchLive(delta) }
 
-    // ===== M369 / M640: filter skupin v zozname kanalov — LiveGroups.kt =====
+    // ===== M369 / M640: the group filter in the channel list — LiveGroups.kt =====
     private val groups: LiveGroups by lazy {
         LiveGroups(this, live,
             epgUpcoming = { epg.upcoming.value },
@@ -544,10 +544,10 @@ class PlayerActivity : ComponentActivity() {
             groupLabel = activeGroupLabelState)
     }
 
-    // ===== M370 / M635: hladanie kanala — ChannelSearch.kt =====
-    /** Vyber kanala z vysledkov hladania: prepne (aj skupinu ak treba) a pusti. */
+    // ===== M370 / M635: channel search — ChannelSearch.kt =====
+    /** Picking a channel from the search results: switches (the group too if needed) and starts playing. */
     private fun selectLiveByUuid(uuid: String) {
-        okLongFired = true   // prehltne nasledne OK-up, inak by zoznam potvrdil iny kanal (index 0)
+        okLongFired = true   // swallows the following OK-up, otherwise the list would confirm a different channel (index 0)
         search.close()
         closeChannelList()
         var i = live.uuids.indexOf(uuid)
@@ -555,57 +555,57 @@ class PlayerActivity : ComponentActivity() {
         if (i >= 0) switcher.selectChannelOrArchive(i, poke = false)
     }
 
-    // stav prekryti (z Compose) — kym je otvorene, D-pad riesime my (zoznam) alebo Compose (menu)
+    // overlay state (from Compose) — while one is open the D-pad is handled by us (the list) or by Compose (the menu)
     private var trackMenuOpen = false
     private var channelListOpen = false
     private val closeChannelListState = androidx.compose.runtime.mutableStateOf(0)
-    // Moznosti (Zvuk / Titulky / SW dekod) — vertikalne overlay, navigujeme z Activity
+    // Options (Audio / Subtitles / SW decoding) — a vertical overlay, navigated from the Activity
     private var optionsOpen = false
     private var remoteDebug = false
-    /** PiP tlacidlo v ovladani (M349-fix2): zobrazit len ked je Auto-PiP
-     *  v nastaveniach VYPNUTY — vtedy je jedina cesta do PiP rucna. Pri
-     *  zapnutom Auto-PiP je tlacidlo zbytocne (BACK spravi PiP sam).
-     *  pipSupported zaroven vylucuje TV (nemaju FEATURE_PICTURE_IN_PICTURE). */
-    // M575: na TV sa tlacidlo neponuka ani ked box PiP hlasi — okno sa dialkovym
-    // ovladacom neda ovladat (issue #11)
+    /** The PiP button in the controls (M349-fix2): show it only when Auto-PiP
+     *  is OFF in settings — then the only way into PiP is manual. With
+     *  Auto-PiP on the button is pointless (BACK enters PiP by itself).
+     *  pipSupported also rules out TVs (they do not have FEATURE_PICTURE_IN_PICTURE). */
+    // M575: on TV the button is not offered even when the box reports PiP — the window cannot
+    // be controlled with the remote (issue #11)
     private fun pipButtonVisible(): Boolean = pip.supported && !isTvDevice() && !AutoPipPref.get(this)
 
     private var controlsShown = false
     private val openOptionsState = androidx.compose.runtime.mutableStateOf(0)
     private val closeOptionsState = androidx.compose.runtime.mutableStateOf(0)
     private val optionsNavState = androidx.compose.runtime.mutableStateOf(0)
-    // Casovac uspatia
-    // M629: casovac uspatia v SleepTimer.kt
+    // Sleep timer
+    // M629: the sleep timer in SleepTimer.kt
     private val sleep: SleepTimer by lazy { SleepTimer(this) { finish() } }
-    // Navigacia ovladacieho panela (focus riadime z Activity, nie cez Compose focus)
+    // Control panel navigation (we drive focus from the Activity, not through Compose focus)
     private val controlNavState = androidx.compose.runtime.mutableStateOf(0)
     private var okLongFired = false
 
-    // Rodicovsky zamok (PIN) — stav a klavesy v PinPrompt.kt (M629), vykreslenie PinDialog v PlayerUi
+    // Parental lock (PIN) — state and keys in PinPrompt.kt (M629), PinDialog drawing in PlayerUi
     private val pin: PinPrompt by lazy {
         PinPrompt(this,
             isTv = { isTvDevice() },
             channelCount = { live.uuids.size },
             openChannelList = { openChannelList() },
             switchToIndex = { idx -> switcher.switchToIndex(idx) },
-            onRequested = { okLongFired = false })   // PIN vyzva prebera vstup; OK gesto je tym ukoncene
+            onRequested = { okLongFired = false })   // the PIN prompt takes over input; the OK gesture is thereby ended
     }
     private fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, markUnlock: Boolean = true, channelIndex: Int? = null) {
         pin.request(onOk, onCancel, markUnlock, channelIndex)
     }
-    // Dialog "Obnovit prehravanie" — D-pad obsluha v dispatchKeyEvent (na boxe nemal fokus)
+    // The "Resume playback" dialog — D-pad handling in dispatchKeyEvent (on a box it had no focus)
     private val resumePromptState = androidx.compose.runtime.mutableStateOf(false)
-    private val resumeSelState = androidx.compose.runtime.mutableStateOf(1)   // 0=Nie, 1=Ano (predvolba)
-    private val resumeAnswerState = androidx.compose.runtime.mutableStateOf(0) // 0=ziadna, 1=Ano, 2=Nie
-    // Vyber pri archivovanom kanali (nazivo / od zaciatku) priamo v prehravaci
-    private val archiveChoiceIdxState = androidx.compose.runtime.mutableStateOf(-1) // index kanala cakajuci na vyber, -1 = ziadny
-    private val archiveChoiceSelState = androidx.compose.runtime.mutableStateOf(0)   // 0=nazivo, 1=od zaciatku (D-pad)
+    private val resumeSelState = androidx.compose.runtime.mutableStateOf(1)   // 0=No, 1=Yes (default)
+    private val resumeAnswerState = androidx.compose.runtime.mutableStateOf(0) // 0=none, 1=Yes, 2=No
+    // The choice on an archived channel (live / from the start) right inside the player
+    private val archiveChoiceIdxState = androidx.compose.runtime.mutableStateOf(-1) // index of the channel awaiting the choice, -1 = none
+    private val archiveChoiceSelState = androidx.compose.runtime.mutableStateOf(0)   // 0=live, 1=from the start (D-pad)
     private val recInProgressByChan = androidx.compose.runtime.mutableStateOf<Map<String, sk.tvhclient.shared.model.DvrEntry>>(emptyMap())
-    // Navrat na povodny zivy kanal po zatvoreni DVR prehravaca spusteneho cez "od zaciatku"
+    // Return to the original live channel after closing a DVR player started via "from the start"
     private var returnLiveUuid: String? = null
     private var returnLiveTitle: String? = null
 
-    // DVR scrub (M597/M598) — ScrubController.kt (M646); pristup priamo cez scrub
+    // DVR scrub (M597/M598) — ScrubController.kt (M646); accessed directly via scrub
     private val scrub: ScrubController by lazy {
         ScrubController(lifecycleScope,
             barMs = { if (dvr.recording) (dvr.durationMs - 45_000L).coerceAtLeast(1L) else dvr.durationMs },
@@ -616,7 +616,7 @@ class PlayerActivity : ComponentActivity() {
             poke = { pokeControls() })
     }
 
-    // M651: klavesy pri beznom prehravani (blok 4 dispatchKeyEvent) v PlaybackKeys.kt
+    // M651: keys during normal playback (block 4 of dispatchKeyEvent) in PlaybackKeys.kt
     private val playbackKeys: PlaybackKeys by lazy {
         PlaybackKeys(this, live, scrub, numEntry, controlNavState,
             seekable = { seekablePlayback },
@@ -636,11 +636,11 @@ class PlayerActivity : ComponentActivity() {
                 override fun activateControl(id: String?) { this@PlayerActivity.activateControl(id) }
                 override fun togglePlayPause() { this@PlayerActivity.togglePlayPause() }
                 override fun openChannelListLong() {
-                    okLongFired = true; openChannelList()  // okLongFired prehltne nasledne OK-up
+                    okLongFired = true; openChannelList()  // okLongFired swallows the following OK-up
                 }
                 override fun modernPlaybackOk(down: Boolean, event: android.view.KeyEvent): Boolean =
                     modernOv.handlePlaybackOk(down, event) {
-                        okLongFired = true   // prehltne OK-up, inak by up hned potvrdil kanal a zoznam zavrel
+                        okLongFired = true   // swallows the OK-up, otherwise the up would immediately confirm the channel and close the list
                         openChannelList()
                     }
                 override fun beginScrub(dir: Int) { this@PlayerActivity.beginScrub(dir) }
@@ -649,10 +649,10 @@ class PlayerActivity : ComponentActivity() {
     }
 
     /**
-     * M598: sipka pri skrytom ovladani v archive. Doteraz hned pretocila (-15 s / +30 s)
-     * — obraz sekol pri kazdom stlaceni aj pri drzani, hoci pouzivatel este len hladal
-     * miesto. Teraz sa otvori lista s kurzorom, kurzor sa posunie o krok a samotne
-     * pretocenie sa vykona az po ustaleni (M597) alebo po OK.
+     * M598: an arrow with the controls hidden in the archive. Until now it seeked straight away (-15 s / +30 s)
+     * — the picture stuttered on every press and while holding, even though the user was still only looking
+     * for the spot. Now the bar opens with a cursor, the cursor moves one step and the seek itself
+     * is performed only once it settles (M597) or after OK.
      */
     private fun beginScrub(dir: Int) {
         val order = playerControlOrder(
@@ -669,10 +669,10 @@ class PlayerActivity : ComponentActivity() {
         pokeControls()
     }
 
-    // Pocitadlo na obnovu ikon zamku v in-player zozname po zmene zamku.
+    // A counter for refreshing the lock icons in the in-player list after a lock change.
     private val lockTickState = androidx.compose.runtime.mutableStateOf(0)
 
-    /** Zamkne/odomkne kanal v zozname prehravaca (ako dlhy klik na telefone). Chrani PINom. */
+    /** Locks/unlocks a channel in the player's list (like a long press on the phone). PIN-protected. */
     private fun toggleLockAt(idx: Int) {
         val srv = live.server ?: return
         val uuid = live.uuids.getOrNull(idx) ?: return
@@ -681,26 +681,26 @@ class PlayerActivity : ComponentActivity() {
             ParentalLock.setChannelLocked(this, srv.id, uuid, !now)
             lockTickState.value = lockTickState.value + 1
         }
-        // ak je zamok aktivny a sme mimo okna, najprv over PIN; po zadani plati grace okno
-        // (rovnake pravidlo "po odomknuti nepytat X min" ako pri prepinani) -> markUnlock = true
+        // if the lock is active and we are outside the window, verify the PIN first; once entered the grace window applies
+        // (the same "do not ask for X min after unlocking" rule as when switching) -> markUnlock = true
         if (ParentalLock.needsPin(this)) requestPin(onOk = doToggle, onCancel = { }, markUnlock = true)
         else doToggle()
     }
 
     /**
-     * M544: callbacky pre PlayerUi, ktore sa odovzdavaju PODMIENENE (`if (...) cb else null`),
-     * su pevne polia aktivity, nie lambdy vytvorene v kompozicii. Compose lambdu v
-     * argumente memoizuje do slotu; pri prepnuti podmienky (htspStreamState, canZap)
-     * vnutri `key(videoSurfaceGen)` sa sloty posunuli a pri rekompozicii sa v slote
-     * ocakavanom pre Function1 nasla ina lambda -> ClassCastException
-     * „$$ExternalSyntheticLambda7 cannot be cast to Function1" (Pixel 9, 1.0.5).
-     * Pole ziadny slot nezabera, takze sa nema co posunut.
+     * M544: callbacks for PlayerUi that are passed CONDITIONALLY (`if (...) cb else null`)
+     * are fixed fields of the activity, not lambdas created in the composition. Compose memoizes
+     * a lambda argument into a slot; when the condition flipped (htspStreamState, canZap)
+     * inside `key(videoSurfaceGen)` the slots shifted and on recomposition the slot
+     * expected to hold a Function1 contained a different lambda -> ClassCastException
+     * "$$ExternalSyntheticLambda7 cannot be cast to Function1" (Pixel 9, 1.0.5).
+     * A field takes up no slot, so there is nothing to shift.
      */
     private val pickHtspSpuCb: (Int) -> Unit = { id -> trackMenu.pickHtspSpu(id) }
     private val prevChannelCb: () -> Unit = { switchLive(-1) }
     private val nextChannelCb: () -> Unit = { switchLive(+1) }
 
-    // --- Kontextove menu kanala v prehravaci (long-press OK / dlhy klik) — ChannelContextMenu.kt (M641) ---
+    // --- Channel context menu in the player (long-press OK / long press) — ChannelContextMenu.kt (M641) ---
     private val ctxMenu: ChannelContextMenu by lazy {
         ChannelContextMenu(this, live, groups,
             epgUpcoming = { epg.upcoming.value },
@@ -719,7 +719,7 @@ class PlayerActivity : ComponentActivity() {
             })
     }
 
-    // ===== M541 / M638: rezim usporiadania oblubenych (D-pad) — FavReorder.kt =====
+    // ===== M541 / M638: favourites reordering mode (D-pad) — FavReorder.kt =====
     private val reorder: FavReorder by lazy {
         FavReorder(this,
             serverId = { (live.server ?: Tvh.store.active())?.id },
@@ -732,7 +732,7 @@ class PlayerActivity : ComponentActivity() {
             okLongFired = { okLongFired })
     }
 
-    // --- Info o relacii (detail) v prehravaci — ChannelInfo.kt (M643) ---
+    // --- Programme info (details) in the player — ChannelInfo.kt (M643) ---
     private val info: ChannelInfo by lazy {
         ChannelInfo(lifecycleScope, live,
             epgUpcoming = { epg.upcoming.value },
@@ -741,11 +741,11 @@ class PlayerActivity : ComponentActivity() {
             toggleRecord = { toggleRecordCurrent() },
             onShown = { zapBar.hide() })
     }
-    // M280: potvrdenie ukoncenia ziveho prehravania (BACK) — ako exit dialog v menu
+    // M280: confirmation of ending live playback (BACK) — like the exit dialog in the menu
     private val exitConfirmState = androidx.compose.runtime.mutableStateOf(false)
-    private val exitConfirmSelState = androidx.compose.runtime.mutableStateOf(0) // 0=Zrusit, 1=Ukoncit
+    private val exitConfirmSelState = androidx.compose.runtime.mutableStateOf(0) // 0=Cancel, 1=Exit
 
-    // ---- M430 / M628: kompaktny zap pas — stav aj vykreslenie v ZapBar.kt ----
+    // ---- M430 / M628: the compact zapping bar — both state and drawing in ZapBar.kt ----
     private val zapBar: ZapBar by lazy {
         ZapBar(lifecycleScope,
             suppressed = { controlsShown || modernOv.visible.value || info.visible.value })
@@ -761,7 +761,7 @@ class PlayerActivity : ComponentActivity() {
                 override fun openContextMenu(idx: Int) { ctxMenu.open(idx) }
                 override fun closeList() { closeChannelList() }
                 override fun switchDelayed(idx: Int) {
-                    // M600-fix: pockaj, kym sa video vrati z nahladoveho obdlznika na celu obrazovku
+                    // M600-fix: wait until the video returns from the preview rectangle to full screen
                     lifecycleScope.launch {
                         kotlinx.coroutines.delay(320)
                         switcher.switchToIndex(idx, poke = false)
@@ -774,13 +774,13 @@ class PlayerActivity : ComponentActivity() {
                 }
             })
     }
-    /** M605: dlazdica „TV kanaly" / „Radia" otvorila prehravac so zoznamom hned pri starte. */
+    /** M605: the "TV channels" / "Radio" tile opened the player with the list right at start. */
     private var listFirst = false
 
     private fun openChannelList() {
-        // M371: otvor aj s 1 kanalom, ak su skupiny na prepnutie (napr. Oblubene s 1 kanalom),
-        // inak by sa filtrovany zoznam uz nedal otvorit ani prepnut spat.
-        groups.refreshFavOrder()   // M541: oblubene sa mohli zmenit v zozname Kanaly
+        // M371: open it even with 1 channel if there are groups to switch between (e.g. Favourites with 1 channel),
+        // otherwise the filtered list could no longer be opened or switched back.
+        groups.refreshFavOrder()   // M541: the favourites may have changed in the Channels list
         if (live.uuids.size < 2 && groups.keys().size <= 1) return
         groupPickerState.value = false
         search.deactivateSilently()
@@ -800,20 +800,20 @@ class PlayerActivity : ComponentActivity() {
         closeOptionsState.value = closeOptionsState.value + 1
     }
 
-    /** Otvori vyber dlzky casovaca uspatia (dostupne dotykom aj D-padom). */
+    /** Opens the sleep timer duration picker (available by touch and by D-pad). */
     private fun openSleepMenu() {
         optionsNavState.value = 0
         openOptionsState.value = openOptionsState.value + 1
     }
 
-    /** Vyber dlzky casovaca uspatia. */
+    /** Sleep timer duration picker. */
     private fun selectOption(idx: Int) {
         sleep.set(sleep.durations.getOrElse(idx) { 0 })
         closeOptions()
     }
 
-    // --- Track menu (audio/titulky) riadene z Activity; stav a pomocne funkcie v TrackState (M637) ---
-    // M671: akcie track menu (HTSP titulky, profil, D-pad vyber) v TrackMenuController.kt
+    // --- Track menu (audio/subtitles) driven from the Activity; state and helper functions in TrackState (M637) ---
+    // M671: track menu actions (HTSP subtitles, profile, D-pad selection) in TrackMenuController.kt
     private val trackMenu: TrackMenuController by lazy {
         TrackMenuController(this, lifecycleScope, tracks, live, stream,
             player = { if (engine.ready) engine.player else null },
@@ -828,11 +828,11 @@ class PlayerActivity : ComponentActivity() {
 
     private fun applyPendingSpuRestore() { tracks.applyPendingSpuRestore(stream.htspStream, seekablePlayback) }
 
-    /** M383: prepinac profilu ma zmysel len pri HTTP live (nie HTSP, nie DVR,
-     *  nie externa URL — tam profil neexistuje alebo sa neda menit). */
+    /** M383: the profile switcher only makes sense on HTTP live (not HTSP, not DVR,
+     *  not an external URL — there the profile does not exist or cannot be changed). */
     private fun profileSwitchAvailable(): Boolean = tracks.profileSwitch.value
 
-    // --- Aktivacia zvyrazneneho prvku ovladacieho panela ---
+    // --- Activating the highlighted item of the control panel ---
     private fun activateControl(id: String?) {
         when (id) {
             "close" -> closePlayer()
@@ -872,7 +872,7 @@ class PlayerActivity : ComponentActivity() {
             c == android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
     }
 
-    // M658: retaz strazi dispatchKeyEvent v PlayerKeyRouter.kt (poradie = spravanie)
+    // M658: the chain of dispatchKeyEvent guards in PlayerKeyRouter.kt (order = behaviour)
     private val keyRouter: PlayerKeyRouter by lazy {
         PlayerKeyRouter(this, search, ttx, pin, ctxMenu, info, listKeys, modernOv, tracks, sleep, engine, playbackKeys,
             resumePromptState, resumeSelState, resumeAnswerState,
@@ -924,16 +924,16 @@ class PlayerActivity : ComponentActivity() {
         return super.dispatchKeyEvent(event)
     }
 
-    // DVR progress (sledovanie pozicie pre archiv) — M665: stav v DvrPlayback.kt (M677: pristup priamo cez dvr)
+    // DVR progress (position tracking for the archive) — M665: state in DvrPlayback.kt (M677: accessed directly via dvr)
     private val dvr = DvrPlayback(this)
 
     private fun saveDvrProgress() {
         dvr.saveProgress(if (engine.ready && !engine.tornDown) engine.player else null)
     }
 
-    /** M623: radio s volbou "Radio hra na pozadi" (telefon aj TV) — odchod z prehravaca
-     *  na pozadie (zhasnutie, zamok, domovska obrazovka, ina appka) radio nepozastavi.
-     *  V samotnom prehravaci obrazovka svieti dalej (KEEP_SCREEN_ON ako pri TV). */
+    /** M623: radio with the "Radio plays in the background" option (phone and TV) — sending the player
+     *  to the background (screen off, lock, home screen, another app) does not pause the radio.
+     *  In the player itself the screen stays lit (KEEP_SCREEN_ON as on TV). */
     private fun radioBackground(): Boolean =
         live.playKind == "radio" && RadioBackgroundPref.get(this)
 
@@ -944,19 +944,19 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    /** M658: pripojenie video layoutu z PlayerUi (povodne onAttach lambda v setContent). */
+    /** M658: attaching the video layout from PlayerUi (originally the onAttach lambda in setContent). */
     private fun attachVideo(layout: VLCVideoLayout) {
         videoLayout = layout
         engine.player.attachViews(layout, null, false, false)
-        // M539-fix2: novy prehravac cakal na svoj (novy) surface — spusti ho teraz
+        // M539-fix2: the new player was waiting for its own (new) surface — start it now
         if (engine.onSurfaceAttached()) {
             layout.post { runCatching { if (!engine.tornDown) engine.player.play() } }
         }
-        // vlastny titulkovy overlay nad videom (DVB titulky dekódujeme sami,
-        // do libVLC nejdu) — synchronizovany na cas prehravaca
+        // our own subtitle overlay above the video (we decode DVB subtitles ourselves,
+        // they do not go into libVLC) — synchronised to the player's time
         subOverlay?.let { old ->
             old.stopTicker()
-            (old.parent as? ViewGroup)?.removeView(old)   // nenechaj zamrznuty stary overlay (dvojity text)
+            (old.parent as? ViewGroup)?.removeView(old)   // do not leave a frozen old overlay behind (doubled text)
         }
         val ov = SubtitleOverlayView(layout.context)
         ov.layoutParams = FrameLayout.LayoutParams(
@@ -978,9 +978,9 @@ class PlayerActivity : ComponentActivity() {
         )
     }
 
-    /** M675: orientácia, keep-screen-on, stream locky a immersive fullscreen (vyňaté z onCreate). */
+    /** M675: orientation, keep-screen-on, the stream locks and immersive fullscreen (extracted from onCreate). */
     private fun setupWindow() {
-        // predvolene otacanie obrazovky podla nastavenia (auto = fullUser ako v manifeste)
+        // default screen rotation per the setting (auto = fullUser as in the manifest)
         runCatching {
             requestedOrientation = when (OrientationPref.get(this)) {
                 OrientationPref.PORTRAIT -> android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
@@ -989,12 +989,12 @@ class PlayerActivity : ComponentActivity() {
             }
         }
         remoteDebug = RemoteDebugPref.isEnabled(this)
-        // Drz obrazovku zapnutu od startu prehravaca (setric/ambient na boxoch sa nesmie spustit)
+        // Keep the screen on from player start (the screensaver/ambient mode on boxes must not kick in)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         streamLocks.acquire()  // M452
 
-        // Immersive fullscreen — skry status aj navigacnu listu, nech
-        // neprekryvaju ovladanie. Listy sa daju vytiahnut potiahnutim.
+        // Immersive fullscreen — hide both the status and the navigation bar so they do
+        // not cover the controls. The bars can be pulled out with a swipe.
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         val insetsController = androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
         insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
@@ -1002,7 +1002,7 @@ class PlayerActivity : ComponentActivity() {
             androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     }
 
-    /** M675: príprava live-zapping stavu a state holderov pred setContent (vyňaté z onCreate). */
+    /** M675: preparing the live-zapping state and the state holders before setContent (extracted from onCreate). */
     private fun setupLiveState(
         args: PlayerArgs,
         server: sk.tvhclient.shared.model.TvhServer,
@@ -1014,7 +1014,7 @@ class PlayerActivity : ComponentActivity() {
         progStop: Long,
         progTitle: String
     ) {
-        // Live zapping: priprav zoznam susednych kanalov
+        // Live zapping: prepare the list of neighbouring channels
         if (directUrl == null && channelUuid != null && LivePlaylist.channels.isNotEmpty()) {
             live.uuids = LivePlaylist.channels.map { it.uuid }
             live.names = LivePlaylist.channels.map { it.name }
@@ -1022,15 +1022,15 @@ class PlayerActivity : ComponentActivity() {
                 ?: live.uuids.indexOf(channelUuid)
             live.server = server
             switcher.saveLastLive(server.id, channelUuid)
-            epg.hydrateEpgFromDisk(server)   // M275: nacitaj EPG z disku (prezije restart boxu)
+            epg.hydrateEpgFromDisk(server)   // M275: load the EPG from disk (survives a box restart)
         }
-        switcher.rememberPlayback()   // M494: uz pri starte, nie az po prvom prepnuti
+        switcher.rememberPlayback()   // M494: already at start, not only after the first switch
         live.channelsState.value = LivePlaylist.channels
-        // M281: hned dopln now/next z cache (disk/proces) na viditelny zoznam, nech sa nazvy
-        // relacii pod kanalmi ukazu okamzite aj po restarte (predtym cakali na sietovy refresh).
+        // M281: fill in now/next from the cache (disk/process) for the visible list straight away, so the programme
+        // names under the channels show at once even after a restart (they used to wait for a network refresh).
         epg.applyCachedEpgToChannels()
-        // M605-fix: zoznam najprv — posledny kanal sa spusti normalne (hra za zoznamom
-        // ako nahlad) a zoznam sa otvori hned; povodne nehralo nic, co pouzivatel nechcel
+        // M605-fix: the list first — the last channel starts normally (playing behind the list
+        // as a preview) and the list opens straight away; originally nothing played, which the user did not want
         listFirst = args.listFirst && live.uuids.size > 1
         live.indexState.value = live.index
         live.titleState.value = channelTitle
@@ -1040,28 +1040,28 @@ class PlayerActivity : ComponentActivity() {
         live.progTitleState.value = progTitle
         val canZap = directUrl == null && live.uuids.size > 1
         seekablePlayback = directUrl != null
-        // predvolene zvyraznenie ovladacieho panela = play (nie krizik)
+        // the control panel's default highlight = play (not the X)
         controlNavState.value = playerControlOrder(canZap, seekablePlayback, pipButtonVisible(), timeshift.engaged.value, profileSwitchAvailable(), dvrRecordVisible(), teletextVisible()).indexOf("play").coerceAtLeast(0)
         stream.currentStreamUrl = streamUrl
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Mini radio (M340) nesmie hrat popri plnom prehravaci
+        // The mini radio (M340) must not play alongside the full player
         RadioPlayerService.stop(this)
-        // Zavri predoslu instanciu prehravaca (napr. visiacu v PiP so starym kanalom),
-        // nech pri prepnuti kanala nezostane stara PiP visiet. Nova sa otvori na celu obrazovku.
-        // M427: ak stara instancia visi v PiP, obycajny finish() zavrie aktivitu,
-        // ale pripnute PiP okno (pinned task) moze ostat visiet ako prazdna karta
-        // — systemu treba povedat, nech odstrani cely task. Mimo PiP staci finish().
+        // Close the previous player instance (e.g. one hanging in PiP with the old channel),
+        // so that an old PiP does not stay hanging when the channel is switched. The new one opens full screen.
+        // M427: if the old instance hangs in PiP, a plain finish() closes the activity,
+        // but the pinned PiP window (pinned task) can stay hanging as an empty card
+        // — the system has to be told to remove the whole task. Outside PiP finish() is enough.
         liveInstance?.get()?.let { old ->
             if (old !== this) runCatching {
                 if (old.isInPictureInPictureMode) old.finishAndRemoveTask() else old.finish()
             }
         }
         liveInstance = java.lang.ref.WeakReference(this)
-        val args = PlayerArgs.from(intent)   // M658: vsetky intent extra na jednom mieste
-        // Navrat na povodny zivy kanal po zatvoreni (pri "Prehrat od zaciatku" z prehravaca)
+        val args = PlayerArgs.from(intent)   // M658: all the intent extras in one place
+        // Return to the original live channel after closing (for "Play from start" from the player)
         returnLiveUuid = args.returnLiveUuid
         returnLiveTitle = args.returnLiveTitle
         setupWindow()
@@ -1083,10 +1083,10 @@ class PlayerActivity : ComponentActivity() {
         dvr.progStartSec = args.dvrProgStartSec
         dvr.progStopSec = args.dvrProgStopSec
         dvr.realStartSec = args.dvrRealStartSec
-        // Prebiehajuca relacia: dlzka rastie k zivej hrane; bar musi byt VZDY viditelny.
-        // Ak mame hranice relacie, dopocitavame relativne k jej zaciatku (cap dlzkou relacie).
-        // Ak hranice chybaju (nahravka nema vyplnene start/stop), drzime krok s dlzkou z VLC.
-        // M658: vypocet a sekundovy cyklus su v DvrDurationTicker (M528 vnutri).
+        // A programme in progress: the duration grows towards the live edge; the bar must ALWAYS be visible.
+        // If we have the programme's boundaries we compute relative to its start (capped by the programme's length).
+        // If the boundaries are missing (the recording has no start/stop filled in) we keep pace with the length from VLC.
+        // M658: the calculation and the one-second loop are in DvrDurationTicker (M528 inside).
         if (dvr.recording) {
             DvrDurationTicker(
                 scope = lifecycleScope,
@@ -1103,31 +1103,31 @@ class PlayerActivity : ComponentActivity() {
         }
         dvr.serverId = server.id
 
-        // Ulozena pozicia: ponuknut obnovenie ak nie je dopozerane a nie je
-        // tesne na zaciatku/konci
+        // Saved position: offer to resume if it has not been watched to the end and is not
+        // right at the start/end
         val saved = dvr.uuid?.let { WatchProgress.get(this, server.id, it) }
         val resumeMs = if (saved != null && !saved.completed && saved.posMs > 30_000 &&
             (durationMs <= 0 || durationMs - saved.posMs > 60_000)
         ) saved.posMs else 0L
 
-        engine.create()   // M539: libVLC + MediaPlayer + listener (znovupouzitelne pri obnove po zaseknuti zvuku)
+        engine.create()   // M539: libVLC + MediaPlayer + listener (reusable when recovering from stalled audio)
         stall.start()
 
-        // DVR: priame dvrfile URL (s creds). Live: profil servera (M383 — per-kanal
-        // override zruseny, profil sa da prepnut priamo v prehravaci).
+        // DVR: a direct dvrfile URL (with creds). Live: the server's profile (M383 — the per-channel
+        // override was dropped, the profile can be switched right in the player).
         val streamUrl = directUrl ?: Tvh.liveUrl(
             server, channelUuid!!, channelTitle,
             server.profile.ifBlank { "pass" }
         )
 
-        // Server je potrebny aj v DVR rezime (seekDvrTo / reopenDvrLive cez feeder).
-        // Live-zapping nizsie zavisi od liveUuids (pri DVR prazdne), nie od liveServer.
+        // The server is needed in DVR mode too (seekDvrTo / reopenDvrLive via the feeder).
+        // The live zapping below depends on liveUuids (empty for DVR), not on liveServer.
         live.server = server
         tracks.currentProfile.value = server.profile.ifBlank { "pass" }
-        // M476: prepinac profilu plati aj pre HTSP — protokol ho podporuje od v16
+        // M476: the profile switcher applies to HTSP as well — the protocol has supported it since v16
         tracks.profileSwitch.value = directUrl == null && channelUuid != null
-        // M383: prednacitaj zoznam profilov (dotykove tlacidlo otvara menu priamo,
-        // bez openProfileMenu) — fallback hned, servrovy zoznam async
+        // M383: preload the profile list (the touch button opens the menu directly,
+        // without openProfileMenu) — fallback immediately, the server list async
         if (tracks.profileItems.value.isEmpty()) {
             tracks.profileItems.value =
                 ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
@@ -1156,16 +1156,16 @@ class PlayerActivity : ComponentActivity() {
                     else -> lightColorScheme()
                 }
             ) {
-            // M539-fix4: cela PlayerUi je klucovana na generaciu prehravaca — po vymene
-            // MediaPlayera (zaseknuty zvuk) sa zlozi nanovo s novym `player`. Bez toho
-            // bezali LaunchedEffect-y (napr. auto-vyber audio stopy) so starym, uz
-            // uvolnenym objektom -> IllegalStateException „can't get VLCObject instance".
+            // M539-fix4: the whole of PlayerUi is keyed on the player generation — after replacing
+            // the MediaPlayer (stalled audio) it is composed afresh with the new `player`. Without that
+            // the LaunchedEffects (e.g. audio track auto-selection) ran against the old, already
+            // released object -> IllegalStateException "can't get VLCObject instance".
             androidx.compose.runtime.key(videoSurfaceGen.value) {
             PlayerUi(
                 title = live.titleState.value,
                 player = engine.player,
                 flags = PlaybackFlags(
-                    seekable = directUrl != null,  // DVR nahravka = da sa pretacat; live nie
+                    seekable = directUrl != null,  // a DVR recording = seekable; live is not
                     inPip = inPipState.value,
                     pipSupported = pip.supported,
                     pipButton = pipButtonVisible(),
@@ -1180,7 +1180,7 @@ class PlayerActivity : ComponentActivity() {
                     returnLiveOnBack = returnLiveUuid != null,
                 ),
                 dvr = DvrSeekArgs(
-                    knownDurationMs = dvr.durationState.value,  // dlzka z DVR entry; pri prebiehajucej nahravke rastie k zivej hrane
+                    knownDurationMs = dvr.durationState.value,  // duration from the DVR entry; for a recording in progress it grows towards the live edge
                     resumeMs = resumeMs,
                     uuid = dvr.uuid,
                     onSkipBack = { timeshiftSkip(-30) },
@@ -1221,25 +1221,25 @@ class PlayerActivity : ComponentActivity() {
                 preferredAudio = AudioPref.get(this),
                 serverId = server.id,
                 htspSpuItems = if (stream.htspStreamState.value) {
-                    @Suppress("UNUSED_EXPRESSION") tracks.listVersion.value  // refresh ked pribudne stopa
+                    @Suppress("UNUSED_EXPRESSION") tracks.listVersion.value  // refresh when a track appears
                     tracks.htspSpuItems()
                 } else null,
                 htspSpuCurrentId = tracks.selectedSubEs.value,
-                onPickHtspSpu = if (stream.htspStreamState.value) pickHtspSpuCb else null,   // M544: bez lambdy v kompozicii
+                onPickHtspSpu = if (stream.htspStreamState.value) pickHtspSpuCb else null,   // M544: no lambda in the composition
                 onPickHttpSpu = { id -> tracks.httpSpuUserPick(id) },
                 callbacks = PlayerCallbacks(
                     onAttach = { layout -> attachVideo(layout) },
                     onStart = {
-                        // M658: HTSP/HTTP/DVR vetvenie prveho spustenia — ChannelSwitcher.playInitial
+                        // M658: the HTSP/HTTP/DVR branching of the first start — ChannelSwitcher.playInitial
                         val doPlay: () -> Unit = { switcher.playInitial(server, channelUuid, directUrl, streamUrl) }
-                        // rodicovsky zamok: pri KAZDOM otvoreni prehravaca so zamknutym kanalom
-                        // vypytaj PIN (bez ohladu na grace okno). Grace ("nepytat X min") plati len
-                        // pri prepinani v ramci otvoreneho prehravaca (zoznam / pozadie / cislice).
-                        // M605: dlazdica so zoznamom najprv — zoznam sa otvori hned po starte
+                        // parental lock: on EVERY opening of the player with a locked channel
+                        // ask for the PIN (regardless of the grace window). The grace ("do not ask for X min") applies only
+                        // when switching inside an open player (list / background / digits).
+                        // M605: the tile with the list first — the list opens right after start
                         if (listFirst) window.decorView.post { openChannelList() }
                         if (ParentalLock.channelLockedProtected(this, server.id, channelUuid)) {
-                            // M263: zrus stare grace okno, nech zamknuty kanal v tomto sedeni
-                            // naozaj vyzaduje PIN (aj keby sa pouzivatel cez vyzvu prepol prec a vratil sa).
+                            // M263: cancel the old grace window so that in this session a locked channel
+                            // really does require the PIN (even if the user switched away through the prompt and came back).
                             ParentalLock.clearGrace(this)
                             requestPin(onOk = doPlay, onCancel = { finish() }, channelIndex = live.index)
                         } else doPlay()
@@ -1248,12 +1248,12 @@ class PlayerActivity : ComponentActivity() {
                     onEnterPip = { enterPipAndMinimize() },
                     onOpenSleep = { openSleepMenu() },
                     onTrackMenuChange = { kind ->
-                        // M349-fix: composable hlasi aj DRUH menu — bez toho ostal
-                        // trackMenuKind "audio" z minula a vyber titulkov cez D-pad
-                        // omylom prepinal zvukovu stopu
+                        // M349-fix: the composable also reports the KIND of menu — without that
+                        // trackMenuKind stayed "audio" from last time and selecting subtitles with the D-pad
+                        // switched the audio track by mistake
                         trackMenuOpen = kind != null
                         if (kind != null) { tracks.menuKind = kind; tracks.navIndex.value = 0 }
-                        // M383: poistka — profile menu otvorene dotykom bez zoznamu
+                        // M383: a safeguard — the profile menu opened by touch without a list
                         if (kind == "profile" && tracks.profileItems.value.isEmpty()) {
                             tracks.profileItems.value =
                                 ChannelPrefs.profileOptions.map { it.first }.filter { it.isNotBlank() }
@@ -1273,8 +1273,8 @@ class PlayerActivity : ComponentActivity() {
                     onNextChannel = if (canZap) nextChannelCb else null,   // M544
                     onTogglePlay = { togglePlayPause() },
                     onRequestExit = {
-                        // M344: hrajuce radio v modernom nekonci — ide do mini prehravaca,
-                        // takze potvrdzovacia otazka nema zmysel; TV live ju ma dalej
+                        // M344: playing radio in modern mode does not end — it goes to the mini player,
+                        // so the confirmation question makes no sense; TV live still has it
                         if (!radioHandoffIfPossible()) {
                             exitConfirmSelState.value = 0; exitConfirmState.value = true
                         }
@@ -1300,7 +1300,7 @@ class PlayerActivity : ComponentActivity() {
                                         Tvh.fetchEpgForChannel(server, Tvh.apiFor(server), uuid)
                                     }
                                 }.getOrDefault(emptyList())
-                                epg.cacheChannelEpg(uuid, list)   // M274: memoizuj pre dalsie zobrazenia/reopen
+                                epg.cacheChannelEpg(uuid, list)   // M274: memoize for further displays/reopens
                                 cb(list)
                             }
                         }
@@ -1380,8 +1380,8 @@ class PlayerActivity : ComponentActivity() {
                 )
             )
             }
-            // Vyber pri archivovanom kanali (nazivo / od zaciatku) — overlay v style prehravaca
-            // M553: teletext — nad prehrávačom, mimo PlayerUi
+            // The choice on an archived channel (live / from the start) — an overlay in the player's style
+            // M553: teletext — above the player, outside PlayerUi
             if (ttx.openState.value) {
                 TeletextOverlay(
                     session = teletext,
@@ -1394,13 +1394,13 @@ class PlayerActivity : ComponentActivity() {
                     onClose = { closeTeletext() },
                     onStep = { d -> ttx.step(d) },
                     onToggleTransparent = { ttx.toggleTransparent() },
-                    touchUi = !isTvDevice(),                 // M559: dotykove ovladanie na telefone
+                    touchUi = !isTvDevice(),                 // M559: touch controls on the phone
                     onSubStep = { d -> ttx.subStep(d) },
                     onDigit = { d -> ttx.digit(d) }
                 )
             }
             if (dvrRec.askState.value.isNotEmpty()) {
-                // M606: vyber DVR profilu pred nahravanim
+                // M606: DVR profile selection before recording
                 DvrProfilePickDialog(
                     options = dvrRec.askState.value,
                     subtitle = dvrRec.askTarget?.let { it.first.name + " · " + it.second.title } ?: live.progTitleState.value,
@@ -1473,7 +1473,7 @@ class PlayerActivity : ComponentActivity() {
                     }
                 }
             }
-            // Kontextove menu kanala (long-press) — overlay v style prehravaca
+            // Channel context menu (long-press) — an overlay in the player's style
             if (ctxMenu.idxState.value >= 0) {
                 val cIdx = ctxMenu.idxState.value
                 val cCh = live.channelsState.value.getOrNull(cIdx)
@@ -1487,7 +1487,7 @@ class PlayerActivity : ComponentActivity() {
                     val ctxAccent = playerAccent()
                     Box(
                         Modifier.fillMaxSize().background(Color(0xCC0B1220))
-                            .clickable { ctxMenu.close() },   // ťuknutie mimo zatvori + blokuje pozadie
+                            .clickable { ctxMenu.close() },   // a tap outside closes it + blocks the background
                         contentAlignment = Alignment.Center
                     ) {
                         Column(
@@ -1572,8 +1572,8 @@ class PlayerActivity : ComponentActivity() {
                     }
                 }
             }
-            // M280: Potvrdenie ukoncenia ziveho prehravania (BACK) — styl ako exit dialog v menu.
-            // Navigaciu D-pad/OK/BACK riesi dispatchKeyEvent (sekcia 0e); tu len vizual + dotyk.
+            // M280: Confirmation of ending live playback (BACK) — styled like the exit dialog in the menu.
+            // D-pad/OK/BACK navigation is handled by dispatchKeyEvent (section 0e); here only the visuals + touch.
             if (exitConfirmState.value) {
                 val eSel = exitConfirmSelState.value
                 Box(
@@ -1626,9 +1626,9 @@ class PlayerActivity : ComponentActivity() {
                     }
                 }
             }
-            // M430 / M628: kompaktny zap pas — cislo · kanal / program · cas / priebeh
+            // M430 / M628: the compact zapping bar — number · channel / programme · time / progress
             if (zapBar.visible.value && !info.visible.value) ZapBarOverlay(zapBar)
-            // Info o relacii (detail) — overlay v style prehravaca (M630: ChannelInfoOverlay)
+            // Programme info (details) — an overlay in the player's style (M630: ChannelInfoOverlay)
             if (info.visible.value) {
                 ChannelInfoOverlay(
                     channel = info.channel.value,
@@ -1658,15 +1658,15 @@ class PlayerActivity : ComponentActivity() {
             close = { closeFromPip() })
     }
 
-    /** Spusti PiP (okno plava nad plochou / inou appkou). M349-fix4: ziadny
-     *  moveTaskToBack — presun tasku na pozadie hned po vstupe do PiP na
-     *  mnohych zariadeniach cerstve PiP okno zrusil (prehravac sa "len zavrel").
-     *  Vstup do PiP sam zbali aktivitu do plavajuceho okna, nic dalsie netreba —
-     *  auto-PiP cesta to robi rovnako a funguje. */
+    /** Starts PiP (the window floats above the home screen / another app). M349-fix4: no
+     *  moveTaskToBack — moving the task to the background right after entering PiP
+     *  destroyed the fresh PiP window on many devices (the player "just closed").
+     *  Entering PiP folds the activity into the floating window by itself, nothing else is needed —
+     *  the auto-PiP path does exactly the same and works. */
     private fun enterPipAndMinimize() {
-        // M431-fix: BACK cez Compose BackHandler vola tuto funkciu priamo (mimo
-        // closePlayer/autoPipIfPossible), takze radio brana musi byt aj tu —
-        // inak radio konci v PiP okne. Handoff na pozadie / zatvorenie.
+        // M431-fix: BACK via the Compose BackHandler calls this function directly (outside
+        // closePlayer/autoPipIfPossible), so the radio gate has to be here as well —
+        // otherwise the radio ends up in a PiP window. Handoff to the background / close.
         if (live.playKind == "radio") {
             if (!radioHandoffIfPossible()) finish()
             return
@@ -1675,43 +1675,43 @@ class PlayerActivity : ComponentActivity() {
     }
 
     /**
-     * Auto-PiP pri navigacii v ramci appky (EPG / navrat domov).
-     * Vstupi do PiP len na telefonoch (pipSupported), ak hra a este nie je v PiP.
-     * Vrati true, ak presiel do PiP (volajuci moze podla toho preskocit finish()).
+     * Auto-PiP when navigating inside the app (EPG / back home).
+     * It enters PiP only on phones (pipSupported), if it is playing and not already in PiP.
+     * Returns true if it went into PiP (the caller can skip finish() accordingly).
      */
     private fun autoPipIfPossible(): Boolean {
-        // M431: radio do PiP nepatri (zvuk bez obrazu v okne). Namiesto PiP handoff
-        // do RadioPlayerService (moderny rezim); v klasiku vrati false a volajuci
-        // pokracuje bez PiP (zatvorenie/EPG) — povodne spravanie klasiku bez okna.
+        // M431: radio does not belong in PiP (audio with no picture in the window). Instead of PiP, a handoff
+        // to RadioPlayerService (modern mode); in classic it returns false and the caller
+        // carries on without PiP (close/EPG) — classic's original behaviour with no window.
         if (live.playKind == "radio") return radioHandoffIfPossible()
         return pip.autoEnterIfPossible()
     }
 
-    // aktualizuj ikonu play/pauza v PiP podla skutocneho stavu prehravania
+    // update the play/pause icon in PiP to match the real playback state
 
     private fun closeFromPip() {
         LastPlayback.clear(this)
         finish()
     }
 
-    /** In-progress nahravka dobehla na koniec zapisanych dat (EOF na rastucom HTTP subore).
-     *  Po chvili (nech pribudne dalsi blok) znovu otvor stream a vrat sa na poziciu z
-     *  prehravacich hodin (offset + prehrany cas relacie) - tak sa pokracuje do novsich dat.
-     *  Backoff proti slucke ked nic nove nepribuda (ReconnectController); resetuje sa pri Playing evente. */
+    /** An in-progress recording has reached the end of the written data (EOF on a growing HTTP file).
+     *  After a moment (to let another block be appended) reopen the stream and return to the position from
+     *  the player clock (offset + the programme's played time) - that way it continues into the newer data.
+     *  Backoff against a loop when nothing new is being appended (ReconnectController); reset on a Playing event. */
     private fun reopenDvrLive() {
         if (!seekablePlayback || !dvr.recording) return
         val url = stream.currentStreamUrl ?: return
         if (!engine.ready) return
         val offsetMs = if (dvr.progStartSec > 0 && dvr.realStartSec in 1 until dvr.progStartSec)
             (dvr.progStartSec - dvr.realStartSec) * 1000 else 0L
-        // pozicia v subore = offset + prehrany cas relacie, par sekund vzad ako rezerva
+        // position in the file = offset + the programme's played time, a few seconds back as a margin
         val startSec = ((offsetMs + dvr.playheadMsState.value) / 1000 - 3).coerceAtLeast(0)
         reconnect.reopenDvrLive { opener.reopenDvrAt(url, startSec) }   // M670
     }
 
-    /** Naplanuje znovupripojenie zivého streamu po vypadku (narastajuce oneskorenie — ReconnectController). */
+    /** Schedules a reconnect of the live stream after a dropout (increasing delay — ReconnectController). */
     private fun scheduleReconnect() {
-        if (seekablePlayback) return  // DVR nahravka sa neobnovuje (in-progress riesi reopenDvrLive)
+        if (seekablePlayback) return  // a DVR recording is not reconnected (in-progress is handled by reopenDvrLive)
         reconnect.scheduleReconnect { attempt -> opener.reconnectAttempt(attempt, seekablePlayback) }   // M670
     }
 
@@ -1721,17 +1721,17 @@ class PlayerActivity : ComponentActivity() {
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         inPipState.value = isInPictureInPictureMode
-        // M383-fix: odlozene otvorenie EPG — az ked je PiP prechod hotovy
+        // M383-fix: deferred EPG opening — only once the PiP transition is done
         if (isInPictureInPictureMode && pendingEpgAfterPip) {
             pendingEpgAfterPip = false
             launchEpgActivity()
         }
-        pip.onModeChanged(isInPictureInPictureMode)   // M578 session + receiver akcii (M653)
+        pip.onModeChanged(isInPictureInPictureMode)   // M578 session + action receiver (M653)
         if (!isInPictureInPictureMode) {
-            // PiP okno zatvorene pouzivatelom kym bola appka na pozadi: aktivita je uz STOPnuta
-            // (stav CREATED, onStop uz prebehol a nechal video bezat). Tu doraz zastav prehravanie,
-            // inak by zvuk hral dalej. Ak pouzivatel PiP rozbalil na celu obrazovku, stav je
-            // STARTED/RESUMED a prehravac nezastavujeme.
+            // The PiP window closed by the user while the app was in the background: the activity is already STOPped
+            // (state CREATED, onStop has already run and left the video playing). Stop playback for good here,
+            // otherwise the audio would keep playing. If the user expanded the PiP to full screen the state is
+            // STARTED/RESUMED and we do not stop the player.
             if (lifecycle.currentState < androidx.lifecycle.Lifecycle.State.STARTED &&
                 engine.ready
             ) {
@@ -1741,7 +1741,7 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    // M672: odchod na pozadie / navrat (M540 standby, M263 PIN, M623 radio na pozadi) v BackgroundResume.kt
+    // M672: going to the background / returning (M540 standby, M263 PIN, M623 radio in the background) in BackgroundResume.kt
     private val bg: BackgroundResume by lazy {
         BackgroundResume(this, engine, live, object : BackgroundResume.Hooks {
             override fun seekable(): Boolean = seekablePlayback
@@ -1768,13 +1768,13 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        // Auto-PiP na telefonoch pri odchode z aplikacie.
-        // M429: povodny predpoklad "TV boxy nemaju FEATURE_PICTURE_IN_PICTURE" NEPLATI
-        // (Homatics, Shield, Raspberry Pi ju maju) — auto-PiP pri HOME sa tam spustal
-        // tiez a miniatura ostavala visiet nad launcherom/YouTube (hlasenie z Redditu).
-        // Na TV preto pri odchode z appky do PiP nevstupujeme; PiP na TV zostava len
-        // vnutri appky (BACK -> miniatura nad TV programom).
-        // M431: HOME pocas radia — ziadne PiP okno; v modernom rezime handoff na pozadie
+        // Auto-PiP on phones when leaving the app.
+        // M429: the original assumption "TV boxes do not have FEATURE_PICTURE_IN_PICTURE" DOES NOT HOLD
+        // (Homatics, Shield, Raspberry Pi do have it) — auto-PiP on HOME kicked in there
+        // as well and the thumbnail stayed hanging over the launcher/YouTube (reported on Reddit).
+        // On TV we therefore do not enter PiP when leaving the app; PiP on TV stays only
+        // inside the app (BACK -> a thumbnail over the TV guide).
+        // M431: HOME during radio — no PiP window; in modern mode a handoff to the background
         if (live.playKind == "radio") { radioHandoffIfPossible(); return }
         if (!isTvDevice() && AutoPipPref.get(this) && pip.supported && isPlayingState.value &&
             !(android.os.Build.VERSION.SDK_INT >= 24 && isInPictureInPictureMode)) {
@@ -1789,10 +1789,10 @@ class PlayerActivity : ComponentActivity() {
     }
 
     // ------------------------------------------------------------------
-    // M539: vytvorenie prehravaca + obnova po zaseknutom zvukovom vystupe
+    // M539: creating the player + recovery after a stalled audio output
     // ------------------------------------------------------------------
 
-    // M650: udalosti libVLC v VlcEvents.kt (rovnaka instancia pre kazdy (znovu)vytvoreny prehravac)
+    // M650: libVLC events in VlcEvents.kt (the same instance for every (re)created player)
     private val vlcEvents: VlcEvents by lazy {
         VlcEvents(
             player = { if (!engine.tornDown && engine.ready) engine.player else null },
@@ -1827,7 +1827,7 @@ class PlayerActivity : ComponentActivity() {
             })
     }
 
-    // M539 / M649: hlidac zaseknuteho zvukoveho vystupu v StallWatchdog.kt
+    // M539 / M649: the stalled audio output watchdog in StallWatchdog.kt
     private val stall: StallWatchdog by lazy {
         StallWatchdog(this,
             player = { if (!engine.tornDown && engine.ready) engine.player else null },
@@ -1835,7 +1835,7 @@ class PlayerActivity : ComponentActivity() {
             onRecreate = { engine.recreate(); opener.replayCurrentLive() })
     }
 
-    /** Pred kazdym novym mediom: ak je vystup zaseknuty, vymen prehravac (bez cakania). */
+    /** Before every new media: if the output is stalled, replace the player (without waiting). */
     private fun ensureHealthyPlayer() {
         if (!engine.ready) return
         if (!stall.outputStalled()) return
@@ -1843,10 +1843,10 @@ class PlayerActivity : ComponentActivity() {
         engine.recreate()
     }
 
-    /** M539-fix4: prve spustenie prehravania (onStart z VideoSurface) prebehlo. */
+    /** M539-fix4: the first playback start (onStart from VideoSurface) has happened. */
     internal var initialStartDone = false
 
-    /** M535: stop/release libVLC na pracovnom vlakne (VlcEngine.teardownAsync); feedery a hlidac ako prve. */
+    /** M535: stop/release libVLC on a worker thread (VlcEngine.teardownAsync); the feeders and the watchdog first. */
     private fun teardownPlayerAsync() {
         engine.teardownAsync {
             stall.destroy()   // M539
@@ -1855,14 +1855,14 @@ class PlayerActivity : ComponentActivity() {
         }
     }
 
-    // --- Doplnenie stop po starte (audio jazyky / DVB titulky) ---
-    // Pri prvom napojeni streamu libVLC este nema doparsovane doplnkove ES; jazyky audio
-    // M637: obnova zoznamu stop po starte a jednorazovy re-parse v TrackState
+    // --- Filling in the tracks after start (audio languages / DVB subtitles) ---
+    // On first attaching to the stream libVLC has not yet finished parsing the additional ES; the audio languages
+    // M637: refreshing the track list after start and the one-off re-parse in TrackState
     private fun maybeReparseForTracks() {
         tracks.maybeReparse(htspStream = { stream.htspStream }, seekable = { seekablePlayback }, reconnect = { scheduleReconnect() })
     }
 
-    // ---- M626: AFR (M346) a zamky streamu (M452) vyclenene do AfrController / StreamLocks ----
+    // ---- M626: AFR (M346) and the stream locks (M452) split out into AfrController / StreamLocks ----
     private val afr: AfrController by lazy {
         AfrController(this, isTvBox,
             player = { if (engine.ready && !engine.tornDown) engine.player else null },
@@ -1879,36 +1879,36 @@ class PlayerActivity : ComponentActivity() {
         zap.cancel()   // M407
         saveDvrProgress()
         super.onDestroy()
-        // uvolni odkaz, len ak stale ukazuje na tuto instanciu (nie na novsiu)
+        // release the reference only if it still points to this instance (not to a newer one)
         if (liveInstance?.get() === this) liveInstance = null
         vlcEvents.destroy()   // M650
         reconnect.destroy()
         sleep.cancel()
-        subOverlay?.stopTicker()   // zastav titulkovy ticker skor nez uvolnis mediaPlayer
+        subOverlay?.stopTicker()   // stop the subtitle ticker before releasing the mediaPlayer
         timeshift.destroy()
         tracks.cancelRefresh()
         tracks.destroy()
-        // M535: stop/release libVLC na pracovnom vlakne (bezne uz prebehlo v onStop
-        // pri isFinishing; tu je poistka pre destroy bez predchadzajuceho stop,
-        // napr. zabitie systemom pri nedostatku pamate).
+        // M535: stop/release libVLC on a worker thread (normally this has already run in onStop
+        // when isFinishing; this is a safeguard for a destroy without a preceding stop,
+        // e.g. being killed by the system under memory pressure).
         teardownPlayerAsync()
-        engine.allowRelease()   // pracovne vlakno smie release()
+        engine.allowRelease()   // the worker thread may call release()
     }
 
     companion object {
-        /** M622: uvolnenie libVLC z pracovneho vlakna — VlcEngine.releaseVlc. */
+        /** M622: releasing libVLC from a worker thread — VlcEngine.releaseVlc. */
         fun releaseVlc(ctx: android.content.Context, mp: org.videolan.libvlc.MediaPlayer, lib: org.videolan.libvlc.LibVLC?, where: String) = VlcEngine.releaseVlc(ctx, mp, lib, where)
 
-        /** M539-fix2: generacia video surface (kluc AndroidView) — zvysenie = novy SurfaceView. */
+        /** M539-fix2: the video surface generation (the AndroidView key) — incrementing it = a new SurfaceView. */
         val videoSurfaceGen = androidx.compose.runtime.mutableStateOf(0)
-        // M539: hlidac zaseknuteho vystupu (sekundove vzorky)
+        // M539: the stalled output watchdog (one-second samples)
         const val EXTRA_UUID = "channel_uuid"
         const val EXTRA_TITLE = "channel_title"
         const val EXTRA_RETURN_UUID = "return_live_uuid"
         const val EXTRA_RETURN_TITLE = "return_live_title"
         const val EXTRA_URL = "stream_url"
         const val EXTRA_KIND = "play_kind"
-        /** M605: otvor prehravac so zoznamom kanalov a BEZ streamu — kanal sa spusti az po vybere. */
+        /** M605: open the player with the channel list and WITHOUT a stream — a channel starts only once it is picked. */
         const val EXTRA_LIST_FIRST = "list_first"
         const val EXTRA_DURATION_MS = "duration_ms"
         const val EXTRA_PROG_START = "prog_start"
@@ -1923,11 +1923,11 @@ class PlayerActivity : ComponentActivity() {
         const val EXTRA_DVR_PROG_STOP_SEC = "dvr_prog_stop_sec"
         const val EXTRA_DVR_REAL_START_SEC = "dvr_real_start_sec"
 
-        // Odkaz na prave zijucu instanciu prehravaca. Pri otvoreni noveho kanala zavrieme predoslu
-        // (aj tu visiacu v PiP), inak by stara PiP zostala visiet so starym kanalom.
+        // A reference to the currently living player instance. When a new channel is opened we close the previous one
+        // (including one hanging in PiP), otherwise the old PiP would stay hanging with the old channel.
         private var liveInstance: java.lang.ref.WeakReference<PlayerActivity>? = null
-        /** M394-fix: zavri beziaci TV prehravac (aj PiP) pred startom radia —
-         *  stream drzi jediny slot a ucet s limitom 1 pripojenia by radio odmietol. */
+        /** M394-fix: close a running TV player (including PiP) before starting the radio —
+         *  the stream holds the single slot and an account with a limit of 1 connection would refuse the radio. */
         fun closeActive(): Boolean {
             val a = liveInstance?.get() ?: return false
             if (a.isFinishing || a.isDestroyed) return false
@@ -1935,9 +1935,9 @@ class PlayerActivity : ComponentActivity() {
             return true
         }
 
-        /** M429: zavri prehravac, ak visi v PiP miniature — vratane pripnuteho okna.
-         *  Vola MainActivity.onStop na TV: ked pouzivatel odide z appky (ina appka,
-         *  HOME), miniatura nad cudzim obsahom nema co robit. */
+        /** M429: close the player if it is hanging in a PiP thumbnail — including a pinned window.
+         *  Called by MainActivity.onStop on TV: when the user leaves the app (another app,
+         *  HOME), the thumbnail has no business sitting over someone else's content. */
         fun closeIfInPip(): Boolean {
             val a = liveInstance?.get() ?: return false
             if (a.isFinishing || a.isDestroyed) return false
@@ -1949,11 +1949,11 @@ class PlayerActivity : ComponentActivity() {
 }
 
 /**
- * M537: ma BACK pri cistom zivom prehravani ukazat potvrdenie ukoncenia?
- * Zariadenia bez PiP (telefony bez PiP, Strong): vzdy. TV/leanback s PiP
- * (Homatics, Shield, RPi): ano, pokial nema prednost auto-PiP handler
- * (zapnuty auto-PiP -> BACK = miniatura). Telefon s PiP: nie.
- * Samostatna composable, aby nerastla PlayerUi (64 KB limit metody).
+ * M537: should BACK during plain live playback show the exit confirmation?
+ * Devices without PiP (phones without PiP, Strong): always. TV/leanback with PiP
+ * (Homatics, Shield, RPi): yes, unless the auto-PiP handler takes precedence
+ * (auto-PiP on -> BACK = thumbnail). A phone with PiP: no.
+ * A separate composable so PlayerUi does not grow (the 64 KB method limit).
  */
 @Composable
 internal fun exitConfirmOnBack(pipSupported: Boolean, autoPipEnabled: Boolean): Boolean {
@@ -1965,12 +1965,12 @@ internal fun exitConfirmOnBack(pipSupported: Boolean, autoPipEnabled: Boolean): 
 
 
 /**
- * M539-fix2: video surface prehravaca. `PlayerActivity.videoSurfaceGen` meni kluc —
- * po vymene MediaPlayera (zaseknuty zvuk po standby) dostane novy prehravac
- * uplne novy SurfaceView. Zdielanie stareho surface s novym prehravacom
- * skoncilo zamrznutym obrazom: stary vout ho este drzal ako producenta a novy
- * MediaCodec sa nan nepripojil. onStart (prve spustenie prehravania) bezi len
- * pri prvom surface.
+ * M539-fix2: the player's video surface. `PlayerActivity.videoSurfaceGen` changes the key —
+ * after replacing the MediaPlayer (stalled audio after standby) the new player gets
+ * a completely new SurfaceView. Sharing the old surface with the new player
+ * ended in a frozen picture: the old vout still held it as the producer and the new
+ * MediaCodec could not attach to it. onStart (the first playback start) runs only
+ * on the first surface.
  */
 @Composable
 private fun VideoSurface(
@@ -1978,8 +1978,8 @@ private fun VideoSurface(
     onAttach: (VLCVideoLayout) -> Unit,
     onStart: () -> Unit
 ) {
-    // M539-fix4: priznak prveho spustenia je v aktivite (remember by sa pri
-    // rekompozicii cez key(videoSurfaceGen) vynuloval a onStart by bezal znova)
+    // M539-fix4: the first-start flag lives in the activity (a remember would be cleared on
+    // recomposition through key(videoSurfaceGen) and onStart would run again)
     val act = androidx.compose.ui.platform.LocalContext.current as? PlayerActivity
     val gen = PlayerActivity.videoSurfaceGen.value
     androidx.compose.runtime.key(gen) {
@@ -1992,9 +1992,9 @@ private fun VideoSurface(
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
                 onAttach(layout)
-                // M264: branu (rodicovsky zamok pri otvoreni) spusti az po pripojeni surface
-                // na cistom looper tiku. Zapis pinPromptState priamo v Compose layout faze
-                // sa pri studenom starte (prve otvorenie) niekedy stratil -> PIN sa nevypytal.
+                // M264: run the gate (the parental lock on opening) only after the surface is attached,
+                // on a clean looper tick. Writing pinPromptState directly in the Compose layout phase
+                // was sometimes lost on a cold start (the first opening) -> the PIN was never asked for.
                 if (act == null || !act.initialStartDone) {
                     act?.initialStartDone = true
                     layout.post { onStart() }
@@ -2005,10 +2005,10 @@ private fun VideoSurface(
     }
 }
 
-/** Jedna stopa (audio alebo titulky) z libVLC. */
+/** A single track (audio or subtitles) from libVLC. */
 internal data class TrackItem(val id: Int, val name: String)
 
-/** ISO-639-2 (3-pismenove, B aj T varianty) -> ISO-639-1 pre caste jazyky. */
+/** ISO-639-2 (3-letter, both B and T variants) -> ISO-639-1 for the common languages. */
 private val ISO639_2to1 = mapOf(
     "slo" to "sk", "slk" to "sk", "cze" to "cs", "ces" to "cs",
     "eng" to "en", "ger" to "de", "deu" to "de", "hun" to "hu",
@@ -2021,8 +2021,8 @@ private val ISO639_2to1 = mapOf(
     "slv" to "sl", "bul" to "bg", "scc" to "sr", "scr" to "hr"
 )
 
-/** ISO-639 kod jazyka (napr. "slo","eng") -> citatelny nazov v jazyku zariadenia.
- *  Vracia null ak je kod prazdny / neznamy ("und"), aby sa pouzil fallback. */
+/** ISO-639 language code (e.g. "slo","eng") -> a readable name in the device's language.
+ *  Returns null if the code is empty / unknown ("und"), so that the fallback is used. */
 internal fun langDisplay(code: String?): String? {
     val c = code?.lowercase()?.trim() ?: return null
     if (c.isEmpty() || c == "und" || c == "unknown" || c == "qaa") return null
@@ -2037,10 +2037,10 @@ internal fun langDisplay(code: String?): String? {
     } catch (_: Throwable) { c.uppercase() }
 }
 
-/** ISO-639 kod -> ANGLICKY nazov jazyka. libVLC pomenuva DVB titulky anglicky
- *  ("DVB subtitles - [Czech]") a netaguje ich kodom, takze vyber z metadat parujeme
- *  na realnu libVLC stopu cez tento anglicky nazov. null ak sa neda urcit. */
-/** Mapa ES id -> jazyk z metadat aktualneho media (audio aj titulky maju language). */
+/** ISO-639 code -> the ENGLISH language name. libVLC names DVB subtitles in English
+ *  ("DVB subtitles - [Czech]") and does not tag them with a code, so we match the selection from the metadata
+ *  to the real libVLC track through this English name. null if it cannot be determined. */
+/** Map of ES id -> language from the current media's metadata (both audio and subtitles have a language). */
 internal fun MediaPlayer.trackLanguages(): Map<Int, String?> {
     val out = HashMap<Int, String?>()
     val m = media ?: return out
@@ -2058,9 +2058,9 @@ internal fun MediaPlayer.trackLanguages(): Map<Int, String?> {
 }
 
 /**
- * M527: nazov stopy, ked ju libVLC nepomenovala ani neuviedla jazyk.
- * Beri text z prekladov — tieto funkcie nie su @Composable, takze
- * stringResource tu nejde a citame ho cez ulozeny kontext aplikacie.
+ * M527: the track's name when libVLC neither named it nor gave a language.
+ * Take the text from the translations — these functions are not @Composable, so
+ * stringResource does not work here and we read it through the stored application context.
  */
 private fun trackFallbackName(resId: Int, id: Int): String =
     runCatching {
@@ -2070,15 +2070,15 @@ private fun trackFallbackName(resId: Int, id: Int): String =
 internal fun MediaPlayer.audioTrackItems(): List<TrackItem> {
     val descs = audioTracks ?: return emptyList()
     val langs = trackLanguages()
-    // id < 0 je vstavana "Disable" polozka libVLC — preskoc (audio sa nevypina)
+    // id < 0 is libVLC's built-in "Disable" item — skip it (audio is not switched off)
     return descs.filter { it.id >= 0 }.map { d ->
         val disp = langDisplay(langs[d.id])
         val base = d.name
         val name = when {
             disp != null -> disp
             !base.isNullOrBlank() -> base
-            // M527: nazov stopy z prekladov — natvrdo pisany text sa zobrazoval
-        // po slovensky aj v inojazycnom rozhrani
+            // M527: the track name from the translations — hardcoded text was shown
+        // in Slovak even in a non-Slovak interface
         else -> trackFallbackName(R.string.track_audio, d.id)
         }
         TrackItem(d.id, name)
@@ -2088,8 +2088,8 @@ internal fun MediaPlayer.audioTrackItems(): List<TrackItem> {
 internal fun MediaPlayer.spuTrackItems(): List<TrackItem> {
     val descs = spuTracks ?: return emptyList()
     val langs = trackLanguages()
-    // id < 0 je vstavana "Disable" polozka libVLC — preskoc; vypnutie titulkov
-    // riesi TrackMenu vlastnym riadkom "Vypnute" (allowOff), inak by boli dva
+    // id < 0 is libVLC's built-in "Disable" item — skip it; switching subtitles off
+    // is handled by TrackMenu with its own "Off" row (allowOff), otherwise there would be two
     return descs.filter { it.id >= 0 }.map { d ->
         val disp = langDisplay(langs[d.id])
         val base = d.name
@@ -2114,7 +2114,7 @@ private fun PlayerUi(
     liveChannelUuid: String? = null,
     preferredAudio: List<String> = emptyList(),
     serverId: String? = null,
-    htspSpuItems: List<TrackItem>? = null,   // != null => HTSP: kompletny zoznam titulkov z metadat
+    htspSpuItems: List<TrackItem>? = null,   // != null => HTSP: the complete subtitle list from the metadata
     htspSpuCurrentId: Int = -1,
     onPickHtspSpu: ((Int) -> Unit)? = null,
     onPickHttpSpu: ((Int) -> Unit)? = null,
@@ -2123,24 +2123,24 @@ private fun PlayerUi(
     channelList: ChannelListArgs = ChannelListArgs(),
     signals: UiSignals = UiSignals(),
     search: ChannelSearchArgs = ChannelSearchArgs(),
-    // M383: prepinac stream profilu
+    // M383: the stream profile switcher
     profile: ProfileArgs = ProfileArgs(),
     pin: PinArgs = PinArgs()
 ) {
     var controlsVisible by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
-    // Moderny rezim (telefon): vysuvaci panel "Viac" (zvuk/titulky/casovac/zamok/info)
+    // Modern mode (phone): the sliding "More" panel (audio/subtitles/timer/lock/info)
     var showMoreSheet by remember { mutableStateOf(false) }
-    // M473: nahravanie prave beziacej relacie z panela "Viac".
-    // Composable je mimo triedy aktivity, takze sa k nej dostaneme cez kontext.
+    // M473: recording the currently running programme from the "More" panel.
+    // The composable is outside the activity class, so we reach it through the context.
     val dvrActivity = LocalContext.current as? PlayerActivity
-    // M490: stav drzi Activity (dvrCanRecordState / dvrEventIdState /
-    // dvrExistingState), aby ho videl aj klasicky bar a TV overlay.
-    // Pri otvoreni panela ho este raz osviezime — relacia sa mohla prepnut.
+    // M490: the state is held by the Activity (dvrCanRecordState / dvrEventIdState /
+    // dvrExistingState) so the classic bar and the TV overlay can see it too.
+    // When the panel opens we refresh it once more — the programme may have changed over.
     LaunchedEffect(showMoreSheet) {
         if (showMoreSheet) dvrActivity?.refreshDvrState()
     }
-    // odpocet casovaca uspatia (aktualizuje sa kym je casovac aktivny)
+    // sleep timer countdown (updates while the timer is active)
     var sleepNow by remember { mutableStateOf(System.currentTimeMillis()) }
     LaunchedEffect(flags.sleepDeadline) {
         while (flags.sleepDeadline > 0) {
@@ -2151,7 +2151,7 @@ private fun PlayerUi(
     val sleepLeftMin = if (flags.sleepDeadline > 0)
         (((flags.sleepDeadline - sleepNow) + 59_999) / 60_000).coerceAtLeast(0) else 0L
     var showChannelList by remember { mutableStateOf(false) }
-    // vizualne vysunutie zoznamu zhora: 0 = zatvoreny, 1 = otvoreny (pocas tahania sleduje prst)
+    // visual slide-out of the list from the top: 0 = closed, 1 = open (follows the finger while dragging)
     var listFrac by remember { mutableStateOf(0f) }
     val listScope = androidx.compose.runtime.rememberCoroutineScope()
     LaunchedEffect(showChannelList) {
@@ -2161,55 +2161,55 @@ private fun PlayerUi(
             animationSpec = androidx.compose.animation.core.tween(220)
         ) { v, _ -> listFrac = v }
     }
-    // MX Player gesta (len telefon): overlaye pre hlasitost / jas / seek; -1 = skryte
+    // MX Player gestures (phone only): overlays for volume / brightness / seek; -1 = hidden
     var volPctState by remember { mutableStateOf(-1) }
     var brightPctState by remember { mutableStateOf(-1) }
-    var scrubSecState by remember { mutableStateOf(Int.MIN_VALUE) }   // MIN_VALUE = skryte
+    var scrubSecState by remember { mutableStateOf(Int.MIN_VALUE) }   // MIN_VALUE = hidden
     val ctxTvGest = androidx.compose.ui.platform.LocalContext.current
     val isTvGest = remember { isTvUiMode(ctxTvGest) }   // M679
     LaunchedEffect(volPctState) { if (volPctState >= 0) { kotlinx.coroutines.delay(700); volPctState = -1 } }
     LaunchedEffect(brightPctState) { if (brightPctState >= 0) { kotlinx.coroutines.delay(700); brightPctState = -1 } }
     LaunchedEffect(scrubSecState) { if (scrubSecState != Int.MIN_VALUE) { kotlinx.coroutines.delay(700); scrubSecState = Int.MIN_VALUE } }
     var isPlaying by remember { mutableStateOf(true) }
-    // Live okno: meraná pozícia náhľadového boxu v EPG browseri (na presun videopovrchu)
+    // Live window: the measured position of the preview box in the EPG browser (for moving the video surface)
     var previewRect by remember { mutableStateOf<androidx.compose.ui.geometry.Rect?>(null) }
     val density = LocalDensity.current
     var orientationLocked by remember { mutableStateOf(false) }
     val activity = androidx.compose.ui.platform.LocalContext.current as? android.app.Activity
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    // menu: null = ziadne, "audio" = audio stopy, "spu" = titulky
+    // menu: null = none, "audio" = audio tracks, "spu" = subtitles
     var menu by remember { mutableStateOf<String?>(null) }
     var showOptions by remember { mutableStateOf(false) }
 
-    // D-pad / dialkove poslalo signal -> zobraz ovladanie (navigaciu panela riesi Activity)
+    // the D-pad / remote sent a signal -> show the controls (panel navigation is handled by the Activity)
     LaunchedEffect(signals.controlsPoke) {
         if (signals.controlsPoke > 0) controlsVisible = true
     }
-    // INFO signal -> prepni okno s detailom relacie
+    // INFO signal -> toggle the programme details window
     LaunchedEffect(signals.infoPoke) {
         if (signals.infoPoke > 0) showInfo = !showInfo
     }
-    // v PiP rezime skry vsetky ovladacie prvky (okno je male)
+    // in PiP mode hide all the controls (the window is small)
     LaunchedEffect(flags.inPip) {
         if (flags.inPip) {
             controlsVisible = false; showInfo = false; showMoreSheet = false
             showChannelList = false; menu = null; showOptions = false
         }
     }
-    // oznam Activity ci je ovladanie zobrazene (vtedy D-pad navigaciu riesi Activity)
+    // tell the Activity whether the controls are shown (then D-pad navigation is handled by the Activity)
     LaunchedEffect(controlsVisible) { callbacks.onControlsVisibleChange(controlsVisible) }
-    // oznam Activity stav prekryti (kvoli D-pad smerovaniu)
+    // tell the Activity the overlay state (because of D-pad routing)
     LaunchedEffect(menu) { callbacks.onTrackMenuChange(menu) }
     LaunchedEffect(showChannelList) { channelList.onOpenChange(showChannelList) }
     LaunchedEffect(showOptions) { callbacks.onOptionsChange(showOptions) }
-    // Activity ziada otvorit/zavriet zoznam kanalov (podrzanie OK)
+    // the Activity asks to open/close the channel list (holding OK)
     LaunchedEffect(signals.openList) {
         if (signals.openList > 0) { showChannelList = true; controlsVisible = false }
     }
     LaunchedEffect(signals.closeList) {
         if (signals.closeList > 0) showChannelList = false
     }
-    // Moznosti (Zvuk/Titulky/SW) cez D-pad DOLE / MENU
+    // Options (Audio/Subtitles/SW) via D-pad DOWN / MENU
     LaunchedEffect(signals.openOptions) {
         if (signals.openOptions > 0) { showOptions = true; controlsVisible = false }
     }
@@ -2220,60 +2220,60 @@ private fun PlayerUi(
     LaunchedEffect(signals.openSpu) { if (signals.openSpu > 0) { menu = "spu"; controlsVisible = false } }
     LaunchedEffect(profile.openSignal) { if (profile.openSignal > 0) { menu = "profile"; controlsVisible = false } }
     LaunchedEffect(signals.closeMenu) { if (signals.closeMenu > 0) menu = null }
-    // ikona play/pause podla skutocneho stavu prehravaca
+    // play/pause icon per the player's real state
     LaunchedEffect(flags.playing) { isPlaying = flags.playing }
-    // seek stav (len pre DVR). TS subor nenese dlzku, takze pouzivame:
-    //  - dlzku z DVR entry (knownDurationMs), fallback player.length
-    //  - position (zlomok 0..1) na zobrazenie aj pretacanie (na TS spolahlivejsie nez setTime)
+    // seek state (DVR only). A TS file carries no duration, so we use:
+    //  - the duration from the DVR entry (knownDurationMs), fallback player.length
+    //  - position (a fraction 0..1) for both display and seeking (more reliable on TS than setTime)
     var posFraction by remember { mutableStateOf(0f) }
     var dragging by remember { mutableStateOf(false) }
     var dragValue by remember { mutableStateOf(0f) }
-    // Aktualny cas prehravania v ms (player.time) - plynuly zdroj pozicie pre lavu stranu.
+    // Current playback time in ms (player.time) - a smooth position source for the left-hand side.
     var posTimeMs by remember { mutableStateOf(0L) }
-    // player.time/position su pre rastuci TS nespolahlive (raz bezia, raz stoja, niekedy
-    // odpocet offsetu vynuluje lavu stranu). Lavu stranu preto pocitame ako prehraty cas:
-    // od zaciatku relacie (0) pridavame realny uplynuly cas, kym sa prehrava - rovnaky
-    // wall-clock princip akym spolahlivo funguje prava strana (lengthMs).
+    // player.time/position are unreliable for a growing TS (sometimes they run, sometimes they stall, sometimes
+    // subtracting the offset zeroes the left-hand side). We therefore compute the left-hand side as played time:
+    // from the start of the programme (0) we add the real elapsed time while it plays - the same
+    // wall-clock principle that makes the right-hand side (lengthMs) work reliably.
     var lastPlayTickMs by remember { mutableStateOf(0L) }
-    // Jednorazovy skok na zaciatok relacie v subore (prebiehajuca nahravka s predprogramovym
-    // obsahom), aby "od zaciatku" hralo od zaciatku relacie a prehravacie hodiny od 0 sedeli.
+    // A one-off jump to the programme's start within the file (a recording in progress with pre-programme
+    // content), so that "from the start" plays from the programme's start and the player clock matches from 0.
     var initialSeekDone by remember { mutableStateOf(false) }
-    // M495: pretocenie DVR prebuduje medium s :start-time, takze player.position
-    // od tej chvile ukazuje poziciu v NOVOM mediu (zacina na mieste skoku), nie
-    // v celom subore. Prepocet suborovej pozicie na cas relacie je odvtedy
-    // neplatny — hodiny musia ist z wall-clocku od seedu.
+    // M495: a DVR seek rebuilds the media with :start-time, so from that moment player.position
+    // shows the position in the NEW media (it starts at the jump point), not
+    // in the whole file. Converting the file position into programme time is from then on
+    // invalid — the clock has to run off the wall clock from the seed.
     var rebuiltBySeek by remember { mutableStateOf(false) }
 
-    // Dlzka baru = uplynuty cas relacie (knownDurationMs, plynulo rastie 1s/s).
-    // Nepouzivame player.length do skaly - VLC ju pre rastuci TS hlasi v hrubych
-    // skokoch, co rozhadzovalo lavu stranu casomiery. Fallback na VLC dlzku len ked
-    // EPG cas nemame.
+    // Length of the bar = the programme's elapsed time (knownDurationMs, grows smoothly at 1s/s).
+    // We do not use player.length for the scale - VLC reports it for a growing TS in coarse
+    // jumps, which threw the left-hand side of the timer off. Fall back to the VLC length only when
+    // we have no EPG time.
     val lengthMs = if (dvr.knownDurationMs > 0) dvr.knownDurationMs else player.length.coerceAtLeast(0L)
-    // Cerstva dlzka pre ticker (LaunchedEffect(Unit) inak zachyti hodnotu zo startu a
-    // lava strana by sa nezmestila nad uroven zivej hrany pri starte).
+    // A fresh duration for the ticker (otherwise LaunchedEffect(Unit) captures the value from start and
+    // the left-hand side would not fit above the live-edge level at start).
     val lengthMsLive = androidx.compose.runtime.rememberUpdatedState(lengthMs)
     val offsetMsLive = androidx.compose.runtime.rememberUpdatedState(dvr.recordingOffsetMs)
-    // M495-fix: to iste plati pre seed z pretocenia. Ticker bezi v LaunchedEffect(Unit),
-    // takze si hodnotu parametra zapamata pri PRVEJ kompozicii a novu uz nikdy neuvidi —
-    // seed teda nikdy nedorazil, hodiny sa na ciel neprepli a resync ich zrazil takmer
-    // na nulu (odtial "0:59" hned po skoku na 40. minutu).
+    // M495-fix: the same applies to the seed from a seek. The ticker runs in LaunchedEffect(Unit),
+    // so it remembers the parameter's value at the FIRST composition and never sees a new one —
+    // the seed therefore never arrived, the clock never switched to the target and the resync knocked it almost
+    // to zero (hence the "0:59" right after a jump to minute 40).
     val seekSeedLive = androidx.compose.runtime.rememberUpdatedState(dvr.seekSeedMs)
     val onSeekSeedHandledLive = androidx.compose.runtime.rememberUpdatedState(dvr.onSeekSeedHandled)
-    // Pri prebiehajucej nahravke nedovol pretocit az na zivu hranu (koniec dostupnych dat).
-    // Zapisane data zaostavaju za EPG casom (prava strana) o cca 20-30 s, takze rezerva
-    // pocitana z EPG casu musi byt vacsia, inak playhead skoci do este nezapisanej zony,
-    // narazi na EOF a TS zamrzne. Vacsia rezerva = playhead ostava v spolahlivo nahranych
-    // datach. Hltavy koniec doriesi este aj automaticke znovu-otvorenie streamu.
+    // For a recording in progress do not allow seeking right up to the live edge (the end of the available data).
+    // The written data lags the EPG time (the right-hand side) by roughly 20-30 s, so the margin
+    // computed from the EPG time has to be larger, otherwise the playhead jumps into a zone not yet written,
+    // hits EOF and the TS freezes. A larger margin = the playhead stays within reliably recorded
+    // data. A greedy overrun at the end is further sorted out by the automatic stream reopen.
     val liveMarginMs = 45_000L
-    // Dlzka pre seekbar = dosiahnutelny rozsah (bez 45 s rezervy pri prebiehajucej nahravke).
-    // Tak playhead dosiahne koniec baru bez viditeľnej medzery/"bariery" - rezerva je skryta.
+    // Length for the seekbar = the reachable range (without the 45 s margin for a recording in progress).
+    // That way the playhead reaches the end of the bar with no visible gap/"barrier" - the margin is hidden.
     val barLengthMs = if (dvr.recordingLive) (lengthMs - liveMarginMs).coerceAtLeast(1L) else lengthMs
 
-    // Obnovenie pozicie (len DVR): spytaj sa, a po potvrdeni pretoc ked je
-    // media nacitana
+    // Position restore (DVR only): ask, and after confirmation seek once the
+    // media is loaded
     var askResume by remember { mutableStateOf(dvr.resumeMs > 0) }
     var pendingResumeMs by remember { mutableStateOf(0L) }
-    // Most na D-pad obsluhu dialogu v Activity: nahlas viditelnost a reaguj na odpoved
+    // A bridge to the dialog's D-pad handling in the Activity: report visibility and react to the answer
     LaunchedEffect(askResume) { dvr.onAskResumeChange(askResume) }
     LaunchedEffect(dvr.resumeAnswer) {
         if (dvr.resumeAnswer != 0 && askResume) {
@@ -2283,8 +2283,8 @@ private fun PlayerUi(
         }
     }
 
-    // Aktualizuj poziciu kazdu sekundu (len ked je seekable a netiahneme)
-    // M662: telo tickera vyclanene do DvrPositionTicker.kt (JVM 64 KB limit metody).
+    // Update the position every second (only when seekable and not dragging)
+    // M662: the ticker's body split out into DvrPositionTicker.kt (the JVM 64 KB method limit).
     if (flags.seekable) {
         DvrPositionTicker(
             player = player,
@@ -2316,9 +2316,9 @@ private fun PlayerUi(
         )
     }
 
-    // Live priebeh aktualnej relacie (z EPG): tika po sekundach
+    // Live progress of the current programme (from the EPG): ticks every second
     var liveNowSec by remember { mutableStateOf(System.currentTimeMillis() / 1000) }
-    // Aktualna relacia (mutable — pri dobehnuti sa nacita dalsia)
+    // The current programme (mutable — when it runs out the next one is loaded)
     var progStart by remember(liveChannelUuid) { mutableStateOf(programme.startSec) }
     var progStop by remember(liveChannelUuid) { mutableStateOf(programme.stopSec) }
     var progTitle by remember(liveChannelUuid) { mutableStateOf(programme.title) }
@@ -2328,7 +2328,7 @@ private fun PlayerUi(
     var nextStop by remember(liveChannelUuid) { mutableStateOf(programme.nextStop) }
     val hasLiveProg = !flags.seekable && progStart > 0 && progStop > progStart
 
-    // M663: tik a nacitanie EPG relacie v LiveProgrammeEffects.kt (podmienky a kluce zhodne)
+    // M663: the tick and loading the EPG programme in LiveProgrammeEffects.kt (conditions and keys identical)
     LiveProgrammeEffects(
         seekable = flags.seekable,
         liveChannelUuid = liveChannelUuid,
@@ -2347,7 +2347,7 @@ private fun PlayerUi(
         }
     )
 
-    // M662: auto-vyber audio stopy (M378) je v AudioAutoSelect.kt
+    // M662: audio track auto-selection (M378) is in AudioAutoSelect.kt
     AudioAutoSelectEffect(
         player = player,
         ctx = ctx,
@@ -2363,7 +2363,7 @@ private fun PlayerUi(
         }
     }
 
-    // M663: retaz BackHandler-ov v PlayerBackHandlers.kt (poradie = priorita, zachovane)
+    // M663: the chain of BackHandlers in PlayerBackHandlers.kt (order = priority, preserved)
     val autoPipEnabled = remember { AutoPipPref.get(ctx) }
     PlayerBackHandlers(
         autoPipEnabled = autoPipEnabled,
@@ -2384,7 +2384,7 @@ private fun PlayerUi(
         setControlsVisible = { controlsVisible = it }
     )
 
-    // M662: EPG efekty (M266 prefetch + M522/M525 periodicky refresh) su v PlayerEpgEffects.kt
+    // M662: the EPG effects (M266 prefetch + M522/M525 periodic refresh) are in PlayerEpgEffects.kt
     PlayerEpgEffects(
         showChannelList = showChannelList,
         controlsVisible = controlsVisible,
@@ -2398,7 +2398,7 @@ private fun PlayerUi(
         Modifier
             .fillMaxSize()
             .background(Color.Black)
-            // M664: MX Player gesta (seek / hlasitost / jas / vysunutie zoznamu) v PlayerGestures.kt
+            // M664: MX Player gestures (seek / volume / brightness / sliding the list out) in PlayerGestures.kt
             .playerGestures(
                 ctx = ctx,
                 isTvGest = isTvGest,
@@ -2424,7 +2424,7 @@ private fun PlayerUi(
             }
     ) {
         val inPreview = showChannelList && isTvGest && channelList.channels.isNotEmpty() && previewRect != null
-        // M539-fix2: AndroidView je v samostatnej composable (mensia PlayerUi + vymena surface)
+        // M539-fix2: the AndroidView is in a separate composable (a smaller PlayerUi + surface replacement)
         VideoSurface(
             modifier = if (inPreview) {
                 val r = previewRect!!
@@ -2436,22 +2436,22 @@ private fun PlayerUi(
             onStart = callbacks.onStart
         )
 
-        // M630: male prekryvy v PlayerOverlays.kt (poradie zachovane)
-        // Audio-only (rozhlas): namiesto ciernej vycentrovane logo; na TV so zoznamom v nahlade
+        // M630: the small overlays in PlayerOverlays.kt (order preserved)
+        // Audio-only (radio): a centred logo instead of black; on TV with the list in preview
         if (!flags.hasVideo) RadioCenterLogo(programme.centerLogoUrl, server, if (inPreview) previewRect else null)
-        // indikator opätovného pripájania (vypadok siete pri zivom vysielani)
+        // the reconnecting indicator (a network dropout during live broadcast)
         if (flags.reconnecting) ReconnectingOverlay()
-        // koliesko v strede pocas pretacania timeshiftu (resync)
+        // the spinner in the middle while seeking in timeshift (resync)
         if (flags.seeking && !flags.reconnecting) SeekingSpinner()
-        // YouTube-style hint pri dvojkliku (skok o 10 s)
+        // YouTube-style hint on a double tap (a 10 s skip)
         if (dvr.seekHint != 0) SeekHintOverlay(dvr.seekHint)
-        // MX Player overlaye: hlasitost / jas (vystredene), seek-scrub (hore v strede)
+        // MX Player overlays: volume / brightness (centred), seek-scrub (top centre)
         if (volPctState >= 0 || brightPctState >= 0) GestureLevelOverlay(volPctState, brightPctState)
         if (scrubSecState != Int.MIN_VALUE) ScrubSecondsOverlay(scrubSecState)
-        // prekrytie s prave zadavanym cislom kanala
+        // the overlay with the channel number currently being typed
         if (signals.numberEntry.isNotEmpty()) NumberEntryOverlay(signals.numberEntry)
 
-        // M661: ovladaci pruh (horny info blok + seekbar + tlacidla) je v PlayerControlBar.kt
+        // M661: the control bar (the top info block + seekbar + buttons) is in PlayerControlBar.kt
         PlayerControlsOverlay(
             controlsVisible = controlsVisible,
             onControlsVisibleSet = { controlsVisible = it },
@@ -2512,7 +2512,7 @@ private fun PlayerUi(
             onClose = callbacks.onClose
         )
 
-        // "Viac" panel moderneho rezimu (telefon) — M663: ModernOverlayEffects.kt
+        // The modern mode "More" panel (phone) — M663: ModernOverlayEffects.kt
         if (showMoreSheet) {
             PlayerMoreSheetHost(
                 ctx = ctx,
@@ -2531,8 +2531,8 @@ private fun PlayerUi(
             )
         }
 
-        // Moderny TV overlay (karty kanalov + ovladacia lista) — exkluzivita,
-        // auto-hide a vykonanie akcii z listy (M663: ModernOverlayEffects.kt)
+        // Modern TV overlay (channel cards + control bar) — exclusivity,
+        // auto-hide and running the bar's actions (M663: ModernOverlayEffects.kt)
         ModernOverlayEffects(
             modernOvVisible = modern.visible,
             modernOvPoke = modern.poke,
@@ -2569,7 +2569,7 @@ private fun PlayerUi(
             )
         }
 
-        // Info okno: detail prave beziacej relacie (INFO kláves / tlacidlo) — M661: PlayerInfoWindow.kt
+        // Info window: details of the currently running programme (INFO key / button) — M661: PlayerInfoWindow.kt
         if (showInfo) {
             PlayerInfoWindow(
                 setShowInfo = { v -> showInfo = v },
@@ -2589,7 +2589,7 @@ private fun PlayerUi(
             )
         }
 
-        // Overlay: zoznam kanalov priamo v prehravaci (vysuva sa zhora podla listFrac) — TELEFON (M631: PhoneChannelList.kt)
+        // Overlay: the channel list inside the player (slides down from the top per listFrac) — PHONE (M631: PhoneChannelList.kt)
         if ((showChannelList || listFrac > 0.001f) && !isTvGest && channelList.channels.isNotEmpty()) {
             PhoneChannelListOverlay(
                 listFrac = listFrac,
@@ -2606,7 +2606,7 @@ private fun PlayerUi(
                 onClose = { showChannelList = false }
             )
         }
-        // TV zoznam kanalov (M632: TvChannelList.kt)
+        // TV channel list (M632: TvChannelList.kt)
         if (showChannelList && isTvGest && channelList.channels.isNotEmpty()) {
             TvChannelListOverlay(
                 liveChannels = channelList.channels,
@@ -2633,7 +2633,7 @@ private fun PlayerUi(
             )
         }
 
-        // "Viac" menu modernej listy (M327): Kanaly / Casovac uspatia / Informacie (M633: PlayerMenus.kt)
+        // The modern bar's "More" menu (M327): Channels / Sleep timer / Information (M633: PlayerMenus.kt)
         if (modern.moreVisible) {
             ModernMoreMenu(
                 ids = modern.moreIdList,
@@ -2644,7 +2644,7 @@ private fun PlayerUi(
             )
         }
 
-        // Vyber dlzky casovaca uspatia — vertikalne, navigacia z Activity (M633: PlayerMenus.kt)
+        // Sleep timer duration picker — vertical, navigated from the Activity (M633: PlayerMenus.kt)
         if (showOptions) {
             SleepOptionsMenu(
                 highlightIndex = if (isTvGest) signals.optionsNavIndex else -1,   // M385-fix
@@ -2653,7 +2653,7 @@ private fun PlayerUi(
             )
         }
 
-        // Menu stop (audio / titulky) — M661: TrackMenu.kt
+        // Track menu (audio / subtitles) — M661: TrackMenu.kt
         if (menu != null) {
             PlayerTrackMenu(
                 menu = menu,
@@ -2674,7 +2674,7 @@ private fun PlayerUi(
             )
         }
 
-        // Dialog: obnovit prehravanie od poslednej pozicie? (M559-fix: vytiahnute z PlayerUi — limit 64 kB)
+        // Dialog: resume playback from the last position? (M559-fix: pulled out of PlayerUi — the 64 kB limit)
         if (askResume) {
             ResumeDialog(
                 resumeMs = dvr.resumeMs, resumeSel = dvr.resumeSel,
@@ -2683,7 +2683,7 @@ private fun PlayerUi(
             )
         }
 
-        // Rodicovsky zamok: zadanie PIN (cislice z dialkoveho riesi Activity; M633: PlayerMenus.kt)
+        // Parental lock: PIN entry (digits from the remote are handled by the Activity; M633: PlayerMenus.kt)
         if (pin.prompt) {
             PlayerPinPanel(
                 pinLen = pin.len, pinError = pin.error,
@@ -2694,7 +2694,7 @@ private fun PlayerUi(
     }
 }
 
-/** M559-fix: dialog „Obnoviť prehrávanie“ — samostatný composable (PlayerUi je na limite veľkosti metódy). */
+/** M559-fix: the "Resume playback" dialog — a separate composable (PlayerUi is at the method size limit). */
 @Composable
 private fun ResumeDialog(resumeMs: Long, resumeSel: Int, onNo: () -> Unit, onYes: () -> Unit) {
     Box(

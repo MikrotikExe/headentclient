@@ -10,24 +10,24 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /**
- * M656: životný cyklus libVLC + MediaPlayer (vyclenené z PlayerActivity): vytvorenie
- * s voľbami a zvukovým výstupom, výmena za nový (M539 zaseknutý AudioTrack), odložené
- * play() po pripojení nového surface (M539-fix2) a asynchrónne ukončenie na pracovnom
- * vlákne (M535/M622 — stop() na hlavnom vlákne visel na mŕtvom audio výstupe → ANR).
+ * M656: libVLC + MediaPlayer lifecycle (extracted from PlayerActivity): creation
+ * with the options and the audio output, replacement by a new one (M539 stuck AudioTrack), a deferred
+ * play() once the new surface is attached (M539-fix2) and asynchronous shutdown on a worker
+ * thread (M535/M622 — stop() on the main thread hung on a dead audio output → ANR).
  *
- * Aktivita k prehrávaču pristupuje cez [player]/[libVlc] (delegáty pod pôvodnými názvami),
- * [ready] nahrádza `::mediaPlayer.isInitialized`. Event listener a hlídač zaseknutia
- * ostávajú v aktivite a chodia sem cez konštruktor / lambdy.
+ * The activity accesses the player via [player]/[libVlc] (delegates under the original names),
+ * [ready] replaces `::mediaPlayer.isInitialized`. The event listener and the stall watchdog
+ * stay in the activity and come in here via the constructor / lambdas.
  */
 internal class VlcEngine(
     private val ctx: Context,
     private val media: MediaFactory,
     private val events: MediaPlayer.EventListener,
-    /** Počet doterajších výmen prehrávača (StallWatchdog.recreates) — M539-fix opensles fallback. */
+    /** Number of player replacements so far (StallWatchdog.recreates) — M539-fix opensles fallback. */
     private val recreates: () -> Int,
-    /** M539-fix2: nový SurfaceView pre nový prehrávač (PlayerActivity.videoSurfaceGen++). */
+    /** M539-fix2: a new SurfaceView for the new player (PlayerActivity.videoSurfaceGen++). */
     private val bumpSurfaceGen: () -> Unit,
-    /** Po (znovu)vytvorení a pred každým novým médiom: StallWatchdog.reset(). */
+    /** After (re)creation and before every new medium: StallWatchdog.reset(). */
     private val resetStall: () -> Unit
 ) {
     lateinit var libVlc: LibVLC
@@ -36,42 +36,42 @@ internal class VlcEngine(
         private set
     val ready: Boolean get() = ::player.isInitialized
 
-    /** M535: teardown už prebehol — na prehrávač sa už nesiaha. */
+    /** M535: the teardown has already run — the player must not be touched any more. */
     var tornDown = false
         private set
-    /** M539-fix2: po výmene prehrávača ešte nie je pripojený nový surface — play() sa
-     *  odloží do onAttach (prehrávanie bez okna by nemalo video). Inak hneď. */
+    /** M539-fix2: after a player replacement the new surface is not attached yet — play() is
+     *  deferred to onAttach (playback without a window would have no video). Otherwise immediately. */
     var awaitingSurface = false
         private set
     private var pendingPlayAfterAttach = false
     private val destroyedLatch = CountDownLatch(1)
 
-    /** Prehrávač, ak existuje a nebol ukončený (pre controllery). */
+    /** The player, if it exists and has not been shut down (for the controllers). */
     fun live(): MediaPlayer? = if (!tornDown && ready) player else null
 
-    /** Vytvori LibVLC + MediaPlayer, nastavi zvukovy vystup a event listener.
-     *  Volane z onCreate a z [recreate]. */
+    /** Creates LibVLC + MediaPlayer, sets the audio output and the event listener.
+     *  Called from onCreate and from [recreate]. */
     fun create() {
         val options = arrayListOf(
             "--network-caching=" + BufferPref.ms(ctx),
             if (VlcVerbosePref.get(ctx)) "-vv" else "--quiet",  // M448
-            // M539-fix: statistiky ZAPNUTE — hlidac zaseknuteho zvuku cita
-            // playedAbuffers/demuxReadBytes (s --no-stats su vzdy 0)
+            // M539-fix: statistics ON — the stuck-audio watchdog reads
+            // playedAbuffers/demuxReadBytes (with --no-stats they are always 0)
             "--http-user-agent=" + media.userAgent()
         )
-        // Deinterlacing (globalne, nech plati uz na prvom otvoreni; per-medium
-        // sa nastavi znova pri kazdom prepnuti kanala)
+        // Deinterlacing (global, so that it applies already on the first open; per-medium
+        // it is set again on every channel switch)
         val (dEn, dMode) = media.deinterlaceSpec()
         options.add("--deinterlace=$dEn")
         if (dMode != null) options.add("--deinterlace-mode=$dMode")
         libVlc = LibVLC(ctx, options)
         player = MediaPlayer(libVlc)
-        // Zvukovy vystup z nastaveni. Modul (telefon: AudioTrack/OpenSL ES) aj
-        // zariadenie (TV: passthrough/pcm/stereo) sa musia nastavit pred prehravanim;
-        // menia sa az pri (znovu)otvoreni prehravaca.
+        // Audio output from the settings. Both the module (phone: AudioTrack/OpenSL ES) and
+        // the device (TV: passthrough/pcm/stereo) must be set before playback;
+        // they only change when the player is (re)opened.
         AudioModulePref.module(ctx)?.let { aout -> runCatching { player.setAudioOutput(aout) } }
-        // M539-fix: ak ani druhy novy AudioTrack po prebudeni nehra, skus OpenSL ES
-        // (ina cesta do audio HAL); plati len pre tuto instanciu prehravaca.
+        // M539-fix: if even the second new AudioTrack does not play after a wake-up, try OpenSL ES
+        // (a different path into the audio HAL); applies only to this player instance.
         val n = recreates()
         if (n >= 2 && AudioModulePref.module(ctx) == null) {
             runCatching { player.setAudioOutput("opensles") }
@@ -82,25 +82,25 @@ internal class VlcEngine(
         player.setEventListener(events)   // M650: VlcEvents.kt
     }
 
-    /** Vymeni libVLC + MediaPlayer za nove; stare uvolni na pracovnom vlakne. */
+    /** Replaces libVLC + MediaPlayer with new ones; releases the old ones on a worker thread. */
     fun recreate() {
         if (ready) {
             val oldMp = player
             val oldLib = libVlc
             runCatching { oldMp.setEventListener(null) }
-            // M539-fix3: surface odpojit od stareho prehravaca TU, este PRED jeho stop().
-            // detachViews caka, kym stary vout surface pusti — kym vstupne vlakno zije,
-            // je to okamzite (overene v M539-fix). Ak by uz bezal stop(), vstupne vlakno
-            // visi na audio dekoderi, vout uz surface nikdy nepusti a cakanie (aj to,
-            // ktore robi Compose pri odstraneni SurfaceView) by zablokovalo hlavne
-            // vlakno — presne to sa stalo v M539-fix2 (zamrznuty snimok, po minute ANR).
+            // M539-fix3: detach the surface from the old player HERE, still BEFORE its stop().
+            // detachViews waits until the old vout releases the surface — while the input thread is alive,
+            // that is immediate (verified in M539-fix). If stop() were already running, the input thread
+            // hangs on the audio decoder, the vout never releases the surface and the wait (including the one
+            // Compose does when removing the SurfaceView) would block the main
+            // thread — exactly what happened in M539-fix2 (frozen frame, ANR after a minute).
             runCatching { oldMp.detachViews() }
             val appCtx = ctx.applicationContext
             val worker = Thread({
                 val t0 = SystemClock.elapsedRealtime()
                 runCatching { oldMp.stop() }
-                // M539-fix4: release() az o chvilu — stara kompozicia sa este moze
-                // rozkladat a jej korutiny sa stareho objektu dotknut
+                // M539-fix4: release() only after a while — the old composition may still be
+                // tearing down and its coroutines may still touch the old object
                 runCatching { Thread.sleep(500) }
                 releaseVlc(appCtx, oldMp, oldLib, "recreate")   // M622
                 val ms = SystemClock.elapsedRealtime() - t0
@@ -111,22 +111,22 @@ internal class VlcEngine(
         }
         create()
         resetStall()
-        // M539-fix2: novy SurfaceView pre novy prehravac; play() az po jeho pripojeni
+        // M539-fix2: a new SurfaceView for the new player; play() only once it is attached
         awaitingSurface = true
         pendingPlayAfterAttach = false
         bumpSurfaceGen()
     }
 
-    /** Spusti prehrávanie nového média (alebo ho odloží, kým sa pripojí nový surface). */
+    /** Starts playback of the new medium (or defers it until the new surface is attached). */
     fun startPlayback() {
-        // M539-fix4: nove medium = nove pocitanie; Playing musi prist znova, inak by
-        // bezny start kanala (demux uz cita, zvuk este nie) vyzeral ako zaseknutie
+        // M539-fix4: a new medium = new counting; Playing must arrive again, otherwise
+        // an ordinary channel start (the demux is already reading, the audio not yet) would look like a stall
         resetStall()
         if (awaitingSurface) { pendingPlayAfterAttach = true; return }
         player.play()
     }
 
-    /** onAttach nového surface (VideoSurface): ak čakal play(), spusti ho. Vráti true, ak áno. */
+    /** onAttach of the new surface (VideoSurface): if a play() was waiting, start it. Returns true if so. */
     fun onSurfaceAttached(): Boolean {
         awaitingSurface = false
         if (!pendingPlayAfterAttach) return false
@@ -135,18 +135,18 @@ internal class VlcEngine(
     }
 
     /**
-     * M535: ukoncenie libVLC mimo hlavneho vlakna.
+     * M535: shutting libVLC down off the main thread.
      *
-     * `MediaPlayer.stop()` je synchronne: caka, kym skonci vstupne vlakno libVLC,
-     * a to zas caka na dekodery. Na Strongu (Amlogic) po prebudeni zo standby
-     * a krátko po boote AudioTrack neodobera data — audio dekoder visi v zapise
-     * do neho a neda sa prerusit, takze stop() na hlavnom vlakne nikdy neskoncil:
-     * po 5 s ANR, systemove „Activity destroy timeout" a appku zabil system
-     * (bugreport 1. 9. 2026, pat identickych stackov). Zavretie prehravaca preto
-     * odovzda cely libVLC objekt pracovnemu vlaknu; aktivita sa zavrie hned.
-     * Ak libVLC visi, visi len to vlakno na pozadi a zapise sa WARN do
-     * diagnostickeho logu. [stopFeeders] sa zavola ako prve — zavretie pipe ukonci
-     * demux okamzite, takze v beznom pripade stop() trva par desiatok ms.
+     * `MediaPlayer.stop()` is synchronous: it waits for the libVLC input thread to finish,
+     * and that in turn waits for the decoders. On the Strong (Amlogic) after a wake-up from standby
+     * and shortly after boot AudioTrack does not consume data — the audio decoder hangs in a write
+     * into it and cannot be interrupted, so stop() on the main thread never finished:
+     * after 5 s an ANR, the system "Activity destroy timeout" and the system killed the app
+     * (bugreport 1 September 2026, five identical stacks). Closing the player therefore
+     * hands the whole libVLC object over to a worker thread; the activity closes immediately.
+     * If libVLC hangs, only that background thread hangs and a WARN is written to the
+     * diagnostic log. [stopFeeders] is called first — closing the pipe terminates the
+     * demux immediately, so in the normal case stop() takes a few tens of ms.
      */
     fun teardownAsync(stopFeeders: () -> Unit) {
         if (tornDown) return
@@ -164,9 +164,9 @@ internal class VlcEngine(
         val worker = Thread({
             val t0 = SystemClock.elapsedRealtime()
             runCatching { mp.stop() }
-            // release() az po onDestroy — dovtedy sa na (uz zastaveny) prehravac
-            // mozu este obratit UI slucky/handlery a volanie na uvolneny objekt
-            // by hodilo IllegalStateException.
+            // release() only after onDestroy — until then UI loops/handlers may still turn
+            // to the (already stopped) player, and a call on a released object
+            // would throw IllegalStateException.
             runCatching { destroyed.await(5, TimeUnit.SECONDS) }
             runCatching { mp.detachViews() }
             releaseVlc(appCtx, mp, lib, "teardown")   // M622
@@ -187,24 +187,24 @@ internal class VlcEngine(
         }, 8_000)
     }
 
-    /** onDestroy prebehol — pracovné vlákno smie release(). */
+    /** onDestroy has run — the worker thread may release(). */
     fun allowRelease() { destroyedLatch.countDown() }
 
     companion object {
         /**
-         * M622: bezpecne uvolnenie libVLC z pracovneho vlakna.
+         * M622: safe release of libVLC from the worker thread.
          *
-         * Pad z Play (1.0.6, armeabi-v7a): SIGABRT vo vlc_mutex_destroy, volane z
-         * libvlc_media_player_release -> MediaPlayer.nativeRelease -> nase uvolnovacie
-         * vlakno. vlc_mutex_destroy spadne na assert, ked sa rusi mutex, ktory este
-         * niekto drzi — teda prehravac sa uvolnoval skor, nez dobehlo jeho vstupne
-         * vlakno. Na pomalsich 32-bitovych boxoch to stop() nestihne za pevnych 500 ms.
+         * Crash from Play (1.0.6, armeabi-v7a): SIGABRT in vlc_mutex_destroy, called from
+         * libvlc_media_player_release -> MediaPlayer.nativeRelease -> our releasing
+         * thread. vlc_mutex_destroy fails on an assert when a mutex is destroyed that someone
+         * still holds — that is, the player was being released before its input
+         * thread had finished. On slower 32-bit boxes stop() does not manage that within the fixed 500 ms.
          *
-         * Preto sa pred release() POCKA, kym prehravac naozaj prestane hrat (najviac
-         * 2 s, vzorka po 50 ms), potom kratka pauza na dobehnutie vnutornych vlakien,
-         * a az potom release. LibVLC sa uvolni este o kusok neskor — nikdy pred
-         * prehravacom, ktory z neho vznikol. Vsetko na pracovnom vlakne, hlavne vlakno
-         * sa necaka.
+         * Therefore before release() we WAIT until the player really stops playing (at most
+         * 2 s, sampled every 50 ms), then a short pause for the internal threads to finish,
+         * and only then release. LibVLC is released a little later still — never before
+         * the player that was created from it. All on the worker thread, the main thread
+         * does not wait.
          */
         fun releaseVlc(ctx: Context, mp: MediaPlayer, lib: LibVLC?, where: String) {
             val t0 = SystemClock.elapsedRealtime()
@@ -218,7 +218,7 @@ internal class VlcEngine(
             if (waited >= 2_000L) {
                 CrashLogger.report(ctx, "PlayerActivity.$where", "player still playing 2 s after stop()")
             }
-            // dobehnutie vnutornych vlakien libVLC (vout/audio) pred zrusenim mutexov
+            // letting the internal libVLC threads (vout/audio) finish before the mutexes are destroyed
             runCatching { Thread.sleep(150) }
             runCatching { mp.release() }
             runCatching { Thread.sleep(100) }

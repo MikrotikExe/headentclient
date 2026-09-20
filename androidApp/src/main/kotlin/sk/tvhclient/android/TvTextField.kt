@@ -45,13 +45,13 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 
 /**
- * Textove pole pre TV. Po zamerani (sipkami) sa NEZOBRAZI klavesnica — je to len
- * zvyraznene pole s popisom a hodnotou. Klavesnica nabehne az po stlaceni OK;
- * vtedy sa zobrazi skutocne OutlinedTextField s IME. Done/BACK ho zatvori a fokus
- * sa vrati na pole. Tym sa klavesnica pri prechadzani formulara nikdy nevyskoci sama.
+ * Text field for TV. On being focused (with the arrows) the keyboard is NOT shown — it is only
+ * a highlighted field with a label and a value. The keyboard comes up only after pressing OK;
+ * at that point a real OutlinedTextField with an IME is shown. Done/BACK closes it and focus
+ * returns to the field. This way the keyboard never pops up on its own while moving through the form.
  *
- * Autokorekcia a velke zaciatocne pismena su vypnute (host/meno/heslo su technicke udaje).
- * Pri password=true je v editacii tlacidlo oka na zobrazenie/skrytie hesla.
+ * Autocorrect and initial capitals are disabled (host/username/password are technical data).
+ * With password=true there is an eye button in the editor to show/hide the password.
  */
 @Composable
 fun TvTextField(
@@ -63,7 +63,7 @@ fun TvTextField(
     uri: Boolean = false,
     password: Boolean = false,
     focusRequester: FocusRequester? = null,
-    // Moderny rezim (M319): volitelny farebny ikonovy cip vlavo v poli
+    // Modern mode (M319): an optional coloured icon chip on the left inside the field
     leadingIcon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     chipBg: androidx.compose.ui.graphics.Color? = null,
     chipFg: androidx.compose.ui.graphics.Color? = null
@@ -76,7 +76,7 @@ fun TvTextField(
         if (isLightTheme()) MaterialTheme.colorScheme.surfaceContainerLowest
         else MaterialTheme.colorScheme.surfaceContainer
     } else androidx.compose.ui.graphics.Color.Transparent
-    // Cip s ikonou (len moderny rezim a len ked je ikona zadana)
+    // Chip with an icon (modern mode only and only when an icon is given)
     val chip: (@Composable () -> Unit)? =
         if (modern && leadingIcon != null && chipBg != null && chipFg != null) {
             {
@@ -92,8 +92,8 @@ fun TvTextField(
     var editing by remember { mutableStateOf(false) }
     var everEdited by remember { mutableStateOf(false) }
     var revealed by remember { mutableStateOf(false) }
-    // Buffer znakov napisanych pocas prepinania box -> IME pole (USB klavesnica pise rychlejsie
-    // ako stiha prekreslenie). Lokalny stav sa cita vzdy aktualne, takze poradie sa zachova.
+    // Buffer of the characters typed while switching from the box -> the IME field (a USB keyboard types faster
+    // than the redraw keeps up). The local state is always read fresh, so the order is preserved.
     var starting by remember { mutableStateOf(false) }
     var pending by remember { mutableStateOf("") }
     val internalFocus = remember { FocusRequester() }
@@ -101,10 +101,10 @@ fun TvTextField(
 
     if (editing) {
         val imeFocus = remember { FocusRequester() }
-        // M282: pole je riadene LOKALNYM textom, ktory zacina hodnotou + znakmi napisanymi
-        // v box rezime (pending) v spravnom poradi. Tym odpada asynchronne "dobiehanie" cez
-        // onValueChange, ktore pri rychlej USB klavesnici prehadzovalo prve znaky (admintest
-        // -> damintest). Kazdy stlak meni lokalny text synchronne a sucasne sa propaguje hore.
+        // M282: the field is driven by the LOCAL text, which starts with the value + the characters typed
+        // in box mode (pending) in the right order. This removes the asynchronous "catching up" via
+        // onValueChange, which with a fast USB keyboard swapped the first characters around (admintest
+        // -> damintest). Every keypress changes the local text synchronously and is propagated upwards at the same time.
         var text by remember { mutableStateOf(value + pending) }
         OutlinedTextField(
             value = text,
@@ -147,19 +147,19 @@ fun TvTextField(
                 }
         )
         LaunchedEffect(Unit) {
-            // pending je uz zahrnuty v 'text' -> propaguj raz hore a vycisti buffer
+            // pending is already included in 'text' -> propagate upwards once and clear the buffer
             if (pending.isNotEmpty()) onValueChange(text)
             pending = ""
             starting = false
             runCatching { imeFocus.requestFocus() }
         }
     } else {
-        // Po skonceni uprav vrat fokus na pole (nech nezostane visiet) + vycisti buffer
+        // After the editing ends return focus to the field (so it does not hang) + clear the buffer
         LaunchedEffect(editing) {
             if (!editing) { starting = false; pending = "" }
             if (everEdited) runCatching { boxFocus.requestFocus() }
         }
-        // obsah pola (popis + hodnota/bodky) — zdielany pre obe vetvy
+        // field content (label + value/dots) — shared by both branches
         val labelValue: @Composable () -> Unit = {
             Text(
                 label,
@@ -178,7 +178,7 @@ fun TvTextField(
                 else MaterialTheme.colorScheme.onSurface
             )
         }
-        // zachytenie znakov z pripojenej klavesnice pred otvorenim IME (v spravnom poradi)
+        // capture of the characters from an attached keyboard before the IME opens (in the right order)
         val captureKeys = Modifier.onPreviewKeyEvent { e ->
             if (e.type == KeyEventType.KeyDown) {
                 val ch = e.nativeKeyEvent.unicodeChar
@@ -191,9 +191,9 @@ fun TvTextField(
             } else false
         }
         if (password) {
-            // M282-fix: oko je VNUTRI ramika pola (vpravo), aby malo pole hesla rovnaku sirku
-            // ako ostatne polia (symetria). Textova cast je fokusovatelna (OK = uprava),
-            // oko je samostatne fokusovatelne (OK = zobrazit/skryt heslo) — obe dosiahnutelne D-padom.
+            // M282-fix: the eye is INSIDE the field's border (on the right), so that the password field has the same width
+            // as the other fields (symmetry). The text part is focusable (OK = edit),
+            // the eye is separately focusable (OK = show/hide the password) — both reachable with the D-pad.
             Row(
                 modifier = modifier
                     .heightIn(min = 56.dp)

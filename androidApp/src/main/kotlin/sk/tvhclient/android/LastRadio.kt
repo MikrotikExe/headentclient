@@ -3,9 +3,9 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * Zapamatanie posledne zvolenej rozhlasovej stanice (per server) — oddelene od
- * LastChannel (TV), aby sa navzajom neprepisovali. Launcher na TV vie podla toho
- * pustit rovno poslednu stanicu, rovnako ako pri TV kanaloch.
+ * Remembering the last selected radio station (per server) — separate from
+ * LastChannel (TV), so that they do not overwrite each other. The launcher on TV can use it to
+ * play the last station straight away, just as with TV channels.
  */
 object LastRadio {
     private const val PREFS = "app_prefs"
@@ -17,7 +17,7 @@ object LastRadio {
             .getString(KEY + serverId, null)
     }
 
-    /** M391: zabudni poslednu stanicu (zmena sposobu pripojenia). */
+    /** M391: forget the last station (a change of connection method). */
     fun clear(context: Context, serverId: String?) {
         if (serverId == null) return
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

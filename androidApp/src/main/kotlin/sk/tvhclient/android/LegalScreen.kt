@@ -30,7 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Jednoduchy zobrazitelny pravny dokument (nadpis + uvod + sekcie). */
+/** Simple displayable legal document (heading + intro + sections). */
 data class LegalDoc(
     val title: String,
     val meta: String,
@@ -39,9 +39,9 @@ data class LegalDoc(
 )
 
 /**
- * Celoobrazovkova scrollovatelna obrazovka s pravnym textom (privacy / terms).
- * Skrolovanie D-padom: jeden fokusovatelny kontajner chyta UP/DOWN a posuva
- * ScrollState (na TV boxoch focus-scroll cez prazdny text nefunguje).
+ * Full-screen scrollable screen with legal text (privacy / terms).
+ * Scrolling with the D-pad: a single focusable container catches UP/DOWN and moves
+ * the ScrollState (on TV boxes focus-scroll through plain text does not work).
  */
 @Composable
 internal fun LegalScreen(doc: LegalDoc, modifier: Modifier = Modifier, onBack: () -> Unit) {

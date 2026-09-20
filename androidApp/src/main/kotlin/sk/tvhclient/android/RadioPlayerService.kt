@@ -25,11 +25,11 @@ import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * Foreground service pre prehravanie radia na pozadi (M340). Vlastni vlastnu
- * libVLC instanciu (len audio, bez video vystupu), drzi notifikaciu s
- * ovladanim (pauza/prehrat, zastavit) a audio focus. Stav zrkadli do
- * RadioCenter pre mini listu v appke. Spustenie ineho prehravania
- * (PlayerActivity) service zastavi — nikdy nehraju dve veci naraz.
+ * A foreground service for playing radio in the background (M340). It owns its own
+ * libVLC instance (audio only, no video output), holds a notification with
+ * controls (pause/play, stop) and audio focus. It mirrors the state into
+ * RadioCenter for the mini bar in the app. Starting other playback
+ * (PlayerActivity) stops the service — two things never play at once.
  */
 class RadioPlayerService : Service() {
 
@@ -39,21 +39,21 @@ class RadioPlayerService : Service() {
     private var curName = ""
     private var closedTvForStart = false
     private var curEpg = ""
-    // Rovnaka auth cesta ako prehravac (M352): digest-only server sa neda hrat
-    // z holej user:pass@ URL — stream musi tiect cez HttpTsFeeder (OkHttp digest)
-    // do VLC cez file descriptor. Preto service potrebuje vlastny scope a feeder.
+    // The same auth path as the player (M352): a digest-only server cannot be played
+    // from a bare user:pass@ URL — the stream must flow through HttpTsFeeder (OkHttp digest)
+    // into VLC via a file descriptor. That is why the service needs its own scope and feeder.
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var httpFeeder: HttpTsFeeder? = null
     private var curServer: TvhServer? = null
-    // M623: pri zhasnutej obrazovke (volba "Radio hra na pozadi") nesmie CPU ani
-    // Wi-Fi zaspat — rovnake zamky ako drzi prehravac (M452), len pocas hrania.
-    // M626: spolocna trieda StreamLocks.
+    // M623: with the screen off (the "Radio plays in the background" option) neither the CPU nor
+    // Wi-Fi may go to sleep — the same locks as the player holds (M452), only while playing.
+    // M626: the shared StreamLocks class.
     private val locks by lazy { StreamLocks(this, "HeadentClient:radio") }
-    // M625: medialna notifikacia (MediaStyle + MediaSession) ako Spotify —
-    // picon ako obrazok, ovladanie prev/pauza/next/stop, priebeh relacie z EPG.
+    // M625: a media notification (MediaStyle + MediaSession) like Spotify —
+    // the picon as the image, prev/pause/next/stop controls, programme progress from the EPG.
     private var session: android.media.session.MediaSession? = null
     private var artwork: android.graphics.Bitmap? = null
-    private var artworkFor: String? = null          // uuid stanice, pre ktoru je artwork
+    private var artworkFor: String? = null          // the uuid of the station the artwork is for
     private val epgHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val epgExpired = Runnable { updateNotification(player?.isPlaying == true) }
 
@@ -81,7 +81,7 @@ class RadioPlayerService : Service() {
         curName = name
         createChannel()
         ensureSession()                       // M625
-        if (artworkFor != uuid) {             // M625: nova stanica -> zatial bez piconu
+        if (artworkFor != uuid) {             // M625: a new station -> no picon yet
             artwork = RadioArtwork.render(this, null)
             artworkFor = uuid
             loadArtwork(uuid, RadioCenter.piconUrl.value)
@@ -91,8 +91,8 @@ class RadioPlayerService : Service() {
         startForeground(NOTIF_ID, buildNotification(playing = true))
         acquireLocks()   // M623
         releasePlayer()
-        // M394-fix: uvolni pripadny TV stream (aj PiP) — pri limite 1 pripojenia
-        // by server radio inak odmietol, kym stary stream drzi slot
+        // M394-fix: release any TV stream (including PiP) — with a limit of 1 connection
+        // the server would otherwise refuse the radio while the old stream holds the slot
         closedTvForStart = PlayerActivity.closeActive()
         runCatching {
             val vlc = LibVLC(this, arrayListOf(
@@ -113,7 +113,7 @@ class RadioPlayerService : Service() {
                     }
                     MediaPlayer.Event.Paused -> {
                         RadioCenter.playing.value = false
-                        releaseLocks()   // M623: v pauze zamky netreba (bateria)
+                        releaseLocks()   // M623: while paused the locks are not needed (battery)
                         updateNotification(playing = false)
                     }
                     MediaPlayer.Event.EncounteredError,
@@ -130,11 +130,11 @@ class RadioPlayerService : Service() {
         RadioCenter.stationUuid.value = uuid
     }
 
-    /** Rozhodne rovnako ako prehravac: digest-only -> feeder (FD), inak priama URL. */
+    /** Decides the same way as the player: digest-only -> feeder (FD), otherwise a direct URL. */
     private fun attachMediaAndPlay(vlc: LibVLC, p: MediaPlayer, url: String) {
         val server = curServer
         if (server == null || server.username.isEmpty()) {
-            // bez creds alebo neznamy server -> priama URL
+            // no creds or an unknown server -> a direct URL
             scope.launch {
                 if (closedTvForStart) kotlinx.coroutines.delay(400)  // M394-fix
                 if (player === p) setDirectMedia(vlc, p, url)
@@ -142,11 +142,11 @@ class RadioPlayerService : Service() {
             return
         }
         scope.launch {
-            if (closedTvForStart) kotlinx.coroutines.delay(400)  // M394-fix: nech TV stihne pustit slot
+            if (closedTvForStart) kotlinx.coroutines.delay(400)  // M394-fix: so that the TV has time to release the slot
             val needsFeeder = withContext(Dispatchers.IO) {
                 runCatching { DvrAuthProbe.needsFeeder(server, stripCreds(url)) }.getOrDefault(false)
             }
-            if (player !== p) return@launch  // medzitym prepnute/zastavene
+            if (player !== p) return@launch  // switched/stopped in the meantime
             if (needsFeeder) {
                 httpFeeder?.stop()
                 val feeder = HttpTsFeeder(server, stripCreds(url), 0L)
@@ -174,7 +174,7 @@ class RadioPlayerService : Service() {
         p.play()
     }
 
-    /** Odstrani user:pass@ z URL (auth riesi feeder cez OkHttp hlavicku). M676: spolocne v MediaFactory. */
+    /** Removes user:pass@ from the URL (auth is handled by the feeder via an OkHttp header). M676: shared in MediaFactory. */
     private fun stripCreds(url: String): String = MediaFactory.stripCreds(url)
 
     private fun togglePlayPause() {
@@ -206,12 +206,12 @@ class RadioPlayerService : Service() {
         libVlc = null
     }
 
-    // --- audio focus: pri strate pauza (telefonat, ina appka) ---
+    // --- audio focus: pause on loss (a phone call, another app) ---
     private val focusListener = AudioManager.OnAudioFocusChangeListener { change ->
         when (change) {
             AudioManager.AUDIOFOCUS_LOSS,
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> player?.pause()
-            AudioManager.AUDIOFOCUS_GAIN -> { /* nechavame na pouzivatela */ }
+            AudioManager.AUDIOFOCUS_GAIN -> { /* we leave it to the user */ }
         }
     }
 
@@ -246,7 +246,7 @@ class RadioPlayerService : Service() {
         }
     }
 
-    // --- notifikacia ---
+    // --- notification ---
     private fun createChannel() {
         if (Build.VERSION.SDK_INT >= 26) {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -268,11 +268,11 @@ class RadioPlayerService : Service() {
         )
 
     /**
-     * M625: medialna notifikacia. Framework MediaStyle (bez androidx.media) naviazany
-     * na MediaSession — Android 13+ z nej kresli velku kartu s obrazkom, farbami
-     * odvodenymi z artworku (RadioArtwork = farby appky) a lištou priebehu relacie;
-     * starsie verzie klasicky MediaStyle s tromi tlacidlami v kompaktnom pohlade.
-     * Prev/next len ak je v snapshote viac stanic.
+     * M625: the media notification. The framework MediaStyle (without androidx.media) bound
+     * to a MediaSession — Android 13+ draws a large card from it with the image, colours
+     * derived from the artwork (RadioArtwork = the app's colours) and a programme progress bar;
+     * older versions get the classic MediaStyle with three buttons in the compact view.
+     * Prev/next only if there is more than one station in the snapshot.
      */
     private fun buildNotification(playing: Boolean): android.app.Notification {
         val openApp = PendingIntent.getActivity(
@@ -308,7 +308,7 @@ class RadioPlayerService : Service() {
             if (playing) R.string.pause else R.string.play, ACTION_TOGGLE); compact.add(compact.size)
         if (multi) { action(android.R.drawable.ic_media_next, R.string.radio_next_station, ACTION_NEXT); compact.add(compact.size) }
         action(android.R.drawable.ic_menu_close_clear_cancel, R.string.pm_close, ACTION_STOP)
-        if (!multi) compact.add(compact.size)   // bez prev/next: pauza + zavriet v kompaktnom
+        if (!multi) compact.add(compact.size)   // without prev/next: pause + close in the compact view
 
         val style = android.app.Notification.MediaStyle()
         session?.let { style.setMediaSession(it.sessionToken) }
@@ -317,7 +317,7 @@ class RadioPlayerService : Service() {
         return b.build()
     }
 
-    /** EPG riadok, len kym relacia realne bezi (po konci by bol zavadzajuci). */
+    /** The EPG line, only while the programme is really running (after it ends it would be misleading). */
     private fun currentEpgLine(): String {
         val title = RadioCenter.nowTitle.value.ifBlank { curEpg }
         val stop = RadioCenter.nowStop.value
@@ -355,7 +355,7 @@ class RadioPlayerService : Service() {
         artworkFor = null
     }
 
-    /** Nazov stanice, relacia, artwork a dlzka relacie (pre lištu priebehu). */
+    /** The station name, the programme, the artwork and the programme length (for the progress bar). */
     private fun updateSessionMetadata() {
         val ms = session ?: return
         val epg = currentEpgLine()
@@ -369,14 +369,14 @@ class RadioPlayerService : Service() {
         if (epg.isNotBlank() && start > 0 && stop > start) {
             mb.putLong(android.media.MediaMetadata.METADATA_KEY_DURATION, (stop - start) * 1000L)
         } else {
-            mb.putLong(android.media.MediaMetadata.METADATA_KEY_DURATION, -1L)   // zivy stream bez lišty
+            mb.putLong(android.media.MediaMetadata.METADATA_KEY_DURATION, -1L)   // a live stream without a bar
         }
         artwork?.let {
             mb.putBitmap(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART, it)
             mb.putBitmap(android.media.MediaMetadata.METADATA_KEY_ART, it)
         }
         runCatching { ms.setMetadata(mb.build()) }
-        // po konci relacie prekresli (bez EPG riadku a bez lišty)
+        // after the programme ends redraw (without the EPG line and without the bar)
         epgHandler.removeCallbacks(epgExpired)
         if (epg.isNotBlank() && stop > 0) {
             val delay = stop * 1000L - System.currentTimeMillis()
@@ -384,7 +384,7 @@ class RadioPlayerService : Service() {
         }
     }
 
-    /** Stav prehravania; pozicia = cas od zaciatku relacie (system ju posuva sam pri speed 1). */
+    /** Playback state; the position = the time since the start of the programme (the system advances it itself at speed 1). */
     private fun updatePlaybackState(playing: Boolean) {
         val ms = session ?: return
         val start = RadioCenter.nowStart.value
@@ -410,7 +410,7 @@ class RadioPlayerService : Service() {
         runCatching { ms.setPlaybackState(st) }
     }
 
-    /** Picon stanice na pozadi; po nacitani prekresli artwork, metadata aj notifikaciu. */
+    /** The station's picon in the background; once loaded it redraws the artwork, the metadata and the notification. */
     private fun loadArtwork(uuid: String, piconUrl: String?) {
         if (piconUrl.isNullOrBlank()) return
         scope.launch {
@@ -429,7 +429,7 @@ class RadioPlayerService : Service() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        // Appka zmazana z recents -> radio ma stichnut, nie hrat "duchovsky" dalej
+        // The app was swiped away from recents -> the radio should go quiet, not keep playing like a "ghost"
         stopEverything()
         super.onTaskRemoved(rootIntent)
     }
@@ -459,7 +459,7 @@ class RadioPlayerService : Service() {
         private const val CHANNEL_ID = "radio_playback"
         private const val NOTIF_ID = 4210
 
-        /** Zastavi mini radio (napr. pri starte plneho prehravaca). */
+        /** Stops the mini radio (e.g. when the full player starts). */
         fun stop(context: Context) {
             runCatching {
                 context.startService(

@@ -3,13 +3,13 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * Rezim deinterlacingu prehravaca. Prekladane DVB vysielanie (576i/1080i) tvori
- * na rychlych zaberoch vodorovne "hrebenove" pasy (combing). Deinterlacing ich
- * odstrani.
- *  - AUTO: libVLC deinterlacuje len ked je zdroj prekladany (odporucane)
- *  - OFF:  vypnute
- *  - BOB / YADIF / YADIF2X / X: konkretny algoritmus (od najlacnejsieho po najkvalitnejsi)
- * Ulozene globalne v SharedPreferences.
+ * Player deinterlacing mode. Interlaced DVB broadcasts (576i/1080i) produce
+ * horizontal "comb" stripes on fast shots (combing). Deinterlacing removes
+ * them.
+ *  - AUTO: libVLC deinterlaces only when the source is interlaced (recommended)
+ *  - OFF:  disabled
+ *  - BOB / YADIF / YADIF2X / X: a specific algorithm (from cheapest to highest quality)
+ * Stored globally in SharedPreferences.
  */
 object DeinterlacePref {
     private const val PREFS = "app_prefs"

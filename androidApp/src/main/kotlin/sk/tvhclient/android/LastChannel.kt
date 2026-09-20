@@ -3,9 +3,9 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * Zapamatanie posledne zvoleneho live kanala (per server), aby po spusteni
- * aplikacie zoznam zafokusoval/scrolloval na ten kanal namiesto vyhladavania.
- * Pri prvom spusteni (ziadny zaznam) sa pouzije prvy kanal (cislo 1).
+ * Remembering the last selected live channel (per server), so that after the app
+ * starts the list focuses/scrolls to that channel instead of searching.
+ * On the first start (no record) the first channel (number 1) is used.
  */
 object LastChannel {
     private const val PREFS = "app_prefs"
@@ -17,7 +17,7 @@ object LastChannel {
             .getString(KEY + serverId, null)
     }
 
-    /** M391: zabudni posledny kanal (zmena sposobu pripojenia -> stare id neplatia). */
+    /** M391: forget the last channel (a change of connection method -> the old ids are invalid). */
     fun clear(context: Context, serverId: String?) {
         if (serverId == null) return
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

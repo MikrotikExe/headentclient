@@ -1,11 +1,11 @@
 package sk.tvhclient.shared.net
 
 /**
- * M256 — cista Kotlin implementacia SHA-512/256 (FIPS 180-4), nezavisla od
- * systemoveho MessageDigest. Dovod: Android < 8 (a niektore Conscrypt buildy)
- * nemaju "SHA-512/256" v JCA, takze getInstance(...) hodil vynimku a appka pri
- * digest serveri s tymto hash typom padala. Tu to pocitame sami -> funguje
- * na vsetkych zariadeniach. Algoritmus overeny oproti hashlib (zhodne vektory).
+ * M256 — a pure Kotlin implementation of SHA-512/256 (FIPS 180-4), independent of
+ * the system MessageDigest. The reason: Android < 8 (and some Conscrypt builds)
+ * do not have "SHA-512/256" in JCA, so getInstance(...) threw an exception and the app
+ * crashed against a digest server using this hash type. Here we compute it ourselves -> it works
+ * on all devices. The algorithm is verified against hashlib (identical vectors).
  */
 internal object Sha512_256 {
 

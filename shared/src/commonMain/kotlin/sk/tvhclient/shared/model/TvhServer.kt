@@ -11,17 +11,17 @@ data class TvhServer(
     val useHttps: Boolean = false,
     val username: String = "",
     val password: String = "",
-    // M502: prazdne = profil urci server podla konta. „pass" sa doplna az pri
-    // stavbe HTTP URL, kde je nutny; HTSP ziadny profil posielat nemusi.
+    // M502: empty = the server decides the profile based on the account. "pass" is only added
+    // when building the HTTP URL, where it is required; HTSP does not have to send any profile.
     val profile: String = "",
-    // M486: nazov DVR profilu (konfiguracie nahravania) na serveri; prazdne =
-    // necha rozhodnut server podla prav konta. Ukladame NAZOV, nie uuid —
-    // HTSP addDvrEntry berie nazov, HTTP si uuid dohlada podla nazvu.
+    // M486: name of the DVR profile (recording configuration) on the server; empty =
+    // let the server decide based on the account's permissions. We store the NAME, not the uuid —
+    // HTSP addDvrEntry takes the name, HTTP looks the uuid up by the name.
     val dvrConfig: String = "",
-    // auto = ponuka basic aj digest (Ktor vyberie podla servera);
-    // basic / digest = vynuti jednu; none = bez auth (verejny server)
+    // auto = offers both basic and digest (Ktor picks according to the server);
+    // basic / digest = forces one; none = no auth (public server)
     val authMode: String = "auto",
-    // http = REST API (9981); htsp = binarny protokol (9982) na metadata
+    // http = REST API (9981); htsp = the binary protocol (9982) for metadata
     val connectionMode: String = "http",
     val htspPort: Int = 9982
 ) {

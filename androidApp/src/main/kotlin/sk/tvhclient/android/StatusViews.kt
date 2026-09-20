@@ -30,8 +30,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 /**
- * Jednotne stavove obrazovky (nacitavanie / ziadny server / chyba / prazdne)
- * pouzivane naprie Kanalmi, Radiom, Archivom a EPG.
+ * Unified state screens (loading / no server / error / empty)
+ * used across Channels, Radio, Archive and EPG.
  */
 @Composable
 fun StatusMessage(
@@ -43,7 +43,7 @@ fun StatusMessage(
     modifier: Modifier = Modifier
 ) {
     if (isModernUi()) {
-        // Moderny rezim (M331): ikona v teal cipe, tucny titulok, akcia ako pilulka
+        // Modern mode (M331): icon in a teal chip, bold title, action as a pill
         val cs = MaterialTheme.colorScheme
         Box(modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

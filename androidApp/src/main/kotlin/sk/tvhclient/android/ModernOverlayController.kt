@@ -4,12 +4,12 @@ import android.view.KeyEvent
 import androidx.compose.runtime.mutableStateOf
 
 /**
- * M327 / M328 / M642: moderný TV overlay (karty kanálov + ovládacia lišta) a jeho menu
- * „Viac" — stav a klávesy, vyclenené z PlayerActivity. Vykreslenie robí ModernTvOverlay
- * a ModernMoreMenu v PlayerUi; sem chodia len signály (poke/exec) a indexy.
+ * M327 / M328 / M642: modern TV overlay (channel cards + control bar) and its
+ * "More" menu — state and keys, split out of PlayerActivity. Drawing is done by ModernTvOverlay
+ * and ModernMoreMenu in PlayerUi; only signals (poke/exec) and indices come here.
  *
- * [live] dáva počet kanálov a aktuálny index; [seekable]/[timeshiftEngaged] ovplyvňujú
- * položky lišty; akcie idú cez [Actions] (prehrávanie, prepínanie, zoznam, menu…).
+ * [live] supplies the channel count and the current index; [seekable]/[timeshiftEngaged] affect
+ * the bar's items; actions go through [Actions] (playback, switching, list, menu…).
  */
 internal class ModernOverlayController(
     private val live: LiveSession,
@@ -31,32 +31,32 @@ internal class ModernOverlayController(
         fun openProfileMenu()
         fun toggleRecordCurrent()
         fun openTeletext()
-        /** Podržanie OK v overlayi = menu fokusovaného kanála (M338). Aktivita nastaví okLongFired. */
+        /** Holding OK in the overlay = the focused channel's menu (M338). The activity sets okLongFired. */
         fun openChannelContextMenu(cardIndex: Int)
     }
 
     val visible = mutableStateOf(false)
-    val row = mutableStateOf(0)      // 0 = karty, 1 = lista
+    val row = mutableStateOf(0)      // 0 = cards, 1 = bar
     val card = mutableStateOf(0)
     val strip = mutableStateOf(0)
     val poke = mutableStateOf(0)
-    val exec = mutableStateOf(0)     // signal pre composable
+    val exec = mutableStateOf(0)     // signal for the composable
     val execId = mutableStateOf("")
     private var okLong = false
-    // OK z prehravania: overlay otvarame az na OK-UP, aby pri podrzani nepreblikol (M328)
+    // OK from playback: we open the overlay only on OK-UP, so it does not flash when OK is held (M328)
     private var okPending = false
 
-    // "Viac" menu listy (M327): menej pouzivane polozky — rezerva pre dlhsie preklady
+    // The bar's "More" menu (M327): less used items — headroom for longer translations
     val moreVisible = mutableStateOf(false)
     val moreIdx = mutableStateOf(0)
 
     val isOpen: Boolean get() = visible.value
     val isMoreOpen: Boolean get() = moreVisible.value
 
-    /** Polozky ovladacej listy overlayu (transport v strede; pretacanie len pri timeshiftu). */
+    /** Items of the overlay's control bar (transport in the middle; seeking only with timeshift). */
     fun stripIds(): List<String> = buildList {
         add("epg"); add("audio")
-        // prepinanie kanalov priamo z listy (M323) — len pri live s viac kanalmi
+        // channel switching straight from the bar (M323) — only on live with several channels
         val zap = !seekable() && live.uuids.size > 1
         if (zap) add("chprev")
         if (timeshiftEngaged()) add("tsrew")
@@ -66,7 +66,7 @@ internal class ModernOverlayController(
         add("subs"); add("more")
     }
 
-    // M383: "profile" pribudne len ked je prepinac dostupny (HTTP live)
+    // M383: "profile" is added only when the switcher is available (HTTP live)
     fun moreIds(): List<String> = buildList {
         add("list"); add("sleep"); add("info")
         if (profileSwitchAvailable()) add("profile")
@@ -99,14 +99,14 @@ internal class ModernOverlayController(
         visible.value = true
     }
 
-    /** Otvorí overlay s kartou na aktuálnom kanáli (po prepnutí CH+/- so zapnutým prekryvom). */
+    /** Opens the overlay with the card on the current channel (after a CH+/- switch with the overlay on). */
     fun openAtCurrent() { card.value = live.indexState.value.coerceAtLeast(0); open() }
 
     fun close() { visible.value = false }
 
     private fun syncCard() { card.value = live.indexState.value.coerceAtLeast(0); poke.value++ }
 
-    /** OK v overlayi: karta -> prepni kanal; lista -> vykonaj akciu. */
+    /** OK in the overlay: card -> switch channel; bar -> run the action. */
     private fun activate() {
         if (row.value == 0) {
             execId.value = "card"; exec.value++
@@ -126,7 +126,7 @@ internal class ModernOverlayController(
         }
     }
 
-    /** Klávesy menu „Viac" (M327). Vždy spotrebuje. */
+    /** Keys of the "More" menu (M327). Always consumes. */
     fun handleMoreKey(kc: Int, down: Boolean, event: KeyEvent): Boolean {
         if (down) when (kc) {
             KeyEvent.KEYCODE_DPAD_DOWN -> { moreIdx.value = (moreIdx.value + 1) % moreIds().size; return true }
@@ -140,8 +140,8 @@ internal class ModernOverlayController(
     }
 
     /**
-     * Klávesy otvoreného overlayu. Vráti false len pre hlasitosť (nech ide systému),
-     * všetko ostatné spotrebuje.
+     * Keys of the open overlay. Returns false only for volume (let it go to the system),
+     * everything else is consumed.
      */
     fun handleKey(kc: Int, down: Boolean, event: KeyEvent): Boolean {
         val ids = stripIds()
@@ -174,15 +174,15 @@ internal class ModernOverlayController(
                 }
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
                     if (event.repeatCount == 1) {
-                        // Podrzanie OK v overlay = moznosti FOKUSOVANEHO kanala
-                        // (Info / Prehrat od zaciatku / Zamok) — M338. Velky zoznam
-                        // ostava cez Viac -> Kanaly a dlhe OK z cisteho prehravania.
+                        // Holding OK in the overlay = options for the FOCUSED channel
+                        // (Info / Play from start / Lock) — M338. The big list
+                        // stays reachable via More -> Channels and a long OK from plain playback.
                         okLong = false
                         actions.openChannelContextMenu(card.value)
                     }
                     return true
                 }
-                // M407-fix2: CH+/- a Page+/- prepinaju kanal aj v modernom overlay
+                // M407-fix2: CH+/- and Page+/- switch the channel in the modern overlay too
                 KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP -> {
                     if (!seekable() && live.uuids.size > 1) { actions.switchLive(+1); syncCard() }
                     return true
@@ -210,9 +210,9 @@ internal class ModernOverlayController(
     }
 
     /**
-     * OK z čistého prehrávania na TV (M328): krátke OK -> overlay až na UP; podržanie
-     * (repeatCount 1) -> rovno veľký zoznam bez prebliku overlayu. Vždy spotrebuje.
-     * [onLongOpenList] volá aktivita (nastaví okLongFired a otvorí zoznam).
+     * OK from plain playback on TV (M328): short OK -> overlay only on UP; holding
+     * (repeatCount 1) -> straight to the big list with no overlay flash. Always consumes.
+     * [onLongOpenList] is called by the activity (it sets okLongFired and opens the list).
      */
     fun handlePlaybackOk(down: Boolean, event: KeyEvent, onLongOpenList: () -> Unit): Boolean {
         if (down && event.repeatCount == 0) { okPending = true; return true }

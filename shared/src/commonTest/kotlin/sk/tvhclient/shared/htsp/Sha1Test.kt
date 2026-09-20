@@ -4,8 +4,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 /**
- * Testy čistého SHA-1 (FIPS 180-1) použitého na HTSP digest auth
- * (SHA1(password_bytes + challenge_bytes)). Známe testovacie vektory.
+ * Tests of the pure SHA-1 (FIPS 180-1) used for HTSP digest auth
+ * (SHA1(password_bytes + challenge_bytes)). Known test vectors.
  */
 class Sha1Test {
 
@@ -34,7 +34,7 @@ class Sha1Test {
 
     @Test
     fun longInputCrossesBlockBoundary() {
-        // 56 znakov -> padding tlačí do druhého 64-bajtového bloku
+        // 56 characters -> the padding pushes into the second 64-byte block
         assertEquals(
             "84983e441c3bd26ebaae4aa1f95129e5e54670f1",
             sha1("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq")
@@ -48,7 +48,7 @@ class Sha1Test {
 
     @Test
     fun authConcatenationOrder() {
-        // SHA1(password + challenge) — overenie že spojenie bajtov sedí
+        // SHA1(password + challenge) — verification that the concatenation of the bytes is right
         val pwd = "secret".encodeToByteArray()
         val challenge = byteArrayOf(0x01, 0x02, 0x03, 0x04)
         val combined = Sha1.digest(pwd + challenge)

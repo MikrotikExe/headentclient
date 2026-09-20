@@ -3,13 +3,13 @@ package sk.tvhclient.android
 import android.content.Intent
 
 /**
- * M658: všetky intent extra prehrávača na jednom mieste (vyclenené z PlayerActivity.onCreate).
- * Čistý držiak dát — číta sa raz cez [from], aktivita si z neho priradí lokály a polia
- * v pôvodnom poradí, takže správanie sa nemení. Konštanty kľúčov ostávajú
- * v `PlayerActivity.companion` (používajú ich aj volajúci).
+ * M658: all player intent extras in one place (extracted from PlayerActivity.onCreate).
+ * A pure data holder — read once via [from], the activity assigns its locals and fields
+ * from it in the original order, so behaviour does not change. The key constants stay
+ * in `PlayerActivity.companion` (callers use them too).
  */
 internal class PlayerArgs private constructor(
-    /** Navrat na povodny zivy kanal po zatvoreni (pri "Prehrat od zaciatku" z prehravaca). */
+    /** Return to the original live channel after closing (for "Play from start" from the player). */
     val returnLiveUuid: String?,
     val returnLiveTitle: String?,
     val channelUuid: String?,
@@ -27,7 +27,7 @@ internal class PlayerArgs private constructor(
     val dvrProgStartSec: Long,
     val dvrProgStopSec: Long,
     val dvrRealStartSec: Long,
-    /** M605-fix: zoznam najprv (bez podmienky na počet kanálov — tú rieši aktivita). */
+    /** M605-fix: list first (no condition on the channel count — the activity handles that). */
     val listFirst: Boolean
 ) {
     companion object {

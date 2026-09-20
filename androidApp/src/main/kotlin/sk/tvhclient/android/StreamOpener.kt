@@ -10,14 +10,14 @@ import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * M655: otváranie streamu v prehrávači (vyclenené z PlayerActivity): priame HTTP, HTTP cez
- * feeder (digest-only, M255), DVR cez feeder (M253), HTSP live (M162) a auto-detekcia auth
- * (M390) vrátane opravy starej HTSP identity kanála v HTTP režime (M390-fix4).
+ * M655: opening a stream in the player (extracted from PlayerActivity): direct HTTP, HTTP via
+ * feeder (digest-only, M255), DVR via feeder (M253), HTSP live (M162) and auth auto-detection
+ * (M390) including the fix for an old HTSP channel identity in HTTP mode (M390-fix4).
  *
- * Poradie krokov v každej ceste je zhodné s pôvodným kódom: ensureHealthyPlayer (M539) ->
- * teletext reset (M552) -> zastavenie feederov + HTSP príznaky -> resetTimeshift -> URL ->
- * médium -> startPlayback (M539-fix2). Stav drží [StreamState]; čo siaha na aktivitu
- * (prehrávač, teletext, titulkový overlay, playlist) chodí cez [Hooks].
+ * The order of steps in each path is identical to the original code: ensureHealthyPlayer (M539) ->
+ * teletext reset (M552) -> stopping the feeders + HTSP flags -> resetTimeshift -> URL ->
+ * medium -> startPlayback (M539-fix2). The state is held by [StreamState]; whatever touches the activity
+ * (player, teletext, subtitle overlay, playlist) goes through [Hooks].
  */
 internal class StreamOpener(
     private val ctx: Context,
@@ -39,12 +39,12 @@ internal class StreamOpener(
         fun teletextFeedHtsp(es: ByteArray)
         fun subtitlePage(page: sk.tvhclient.shared.htsp.DvbSubtitleDecoder.DecodedPage, ms: Long)
         fun subtitleReset()
-        /** Náhradný názov kanála pri oprave identity (EXTRA_TITLE z intentu). */
+        /** Substitute channel name used when fixing the identity (EXTRA_TITLE from the intent). */
         fun fallbackTitle(): String?
     }
 
-    /** M255 — live cez HTTP na digest-only serveri: stiahnut cez feeder (rovnako
-     *  ako DVR), lebo libVLC digest cez URL nezvlada. Pre live netreba seek. */
+    /** M255 — live over HTTP on a digest-only server: download via the feeder (same
+     *  as DVR), because libVLC cannot handle digest via the URL. No seek is needed for live. */
     fun playLiveViaFeeder(server: TvhServer, url: String) {
         hooks.ensureHealthyPlayer()
         hooks.resetTeletext()
@@ -60,10 +60,10 @@ internal class StreamOpener(
         hooks.startPlayback()
     }
 
-    /** M390-fix4: v HTTP rezime prisla stara (HTSP ciselna) identita kanala —
-     *  server ju odmieta (HTTP 400). Najdi cez REST spravne uuid podla nazvu
-     *  alebo cisla kanala, oprav playlist a prehraj s opravenym uuid.
-     *  Vracia true, ak sa o url postara sama (spustila asynchronne riesenie). */
+    /** M390-fix4: in HTTP mode an old (HTSP numeric) channel identity arrived —
+     *  the server rejects it (HTTP 400). Find the correct uuid via REST by channel name
+     *  or number, fix the playlist and play with the corrected uuid.
+     *  Returns true if it handles the url itself (it started an asynchronous resolution). */
     private fun healStaleLiveId(server: TvhServer, url: String): Boolean {
         val pathId = MediaFactory.stripCreds(url).substringAfter("/stream/channel/", "").substringBefore('?')
         if (pathId.isBlank() || MediaFactory.looksLikeRestUuid(pathId)) return false
@@ -90,13 +90,13 @@ internal class StreamOpener(
                 stream.currentStreamUrl = newUrl
                 playLiveAuto(server, newUrl)
             } else {
-                playHttp(url)   // nenaslo sa -> povodna cesta (reconnect to ohlasi)
+                playHttp(url)   // not found -> the original path (reconnect will report it)
             }
         }
         return true
     }
 
-    /** Live HTTP s auto-detekciou auth: digest-only -> feeder, inak priama cesta. */
+    /** Live HTTP with auth auto-detection: digest-only -> feeder, otherwise the direct path. */
     fun playLiveAuto(server: TvhServer, url: String) {
         if (server.connectionMode != "htsp" && healStaleLiveId(server, url)) return
         if (server.username.isEmpty()) { playHttp(url); return }
@@ -106,15 +106,15 @@ internal class StreamOpener(
             return
         }
         scope.launch {
-            // M390: null = sonda zlyhala -> skus priamu cestu, ale vysledok necachuj;
-            // ak priama cesta pada, scheduleReconnect prepne na feeder.
+            // M390: null = the probe failed -> try the direct path, but do not cache the result;
+            // if the direct path fails, scheduleReconnect switches to the feeder.
             val nf = withContext(Dispatchers.IO) { DvrAuthProbe.needsFeederOrNull(server, MediaFactory.stripCreds(url)) }
             stream.liveNeedsFeeder = nf
             if (nf == true) playLiveViaFeeder(server, url) else playHttp(url)
         }
     }
 
-    /** Bezne HTTP prehravanie (zastavi pripadny HTSP feed). */
+    /** Ordinary HTTP playback (stops any HTSP feed). */
     fun playHttp(url: String) {
         hooks.ensureHealthyPlayer()
         hooks.resetTeletext()
@@ -128,25 +128,25 @@ internal class StreamOpener(
     }
 
     /**
-     * M253 — DVR/archiv cez HttpTsFeeder: appka stiahne dvrfile s digest auth
-     * (OkHttp + DigestAuthenticator zo shared/net) a podava libVLC cez pipe. Rovny princip ako
-     * HTSP live; rieši digest-only servery kde creds v URL (user:pass@host)
-     * libVLC nezvladne. startByte = pripadny offset pre resume cez HTTP Range.
+     * M253 — DVR/archive via HttpTsFeeder: the app downloads the dvrfile with digest auth
+     * (OkHttp + DigestAuthenticator from shared/net) and feeds libVLC through a pipe. Same principle as
+     * HTSP live; solves digest-only servers where libVLC cannot handle creds in the URL
+     * (user:pass@host). startByte = an optional offset for resume via HTTP Range.
      */
     fun playDvrViaFeeder(server: TvhServer, url: String, startByte: Long = 0L) {
         hooks.ensureHealthyPlayer()
-        hooks.resetTeletext()   // archív: teletext zatiaľ len pri živom
+        hooks.resetTeletext()   // archive: teletext for live only so far
         stream.resetForHttp(keepHttpFeeder = true)
         hooks.resetTimeshift()
         stream.currentStreamUrl = url
         val feeder = HttpTsFeeder(server, MediaFactory.stripCreds(url), startByte)
         stream.httpFeeder = feeder
         val fd = feeder.start(scope)
-        // M509: NEvnucuj TS demuxer (demux = null). Nahravka moze byt v lubovolnom kontajneri
-        // podla DVR profilu (matroska, mp4, webm) — natvrdo ts znamenalo, ze
-        // VLC subor nerozobral, nenasiel video stopu a appka zobrazila cierno s
-        // radiovym logom. Subor sa cita od zaciatku, takze si kontajner urci
-        // spolahlivo sam (EBML / ftyp / TS sync hlavicka).
+        // M509: do NOT force the TS demuxer (demux = null). A recording can be in any container
+        // depending on the DVR profile (matroska, mp4, webm) — hard-coded ts meant that
+        // VLC did not parse the file, found no video track and the app showed black with
+        // the radio logo. The file is read from the beginning, so it determines the container
+        // reliably by itself (EBML / ftyp / TS sync header).
         val m = media.forFeeder(fd, null, BufferPref.htspMs(ctx))
         player().media = m
         m.release()
@@ -154,9 +154,9 @@ internal class StreamOpener(
     }
 
     /**
-     * M162 — zivy kanal cez HTSP (premuxovany na MPEG-TS, podavany libVLC cez pipe).
-     * Vracia true ak sa podarilo spustit. Pouzite len ak je timeshift zapnuty a server
-     * ho podporuje; inak ostava HTTP cesta.
+     * M162 — a live channel over HTSP (remuxed to MPEG-TS, fed to libVLC through a pipe).
+     * Returns true if it started successfully. Used only if timeshift is enabled and the server
+     * supports it; otherwise the HTTP path remains.
      */
     fun playHtspLive(server: TvhServer, channelId: Long, timeshift: Boolean): Boolean {
         return try {
@@ -165,14 +165,14 @@ internal class StreamOpener(
             stream.httpFeeder?.stop(); stream.httpFeeder = null
             val feeder = HtspTsFeeder(server, if (timeshift) 3600 else 0)
             stream.htspFeeder = feeder
-            // vlastne titulky: dekódovanu stranku posli do overlay-u (synchronizuje sa na cas)
+            // our own subtitles: send the decoded page to the overlay (it syncs on time)
             feeder.onSubtitlePage = { page, ms -> hooks.subtitlePage(page, ms) }
             hooks.subtitleReset()
-            // M552: teletext — stopa TELETEXT ide do vlastného dekodéra, nie do libVLC
+            // M552: teletext — the TELETEXT track goes to our own decoder, not to libVLC
             hooks.resetTeletext()
             feeder.onTeletextAvailable = { a -> hooks.teletextSetHtspAvailable(a) }
             feeder.onTeletext = { es -> hooks.teletextFeedHtsp(es) }
-            // novy kanal = novy zoznam titulkov, vynuluj zvoleny jazyk
+            // a new channel = a new subtitle list, reset the chosen language
             tracks.selectedSubEs.value = -1
             tracks.desiredSubName = null
             hooks.resetTimeshift()
@@ -189,9 +189,9 @@ internal class StreamOpener(
         }
     }
 
-    // ---- M670: znovupripojenie / znovuotvorenie / pretocenie (telá lambd z aktivity) ----
+    // ---- M670: reconnect / reopen / seek (lambda bodies from the activity) ----
 
-    /** Priame HTTP medium bez resetu feederov/teletextu (reconnect, reopen, seek), voliteľne s :start-time. */
+    /** A direct HTTP medium without resetting the feeders/teletext (reconnect, reopen, seek), optionally with :start-time. */
     private fun playUrlDirect(url: String, startTimeSec: Long?) {
         hooks.ensureHealthyPlayer()   // M539
         val m = media.forUrl(url)
@@ -201,29 +201,29 @@ internal class StreamOpener(
         hooks.startPlayback()   // M539-fix2
     }
 
-    /** Jeden pokus o znovupripojenie živého streamu (ReconnectController.scheduleReconnect). */
+    /** One attempt to reconnect the live stream (ReconnectController.scheduleReconnect). */
     fun reconnectAttempt(attempt: Int, seekable: Boolean) {
         val srv = live.server
         val cid = live.uuids.getOrNull(live.index)?.toLongOrNull()
         val url = stream.currentStreamUrl
         if (stream.htspStream && srv != null && cid != null) {
-            // HTSP kanal -> znovu napoj cez HTSP (zachova HTSP/timeshift)
+            // HTSP channel -> hook it up via HTSP again (keeps HTSP/timeshift)
             playHtspLive(srv, cid, stream.htspLive)
         } else if (stream.liveNeedsFeeder == true && srv != null && url != null) {
             playLiveViaFeeder(srv, url)   // HTTP digest-only -> feeder
         } else if (url != null) {
-            // M390: priame HTTP live na niektorych boxoch pada v libVLC (auth/transport),
-            // hoci feeder (OkHttp -> pipe) funguje — po 2. neuspesnom pokuse prepni na feeder.
+            // M390: direct HTTP live crashes in libVLC on some boxes (auth/transport),
+            // even though the feeder (OkHttp -> pipe) works — after the 2nd failed attempt switch to the feeder.
             if (attempt >= 2 && !seekable && srv != null && srv.username.isNotEmpty()) {
                 stream.liveNeedsFeeder = true
                 playLiveViaFeeder(srv, url)
             } else {
-                playUrlDirect(url, null)   // bezne HTTP
+                playUrlDirect(url, null)   // ordinary HTTP
             }
         }
     }
 
-    /** Znovu spusti aktualny zivy kanal tou istou cestou (HTSP / feeder / HTTP) — po vymene prehravaca. */
+    /** Restarts the current live channel by the same path (HTSP / feeder / HTTP) — after a player swap. */
     fun replayCurrentLive() {
         val srv = live.server
         val cid = live.uuids.getOrNull(live.index)?.toLongOrNull()
@@ -239,10 +239,10 @@ internal class StreamOpener(
         }
     }
 
-    /** In-progress nahravka: znovu otvor stream od [startSec] (feeder: od miesta, kam sme dosli). */
+    /** In-progress recording: reopen the stream from [startSec] (feeder: from the point we got to). */
     fun reopenDvrAt(url: String, startSec: Long) {
         if (stream.dvrViaFeeder) {
-            // pokracuj od miesta kam sme dosli (rastuci subor) cez HTTP Range
+            // continue from the point we got to (a growing file) via HTTP Range
             val srv = live.server ?: return
             val from = stream.httpFeeder?.bytesWritten ?: 0L
             playDvrViaFeeder(srv, url, from)
@@ -252,25 +252,25 @@ internal class StreamOpener(
     }
 
     /**
-     * Pretoc DVR nahravku PREBUDOVANIM streamu: priame URL -> nova Media s :start-time
-     * (libVLC seekuje cez HTTP Range); feeder/pipe -> restart HTTP feedu na odhadnutom
-     * byte-offsete (pipe sa neseekuje). [fileMs] = cielovy cas v subore, [offsetMs] = zaciatok
-     * relacie v subore, [fromMs] = odkial pretacame, [dur] = aktualne nahrate trvanie relacie.
+     * Seek a DVR recording by REBUILDING the stream: direct URL -> a new Media with :start-time
+     * (libVLC seeks via HTTP Range); feeder/pipe -> restart the HTTP feed at an estimated
+     * byte offset (a pipe cannot be seeked). [fileMs] = target time in the file, [offsetMs] = start of the
+     * programme in the file, [fromMs] = where we are seeking from, [dur] = currently recorded duration of the programme.
      */
     fun seekDvrFile(url: String, fileMs: Long, offsetMs: Long, fromMs: Long, dur: Long) {
         runCatching {
             if (stream.dvrViaFeeder) {
                 val srv = live.server ?: return
                 val feeder = stream.httpFeeder
-                // Presny prepocet cas->byte z GLOBALNEHO priemeru: celkova velkost suboru
-                // (Content-Range "/N") / celkovy cas suboru (offset + nahrate trvanie).
-                // Lokalny odhad z bytesWritten/playhead je nespolahlivy (byte vs cas nesedi).
+                // Exact time->byte conversion from the GLOBAL average: total file size
+                // (Content-Range "/N") / total file time (offset + recorded duration).
+                // A local estimate from bytesWritten/playhead is unreliable (bytes vs time do not match).
                 val total = feeder?.totalBytes ?: 0L
-                val fileDurMs = offsetMs + dur            // dur = aktualne nahrate trvanie relacie
+                val fileDurMs = offsetMs + dur            // dur = currently recorded duration of the programme
                 val targetByte: Long = if (total > 0 && fileDurMs > 0) {
                     (total.toDouble() / fileDurMs * fileMs).toLong().coerceIn(0L, total - 1)
                 } else {
-                    // fallback: lokalny odhad ak este nepoznam celkovu velkost
+                    // fallback: a local estimate if the total size is not known yet
                     val bytes = feeder?.bytesWritten ?: 0L
                     val fromFileMs = (offsetMs + fromMs).coerceAtLeast(1L)
                     val bpms = if (bytes > 0) bytes.toDouble() / fromFileMs else 0.0

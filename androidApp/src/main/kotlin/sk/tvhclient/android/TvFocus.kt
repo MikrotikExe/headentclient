@@ -18,19 +18,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 
 /**
- * Zvyraznenie pri fokuse (Android TV / D-pad). Prvok musi byt klikatelny
- * (clickable/combinedClickable mu da focus target) — tento modifier len
- * vykresli ramik a jemne pozadie ked je zafokusovany. Daj ho do chainu PRED
- * clickable, aby onFocusChanged videl jeho focus.
+ * Focus highlight (Android TV / D-pad). The element must be clickable
+ * (clickable/combinedClickable gives it a focus target) — this modifier only
+ * draws the border and a subtle background when it is focused. Put it in the chain BEFORE
+ * clickable, so that onFocusChanged sees its focus.
  *
- * Ramik ma vzdy 2.dp (len mení farbu), aby sa layout pri fokuse neposuval.
+ * The border is always 2.dp (only the colour changes), so the layout does not shift on focus.
  */
 /**
- * M395-fix2: NEVIDITELNY fokus pre cisto citatelne (neklikatelne) bloky na TV.
- * Ziadne zvyraznenie ani ramik — prvok je len focus target, takze D-pad sa nan
- * vie postavit a scroll kontajner ho automaticky odroluje do vyhladu (focusable
- * v Compose robi bringIntoView sam). Pouzi na informacne texty nad/pod
- * klikatelnymi prvkami, aby sa dali docitat: Column(Modifier.dpadReadable()).
+ * M395-fix2: INVISIBLE focus for purely readable (non-clickable) blocks on TV.
+ * No highlight and no border — the element is only a focus target, so the D-pad can
+ * land on it and the scroll container automatically scrolls it into view (focusable
+ * in Compose does bringIntoView by itself). Use it on informational texts above/below
+ * clickable elements so that they can be read to the end: Column(Modifier.dpadReadable()).
  */
 fun Modifier.dpadReadable(): Modifier =
     this.then(androidx.compose.ui.Modifier.focusable())
@@ -38,8 +38,8 @@ fun Modifier.dpadReadable(): Modifier =
 fun Modifier.dpadFocusable(shape: Shape = RoundedCornerShape(8.dp)): Modifier = composed {
     var focused by remember { mutableStateOf(false) }
     val primary = MaterialTheme.colorScheme.primary
-    // M339-fix2: fokus ako povodne (2dp ram + jemny podklad) — skalovanie z M331
-    // je prec (zvacsena karta pretiekla zo slotu a Lazy kontajnery orezavali ramy)
+    // M339-fix2: focus as it was originally (2dp border + subtle background) — the scaling from M331
+    // is gone (the enlarged card overflowed its slot and Lazy containers clipped the borders)
     this
         .onFocusChanged { focused = it.isFocused }
         .border(BorderStroke(2.dp, if (focused) primary else Color.Transparent), shape)

@@ -11,8 +11,8 @@ import kotlinx.serialization.json.Json
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * iOS: Darwin engine + stock Ktor basic/digest (MD5). Pre digest-only servery
- * so SHA-256/512 plati rovnake obmedzenie ako predtym; Android pokryva vsetko.
+ * iOS: Darwin engine + stock Ktor basic/digest (MD5). For digest-only servers
+ * with SHA-256/512 the same limitation applies as before; Android covers everything.
  */
 actual fun tvhHttpClient(server: TvhServer, json: Json): HttpClient {
     return HttpClient(Darwin) {

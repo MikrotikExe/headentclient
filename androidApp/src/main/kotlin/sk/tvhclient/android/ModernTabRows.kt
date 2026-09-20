@@ -38,11 +38,11 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 
 /**
- * Moderny riadok zoznamu v hlavnych taboch (Kanaly, Radio): karta s velkym
- * piconom, nazvom kanala drobne NAD tucnym nazvom relacie, riadkom "Dalej:",
- * teal progresom a vpravo zostavajucimi minutami + decentnym cislom.
- * Zdielany komponent skratkovej vrstvy — klasicky riadok ostava nedotknuty,
- * obrazovky vetvia cez isModernUi(). Farby cez roly temy (svetly aj tmavy).
+ * Modern list row in the main tabs (Channels, Radio): a card with a large
+ * picon, the channel name in small type ABOVE the bold programme name, a "Next:" line,
+ * teal progress and, on the right, the remaining minutes + a discreet number.
+ * A shared component of the shortcut layer — the classic row stays untouched,
+ * the screens branch via isModernUi(). Colours through theme roles (light and dark).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -63,7 +63,7 @@ internal fun ModernChannelTabRow(
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
     highlighted: Boolean = false,
-    favorite: Boolean = false,   // M564: hviezdicka pri oblubenom kanali (mimo skupiny Oblubene)
+    favorite: Boolean = false,   // M564: a star on a favourite channel (outside the Favourites group)
 ) {
     val cs = MaterialTheme.colorScheme
     val ctx = androidx.compose.ui.platform.LocalContext.current

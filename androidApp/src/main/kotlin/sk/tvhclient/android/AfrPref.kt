@@ -2,10 +2,10 @@ package sk.tvhclient.android
 
 import android.content.Context
 
-/** Automaticka obnovovacia frekvencia (AFR, M346): prehravac prepne rezim
- *  displeja podla snimkovej frekvencie streamu (25/50 fps vysielanie -> 50 Hz),
- *  cim zmizne trhanie obrazu (judder) na 60 Hz paneloch. Predvolene ZAPNUTE
- *  (M347-fix) — kto nechce kratke stmavnutie pri prepnuti, vypne si to. */
+/** Automatic refresh rate (AFR, M346): the player switches the display mode
+ *  according to the frame rate of the stream (25/50 fps broadcast -> 50 Hz),
+ *  which removes judder on 60 Hz panels. ON by default
+ *  (M347-fix) — whoever does not want the short blackout on the switch turns it off. */
 object AfrPref {
     private const val PREFS = "app_prefs"
     private const val KEY = "afr_enabled"

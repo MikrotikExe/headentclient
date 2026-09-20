@@ -7,10 +7,10 @@ import sk.tvhclient.shared.Tvh
 import sk.tvhclient.shared.model.TvhServer
 
 /**
- * Zaloha / obnova nastaveni aplikacie.
- * - servery (Tvh.store)
+ * Backup / restore of the application settings.
+ * - servers (Tvh.store)
  * - SharedPreferences: app_prefs, channel_prefs, favorites, watch_progress
- * Vsetko sa serializuje do jedneho JSON-u (bez dalsich kniznic, len org.json).
+ * Everything is serialised into a single JSON (no extra libraries, just org.json).
  */
 object Backup {
 
@@ -21,7 +21,7 @@ object Backup {
         root.put("app", "tvhclient")
         root.put("version", 1)
 
-        // servery
+        // servers
         val arr = JSONArray()
         Tvh.store.list().forEach { s -> arr.put(serverToJson(s)) }
         root.put("servers", arr)
@@ -35,13 +35,13 @@ object Backup {
         return root.toString(2)
     }
 
-    /** Vrati true ak sa obnova podarila. */
+    /** Returns true if the restore succeeded. */
     fun import(ctx: Context, text: String): Boolean {
         return try {
             val root = JSONObject(text)
             if (root.optString("app") != "tvhclient") return false
 
-            // servery: zmaz existujuce, pridaj zo zalohy
+            // servers: delete the existing ones, add those from the backup
             Tvh.store.list().map { it.id }.forEach { Tvh.store.delete(it) }
             val arr = root.optJSONArray("servers")
             if (arr != null) {
@@ -140,7 +140,7 @@ object Backup {
                 }
             }
         }
-        // commit (synchronne) – aby boli data na disku aj pri okamzitom restarte
+        // commit (synchronous) – so the data is on disk even on an immediate restart
         ed.commit()
     }
 }

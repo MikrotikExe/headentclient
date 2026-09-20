@@ -2,7 +2,7 @@ package sk.tvhclient.android
 
 import android.content.Context
 
-/** Diagnostika diaľkového: zobrazovanie kódu stlačených klávesov (predvolene vypnuté). */
+/** Remote diagnostics: show the key code of pressed keys (off by default). */
 object RemoteDebugPref {
     private const val PREFS = "app_prefs"
     private const val KEY = "remote_debug_keycodes"

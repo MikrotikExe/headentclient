@@ -8,9 +8,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 
 /**
- * Volitelny „plny podklad" informacnej listy v modernom rezime. Ked je zapnuty,
- * overlay ma pod info oblastou plne kryty podklad (jemny fade hore), aby bola
- * lista citatelna aj nad jasnym videom — vo svetlej aj tmavej teme. Default vypnute.
+ * An optional "solid backdrop" for the information bar in modern mode. When it is on, the
+ * overlay has a fully opaque backdrop under the info area (a subtle fade at the top), so the
+ * bar is readable even over bright video — in both the light and the dark theme. Off by default.
  */
 object ModernOverlayPref {
     private const val PREFS = "app_prefs"
@@ -18,7 +18,7 @@ object ModernOverlayPref {
     private var state: androidx.compose.runtime.MutableState<Boolean>? = null
     private fun load(c: Context): Boolean =
         c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY, false)
-    /** Zivy stav — citanim .value v @Composable sa overlay prekresli hned po zmene. */
+    /** Live state — reading .value in a @Composable redraws the overlay immediately after a change. */
     fun stateOf(c: Context): androidx.compose.runtime.MutableState<Boolean> =
         state ?: androidx.compose.runtime.mutableStateOf(load(c)).also { state = it }
     fun isSolidBg(c: Context): Boolean = stateOf(c).value
@@ -28,19 +28,19 @@ object ModernOverlayPref {
     }
 }
 
-/** True ak je aktivna svetla schema (podla jasu povrchu) — funguje aj pri manualnom prepnuti. */
+/** True if the light scheme is active (by surface brightness) — works with a manual switch too. */
 @Composable
 fun isLightTheme(): Boolean = MaterialTheme.colorScheme.surface.luminance() > 0.5f
 
-/** True ak je zapnuty moderny rezim rozhrania (UiModePref) — reaguje zivo na zmenu. */
+/** True if the modern interface mode is on (UiModePref) — reacts live to a change. */
 @Composable
 fun isModernUi(): Boolean =
     UiModePref.stateOf(LocalContext.current).value == UiModePref.MODERN
 
 /**
- * Pozadie pod picon (logo kanala/radia). Picony su navrhnute pre tmave pozadie,
- * preto vo svetlom rezime davame neutralne sive plovo, nech biele loga nezaniknu.
- * V tmavom rezime jemne svetle prekrytie ako doteraz.
+ * The background under a picon (channel/radio logo). Picons are designed for a dark background,
+ * so in light mode we put a neutral grey field underneath, so that white logos do not disappear.
+ * In dark mode a subtle light overlay as before.
  */
 @Composable
 fun piconBackground(): Color {
@@ -54,9 +54,9 @@ fun piconBackground(): Color {
     }
 }
 
-// --- Farby overlay-u prehravaca ---
-// V tmavom rezime vracaju presne povodne hodnoty (vizualne nezmenene),
-// vo svetlom rezime tmavy text / svetle panely (citatelne nad videom).
+// --- Player overlay colours ---
+// In dark mode they return exactly the original values (visually unchanged),
+// in light mode dark text / light panels (readable over video).
 @Composable fun playerFg(): Color =
     if (isLightTheme()) Color(0xDE000000) else Color.White
 @Composable fun playerFgDim(): Color =
@@ -78,55 +78,55 @@ fun piconBackground(): Color {
     else -> Color(0x99000000)
 }
 
-// --- Karty a ramiky (EPG browser) ---
+// --- Cards and frames (EPG browser) ---
 @Composable fun playerBorder(): Color =
     if (isLightTheme()) Color(0x1F000000) else Color(0x33FFFFFF)
 @Composable fun playerCard(): Color =
     if (isLightTheme()) Color(0x0D000000) else Color(0x14FFFFFF)
-/** Akcent prehravaca: klasik modra; moderny rezim teal (tmavy/svetly variant). */
+/** Player accent: classic blue; modern mode teal (dark/light variant). */
 @Composable fun playerAccent(): Color = when {
     isModernUi() && isLightTheme() -> Color(0xFF0F8A63)
     isModernUi() -> Color(0xFF1D9E75)
     else -> Color(0xFF1E88E5)
 }
-// --- Surf overlay (moderny TV live panel, M351): light/dark varianty ---
-/** Vertikalny gradient scrim pod kartami. */
+// --- Surf overlay (modern TV live panel, M351): light/dark variants ---
+/** Vertical gradient scrim under the cards. */
 @Composable fun overlayScrim(): List<Color> = if (isLightTheme())
     listOf(Color(0x00F0F4FB), Color(0xD9F0F4FB), Color(0xF7F0F4FB))
     else listOf(Color(0x000A1124), Color(0xD90A1124), Color(0xF70A1124))
 
-/** „Plny podklad": PLNE nepriehladny rovny panel pod celou listou (hint + karty +
- *  ovladace), aby bolo vsetko citatelne nad akymkolvek videom. Pre obe temy. */
+/** "Solid backdrop": a FULLY opaque flat panel under the whole bar (hint + cards +
+ *  controls), so that everything is readable over any video. For both themes. */
 @Composable fun overlaySolidPanel(): Color =
     if (isLightTheme()) Color(0xFFEEF2FA) else Color(0xFF0A1124)
-/** Podklad karty/pilulky (nefokus). */
+/** Card/pill backdrop (unfocused). */
 @Composable fun overlaySurface(): Color =
     if (isLightTheme()) Color(0xFFEAF0F9) else Color(0xFF13234A)
-/** Podklad karty pri fokuse. */
+/** Card backdrop when focused. */
 @Composable fun overlaySurfaceFocus(): Color =
     if (isLightTheme()) Color(0xFFE4ECF7) else Color(0xFF12294E)
-/** Podklad nefokus karty s jemnou prieh. (velke karty kanalov). */
+/** Backdrop of an unfocused card with slight transparency (large channel cards). */
 @Composable fun overlayCard(): Color =
     if (isLightTheme()) Color(0xEAEAF0F9) else Color(0xE60F1E3D)
-/** Obrys nefokus prvkov. */
+/** Outline of unfocused elements. */
 @Composable fun overlayOutline(): Color =
     if (isLightTheme()) Color(0xFFC4D2E8) else Color(0xFF27407A)
-/** Obrys nefokus velkej karty. */
+/** Outline of an unfocused large card. */
 @Composable fun overlayCardOutline(): Color =
     if (isLightTheme()) Color(0xFFC4D2E8) else Color(0xFF1E3A6E)
-/** Text hintov a vedlajsich popiskov v overlayi. */
+/** Text of hints and secondary labels in the overlay. */
 @Composable fun overlayHint(): Color =
     if (isLightTheme()) Color(0xFF5A6B85) else Color(0xFF8FA6C8)
-/** Track progres barov v overlayi. */
+/** Track of progress bars in the overlay. */
 @Composable fun overlayTrack(): Color =
     if (isLightTheme()) Color(0xFFC4D2E8) else Color(0xFF1B2C52)
-/** "Live" zvyraznenie pri timeshift. */
+/** "Live" highlight during timeshift. */
 @Composable fun overlayLive(): Color =
     if (isLightTheme()) Color(0xFF0F8A63) else Color(0xFF7FE3BF)
-/** Farba ikony vo vnutri play tlacidla (kontrast voci teal). */
+/** Colour of the icon inside the play button (contrast against teal). */
 @Composable fun overlayOnAccent(): Color =
     if (isLightTheme()) Color.White else Color(0xFF04120C)
-/** Obrys play tlacidla pri fokuse. */
+/** Outline of the play button when focused. */
 @Composable fun overlayPlayFocusRing(): Color =
     if (isLightTheme()) Color(0xFF0F8A63) else Color(0xFF7FE3BF)
 

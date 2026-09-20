@@ -5,8 +5,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 
 /**
- * M663: „Viac" panel moderného režimu (telefón) — BackHandler + ModernMoreSheet so všetkými
- * akciami; zápisy do stavov PlayerUi cez settery. 1:1 s pôvodným blokom v PlayerUi.
+ * M663: the modern mode "More" panel (phone) — BackHandler + ModernMoreSheet with all
+ * the actions; writes into PlayerUi states through setters. 1:1 with the original block in PlayerUi.
  */
 @Composable
 internal fun PlayerMoreSheetHost(
@@ -34,7 +34,7 @@ internal fun PlayerMoreSheetHost(
         onProfile = { setShowMoreSheet(false); setMenu("profile") },
         onPip = { setShowMoreSheet(false); onEnterPip() },
         onSubs = { setShowMoreSheet(false); setMenu("spu") },
-        // M490: rovnaky stav aj akcia ako klasicky bar a TV overlay
+        // M490: the same state and action as the classic bar and the TV overlay
         recordVisible = dvrActivity?.dvrRecordVisible() == true,
         recordIsCancel = dvrActivity?.dvrExistingState?.value != null,
         onRecord = {
@@ -55,8 +55,8 @@ internal fun PlayerMoreSheetHost(
 }
 
 /**
- * M663: efekty moderného TV overlayu — exkluzivita (zatvorí ostatné prekryvy), auto-hide po 6 s
- * a vykonanie akcie z lišty (signál z Activity key handlera). Kľúče LaunchedEffect zhodné.
+ * M663: effects of the modern TV overlay — exclusivity (closes the other overlays), auto-hide after 6 s
+ * and running an action from the bar (signal from the Activity key handler). LaunchedEffect keys identical.
  */
 @Composable
 internal fun ModernOverlayEffects(

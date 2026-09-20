@@ -14,7 +14,7 @@ import sk.tvhclient.shared.api.ChannelRow
 sealed class RadioState {
     data object Loading : RadioState()
     data object NoServer : RadioState()
-    /** M505: `categories` = rozdelenie podla tagov pre filtrovanie v zalozke. */
+    /** M505: `categories` = split by tags for filtering in the tab. */
     data class Loaded(
         val rows: List<ChannelRow>,
         val categories: List<ChannelCategory> = emptyList()
@@ -34,7 +34,7 @@ class RadioViewModel : ViewModel() {
     private var loadedOnce = false
     private var reloadToken = -1
 
-    /** Nacita len ak este nebolo nacitane, alebo ak sa zmenil server (reload token). */
+    /** Loads only if not loaded yet, or if the server changed (reload token). */
     fun loadIfNeeded() {
         val tok = TabController.dataReload.value
         val changed = tok != reloadToken
@@ -51,7 +51,7 @@ class RadioViewModel : ViewModel() {
             _state.value = RadioState.NoServer
             return
         }
-        if (loadJob?.isActive == true) return   // M540: uz bezi (TV start vola load() dvakrat)
+        if (loadJob?.isActive == true) return   // M540: already running (TV start calls load() twice)
         _state.value = RadioState.Loading
         loadJob = viewModelScope.launch {
             try {
@@ -67,9 +67,9 @@ class RadioViewModel : ViewModel() {
                 _state.value = RadioState.Loaded(data.first, data.second)
                 loadedOnce = true
             } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e   // M588: zrusenie (odchod z obrazovky) nie je chyba stanic
+                throw e   // M588: cancellation (leaving the screen) is not a station error
             } catch (e: Exception) {
-                _state.value = RadioState.Error(e.message ?: "")   // M491: prazdne = UI doplni preklad
+                _state.value = RadioState.Error(e.message ?: "")   // M491: empty = UI fills in the translation
             }
         }
     }

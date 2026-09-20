@@ -7,9 +7,9 @@ import android.widget.Toast
 import androidx.compose.runtime.mutableStateOf
 
 /**
- * M629: časovač uspatia prehrávača (vyclenené z PlayerActivity). Po uplynutí zavolá
- * [onExpire] (aktivita spraví finish(); M535: stop() nie na hlavnom vlákne — zastaví
- * ho teardown pri finish()). [durations] je ponuka v minútach, 0 = vypnuté.
+ * M629: player sleep timer (extracted from PlayerActivity). When it expires it calls
+ * [onExpire] (the activity does finish(); M535: stop() not on the main thread — it is stopped
+ * by the teardown on finish()). [durations] is the menu in minutes, 0 = off.
  */
 class SleepTimer(private val ctx: Context, private val onExpire: () -> Unit) {
     val durations = listOf(0, 15, 30, 45, 60, 90)
@@ -17,7 +17,7 @@ class SleepTimer(private val ctx: Context, private val onExpire: () -> Unit) {
     val deadlineState = mutableStateOf(0L)
     private val handler = Handler(Looper.getMainLooper())
 
-    /** Nastaví časovač (0 = vypnúť). */
+    /** Sets the timer (0 = off). */
     fun set(minutes: Int) {
         handler.removeCallbacksAndMessages(null)
         minutesState.value = minutes
@@ -31,6 +31,6 @@ class SleepTimer(private val ctx: Context, private val onExpire: () -> Unit) {
         Toast.makeText(ctx, ctx.getString(R.string.sleep_set, minutes), Toast.LENGTH_SHORT).show()
     }
 
-    /** Zruší čakajúci časovač bez oznámenia (onDestroy). */
+    /** Cancels a pending timer without notifying (onDestroy). */
     fun cancel() = handler.removeCallbacksAndMessages(null)
 }

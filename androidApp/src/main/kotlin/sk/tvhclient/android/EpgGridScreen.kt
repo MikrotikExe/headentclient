@@ -91,16 +91,16 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 
-private const val PX_PER_MIN = 4          // sirka 1 minuty v dp
+private const val PX_PER_MIN = 4          // the width of 1 minute in dp
 private const val DAY_MIN = 24 * 60
-private const val PICON_COL = 64           // minimalna sirka stlpca kanala (uzke obrazovky)
-// M377: siroke obrazovky (TV/tablet >=600dp) — stlpec kanala nesie picon + cislo + nazov
+private const val PICON_COL = 64           // the minimum width of the channel column (narrow screens)
+// M377: wide screens (TV/tablet >=600dp) — the channel column carries picon + number + name
 private const val CHAN_COL_WIDE = 188
-// M387: adaptivne — stlpec kanala je percento sirky okna (uzke 19 %, siroke 22 %),
-// pismo a picon na uzkych obrazovkach skalovane faktorom k = sirka / 390 (0,9–1,3)
+// M387: adaptive — the channel column is a percentage of the window width (narrow 19 %, wide 22 %),
+// the font and picon on narrow screens scaled by a factor k = width / 390 (0.9–1.3)
 private fun chanColFor(screenWidthDp: Int, compact: Boolean = false): Int =
     if (screenWidthDp >= 600) {
-        // M388-fix: kompakt na telefone plati aj na sirku (uzsi stlpec)
+        // M388-fix: compact on a phone applies in landscape too (a narrower column)
         if (compact) (screenWidthDp * 16 / 100).coerceIn(140, 180)
         else (screenWidthDp * 22 / 100).coerceIn(CHAN_COL_WIDE - 28, 200)
     }
@@ -109,22 +109,22 @@ private fun chanColFor(screenWidthDp: Int, compact: Boolean = false): Int =
 private fun epgScaleK(screenWidthDp: Int): Float =
     (screenWidthDp / 390f).coerceIn(0.9f, 1.3f)
 private const val ROW_H = 64
-// Moderny rezim: vyssi riadok — karta nesie cas NAD nazvom + progres pasik + cislo kanala pod piconom
+// Modern mode: a taller row — the card carries the time ABOVE the name + a progress bar + the channel number under the picon
 private const val ROW_H_M = 84
-private const val DAY_SWITCH_DP = 64       // prah pretiahnutia za okraj na prepnutie dna
-private const val NOW_TICK_MS = 30_000L    // ako casto prekreslit live ciaru/priebeh
-private const val DVR_REFRESH_MS = 150_000L // tichy refresh DVR (nove/dokoncene nahravky)
+private const val DAY_SWITCH_DP = 64       // the threshold for dragging past the edge to switch the day
+private const val NOW_TICK_MS = 30_000L    // how often to redraw the live line/progress
+private const val DVR_REFRESH_MS = 150_000L // a silent DVR refresh (new/finished recordings)
 
-// Kam doskocit po prepnuti dna gestom: na koniec (predosly den) alebo zaciatok (dalsi den)
+// Where to land after switching the day by a gesture: to the end (previous day) or the start (next day)
 private enum class DayJump { END, START }
 
 /**
- * Zluci viacnasobne nahravky tej istej relacie do jedneho bloku pre mriezku.
- * Ta ista relacia byva nahrata viackrat s mierne odlisnym casom (padding),
- * takze nestaci presna zhoda casu. Zoskupime podla nazvu a v ramci nazvu
- * spojime zaznamy, ktore sa casovo prekryvaju; z kazdeho zhluku ponechame
- * ten s najvacsim suborom (najkompletnejsia kopia na prehratie).
- * Rozne vysielania toho isteho nazvu (neprekryvaju sa) zostavaju oddelene.
+ * Merges multiple recordings of the same programme into a single block for the grid.
+ * The same programme tends to be recorded several times with slightly different times (padding),
+ * so an exact time match is not enough. We group by title and within a title
+ * merge entries that overlap in time; from each cluster we keep
+ * the one with the largest file (the most complete copy to play).
+ * Different broadcasts of the same title (which do not overlap) stay separate.
  */
 private fun collapseDvrOverlaps(
     list: List<sk.tvhclient.shared.model.DvrEntry>
@@ -150,7 +150,7 @@ private fun collapseDvrOverlaps(
     return out
 }
 
-/** Jeden zluceny blok nahravky pre mriezku (dokoncena = zelena, prebiehajuca = cervena). */
+/** A single merged recording block for the grid (finished = green, in progress = red). */
 private data class RecBlock(
     val start: Long,
     val stop: Long,
@@ -159,10 +159,10 @@ private data class RecBlock(
     val entry: sk.tvhclient.shared.model.DvrEntry
 )
 
-/** Navigacna bunka (D-pad): casovy rozsah + co sa otvori pri OK. Zhodna s renderom. */
+/** A navigation cell (D-pad): the time range + what opens on OK. Identical with the render. */
 private class NavCell(val start: Long, val stop: Long, val detail: GridDetail)
 
-/** Normalizuje nazov pre porovnanie duplicit: mala pismena, bez "(ST)" a bez "(cislo)". */
+/** Normalises a title for duplicate comparison: lower case, without "(ST)" and without "(number)". */
 private fun normRecTitle(t: String): String {
     var s = t.lowercase()
     s = s.replace("(st)", " ")
@@ -172,13 +172,13 @@ private fun normRecTitle(t: String): String {
 }
 
 /**
- * Zluci dokoncene (zelene) aj prave prebiehajuce (cervene) nahravky jedneho kanala
- * do jednej sady blokov. Ta ista relacia byva nahrata viackrat s odlisnym nazvom
- * ("(ST)" varianty) aj casom (padding) — preto zluci zaznamy, ktorych nazov sa po
- * normalizacii zhoduje, ALEBO sa casovo vyrazne prekryvaju (>=40 % kratsieho z dvoch,
- * aby sa nespojili len susedne relacie dotykajuce sa cez padding). V zhluku s
- * prebiehajucou nahravkou je blok cerveny (prebieha), inak zeleny. Na klik/prehratie
- * sa vyberie zaznam s najvacsim suborom (najkompletnejsia kopia).
+ * Merges both finished (green) and currently in-progress (red) recordings of one channel
+ * into a single set of blocks. The same programme tends to be recorded several times with a different title
+ * ("(ST)" variants) and time (padding) — so it merges entries whose titles match after
+ * normalisation, OR that overlap in time substantially (>=40 % of the shorter of the two,
+ * so that merely adjacent programmes touching through padding are not merged). In a cluster with
+ * an in-progress recording the block is red (in progress), otherwise green. For a click/playback
+ * the entry with the largest file (the most complete copy) is chosen.
  */
 private fun mergeRecordings(
     dvrPast: List<sk.tvhclient.shared.model.DvrEntry>,
@@ -225,13 +225,13 @@ private fun mergeRecordings(
     return out
 }
 
-// Sentinel pre polozku „Obľúbené" vo filtri EPG (odlisi od tag uuid a od null=Vsetky).
+// A sentinel for the "Favourites" item in the EPG filter (distinguishes it from a tag uuid and from null=All).
 private const val EPG_FILTER_FAV = "\u0000fav"
 
-// M587: sentinel pre polozku „Rádiá" — mriezka prepne na rozhlasove stanice.
+// M587: a sentinel for the "Radio" item — the grid switches to radio stations.
 private const val EPG_FILTER_RADIO = "\u0000radio"
 
-// Zapamatanie vybranej skupiny EPG per server pocas behu appky (default null = Vsetky).
+// Remembering the selected EPG group per server for the app's runtime (default null = All).
 private object EpgGroupFilter {
     private val sel = HashMap<String, String?>()
     fun get(serverId: String?): String? = if (serverId == null) null else sel[serverId]
@@ -245,22 +245,22 @@ fun EpgGridScreen(
     categories: List<sk.tvhclient.shared.api.ChannelCategory>,
     seed: Map<String, List<EpgEvent>>,
     onBack: () -> Unit,
-    // M587: rozhlasove stanice v mriezke. Zo zalozky Radia sa otvara rovno v rezime
-    // radia (radioOnly), z TV programu je to polozka „Rádiá" vo filtri skupin.
+    // M587: radio stations in the grid. From the Radio tab it opens straight in radio
+    // mode (radioOnly), from the TV guide it is the "Radio" item in the group filter.
     radioRows: List<ChannelRow> = emptyList(),
     radioCategories: List<sk.tvhclient.shared.api.ChannelCategory> = emptyList(),
     radioOnly: Boolean = false,
-    // M591: otvorit rovno pri staniciach (TV program z prehravaca radia), ale
-    // s moznostou prepnut sa filtrom spat na TV kanaly
+    // M591: open straight at the stations (the TV guide from the radio player), but
+    // with the option of switching back to TV channels with the filter
     startInRadio: Boolean = false,
-    // M592: kanal/stanica, na ktorej ma mriezka zacat (co prave hra v prehravaci)
+    // M592: the channel/station the grid should start at (what is currently playing in the player)
     focusUuid: String? = null,
-    // M593-fix: pocitadlo otvoreni mriezky. Ked obrazovka ostane v kompozicii
-    // (navrat do prehravaca a znovu TV program), bez neho by sa skok na hrany
-    // kanal uz nezopakoval a mriezka ostala na predchadzajucom kanali.
+    // M593-fix: a counter of grid openings. When the screen stays in the composition
+    // (a return to the player and the TV guide again), without it the jump to the playing
+    // channel would not be repeated and the grid would stay on the previous channel.
     openToken: Int = 0,
-    // Telefon v modernom rezime pusta radio cez mini prehravac — zalozka Radia
-    // odovzda vlastne spustenie, aby sa spravanie z mriezky nelisilo od zoznamu.
+    // A phone in modern mode plays radio through the mini player — the Radio tab
+    // hands over its own launch, so that the behaviour from the grid does not differ from the list.
     onPlayRadio: ((ChannelRow, EpgEvent?) -> Unit)? = null
 ) {
     BackHandler { onBack() }
@@ -268,8 +268,8 @@ fun EpgGridScreen(
     val modernUi = isModernUi()
     val server = remember { Tvh.store.active() }
 
-    // Filter podla skupiny (tagu). null = Vsetky, EPG_FILTER_FAV = Oblubene, inak tag uuid.
-    // Vyber sa pamata pocas behu appky per server (EpgGroupFilter), default Vsetky.
+    // The filter by group (tag). null = All, EPG_FILTER_FAV = Favourites, otherwise a tag uuid.
+    // The choice is remembered for the app's runtime per server (EpgGroupFilter), default All.
     val sid = server?.id
     var selectedGroup by remember(sid) {
         mutableStateOf(
@@ -280,19 +280,19 @@ fun EpgGridScreen(
             }
         )
     }
-    // M587: zdroj riadkov — bud TV kanaly, alebo rozhlas (zalozka Radia / polozka „Rádiá")
-    // tag, ktory ma aj TV kanaly aj radia (napr. „Slovenske"), sa neberie ako
-    // rozhlasovy — inak by jeho vyber v TV programe prepol mriezku na stanice
+    // M587: the source of the rows — either TV channels, or radio (the Radio tab / the "Radio" item)
+    // a tag that has both TV channels and radio stations (e.g. "Slovak") is not taken as
+    // a radio one — otherwise selecting it in the TV guide would switch the grid to stations
     val radioTagUuids = remember(radioCategories, categories) {
-        // tag, ktory ma aj TV kanaly (napr. server ma tag „Rádio" s par TV kanalmi),
-        // ostava TV skupinou — mriezka sa nim neprepne na stanice
+        // a tag that also has TV channels (e.g. the server has a tag "Radio" with a few TV channels)
+        // stays a TV group — the grid does not switch to stations because of it
         val tv = categories.mapNotNull { it.tag?.uuid }.toSet()
         radioCategories.mapNotNull { it.tag?.uuid }.filterNot { it in tv }.toSet()
     }
     val radioMode = radioOnly || selectedGroup == EPG_FILTER_RADIO ||
         (selectedGroup != null && selectedGroup in radioTagUuids)
-    // M587: v rezime „len radia" (zo zalozky Radia) sa volba NEUKLADA do spolocnej
-    // pamate skupin — inak by sa TV program pri kanaloch otvoril v skupine radii
+    // M587: in "radio only" mode (from the Radio tab) the choice is NOT stored in the shared
+    // group memory — otherwise the TV guide would open in the radio group when at channels
     fun pickGroup(g: String?) {
         selectedGroup = g
         if (!radioOnly) EpgGroupFilter.set(sid, g)
@@ -309,7 +309,7 @@ fun EpgGridScreen(
             else -> baseCats.firstOrNull { it.tag?.uuid == g }?.rows ?: baseRows
         }
     }
-    // Zoznam kanalov pre zapping a zoznam v prehravaci (CH+/CH-, overlay)
+    // The channel list for zapping and the list in the player (CH+/CH-, overlay)
     LaunchedEffect(rows) {
         val srv = Tvh.store.active()
         val nowS = System.currentTimeMillis() / 1000
@@ -331,9 +331,9 @@ fun EpgGridScreen(
     }
     val loader = remember(server?.id) { PiconImageLoader.get(context, server) }
 
-    // Detail relacie/nahravky (prekryva mriezku); klik na blok ho otvori
+    // The programme/recording detail (overlays the grid); a click on a block opens it
     var detail by remember { mutableStateOf<GridDetail?>(null) }
-    // Posledny zafokusovany blok (D-pad) -> INFO kláves zobrazi jeho detail
+    // The last focused block (D-pad) -> the INFO key shows its detail
     var lastFocused by remember { mutableStateOf<GridDetail?>(null) }
     val infoSig by TabController.infoKey
     LaunchedEffect(infoSig) {
@@ -343,23 +343,23 @@ fun EpgGridScreen(
     var dayOffset by remember { mutableStateOf(0) }
     val dayStart = remember(dayOffset) { dayStartSec(dayOffset) }
     val dayEnd = dayStart + DAY_MIN * 60
-    // Tikajuci cas (live ciara a priebeh) — prekreslenie kazdych 30s
+    // The ticking time (the live line and progress) — redrawn every 30s
     var now by remember { mutableStateOf(currentTimeSeconds()) }
     LaunchedEffect(Unit) {
         while (true) { kotlinx.coroutines.delay(NOW_TICK_MS); now = currentTimeSeconds() }
     }
 
-    // EPG hromadne (jednorazovo, plynule skrolovanie) — zdielana cache cez VM.
-    // Seed z now/next pre okamzity prvy obraz, kym dobehne hromadne nacitanie.
+    // EPG in bulk (one-off, smooth scrolling) — a shared cache via the VM.
+    // A seed from now/next for an immediate first picture, until the bulk load finishes.
     val epgVm: EpgGridViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val epgFull by epgVm.epg.collectAsState()
     val epgLoading by epgVm.loading.collectAsState()
     val epgGen by epgVm.gen.collectAsState()
-    // HTSP: jedno spojenie, progresivne vsetky kanaly (no-op pre HTTP)
+    // HTSP: one connection, progressively all channels (a no-op for HTTP)
     LaunchedEffect(epgGen) { epgVm.loadHtsp() }
     val epg = remember(epgFull, seed) {
-        // seed (now/next) ako zaklad nech sa hned nieco ukaze; per-kanal EPG
-        // (progresivne) prepise kanaly kde uz mame plne data
+        // the seed (now/next) as a basis so that something shows at once; per-channel EPG
+        // (progressive) overwrites the channels where we already have full data
         if (epgFull.isEmpty()) seed
         else {
             val m = HashMap<String, List<EpgEvent>>(seed)
@@ -368,13 +368,13 @@ fun EpgGridScreen(
         }
     }
 
-    // DVR nahravky (minule relacie dozadu) — zdielana cache cez DvrViewModel
-    // (prezije prepnutie kariet, nenacitava sa znova zo servera)
+    // DVR recordings (past programmes, backwards) — a shared cache via DvrViewModel
+    // (survives a tab switch, is not loaded from the server again)
     val dvrVm: DvrViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
     val dvrState by dvrVm.state.collectAsState()
     LaunchedEffect(Unit) { dvrVm.loadIfNeeded() }
-    // Periodicky (kazde 2,5 min) tichy refresh DVR — nove/dokoncene nahravky
-    // sa objavia v mriezke skoro (bez cakania ~15 min na expiraciu)
+    // A periodic (every 2.5 min) silent DVR refresh — new/finished recordings
+    // appear in the grid soon (without waiting ~15 min for expiry)
     LaunchedEffect(Unit) {
         while (true) {
             kotlinx.coroutines.delay(DVR_REFRESH_MS)
@@ -382,13 +382,13 @@ fun EpgGridScreen(
         }
     }
     val dvrByChannel = remember(dvrState) {
-        // V mriezke chceme jeden blok na relaciu. Ta ista relacia moze byt
-        // nahrata viackrat s mierne odlisnym casom (padding) -> zlucime
-        // nahravky s rovnakym nazvom, ktore sa casovo prekryvaju, a necháme
-        // tu s najvacsim suborom (najkompletnejsia kopia na prehratie).
-        // Archiv (DvrScreen) zostava nedotknuty — tam vidno vsetky nahravky.
-        // Parujeme na kanal podla UUID (nie nazvu), nazov len fallback — inak by
-        // sa blok objavil na vsetkych rovnomennych kanaloch (napr. regionalne ITV1 HD).
+        // In the grid we want one block per programme. The same programme may be
+        // recorded several times with slightly different times (padding) -> we merge
+        // recordings with the same title that overlap in time, and keep
+        // the one with the largest file (the most complete copy to play).
+        // The archive (DvrScreen) stays untouched — all recordings are visible there.
+        // We match to a channel by UUID (not by name), the name is only a fallback — otherwise
+        // the block would appear on all identically named channels (e.g. regional ITV1 HD).
         (dvrState as? DvrState.Loaded)?.entries
             ?.groupBy { it.channelUuid.ifBlank { it.channelName } }
             ?.mapValues { (_, list) -> collapseDvrOverlaps(list) }
@@ -398,13 +398,13 @@ fun EpgGridScreen(
         (dvrState as? DvrState.Loaded)?.recording ?: emptyList()
     }
     val inProgressByChannel = remember(recordingList) {
-        // Rovnako ako pri dokoncenych nahravkach (zelene): ta ista relacia moze
-        // prave teraz bezat nahravana viackrat s mierne odlisnym casom (padding) /
-        // na viacerych tuneroch -> zlucime prekryvajuce sa zaznamy rovnakeho nazvu,
-        // nech sa v mriezke neprekryvaju dva cervene bloky.
-        // Parujeme na kanal podla UUID (nie nazvu) — pri duplicitnych nazvoch/LCN
-        // (napr. regionalne "ITV1 HD" 103) by inak cerveny blok naskocil na vsetkych.
-        // Nazov je len fallback pre stare servery bez UUID v DVR zazname.
+        // Just as with finished recordings (green): the same programme may
+        // right now be being recorded several times with slightly different times (padding) /
+        // on several tuners -> we merge overlapping entries with the same title,
+        // so that two red blocks do not overlap in the grid.
+        // We match to a channel by UUID (not by name) — with duplicate names/LCNs
+        // (e.g. regional "ITV1 HD" 103) the red block would otherwise pop up on all of them.
+        // The name is only a fallback for old servers without a UUID in the DVR entry.
         recordingList.groupBy { it.channelUuid.ifBlank { it.channelName } }
             .mapValues { (_, list) -> collapseDvrOverlaps(list) }
     }
@@ -412,16 +412,16 @@ fun EpgGridScreen(
     val hScroll = rememberScrollState()
     val density = androidx.compose.ui.platform.LocalDensity.current
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    // M388: kompaktna hustota (len telefon <600dp), prepinatelna tlacidlom v hlavicke
+    // M388: compact density (phone <600dp only), toggled by a button in the header
     val ctxDen = LocalContext.current
-    // telefon = najmensi rozmer <600dp (kompakt plati aj na sirku); tablet/TV nikdy
+    // phone = smallest dimension <600dp (compact applies in landscape too); never tablet/TV
     val epgCompact = configuration.smallestScreenWidthDp < 600 &&
         EpgDensityPref.compactStateOf(ctxDen).value
     val pxMin = if (epgCompact) 3 else PX_PER_MIN
 
-    // Viditeľné časové okno (v minútach) — riadky vykreslia len bloky v okolí,
-    // nie všetkých ~40. Bucketujeme po 30 min, aby sa neprekresľovalo pri každom
-    // pixeli horizontálneho skrolu. To rieši zaseky pri zvislom posúvaní.
+    // The visible time window (in minutes) — the rows render only the blocks nearby,
+    // not all ~40. We bucket by 30 min, so that there is no redraw on every
+    // pixel of horizontal scroll. That fixes the stutters when scrolling vertically.
     val pxPerMinPx = with(density) { pxMin.dp.toPx() }
     val screenWMin = remember(configuration.screenWidthDp, pxMin) {
         (with(density) { configuration.screenWidthDp.dp.toPx() } / pxPerMinPx).toInt()
@@ -432,15 +432,15 @@ fun EpgGridScreen(
     val visStartMin = winBucket * 30 - screenWMin
     val visEndMin = winBucket * 30 + screenWMin * 2 + 30
 
-    // Plynule skrolovanie cez hranicu dna: na okraji casovej osi prepni den.
-    // Detekcia mimo nested-scroll: pozorujeme pohyb prsta priamo (Initial pass,
-    // bez konzumovania), takze horizontalScroll funguje normalne. Ked hScroll
-    // stoji na okraji (0 alebo maxValue) a prst tahá dalej tym smerom, po prahu
-    // prepneme den. Toto je spolahlivejsie ako citanie pretecenia cez onPostScroll
-    // (to fling faza vacsinou prehltla -> okraj sa neprepol).
+    // Smooth scrolling across the day boundary: at the edge of the timeline, switch the day.
+    // Detection outside nested-scroll: we observe the finger movement directly (Initial pass,
+    // without consuming), so horizontalScroll works normally. When hScroll
+    // stands at the edge (0 or maxValue) and the finger keeps dragging in that direction, past a threshold
+    // we switch the day. This is more reliable than reading the overscroll via onPostScroll
+    // (which the fling phase mostly swallowed -> the edge did not switch).
     var pendingJump by remember { mutableStateOf<DayJump?>(null) }
 
-    // Po prepnuti/otvoreni nastav poziciu: kontinuita cez polnoc, inak aktualny cas
+    // After a switch/opening, set the position: continuity across midnight, otherwise the current time
     LaunchedEffect(dayOffset, pxMin) {
         var tries = 0
         while (hScroll.maxValue == 0 && tries < 25) {
@@ -452,8 +452,8 @@ fun EpgGridScreen(
             null -> {
                 val nowMin = if (dayOffset == 0)
                     (((currentTimeSeconds() - dayStart) / 60).toInt()) else 0
-                // vycentruj "teraz" do stredu viditelnej casti casovej osi (sirka obrazovky
-                // bez stlpca s logom kanala), nech vidno aj kus minulosti vlavo
+                // centre "now" in the middle of the visible part of the timeline (the screen width
+                // without the channel logo column), so that a bit of the past is visible on the left too
                 val halfVisMin = ((configuration.screenWidthDp - chanColFor(configuration.screenWidthDp, epgCompact)) / 2) / pxMin
                 val startMin = (nowMin - halfVisMin).coerceIn(0, DAY_MIN)
                 with(density) { (startMin * pxMin).dp.toPx() }.toInt()
@@ -466,21 +466,21 @@ fun EpgGridScreen(
         pendingJump = null
     }
 
-    // --- D-pad navigacia (TV): dole/hore drzi casovy stlpec (linia "teraz"),
-    // vlavo/vpravo prechadza relacie v case. Vlastny model vyberu — automaticky
-    // fokus Compose to negarantoval (uletoval na sipku spat / mimo casovy stlpec). ---
+    // --- D-pad navigation (TV): down/up holds the time column (the "now" line),
+    // left/right moves through programmes in time. Our own selection model — automatic
+    // Compose focus did not guarantee it (it flew off to the back arrow / outside the time column). ---
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
     val gridFocus = remember { FocusRequester() }
-    // Kurzorovy vyber (fialovy ramik) + D-pad maju zmysel len na TV; na dotyku (telefon/tablet) je zbytocny
+    // The cursor selection (the purple frame) + the D-pad only make sense on TV; on touch (phone/tablet) it is pointless
     val isTv = remember { isTvUiMode(context) }   // M679
     val daysBack = EpgRangePref.backStateOf(context).value
     val daysForward = EpgRangePref.fwdStateOf(context).value
     var pendingCursorEdge by remember { mutableStateOf<DayJump?>(null) }
     var selRow by remember { mutableStateOf(0) }
-    var anchorTime by remember { mutableStateOf(now) }        // cas, na ktorom drzime stlpec
-    var selStart by remember { mutableStateOf<Long?>(null) }  // zaciatok vybranej bunky
+    var anchorTime by remember { mutableStateOf(now) }        // the time at which we hold the column
+    var selStart by remember { mutableStateOf<Long?>(null) }  // the start of the selected cell
 
-    // Bunky jedneho kanala — zhodne s renderom: zlucene nahravky + relacie bez prekryvu, podla casu
+    // The cells of one channel — identical with the render: merged recordings + programmes without overlap, by time
     fun navCells(idx: Int): List<NavCell> {
         val r = rows.getOrNull(idx) ?: return emptyList()
         val uuid = r.channel.uuid
@@ -509,7 +509,7 @@ fun EpgGridScreen(
     }
     fun moveVertical(delta: Int): Boolean {
         val target = selRow + delta
-        if (target < 0 || target > rows.lastIndex) return false  // okraj -> nechaj unik (dni hore / dolu)
+        if (target < 0 || target > rows.lastIndex) return false  // edge -> let it escape (days up / down)
         selectRowAt(target, anchorTime)
         return true
     }
@@ -519,11 +519,11 @@ fun EpgGridScreen(
         var cur = cells.indexOfFirst { it.start == selStart }
         if (cur < 0) cur = cells.indexOfFirst { it.start <= anchorTime && anchorTime < it.stop }
         val ni = (if (cur < 0) 0 else cur) + dir
-        if (ni < 0) {                       // pred prvou bunkou -> predosly den, skoc na koniec dna
+        if (ni < 0) {                       // before the first cell -> the previous day, jump to the end of the day
             if (dayOffset > -daysBack) { pendingCursorEdge = DayJump.END; dayOffset-- }
             return true
         }
-        if (ni > cells.lastIndex) {          // za poslednou bunkou -> dalsi den, skoc na zaciatok dna
+        if (ni > cells.lastIndex) {          // after the last cell -> the next day, jump to the start of the day
             if (dayOffset < daysForward) { pendingCursorEdge = DayJump.START; dayOffset++ }
             return true
         }
@@ -547,21 +547,21 @@ fun EpgGridScreen(
             else -> false
         }
     }
-    // Pociatocny vyber + reset pri zmene dna: na aktualnom dni linia "teraz", inak poludnie
+    // The initial selection + a reset on a day change: on the current day the "now" line, otherwise noon
     LaunchedEffect(dayOffset, rows.size) {
         if (rows.isEmpty()) return@LaunchedEffect
-        if (!isTv) { selStart = null; return@LaunchedEffect }  // dotyk: ziadny kurzorovy vyber
+        if (!isTv) { selStart = null; return@LaunchedEffect }  // touch: no cursor selection
         anchorTime = when (pendingCursorEdge) {
-            DayJump.END -> dayStart + DAY_MIN.toLong() * 60 - 60   // koniec dna -> posledna bunka
-            DayJump.START -> dayStart                              // zaciatok dna -> prva bunka
+            DayJump.END -> dayStart + DAY_MIN.toLong() * 60 - 60   // the end of the day -> the last cell
+            DayJump.START -> dayStart                              // the start of the day -> the first cell
             null -> if (dayOffset == 0) now else dayStart + 12L * 3600
         }
         pendingCursorEdge = null
         selectRowAt(selRow.coerceIn(0, rows.lastIndex), anchorTime)
     }
-    // M592: mriezka otvorena z prehravaca zacne na kanali, ktory prave hra —
-    // doteraz vzdy skocila na prvy kanal v zozname a pouzivatel ho musel hladat.
-    // Plati raz po otvoreni; dalsiu navigaciu uz riadi kurzor.
+    // M592: a grid opened from the player starts on the channel that is currently playing —
+    // until now it always jumped to the first channel in the list and the user had to hunt for it.
+    // It applies once after opening; further navigation is driven by the cursor.
     var didFocusPlaying by remember(openToken) { mutableStateOf(false) }   // M593-fix
     var didLeavePlaying by remember(openToken) { mutableStateOf(false) }   // M593
     LaunchedEffect(rows, focusUuid, openToken) {
@@ -572,37 +572,37 @@ fun EpgGridScreen(
         if (isTv) {
             selectRowAt(idx, anchorTime)
         } else {
-            // M593: dotyk kurzor nema — oznacime aspon prave beziacu relaciu kanala,
-            // nech je zjavne, odkial sa pouzivatel v mriezke posuva
+            // M593: touch has no cursor — we at least mark the channel's currently running programme,
+            // so that it is obvious where in the grid the user is moving from
             selRow = idx
             selStart = cellAt(navCells(idx), now)?.start
         }
         runCatching { listState.scrollToItem(idx) }
     }
-    // M593-fix: pri kazdom otvoreni z prehravaca sa obnovi aj spravna skupina
-    // (radio / TV kanaly), nie len prvykrat
+    // M593-fix: on every opening from the player the correct group is restored too
+    // (radio / TV channels), not only the first time
     LaunchedEffect(openToken) {
         if (openToken > 0 && !radioOnly) {
             selectedGroup = if (startInRadio) EPG_FILTER_RADIO else EpgGroupFilter.get(sid)
         }
     }
-    // Fokus na mriezku po otvoreni (TV)
+    // Focus on the grid after opening (TV)
     LaunchedEffect(Unit) {
         if (!isTv) return@LaunchedEffect
         kotlinx.coroutines.delay(150)
         runCatching { gridFocus.requestFocus() }
     }
-    // Auto-skrol na vybrany riadok / bunku
+    // Auto-scroll to the selected row / cell
     LaunchedEffect(selRow) { runCatching { listState.animateScrollToItem(selRow) } }
-    // Centrovanie horizontalneho skrolu (TV): do stredu obrazovky daj STRED vybranej
-    // relacie - pri otvoreni je to prave beziaca relacia, takze "co ide live" je v strede
-    // (polovica vlavo, polovica vpravo). Pocas navigacie kurzorom centruje vybranu bunku.
+    // Centring the horizontal scroll (TV): put the MIDDLE of the selected programme in the middle
+    // of the screen - on opening that is the currently running programme, so "what is on live" is in the middle
+    // (half to the left, half to the right). During cursor navigation it centres the selected cell.
     LaunchedEffect(selStart) {
         val s = selStart ?: return@LaunchedEffect
         val cell = navCells(selRow).firstOrNull { it.start == s }
         val midSec = if (cell != null) (cell.start + cell.stop) / 2 else s
         val midMin = (((midSec - dayStart) / 60).toInt()).coerceIn(0, DAY_MIN)
-        // do stredu viditelnej casovej osi (sirka obrazovky bez stlpca s logom)
+        // to the middle of the visible timeline (the screen width without the logo column)
         val halfVisPx = with(density) { ((configuration.screenWidthDp - chanColFor(configuration.screenWidthDp, epgCompact)) / 2).dp.toPx() }
         val target = with(density) { (midMin * pxMin).dp.toPx() } - halfVisPx
         runCatching { hScroll.animateScrollTo(target.toInt().coerceAtLeast(0)) }
@@ -610,9 +610,9 @@ fun EpgGridScreen(
 
     Box(Modifier.fillMaxSize()) {
     Scaffold(
-        // M386: vonkajsi Scaffold (MainActivity) uz odsadzuje obsah o systemove pruhy;
-        // vnutorny Scaffold + TopAppBar nesmu pridat vlastne insets, inak je EPG
-        // posunute nizsie nez ostatne karty (na vysku aj na sirku).
+        // M386: the outer Scaffold (MainActivity) already insets the content by the system bars;
+        // the inner Scaffold + TopAppBar must not add their own insets, otherwise the EPG is
+        // shifted lower than the other tabs (both in portrait and landscape).
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
@@ -626,7 +626,7 @@ fun EpgGridScreen(
                     )
                 },
                 actions = {
-                    // M388: prepinac hustoty (kompakt/komfort) — len telefon <600dp
+                    // M388: the density toggle (compact/comfortable) — phone <600dp only
                     if (configuration.smallestScreenWidthDp < 600) {
                         androidx.compose.material3.IconButton(onClick = {
                             EpgDensityPref.set(ctxDen, !EpgDensityPref.compactStateOf(ctxDen).value)
@@ -643,8 +643,8 @@ fun EpgGridScreen(
                             strokeWidth = 2.dp
                         )
                     }
-                    // Filter podla skupiny: pilulka (lievik + aktualny filter), otvori zoznam.
-                    // Rovnaky mechanizmus na TV (D-pad + OK) aj telefone (klik). BACK zavrie.
+                    // The filter by group: a pill (a funnel + the current filter), opens a list.
+                    // The same mechanism on TV (D-pad + OK) and on a phone (click). BACK closes it.
                     val filterLabel = when (val g = selectedGroup) {
                         null -> if (radioOnly) stringResource(R.string.tab_radio)
                                 else stringResource(R.string.all_channels)
@@ -681,8 +681,8 @@ fun EpgGridScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                         }
-                        // Ohranicenie vysky menu, aby sa zmestilo na obrazovku (na sirku aj vysku,
-                        // aj na TV) a spodne tagy boli dostupne cez rolovanie. DropdownMenu roluje vnutorne.
+                        // Capping the menu height so that it fits on the screen (both in landscape and portrait,
+                        // and on TV) and the bottom tags are reachable by scrolling. DropdownMenu scrolls internally.
                         val maxMenuHeight = (LocalConfiguration.current.screenHeightDp * 0.72f).dp
                         androidx.compose.material3.DropdownMenu(
                             expanded = filterMenu,
@@ -699,9 +699,9 @@ fun EpgGridScreen(
                                 trailingIcon = { if (selectedGroup == EPG_FILTER_FAV) androidx.compose.material3.Icon(Icons.Default.Check, null) },
                                 onClick = { pickGroup(EPG_FILTER_FAV); filterMenu = false }
                             )
-                            // M587-fix: rozhlas je hned za Oblubenymi a ma ikonu — na
-                            // serveri moze existovat aj TAG s nazvom „Rádio" (s TV kanalmi),
-                            // dve rovnake polozky pod sebou by boli matuce
+                            // M587-fix: radio comes right after Favourites and has an icon — on the
+                            // server a TAG named "Radio" may also exist (with TV channels),
+                            // two identical items below each other would be confusing
                             if (!radioOnly && radioRows.isNotEmpty()) {
                                 androidx.compose.material3.DropdownMenuItem(
                                     text = { Text("\uD83D\uDCFB " + stringResource(R.string.tab_radio)) },
@@ -730,11 +730,11 @@ fun EpgGridScreen(
             )
         }
     ) { padding ->
-        // M387-fix2: odsadenie o displayCutout ODSTRANENE — na telefonoch s vyrezom
-        // na lavej hrane robilo v landscape siroky biely pas a EPG nesedelo s hlavickou;
-        // lavy okraj je teraz rovnaky ako na ostatnych kartach.
+        // M387-fix2: the displayCutout inset REMOVED — on phones with a cutout
+        // on the left edge it made a wide white band in landscape and the EPG did not line up with the header;
+        // the left margin is now the same as on the other tabs.
         Column(Modifier.fillMaxSize().padding(padding)) {
-            // Vyber dna; rozsah dozadu/dopredu podla nastavenia (EpgRangePref) — daysBack/daysForward su definovane vyssie
+            // The day picker; the range backwards/forwards follows the setting (EpgRangePref) — daysBack/daysForward are defined above
             LaunchedEffect(daysBack, daysForward) {
                 if (dayOffset < -daysBack) dayOffset = -daysBack
                 if (dayOffset > daysForward) dayOffset = daysForward
@@ -757,7 +757,7 @@ fun EpgGridScreen(
                     val label = if (off == 0) stringResource(R.string.epg_today) else formatDayLabel(dayStartSec(off))
                     Box(Modifier.padding(end = 8.dp)) {
                         if (modernUi) {
-                            // Moderny rezim: dvojriadkova pilulka — den tucne + datum drobne
+                            // Modern mode: a two-line pill — the day in bold + the date in small print
                             val cs = MaterialTheme.colorScheme
                             val sel = off == dayOffset
                             val dayName = if (off == 0) stringResource(R.string.epg_today) else label.substringBeforeLast(" ")
@@ -806,15 +806,15 @@ fun EpgGridScreen(
                 }
             }
 
-            // Casova os (hlavicka) — skroluje horizontalne spolu s riadkami;
-            // moderny rezim: navyse teal bublina s aktualnym casom nad teraz-ciarou
+            // The timeline (header) — scrolls horizontally together with the rows;
+            // modern mode: additionally a teal bubble with the current time above the now-line
             Row {
                 Spacer(Modifier.width(chanColFor(configuration.screenWidthDp, epgCompact).dp))
                 Box(Modifier.horizontalScroll(hScroll)) {
                     Row {
-                        // M423-fix2: pravitko respektuje volbu 12/24 h. Dlazdice a
-                        // bublina "teraz" idu cez formatTimeHm, tu bolo "%02d:00"
-                        // natvrdo — jedine miesto, kde ostal 24-hodinovy format.
+                        // M423-fix2: the ruler respects the 12/24 h option. The tiles and
+                        // the "now" bubble go through formatTimeHm, here it was "%02d:00"
+                        // hard-coded — the only place where the 24-hour format remained.
                         val ruler12 = !ClockPref.is24(LocalContext.current)
                         for (h in 0 until 24) {
                             Text(
@@ -835,11 +835,11 @@ fun EpgGridScreen(
                             Box(
                                 Modifier
                                     .offset(x = (nowMin * pxMin).dp)
-                                    // M425: predtym tu bolo "- 26", teda polovica
-                                    // sirky bubliny odhadnutej pre tvar HH:mm.
-                                    // Pri 12-hodinovom case je bublina sirsia a
-                                    // znacka sa posunula mimo ciary. Teraz sa
-                                    // posuva o polovicu skutocnej nameranej sirky.
+                                    // M425: previously there was "- 26" here, i.e. half
+                                    // of the bubble width estimated for the shape HH:mm.
+                                    // With 12-hour time the bubble is wider and
+                                    // the marker moved off the line. Now it shifts
+                                    // by half of the real measured width.
                                     .layout { measurable, constraints ->
                                         val p = measurable.measure(constraints)
                                         layout(p.width, p.height) {
@@ -863,7 +863,7 @@ fun EpgGridScreen(
                 }
             }
 
-            // Riadky kanalov
+            // The channel rows
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -885,11 +885,11 @@ fun EpgGridScreen(
                                 val atStart = hScroll.value <= 0
                                 val atEnd = hScroll.maxValue > 0 && hScroll.value >= hScroll.maxValue
                                 if (!switched && atStart && dx > 0f && dayOffset > -daysBack) {
-                                    // zaciatok dna, tahám doprava (do minulosti) -> predosly den
+                                    // the start of the day, dragging to the right (into the past) -> the previous day
                                     accum += dx
                                     if (accum >= edgePx) { pendingJump = DayJump.END; dayOffset--; switched = true }
                                 } else if (!switched && atEnd && dx < 0f && dayOffset < daysForward) {
-                                    // koniec dna, tahám dolava (do buducnosti) -> dalsi den
+                                    // the end of the day, dragging to the left (into the future) -> the next day
                                     accum += -dx
                                     if (accum >= edgePx) { pendingJump = DayJump.START; dayOffset++; switched = true }
                                 } else if (!atStart && !atEnd) {
@@ -901,7 +901,7 @@ fun EpgGridScreen(
             ) {
                 itemsIndexed(rows, key = { _, it -> it.channel.uuid }) { idx, row ->
                     val uuid = row.channel.uuid
-                    // Progresivne: nacitaj EPG pre tento kanal ked je riadok viditelny
+                    // Progressive: load the EPG for this channel when the row is visible
                     LaunchedEffect(uuid, epgGen) { epgVm.ensureChannel(uuid) }
                     EpgGridRow(
                         row = row,
@@ -920,7 +920,7 @@ fun EpgGridScreen(
                         selectedStart = if (idx == selRow) selStart else null,
                         playing = uuid == focusUuid && !didLeavePlaying,   // M593
                         onClick = { ev ->
-                            if (!isTv) didLeavePlaying = true   // M593: po vybere relacie znacka zmizne
+                            if (!isTv) didLeavePlaying = true   // M593: after a programme is selected the marker disappears
                             detail = GridDetail.Epg(row, ev)
                         },
                         onDvr = { e -> detail = GridDetail.Dvr(row, e) },
@@ -932,7 +932,7 @@ fun EpgGridScreen(
         }
     }
 
-        // Overlay s detailom (prekryva mriezku, zachova jej poziciu)
+        // The detail overlay (overlays the grid, keeps its position)
         detail?.let { d ->
             BackHandler { detail = null }
             androidx.compose.material3.Surface(
@@ -958,7 +958,7 @@ fun EpgGridScreen(
                         { playDvr(context, ip.rec) }
                     },
                     playLabelRes = if (d is GridDetail.InProgress) R.string.play_live else R.string.play,
-                    // M483: po zmazani/zastaveni nech blok z mriezky zmizne
+                    // M483: after deleting/stopping, let the block disappear from the grid
                     onDvrChanged = { dvrVm.refresh() }
                 )
             }
@@ -969,7 +969,7 @@ fun EpgGridScreen(
 private sealed class GridDetail {
     data class Epg(val row: ChannelRow, val ev: EpgEvent) : GridDetail()
     data class Dvr(val row: ChannelRow, val rec: sk.tvhclient.shared.model.DvrEntry) : GridDetail()
-    // Prave prebiehajuca nahravka — da sa pustit naživo aj od zaciatku
+    // A recording in progress — it can be played live as well as from the start
     data class InProgress(val row: ChannelRow, val rec: sk.tvhclient.shared.model.DvrEntry) : GridDetail()
 }
 
@@ -986,25 +986,25 @@ private fun GridDetailContent(
     val context = LocalContext.current
     val playFocus = remember { FocusRequester() }
 
-    // ---- M473: nahravanie programu z detailu (moderny aj klasicky rezim) ----
+    // ---- M473: recording a programme from the detail (both modern and classic mode) ----
     val dvrScope = rememberCoroutineScope()
     val recEventId = (detail as? GridDetail.Epg)?.ev?.eventId
     var canRecord by remember { mutableStateOf(false) }
     var recBusy by remember { mutableStateOf(false) }
     var recMsg by remember { mutableStateOf<String?>(null) }
-    // M484: chybu treba odlisit farbou — „Could not add dvrEntry" v zelenej
-    // vyzeralo ako uspesne naplanovanie
+    // M484: an error must be distinguished by colour — "Could not add dvrEntry" in green
+    // looked like successful scheduling
     var recOk by remember { mutableStateOf(true) }
-    // M483: po uspesnom zmazani/zastaveni uz tlacidlo neponukame (zaznam je prec)
+    // M483: after a successful deletion/stop we no longer offer the button (the entry is gone)
     var recDone by remember { mutableStateOf(false) }
-    // M483: potvrdenie mazania/zastavenia
+    // M483: confirming a deletion/stop
     var confirmDvr by remember { mutableStateOf(false) }
-    // M475: ak uz nahravka existuje, drzime si ju — ponukneme zrusenie
+    // M475: if the recording already exists, we hold on to it — we offer to cancel it
     var existingRec by remember {
         mutableStateOf<sk.tvhclient.shared.model.DvrEntry?>(null)
     }
     var recReload by remember { mutableStateOf(0) }
-    // M483: prava treba aj pri DVR zazname (mazanie), nie len pri EPG relacii
+    // M483: the rights are needed for a DVR entry too (deleting), not just for an EPG programme
     LaunchedEffect(detail, recReload) {
         val ep = (detail as? GridDetail.Epg)
         val srv = sk.tvhclient.shared.Tvh.store.active()
@@ -1012,7 +1012,7 @@ private fun GridDetailContent(
         existingRec = if (ep == null || srv == null) null
         else DvrController.scheduledFor(srv, ep.row.channel.uuid, ep.ev.start, ep.ev.stop)
     }
-    // M483: zaznam, ktoreho sa tykaju akcie zmazat/zastavit
+    // M483: the entry that the delete/stop actions concern
     val dvrEntry: sk.tvhclient.shared.model.DvrEntry? = when (detail) {
         is GridDetail.Dvr -> detail.rec
         is GridDetail.InProgress -> detail.rec
@@ -1020,7 +1020,7 @@ private fun GridDetailContent(
     }
     val stopping = detail is GridDetail.InProgress
 
-    // Spolocne polia z oboch typov
+    // The fields common to both types
     val title: String
     val subtitle: String
     val channelName: String
@@ -1030,9 +1030,9 @@ private fun GridDetailContent(
     val desc: String
     val ageRating: Int
     val episode: String
-    // M483: mame na serveri subor, ktory sa da prehrat? (predtym `recorded` —
-    // to isté pole sa pouzivalo aj na odznak, preto prebiehajuca nahravka
-    // hlasila „Nahraté". Odznak sa teraz riesi zvlast, podla stavu.)
+    // M483: do we have a file on the server that can be played? (previously `recorded` —
+    // the same field was also used for the badge, which is why a recording in progress
+    // reported "Recorded". The badge is now handled separately, by state.)
     val hasFile: Boolean
     when (detail) {
         is GridDetail.Epg -> {
@@ -1076,7 +1076,7 @@ private fun GridDetailContent(
             .fillMaxSize()
             .verticalScroll(androidx.compose.foundation.rememberScrollState())
     ) {
-        // Hlavicka s piconom a tlacidlom spat
+        // The header with the picon and the back button
         val detailModern = isModernUi()
         val dcs = MaterialTheme.colorScheme
         Box(
@@ -1097,7 +1097,7 @@ private fun GridDetailContent(
         ) {
             if (piconUrl != null) {
                 if (detailModern) {
-                    // picon na svetlom plate (biele picony na tmavom pozadi)
+                    // the picon on a light plate (white picons on a dark background)
                     Box(
                         Modifier
                             .clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp))
@@ -1152,10 +1152,10 @@ private fun GridDetailContent(
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = if (detailModern) androidx.compose.ui.text.font.FontWeight.Bold else null
             )
-            // M483: tri stavy namiesto jedneho — prebiehajuca nahravka je cervena
-            // (rovnako ako jej blok v mriezke), dokoncena a naplanovana su v akcente.
-            // M485: naplanovana nahravka relacie, ktora uz bezi, je „Nahrava sa" —
-            // stav sa cita zo zaznamu, nie len z toho, odkial sa detail otvoril
+            // M483: three states instead of one — a recording in progress is red
+            // (the same as its block in the grid), finished and scheduled ones are in the accent colour.
+            // M485: a scheduled recording of a programme that is already running is "Recording" —
+            // the state is read from the entry, not just from where the detail was opened from
             val exRec = existingRec
             val epgRecordingNow = exRec != null && exRec.isRecordingNow
             val badgeRes: Int? = when {
@@ -1196,7 +1196,7 @@ private fun GridDetailContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.height(8.dp))
-            // Meta riadok: kanal · datum · cas · dlzka
+            // The meta row: channel · date · time · length
             val meta = buildString {
                 append(channelName)
                 append("  ·  ")
@@ -1211,12 +1211,12 @@ private fun GridDetailContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             Spacer(Modifier.height(16.dp))
-            // Prehrat len ak je co prehrat: DVR nahravka, alebo EPG relacia
-            // ktora prave bezi (naziva). Buduca/nenahravana sa prehrat neda.
+            // Play only if there is something to play: a DVR recording, or an EPG programme
+            // that is running right now (live). A future/unrecorded one cannot be played.
             val nowSec = currentTimeSeconds()
             val playable = hasFile || (start <= nowSec && nowSec < stop)
             if (playable) {
-                // Na TV/diaľkovom daj počiatočný fokus na Prehrať, nech OK funguje hneď
+                // On TV/a remote, put the initial focus on Play, so that OK works straight away
                 LaunchedEffect(detail) {
                     kotlinx.coroutines.delay(150)
                     runCatching { playFocus.requestFocus() }
@@ -1235,7 +1235,7 @@ private fun GridDetailContent(
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
-                // Prebiehajuca nahravka — prehrat od zaciatku (dobehnes zaciatok)
+                // A recording in progress — play from the start (you will catch up with the start)
                 if (onPlayFromStart != null) {
                     Spacer(Modifier.height(8.dp))
                     androidx.compose.material3.OutlinedButton(
@@ -1263,13 +1263,13 @@ private fun GridDetailContent(
                 )
             }
 
-            // M473: nahravanie — len pre EPG relaciu, ktora este neskoncila,
-            // a len ak ma pouzivatel na serveri pravo nahravat
-            // M475: nahrat / zrusit naplanovanu nahravku
+            // M473: recording — only for an EPG programme that has not ended yet,
+            // and only if the user has the right to record on the server
+            // M475: record / cancel a scheduled recording
             val rec = existingRec
             if (canRecord && recEventId != null && stop > nowSec) {
                 Spacer(Modifier.height(10.dp))
-                // M606: volitelny vyber DVR profilu pred nahravanim
+                // M606: an optional DVR profile selection before recording
                 var askProfiles by remember { mutableStateOf<List<String>>(emptyList()) }
                 fun doRecord(profile: String?) {
                         val srv = sk.tvhclient.shared.Tvh.store.active() ?: return
@@ -1277,14 +1277,14 @@ private fun GridDetailContent(
                         dvrScope.launch {
                             if (profile != null) DvrAskPref.setLastUsed(context, srv.id, profile)
                             val r = if (rec != null) DvrController.cancel(srv, rec)
-                            // M484: popis relacie -> zaznam sa hned premietne do zoznamu
+                            // M484: the programme description -> the entry is reflected in the list immediately
                             else DvrController.recordEvent(
                                 srv, recEventId,
                                 (detail as? GridDetail.Epg)?.row?.channel?.uuid ?: "",
                                 start, stop, title, profile
                             )
-                            // M484: server pri duplikate vrati len strohu chybu —
-                            // dohladame, kde uz nahravka je
+                            // M484: on a duplicate the server returns only a terse error —
+                            // we look up where the recording already is
                             val dup = if (r.success || rec != null) null
                             else DvrController.duplicateOf(srv, title)
                             recBusy = false
@@ -1302,8 +1302,8 @@ private fun GridDetailContent(
                                 )
                             }
                             if (r.success) {
-                                recReload++          // znovu zisti stav
-                                onDvrChanged()       // M485: aj bloky v mriezke
+                                recReload++          // determine the state again
+                                onDvrChanged()       // M485: the blocks in the grid too
                             }
                         }
                 }
@@ -1329,13 +1329,13 @@ private fun GridDetailContent(
                         }
                     },
                     enabled = !recBusy,
-                    // M483: rovnaka sirka a vnutorne usporiadanie ako prehravacie
-                    // tlacidla vyssie — predtym bolo tlacidlo uzke podla textu
+                    // M483: the same width and internal layout as the playback
+                    // buttons above — previously the button was narrow, sized to the text
                     modifier = Modifier.fillMaxWidth().dpadFocusable()
                 ) {
                     androidx.compose.material3.Icon(
                         when {
-                            // M485: beziacu nahravku „zastavujeme", nerusime
+                            // M485: a running recording is "stopped", not cancelled
                             epgRecordingNow -> Icons.Default.Stop
                             rec != null -> Icons.Default.Close
                             else -> Icons.Default.FiberManualRecord
@@ -1355,9 +1355,9 @@ private fun GridDetailContent(
                 }
             }
 
-            // M483: DVR zaznam — dokoncenu nahravku sa da zmazat, prebiehajucu
-            // zastavit. Doteraz sa tlacidlo ponukalo len pri EPG relacii, takze
-            // nahravku otvorenu z mriezky sa nedalo nijako odstranit.
+            // M483: a DVR entry — a finished recording can be deleted, one in progress
+            // stopped. Until now the button was only offered for an EPG programme, so
+            // a recording opened from the grid could not be removed at all.
             if (canRecord && dvrEntry != null && !recDone) {
                 Spacer(Modifier.height(10.dp))
                 androidx.compose.material3.OutlinedButton(
@@ -1406,8 +1406,8 @@ private fun GridDetailContent(
         }
     }
 
-    // M483: mazanie/zastavenie sa vzdy pyta — je to nevratne a na dialkovom
-    // ovladaci sa OK stlaci lahko omylom.
+    // M483: deleting/stopping always asks — it is irreversible and on a remote
+    // control OK is easily pressed by accident.
     if (confirmDvr && dvrEntry != null) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { confirmDvr = false },
@@ -1442,7 +1442,7 @@ private fun GridDetailContent(
                         }
                         if (r.success) {
                             recDone = true
-                            onDvrChanged()   // mriezka nacita DVR zoznam znova
+                            onDvrChanged()   // the grid loads the DVR list again
                         }
                     }
                 }) {
@@ -1474,7 +1474,7 @@ private fun EpgGridRow(
     hScroll: androidx.compose.foundation.ScrollState,
     loader: coil.ImageLoader,
     selectedStart: Long? = null,
-    playing: Boolean = false,   // M593: kanal/stanica, ktora prave hra v prehravaci
+    playing: Boolean = false,   // M593: the channel/station that is currently playing in the player
     onClick: (EpgEvent) -> Unit,
     onDvr: (sk.tvhclient.shared.model.DvrEntry) -> Unit,
     onInProgress: (sk.tvhclient.shared.model.DvrEntry) -> Unit,
@@ -1482,28 +1482,28 @@ private fun EpgGridRow(
 ) {
     val context = LocalContext.current
     val modern = isModernUi()
-    // M387: adaptivne rozmery podla sirky okna; siroke obrazovky (>=600dp) ostavaju
-    // presne ako po M377 (k = 1, povodne vysky riadkov)
+    // M387: adaptive dimensions by window width; wide screens (>=600dp) stay
+    // exactly as after M377 (k = 1, the original row heights)
     val conf = androidx.compose.ui.platform.LocalConfiguration.current
-    // M388: kompaktna hustota na telefone (prepinac v hlavicke EPG)
+    // M388: compact density on a phone (the toggle in the EPG header)
     val ctxDen = LocalContext.current
     val epgCompact = conf.smallestScreenWidthDp < 600 && EpgDensityPref.compactStateOf(ctxDen).value
     val pxMin = if (epgCompact) 3 else PX_PER_MIN
     val chanW = chanColFor(conf.screenWidthDp, epgCompact)
     val wide = conf.screenWidthDp >= 600
     val k = if (wide) 1f else epgScaleK(conf.screenWidthDp)
-    // uzke obrazovky: riadok o nieco vyssi, nech sa pod picon zmesti "cislo · nazov";
-    // kompakt = nizsie riadky (viac kanalov na obrazovke)
+    // narrow screens: the row is a bit taller, so that "number · name" fits under the picon;
+    // compact = lower rows (more channels on screen)
     val rowH = if (wide) {
-        // M388-fix: telefon na sirku moze byt tiez kompaktny (nizsie riadky)
+        // M388-fix: a phone in landscape can be compact too (lower rows)
         if (epgCompact) { if (modern) 58 else 50 } else { if (modern) ROW_H_M else ROW_H }
     }
         else if (epgCompact) ((if (modern) 62 else 54) * k).toInt()
         else (((if (modern) ROW_H_M + 6 else ROW_H + 16)) * k).toInt()
     Row(Modifier.height(rowH.dp)) {
-        // Stlpec kanala. M377: na sirokych obrazovkach (TV/tablet)
-        // picon → cislo → nazov v riadku (ako Tvheadend web UI) pre oba rezimy;
-        // M387: na uzkych telefonoch picon + "cislo · nazov" pod nim.
+        // The channel column. M377: on wide screens (TV/tablet)
+        // picon → number → name in a row (as in the Tvheadend web UI) for both modes;
+        // M387: on narrow phones the picon + "number · name" underneath it.
         if (wide) {
             val cs = MaterialTheme.colorScheme
             Row(
@@ -1514,7 +1514,7 @@ private fun EpgGridRow(
                             .clip(RoundedCornerShape(12.dp))
                             .background(
                                 when {
-                                    // M593: hrany kanal je v mriezke otvorenej z prehravaca zvyrazneny
+                                    // M593: the playing channel is highlighted in a grid opened from the player
                                     playing -> cs.primaryContainer.copy(alpha = if (isLightTheme()) 0.5f else 0.4f)
                                     isLightTheme() -> cs.surfaceContainerLowest
                                     else -> cs.surfaceContainer
@@ -1525,7 +1525,7 @@ private fun EpgGridRow(
                                 if (playing) cs.primary else cs.outlineVariant,
                                 RoundedCornerShape(12.dp)
                             )
-                        else if (playing) Modifier   // M593: klasicky rezim — len obrys
+                        else if (playing) Modifier   // M593: classic mode — an outline only
                             .clip(RoundedCornerShape(8.dp))
                             .border(2.dp, cs.primary, RoundedCornerShape(8.dp))
                         else Modifier
@@ -1576,8 +1576,8 @@ private fun EpgGridRow(
                 )
             }
         } else {
-            // M387: uzke obrazovky (klasika aj moderny) — picon hore, pod nim
-            // jeden riadok "cislo · nazov" (elipsa); bez piconu velke cislo.
+            // M387: narrow screens (both classic and modern) — the picon on top, under it
+            // a single "number · name" line (ellipsised); without a picon, a large number.
             val cs = MaterialTheme.colorScheme
             val num = row.channel.number
             val label = if (num != null && num > 0) "$num · ${row.channel.name}" else row.channel.name
@@ -1654,21 +1654,21 @@ private fun EpgGridRow(
                 )
             }
         }
-        // Programova plocha (skroluje horizontalne)
+        // The programme area (scrolls horizontally)
         Box(
             Modifier
                 .horizontalScroll(hScroll)
                 .height(rowH.dp)
         ) {
             Box(Modifier.width((DAY_MIN * pxMin).dp).height(rowH.dp)) {
-                // Nahravky (dokoncene zelene + prebiehajuce cervene) zlucene do jednej
-                // sady blokov — bez prekryvov a duplicit (aj pri "(ST)" variantach nazvu);
-                // vykreslime iba bloky vo viditeľnom okne (cullovanie)
+                // Recordings (finished green + in-progress red) merged into a single
+                // set of blocks — without overlaps and duplicates (including "(ST)" title variants);
+                // we render only the blocks in the visible window (culling)
                 val recBlocks = remember(dvr, inProgress, now / 60) {
                     mergeRecordings(dvr.filter { it.stop <= now }, inProgress)
                 }
-                // Susedne nahravky roznych relacii sa casto prekryvaju o okraj (padding).
-                // Orezeme prekryv v jeho strede, nech bloky na seba nadvazuju a neprekryvaju sa.
+                // Adjacent recordings of different programmes often overlap by the margin (padding).
+                // We cut the overlap in its middle, so that the blocks abut and do not overlap.
                 val recBounds = remember(recBlocks) {
                     val n = recBlocks.size
                     val vs = LongArray(n) { recBlocks[it].start }
@@ -1705,10 +1705,10 @@ private fun EpgGridRow(
                             endMin = endMin,
                             title = rb.title,
                             timeLabel = formatTimeHm(rb.start) + " - " + formatTimeHm(rb.stop),
-                            bg = Color(0x2EEF5350),       // svetlejsia = este sa nenahralo (za ciarou)
+                            bg = Color(0x2EEF5350),       // lighter = not recorded yet (past the line)
                             recorded = false,
                             progressMin = ((now - vStart) / 60).toInt(),
-                            progressColor = Color(0x80EF5350),  // tmavsia = uz nahrate (pred ciarou)
+                            progressColor = Color(0x80EF5350),  // darker = already recorded (before the line)
                             prefix = "\u25CF ",
                             selected = selectedStart == rb.start,
                             onClick = { onInProgress(rb.entry) },
@@ -1730,7 +1730,7 @@ private fun EpgGridRow(
                             endMin = endMin,
                             title = rb.title,
                             timeLabel = formatTimeHm(rb.start) + " - " + formatTimeHm(rb.stop),
-                            bg = if (isLightTheme()) Color(0xA643A047) else Color(0x5C43A047),  // zelena = nahrate
+                            bg = if (isLightTheme()) Color(0xA643A047) else Color(0x5C43A047),  // green = recorded
                             recorded = true,
                             selected = selectedStart == rb.start,
                             onClick = { onDvr(rb.entry) },
@@ -1738,8 +1738,8 @@ private fun EpgGridRow(
                         )
                     }
                 }
-                // Relacie z EPG vratane minulych (historia); preskoc tie, ktore uz
-                // ukazuje niektory zluceny blok nahravky, nech nie su dva bloky
+                // Programmes from the EPG including past ones (history); skip those that
+                // are already shown by some merged recording block, so that there are not two blocks
                 events.filter { ev ->
                     recBlocks.none { it.start < ev.stop && it.stop > ev.start }
                 }.forEach { ev ->
@@ -1789,8 +1789,8 @@ private fun EpgGridRow(
                         onFocused = { onFocusDetail(GridDetail.Epg(row, ev)) }
                     )
                 }
-                // Zvisla live ciara aktualneho casu (jemna, ladi s farbou);
-                // moderny rezim: vyraznejsia teal ciara nadvazujuca na bublinu v osi
+                // The vertical live line of the current time (subtle, matching the colour);
+                // modern mode: a more prominent teal line continuing from the bubble in the axis
                 if (showNow) {
                     val nowMin = ((now - dayStart) / 60).toInt()
                     if (nowMin in 0..DAY_MIN) {
@@ -1838,9 +1838,9 @@ private fun GridBlock(
     if (wMin <= 0) return
     val cellW = wMin * pxMin
     val fullTitle = (prefix ?: if (recorded) "\u25B6 " else "") + title
-    // M377: fokus-rozbalenie — ked je vybrana bunka prilis uzka na cely nazov,
-    // vykreslime nad nou docasnu sirsiu bublinu (overlay so zIndex-om; mriezka
-    // sa nehybe, bublina zmizne s odchodom kurzora). Meriame realnu sirku textu.
+    // M377: focus-expansion — when the selected cell is too narrow for the whole title,
+    // we render a temporary wider bubble above it (an overlay with a zIndex; the grid
+    // does not move, the bubble disappears when the cursor leaves). We measure the real text width.
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
     val titleStyle = MaterialTheme.typography.bodySmall
     val density = androidx.compose.ui.platform.LocalDensity.current
@@ -1877,7 +1877,7 @@ private fun GridBlock(
                 )
                 .pointerInput(Unit) { detectTapGestures { onClick() } }
         ) {
-            // Priebeh zlava: pri zivej relacii svetlejsia primarna, pri nahravke tmavsia cervena
+            // Progress from the left: for a live programme the lighter primary colour, for a recording the darker red
             if (progressMin > 0) {
                 Box(
                     Modifier
@@ -1951,7 +1951,7 @@ private fun playLive(context: android.content.Context, row: ChannelRow, ev: EpgE
     context.startActivity(intent)
 }
 
-/** Live prehratie kanala bez konkretnej relacie (pre prebiehajucu nahravku). */
+/** Live playback of a channel without a specific programme (for a recording in progress). */
 private fun playLiveChannel(context: android.content.Context, row: ChannelRow, radio: Boolean = false) {
     val intent = android.content.Intent(context, PlayerActivity::class.java).apply {
         putExtra(PlayerActivity.EXTRA_UUID, row.channel.uuid)
@@ -1962,9 +1962,9 @@ private fun playLiveChannel(context: android.content.Context, row: ChannelRow, r
     context.startActivity(intent)
 }
 
-/** Spatne prehratie minulej relacie z DVR nahravky (vratane resume/pozicie). */
+/** Playback of a past programme from a DVR recording (including resume/position). */
 
-/** Zaciatok dna (lokalna polnoc) + offset dni, v sekundach. */
+/** The start of the day (local midnight) + a day offset, in seconds. */
 private fun dayStartSec(offset: Int): Long {
     val c = java.util.Calendar.getInstance()
     c.add(java.util.Calendar.DAY_OF_YEAR, offset)
@@ -1979,13 +1979,13 @@ private fun dayStartSec(offset: Int): Long {
 private fun stringResourceTvGuide(): String =
     androidx.compose.ui.res.stringResource(R.string.tv_guide)
 
-/** Druh karty modernej mriezky. */
+/** The kind of card in the modern grid. */
 private enum class MgKind { NOW, PAST, FUTURE, REC, RECORDED }
 
 /**
- * Karta relacie v modernom rezime mriezky: cas drobne NAD tucnym nazvom,
- * medzery medzi kartami, nahravky maju farebnu hranu vlavo + badge namiesto
- * celoplosnej vyplne, priebeh je tenky pasik na spodku karty.
+ * A programme card in modern grid mode: the time in small print ABOVE a bold title,
+ * gaps between the cards, recordings have a coloured edge on the left + a badge instead of
+ * a full-area fill, the progress is a thin bar at the bottom of the card.
  */
 @Composable
 private fun ModernGridBlock(
@@ -2006,7 +2006,7 @@ private fun ModernGridBlock(
     val wMin = endMin - startMin
     if (wMin <= 0) return
     val cellW = wMin * pxMin
-    // M377: fokus-rozbalenie kratkych kariet (rovnaky princip ako klasicky rezim)
+    // M377: focus-expansion of short cards (the same principle as in classic mode)
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
     val mTitleStyle = MaterialTheme.typography.bodyMedium
     val mDensity = androidx.compose.ui.platform.LocalDensity.current

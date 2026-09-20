@@ -6,11 +6,11 @@ import java.util.Locale
 import sk.tvhclient.shared.TimeFormatConfig
 
 /**
- * M679: formatovanie casu pre UI prehravaca na jednom mieste (predtym styri takmer
- * zhodne kopie: fmtMs, fmtPos, fmtClock/fmtRange, hhmm).
+ * M679: time formatting for the player UI in one place (previously four almost
+ * identical copies: fmtMs, fmtPos, fmtClock/fmtRange, hhmm).
  */
 
-/** Dlzka / pozicia v ms ako h:mm:ss alebo m:ss; zaporne a nula = „0:00". */
+/** Duration / position in ms as h:mm:ss or m:ss; negative and zero = "0:00". */
 internal fun fmtMs(ms: Long): String {
     if (ms <= 0) return "0:00"
     val totalSec = ms / 1000
@@ -24,11 +24,11 @@ internal fun fmtMs(ms: Long): String {
     }
 }
 
-/** Hodiny:minuty z unixoveho casu v sekundach (podla nastavenia 12/24 h); 0 = prazdny retazec. */
+/** Hours:minutes from unix time in seconds (per the 12/24 h setting); 0 = empty string. */
 internal fun fmtClock(sec: Long): String =
     if (sec <= 0) "" else SimpleDateFormat(TimeFormatConfig.hm, Locale.getDefault()).format(Date(sec * 1000))
 
-/** Rozsah „od - do" z dvoch unixovych casov; ak koniec chyba, vrati len zaciatok. */
+/** A "from - to" range from two unix times; if the end is missing, only the start is returned. */
 internal fun fmtRange(a: Long, b: Long): String {
     val sa = fmtClock(a); val sb = fmtClock(b)
     return if (sa.isNotBlank() && sb.isNotBlank()) "$sa - $sb" else sa

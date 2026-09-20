@@ -3,7 +3,7 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * Oblubene kanaly. Pre kazdy server zoznam uuid kanalov (CSV v SharedPreferences).
+ * Favourite channels. For each server a list of channel uuids (CSV in SharedPreferences).
  */
 object Favorites {
     private const val PREFS = "favorites"
@@ -15,7 +15,7 @@ object Favorites {
         return raw.split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
     }
 
-    /** M541: oblubene V PORADI (poradie pridania / rucne usporiadanie). */
+    /** M541: favourites IN ORDER (order of adding / manual arrangement). */
     fun list(context: Context, serverId: String): List<String> {
         val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(key(serverId), "") ?: ""
@@ -25,14 +25,14 @@ object Favorites {
     fun isFav(context: Context, serverId: String, uuid: String): Boolean =
         all(context, serverId).contains(uuid)
 
-    /** Pridanie ide na koniec zoznamu (poradie sa zachovava — LinkedHashSet). */
+    /** Adding goes to the end of the list (the order is preserved — LinkedHashSet). */
     fun toggle(context: Context, serverId: String, uuid: String) {
         val set = all(context, serverId).toMutableSet()
         if (!set.add(uuid)) set.remove(uuid)
         save(context, serverId, set.toList())
     }
 
-    /** M541: presun polozky v poradi oblubenych. */
+    /** M541: move an item within the favourites order. */
     fun move(context: Context, serverId: String, from: Int, to: Int) {
         val l = list(context, serverId).toMutableList()
         if (from !in l.indices || to !in l.indices || from == to) return
@@ -42,10 +42,10 @@ object Favorites {
     }
 
     /**
-     * M583: presun podla uuid. Zoznam oblubenych je pre server SPOLOCNY pre TV aj
-     * radia, ale zalozky zobrazuju len svoju cast — index vo filtrovanom zozname
-     * nie je index v ulozenom poradi. [uuid] sa vlozi na miesto [targetUuid]
-     * (rovnako ako to robi prehravac pri usporiadani D-padom).
+     * M583: move by uuid. The favourites list is SHARED per server for both TV and
+     * radio, but the tabs only show their own part — an index in the filtered list
+     * is not an index in the saved order. [uuid] is inserted at the position of [targetUuid]
+     * (exactly as the player does when reordering with the D-pad).
      */
     fun moveUuid(context: Context, serverId: String, uuid: String, targetUuid: String) {
         val l = list(context, serverId)
