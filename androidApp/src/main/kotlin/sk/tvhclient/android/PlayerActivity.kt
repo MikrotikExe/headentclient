@@ -554,34 +554,7 @@ class PlayerActivity : ComponentActivity() {
             kotlinx.coroutines.delay(6000)
             seekingState.value = false
         }
-        runCatching {
-            if (dvrViaFeeder) {
-                val srv = liveServer ?: return
-                val feeder = httpFeeder
-                // Presny prepocet cas->byte z GLOBALNEHO priemeru: celkova velkost suboru
-                // (Content-Range "/N") / celkovy cas suboru (offset + nahrate trvanie).
-                // Lokalny odhad z bytesWritten/playhead je nespolahlivy (byte vs cas nesedi).
-                val total = feeder?.totalBytes ?: 0L
-                val fileDurMs = offsetMs + dur            // dur = aktualne nahrate trvanie relacie
-                val targetByte: Long = if (total > 0 && fileDurMs > 0) {
-                    (total.toDouble() / fileDurMs * fileMs).toLong().coerceIn(0L, total - 1)
-                } else {
-                    // fallback: lokalny odhad ak este nepoznam celkovu velkost
-                    val bytes = feeder?.bytesWritten ?: 0L
-                    val fromFileMs = (offsetMs + fromMs).coerceAtLeast(1L)
-                    val bpms = if (bytes > 0) bytes.toDouble() / fromFileMs else 0.0
-                    if (bpms > 0) (bpms * fileMs).toLong().coerceAtLeast(0L) else 0L
-                }
-                playDvrViaFeeder(srv, url, targetByte)
-            } else {
-                ensureHealthyPlayer()   // M539
-                val m = buildMedia(url)
-                m.addOption(":start-time=${fileMs / 1000}")
-                mediaPlayer.media = m
-                m.release()
-                startPlayback()   // M539-fix2
-            }
-        }
+        opener.seekDvrFile(url, fileMs, offsetMs, fromMs, dur)   // M670: telo v StreamOpener
         // M594: cas a ciel posledneho pretocenia — ked hned po nom pride koniec/chyba,
         // je to trafeny EOF (subor kratsi nez trvanie z EPG) a nie skutocny koniec
         dvrSeek.markSeek(targetMs)
@@ -2004,50 +1977,13 @@ class PlayerActivity : ComponentActivity() {
             (dvrProgStartSec - dvrRealStartSec) * 1000 else 0L
         // pozicia v subore = offset + prehrany cas relacie, par sekund vzad ako rezerva
         val startSec = ((offsetMs + dvrPlayheadMsState.value) / 1000 - 3).coerceAtLeast(0)
-        reconnect.reopenDvrLive {
-            if (dvrViaFeeder) {
-                // pokracuj od miesta kam sme dosli (rastuci subor) cez HTTP Range
-                val srv = liveServer ?: return@reopenDvrLive
-                val from = httpFeeder?.bytesWritten ?: 0L
-                playDvrViaFeeder(srv, url, from)
-            } else {
-                ensureHealthyPlayer()   // M539
-                val m = buildMedia(url)
-                m.addOption(":start-time=$startSec")
-                mediaPlayer.media = m
-                m.release()
-                startPlayback()   // M539-fix2
-            }
-        }
+        reconnect.reopenDvrLive { opener.reopenDvrAt(url, startSec) }   // M670
     }
 
     /** Naplanuje znovupripojenie zivého streamu po vypadku (narastajuce oneskorenie — ReconnectController). */
     private fun scheduleReconnect() {
         if (seekablePlayback) return  // DVR nahravka sa neobnovuje (in-progress riesi reopenDvrLive)
-        reconnect.scheduleReconnect { attempt ->
-            val srv = liveServer
-            val cid = liveUuids.getOrNull(liveIndex)?.toLongOrNull()
-            val url = currentStreamUrl
-            if (htspStream && srv != null && cid != null) {
-                // HTSP kanal -> znovu napoj cez HTSP (zachova HTSP/timeshift)
-                playHtspLive(srv, cid, htspLive)
-            } else if (liveNeedsFeeder == true && srv != null && url != null) {
-                playLiveViaFeeder(srv, url)   // HTTP digest-only -> feeder
-            } else if (url != null) {
-                // M390: priame HTTP live na niektorych boxoch pada v libVLC (auth/transport),
-                // hoci feeder (OkHttp -> pipe) funguje — po 2. neuspesnom pokuse prepni na feeder.
-                if (attempt >= 2 && !seekablePlayback && srv != null && srv.username.isNotEmpty()) {
-                    liveNeedsFeeder = true
-                    playLiveViaFeeder(srv, url)
-                } else {
-                    ensureHealthyPlayer()   // M539
-                    val m = buildMedia(url)       // bezne HTTP
-                    mediaPlayer.media = m
-                    m.release()
-                    startPlayback()   // M539-fix2
-                }
-            }
-        }
+        reconnect.scheduleReconnect { attempt -> opener.reconnectAttempt(attempt, seekablePlayback) }   // M670
     }
 
     override fun onPictureInPictureModeChanged(
@@ -2250,21 +2186,8 @@ class PlayerActivity : ComponentActivity() {
     internal var initialStartDone = false
     private fun startPlayback() { engine.startPlayback() }
 
-    /** Znovu spusti aktualny zivy kanal tou istou cestou (HTSP / feeder / HTTP). */
-    private fun replayCurrentLive() {
-        val srv = liveServer
-        val cid = liveUuids.getOrNull(liveIndex)?.toLongOrNull()
-        val url = currentStreamUrl
-        runCatching {
-            if (htspStream && srv != null && cid != null) {
-                playHtspLive(srv, cid, htspLive)
-            } else if (liveNeedsFeeder == true && srv != null && url != null) {
-                playLiveViaFeeder(srv, url)
-            } else if (url != null) {
-                playHttp(url)
-            }
-        }
-    }
+    /** Znovu spusti aktualny zivy kanal tou istou cestou (HTSP / feeder / HTTP) — M670: StreamOpener. */
+    private fun replayCurrentLive() { opener.replayCurrentLive() }
 
     /** M535: stop/release libVLC na pracovnom vlakne (VlcEngine.teardownAsync); feedery a hlidac ako prve. */
     private fun teardownPlayerAsync() {

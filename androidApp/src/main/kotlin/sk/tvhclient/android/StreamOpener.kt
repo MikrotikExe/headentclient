@@ -188,4 +188,98 @@ internal class StreamOpener(
             false
         }
     }
+
+    // ---- M670: znovupripojenie / znovuotvorenie / pretocenie (telá lambd z aktivity) ----
+
+    /** Priame HTTP medium bez resetu feederov/teletextu (reconnect, reopen, seek), voliteľne s :start-time. */
+    private fun playUrlDirect(url: String, startTimeSec: Long?) {
+        hooks.ensureHealthyPlayer()   // M539
+        val m = media.forUrl(url)
+        if (startTimeSec != null) m.addOption(":start-time=$startTimeSec")
+        player().media = m
+        m.release()
+        hooks.startPlayback()   // M539-fix2
+    }
+
+    /** Jeden pokus o znovupripojenie živého streamu (ReconnectController.scheduleReconnect). */
+    fun reconnectAttempt(attempt: Int, seekable: Boolean) {
+        val srv = live.server
+        val cid = live.uuids.getOrNull(live.index)?.toLongOrNull()
+        val url = stream.currentStreamUrl
+        if (stream.htspStream && srv != null && cid != null) {
+            // HTSP kanal -> znovu napoj cez HTSP (zachova HTSP/timeshift)
+            playHtspLive(srv, cid, stream.htspLive)
+        } else if (stream.liveNeedsFeeder == true && srv != null && url != null) {
+            playLiveViaFeeder(srv, url)   // HTTP digest-only -> feeder
+        } else if (url != null) {
+            // M390: priame HTTP live na niektorych boxoch pada v libVLC (auth/transport),
+            // hoci feeder (OkHttp -> pipe) funguje — po 2. neuspesnom pokuse prepni na feeder.
+            if (attempt >= 2 && !seekable && srv != null && srv.username.isNotEmpty()) {
+                stream.liveNeedsFeeder = true
+                playLiveViaFeeder(srv, url)
+            } else {
+                playUrlDirect(url, null)   // bezne HTTP
+            }
+        }
+    }
+
+    /** Znovu spusti aktualny zivy kanal tou istou cestou (HTSP / feeder / HTTP) — po vymene prehravaca. */
+    fun replayCurrentLive() {
+        val srv = live.server
+        val cid = live.uuids.getOrNull(live.index)?.toLongOrNull()
+        val url = stream.currentStreamUrl
+        runCatching {
+            if (stream.htspStream && srv != null && cid != null) {
+                playHtspLive(srv, cid, stream.htspLive)
+            } else if (stream.liveNeedsFeeder == true && srv != null && url != null) {
+                playLiveViaFeeder(srv, url)
+            } else if (url != null) {
+                playHttp(url)
+            }
+        }
+    }
+
+    /** In-progress nahravka: znovu otvor stream od [startSec] (feeder: od miesta, kam sme dosli). */
+    fun reopenDvrAt(url: String, startSec: Long) {
+        if (stream.dvrViaFeeder) {
+            // pokracuj od miesta kam sme dosli (rastuci subor) cez HTTP Range
+            val srv = live.server ?: return
+            val from = stream.httpFeeder?.bytesWritten ?: 0L
+            playDvrViaFeeder(srv, url, from)
+        } else {
+            playUrlDirect(url, startSec)
+        }
+    }
+
+    /**
+     * Pretoc DVR nahravku PREBUDOVANIM streamu: priame URL -> nova Media s :start-time
+     * (libVLC seekuje cez HTTP Range); feeder/pipe -> restart HTTP feedu na odhadnutom
+     * byte-offsete (pipe sa neseekuje). [fileMs] = cielovy cas v subore, [offsetMs] = zaciatok
+     * relacie v subore, [fromMs] = odkial pretacame, [dur] = aktualne nahrate trvanie relacie.
+     */
+    fun seekDvrFile(url: String, fileMs: Long, offsetMs: Long, fromMs: Long, dur: Long) {
+        runCatching {
+            if (stream.dvrViaFeeder) {
+                val srv = live.server ?: return
+                val feeder = stream.httpFeeder
+                // Presny prepocet cas->byte z GLOBALNEHO priemeru: celkova velkost suboru
+                // (Content-Range "/N") / celkovy cas suboru (offset + nahrate trvanie).
+                // Lokalny odhad z bytesWritten/playhead je nespolahlivy (byte vs cas nesedi).
+                val total = feeder?.totalBytes ?: 0L
+                val fileDurMs = offsetMs + dur            // dur = aktualne nahrate trvanie relacie
+                val targetByte: Long = if (total > 0 && fileDurMs > 0) {
+                    (total.toDouble() / fileDurMs * fileMs).toLong().coerceIn(0L, total - 1)
+                } else {
+                    // fallback: lokalny odhad ak este nepoznam celkovu velkost
+                    val bytes = feeder?.bytesWritten ?: 0L
+                    val fromFileMs = (offsetMs + fromMs).coerceAtLeast(1L)
+                    val bpms = if (bytes > 0) bytes.toDouble() / fromFileMs else 0.0
+                    if (bpms > 0) (bpms * fileMs).toLong().coerceAtLeast(0L) else 0L
+                }
+                playDvrViaFeeder(srv, url, targetByte)
+            } else {
+                playUrlDirect(url, fileMs / 1000)
+            }
+        }
+    }
 }
