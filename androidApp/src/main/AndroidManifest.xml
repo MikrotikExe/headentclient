@@ -4,11 +4,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <!-- Display over other apps: the app with this permission may start itself in the background
-         (including after boot). Without it, Android blocks background startup. -->
+    <!-- Zobrazenie cez ine aplikacie: appka s tymto pravom smie spustit sama seba
+         z pozadia (aj po boote). Bez neho Android spustenie z pozadia blokuje. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
-    <!-- Android TV: Leanback is not required; the app runs on both mobile and TV -->
+    <!-- Android TV: leanback nie je povinny, app bezi na mobile aj TV -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
@@ -16,12 +16,12 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- M452: Wi‑Fi Lock/Wake Lock during playback — without them, Android switches the chip to
-         power-saving mode on Wi‑Fi devices and data flows in bursts once per second
-         (broken streaming). -->
+    <!-- M452: WifiLock/WakeLock pocas prehravania — bez nich Android na
+         Wi-Fi zariadeniach prepne cip do usporneho rezimu a data chodia
+         v davkach raz za sekundu (trhanie streamu). -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
-    <!-- M580: custom row (preview channel) on the Android TV home screen -->
+    <!-- M580: vlastny riadok (preview channel) na domovskej obrazovke Android TV -->
     <uses-permission android:name="com.android.providers.tv.permission.WRITE_EPG_DATA" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 
@@ -49,12 +49,12 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Launcher on the Android TV home screen -->
+            <!-- Launcher na Android TV home screene -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
-            <!-- M573: deep link to a channel (favorites shortcuts, launchers, adb):
+            <!-- M573: deep link na kanal (skratky oblubenych, launchery, adb):
                  headentclient://channel/<uuid> -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -87,7 +87,7 @@
             android:name=".RadioPlayerService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
-        <!-- M580-fix: tile images for the TV home screen row (PNG only from cache/tvhome) -->
+        <!-- M580-fix: obrazky dlazdic riadku na domovskej obrazovke TV (len PNG z cache/tvhome) -->
         <provider
             android:name=".TvHomeImageProvider"
             android:authorities="${applicationId}.tvhome"

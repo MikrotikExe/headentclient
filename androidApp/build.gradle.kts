@@ -102,9 +102,6 @@ android {
     // z compileOptions.targetCompatibility (17).
 
     buildTypes {
-        debug {
-            applicationIdSuffix = ".debug"
-        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -124,6 +121,13 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+        }
+        // M680 (PR #16, jpstotz): debug build sa instaluje VEDLA Play verzie —
+        // iny application id (.debug), iny nazov v launcheri (src/debug/AndroidManifest.xml)
+        // a banner so stuhou „DEBUG BUILD" (src/debug/res/drawable-nodpi/tv_banner.png).
+        // Data su tym padom oddelene: v debug appke si treba server pridat znova.
+        debug {
+            applicationIdSuffix = ".debug"
         }
     }
 }

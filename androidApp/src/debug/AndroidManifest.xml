@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <!-- Override app name in debug builds -->
+    <!-- M680 (PR #16): v debug builde iny nazov v launcheri, nech sa neplieta s Play verziou.
+         Prepis cez manifest (nie app_name v src/debug/res/values) — app_name je prelozene
+         v 31 jazykoch, takze na zariadeni s inym jazykom by vyhral preklad. -->
     <application
         android:label="Headent Client Debug"
         tools:replace="android:label" />
