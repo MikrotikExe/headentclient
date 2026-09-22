@@ -2,6 +2,10 @@ package sk.tvhclient.android
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.focusGroup
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -173,6 +177,27 @@ class MainActivity : ComponentActivity() {
                 radio = intent.getBooleanExtra("epg_radio", false)   // M591
             )
         }
+        // M688: the first access to the encrypted store (Tvh.store) opens the Keystore master key and
+        // the Tink keysets — Binder calls that took several seconds on Strong boxes right after boot
+        // (autostart) and ended in an ANR on the main thread (Play vitals 1.0.6:
+        // MainActivity.maybeResumeLastPlayback -> buildEncrypted). If the store is not open yet
+        // (TvhApplication started opening it in the background, M688), wait for it on an IO thread
+        // and only then build the UI; meanwhile the window shows its theme background and the main
+        // thread stays responsive. On an activity recreation the store is already open and the UI
+        // is built immediately, exactly as before.
+        if (sk.tvhclient.shared.Tvh.isStoreReady) {
+            showUi(savedInstanceState)
+        } else {
+            lifecycleScope.launch {
+                // a failure is left to the regular access in showUi (M512 recovery), as before
+                withContext(Dispatchers.IO) { runCatching { sk.tvhclient.shared.Tvh.store } }
+                showUi(savedInstanceState)
+            }
+        }
+    }
+
+    /** M688: the part of onCreate that needs the store (the UI and the resume of the last playback). */
+    private fun showUi(savedInstanceState: Bundle?) {
         maybeResumeLastPlayback(savedInstanceState)   // M494
         setContent {
             val themeMode = ThemePref.stateOf(this).value

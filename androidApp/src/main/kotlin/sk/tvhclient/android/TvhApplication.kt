@@ -52,6 +52,17 @@ class TvhApplication : Application() {
         }
         CrashLogger.install(this)   // crash diagnostics (M353)
         initSecureStorage(this)
+        // M688: open the encrypted storage on a background thread right at process start.
+        // Its first use (MainActivity.onCreate -> Tvh.store) creates the Keystore master key and
+        // the Tink keysets — Binder calls into the keystore daemon that take seconds on slow
+        // boxes shortly after boot, and on the main thread that ended in an ANR (Play vitals
+        // 1.0.6: SecureSettings.buildEncrypted, "Input dispatching timed out"). Tvh.store is a
+        // synchronized lazy, so the activity either gets it ready or waits for this same
+        // initialization — never worse than before. Failures are left to the regular first
+        // access (M512 recovery included), which rethrows exactly as it did until now.
+        Thread({
+            runCatching { sk.tvhclient.shared.Tvh.store.list() }
+        }, "HeadentClient:storeWarmup").apply { isDaemon = true }.start()
         ClockPref.apply(this)       // clock format into the shared module (M423)
         // Since Android 8 SCREEN_ON cannot be registered in the manifest — only at runtime.
         val filter = IntentFilter().apply {

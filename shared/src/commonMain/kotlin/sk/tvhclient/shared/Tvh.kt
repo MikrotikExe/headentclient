@@ -13,7 +13,10 @@ import kotlin.coroutines.cancellation.CancellationException
  */
 object Tvh {
 
-    val store: ServerStore by lazy { ServerStore() }
+    private val storeLazy = lazy { ServerStore() }
+    val store: ServerStore get() = storeLazy.value
+    /** M688: true once the encrypted store has been opened — checking does not open it. */
+    val isStoreReady: Boolean get() = storeLazy.isInitialized()
 
     @Throws(CancellationException::class)
     suspend fun testConnection(server: TvhServer): ConnectionResult {

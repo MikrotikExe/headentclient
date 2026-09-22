@@ -1783,6 +1783,9 @@ class PlayerActivity : ComponentActivity() {
     }
 
     override fun onStop() {
+        // M688: closing the player — detach the video surface now, before super.onStop() hides the
+        // window and the system destroys the surface (VlcEngine.detachSurface)
+        if (isFinishing) engine.detachSurface()
         if (bg.onStopBeforeSuper()) { super.onStop(); return }
         super.onStop()
         bg.onStopAfterSuper()

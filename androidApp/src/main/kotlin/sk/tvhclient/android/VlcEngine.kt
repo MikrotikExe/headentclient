@@ -49,6 +49,22 @@ internal class VlcEngine(
     /** The player, if it exists and has not been shut down (for the controllers). */
     fun live(): MediaPlayer? = if (!tornDown && ready) player else null
 
+    /**
+     * M688: detach the video surface from the player on the main thread, while the surface still exists.
+     *
+     * Crash from Play (1.0.6, armeabi-v7a, Mali-400/450 boxes): SIGSEGV in eglSwapBuffers inside the Mali
+     * driver, on the libVLC video output thread. When the player was closed, [teardownAsync] handed
+     * stop() to a worker thread and detachViews() ran only after onDestroy — but the system destroys the
+     * SurfaceView's surface as soon as the window is hidden. Until stop() finished, the OpenGL ES output
+     * (used with software decoding and with deinterlacing) kept presenting frames into a destroyed
+     * surface. Detaching before stop() is the same order [recreate] has used since M539-fix3: while the
+     * input thread is still alive the vout releases the surface immediately.
+     */
+    fun detachSurface() {
+        if (tornDown || !ready) return
+        runCatching { player.detachViews() }
+    }
+
     /** Creates LibVLC + MediaPlayer, sets the audio output and the event listener.
      *  Called from onCreate and from [recreate]. */
     fun create() {
@@ -150,6 +166,7 @@ internal class VlcEngine(
      */
     fun teardownAsync(stopFeeders: () -> Unit) {
         if (tornDown) return
+        detachSurface()   // M688: before stop(), still on the main thread
         tornDown = true
         stopFeeders()
         if (!ready) {
