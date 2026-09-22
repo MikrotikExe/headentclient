@@ -33,9 +33,17 @@ internal class ChannelListKeys(
         fun reselectCurrent()
     }
 
+    /** M687: true once the list itself has handled an OK DOWN. An OK UP whose DOWN the list
+     *  never saw (the press that opened the list — e.g. OK on the "list" icon in the control bar
+     *  or in the modern overlay) must not confirm a channel: it would close the list right after
+     *  opening it. The timing guard above does not catch this — with "single OK" its window is
+     *  only 150 ms and an ordinary press is longer. */
+    private var okDownSeen = false
+
     /** When the list was opened — OK events right after opening (leftovers of the opening long
      *  press, ghost DOWN/UP pairs from IR/CEC remotes) are ignored (M330-fix2). */
     var openedAt = 0L
+        set(v) { field = v; okDownSeen = false }   // M687: a new opening starts a new OK gesture
 
     fun handleKey(kc: Int, down: Boolean, event: KeyEvent): Boolean {
         val n = live.uuids.size
@@ -79,10 +87,16 @@ internal class ChannelListKeys(
                 if (event.isLongPress && n > 0) {
                     actions.okLongFired = true               // the OK-up is then swallowed (it does not select a channel)
                     actions.openContextMenu(navIndex.value)
+                    okDownSeen = false
                     return true
                 }
+                okDownSeen = true                    // M687: only this DOWN's own UP may select
                 return true                          // do not select on DOWN (we wait for the release)
+            } else if (!okDownSeen) {
+                // M687: the release of the press that opened the list — ignore it
+                return true
             } else if (n > 0) {
+                okDownSeen = false
                 if (oneOk) {
                     // M596-fix/M596-fix2/M600-fix: a single OK = the channel straight to full screen,
                     // it switches only on RELEASE and with a delay after the list closes
