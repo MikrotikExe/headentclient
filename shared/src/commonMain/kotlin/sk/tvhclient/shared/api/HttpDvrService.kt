@@ -32,7 +32,12 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
         val cfg = if (configId.isNullOrBlank()) null else configUuidByName(configId)
         val params = HashMap<String, String>()
         params["event_id"] = eventId.toString()
-        if (!cfg.isNullOrBlank()) params["config_uuid"] = cfg
+        // M689: config_uuid is MANDATORY in this form of the call — Tvheadend
+        // (api_dvr_entry_create_from_single) returns EINVAL = HTTP 400 without it, so since M487
+        // recording over HTTP failed whenever no profile was chosen. An empty value is what "let the
+        // server decide" means: dvr_config_find_by_list("") finds no profile by uuid or name and
+        // falls back to the first profile the user is allowed, or to the server default.
+        params["config_uuid"] = cfg ?: ""
         api.apiPost("api/dvr/entry/create_by_event", params)
         DvrResult.OK
     } catch (e: TvhHttpException) {
