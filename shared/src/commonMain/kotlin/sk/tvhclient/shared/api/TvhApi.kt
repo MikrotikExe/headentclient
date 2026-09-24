@@ -23,6 +23,15 @@ import sk.tvhclient.shared.model.ChannelTag
 import sk.tvhclient.shared.model.EpgEvent
 import sk.tvhclient.shared.model.TvhServer
 
+/** M691: Tvheadend's ST_RADIO (service.h: ST_UNSET=-1, ST_NONE, ST_OTHER, ST_SDTV, ST_HDTV, ST_FHDTV, ST_UHDTV, ST_RADIO). */
+private const val ST_RADIO = 6
+/** M691: DVB service types as mapped by Tvheadend's dvb_servicetype_lookup (dvb_psi_lib.c). */
+private const val DVB_RADIO = 0x02
+private val DVB_TV = setOf(
+    0x01, 0x11, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
+    0x80, 0x91, 0x96, 0xA0, 0xA4, 0xA6, 0xA8, 0xD3
+)
+
 /**
  * HTTP client for the Tvheadend 4.3 JSON API.
  *
@@ -181,13 +190,29 @@ class TvhApi(private val server: TvhServer) {
         }
     }
 
-    /** M504: service uuid -> its type ("SDTV", "HDTV", "Radio"...). */
+    /**
+     * M504: service uuid -> its type ("Radio" / "TV").
+     *
+     * M691: the grid has no "dvb_servicetype_str" field — Tvheadend exposes the raw DVB service
+     * type as the number `dvb_servicetype` and the user's override as `s_type_user`. The code
+     * therefore always fell through to the service NAME, so over HTTP a radio station counted as
+     * radio only if "radio" was in its name (stations without it landed among the TV channels,
+     * HTSP was right). The decision now mirrors Tvheadend's own service_is_radio(): the override
+     * wins, otherwise the DVB type through the same table as dvb_servicetype_lookup(). A service
+     * whose type Tvheadend itself derives from the stream (IPTV, unknown DVB types) keeps the
+     * previous name-based value, so nothing changes for those.
+     */
     private suspend fun serviceTypes(): Map<String, String> =
         apiGetAll("api/mpegts/service/grid", pageLimit = 1000).mapNotNull { o ->
             val uuid = (o["uuid"] as? JsonPrimitive)?.content ?: return@mapNotNull null
-            val type = (o["dvb_servicetype_str"] as? JsonPrimitive)?.content
-                ?: (o["svcname"] as? JsonPrimitive)?.content
-                ?: return@mapNotNull null
+            val user = (o["s_type_user"] as? JsonPrimitive)?.content?.toIntOrNull()
+            val dvb = (o["dvb_servicetype"] as? JsonPrimitive)?.content?.toIntOrNull()
+            val type = when {
+                user != null && user > 0 -> if (user == ST_RADIO) "Radio" else "TV"
+                dvb == DVB_RADIO -> "Radio"
+                dvb != null && dvb in DVB_TV -> "TV"
+                else -> (o["svcname"] as? JsonPrimitive)?.content
+            } ?: return@mapNotNull null
             uuid to type
         }.toMap()
 
