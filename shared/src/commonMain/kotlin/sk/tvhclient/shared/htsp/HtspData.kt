@@ -257,14 +257,11 @@ object HtspData {
                 // channels in the PAST (EPG with history) — all five had stop < now,
                 // so after filtering nothing was left and the channel was logged as "without EPG",
                 // even though the grid (numFollowing=80) did show data for that same channel.
+                // M690: channelEvents adds the epgQuery fallback for a cleared now/next pointer
                 if (mapped.isEmpty()) {
                     mapped = try {
-                        client.getEvents(cid, numFollowing = 80, maxTime = nowSec + 3 * 86400)
-                            .mapNotNull { mapEvent(it) }
-                            .filter { it.channelUuid == cid.toString() }   // M398
-                            .distinctBy { it.eventId ?: "${it.start}-${it.title}" }
+                        channelEvents(client, cid, nowSec)
                             .filter { it.stop > nowSec }
-                            .sortedBy { it.start }
                             .take(5)
                     } catch (e: Exception) { if (onFailure(e)) continue else break }
                 }
@@ -443,14 +440,44 @@ object HtspData {
         )
     }
 
+    /**
+     * M690: the programme of one channel for the next 3 days — getEvents, and if that returns
+     * nothing, the whole schedule via epgQuery ([HtspClient.epgQueryChannel]: getEvents starts at the
+     * channel's now/next pointer, which Tvheadend temporarily clears when EIT and XMLTV events
+     * replace each other). The fallback only runs for channels that came back empty, so channels
+     * with a normal EPG are queried exactly as before.
+     */
+    private suspend fun channelEvents(client: HtspClient, cid: Long, nowSec: Long): List<EpgEvent> {
+        val maxTime = nowSec + 3 * 86400
+        fun clean(raw: List<Map<String, Any?>>): List<EpgEvent> = raw
+            .mapNotNull { mapEvent(it) }
+            // M398: some Tvheadend builds (e.g. 4.3~dev, HTSP v44)
+            // return the events of ALL channels at once for getEvents —
+            // the grid then had an identical merged list with overlapping
+            // blocks in every row. We therefore always
+            // filter the response by the requested channel and deduplicate it.
+            .filter { it.channelUuid == cid.toString() }
+            .distinctBy { it.eventId ?: "${it.start}-${it.title}" }
+            .sortedBy { it.start }
+        val direct = clean(client.getEvents(cid, numFollowing = 80, maxTime = maxTime))
+        if (direct.isNotEmpty()) return direct
+        val all = try {
+            client.epgQueryChannel(cid)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            noteEpgError(e); emptyList()
+        }
+        // the same window as getEvents: from the running programme up to maxTime, at most 80
+        return clean(all).filter { it.stop > nowSec && it.start <= maxTime }.take(80)
+    }
+
     /** Programme for a channel via HTSP getEvents (fast, per-channel). */
     suspend fun epgForChannel(server: TvhServer, channelId: String, nowSec: Long): List<EpgEvent> {
         val cid = channelId.toLongOrNull() ?: return emptyList()
         val client = connectWithRetry(server)   // M621
         return try {
-            client.getEvents(cid, numFollowing = 80, maxTime = nowSec + 3 * 86400)
-                .mapNotNull { mapEvent(it) }
-                .sortedBy { it.start }
+            channelEvents(client, cid, nowSec)
         } finally {
             client.close()
         }
@@ -472,16 +499,9 @@ object HtspData {
         try {
             for (cid in channelIds) {
                 val evs = try {
-                    client.getEvents(cid, numFollowing = 80, maxTime = nowSec + 3 * 86400)
-                        .mapNotNull { mapEvent(it) }
-                        // M398: some Tvheadend builds (e.g. 4.3~dev, HTSP v44)
-                        // return the events of ALL channels at once for getEvents —
-                        // the grid then had an identical merged list with overlapping
-                        // blocks in every row. We therefore always
-                        // filter the response by the requested channel and deduplicate it.
-                        .filter { it.channelUuid == cid.toString() }
-                        .distinctBy { it.eventId ?: "${'$'}{it.start}-${'$'}{it.title}" }
-                        .sortedBy { it.start }
+                    channelEvents(client, cid, nowSec)   // M690: incl. the epgQuery fallback
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
                 } catch (e: Exception) { noteEpgError(e); emptyList() }
                 onChannel(cid.toString(), evs)
             }

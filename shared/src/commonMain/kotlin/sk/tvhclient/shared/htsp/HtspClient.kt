@@ -258,6 +258,32 @@ class HtspClient(
         return evs.mapNotNull { it as? Map<String, Any?> }
     }
 
+    /**
+     * M690: the whole EPG schedule of one channel via `epgQuery` (an empty `query` matches every
+     * title, `full=1` returns complete events).
+     *
+     * Unlike [getEvents] with a channelId it does not start at the channel's now/next pointer.
+     * Tvheadend clears that pointer whenever a grabber replaces an overlapping event
+     * (_epg_channel_rem_broadcast) and only restores it on the channel's next EPG timer — typically
+     * on channels fed by both OTA EIT and XMLTV, where the two keep replacing each other. Until then
+     * getEvents(channelId) returns nothing although the schedule is full (Kodi and other clients do
+     * not notice, they read the async EPG dump). A server that does not know the method replies
+     * with an error and no "events" — the result is simply empty.
+     */
+    suspend fun epgQueryChannel(channelId: Long): List<Map<String, Any?>> {
+        val args = HashMap<String, Any?>()
+        args["query"] = ""
+        args["channelId"] = channelId
+        args["full"] = 1L
+        sk.tvhclient.shared.ClientIdent.lang2.takeIf { it.isNotBlank() }
+            ?.let { args["language"] = it }
+        val s = send("epgQuery", args)
+        val r = recvReply(s)
+        @Suppress("UNCHECKED_CAST")
+        val evs = r["events"] as? List<Any?> ?: return emptyList()
+        return evs.mapNotNull { it as? Map<String, Any?> }
+    }
+
     suspend fun fetchMetadata(
         withEpg: Boolean = false,
         epgMaxDays: Int = 2,

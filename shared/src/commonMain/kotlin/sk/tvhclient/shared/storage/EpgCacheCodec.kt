@@ -55,9 +55,15 @@ object EpgCacheCodec {
     }
 
     /**
-     * Merges fresh programmes for a single channel into the map: deduplication by start time
-     * (fresh ones overwrite old ones), the result sorted by start. Old programmes that the
-     * server no longer sends are kept (memory of the past).
+     * Merges fresh programmes for a single channel into the map, the result sorted by start.
+     * Old programmes that the server no longer sends are kept (memory of the past).
+     *
+     * M690: the fresh list is authoritative for the whole time span it covers. Until now the merge
+     * deduplicated only by an identical start time, so when the server moved a programme (typically
+     * a channel fed by both OTA EIT and XMLTV, whose times differ by a few minutes — Tvheadend keeps
+     * only one of them), the cached old version stayed next to the new one and the grid showed the
+     * same programme twice, overlapping. Now a cached programme is kept only if it lies entirely
+     * outside the fresh span (the past before it, or days the fresh query did not reach).
      */
     fun mergeChannel(
         base: Map<String, List<EpgEvent>>,
@@ -65,8 +71,11 @@ object EpgCacheCodec {
         fresh: List<EpgEvent>
     ): Map<String, List<EpgEvent>> {
         if (fresh.isEmpty()) return base
+        val from = fresh.minOf { it.start }
+        val to = fresh.maxOf { it.stop }
+        val kept = base[uuid].orEmpty().filter { it.stop <= from || it.start >= to }
         val byStart = LinkedHashMap<Long, EpgEvent>()
-        base[uuid]?.forEach { byStart[it.start] = it }
+        kept.forEach { byStart[it.start] = it }
         fresh.forEach { byStart[it.start] = it }
         val merged = byStart.values.sortedBy { it.start }
         return base + (uuid to merged)
