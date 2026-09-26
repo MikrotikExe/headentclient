@@ -65,6 +65,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -343,7 +344,7 @@ fun EpgGridScreen(
     val dayStart = remember(dayOffset) { dayStartSec(dayOffset) }
     val dayEnd = dayStart + DAY_MIN * 60
     // The ticking time (the live line and progress) — redrawn every 30s
-    var now by remember { mutableStateOf(currentTimeSeconds()) }
+    var now by remember { mutableLongStateOf(currentTimeSeconds()) }
     LaunchedEffect(Unit) {
         while (true) { kotlinx.coroutines.delay(NOW_TICK_MS); now = currentTimeSeconds() }
     }
@@ -482,7 +483,7 @@ fun EpgGridScreen(
     var selStart by remember { mutableStateOf<Long?>(null) }  // the start of the selected cell
     var centerCellOnHorizontal by remember { mutableStateOf(false) }
 
-    val navCellsCache = remember(epg, dvrByChannel, inProgressByChannel, dayStart) {
+    val navCellsCache = remember(rows, epg, dvrByChannel, inProgressByChannel, dayStart, now / 60) {
         java.util.concurrent.ConcurrentHashMap<Int, List<NavCell>>()
     }
 
