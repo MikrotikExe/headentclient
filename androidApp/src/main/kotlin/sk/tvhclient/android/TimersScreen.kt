@@ -102,7 +102,7 @@ internal data class TimersData(
     val failed: Boolean = false
 )
 
-class TimersViewModel : ViewModel() {
+internal class TimersViewModel : ViewModel() {
     private val _data = MutableStateFlow(TimersData())
     val data: StateFlow<TimersData> = _data
     private val _busy = MutableStateFlow(false)
