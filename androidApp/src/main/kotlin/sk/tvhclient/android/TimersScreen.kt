@@ -722,7 +722,8 @@ internal fun RecordSeriesButton(
             }
         },
         enabled = !busy && known,
-        modifier = modifier.fillMaxWidth()
+        // M698: the focus frame is drawn here, so every caller gets it (the grid detail passed none)
+        modifier = modifier.fillMaxWidth().dpadFocusable()
     ) {
         Icon(Icons.Default.Repeat, contentDescription = null)
         Spacer(Modifier.width(8.dp))

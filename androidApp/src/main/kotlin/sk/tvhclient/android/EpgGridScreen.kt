@@ -1246,6 +1246,7 @@ private fun GridDetailContent(
                 androidx.compose.material3.IconButton(
                     onClick = onBack,
                     modifier = Modifier.align(Alignment.TopStart).padding(4.dp).focusRequester(backFocus)
+                        .dpadFocusable(androidx.compose.foundation.shape.CircleShape)   // M698
                 ) {
                     Text("\u2190", style = MaterialTheme.typography.titleLarge)
                 }
@@ -1329,7 +1330,8 @@ private fun GridDetailContent(
                 }
                 androidx.compose.material3.Button(
                     onClick = onPlay,
-                    modifier = Modifier.fillMaxWidth().focusRequester(playFocus)
+                    // M698: the same focus frame as the other buttons (a filled button showed the focus only faintly on TV)
+                    modifier = Modifier.fillMaxWidth().focusRequester(playFocus).dpadFocusable(androidx.compose.foundation.shape.RoundedCornerShape(20.dp))
                 ) {
                     androidx.compose.material3.Icon(
                         Icons.Default.PlayArrow,
@@ -1346,7 +1348,7 @@ private fun GridDetailContent(
                     Spacer(Modifier.height(8.dp))
                     androidx.compose.material3.OutlinedButton(
                         onClick = onPlayFromStart,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth().dpadFocusable(androidx.compose.foundation.shape.RoundedCornerShape(20.dp))   // M698
                     ) {
                         androidx.compose.material3.Icon(
                             Icons.Default.PlayArrow,
@@ -1567,14 +1569,14 @@ private fun GridDetailContent(
                             onDvrChanged()   // the grid loads the DVR list again
                         }
                     }
-                }) {
+                }, modifier = Modifier.dpadFocusable()) {   // M698
                     Text(stringResource(
                         if (stopping) R.string.dvr_stop_button else R.string.delete
                     ))
                 }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { confirmDvr = false }) {
+                androidx.compose.material3.TextButton(onClick = { confirmDvr = false }, modifier = Modifier.dpadFocusable()) {   // M698
                     Text(stringResource(R.string.cancel))
                 }
             }

@@ -97,7 +97,7 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
                 navigationIcon = {
                     Text(
                         "  \u2715  ",
-                        modifier = Modifier.padding(8.dp).clickable { onBack() },
+                        modifier = Modifier.padding(8.dp).dpadFocusable().clickable { onBack() },   // M698: visible focus on TV
                         style = MaterialTheme.typography.titleLarge
                     )
                 }
@@ -248,7 +248,7 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
                 // M696: a rule for the whole series (only with "Enable timers" on)
                 server?.let { s ->
                     Spacer(Modifier.height(6.dp))
-                    RecordSeriesButton(s, event.title, event.channelUuid ?: "", canRecord, Modifier.dpadFocusable())
+                    RecordSeriesButton(s, event.title, event.channelUuid ?: "", canRecord)
                 }
                 Spacer(Modifier.height(12.dp))
             }
