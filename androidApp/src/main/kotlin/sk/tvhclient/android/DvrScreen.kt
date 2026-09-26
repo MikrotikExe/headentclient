@@ -80,6 +80,8 @@ import androidx.compose.foundation.lazy.grid.items as gridItems
 private sealed class DvrNav {
     data object Root : DvrNav()
     data object Recent : DvrNav()
+    data object Scheduled : DvrNav()   // M696
+    data object Timers : DvrNav()      // M696
     data object Channels : DvrNav()
     data class Dates(val channel: String) : DvrNav()
     data class Day(val channel: String, val dateKey: String) : DvrNav()
@@ -253,6 +255,7 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
                 is DvrNav.Dates -> DvrNav.Channels
                 is DvrNav.Channels -> DvrNav.Root
                 is DvrNav.Recent -> DvrNav.Root
+                is DvrNav.Scheduled, is DvrNav.Timers -> DvrNav.Root   // M696
                 is DvrNav.Series -> DvrNav.Subgenre(n.catKey, n.subKey)
                 is DvrNav.Subgenre -> DvrNav.Category(n.catKey)
                 is DvrNav.Category -> DvrNav.Root
@@ -380,6 +383,7 @@ private fun DvrContent(
     onNav: (DvrNav) -> Unit
 ) {
     val server = remember { Tvh.store.active() }
+    val timersOn = TimersPref.stateOf(context).value   // M696
     val piconLoader = remember(server?.id) { PiconImageLoader.get(context, server) }
     // Classification is expensive (stripping diacritics + regexes over title/subtitle/description/channel).
     // Classify each recording ONCE per load (memoised by entries), not on
@@ -419,6 +423,15 @@ private fun DvrContent(
                             onNav(DvrNav.Category(cat))
                         }
                     }
+                    if (timersOn) {   // M696
+                        item("plan_hdr") { Header(stringResource(R.string.dvr_planning)) }
+                        item("scheduled") {
+                            FolderRow("\uD83D\uDCC5  " + stringResource(R.string.dvr_scheduled), sub = "", iconKey = "scheduled") { onNav(DvrNav.Scheduled) }
+                        }
+                        item("timers") {
+                            FolderRow("\u23F0  " + stringResource(R.string.dvr_timers), sub = "", iconKey = "timers") { onNav(DvrNav.Timers) }
+                        }
+                    }
                 }
             } else {
                 val cols = if (viewMode == ChannelViewMode.GRID) 2 else 3
@@ -440,9 +453,21 @@ private fun DvrContent(
                     gridItems(cats, key = { it }) { cat ->
                         FolderCard(catLabel(cat), sub = "${byCat[cat]?.size ?: 0}", onClick = { onNav(DvrNav.Category(cat)) })
                     }
+                    if (timersOn) {   // M696
+                        item(key = "plan_hdr", span = { GridItemSpan(maxLineSpan) }) { Header(stringResource(R.string.dvr_planning)) }
+                        item(key = "scheduled", span = { GridItemSpan(maxLineSpan) }) {
+                            FolderRow("\uD83D\uDCC5  " + stringResource(R.string.dvr_scheduled), sub = "", iconKey = "scheduled") { onNav(DvrNav.Scheduled) }
+                        }
+                        item(key = "timers", span = { GridItemSpan(maxLineSpan) }) {
+                            FolderRow("\u23F0  " + stringResource(R.string.dvr_timers), sub = "", iconKey = "timers") { onNav(DvrNav.Timers) }
+                        }
+                    }
                 }
             }
         }
+
+        is DvrNav.Scheduled -> if (server != null) ScheduledSection(server, header = true)   // M696
+        is DvrNav.Timers -> if (server != null) TimersSection(server, header = true)         // M696
 
         is DvrNav.Recent -> {
             val list = remember(progressTick, entries) {
@@ -1122,6 +1147,7 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
     val state by vm.state.collectAsState()
     val refreshingTv by vm.refreshing.collectAsState()   // M589
     val server = remember { Tvh.store.active() }
+    val timersOn = TimersPref.stateOf(context).value   // M696
     val loader = remember(server?.id) { PiconImageLoader.get(context, server) }
     // M528: request a fresh list on every opening of the archive.
     // `loadIfNeeded` returns immediately when it already has data, so a just-finished
@@ -1222,12 +1248,24 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                 item("_channels") { ArcRailItem(stringResource(R.string.dvr_by_channel), null, selKey == "_channels", iconKey = "channels") { openSection("_channels") } }
                 item("all") { ArcRailItem(stringResource(R.string.dvr_all), entries.size, selKey == "all", iconKey = "all") { openSection("all") } }
                 items(cats, key = { it }) { c -> ArcRailItem(catLabel(c), byCat[c]?.size ?: 0, selKey == c, iconKey = c) { openSection(c) } }
+                if (timersOn) {   // M696
+                    item("_scheduled") { ArcRailItem(stringResource(R.string.dvr_scheduled), null, selKey == "_scheduled", iconKey = "scheduled") { openSection("_scheduled") } }
+                    item("_timers") { ArcRailItem(stringResource(R.string.dvr_timers), null, selKey == "_timers", iconKey = "timers") { openSection("_timers") } }
+                }
             }
             Column(Modifier.weight(0.74f).fillMaxHeight()) {
                 when {
                     selKey == "_recent" -> {
                         ArcFolderHeader(stringResource(R.string.dvr_recent))
                         ArcRecGrid(recent, loaded, loader, context, progressTick)
+                    }
+                    selKey == "_scheduled" && server != null -> {   // M696
+                        ArcFolderHeader(stringResource(R.string.dvr_scheduled))
+                        ScheduledSection(server)
+                    }
+                    selKey == "_timers" && server != null -> {   // M696
+                        ArcFolderHeader(stringResource(R.string.dvr_timers))
+                        TimersSection(server)
                     }
                     selKey == "_search" -> {
                         TvSearchBar(query, stringResource(R.string.dvr_search), { query = it }, searchFocus,

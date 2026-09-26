@@ -8,6 +8,8 @@ import sk.tvhclient.shared.api.DvrResult
 import sk.tvhclient.shared.api.DvrService
 import sk.tvhclient.shared.api.HttpDvrService
 import sk.tvhclient.shared.htsp.HtspDvrService
+import sk.tvhclient.shared.model.DvrAutorec
+import sk.tvhclient.shared.model.DvrTimerec
 import sk.tvhclient.shared.model.TvhServer
 
 /**
@@ -269,5 +271,71 @@ object DvrController {
         val p = pendingOps.getOrPut(serverId) { Pending() }
         p.added.removeAll { sameSlot(it, entry) }
         p.removed.add(entry.commandId)
+    }
+
+    // ---- M696: recording rules (timers) ----
+
+    /** All scheduled (not yet started) recordings — the "Scheduled" section. */
+    suspend fun scheduledAll(server: TvhServer): List<sk.tvhclient.shared.model.DvrEntry> =
+        scheduled(server).filter { !it.isRecordingNow }.sortedBy { it.start }
+
+    /** Forces the next [scheduled]/[scheduledAll] to ask the server again. */
+    fun refreshScheduled(serverId: String) = invalidateScheduled(serverId)
+
+    private suspend fun <T> ioList(block: suspend () -> List<T>): List<T>? =
+        withContext(Dispatchers.IO) {
+            withTimeoutOrNull(15_000L) { runCatching { block() }.getOrNull() }
+        }
+
+    /** null = the server did not answer (the UI keeps what it had and reports it). */
+    suspend fun autorecs(server: TvhServer): List<DvrAutorec>? = ioList { serviceFor(server).autorecs() }
+    suspend fun timerecs(server: TvhServer): List<DvrTimerec>? = ioList { serviceFor(server).timerecs() }
+
+    suspend fun saveAutorec(server: TvhServer, rule: DvrAutorec): DvrResult = ioResult {
+        if (rule.id.isBlank()) serviceFor(server).addAutorec(rule) else serviceFor(server).updateAutorec(rule)
+    }.also { if (it.success) invalidateScheduled(server.id) }
+
+    suspend fun saveTimerec(server: TvhServer, rule: DvrTimerec): DvrResult = ioResult {
+        if (rule.id.isBlank()) serviceFor(server).addTimerec(rule) else serviceFor(server).updateTimerec(rule)
+    }.also { if (it.success) invalidateScheduled(server.id) }
+
+    suspend fun deleteAutorec(server: TvhServer, id: String): DvrResult =
+        ioResult { serviceFor(server).deleteAutorec(id) }.also { if (it.success) invalidateScheduled(server.id) }
+
+    suspend fun deleteTimerec(server: TvhServer, id: String): DvrResult =
+        ioResult { serviceFor(server).deleteTimerec(id) }.also { if (it.success) invalidateScheduled(server.id) }
+
+    /**
+     * "Record series" in the programme detail: the rule the app would create for this programme
+     * (same title on this channel, or on any channel) if one already exists — the button then
+     * offers to remove it instead. A short per-server cache so the detail opens without a round trip
+     * on every programme; every save/delete clears it.
+     */
+    private class RulesCache(val ts: Long, val list: List<DvrAutorec>)
+    private val rulesCache = HashMap<String, RulesCache>()
+
+    suspend fun seriesRuleFor(server: TvhServer, title: String, channelUuid: String): DvrAutorec? {
+        val key = title.trim().lowercase()
+        if (key.isBlank()) return null
+        val now = System.currentTimeMillis()
+        val cached = rulesCache[server.id]?.takeIf { now - it.ts < SCHED_TTL_MS }?.list
+        val list = cached ?: autorecs(server)?.also { rulesCache[server.id] = RulesCache(now, it) } ?: return null
+        return list.firstOrNull {
+            it.title.trim().lowercase() == key && (it.channelUuid.isBlank() || it.channelUuid == channelUuid)
+        }
+    }
+
+    fun invalidateRules(serverId: String) { rulesCache.remove(serverId) }
+
+    /** One-click "Record series": a rule by title on this channel, new episodes only. */
+    suspend fun recordSeries(server: TvhServer, title: String, channelUuid: String, profile: String?): DvrResult {
+        val rule = DvrAutorec(
+            name = title.trim(),
+            title = title.trim(),
+            channelUuid = channelUuid,
+            dupDetect = sk.tvhclient.shared.model.DupDetect.UNIQUE,
+            configName = profile ?: ""
+        )
+        return saveAutorec(server, rule).also { if (it.success) invalidateRules(server.id) }
     }
 }

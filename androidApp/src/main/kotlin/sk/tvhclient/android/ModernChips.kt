@@ -2,6 +2,8 @@ package sk.tvhclient.android
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AcUnit
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Animation
 import androidx.compose.material.icons.filled.Article
@@ -90,6 +92,8 @@ internal fun mgChipFor(key: String): MgChipColors = when (key) {
     "channels" -> mgPalette[5]
     "dates" -> mgPalette[6]
     "series" -> mgPalette[1]
+    "scheduled" -> mgPalette[3]   // M696
+    "timers" -> mgPalette[0]
     sk.tvhclient.shared.model.DvrClassifier.FILM -> mgPalette[0]
     sk.tvhclient.shared.model.DvrClassifier.SERIAL -> mgPalette[1]
     sk.tvhclient.shared.model.DvrClassifier.SPORT -> mgPalette[2]
@@ -181,6 +185,8 @@ internal fun mgIconFor(rawKey: String): androidx.compose.ui.graphics.vector.Imag
     key == "all" -> Icons.Filled.VideoLibrary
     key == "channels" -> Icons.Filled.LiveTv
     key == "dates" -> Icons.Filled.CalendarMonth
+    key == "scheduled" -> Icons.Filled.Event      // M696
+    key == "timers" -> Icons.Filled.Alarm
     key == "series" -> Icons.Filled.VideoLibrary
     key == sk.tvhclient.shared.model.DvrClassifier.FILM || key.startsWith("mv_") -> Icons.Filled.Movie
     key == sk.tvhclient.shared.model.DvrClassifier.SERIAL -> Icons.Filled.Tv

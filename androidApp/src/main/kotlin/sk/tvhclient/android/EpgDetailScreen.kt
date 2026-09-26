@@ -238,6 +238,11 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
                         color = if (recOk) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.error)
                 }
+                // M696: a rule for the whole series (only with "Enable timers" on)
+                server?.let { s ->
+                    Spacer(Modifier.height(6.dp))
+                    RecordSeriesButton(s, event.title, event.channelUuid ?: "", canRecord, Modifier.dpadFocusable())
+                }
                 Spacer(Modifier.height(12.dp))
             }
 

@@ -64,6 +64,9 @@ class HtspSession internal constructor(
     private val channels = LinkedHashMap<Long, MutableMap<String, Any?>>()
     private val tags = LinkedHashMap<Long, MutableMap<String, Any?>>()
     private val dvr = LinkedHashMap<Long, MutableMap<String, Any?>>()
+    // M696: recording rules (autorecEntryAdd / timerecEntryAdd) — their id is a uuid string
+    private val autorecs = LinkedHashMap<String, MutableMap<String, Any?>>()
+    private val timerecs = LinkedHashMap<String, MutableMap<String, Any?>>()
     private val syncDone = CompletableDeferred<Unit>()
 
     internal fun hasActiveSubscriptions(): Boolean = subs.isNotEmpty()
@@ -124,6 +127,15 @@ class HtspSession internal constructor(
         fun remove(map: LinkedHashMap<Long, MutableMap<String, Any?>>, key: String) {
             (m[key] as? Long)?.let { map.remove(it) }
         }
+        // M696: the same for string-keyed entries (autorec / timerec rules)
+        fun upsertS(map: LinkedHashMap<String, MutableMap<String, Any?>>, merge: Boolean) {
+            val id = m["id"] as? String ?: return
+            val existing = map[id]
+            if (merge && existing != null) existing.putAll(m) else map[id] = HashMap(m)
+        }
+        fun removeS(map: LinkedHashMap<String, MutableMap<String, Any?>>) {
+            (m["id"] as? String)?.let { map.remove(it) }
+        }
         lock.withLock {
             when (m["method"] as? String) {
                 "channelAdd" -> upsert(channels, "channelId", merge = false)
@@ -135,6 +147,12 @@ class HtspSession internal constructor(
                 "dvrEntryAdd" -> upsert(dvr, "id", merge = false)
                 "dvrEntryUpdate" -> upsert(dvr, "id", merge = true)
                 "dvrEntryDelete" -> remove(dvr, "id")
+                "autorecEntryAdd" -> upsertS(autorecs, merge = false)     // M696
+                "autorecEntryUpdate" -> upsertS(autorecs, merge = true)
+                "autorecEntryDelete" -> removeS(autorecs)
+                "timerecEntryAdd" -> upsertS(timerecs, merge = false)
+                "timerecEntryUpdate" -> upsertS(timerecs, merge = true)
+                "timerecEntryDelete" -> removeS(timerecs)
                 "accessUpdate" -> client.applyAccessUpdate(m)
                 "initialSyncCompleted" -> syncDone.complete(Unit)
             }
@@ -161,6 +179,33 @@ class HtspSession internal constructor(
             )
         }
     }
+
+    /**
+     * M696: the recording rules the server pushed (autorecEntryAdd / timerecEntryAdd). Waits for the
+     * initial sync like [metadata]; the server sends every add/update/delete afterwards, so the list is
+     * always current without another request. Also carries the channel names for the rows.
+     */
+    internal suspend fun rules(timeoutMs: Long = 45_000): Rules {
+        touch()
+        withTimeoutOrNull(timeoutMs) { syncDone.await() }
+            ?: throw IllegalStateException("HTSP: metadata sync timeout")
+        if (!alive) throw IllegalStateException("HTSP: connection closed")
+        return lock.withLock {
+            Rules(
+                autorecs = autorecs.values.map { HashMap(it) },
+                timerecs = timerecs.values.map { HashMap(it) },
+                channelNames = channels.values.associate {
+                    ((it["channelId"] as? Long) ?: -1L) to ((it["channelName"] as? String) ?: "")
+                }
+            )
+        }
+    }
+
+    internal class Rules(
+        val autorecs: List<Map<String, Any?>>,
+        val timerecs: List<Map<String, Any?>>,
+        val channelNames: Map<Long, String>
+    )
 
     /** A request with a reply (getEvents, addDvrEntry...). Throws on a dead connection or a timeout. */
     internal suspend fun request(

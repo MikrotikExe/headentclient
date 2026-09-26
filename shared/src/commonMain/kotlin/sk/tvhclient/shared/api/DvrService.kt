@@ -38,6 +38,28 @@ interface DvrService {
 
     /** Deletes the recording together with its file. */
     suspend fun delete(id: String): DvrResult
+
+    // ---- M696: recording rules (Kodi "timer rules") ----
+
+    /** "Record by EPG" rules on the server. */
+    suspend fun autorecs(): List<sk.tvhclient.shared.model.DvrAutorec>
+
+    /** "Record by time" rules on the server. */
+    suspend fun timerecs(): List<sk.tvhclient.shared.model.DvrTimerec>
+
+    /** Creates a rule; [DvrResult.id] carries the new id when the server returns one. */
+    suspend fun addAutorec(rule: sk.tvhclient.shared.model.DvrAutorec): DvrResult
+
+    /** Updates an existing rule (all editable fields are sent; [DvrAutorec.id] picks the entry). */
+    suspend fun updateAutorec(rule: sk.tvhclient.shared.model.DvrAutorec): DvrResult
+
+    suspend fun deleteAutorec(id: String): DvrResult
+
+    suspend fun addTimerec(rule: sk.tvhclient.shared.model.DvrTimerec): DvrResult
+
+    suspend fun updateTimerec(rule: sk.tvhclient.shared.model.DvrTimerec): DvrResult
+
+    suspend fun deleteTimerec(id: String): DvrResult
 }
 
 /** M472: DVR profile (recording configuration) on the server. */

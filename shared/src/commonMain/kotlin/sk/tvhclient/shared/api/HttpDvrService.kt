@@ -1,6 +1,18 @@
 package sk.tvhclient.shared.api
 
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import sk.tvhclient.shared.model.DupDetect
+import sk.tvhclient.shared.model.DvrAutorec
+import sk.tvhclient.shared.model.DvrTimerec
 import sk.tvhclient.shared.model.TvhServer
+import sk.tvhclient.shared.model.formatHm
+import sk.tvhclient.shared.model.maskToWeekdays
+import sk.tvhclient.shared.model.parseHm
+import sk.tvhclient.shared.model.weekdaysToMask
 
 /**
  * M472: recording over the HTTP JSON API — used when the app does not go through HTSP.
@@ -57,6 +69,126 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
     } catch (e: TvhHttpException) {
         DvrResult.fail(httpMessage(e.httpCode))
     } catch (e: Throwable) { DvrResult.fail(e.message) }
+
+    // ---- M696: recording rules over the JSON API ----
+    //
+    // Field ids are the idnode class properties (dvr_autorec.c / dvr_timerec.c): the grid returns
+    // them, api/dvr/<kind>/create takes them in `conf`, api/idnode/save in `node` (with `uuid`),
+    // api/idnode/delete takes `uuid`. Times are "HH:MM" strings ("Any" = -1), weekdays a list 1..7,
+    // config_name the profile uuid.
+
+    private fun str(o: JsonObject, k: String): String =
+        (o[k] as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content ?: ""
+    private fun int(o: JsonObject, k: String, def: Int): Int =
+        (o[k] as? JsonPrimitive)?.content?.toIntOrNull() ?: def
+    private fun bool(o: JsonObject, k: String, def: Boolean): Boolean =
+        (o[k] as? JsonPrimitive)?.content?.let { it == "true" || it == "1" } ?: def
+    private fun days(o: JsonObject): Int {
+        val arr = o["weekdays"] as? JsonArray ?: return DvrAutorec.ALL_DAYS
+        val list = arr.mapNotNull { (it as? JsonPrimitive)?.content?.toIntOrNull() }
+        return if (list.isEmpty()) DvrAutorec.ALL_DAYS else weekdaysToMask(list)
+    }
+
+    private suspend fun configs(): List<DvrConfig> = runCatching { api.dvrConfigs() }.getOrDefault(emptyList())
+    private fun List<DvrConfig>.nameOf(uuid: String) = firstOrNull { it.uuid == uuid }?.name ?: ""
+    private fun List<DvrConfig>.uuidOf(name: String) =
+        firstOrNull { it.name.equals(name, ignoreCase = true) }?.uuid
+
+    override suspend fun autorecs(): List<DvrAutorec> {
+        val cfg = configs()
+        return api.ruleGrid("autorec").map { o ->
+            DvrAutorec(
+                id = str(o, "uuid"),
+                enabled = bool(o, "enabled", true),
+                name = str(o, "name"),
+                title = str(o, "title"),
+                channelUuid = str(o, "channel"),
+                daysOfWeek = days(o),
+                startMin = parseHm(str(o, "start")),
+                startWindowMin = parseHm(str(o, "start_window")),
+                dupDetect = int(o, "record", DupDetect.ALL),
+                configName = cfg.nameOf(str(o, "config_name")),
+                comment = str(o, "comment")
+            )
+        }
+    }
+
+    override suspend fun timerecs(): List<DvrTimerec> {
+        val cfg = configs()
+        return api.ruleGrid("timerec").map { o ->
+            DvrTimerec(
+                id = str(o, "uuid"),
+                enabled = bool(o, "enabled", true),
+                name = str(o, "name"),
+                title = str(o, "title"),
+                channelUuid = str(o, "channel"),
+                daysOfWeek = days(o),
+                startMin = parseHm(str(o, "start")).coerceAtLeast(0),
+                stopMin = parseHm(str(o, "stop")).coerceAtLeast(0),
+                configName = cfg.nameOf(str(o, "config_name")),
+                comment = str(o, "comment")
+            )
+        }
+    }
+
+    private fun weekdaysJson(mask: Int) = JsonArray(maskToWeekdays(mask).map { JsonPrimitive(it) })
+
+    private suspend fun autorecNode(a: DvrAutorec, withUuid: Boolean): JsonObject {
+        val m = LinkedHashMap<String, JsonElement>()
+        if (withUuid) m["uuid"] = JsonPrimitive(a.id)
+        m["enabled"] = JsonPrimitive(a.enabled)
+        m["name"] = JsonPrimitive(a.name)
+        m["title"] = JsonPrimitive(a.title)
+        m["channel"] = JsonPrimitive(a.channelUuid)
+        m["weekdays"] = weekdaysJson(a.daysOfWeek)
+        // "" = any (the setter treats a non-digit start as -1)
+        m["start"] = JsonPrimitive(formatHm(a.startMin))
+        m["start_window"] = JsonPrimitive(formatHm(a.startWindowMin))
+        m["record"] = JsonPrimitive(a.dupDetect)
+        m["comment"] = JsonPrimitive(a.comment)
+        if (a.configName.isNotBlank()) configs().uuidOf(a.configName)?.let { m["config_name"] = JsonPrimitive(it) }
+        return JsonObject(m)
+    }
+
+    private suspend fun timerecNode(a: DvrTimerec, withUuid: Boolean): JsonObject {
+        val m = LinkedHashMap<String, JsonElement>()
+        if (withUuid) m["uuid"] = JsonPrimitive(a.id)
+        m["enabled"] = JsonPrimitive(a.enabled)
+        m["name"] = JsonPrimitive(a.name)
+        m["title"] = JsonPrimitive(a.title)
+        m["channel"] = JsonPrimitive(a.channelUuid)
+        m["weekdays"] = weekdaysJson(a.daysOfWeek)
+        m["start"] = JsonPrimitive(formatHm(a.startMin))
+        m["stop"] = JsonPrimitive(formatHm(a.stopMin))
+        m["comment"] = JsonPrimitive(a.comment)
+        if (a.configName.isNotBlank()) configs().uuidOf(a.configName)?.let { m["config_name"] = JsonPrimitive(it) }
+        return JsonObject(m)
+    }
+
+    private suspend fun run(block: suspend () -> JsonObject): DvrResult = try {
+        val r = block()
+        DvrResult(true, id = str(r, "uuid").ifBlank { null })
+    } catch (e: TvhHttpException) {
+        DvrResult.fail(httpMessage(e.httpCode))
+    } catch (e: Throwable) { DvrResult.fail(e.message) }
+
+    override suspend fun addAutorec(rule: DvrAutorec) =
+        run { api.apiPostJson("api/dvr/autorec/create", "conf", autorecNode(rule, withUuid = false)) }
+
+    override suspend fun updateAutorec(rule: DvrAutorec) =
+        run { api.apiPostJson("api/idnode/save", "node", autorecNode(rule, withUuid = true)) }
+
+    override suspend fun deleteAutorec(id: String) =
+        run { api.apiPost("api/idnode/delete", mapOf("uuid" to id)) }
+
+    override suspend fun addTimerec(rule: DvrTimerec) =
+        run { api.apiPostJson("api/dvr/timerec/create", "conf", timerecNode(rule, withUuid = false)) }
+
+    override suspend fun updateTimerec(rule: DvrTimerec) =
+        run { api.apiPostJson("api/idnode/save", "node", timerecNode(rule, withUuid = true)) }
+
+    override suspend fun deleteTimerec(id: String) =
+        run { api.apiPost("api/idnode/delete", mapOf("uuid" to id)) }
 
     private fun httpMessage(code: Int): String = when (code) {
         403 -> "User is not allowed to record"

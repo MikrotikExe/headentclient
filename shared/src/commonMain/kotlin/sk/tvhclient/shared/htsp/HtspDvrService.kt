@@ -3,6 +3,8 @@ package sk.tvhclient.shared.htsp
 import sk.tvhclient.shared.api.DvrAccess
 import sk.tvhclient.shared.api.DvrResult
 import sk.tvhclient.shared.api.DvrService
+import sk.tvhclient.shared.model.DvrAutorec
+import sk.tvhclient.shared.model.DvrTimerec
 import sk.tvhclient.shared.model.TvhServer
 
 /**
@@ -61,5 +63,116 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
     override suspend fun delete(id: String): DvrResult = try {
         val n = id.toLongOrNull() ?: return DvrResult.fail("Invalid recording ID")
         reply(session().request("deleteDvrEntry", mapOf("id" to n)))
+    } catch (e: Throwable) { DvrResult.fail(e.message) }
+
+    // ---- M696: recording rules over HTSP (add/update/delete{Autorec,Timerec}Entry) ----
+    //
+    // The list is not requested: with enableAsyncMetadata the server pushes every rule as
+    // autorecEntryAdd / timerecEntryAdd (and later updates/deletes), the session keeps them.
+    // Field names follow htsp_serierec_convert() / htsp_build_autorecentry() in htsp_server.c.
+
+    private fun l(m: Map<String, Any?>, k: String): Long? = m[k] as? Long
+    private fun s(m: Map<String, Any?>, k: String): String = (m[k] as? String) ?: ""
+
+    /** HTSP reports the DVR profile as configId (uuid); the app works with the profile name. */
+    private suspend fun configNames(): Map<String, String> = runCatching {
+        HtspData.dvrConfigs(server).associate { it.uuid to it.name }
+    }.getOrDefault(emptyMap())
+
+    override suspend fun autorecs(): List<DvrAutorec> {
+        val r = session().rules()
+        val cfg = configNames()
+        return r.autorecs.map { m ->
+            DvrAutorec(
+                id = s(m, "id"),
+                enabled = (l(m, "enabled") ?: 1L) != 0L,
+                name = s(m, "name"),
+                title = s(m, "title"),
+                channelUuid = l(m, "channel")?.toString() ?: "",
+                daysOfWeek = (l(m, "daysOfWeek") ?: DvrAutorec.ALL_DAYS.toLong()).toInt(),
+                startMin = (l(m, "start") ?: -1L).toInt(),
+                startWindowMin = (l(m, "startWindow") ?: -1L).toInt(),
+                dupDetect = (l(m, "dupDetect") ?: 0L).toInt(),
+                configName = cfg[s(m, "configId")] ?: "",
+                comment = s(m, "comment")
+            )
+        }
+    }
+
+    override suspend fun timerecs(): List<DvrTimerec> {
+        val r = session().rules()
+        val cfg = configNames()
+        return r.timerecs.map { m ->
+            DvrTimerec(
+                id = s(m, "id"),
+                enabled = (l(m, "enabled") ?: 1L) != 0L,
+                name = s(m, "name"),
+                title = s(m, "title"),
+                channelUuid = l(m, "channel")?.toString() ?: "",
+                daysOfWeek = (l(m, "daysOfWeek") ?: DvrAutorec.ALL_DAYS.toLong()).toInt(),
+                startMin = (l(m, "start") ?: 0L).toInt(),
+                stopMin = (l(m, "stop") ?: 0L).toInt(),
+                configName = cfg[s(m, "configId")] ?: "",
+                comment = s(m, "comment")
+            )
+        }
+    }
+
+    private fun autorecArgs(a: DvrAutorec, update: Boolean): HashMap<String, Any?> {
+        val args = HashMap<String, Any?>()
+        if (update) args["id"] = a.id
+        args["title"] = a.title
+        args["name"] = a.name
+        args["enabled"] = if (a.enabled) 1L else 0L
+        // -1 = any channel (on add the server also accepts a missing field; on update a missing
+        // field keeps the old channel, so -1 is sent explicitly)
+        args["channelId"] = a.channelUuid.toLongOrNull() ?: -1L
+        args["daysOfWeek"] = a.daysOfWeek.toLong()
+        // "approxTime" = start around (minutes after midnight); -1 = any time. The server then
+        // builds start/startWindow from it itself.
+        args["approxTime"] = a.startMin.toLong()
+        args["dupDetect"] = a.dupDetect.toLong()
+        args["comment"] = a.comment
+        if (a.configName.isNotBlank()) args["configName"] = a.configName
+        return args
+    }
+
+    private fun timerecArgs(a: DvrTimerec, update: Boolean): HashMap<String, Any?> {
+        val args = HashMap<String, Any?>()
+        if (update) args["id"] = a.id
+        args["title"] = a.title
+        args["name"] = a.name
+        args["enabled"] = if (a.enabled) 1L else 0L
+        args["channelId"] = a.channelUuid.toLongOrNull() ?: -1L
+        args["daysOfWeek"] = a.daysOfWeek.toLong()
+        args["start"] = a.startMin.toLong()
+        args["stop"] = a.stopMin.toLong()
+        args["comment"] = a.comment
+        if (a.configName.isNotBlank()) args["configName"] = a.configName
+        return args
+    }
+
+    override suspend fun addAutorec(rule: DvrAutorec): DvrResult = try {
+        reply(session().request("addAutorecEntry", autorecArgs(rule, update = false)))
+    } catch (e: Throwable) { DvrResult.fail(e.message) }
+
+    override suspend fun updateAutorec(rule: DvrAutorec): DvrResult = try {
+        reply(session().request("updateAutorecEntry", autorecArgs(rule, update = true)))
+    } catch (e: Throwable) { DvrResult.fail(e.message) }
+
+    override suspend fun deleteAutorec(id: String): DvrResult = try {
+        reply(session().request("deleteAutorecEntry", mapOf("id" to id)))
+    } catch (e: Throwable) { DvrResult.fail(e.message) }
+
+    override suspend fun addTimerec(rule: DvrTimerec): DvrResult = try {
+        reply(session().request("addTimerecEntry", timerecArgs(rule, update = false)))
+    } catch (e: Throwable) { DvrResult.fail(e.message) }
+
+    override suspend fun updateTimerec(rule: DvrTimerec): DvrResult = try {
+        reply(session().request("updateTimerecEntry", timerecArgs(rule, update = true)))
+    } catch (e: Throwable) { DvrResult.fail(e.message) }
+
+    override suspend fun deleteTimerec(id: String): DvrResult = try {
+        reply(session().request("deleteTimerecEntry", mapOf("id" to id)))
     } catch (e: Throwable) { DvrResult.fail(e.message) }
 }

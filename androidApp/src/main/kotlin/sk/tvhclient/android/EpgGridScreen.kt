@@ -1488,6 +1488,14 @@ private fun GridDetailContent(
                     else MaterialTheme.colorScheme.error)
             }
 
+            // M696: a rule for the whole series (EPG programmes only, with "Enable timers" on)
+            if (detail is GridDetail.Epg && canRecord) {
+                Tvh.store.active()?.let { s ->
+                    Spacer(Modifier.height(8.dp))
+                    RecordSeriesButton(s, title, detail.row.channel.uuid, canRecord)
+                }
+            }
+
             if (desc.isNotBlank() && detailModern) {
                 Spacer(Modifier.height(16.dp))
                 Box(

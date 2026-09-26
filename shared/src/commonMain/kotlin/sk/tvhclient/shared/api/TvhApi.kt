@@ -380,6 +380,20 @@ class TvhApi(private val server: TvhServer) {
         }
     }.getOrElse { emptyList() }
 
+    // ---- M696: recording rules (autorec / timerec) ----
+
+    /** Rows of api/dvr/autorec/grid or api/dvr/timerec/grid as raw objects (the mapping is in HttpDvrService). */
+    internal suspend fun ruleGrid(kind: String): List<JsonObject> =
+        apiGetAll("api/dvr/$kind/grid", pageLimit = 500)
+
+    /**
+     * The value of a form field that Tvheadend reads with htsmsg_get_map() — the server
+     * json-decodes a string field on demand (htsmsg_field_get_msg), which is how the web UI
+     * sends `conf` (create) and `node` (idnode/save).
+     */
+    internal suspend fun apiPostJson(path: String, field: String, obj: JsonObject): JsonObject =
+        apiPost(path, mapOf(field to json.encodeToString(JsonObject.serializer(), obj)))
+
     fun close() = client.close()
 }
 

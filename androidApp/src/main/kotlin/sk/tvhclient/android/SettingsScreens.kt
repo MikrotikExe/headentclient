@@ -582,6 +582,16 @@ internal fun GeneralSettings(ctx: android.content.Context) {
         }
     )
     }
+    // M696: recording rules (timers) — off by default, see TimersPref
+    SettingsGroup(stringResource(R.string.set_grp_recordings)) {
+        val timers = TimersPref.stateOf(ctx)
+        SettingsSwitchRow(
+            label = stringResource(R.string.timers_enable),
+            note = stringResource(R.string.timers_enable_note),
+            checked = timers.value,
+            onChange = { v -> TimersPref.set(ctx, v) }
+        )
+    }
 
     fun requestOverlay() {
         if (android.os.Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(ctx)) {
