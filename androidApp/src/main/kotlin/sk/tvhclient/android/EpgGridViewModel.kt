@@ -96,6 +96,14 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
                         _epg.value = EpgCacheCodec.mergeChannel(_epg.value, uuid, evs)
                     }
                 }
+                // M697: into the diagnostic log — which channels came back empty or failed,
+                // so a sparse grid can be told apart from a server without data
+                val hd = sk.tvhclient.shared.htsp.HtspData
+                if (hd.lastGridFailed.isNotEmpty() || hd.lastGridEmpty.isNotEmpty()) {
+                    CrashLogger.report(getApplication(), "EpgGrid.htsp",
+                        "grid EPG (${hd.epgDaysForward} days): failed=${hd.lastGridFailed.size} ${hd.lastGridFailed.take(20)}, " +
+                        "empty=${hd.lastGridEmpty.size} ${hd.lastGridEmpty.take(20)}, lastEpgError=${hd.lastEpgError ?: "none"}")
+                }
             } catch (e: Exception) {
                 CrashLogger.report(getApplication(), "EpgGridViewModel", e)
             } finally {

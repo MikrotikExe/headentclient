@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -155,6 +156,12 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
             val rec = existingRec
             if (canRecord && event.eventId != null && event.stop > nowSec) {
                 Spacer(Modifier.height(4.dp))
+                // M697: initial focus on Record, so that OK on a remote works straight away
+                val recFocus = androidx.compose.runtime.remember { androidx.compose.ui.focus.FocusRequester() }
+                androidx.compose.runtime.LaunchedEffect(event) {
+                    kotlinx.coroutines.delay(150)
+                    runCatching { recFocus.requestFocus() }
+                }
                 // M606: an optional DVR profile selection before recording
                 var askProfiles by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<List<String>>(emptyList()) }
                 fun doRecord(profile: String?) {
@@ -210,7 +217,7 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
                         }
                     },
                     enabled = !recording,
-                    modifier = Modifier.fillMaxWidth().dpadFocusable()
+                    modifier = Modifier.fillMaxWidth().focusRequester(recFocus).dpadFocusable()
                 ) {
                     val recNow = rec != null && rec.isRecordingNow   // M485
                     Icon(

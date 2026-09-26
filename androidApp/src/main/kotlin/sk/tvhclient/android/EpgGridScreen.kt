@@ -1085,6 +1085,11 @@ private fun GridDetailContent(
 ) {
     val context = LocalContext.current
     val playFocus = remember { FocusRequester() }
+    // M697: a programme that has not started has no Play button — without an initial focus the
+    // D-pad kept driving the grid underneath and OK did nothing in the detail. Record (or the
+    // back arrow when the user cannot record) takes the focus instead.
+    val recFocus = remember { FocusRequester() }
+    val backFocus = remember { FocusRequester() }
 
     // ---- M473: recording a programme from the detail (both modern and classic mode) ----
     val dvrScope = rememberCoroutineScope()
@@ -1230,6 +1235,7 @@ private fun GridDetailContent(
                     Modifier.align(Alignment.TopStart).padding(10.dp)
                         .clip(androidx.compose.foundation.shape.CircleShape)
                         .background(dcs.surfaceContainerHigh.copy(alpha = 0.9f))
+                        .focusRequester(backFocus)
                         .dpadFocusable(androidx.compose.foundation.shape.CircleShape)
                         .clickable { onBack() }
                         .padding(10.dp)
@@ -1239,7 +1245,7 @@ private fun GridDetailContent(
             } else {
                 androidx.compose.material3.IconButton(
                     onClick = onBack,
-                    modifier = Modifier.align(Alignment.TopStart).padding(4.dp)
+                    modifier = Modifier.align(Alignment.TopStart).padding(4.dp).focusRequester(backFocus)
                 ) {
                     Text("\u2190", style = MaterialTheme.typography.titleLarge)
                 }
@@ -1367,7 +1373,15 @@ private fun GridDetailContent(
             // and only if the user has the right to record on the server
             // M475: record / cancel a scheduled recording
             val rec = existingRec
-            if (canRecord && recEventId != null && stop > nowSec) {
+            val recVisible = canRecord && recEventId != null && stop > nowSec
+            if (!playable) {
+                // M697: initial focus for a future programme (see recFocus)
+                LaunchedEffect(detail, recVisible) {
+                    kotlinx.coroutines.delay(150)
+                    runCatching { if (recVisible) recFocus.requestFocus() else backFocus.requestFocus() }
+                }
+            }
+            if (recVisible) {
                 Spacer(Modifier.height(10.dp))
                 // M606: an optional DVR profile selection before recording
                 var askProfiles by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -1431,7 +1445,7 @@ private fun GridDetailContent(
                     enabled = !recBusy,
                     // M483: the same width and internal layout as the playback
                     // buttons above — previously the button was narrow, sized to the text
-                    modifier = Modifier.fillMaxWidth().dpadFocusable()
+                    modifier = Modifier.fillMaxWidth().focusRequester(recFocus).dpadFocusable()
                 ) {
                     androidx.compose.material3.Icon(
                         when {

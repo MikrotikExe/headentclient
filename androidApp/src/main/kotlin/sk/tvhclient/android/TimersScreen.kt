@@ -392,7 +392,7 @@ internal fun TimersSection(server: TvhServer, vm: TimersViewModel = viewModel(),
 @Composable
 private fun RuleDeleteDialog(name: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
     val fr = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { fr.requestFocus() } }
+    LaunchedEffect(Unit) { kotlinx.coroutines.delay(150); runCatching { fr.requestFocus() } }   // M697: after the dialog is laid out
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.timers_delete_title)) },
@@ -452,7 +452,7 @@ internal fun ScheduledSection(server: TvhServer, vm: TimersViewModel = viewModel
     }
     cancelEntry?.let { e ->
         val fr = remember { FocusRequester() }
-        LaunchedEffect(Unit) { runCatching { fr.requestFocus() } }
+        LaunchedEffect(Unit) { kotlinx.coroutines.delay(150); runCatching { fr.requestFocus() } }   // M697: after the dialog is laid out
         AlertDialog(
             onDismissRequest = { cancelEntry = null },
             title = { Text(stringResource(R.string.dvr_cancel_rec_title)) },
@@ -574,7 +574,7 @@ private fun AutorecEditDialog(
     var rule by remember { mutableStateOf(initial) }
     val anyTime = stringResource(R.string.timers_any_time)
     val fr = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { fr.requestFocus() } }
+    LaunchedEffect(Unit) { kotlinx.coroutines.delay(150); runCatching { fr.requestFocus() } }   // M697: after the dialog is laid out
     FormDialog(stringResource(if (initial.id.isBlank()) R.string.timers_add_rule else R.string.timers_edit_rule), onDismiss) {
         TvTextField(stringResource(R.string.timers_field_title), rule.title, { rule = rule.copy(title = it) },
             focusRequester = fr)
@@ -621,7 +621,7 @@ private fun TimerecEditDialog(
     val ctx = LocalContext.current
     var rule by remember { mutableStateOf(initial) }
     val fr = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { fr.requestFocus() } }
+    LaunchedEffect(Unit) { kotlinx.coroutines.delay(150); runCatching { fr.requestFocus() } }   // M697: after the dialog is laid out
     FormDialog(stringResource(if (initial.id.isBlank()) R.string.timers_add_timer else R.string.timers_edit_timer), onDismiss) {
         TvTextField(stringResource(R.string.timers_field_name), rule.name, { rule = rule.copy(name = it) },
             focusRequester = fr)

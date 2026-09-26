@@ -63,5 +63,6 @@ object EpgRangePref {
         val x = v.coerceIn(1, 7)
         fwdStateOf(c).value = x
         prefs(c).edit().putInt(KEY_FWD, x).apply()
+        sk.tvhclient.shared.htsp.HtspData.epgDaysForward = x   // M697: the HTSP grid request range
     }
 }

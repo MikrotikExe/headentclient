@@ -24,6 +24,17 @@ object HtspData {
     /** M551-fix2: channels for which getEvents returned no current/next event. */
     @kotlin.concurrent.Volatile var lastEpgEmpty: List<Long> = emptyList()
     /**
+     * M697: how many days ahead the grid EPG is requested (Settings -> EPG -> days forward; the
+     * Android app sets it). Until now the HTSP path hard-coded 3 days and at most 80 events per
+     * channel, so the grid ended long before the range the user had chosen. Kodi (pvr.hts) asks
+     * getEvents with maxTime only, no event count — we do the same now.
+     */
+    @kotlin.concurrent.Volatile var epgDaysForward: Int = 6
+    /** M697: channels whose grid request failed even after a retry (ids), for the diagnostic log. */
+    @kotlin.concurrent.Volatile var lastGridFailed: List<Long> = emptyList()
+    /** M697: channels that came back without any event in the last grid load. */
+    @kotlin.concurrent.Volatile var lastGridEmpty: List<Long> = emptyList()
+    /**
      * M595: the number of RUNNING HTSP streams (live channel / timeshift). Tvheadend has
      * a per-user connection limit (usually 1); when the app opens a SECOND connection
      * during playback (now/next, daily programme, archive), the server refuses it —
@@ -499,7 +510,8 @@ object HtspData {
      * with a normal EPG are queried exactly as before.
      */
     private suspend fun channelEvents(session: HtspSession, cid: Long, nowSec: Long): List<EpgEvent> {
-        val maxTime = nowSec + 3 * 86400
+        // M697: the whole range the user chose (Settings), like Kodi — not 3 days / 80 events
+        val maxTime = nowSec + epgDaysForward.coerceIn(1, 14).toLong() * 86400
         fun clean(raw: List<Map<String, Any?>>): List<EpgEvent> = raw
             .mapNotNull { mapEvent(it) }
             // M398: some Tvheadend builds (e.g. 4.3~dev, HTSP v44)
@@ -510,7 +522,7 @@ object HtspData {
             .filter { it.channelUuid == cid.toString() }
             .distinctBy { it.eventId ?: "${it.start}-${it.title}" }
             .sortedBy { it.start }
-        val direct = clean(getEvents(session, cid, numFollowing = 80, maxTime = maxTime))
+        val direct = clean(getEvents(session, cid, numFollowing = 0, maxTime = maxTime))
         if (direct.isNotEmpty()) return direct
         val all = try {
             epgQueryChannel(session, cid)
@@ -519,8 +531,8 @@ object HtspData {
         } catch (e: Exception) {
             noteEpgError(e); emptyList()
         }
-        // the same window as getEvents: from the running programme up to maxTime, at most 80
-        return clean(all).filter { it.stop > nowSec && it.start <= maxTime }.take(80)
+        // the same window as getEvents: from the running programme up to maxTime
+        return clean(all).filter { it.stop > nowSec && it.start <= maxTime }
     }
 
     /** Programme for a channel via HTSP getEvents (fast, per-channel). */
@@ -541,15 +553,33 @@ object HtspData {
         val meta = metadata(server, withEpg = false, nowSec = nowSec)
         val channelIds = meta.channels.mapNotNull { longOf(it, "channelId") }
         if (channelIds.isEmpty()) return
-        val session = HtspSessions.get(server)   // M693: the shared connection (stays open)
+        var session = HtspSessions.get(server)   // M693: the shared connection (stays open)
+        val failed = ArrayList<Long>()
+        val empty = ArrayList<Long>()
         for (cid in channelIds) {
-            if (!session.alive) break   // the connection died — the rest would fail immediately
-            val evs = try {
-                channelEvents(session, cid, nowSec)   // M690: incl. the epgQuery fallback
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) { noteEpgError(e); emptyList() }
-            onChannel(cid.toString(), evs)
+            // M697: one failure (timeout, a dropped connection) no longer leaves the channel — and
+            // with a dead connection every channel after it — without a programme: re-take the
+            // shared session (reconnects when it died) and try the channel once more
+            var evs: List<EpgEvent>? = null
+            for (attempt in 0..1) {
+                try {
+                    if (!session.alive) session = HtspSessions.get(server)
+                    evs = channelEvents(session, cid, nowSec)   // M690: incl. the epgQuery fallback
+                    break
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (e: HtspConnLimitException) {
+                    noteEpgError(e); break          // M692: no point in knocking again
+                } catch (e: Exception) {
+                    noteEpgError(e)
+                    if (attempt == 1) failed.add(cid)
+                }
+            }
+            val list = evs ?: emptyList()
+            if (evs != null && list.isEmpty()) empty.add(cid)
+            onChannel(cid.toString(), list)
         }
+        lastGridFailed = failed
+        lastGridEmpty = empty
     }
 }
