@@ -283,8 +283,9 @@ internal fun TimersSection(server: TvhServer, vm: TimersViewModel = viewModel(),
             if (header) Text(stringResource(R.string.dvr_timers), style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             else Spacer(Modifier.weight(1f))
+            // M699: a time rule needs a channel — start with the first one instead of an empty value
             OutlinedButton(onClick = { editTimerec = DvrTimerec(startMin = 20 * 60, stopMin = 21 * 60,
-                channelUuid = data.channels.firstOrNull()?.first ?: "")   // M699: a time rule needs a channel },
+                channelUuid = data.channels.firstOrNull()?.first ?: "") },
                 modifier = Modifier.dpadFocusable(RoundedCornerShape(20.dp))) {
                 Icon(Icons.Default.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp))
                 Text(stringResource(R.string.timers_add_timer))
