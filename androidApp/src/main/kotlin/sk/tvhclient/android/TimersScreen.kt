@@ -49,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -282,7 +283,8 @@ internal fun TimersSection(server: TvhServer, vm: TimersViewModel = viewModel(),
             if (header) Text(stringResource(R.string.dvr_timers), style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             else Spacer(Modifier.weight(1f))
-            OutlinedButton(onClick = { editTimerec = DvrTimerec(startMin = 20 * 60, stopMin = 21 * 60) },
+            OutlinedButton(onClick = { editTimerec = DvrTimerec(startMin = 20 * 60, stopMin = 21 * 60,
+                channelUuid = data.channels.firstOrNull()?.first ?: "")   // M699: a time rule needs a channel },
                 modifier = Modifier.dpadFocusable(RoundedCornerShape(20.dp))) {
                 Icon(Icons.Default.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp))
                 Text(stringResource(R.string.timers_add_timer))
@@ -507,15 +509,22 @@ private fun DaysField(mask: Int, onChange: (Int) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         for (d in 1..7) {
             val on = mask and weekdayBit(d) != 0
+            // M699: an own focus look — the usual primary-coloured frame (dpadFocusable) is invisible
+            // on a selected chip, which is itself primary-coloured; a thick contrasting ring works on both
+            var focused by remember { mutableStateOf(false) }
+            val shape = RoundedCornerShape(16.dp)
             Box(
-                Modifier.weight(1f).clip(RoundedCornerShape(16.dp))
+                Modifier.weight(1f)
+                    .onFocusChanged { focused = it.isFocused }
+                    .border(if (focused) 3.dp else 1.dp, if (focused) cs.onSurface else cs.outlineVariant, shape)
+                    .clip(shape)
                     .background(if (on) cs.primary else cs.surfaceVariant)
-                    .dpadFocusable(RoundedCornerShape(16.dp))
                     .clickable { onChange(mask xor weekdayBit(d)) }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(names[d - 1], style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (focused) FontWeight.Bold else FontWeight.Normal,
                     color = if (on) cs.onPrimary else cs.onSurface, maxLines = 1)
             }
         }
@@ -547,10 +556,14 @@ private fun FormDialog(title: String, onDismiss: () -> Unit, content: @Composabl
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(shape = RoundedCornerShape(16.dp), tonalElevation = 6.dp,
             modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth(0.94f)) {
-            Column(Modifier.padding(20.dp).heightIn(max = 620.dp).verticalScroll(rememberScrollState())) {
+            Column(Modifier.padding(20.dp)) {
+                // M699: the title stays outside the scrolling part — the initial focus on the first
+                // field scrolled the content by a few pixels and clipped the title's accents
                 Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(12.dp))
-                content()
+                Column(Modifier.heightIn(max = 580.dp).verticalScroll(rememberScrollState())) {
+                    content()
+                }
             }
         }
     }
