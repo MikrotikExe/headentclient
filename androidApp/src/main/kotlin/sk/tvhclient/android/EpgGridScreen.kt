@@ -1297,7 +1297,7 @@ private fun GridDetailContent(
                                         R.string.dvr_rec_duplicate, dup.channelName,
                                         formatDayLabel(dup.start) + " " + formatTimeHm(dup.start)
                                     )
-                                else -> r.error ?: context.getString(
+                                else -> ConnLimitText.of(context, r.error) ?: context.getString(   // M692
                                     if (r.timeout) R.string.err_timeout else R.string.dvr_rec_failed
                                 )
                             }

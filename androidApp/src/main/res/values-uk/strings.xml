@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">Попередня станція</string>
     <string name="radio_next_station">Наступна станція</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">Забагато одночасних підключень для цього облікового запису — ймовірно, він використовується на іншому пристрої.</string>
 </resources>

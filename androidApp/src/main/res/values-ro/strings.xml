@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">Postul anterior</string>
     <string name="radio_next_station">Postul următor</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">Prea multe conexiuni simultane pentru acest cont — probabil este folosit pe alt dispozitiv.</string>
 </resources>

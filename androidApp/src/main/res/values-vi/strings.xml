@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">Đài trước</string>
     <string name="radio_next_station">Đài tiếp theo</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">Quá nhiều kết nối đồng thời cho tài khoản này — có thể tài khoản đang được dùng trên thiết bị khác.</string>
 </resources>

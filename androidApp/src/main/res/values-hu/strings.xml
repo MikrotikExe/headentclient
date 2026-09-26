@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">Előző állomás</string>
     <string name="radio_next_station">Következő állomás</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">Túl sok egyidejű kapcsolat ehhez a fiókhoz — valószínűleg egy másik eszközön is használatban van.</string>
 </resources>

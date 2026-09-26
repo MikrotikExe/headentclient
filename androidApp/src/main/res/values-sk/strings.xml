@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">Predchádzajúca stanica</string>
     <string name="radio_next_station">Ďalšia stanica</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">Pre tento účet je prekročený počet súčasných pripojení — účet sa pravdepodobne používa na inom zariadení.</string>
 </resources>

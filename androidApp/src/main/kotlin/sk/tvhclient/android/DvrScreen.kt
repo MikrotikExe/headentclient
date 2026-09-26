@@ -138,7 +138,7 @@ internal fun DvrDeleteDialog(vm: DvrViewModel) {
                         android.widget.Toast.makeText(
                             context,
                             if (r.success) context.getString(R.string.dvr_del_done)
-                            else r.error ?: context.getString(
+                            else ConnLimitText.of(context, r.error) ?: context.getString(   // M692
                                 if (r.timeout) R.string.err_timeout else R.string.dvr_del_failed
                             ),
                             android.widget.Toast.LENGTH_SHORT
@@ -338,7 +338,8 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
                 is DvrState.Loading -> LoadingStatus()
                 is DvrState.NoServer -> NoServerStatus()
                 is DvrState.Error -> ErrorStatus(   // M491: empty message -> translation
-                    s.message.ifBlank { stringResource(R.string.load_error) },
+                    (ConnLimitText.of(LocalContext.current, s.message) ?: s.message)   // M692
+                        .ifBlank { stringResource(R.string.load_error) },
                     onRetry = { vm.load() })
                 is DvrState.Loaded -> {
                     if (search.isNotBlank()) {

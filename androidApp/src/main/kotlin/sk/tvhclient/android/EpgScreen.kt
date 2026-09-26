@@ -63,6 +63,7 @@ fun EpgScreen(channelUuid: String, channelName: String, onBack: () -> Unit) {
     }
 
     val noActiveServerMsg = stringResource(R.string.no_active_server)
+    val context = androidx.compose.ui.platform.LocalContext.current   // M692
     LaunchedEffect(channelUuid) {
         state = EpgState.Loading
         val server = Tvh.store.active()
@@ -77,7 +78,7 @@ fun EpgScreen(channelUuid: String, channelName: String, onBack: () -> Unit) {
             }
             state = EpgState.Loaded(events)
         } catch (e: Exception) {
-            state = EpgState.Error(e.message ?: "Error")
+            state = EpgState.Error(ConnLimitText.of(context, e.message) ?: e.message ?: "Error")   // M692
         }
     }
 

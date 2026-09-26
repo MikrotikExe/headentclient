@@ -429,7 +429,9 @@ fun TestResultView(state: TestState) {
                 color = MaterialTheme.colorScheme.error
             )
             is ConnectionResult.NetworkError -> Text(
-                stringResource(R.string.test_network_error),
+                // M692: the account's connection limit is not a network error
+                if (ConnLimitText.isConnLimit(r.message)) stringResource(R.string.err_conn_limit)
+                else stringResource(R.string.test_network_error),
                 color = MaterialTheme.colorScheme.error
             )
         }

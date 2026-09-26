@@ -51,6 +51,8 @@ class TvhApplication : Application() {
             }
         }
         CrashLogger.install(this)   // crash diagnostics (M353)
+        // M692: connection-limit refusals into the diagnostic log (HtspData throttles it to 1 per 5 min)
+        sk.tvhclient.shared.htsp.HtspData.onConnLimit = { msg -> CrashLogger.report(this, "HTSP.connlimit", msg) }
         initSecureStorage(this)
         // M688: open the encrypted storage on a background thread right at process start.
         // Its first use (MainActivity.onCreate -> Tvh.store) creates the Keystore master key and

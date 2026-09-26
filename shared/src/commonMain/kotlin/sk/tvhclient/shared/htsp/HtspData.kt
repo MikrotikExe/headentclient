@@ -41,7 +41,59 @@ object HtspData {
      *  The caller must not take this as an incomplete EPG — do not log, do not retry, nothing failed. */
     @kotlin.concurrent.Volatile var lastEpgSkipped: Boolean = false
     fun streamStarted() { streamCount++ }
-    fun streamStopped() { if (streamCount > 0) streamCount-- }
+    fun streamStopped() {
+        if (streamCount > 0) streamCount--
+        // M692: the stream that used up the limit has ended — do not keep the app waiting for the
+        // rest of a backoff window (up to 5 min) that was only caused by it
+        if (streamCount == 0) connLimit.clear()
+    }
+
+    // ---- M692: the account's connection limit (connlimit) ----
+    // The server log showed thousands of "multiple connections are not allowed for user X" a day,
+    // all from this app: during playback it kept opening a second HTSP connection (EPG/overlay
+    // refresh every 60 s, daily programme, archive...), the server held it for 5 s and refused it,
+    // and connectWithRetry made up to three attempts (twice as many with the remembered IP). Now a
+    // refusal is never retried; if it happened while our own stream runs, no further data connection
+    // is attempted until that stream stops (it keeps holding the limit), otherwise we back off for
+    // 30 s -> 60 s -> 120 s -> max 5 min. The first successful connection clears it. Servers without a
+    // limit never refuse, so nothing changes for them (a second connection during PiP still works).
+    private class ConnLimitState(var level: Int, var until: Long, var duringStream: Boolean = false)
+    private val connLimit = HashMap<String, ConnLimitState>()
+    private var connLimitReportedAt = 0L
+
+    /** M692: diagnostics hook (the Android app writes it into the diagnostic log); called at most once per 5 min. */
+    var onConnLimit: ((String) -> Unit)? = null
+
+    /** M692: true while a previous connlimit refusal for this server is within its backoff window. */
+    fun connLimitActive(server: TvhServer): Boolean {
+        val st = connLimit[server.id] ?: return false
+        // refused while our own stream is running: the stream still holds the limit, so every
+        // further attempt would be refused too — no more attempts until it stops (streamStopped clears it)
+        if (st.duringStream && streaming) return true
+        return currentTimeSeconds() < st.until
+    }
+
+    private fun noteConnLimit(server: TvhServer) {
+        val now = currentTimeSeconds()
+        val st = connLimit.getOrPut(server.id) { ConnLimitState(0, 0L) }
+        st.level = (st.level + 1).coerceAtMost(5)
+        val wait = (30L shl (st.level - 1)).coerceAtMost(300L)
+        st.until = now + wait
+        if (streaming) st.duringStream = true
+        if (now - connLimitReportedAt >= 300) {
+            connLimitReportedAt = now
+            runCatching {
+                onConnLimit?.invoke(
+                    "connection limit reached for the account (streaming=$streaming) — next attempt in ${wait}s"
+                )
+            }
+        }
+    }
+
+    private fun clearConnLimit(server: TvhServer) { connLimit.remove(server.id) }
+
+    /** M692: called by the stream feeder when its own connection was refused with connlimit. */
+    fun reportConnLimit(server: TvhServer) = noteConnLimit(server)
 
     private fun noteEpgError(e: Throwable) {
         lastEpgError = (e::class.simpleName ?: "Throwable") + ": " + (e.message ?: "")
@@ -111,11 +163,18 @@ object HtspData {
         }
         // M595: do not open a second connection during playback — an older cache is preferable
         if (streaming && c != null && (!withEpg || c.withEpg)) return c.meta
+        // M692: within a connlimit backoff any older data is better than a refused connection
+        if (c != null && connLimitActive(server)) return c.meta
         // M621: metadata (channels, DVR, archive) goes through connectWithRetry too. Until now
         // only the now/next path had retries and the fallback to the remembered IP (M581), so
         // a DNS outage when switching networks took down the channel list and the archive on the first attempt
         // (UnresolvedAddressException in the log), even though the app knew the server's IP.
-        val client = connectWithRetry(server)
+        val client = try {
+            connectWithRetry(server)
+        } catch (e: HtspConnLimitException) {
+            c?.meta?.let { return it }   // M692: an older cache instead of an error
+            throw e
+        }
         val meta = try {
             client.fetchMetadata(withEpg = withEpg, epgMaxDays = epgMaxDays, nowSec = nowSec)
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -160,6 +219,8 @@ object HtspData {
      * (M581-fix, valid for 6 h), the IP is tried directly. Three rounds: 0 s, 1 s, 3 s.
      */
     internal suspend fun connectWithRetry(server: TvhServer): HtspClient {
+        // M692: a recent connlimit refusal -> do not connect at all until the backoff expires
+        if (connLimitActive(server)) throw HtspConnLimitException(skipped = true)
         var last: Throwable? = null
         val delays = longArrayOf(0L, 1_000L, 3_000L)
         val nowMs = currentTimeSeconds() * 1000
@@ -176,9 +237,17 @@ object HtspData {
                         withContext(Dispatchers.Default) { sk.tvhclient.shared.net.resolveHostBlocking(h) }
                             ?.let { hostIp[h] = it to nowMs }
                     }
+                    clearConnLimit(server)   // M692
                     return c
                 }
                 catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                catch (e: HtspConnLimitException) {
+                    // M692: no further attempts (neither the remembered IP nor another round) —
+                    // each one would only be held for 5 s and refused again
+                    runCatching { c.close() }
+                    noteConnLimit(server)
+                    throw e
+                }
                 catch (e: Throwable) { last = e; runCatching { c.close() } }
             }
         }
@@ -211,10 +280,21 @@ object HtspData {
         // from an older round ("0 ok, failed=552")
         lastEpgFailed = 0
         lastEpgEmpty = emptyList()
-        val meta = metadata(server, withEpg = false, nowSec = nowSec)
+        // M692: a connlimit refusal is handled like the M595 skip — the cache, no error, no retry
+        fun skippedByConnLimit(): Map<String, List<EpgEvent>> {
+            lastEpgSkipped = true
+            lastEpgFailed = 0
+            lastEpgEmpty = emptyList()
+            return nc?.map ?: emptyMap()
+        }
+        val meta = try {
+            metadata(server, withEpg = false, nowSec = nowSec)
+        } catch (e: HtspConnLimitException) { return skippedByConnLimit() }
         val channelIds = meta.channels.mapNotNull { longOf(it, "channelId") }
         if (channelIds.isEmpty()) return emptyMap()
-        var client = connectWithRetry(server)
+        var client = try {
+            connectWithRetry(server)
+        } catch (e: HtspConnLimitException) { return skippedByConnLimit() }
         val out = HashMap<String, List<EpgEvent>>()
         var failed = 0
         val empty = ArrayList<Long>()
@@ -237,6 +317,7 @@ object HtspData {
             reconnects++; streak = 0
             runCatching { client.close() }
             return try { client = connectWithRetry(server); true }
+            catch (e2: HtspConnLimitException) { false }   // M692: do not keep knocking
             catch (e2: Exception) {
                 if (e2 is kotlinx.coroutines.CancellationException) throw e2
                 noteEpgError(e2); false
@@ -293,12 +374,22 @@ object HtspData {
     suspend fun capabilities(server: TvhServer, nowSec: Long, ttl: Long = 600): Pair<Boolean, List<String>> {
         val c = capCache[server.id]
         if (c != null && nowSec - c.ts < ttl) return c.reachable to c.caps
+        // M692: within a connlimit backoff keep the last known answer (or "unknown" without
+        // caching it) instead of another refused connection
+        if (connLimitActive(server)) return c?.let { it.reachable to it.caps } ?: (false to emptyList())
         // M621: DELIBERATELY without connectWithRetry here — this is a quick probe "is the server on
         // the HTSP port?" (e.g. when saving a server). Three attempts with waiting would turn
         // an unreachable server into a 4-second wait in the settings.
         val client = HtspClient(server.host, server.htspPort, server.username, server.password)
         val res = try {
             client.connect()
+            clearConnLimit(server)
+            true to client.serverCapabilities
+        } catch (e: HtspConnLimitException) {
+            // M692: the server answered hello (the capabilities are known) and accepted the
+            // credentials — only the connection limit is used up. Until now this was cached for
+            // 10 min as "unreachable", which switched timeshift off.
+            noteConnLimit(server)
             true to client.serverCapabilities
         } catch (e: Throwable) {
             false to emptyList<String>()

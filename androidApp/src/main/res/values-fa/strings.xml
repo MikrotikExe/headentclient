@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">ایستگاه قبلی</string>
     <string name="radio_next_station">ایستگاه بعدی</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">تعداد اتصال‌های هم‌زمان این حساب بیش از حد مجاز است — احتمالاً روی دستگاه دیگری در حال استفاده است.</string>
 </resources>

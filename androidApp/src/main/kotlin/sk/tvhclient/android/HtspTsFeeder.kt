@@ -151,8 +151,12 @@ class HtspTsFeeder(
                     onTeletextAvailable = { a -> hasTeletext = a; onTeletextAvailable?.invoke(a) },   // M552
                     onTeletext = { es -> onTeletext?.invoke(es) }
                 )
-            } catch (_: Throwable) {
+            } catch (e: Throwable) {
                 // cancellation / broken pipe / connection error
+                // M692: the stream itself was refused because of the account's connection limit
+                // (usually another device playing on the same account) — into the diagnostic log
+                if (e is sk.tvhclient.shared.htsp.HtspConnLimitException)
+                    sk.tvhclient.shared.htsp.HtspData.reportConnLimit(server)
             } finally {
                 keepAlive.cancel()
                 c.close()

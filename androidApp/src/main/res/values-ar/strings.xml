@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">المحطة السابقة</string>
     <string name="radio_next_station">المحطة التالية</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">عدد كبير جدًا من الاتصالات المتزامنة لهذا الحساب — ربما يُستخدم على جهاز آخر.</string>
 </resources>

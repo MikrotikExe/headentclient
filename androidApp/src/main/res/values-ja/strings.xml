@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">前の局</string>
     <string name="radio_next_station">次の局</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">このアカウントの同時接続数が上限を超えています — 別のデバイスで使用中の可能性があります。</string>
 </resources>

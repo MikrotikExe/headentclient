@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">Предишна станция</string>
     <string name="radio_next_station">Следваща станция</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">Твърде много едновременни връзки за този акаунт — вероятно се използва на друго устройство.</string>
 </resources>

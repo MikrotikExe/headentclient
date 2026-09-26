@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">پچھلا اسٹیشن</string>
     <string name="radio_next_station">اگلا اسٹیشن</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">اس اکاؤنٹ کے لیے بیک وقت کنکشنز بہت زیادہ ہیں — شاید یہ کسی دوسرے آلے پر استعمال ہو رہا ہے۔</string>
 </resources>

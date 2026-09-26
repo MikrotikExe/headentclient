@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">Προηγούμενος σταθμός</string>
     <string name="radio_next_station">Επόμενος σταθμός</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">Πάρα πολλές ταυτόχρονες συνδέσεις για αυτόν τον λογαριασμό — πιθανότατα χρησιμοποιείται σε άλλη συσκευή.</string>
 </resources>

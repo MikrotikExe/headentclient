@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">Emisora anterior</string>
     <string name="radio_next_station">Emisora siguiente</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">Demasiadas conexiones simultáneas para esta cuenta — probablemente se está usando en otro dispositivo.</string>
 </resources>

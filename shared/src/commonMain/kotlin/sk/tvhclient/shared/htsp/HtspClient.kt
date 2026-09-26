@@ -231,7 +231,12 @@ class HtspClient(
         }
         val r = recvReply(s)
         // noaccess=1 => denied
-        return ((r["noaccess"] as? Long) ?: 0L) == 0L
+        val denied = ((r["noaccess"] as? Long) ?: 0L) != 0L
+        // M692: noaccess together with connlimit=1 = the credentials are fine, but the account's
+        // connection limit is used up (typically by the stream that is playing). Reported separately —
+        // it is not a wrong password and it must not be retried straight away.
+        if (denied && ((r["connlimit"] as? Long) ?: 0L) != 0L) throw HtspConnLimitException()
+        return !denied
     }
 
     /**

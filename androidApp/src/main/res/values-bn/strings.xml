@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">আগের স্টেশন</string>
     <string name="radio_next_station">পরের স্টেশন</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">এই অ্যাকাউন্টের জন্য একসাথে অনেক বেশি সংযোগ — সম্ভবত এটি অন্য কোনো ডিভাইসে ব্যবহৃত হচ্ছে।</string>
 </resources>

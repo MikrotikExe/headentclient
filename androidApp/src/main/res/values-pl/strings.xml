@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">Poprzednia stacja</string>
     <string name="radio_next_station">Następna stacja</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">Zbyt wiele jednoczesnych połączeń dla tego konta — prawdopodobnie jest używane na innym urządzeniu.</string>
 </resources>

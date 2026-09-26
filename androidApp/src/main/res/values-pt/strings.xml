@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">Estação anterior</string>
     <string name="radio_next_station">Estação seguinte</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">Demasiadas ligações simultâneas para esta conta — provavelmente está a ser usada noutro dispositivo.</string>
 </resources>

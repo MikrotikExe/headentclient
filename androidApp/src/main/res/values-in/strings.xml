@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">Stasiun sebelumnya</string>
     <string name="radio_next_station">Stasiun berikutnya</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">Terlalu banyak koneksi bersamaan untuk akun ini — kemungkinan sedang digunakan di perangkat lain.</string>
 </resources>

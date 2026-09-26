@@ -207,7 +207,7 @@ internal class DvrRecordController(
                         sk.tvhclient.shared.formatDayLabel(dup.start) + " " +
                             sk.tvhclient.shared.formatTimeHm(dup.start)
                     )
-                    else -> r.error ?: ctx.getString(
+                    else -> ConnLimitText.of(ctx, r.error) ?: ctx.getString(   // M692
                         if (r.timeout) R.string.err_timeout else R.string.dvr_rec_failed
                     )
                 },
@@ -246,7 +246,7 @@ internal class DvrRecordController(
                     R.string.dvr_rec_duplicate, dup.channelName,
                     sk.tvhclient.shared.formatDayLabel(dup.start) + " " + sk.tvhclient.shared.formatTimeHm(dup.start)
                 )
-                else -> r.error ?: ctx.getString(if (r.timeout) R.string.err_timeout else R.string.dvr_rec_failed)
+                else -> ConnLimitText.of(ctx, r.error) ?: ctx.getString(if (r.timeout) R.string.err_timeout else R.string.dvr_rec_failed)   // M692
             },
             Toast.LENGTH_LONG
         ).show()

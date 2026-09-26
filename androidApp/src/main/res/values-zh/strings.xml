@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">上一个电台</string>
     <string name="radio_next_station">下一个电台</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">此账户的同时连接数过多 — 可能正在其他设备上使用。</string>
 </resources>

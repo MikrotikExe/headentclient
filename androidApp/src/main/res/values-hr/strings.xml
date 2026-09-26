@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">Prethodna postaja</string>
     <string name="radio_next_station">Sljedeća postaja</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">Previše istodobnih veza za ovaj račun — vjerojatno se koristi na drugom uređaju.</string>
 </resources>

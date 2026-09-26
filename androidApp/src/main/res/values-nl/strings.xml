@@ -421,4 +421,6 @@
     <!-- M625: radio media notification -->
     <string name="radio_prev_station">Vorige zender</string>
     <string name="radio_next_station">Volgende zender</string>
+    <!-- M692 -->
+    <string name="err_conn_limit">Te veel gelijktijdige verbindingen voor dit account — het wordt waarschijnlijk op een ander apparaat gebruikt.</string>
 </resources>
