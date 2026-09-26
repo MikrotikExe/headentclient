@@ -65,6 +65,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -311,13 +312,12 @@ fun EpgGridScreen(
     }
     // The channel list for zapping and the list in the player (CH+/CH-, overlay)
     LaunchedEffect(rows) {
-        val srv = Tvh.store.active()
         val nowS = System.currentTimeMillis() / 1000
         LivePlaylist.channels = rows.map { r ->
             val cur = seed[r.channel.uuid]?.firstOrNull { it.start <= nowS && nowS < it.stop }
             val nt = (cur?.title?.ifBlank { null }) ?: r.nowTitle ?: ""
-            val ns = if (cur != null) cur.start else r.nowStart
-            val ne = if (cur != null) cur.stop else r.nowStop
+            val ns = cur?.start ?: r.nowStart
+            val ne = cur?.stop ?: r.nowStop
             LivePlaylist.LiveChannel(
                 uuid = r.channel.uuid,
                 name = r.channel.name,
@@ -344,7 +344,7 @@ fun EpgGridScreen(
     val dayStart = remember(dayOffset) { dayStartSec(dayOffset) }
     val dayEnd = dayStart + DAY_MIN * 60
     // The ticking time (the live line and progress) — redrawn every 30s
-    var now by remember { mutableStateOf(currentTimeSeconds()) }
+    var now by remember { mutableLongStateOf(currentTimeSeconds()) }
     LaunchedEffect(Unit) {
         while (true) { kotlinx.coroutines.delay(NOW_TICK_MS); now = currentTimeSeconds() }
     }
@@ -411,7 +411,7 @@ fun EpgGridScreen(
 
     val hScroll = rememberScrollState()
     val density = androidx.compose.ui.platform.LocalDensity.current
-    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val configuration = LocalConfiguration.current
     // M388: compact density (phone <600dp only), toggled by a button in the header
     val ctxDen = LocalContext.current
     // phone = smallest dimension <600dp (compact applies in landscape too); never tablet/TV
@@ -471,6 +471,8 @@ fun EpgGridScreen(
     // Compose focus did not guarantee it (it flew off to the back arrow / outside the time column). ---
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
     val gridFocus = remember { FocusRequester() }
+    val coroutineScope = rememberCoroutineScope()
+    var scrollJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     // The cursor selection (the purple frame) + the D-pad only make sense on TV; on touch (phone/tablet) it is pointless
     val isTv = remember { isTvUiMode(context) }   // M679
     val daysBack = EpgRangePref.backStateOf(context).value
@@ -479,24 +481,31 @@ fun EpgGridScreen(
     var selRow by remember { mutableStateOf(0) }
     var anchorTime by remember { mutableStateOf(now) }        // the time at which we hold the column
     var selStart by remember { mutableStateOf<Long?>(null) }  // the start of the selected cell
+    var centerCellOnHorizontal by remember { mutableStateOf(false) }
+
+    val navCellsCache = remember(rows, epg, dvrByChannel, inProgressByChannel, dayStart, now / 60) {
+        java.util.concurrent.ConcurrentHashMap<Int, List<NavCell>>()
+    }
 
     // The cells of one channel — identical with the render: merged recordings + programmes without overlap, by time
     fun navCells(idx: Int): List<NavCell> {
-        val r = rows.getOrNull(idx) ?: return emptyList()
-        val uuid = r.channel.uuid
-        val evs = (epg[uuid] ?: emptyList()).filter { it.stop > dayStart && it.start < dayEnd }
-        val dvr = (dvrByChannel[r.channel.uuid] ?: dvrByChannel[r.channel.name] ?: emptyList()).filter { it.stop > dayStart && it.start < dayEnd }
-        val inProg = (inProgressByChannel[r.channel.uuid] ?: inProgressByChannel[r.channel.name] ?: emptyList()).filter { it.stop > dayStart && it.start < dayEnd }
-        val recBlocks = mergeRecordings(dvr.filter { it.stop <= now }, inProg)
-        val cells = ArrayList<NavCell>()
-        recBlocks.forEach { rb ->
-            cells.add(NavCell(rb.start, rb.stop,
-                if (rb.inProgress) GridDetail.InProgress(r, rb.entry) else GridDetail.Dvr(r, rb.entry)))
+        return navCellsCache.getOrPut(idx) {
+            val r = rows.getOrNull(idx) ?: return@getOrPut emptyList()
+            val uuid = r.channel.uuid
+            val evs = (epg[uuid] ?: emptyList()).filter { it.stop > dayStart && it.start < dayEnd }
+            val dvr = (dvrByChannel[r.channel.uuid] ?: dvrByChannel[r.channel.name] ?: emptyList()).filter { it.stop > dayStart && it.start < dayEnd }
+            val inProg = (inProgressByChannel[r.channel.uuid] ?: inProgressByChannel[r.channel.name] ?: emptyList()).filter { it.stop > dayStart && it.start < dayEnd }
+            val recBlocks = mergeRecordings(dvr.filter { it.stop <= now }, inProg)
+            val cells = ArrayList<NavCell>()
+            recBlocks.forEach { rb ->
+                cells.add(NavCell(rb.start, rb.stop,
+                    if (rb.inProgress) GridDetail.InProgress(r, rb.entry) else GridDetail.Dvr(r, rb.entry)))
+            }
+            evs.filter { ev -> recBlocks.none { it.start < ev.stop && it.stop > ev.start } }
+                .forEach { ev -> cells.add(NavCell(ev.start, ev.stop, GridDetail.Epg(r, ev))) }
+            cells.sortBy { it.start }
+            cells
         }
-        evs.filter { ev -> recBlocks.none { it.start < ev.stop && it.stop > ev.start } }
-            .forEach { ev -> cells.add(NavCell(ev.start, ev.stop, GridDetail.Epg(r, ev))) }
-        cells.sortBy { it.start }
-        return cells
     }
     fun cellAt(cells: List<NavCell>, t: Long): NavCell? =
         cells.firstOrNull { it.start <= t && t < it.stop }
@@ -507,13 +516,71 @@ fun EpgGridScreen(
         selStart = c?.start
         lastFocused = c?.detail
     }
-    fun moveVertical(delta: Int): Boolean {
-        val target = selRow + delta
-        if (target < 0 || target > rows.lastIndex) return false  // edge -> let it escape (days up / down)
+    fun moveVertical(delta: Int, pageStep: Boolean = false): Boolean {
+        if (rows.isEmpty()) return false
+        val layout = listState.layoutInfo
+        val visibleItems = layout.visibleItemsInfo
+        val viewportStart = layout.viewportStartOffset
+        val viewportEnd = layout.viewportEndOffset
+        val fullyVisible = visibleItems.filter {
+            it.offset >= viewportStart && (it.offset + it.size) <= viewportEnd
+        }
+        val visibleCount = if (fullyVisible.isNotEmpty()) fullyVisible.size
+                           else visibleItems.size.coerceAtLeast(1)
+
+        val step = if (pageStep) visibleCount * delta else delta
+        val target = (selRow + step).coerceIn(0, rows.lastIndex)
+        if (target == selRow && (target == 0 || target == rows.lastIndex)) {
+            return false  // edge -> let it escape (days up / down)
+        }
+        centerCellOnHorizontal = false
         selectRowAt(target, anchorTime)
+
+        if (pageStep) {
+            // Page jump: immediately snap to the new page without multi-frame animation
+            scrollJob?.cancel()
+            val maxFirstVisible = (rows.size - visibleCount).coerceAtLeast(0)
+            val newFirst = if (delta > 0) {
+                (listState.firstVisibleItemIndex + visibleCount).coerceIn(0, maxFirstVisible)
+            } else {
+                (listState.firstVisibleItemIndex - visibleCount).coerceAtLeast(0)
+            }
+            scrollJob = coroutineScope.launch {
+                runCatching { listState.scrollToItem(newFirst) }
+            }
+        } else {
+            val minVisible = fullyVisible.minOfOrNull { it.index } ?: listState.firstVisibleItemIndex
+            val maxVisible = fullyVisible.maxOfOrNull { it.index } ?: listState.firstVisibleItemIndex
+
+            if (target < minVisible) {
+                val newFirst = target.coerceAtLeast(0)
+                val isBusy = scrollJob?.isActive == true
+                scrollJob?.cancel()
+                scrollJob = coroutineScope.launch {
+                    runCatching {
+                        if (isBusy) listState.scrollToItem(newFirst)
+                        else listState.animateScrollToItem(newFirst)
+                    }
+                }
+            } else if (target > maxVisible) {
+                val newFirst = (target - visibleCount + 1).coerceAtLeast(0)
+                val isBusy = scrollJob?.isActive == true
+                scrollJob?.cancel()
+                scrollJob = coroutineScope.launch {
+                    runCatching {
+                        if (isBusy) listState.scrollToItem(newFirst)
+                        else listState.animateScrollToItem(newFirst)
+                    }
+                }
+            } else {
+                // Target is already fully visible on screen: no scrolling needed
+                scrollJob?.cancel()
+            }
+        }
         return true
     }
     fun moveHorizontal(dir: Int): Boolean {
+        centerCellOnHorizontal = true
         val cells = navCells(selRow)
         if (cells.isEmpty()) return true
         var cur = cells.indexOfFirst { it.start == selStart }
@@ -535,6 +602,12 @@ fun EpgGridScreen(
     }
     val onGridKey: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = handler@{ e ->
         if (e.type != KeyEventType.KeyDown) return@handler false
+        when (e.nativeKeyEvent.keyCode) {
+            android.view.KeyEvent.KEYCODE_CHANNEL_UP,
+            android.view.KeyEvent.KEYCODE_PAGE_UP -> return@handler moveVertical(-1, pageStep = true)
+            android.view.KeyEvent.KEYCODE_CHANNEL_DOWN,
+            android.view.KeyEvent.KEYCODE_PAGE_DOWN -> return@handler moveVertical(1, pageStep = true)
+        }
         when (e.key) {
             Key.DirectionDown -> moveVertical(1)
             Key.DirectionUp -> moveVertical(-1)
@@ -557,7 +630,9 @@ fun EpgGridScreen(
             null -> if (dayOffset == 0) now else dayStart + 12L * 3600
         }
         pendingCursorEdge = null
-        selectRowAt(selRow.coerceIn(0, rows.lastIndex), anchorTime)
+        val safeRow = selRow.coerceIn(0, rows.lastIndex)
+        selectRowAt(safeRow, anchorTime)
+        runCatching { listState.scrollToItem(safeRow) }
     }
     // M592: a grid opened from the player starts on the channel that is currently playing —
     // until now it always jumped to the first channel in the list and the user had to hunt for it.
@@ -592,20 +667,19 @@ fun EpgGridScreen(
         kotlinx.coroutines.delay(150)
         runCatching { gridFocus.requestFocus() }
     }
-    // Auto-scroll to the selected row / cell
-    LaunchedEffect(selRow) { runCatching { listState.animateScrollToItem(selRow) } }
-    // Centring the horizontal scroll (TV): put the MIDDLE of the selected programme in the middle
-    // of the screen - on opening that is the currently running programme, so "what is on live" is in the middle
-    // (half to the left, half to the right). During cursor navigation it centres the selected cell.
-    LaunchedEffect(selStart) {
+    // Only scroll horizontally when navigating horizontally (D-pad Left/Right).
+    // Moving vertically between channels keeps the current horizontal scroll position steady.
+    LaunchedEffect(selStart, centerCellOnHorizontal) {
+        if (!centerCellOnHorizontal) return@LaunchedEffect
         val s = selStart ?: return@LaunchedEffect
-        val cell = navCells(selRow).firstOrNull { it.start == s }
-        val midSec = if (cell != null) (cell.start + cell.stop) / 2 else s
+        val cell = navCells(selRow).firstOrNull { it.start == s } ?: return@LaunchedEffect
+        val visibleTimelineW = (configuration.screenWidthDp - chanColFor(configuration.screenWidthDp, epgCompact)).toFloat()
+        val midSec = (cell.start + cell.stop) / 2
         val midMin = (((midSec - dayStart) / 60).toInt()).coerceIn(0, DAY_MIN)
-        // to the middle of the visible timeline (the screen width without the logo column)
-        val halfVisPx = with(density) { ((configuration.screenWidthDp - chanColFor(configuration.screenWidthDp, epgCompact)) / 2).dp.toPx() }
-        val target = with(density) { (midMin * pxMin).dp.toPx() } - halfVisPx
-        runCatching { hScroll.animateScrollTo(target.toInt().coerceAtLeast(0)) }
+        val halfVisPx = with(density) { (visibleTimelineW / 2f).dp.toPx() }
+        val cellTarget = with(density) { (midMin * pxMin).dp.toPx() } - halfVisPx
+        runCatching { hScroll.animateScrollTo(cellTarget.toInt().coerceIn(0, hScroll.maxValue)) }
+        centerCellOnHorizontal = false
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -672,7 +746,7 @@ fun EpgGridScreen(
                             Text(
                                 filterLabel,
                                 maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.widthIn(max = 150.dp),
                                 style = MaterialTheme.typography.bodyMedium
                             )
@@ -863,6 +937,22 @@ fun EpgGridScreen(
                 }
             }
 
+            val onEventClick: (ChannelRow, EpgEvent) -> Unit = remember {
+                { r, ev ->
+                    if (!isTv) didLeavePlaying = true   // M593: after a programme is selected the marker disappears
+                    detail = GridDetail.Epg(r, ev)
+                }
+            }
+            val onDvrClick: (ChannelRow, sk.tvhclient.shared.model.DvrEntry) -> Unit = remember {
+                { r, e -> detail = GridDetail.Dvr(r, e) }
+            }
+            val onInProgressClick: (ChannelRow, sk.tvhclient.shared.model.DvrEntry) -> Unit = remember {
+                { r, rec -> detail = GridDetail.InProgress(r, rec) }
+            }
+            val onFocusDetailCallback: (GridDetail) -> Unit = remember {
+                { lastFocused = it }
+            }
+
             // The channel rows
             LazyColumn(
                 state = listState,
@@ -899,17 +989,30 @@ fun EpgGridScreen(
                         }
                     }
             ) {
-                itemsIndexed(rows, key = { _, it -> it.channel.uuid }) { idx, row ->
+                itemsIndexed(
+                    items = rows,
+                    key = { _, it -> it.channel.uuid },
+                    contentType = { _, _ -> "epg_row" }
+                ) { idx, row ->
                     val uuid = row.channel.uuid
                     // Progressive: load the EPG for this channel when the row is visible
                     LaunchedEffect(uuid, epgGen) { epgVm.ensureChannel(uuid) }
+                    val rowDvr = remember(uuid, dvrByChannel, dayStart, dayEnd) {
+                        (dvrByChannel[row.channel.uuid] ?: dvrByChannel[row.channel.name] ?: emptyList())
+                            .filter { it.stop > dayStart && it.start < dayEnd }
+                    }
+                    val rowInProgress = remember(uuid, inProgressByChannel, dayStart, dayEnd) {
+                        (inProgressByChannel[row.channel.uuid] ?: inProgressByChannel[row.channel.name] ?: emptyList())
+                            .filter { it.stop > dayStart && it.start < dayEnd }
+                    }
+                    val rowEvents = remember(uuid, epg, dayStart, dayEnd) {
+                        (epg[uuid] ?: emptyList()).filter { it.stop > dayStart && it.start < dayEnd }
+                    }
                     EpgGridRow(
                         row = row,
-                        events = (epg[uuid] ?: emptyList()).filter { it.stop > dayStart && it.start < dayEnd },
-                        dvr = (dvrByChannel[row.channel.uuid] ?: dvrByChannel[row.channel.name] ?: emptyList())
-                            .filter { it.stop > dayStart && it.start < dayEnd },
-                        inProgress = (inProgressByChannel[row.channel.uuid] ?: inProgressByChannel[row.channel.name] ?: emptyList())
-                            .filter { it.stop > dayStart && it.start < dayEnd },
+                        events = rowEvents,
+                        dvr = rowDvr,
+                        inProgress = rowInProgress,
                         dayStart = dayStart,
                         now = now,
                         showNow = dayOffset == 0,
@@ -919,13 +1022,10 @@ fun EpgGridScreen(
                         loader = loader,
                         selectedStart = if (idx == selRow) selStart else null,
                         playing = uuid == focusUuid && !didLeavePlaying,   // M593
-                        onClick = { ev ->
-                            if (!isTv) didLeavePlaying = true   // M593: after a programme is selected the marker disappears
-                            detail = GridDetail.Epg(row, ev)
-                        },
-                        onDvr = { e -> detail = GridDetail.Dvr(row, e) },
-                        onInProgress = { rec -> detail = GridDetail.InProgress(row, rec) },
-                        onFocusDetail = { lastFocused = it }
+                        onEventClick = onEventClick,
+                        onDvrClick = onDvrClick,
+                        onInProgressClick = onInProgressClick,
+                        onFocusDetail = onFocusDetailCallback
                     )
                 }
             }
@@ -1007,7 +1107,7 @@ private fun GridDetailContent(
     // M483: the rights are needed for a DVR entry too (deleting), not just for an EPG programme
     LaunchedEffect(detail, recReload) {
         val ep = (detail as? GridDetail.Epg)
-        val srv = sk.tvhclient.shared.Tvh.store.active()
+        val srv = Tvh.store.active()
         canRecord = if (srv == null) false else DvrController.access(srv).canRecord
         existingRec = if (ep == null || srv == null) null
         else DvrController.scheduledFor(srv, ep.row.channel.uuid, ep.ev.start, ep.ev.stop)
@@ -1071,10 +1171,10 @@ private fun GridDetailContent(
     }
     val durationMin = ((stop - start) / 60).toInt()
 
-    androidx.compose.foundation.layout.Column(
+    Column(
         Modifier
             .fillMaxSize()
-            .verticalScroll(androidx.compose.foundation.rememberScrollState())
+            .verticalScroll(rememberScrollState())
     ) {
         // The header with the picon and the back button
         val detailModern = isModernUi()
@@ -1146,7 +1246,7 @@ private fun GridDetailContent(
             }
         }
 
-        androidx.compose.foundation.layout.Column(Modifier.padding(16.dp)) {
+        Column(Modifier.padding(16.dp)) {
             Text(
                 title,
                 style = MaterialTheme.typography.headlineSmall,
@@ -1167,7 +1267,7 @@ private fun GridDetailContent(
             }
             if (detailModern && badgeRes != null) {
                 val live = detail is GridDetail.InProgress || epgRecordingNow
-                val badgeColor = if (live) androidx.compose.ui.graphics.Color(0xFFE53935) else dcs.primary
+                val badgeColor = if (live) Color(0xFFE53935) else dcs.primary
                 val glyph = when {
                     live -> "\u25CF "
                     detail is GridDetail.Dvr -> "\u2713 "
@@ -1214,7 +1314,7 @@ private fun GridDetailContent(
             // Play only if there is something to play: a DVR recording, or an EPG programme
             // that is running right now (live). A future/unrecorded one cannot be played.
             val nowSec = currentTimeSeconds()
-            val playable = hasFile || (start <= nowSec && nowSec < stop)
+            val playable = hasFile || (nowSec in start..<stop)
             if (playable) {
                 // On TV/a remote, put the initial focus on Play, so that OK works straight away
                 LaunchedEffect(detail) {
@@ -1226,7 +1326,7 @@ private fun GridDetailContent(
                     modifier = Modifier.fillMaxWidth().focusRequester(playFocus)
                 ) {
                     androidx.compose.material3.Icon(
-                        androidx.compose.material.icons.Icons.Default.PlayArrow,
+                        Icons.Default.PlayArrow,
                         contentDescription = null
                     )
                     Spacer(Modifier.width(8.dp))
@@ -1243,7 +1343,7 @@ private fun GridDetailContent(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         androidx.compose.material3.Icon(
-                            androidx.compose.material.icons.Icons.Default.PlayArrow,
+                            Icons.Default.PlayArrow,
                             contentDescription = null
                         )
                         Spacer(Modifier.width(8.dp))
@@ -1272,7 +1372,7 @@ private fun GridDetailContent(
                 // M606: an optional DVR profile selection before recording
                 var askProfiles by remember { mutableStateOf<List<String>>(emptyList()) }
                 fun doRecord(profile: String?) {
-                        val srv = sk.tvhclient.shared.Tvh.store.active() ?: return
+                        val srv = Tvh.store.active() ?: return
                         recBusy = true; recMsg = null
                         dvrScope.launch {
                             if (profile != null) DvrAskPref.setLastUsed(context, srv.id, profile)
@@ -1280,7 +1380,7 @@ private fun GridDetailContent(
                             // M484: the programme description -> the entry is reflected in the list immediately
                             else DvrController.recordEvent(
                                 srv, recEventId,
-                                (detail as? GridDetail.Epg)?.row?.channel?.uuid ?: "",
+                                detail.row.channel.uuid,
                                 start, stop, title, profile
                             )
                             // M484: on a duplicate the server returns only a terse error —
@@ -1308,7 +1408,7 @@ private fun GridDetailContent(
                         }
                 }
                 if (askProfiles.isNotEmpty()) {
-                    val srv = sk.tvhclient.shared.Tvh.store.active()
+                    val srv = Tvh.store.active()
                     DvrProfilePickDialog(
                         options = askProfiles,
                         subtitle = title,
@@ -1321,7 +1421,7 @@ private fun GridDetailContent(
                 }
                 androidx.compose.material3.OutlinedButton(
                     onClick = {
-                        val srv = sk.tvhclient.shared.Tvh.store.active() ?: return@OutlinedButton
+                        val srv = Tvh.store.active() ?: return@OutlinedButton
                         if (rec != null) { doRecord(null); return@OutlinedButton }
                         dvrScope.launch {
                             val opts = DvrProfileAsk.options(context, srv)
@@ -1425,7 +1525,7 @@ private fun GridDetailContent(
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     confirmDvr = false
-                    val srv = sk.tvhclient.shared.Tvh.store.active()
+                    val srv = Tvh.store.active()
                         ?: return@TextButton
                     recBusy = true; recMsg = null
                     dvrScope.launch {
@@ -1475,16 +1575,16 @@ private fun EpgGridRow(
     loader: coil.ImageLoader,
     selectedStart: Long? = null,
     playing: Boolean = false,   // M593: the channel/station that is currently playing in the player
-    onClick: (EpgEvent) -> Unit,
-    onDvr: (sk.tvhclient.shared.model.DvrEntry) -> Unit,
-    onInProgress: (sk.tvhclient.shared.model.DvrEntry) -> Unit,
+    onEventClick: (ChannelRow, EpgEvent) -> Unit,
+    onDvrClick: (ChannelRow, sk.tvhclient.shared.model.DvrEntry) -> Unit,
+    onInProgressClick: (ChannelRow, sk.tvhclient.shared.model.DvrEntry) -> Unit,
     onFocusDetail: (GridDetail) -> Unit = {}
 ) {
     val context = LocalContext.current
     val modern = isModernUi()
     // M387: adaptive dimensions by window width; wide screens (>=600dp) stay
     // exactly as after M377 (k = 1, the original row heights)
-    val conf = androidx.compose.ui.platform.LocalConfiguration.current
+    val conf = LocalConfiguration.current
     // M388: compact density on a phone (the toggle in the EPG header)
     val ctxDen = LocalContext.current
     val epgCompact = conf.smallestScreenWidthDp < 600 && EpgDensityPref.compactStateOf(ctxDen).value
@@ -1654,16 +1754,18 @@ private fun EpgGridRow(
                 )
             }
         }
-        // The programme area (scrolls horizontally)
+        // The programme area (scrolls horizontally). Keep the horizontal scroll node simple:
+        // no nested layout work beyond the timeline width itself; the row content is already culled.
         Box(
             Modifier
-                .horizontalScroll(hScroll)
+                .horizontalScroll(hScroll, enabled = true)
                 .height(rowH.dp)
         ) {
             Box(Modifier.width((DAY_MIN * pxMin).dp).height(rowH.dp)) {
                 // Recordings (finished green + in-progress red) merged into a single
                 // set of blocks — without overlaps and duplicates (including "(ST)" title variants);
-                // we render only the blocks in the visible window (culling)
+                // we render only the blocks in the visible window (culling).
+                // Keep the object graph minimal for scrolling: do not recompute all titles for every drag event.
                 val recBlocks = remember(dvr, inProgress, now / 60) {
                     mergeRecordings(dvr.filter { it.stop <= now }, inProgress)
                 }
@@ -1698,7 +1800,7 @@ private fun EpgGridRow(
                             kind = MgKind.REC,
                             progressFrac = ((now - vStart).toFloat() / (vStop - vStart).coerceAtLeast(1)).coerceIn(0f, 1f),
                             selected = selectedStart == rb.start,
-                            onClick = { onInProgress(rb.entry) }
+                            onClick = { onInProgressClick(row, rb.entry) }
                         ) else GridBlock(
                             rowH = rowH, pxMin = pxMin, compact = epgCompact,
                             startMin = startMin,
@@ -1711,7 +1813,7 @@ private fun EpgGridRow(
                             progressColor = Color(0x80EF5350),  // darker = already recorded (before the line)
                             prefix = "\u25CF ",
                             selected = selectedStart == rb.start,
-                            onClick = { onInProgress(rb.entry) },
+                            onClick = { onInProgressClick(row, rb.entry) },
                             onFocused = { onFocusDetail(GridDetail.InProgress(row, rb.entry)) }
                         )
                     } else {
@@ -1723,7 +1825,7 @@ private fun EpgGridRow(
                             timeLabel = formatTimeHm(rb.start) + " - " + formatTimeHm(rb.stop),
                             kind = MgKind.RECORDED,
                             selected = selectedStart == rb.start,
-                            onClick = { onDvr(rb.entry) }
+                            onClick = { onDvrClick(row, rb.entry) }
                         ) else GridBlock(
                             rowH = rowH, pxMin = pxMin, compact = epgCompact,
                             startMin = startMin,
@@ -1733,16 +1835,19 @@ private fun EpgGridRow(
                             bg = if (isLightTheme()) Color(0xA643A047) else Color(0x5C43A047),  // green = recorded
                             recorded = true,
                             selected = selectedStart == rb.start,
-                            onClick = { onDvr(rb.entry) },
+                            onClick = { onDvrClick(row, rb.entry) },
                             onFocused = { onFocusDetail(GridDetail.Dvr(row, rb.entry)) }
                         )
                     }
                 }
                 // Programmes from the EPG including past ones (history); skip those that
                 // are already shown by some merged recording block, so that there are not two blocks
-                events.filter { ev ->
-                    recBlocks.none { it.start < ev.stop && it.stop > ev.start }
-                }.forEach { ev ->
+                val displayEvents = remember(events, recBlocks) {
+                    events.filter { ev ->
+                        recBlocks.none { it.start < ev.stop && it.stop > ev.start }
+                    }
+                }
+                displayEvents.forEach { ev ->
                     val startMin = (((ev.start - dayStart) / 60).toInt()).coerceAtLeast(0)
                     val endMin = (((ev.stop - dayStart) / 60).toInt()).coerceAtMost(DAY_MIN)
                     if (endMin <= visStartMin || startMin >= visEndMin) return@forEach
@@ -1759,7 +1864,7 @@ private fun EpgGridRow(
                             ((now - ev.start).toFloat() / (ev.stop - ev.start).coerceAtLeast(1)).coerceIn(0f, 1f)
                         else 0f,
                         selected = selectedStart == ev.start,
-                        onClick = { onClick(ev) }
+                        onClick = { onEventClick(row, ev) }
                     ) else GridBlock(
                         rowH = rowH, pxMin = pxMin, compact = epgCompact,
                         startMin = startMin,
@@ -1785,7 +1890,7 @@ private fun EpgGridRow(
                         fg = if (isNow) MaterialTheme.colorScheme.onPrimaryContainer else null,
                         fgDim = if (isNow) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f) else null,
                         selected = selectedStart == ev.start,
-                        onClick = { onClick(ev) },
+                        onClick = { onEventClick(row, ev) },
                         onFocused = { onFocusDetail(GridDetail.Epg(row, ev)) }
                     )
                 }
@@ -1838,20 +1943,10 @@ private fun GridBlock(
     if (wMin <= 0) return
     val cellW = wMin * pxMin
     val fullTitle = (prefix ?: if (recorded) "\u25B6 " else "") + title
-    // M377: focus-expansion — when the selected cell is too narrow for the whole title,
-    // we render a temporary wider bubble above it (an overlay with a zIndex; the grid
-    // does not move, the bubble disappears when the cursor leaves). We measure the real text width.
-    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    // M377: focus-expansion — only measure the selected item. Measuring every card title
+    // on every recomposition costs more than it helps on low-end TV hardware.
     val titleStyle = MaterialTheme.typography.bodySmall
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    val needDp = remember(fullTitle, titleStyle) {
-        with(density) {
-            measurer.measure(
-                androidx.compose.ui.text.AnnotatedString(fullTitle),
-                style = titleStyle, maxLines = 1
-            ).size.width.toDp().value
-        }
-    }
+    val needDp = if (!selected) 0f else measuredTextWidth(fullTitle, titleStyle)
     val expand = selected && needDp > (cellW - 16f)
     val bubbleW = if (expand) (needDp + 24f).coerceAtMost(320f).coerceAtLeast(cellW.toFloat()) else 0f
     val shiftDp = if (expand) {
@@ -1976,6 +2071,19 @@ private fun dayStartSec(offset: Int): Long {
 }
 
 @Composable
+private fun measuredTextWidth(text: String, style: androidx.compose.ui.text.TextStyle): Float {
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    return with(density) {
+        measurer.measure(
+            androidx.compose.ui.text.AnnotatedString(text),
+            style = style,
+            maxLines = 1
+        ).size.width.toDp().value
+    }
+}
+
+@Composable
 private fun stringResourceTvGuide(): String =
     androidx.compose.ui.res.stringResource(R.string.tv_guide)
 
@@ -2006,19 +2114,12 @@ private fun ModernGridBlock(
     val wMin = endMin - startMin
     if (wMin <= 0) return
     val cellW = wMin * pxMin
-    // M377: focus-expansion of short cards (the same principle as in classic mode)
-    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    // M377: focus-expansion of short cards — only measure when the current card is selected.
     val mTitleStyle = MaterialTheme.typography.bodyMedium
-    val mDensity = androidx.compose.ui.platform.LocalDensity.current
-    val needDp = remember(title, mTitleStyle) {
-        with(mDensity) {
-            measurer.measure(
-                androidx.compose.ui.text.AnnotatedString(title),
-                style = mTitleStyle.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
-                maxLines = 1
-            ).size.width.toDp().value
-        }
-    }
+    val needDp = if (!selected) 0f else measuredTextWidth(
+        title,
+        mTitleStyle.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+    )
     val expand = selected && needDp > (cellW - 18f)
     val bubbleW = if (expand) (needDp + 28f).coerceAtMost(340f).coerceAtLeast(cellW.toFloat()) else 0f
     val shiftDp = if (expand) {
