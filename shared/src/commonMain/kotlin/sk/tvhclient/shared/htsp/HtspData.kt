@@ -3,7 +3,6 @@ package sk.tvhclient.shared.htsp
 import sk.tvhclient.shared.model.Channel
 import sk.tvhclient.shared.model.ChannelTag
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import sk.tvhclient.shared.model.DvrEntry
 import sk.tvhclient.shared.model.EpgEvent
@@ -11,12 +10,10 @@ import sk.tvhclient.shared.model.TvhServer
 import sk.tvhclient.shared.currentTimeSeconds
 
 /**
- * HTSP data source: connects over 9982, downloads the metadata (enableAsyncMetadata)
- * and maps the HTSP fields onto the app's models (the same ones as from HTTP /api). The mapping is
- * taken over from the plugin (_htsp_api.py). A simple TTL cache per server, so that
- * it does not connect for every card.
- *
- * Streaming and picons stay on HTTP (HTSP only handles data here).
+ * HTSP data source: maps the HTSP fields onto the app's models (the same ones as from HTTP /api;
+ * the mapping is taken over from the plugin, _htsp_api.py). M693: all requests go over the app's
+ * single shared connection (HtspSession / HtspSessions) — the stream included — like Kodi, so an
+ * account with a connection limit of 1 works during playback too. Picons stay on HTTP.
  */
 object HtspData {
     /** M550-fix: the last error of a per-channel getEvents (otherwise it is silently skipped) —
@@ -99,6 +96,31 @@ object HtspData {
         lastEpgError = (e::class.simpleName ?: "Throwable") + ": " + (e.message ?: "")
     }
 
+    // ---- M693: requests over the shared connection (HtspSession) ----
+    @Suppress("UNCHECKED_CAST")
+    private fun listOfMaps(v: Any?): List<Map<String, Any?>> =
+        (v as? List<Any?>)?.mapNotNull { it as? Map<String, Any?> } ?: emptyList()
+
+    /** getEvents (see HtspClient history: M511 language, numFollowing/maxTime). */
+    private suspend fun getEvents(s: HtspSession, channelId: Long, numFollowing: Int, maxTime: Long): List<Map<String, Any?>> {
+        val args = HashMap<String, Any?>()
+        args["channelId"] = channelId
+        if (numFollowing > 0) args["numFollowing"] = numFollowing.toLong()
+        if (maxTime > 0) args["maxTime"] = maxTime
+        sk.tvhclient.shared.ClientIdent.lang2.takeIf { it.isNotBlank() }?.let { args["language"] = it }
+        return listOfMaps(s.request("getEvents", args)["events"])
+    }
+
+    /** M690: the whole schedule of one channel via epgQuery (empty query = every title, full=1). */
+    private suspend fun epgQueryChannel(s: HtspSession, channelId: Long): List<Map<String, Any?>> {
+        val args = HashMap<String, Any?>()
+        args["query"] = ""
+        args["channelId"] = channelId
+        args["full"] = 1L
+        sk.tvhclient.shared.ClientIdent.lang2.takeIf { it.isNotBlank() }?.let { args["language"] = it }
+        return listOfMaps(s.request("epgQuery", args)["events"])
+    }
+
     /** M471: rights from the last HTSP connection (accessUpdate), translated into
      *  the common shape for the UI. */
 
@@ -108,18 +130,9 @@ object HtspData {
      * (only port 9982 open) the list was thus not available at all.
      */
     suspend fun streamProfiles(server: TvhServer): List<String> = runCatching {
-        val c = connectWithRetry(server)   // M621
-        try {
-            val r = c.recvReply(c.send("getProfiles"))
-            @Suppress("UNCHECKED_CAST")
-            val list = (r["profiles"] as? List<Any?>) ?: emptyList()
-            list.mapNotNull { p ->
-                val m = p as? Map<String, Any?> ?: return@mapNotNull null
-                (m["name"] as? String)?.takeIf { it.isNotBlank() }
-            }
-        } finally {
-            withContext(NonCancellable) { c.close() }
-        }
+        // M693: over the shared connection
+        listOfMaps(HtspSessions.get(server).request("getProfiles")["profiles"])
+            .mapNotNull { (it["name"] as? String)?.takeIf { n -> n.isNotBlank() } }
     }.getOrDefault(emptyList())
 
     /**
@@ -128,19 +141,9 @@ object HtspData {
      * An error = an empty list, and the caller then does not show the profile picker.
      */
     suspend fun dvrConfigs(server: TvhServer): List<sk.tvhclient.shared.api.DvrConfig> = runCatching {
-        val c = connectWithRetry(server)   // M621
-        try {
-            val r = c.recvReply(c.send("getDvrConfigs"))
-            @Suppress("UNCHECKED_CAST")
-            val list = (r["dvrconfigs"] as? List<Any?>) ?: emptyList()
-            list.mapNotNull { p ->
-                val m = p as? Map<String, Any?> ?: return@mapNotNull null
-                val uuid = (m["uuid"] as? String) ?: ""
-                val name = (m["name"] as? String) ?: ""
-                sk.tvhclient.shared.api.DvrConfig(uuid, name)
-            }
-        } finally {
-            withContext(NonCancellable) { c.close() }
+        // M693: over the shared connection
+        listOfMaps(HtspSessions.get(server).request("getDvrConfigs")["dvrconfigs"]).map { m ->
+            sk.tvhclient.shared.api.DvrConfig((m["uuid"] as? String) ?: "", (m["name"] as? String) ?: "")
         }
     }.getOrDefault(emptyList())
 
@@ -154,56 +157,29 @@ object HtspData {
     private fun longOf(m: Map<String, Any?>, key: String): Long? = (m[key] as? Long)
     private fun strOf(m: Map<String, Any?>, key: String): String = (m[key] as? String) ?: ""
 
+    /**
+     * Channels, tags and recordings. M693: taken from the shared connection's async metadata model
+     * (HtspSession) — the server keeps it up to date by itself, so there is no TTL and no new
+     * connection per call. [cache] only keeps the last good snapshot for when the server cannot be
+     * reached (and within a connlimit backoff, M692). [withEpg] and [epgMaxDays] are no longer used —
+     * EPG goes through getEvents.
+     */
+    @Suppress("UNUSED_PARAMETER")
     suspend fun metadata(server: TvhServer, withEpg: Boolean, nowSec: Long, epgMaxDays: Int = 1): HtspClient.Metadata {
         val key = server.id
-        val ttl = if (withEpg) 600 else 120
         val c = cache[key]
-        if (c != null && nowSec - c.ts < ttl && (!withEpg || c.withEpg)) {
-            return c.meta
-        }
-        // M595: do not open a second connection during playback — an older cache is preferable
-        if (streaming && c != null && (!withEpg || c.withEpg)) return c.meta
-        // M692: within a connlimit backoff any older data is better than a refused connection
-        if (c != null && connLimitActive(server)) return c.meta
-        // M621: metadata (channels, DVR, archive) goes through connectWithRetry too. Until now
-        // only the now/next path had retries and the fallback to the remembered IP (M581), so
-        // a DNS outage when switching networks took down the channel list and the archive on the first attempt
-        // (UnresolvedAddressException in the log), even though the app knew the server's IP.
-        val client = try {
-            connectWithRetry(server)
-        } catch (e: HtspConnLimitException) {
-            c?.meta?.let { return it }   // M692: an older cache instead of an error
-            throw e
-        }
+        if (c != null && connLimitActive(server)) return c.meta   // M692
         val meta = try {
-            client.fetchMetadata(withEpg = withEpg, epgMaxDays = epgMaxDays, nowSec = nowSec)
+            HtspSessions.get(server).metadata()
         } catch (e: kotlinx.coroutines.CancellationException) {
-            // The app is shutting down during loading — CLOSE the socket CLEANLY (NonCancellable,
-            // otherwise it hangs and FinalizerWatchdog crashes the app on the next start), and
-            // rethrow the cancellation (the coroutine is supposed to terminate correctly).
-            withContext(NonCancellable) { client.close() }
             throw e
         } catch (e: Throwable) {
-            // A different error (e.g. corrupted data from a desynchronized connection on a
-            // fast restart). WE DO NOT CRASH the app — if we have old cache data,
-            // we return it; otherwise we throw the error so the caller tries again.
-            // WE DO NOT STORE an empty result in the cache (otherwise the next start would show nothing).
-            withContext(NonCancellable) { client.close() }
+            // unreachable server / connection lost: the last good data rather than an error
             c?.meta?.let { return it }
             throw e
-        } finally {
-            // Safety net: close the socket cleanly on a normal finish / cancellation too.
-            withContext(NonCancellable) { client.close() }
         }
-        // Complete data (finished sync) -> store in the cache and return.
-        if (meta.syncDone && meta.channels.isNotEmpty()) {
-            cache[key] = Cache(nowSec, meta, withEpg)
-            return meta
-        }
-        // Incomplete (e.g. interrupted by the app shutting down during loading):
-        // if we have old complete cache data, we would rather return that; otherwise we return
-        // what there is (at least partial) and DO NOT cache it, so the next start downloads it again.
-        return c?.meta ?: meta
+        if (meta.channels.isNotEmpty()) cache[key] = Cache(nowSec, meta, false)
+        return meta
     }
 
     /** M581-fix: the last working IP by server name (host -> ip, time). */
@@ -263,18 +239,8 @@ object HtspData {
         val nc = nowCache[server.id]
         lastEpgSkipped = false
         if (nc != null && nowSec - nc.ts < 600) return nc.map
-        // M595: while a stream is running we do not ask for now/next — a server with
-        // a limit of 1 would refuse the second connection and could take down playback too. The cache
-        // is returned (even one older than 10 min); it is fetched once playback ends.
-        // M603: a skip is NOT an error — the counters are zeroed and
-        // lastEpgSkipped is set, otherwise the caller (player, channel list) wrote
-        // "EPG incomplete: 0/497" into the log and retried it every 20 s.
-        if (streaming) {
-            lastEpgSkipped = true
-            lastEpgFailed = 0
-            lastEpgEmpty = emptyList()
-            return nc?.map ?: emptyMap()
-        }
+        // M693: the M595 skip during playback is gone — now/next goes over the shared connection,
+        // which the stream uses too, so it no longer costs a second connection (limit 1 is fine).
         // M572: the counters always apply only to the round currently running — when a round ended
         // with an exception (e.g. an unreachable server), the log otherwise repeated the number
         // from an older round ("0 ok, failed=552")
@@ -292,8 +258,8 @@ object HtspData {
         } catch (e: HtspConnLimitException) { return skippedByConnLimit() }
         val channelIds = meta.channels.mapNotNull { longOf(it, "channelId") }
         if (channelIds.isEmpty()) return emptyMap()
-        var client = try {
-            connectWithRetry(server)
+        var session = try {
+            HtspSessions.get(server)
         } catch (e: HtspConnLimitException) { return skippedByConnLimit() }
         val out = HashMap<String, List<EpgEvent>>()
         var failed = 0
@@ -315,44 +281,40 @@ object HtspData {
             if (streak < 3) return true
             if (reconnects >= 2) return false
             reconnects++; streak = 0
-            runCatching { client.close() }
-            return try { client = connectWithRetry(server); true }
+            return try { session = HtspSessions.get(server); true }   // M693: a dead session reconnects
             catch (e2: HtspConnLimitException) { false }   // M692: do not keep knocking
             catch (e2: Exception) {
                 if (e2 is kotlinx.coroutines.CancellationException) throw e2
                 noteEpgError(e2); false
             }
         }
-        try {
-            for (cid in channelIds) {
-                var mapped = try {
-                    client.getEvents(cid, numFollowing = 5, maxTime = 0)
-                        .mapNotNull { mapEvent(it) }.filter { it.stop > nowSec }
+        for (cid in channelIds) {
+            var mapped = try {
+                getEvents(session, cid, numFollowing = 5, maxTime = 0)
+                    .mapNotNull { mapEvent(it) }.filter { it.stop > nowSec }
+            } catch (e: Exception) { if (onFailure(e)) continue else break }
+            // M551-fix2: some channels return nothing without maxTime (the server has no "now"
+            // pointer, e.g. a gap in the EPG) — a second attempt with a time window as
+            // in the daily programme, which does return events for that same channel.
+            // M619: the second attempt is now THE SAME query as in the grid (numFollowing
+            // 80, a 3-day window, a channel filter and deduplication). Issue #13: for
+            // numFollowing=5 the server returned five events from the anchor, which is on some
+            // channels in the PAST (EPG with history) — all five had stop < now,
+            // so after filtering nothing was left and the channel was logged as "without EPG",
+            // even though the grid (numFollowing=80) did show data for that same channel.
+            // M690: channelEvents adds the epgQuery fallback for a cleared now/next pointer
+            if (mapped.isEmpty()) {
+                mapped = try {
+                    channelEvents(session, cid, nowSec)
+                        .filter { it.stop > nowSec }
+                        .take(5)
                 } catch (e: Exception) { if (onFailure(e)) continue else break }
-                // M551-fix2: some channels return nothing without maxTime (the server has no "now"
-                // pointer, e.g. a gap in the EPG) — a second attempt with a time window as
-                // in the daily programme, which does return events for that same channel.
-                // M619: the second attempt is now THE SAME query as in the grid (numFollowing
-                // 80, a 3-day window, a channel filter and deduplication). Issue #13: for
-                // numFollowing=5 the server returned five events from the anchor, which is on some
-                // channels in the PAST (EPG with history) — all five had stop < now,
-                // so after filtering nothing was left and the channel was logged as "without EPG",
-                // even though the grid (numFollowing=80) did show data for that same channel.
-                // M690: channelEvents adds the epgQuery fallback for a cleared now/next pointer
-                if (mapped.isEmpty()) {
-                    mapped = try {
-                        channelEvents(client, cid, nowSec)
-                            .filter { it.stop > nowSec }
-                            .take(5)
-                    } catch (e: Exception) { if (onFailure(e)) continue else break }
-                }
-                streak = 0
-                if (mapped.isNotEmpty()) out[cid.toString()] = mapped.sortedBy { it.start }
-                else empty.add(cid)
             }
-        } finally {
-            client.close()
+            streak = 0
+            if (mapped.isNotEmpty()) out[cid.toString()] = mapped.sortedBy { it.start }
+            else empty.add(cid)
         }
+        // M693: the shared connection stays open
         lastEpgEmpty = empty
         // M551: an empty or incomplete result (getEvents failed) is NOT cached —
         // otherwise an empty map was returned for 10 minutes and the EPG in the player "got stuck"
@@ -363,7 +325,11 @@ object HtspData {
         return out
     }
 
-    fun clear(serverId: String) { cache.remove(serverId); nowCache.remove(serverId); capCache.remove(serverId) }
+    fun clear(serverId: String) {
+        cache.remove(serverId); nowCache.remove(serverId); capCache.remove(serverId)
+        // M693: a suspected broken connection -> reconnect on the next use, but never under a running stream
+        HtspSessions.peek(serverId)?.takeIf { !it.hasActiveSubscriptions() }?.let { HtspSessions.close(serverId) }
+    }
 
     /**
      * M160 — the HTSP server's capabilities from `hello` (servercapability). Connects
@@ -377,24 +343,16 @@ object HtspData {
         // M692: within a connlimit backoff keep the last known answer (or "unknown" without
         // caching it) instead of another refused connection
         if (connLimitActive(server)) return c?.let { it.reachable to it.caps } ?: (false to emptyList())
-        // M621: DELIBERATELY without connectWithRetry here — this is a quick probe "is the server on
-        // the HTSP port?" (e.g. when saving a server). Three attempts with waiting would turn
-        // an unreachable server into a 4-second wait in the settings.
-        val client = HtspClient(server.host, server.htspPort, server.username, server.password)
+        // M693: from the hello of the shared connection — no extra connection
         val res = try {
-            client.connect()
-            clearConnLimit(server)
-            true to client.serverCapabilities
+            true to HtspSessions.get(server).serverCapabilities
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: HtspConnLimitException) {
-            // M692: the server answered hello (the capabilities are known) and accepted the
-            // credentials — only the connection limit is used up. Until now this was cached for
-            // 10 min as "unreachable", which switched timeshift off.
-            noteConnLimit(server)
-            true to client.serverCapabilities
+            // M692: the limit is used up by someone else — keep the last known answer, do not cache
+            return c?.let { it.reachable to it.caps } ?: (false to emptyList())
         } catch (e: Throwable) {
             false to emptyList<String>()
-        } finally {
-            client.close()
         }
         capCache[server.id] = CapCache(nowSec, res.first, res.second)
         return res
@@ -538,7 +496,7 @@ object HtspData {
      * replace each other). The fallback only runs for channels that came back empty, so channels
      * with a normal EPG are queried exactly as before.
      */
-    private suspend fun channelEvents(client: HtspClient, cid: Long, nowSec: Long): List<EpgEvent> {
+    private suspend fun channelEvents(session: HtspSession, cid: Long, nowSec: Long): List<EpgEvent> {
         val maxTime = nowSec + 3 * 86400
         fun clean(raw: List<Map<String, Any?>>): List<EpgEvent> = raw
             .mapNotNull { mapEvent(it) }
@@ -550,10 +508,10 @@ object HtspData {
             .filter { it.channelUuid == cid.toString() }
             .distinctBy { it.eventId ?: "${it.start}-${it.title}" }
             .sortedBy { it.start }
-        val direct = clean(client.getEvents(cid, numFollowing = 80, maxTime = maxTime))
+        val direct = clean(getEvents(session, cid, numFollowing = 80, maxTime = maxTime))
         if (direct.isNotEmpty()) return direct
         val all = try {
-            client.epgQueryChannel(cid)
+            epgQueryChannel(session, cid)
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -566,12 +524,7 @@ object HtspData {
     /** Programme for a channel via HTSP getEvents (fast, per-channel). */
     suspend fun epgForChannel(server: TvhServer, channelId: String, nowSec: Long): List<EpgEvent> {
         val cid = channelId.toLongOrNull() ?: return emptyList()
-        val client = connectWithRetry(server)   // M621
-        return try {
-            channelEvents(client, cid, nowSec)
-        } finally {
-            client.close()
-        }
+        return channelEvents(HtspSessions.get(server), cid, nowSec)   // M693: the shared connection
     }
 
     /** EPG for the grid PROGRESSIVELY on ONE connection: it goes through all channels in
@@ -586,18 +539,15 @@ object HtspData {
         val meta = metadata(server, withEpg = false, nowSec = nowSec)
         val channelIds = meta.channels.mapNotNull { longOf(it, "channelId") }
         if (channelIds.isEmpty()) return
-        val client = connectWithRetry(server)   // M621
-        try {
-            for (cid in channelIds) {
-                val evs = try {
-                    channelEvents(client, cid, nowSec)   // M690: incl. the epgQuery fallback
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (e: Exception) { noteEpgError(e); emptyList() }
-                onChannel(cid.toString(), evs)
-            }
-        } finally {
-            client.close()
+        val session = HtspSessions.get(server)   // M693: the shared connection (stays open)
+        for (cid in channelIds) {
+            if (!session.alive) break   // the connection died — the rest would fail immediately
+            val evs = try {
+                channelEvents(session, cid, nowSec)   // M690: incl. the epgQuery fallback
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) { noteEpgError(e); emptyList() }
+            onChannel(cid.toString(), evs)
         }
     }
 }

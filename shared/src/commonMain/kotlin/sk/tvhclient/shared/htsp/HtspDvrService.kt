@@ -1,7 +1,5 @@
 package sk.tvhclient.shared.htsp
 
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.withContext
 import sk.tvhclient.shared.api.DvrAccess
 import sk.tvhclient.shared.api.DvrResult
 import sk.tvhclient.shared.api.DvrService
@@ -10,23 +8,13 @@ import sk.tvhclient.shared.model.TvhServer
 /**
  * M472: recording over HTSP (addDvrEntry, cancelDvrEntry, deleteDvrEntry).
  *
- * Every operation opens its own short-lived connection — the app does not keep an HTSP session
- * open and accounts with a connection limit would otherwise lose a slot. The commands are fast
- * (one request/reply), so the overhead is negligible.
+ * M693: the commands go over the app's shared HTSP connection (HtspSession), the same one the stream
+ * uses — like Kodi. A new recording then arrives as dvrEntryAdd in the session's metadata by itself.
  */
 class HtspDvrService(private val server: TvhServer) : DvrService {
 
-    private suspend fun <T> withClient(block: suspend (HtspClient) -> T): T {
-        // M621: DVR commands (schedule, cancel, delete, list) also go through
-        // connectWithRetry — three attempts and a fallback to the remembered IP. A DNS outage when
-        // switching networks otherwise took the command down on the first attempt (UnresolvedAddressException).
-        val c = HtspData.connectWithRetry(server)
-        return try {
-            block(c)
-        } finally {
-            withContext(NonCancellable) { c.close() }
-        }
-    }
+    /** M693: DVR commands go over the shared connection (HtspSession) — no connection of their own. */
+    private suspend fun session(): HtspSession = HtspSessions.get(server)
 
     /** The server's response: success=1, or an error with readable text. */
     private fun reply(r: Map<String, Any?>): DvrResult {
@@ -39,44 +27,39 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
     }
 
     override suspend fun access(): DvrAccess = try {
-        withClient { c ->
-            // the rights arrive asynchronously right after login — a short wait is enough
-            c.send("enableAsyncMetadata", mapOf("epg" to 0L))
-            // M480: the rights arrive right after login; we wait for at most a few messages,
-            // not 20 (each with a 1.5 s timeout = up to 30 s of waiting and an ANR).
-            var acc = c.access
-            var guard = 0
-            while (acc == null && guard++ < 4) {
-                c.pumpOnce()
-                acc = c.access
-            }
-            runCatching { c.send("disableAsyncMetadata", emptyMap(), withSeq = false) }
-            val a = acc ?: return@withClient DvrAccess.UNKNOWN
-            DvrAccess(
-                canRecord = a.dvr, canSeeFailed = a.failedDvr, isAdmin = a.admin,
-                recordingLimit = a.connLimitDvr, known = true
-            )
+        val s = session()
+        // M471/M480: the rights arrive asynchronously right after login (accessUpdate) — the session's
+        // reader keeps them; on a brand-new connection wait for them briefly
+        var acc = s.access
+        var guard = 0
+        while (acc == null && guard++ < 10) {
+            kotlinx.coroutines.delay(200)
+            acc = s.access
         }
+        val a = acc
+        if (a == null) DvrAccess.UNKNOWN
+        else DvrAccess(
+            canRecord = a.dvr, canSeeFailed = a.failedDvr, isAdmin = a.admin,
+            recordingLimit = a.connLimitDvr, known = true
+        )
     } catch (_: Throwable) {
         DvrAccess.UNKNOWN
     }
 
     override suspend fun recordEvent(eventId: Long, configId: String?): DvrResult = try {
-        withClient { c ->
-            val args = HashMap<String, Any?>()
-            args["eventId"] = eventId
-            if (!configId.isNullOrBlank()) args["configName"] = configId
-            reply(c.recvReply(c.send("addDvrEntry", args)))
-        }
+        val args = HashMap<String, Any?>()
+        args["eventId"] = eventId
+        if (!configId.isNullOrBlank()) args["configName"] = configId
+        reply(session().request("addDvrEntry", args))
     } catch (e: Throwable) { DvrResult.fail(e.message) }
 
     override suspend fun cancel(id: String): DvrResult = try {
         val n = id.toLongOrNull() ?: return DvrResult.fail("Invalid recording ID")
-        withClient { c -> reply(c.recvReply(c.send("cancelDvrEntry", mapOf("id" to n)))) }
+        reply(session().request("cancelDvrEntry", mapOf("id" to n)))
     } catch (e: Throwable) { DvrResult.fail(e.message) }
 
     override suspend fun delete(id: String): DvrResult = try {
         val n = id.toLongOrNull() ?: return DvrResult.fail("Invalid recording ID")
-        withClient { c -> reply(c.recvReply(c.send("deleteDvrEntry", mapOf("id" to n)))) }
+        reply(session().request("deleteDvrEntry", mapOf("id" to n)))
     } catch (e: Throwable) { DvrResult.fail(e.message) }
 }

@@ -7,7 +7,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
-import sk.tvhclient.shared.htsp.HtspClient
+import sk.tvhclient.shared.htsp.HtspSessions
+import sk.tvhclient.shared.htsp.HtspSubscription
 import sk.tvhclient.shared.model.TvhServer
 import java.io.FileDescriptor
 import java.io.OutputStream
@@ -29,7 +30,9 @@ class HtspTsFeeder(
     private var readPfd: ParcelFileDescriptor? = null
     private var writePfd: ParcelFileDescriptor? = null
     private var out: OutputStream? = null
-    private var client: HtspClient? = null
+    // M693: the stream is a subscription on the app's shared HTSP connection (like Kodi)
+    @Volatile private var sub: HtspSubscription? = null
+    @Volatile private var pendingSubEs = -1   // a subtitle choice made before the subscription existed
     private var scope: CoroutineScope? = null
 
     /** Last offset behind live in 90kHz ticks (from timeshiftStatus). 0 = live. */
@@ -110,26 +113,18 @@ class HtspTsFeeder(
         writer.priority = Thread.MAX_PRIORITY
         writer.start()
         tsWriter = writer
-        val c = HtspClient(server.host, server.htspPort, server.username, server.password)
-        client = c
         job = scope.launch(Dispatchers.IO) {
-            // M408: keepalive job — every 10 s it sends a lightweight HTSP request so that
-            // the router/operator/NAT does not drop the idle connection (the cause of random
-            // freezes on wifi/mobile). Runs in parallel, cancelled in finally.
-            val keepAlive = launch(Dispatchers.IO) {
-                try {
-                    while (isActive) {
-                        delay(10_000)
-                        c.keepAlive()
-                    }
-                } catch (_: Throwable) {}
-            }
+            // M408: the keepalive is now done by the shared session itself
             try {
-                c.connect()
-                c.streamSubscribe(
+                val session = HtspSessions.get(server)
+                val subscription = session.subscribe(
                     channelId = channelId,
-                    profile = profile?.takeIf { it.isNotBlank() },
                     timeshiftPeriodSec = timeshiftPeriodSec,
+                    profile = profile?.takeIf { it.isNotBlank() }
+                )
+                sub = subscription
+                if (pendingSubEs >= 0) subscription.selectSubtitle(pendingSubEs)
+                subscription.run(
                     onTs = { bytes ->
                         // should the queue fill up (libVLC not reading for a long time), we would
                         // rather wait — it is the same back pressure as before, just
@@ -158,8 +153,7 @@ class HtspTsFeeder(
                 if (e is sk.tvhclient.shared.htsp.HtspConnLimitException)
                     sk.tvhclient.shared.htsp.HtspData.reportConnLimit(server)
             } finally {
-                keepAlive.cancel()
-                c.close()
+                sub = null
                 runCatching { queue.offer(ByteArray(0)) }   // M481
                 runCatching { writer.interrupt() }
                 runCatching { writer.join(500) }
@@ -171,24 +165,25 @@ class HtspTsFeeder(
 
     /** Selection of the subtitle track sent into libVLC (esIndex; -1 = none). */
     fun selectSubtitle(esIndex: Int) {
-        client?.selectSubtitle(esIndex)
+        pendingSubEs = esIndex
+        sub?.selectSubtitle(esIndex)
     }
 
     /** Pause of live playback (the server holds the buffer). */
     fun pause() {
-        val c = client ?: return
+        val c = sub ?: return
         scope?.launch { runCatching { c.setSpeed(0) } }
     }
 
     /** Resume playback from the point of the pause (timeshift). */
     fun resume() {
-        val c = client ?: return
+        val c = sub ?: return
         scope?.launch { runCatching { c.setSpeed(100) } }
     }
 
     /** Relative seek within the buffer (seconds; negative = backwards). */
     fun skip(seconds: Int) {
-        val c = client ?: return
+        val c = sub ?: return
         scope?.launch { runCatching { c.skip(seconds) } }
     }
 
@@ -213,7 +208,7 @@ class HtspTsFeeder(
         out = null
         readPfd = null
         writePfd = null
-        client = null
+        sub = null
         scope = null
     }
 }

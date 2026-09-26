@@ -17,10 +17,10 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * HTSP client for Tvheadend (port 9982). The core is ported from the plugin (htsp.py):
- * handshake (hello), SHA1 digest auth, enableAsyncMetadata dump of channels,
- * tags, EPG and DVR. Streaming is NOT done over HTSP (it stays HTTP), here it is only
- * a metadata transport as an alternative to the /api endpoints.
+ * HTSP client for Tvheadend (port 9982) — the connection itself: handshake (hello), SHA1 digest
+ * auth (the core is ported from the plugin, htsp.py), message framing and the one-shot metadata dump
+ * used by the connection test. M693: everything else (metadata, EPG, recordings, the live stream) runs
+ * over ONE shared connection — see HtspSession, which owns an HtspClient and its reader.
  *
  * Uses ktor-network coroutine sockets (they work on both Android and iOS).
  */
@@ -39,18 +39,8 @@ class HtspClient(
     private var write: ByteWriteChannel? = null
     private var seq = 0
     private val writeMutex = Mutex()
-    private var streamSubId: Int = -1
-    private var liveMuxer: TsMuxer? = null   // the active stream muxer (for the timeline origin)
-
-    private val subDecoder = DvbSubtitleDecoder()
-    private var subDecodeEs = -1             // which ES is decoded into subtitles (-1 = none)
-
-    /** Set the subtitle track that is to be decoded and rendered (esIndex; -1 = none).
-     *  Subtitles are NOT sent to libVLC — we decode and render them ourselves. */
-    fun selectSubtitle(esIndex: Int) {
-        subDecodeEs = esIndex
-        subDecoder.reset()
-    }
+    // M693: the stream state (subscription id, muxer, subtitle decoder) moved to HtspSubscription —
+    // a stream now runs as one subscription on the shared HtspSession connection.
 
     var serverName: String? = null
         private set
@@ -80,7 +70,7 @@ class HtspClient(
     var access: Access? = null
         private set
 
-    private fun applyAccessUpdate(m: Map<String, Any?>) {
+    internal fun applyAccessUpdate(m: Map<String, Any?>) {
         fun flag(k: String) = ((m[k] as? Long) ?: 0L) == 1L
         access = Access(
             admin = flag("admin"),
@@ -158,7 +148,7 @@ class HtspClient(
         }
     }
 
-    private suspend fun recv(): Map<String, Any?> {
+    internal suspend fun recv(): Map<String, Any?> {
         val r = read!!
         val hdr = r.readByteArray(4)
         // length as a Long (unsigned 32-bit) — via Int the highest bit would give a negative number
@@ -197,6 +187,8 @@ class HtspClient(
         repeat(maxN) {
             val m = recv()
             if ((m["seq"] as? Long)?.toInt() == s) return m
+            // M693: the rights arrive asynchronously right after login — do not lose them here
+            if ((m["method"] as? String) == "accessUpdate") applyAccessUpdate(m)
         }
         throw IllegalStateException("HTSP: no reply arrived for seq=$s")
     }
@@ -340,126 +332,6 @@ class HtspClient(
         return Metadata(channels, tags, events, dvr, syncDone || result == true, access)
     }
 
-    /**
-     * M162 — a live HTSP subscription remuxed into MPEG-TS. After subscriptionStart
-     * it builds a TsMuxer and sends TS bytes through `onTs` (PAT/PMT + PES). It asks for a 90khz
-     * timebase and normts (suitable for PES). timeshiftPeriodSec>0 also turns on the server
-     * buffer (for future control); 0 = purely live. Runs until the coroutine is cancelled
-     * or subscriptionStop arrives. At the end it unsubscribes.
-     */
-    suspend fun streamSubscribe(
-        channelId: Long,
-        timeshiftPeriodSec: Int = 0,
-        profile: String? = null,
-        onTs: suspend (ByteArray) -> Unit,
-        /**
-         * M508-fix2: state of the timeshift buffer (`timeshiftStatus`, once per second).
-         *  - [shift] = the CURRENT POSITION relative to live (0 = at live), not the buffer length
-         *  - [startPts] / [endPts] = the PTS of the first and last frame in the buffer;
-         *    their difference gives how far one can really rewind
-         * Everything in 90 kHz ticks (subscribe sends "90khz").
-         */
-        onStatus: (shift: Long, full: Boolean, startPts: Long, endPts: Long) -> Unit = { _, _, _, _ -> },
-        onStop: (String?) -> Unit = {},
-        onSubtitles: (List<TsMuxer.SubtitleInfo>) -> Unit = {},
-        onSubtitlePage: (DvbSubtitleDecoder.DecodedPage, Long) -> Unit = { _, _ -> },
-        /** M552: the channel has a teletext track (from subscriptionStart). */
-        onTeletextAvailable: (Boolean) -> Unit = {},
-        /** M552: the teletext PES payload (the TELETEXT track does not go to libVLC, the app decodes it). */
-        onTeletext: (ByteArray) -> Unit = {}
-    ) {
-        seq += 1
-        val subId = seq
-        streamSubId = subId
-        val args = HashMap<String, Any?>()
-        args["channelId"] = channelId
-        args["subscriptionId"] = subId.toLong()
-        args["90khz"] = 1L
-        args["normts"] = 1L
-        if (timeshiftPeriodSec > 0) args["timeshiftPeriod"] = timeshiftPeriodSec.toLong()
-        if (!profile.isNullOrBlank()) args["profile"] = profile
-        send("subscribe", args, withSeq = false)
-
-        var muxer: TsMuxer? = null
-        var teletextEs = -1   // M552
-        try {
-            while (true) {
-                val m = recv()
-                val sid = (m["subscriptionId"] as? Long)?.toInt()
-                if (sid != null && sid != subId) continue
-                when (m["method"] as? String) {
-                    "subscriptionStart" -> {
-                        @Suppress("UNCHECKED_CAST")
-                        val sl = (m["streams"] as? List<Any?>) ?: emptyList()
-                        val streams = sl.mapNotNull {
-                            val sm = it as? Map<*, *> ?: return@mapNotNull null
-                            val idx = (sm["index"] as? Long)?.toInt() ?: return@mapNotNull null
-                            val typ = sm["type"] as? String ?: return@mapNotNull null
-                            val lang = (sm["language"] as? String) ?: ""
-                            val comp = (sm["composition_id"] as? Long)?.toInt() ?: 0
-                            val anc = (sm["ancillary_id"] as? Long)?.toInt() ?: 0
-                            val ch = (sm["channels"] as? Long)?.toInt() ?: 0
-                            val sri = (sm["rate"] as? Long)?.toInt() ?: 0   // es_sri = sample-rate index
-                            TsMuxer.Stream(idx, typ, lang, comp, anc, ch, sri)
-                        }
-                        // M552: teletext — the first track of type TELETEXT
-                        teletextEs = streams.firstOrNull { it.type == "TELETEXT" }?.index ?: -1
-                        onTeletextAvailable(teletextEs >= 0)
-                        val existing = muxer
-                        if (existing == null) {
-                            val mx = TsMuxer(streams)
-                            muxer = mx
-                            liveMuxer = mx
-                            onSubtitles(mx.subtitleStreams())
-                            if (mx.hasTracks()) onTs(mx.start())
-                        } else {
-                            // another subscriptionStart (e.g. after a seek) — keep a continuous
-                            // timeline, just send PAT/PMT again
-                            onTs(existing.start())
-                        }
-                    }
-                    "muxpkt" -> {
-                        val mx = muxer ?: continue
-                        val esBin = (m["payload"] as? Htsmsg.Bin) ?: continue   // M673: a slice without a copy
-                        val streamIdx = (m["stream"] as? Long)?.toInt() ?: continue
-                        val pts = m["pts"] as? Long
-                        val dts = m["dts"] as? Long
-                        if (streamIdx == teletextEs) { onTeletext(esBin.toByteArray()); continue }   // M552
-                        if (streamIdx == subDecodeEs) {
-                            // the selected subtitle track: we decode and render it ourselves (it does not go to libVLC)
-                            val page = if (pts != null) subDecoder.decode(pts, esBin.toByteArray()) else null
-                            if (page != null) {
-                                val origin = mx.timelineOriginPts()
-                                val targetMs = if (origin != null) (page.pts - origin) / 90L else page.pts / 90L
-                                onSubtitlePage(page, targetMs)
-                            }
-                            continue
-                        }
-                        val rap = ((m["frametype"] as? Long)?.toInt() ?: 0) == 'I'.code
-                        val ts = mx.mux(streamIdx, esBin.data, esBin.offset, esBin.length, pts, dts, rap)
-                        if (ts.isNotEmpty()) onTs(ts)
-                    }
-                    "timeshiftStatus" -> {
-                        val shift = (m["shift"] as? Long) ?: 0L
-                        val full = ((m["full"] as? Long) ?: 0L) != 0L
-                        // start/end are optional — when they are missing, the caller uses a fallback
-                        val st = (m["start"] as? Long) ?: 0L
-                        val en = (m["end"] as? Long) ?: 0L
-                        onStatus(shift, full, st, en)
-                    }
-                    "subscriptionStop" -> {
-                        onStop(m["subscriptionError"] as? String)
-                        return
-                    }
-                }
-            }
-        } finally {
-            streamSubId = -1
-            try { send("unsubscribe", mapOf("subscriptionId" to subId.toLong()), withSeq = false) } catch (_: Throwable) {}
-        }
-    }
-
-    /** subscriptionSpeed: 0 = pause, 100 = normal (positive FF, negative RW). */
     /** M408: keepalive — a lightweight request that keeps the connection alive. Tvheadend
      *  answers any method; getDiskSpace changes nothing and is cheap.
      *  We ignore the reply, the point is just to have traffic flowing on the connection. */
@@ -468,23 +340,5 @@ class HtspClient(
         // arrive in the stream's receive loop and jam it after a while (the channel
         // stopped coming up after a minute or two). Without seq it is enough to keep the connection alive.
         runCatching { send("getDiskSpace", withSeq = false) }
-    }
-
-    suspend fun setSpeed(speed: Int) {
-        val id = streamSubId
-        if (id <= 0) return
-        send("subscriptionSpeed", mapOf("subscriptionId" to id.toLong(), "speed" to speed.toLong()), withSeq = false)
-    }
-
-    /**
-     * Relative seek within the buffer. Since we subscribe with 90khz=1, the server reads `time`
-     * in 90 kHz ticks (htsp_server.c: skip.time = hs_90khz ? s64 : rescale). Negative =
-     * backwards, positive = forwards. Without `absolute` => a relative seek.
-     */
-    suspend fun skip(seconds: Int) {
-        val id = streamSubId
-        if (id <= 0) return
-        val ticks = seconds.toLong() * 90000L
-        send("subscriptionSkip", mapOf("subscriptionId" to id.toLong(), "time" to ticks), withSeq = false)
     }
 }
