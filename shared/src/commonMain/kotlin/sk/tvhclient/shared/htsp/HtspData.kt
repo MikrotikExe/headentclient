@@ -194,9 +194,11 @@ object HtspData {
      * through the name first; when that fails and we have a remembered IP from a previous successful connection
      * (M581-fix, valid for 6 h), the IP is tried directly. Three rounds: 0 s, 1 s, 3 s.
      */
-    internal suspend fun connectWithRetry(server: TvhServer): HtspClient {
-        // M692: a recent connlimit refusal -> do not connect at all until the backoff expires
-        if (connLimitActive(server)) throw HtspConnLimitException(skipped = true)
+    internal suspend fun connectWithRetry(server: TvhServer, ignoreBackoff: Boolean = false): HtspClient {
+        // M692: a recent connlimit refusal -> do not connect at all until the backoff expires.
+        // M694: except when the user starts playback himself (ignoreBackoff) — the other device may
+        // have stopped in the meantime, and one attempt per user action cannot turn into a loop.
+        if (!ignoreBackoff && connLimitActive(server)) throw HtspConnLimitException(skipped = true)
         var last: Throwable? = null
         val delays = longArrayOf(0L, 1_000L, 3_000L)
         val nowMs = currentTimeSeconds() * 1000

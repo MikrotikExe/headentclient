@@ -217,7 +217,15 @@ internal class StreamOpener(
             if (attempt >= 2 && !seekable && srv != null && srv.username.isNotEmpty()) {
                 stream.liveNeedsFeeder = true
                 playLiveViaFeeder(srv, url)
+            } else if (attempt == 1 && !seekable && srv != null) {
+                // M694: the first attempt goes through the feeder (without remembering it): libVLC does
+                // not tell us the HTTP status, OkHttp does — so a refusal because of the account's
+                // connection limit is recognised here and the player shows it instead of retrying.
+                // It is a real playback attempt, not an extra probe (a probe on the stream URL
+                // would itself take the account's only slot, M394).
+                playLiveViaFeeder(srv, url)
             } else {
+                stream.httpFeeder?.stop(); stream.httpFeeder = null   // M694: the attempt-1 feeder must not keep its connection
                 playUrlDirect(url, null)   // ordinary HTTP
             }
         }

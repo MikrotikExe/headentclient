@@ -45,6 +45,12 @@ class HttpTsFeeder(
     @Volatile var totalBytes: Long = 0L
         private set
 
+    /** M694: the server refused the stream because of the account's connection limit (see
+     *  [isConnLimitResponse]). Set before the pipe is closed, so the player sees it when libVLC
+     *  reports the end of the stream. */
+    @Volatile var connLimited: Boolean = false
+        private set
+
     /** Starts the download and returns the read FileDescriptor for Media(libVlc, fd). */
     fun start(scope: CoroutineScope): FileDescriptor {
         val pipe = ParcelFileDescriptor.createPipe()
@@ -82,7 +88,12 @@ class HttpTsFeeder(
 
         job = scope.launch(Dispatchers.IO) {
             try {
+                val sentAt = android.os.SystemClock.elapsedRealtime()
                 ok.newCall(req).execute().use { resp ->
+                    if (isConnLimitResponse(resp.code, android.os.SystemClock.elapsedRealtime() - sentAt)) {
+                        connLimited = true   // M694: do not pass the error page to libVLC
+                        return@use
+                    }
                     // total file size: from Content-Range "bytes A-B/TOTAL", otherwise Content-Length
                     val cr = resp.header("Content-Range")
                     val total = cr?.substringAfter('/', "")?.toLongOrNull()
@@ -105,6 +116,17 @@ class HttpTsFeeder(
             }
         }
         return read.fileDescriptor
+    }
+
+    companion object {
+        /**
+         * M694: Tvheadend's answer to a stream request over the account's connection limit.
+         * tcp_connection_launch() holds the request for 5 s (waiting for another connection of
+         * the account to end) and then the stream handler returns 405. A 405 that comes
+         * immediately is a different refusal (the subscription could not be created), so only
+         * a late one counts — otherwise the app would blame the limit for an unrelated error.
+         */
+        fun isConnLimitResponse(code: Int, elapsedMs: Long): Boolean = code == 405 && elapsedMs >= 4000L
     }
 
     fun stop() {

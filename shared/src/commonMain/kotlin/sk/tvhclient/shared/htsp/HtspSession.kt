@@ -303,12 +303,13 @@ object HtspSessions {
     private fun sameTarget(a: TvhServer, b: TvhServer) =
         a.host == b.host && a.htspPort == b.htspPort && a.username == b.username && a.password == b.password
 
-    suspend fun get(server: TvhServer): HtspSession = mutex.withLock {
+    /** [ignoreBackoff]: M694 — playback started by the user connects even inside the connlimit backoff. */
+    suspend fun get(server: TvhServer, ignoreBackoff: Boolean = false): HtspSession = mutex.withLock {
         val existing = sessions[server.id]
         if (existing != null && existing.alive && sameTarget(existing.server, server)) return@withLock existing
         existing?.close()
         sessions.remove(server.id)
-        val client = HtspData.connectWithRetry(server)
+        val client = HtspData.connectWithRetry(server, ignoreBackoff)
         val s = HtspSession(server, client)
         s.start()
         sessions[server.id] = s

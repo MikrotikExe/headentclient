@@ -48,6 +48,11 @@ class HtspTsFeeder(
     @Volatile var bufferTicks: Long = 0L
         private set
 
+    /** M694: the server refused this stream because of the account's connection limit. Set before
+     *  the pipe is closed, so the player sees it when libVLC reports the end of the stream. */
+    @Volatile var connLimited: Boolean = false
+        private set
+
 
     /** Complete list of the channel's DVB subtitle tracks from subscriptionStart (esIndex + language).
      *  Independent of libVLC, so it is the same on every device. Set after subscriptionStart. */
@@ -116,7 +121,8 @@ class HtspTsFeeder(
         job = scope.launch(Dispatchers.IO) {
             // M408: the keepalive is now done by the shared session itself
             try {
-                val session = HtspSessions.get(server)
+                // M694: playback is a user action -> not blocked by the connlimit backoff
+                val session = HtspSessions.get(server, ignoreBackoff = true)
                 val subscription = session.subscribe(
                     channelId = channelId,
                     timeshiftPeriodSec = timeshiftPeriodSec,
@@ -134,7 +140,7 @@ class HtspTsFeeder(
                         // nobody drains the queue any more and the loop would hang forever.
                         if (bytes.isNotEmpty()) {
                             if (!queue.offer(bytes, 10, java.util.concurrent.TimeUnit.SECONDS)) {
-                                throw java.io.IOException("TS fronta sa neuvolnila")
+                                throw java.io.IOException("TS queue did not drain")
                             }
                         }
                     },
@@ -150,8 +156,10 @@ class HtspTsFeeder(
                 // cancellation / broken pipe / connection error
                 // M692: the stream itself was refused because of the account's connection limit
                 // (usually another device playing on the same account) — into the diagnostic log
-                if (e is sk.tvhclient.shared.htsp.HtspConnLimitException)
+                if (e is sk.tvhclient.shared.htsp.HtspConnLimitException) {
+                    connLimited = true   // M694: the player shows the reason instead of reconnecting
                     sk.tvhclient.shared.htsp.HtspData.reportConnLimit(server)
+                }
             } finally {
                 sub = null
                 runCatching { queue.offer(ByteArray(0)) }   // M481

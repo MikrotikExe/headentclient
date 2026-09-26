@@ -1702,6 +1702,7 @@ class PlayerActivity : ComponentActivity() {
         if (!seekablePlayback || !dvr.recording) return
         val url = stream.currentStreamUrl ?: return
         if (!engine.ready) return
+        if (stopOnConnLimit()) return   // M694
         val offsetMs = if (dvr.progStartSec > 0 && dvr.realStartSec in 1 until dvr.progStartSec)
             (dvr.progStartSec - dvr.realStartSec) * 1000 else 0L
         // position in the file = offset + the programme's played time, a few seconds back as a margin
@@ -1709,10 +1710,36 @@ class PlayerActivity : ComponentActivity() {
         reconnect.reopenDvrLive { opener.reopenDvrAt(url, startSec) }   // M670
     }
 
+    /**
+     * M694: the server refused the stream because of the account's connection limit (HTSP: connlimit
+     * on login or subscribe; HTTP: a late 405, see HttpTsFeeder.isConnLimitResponse). Further attempts
+     * would only be refused again, so instead of the "Reconnecting" spinner and the generic error the
+     * player stops retrying and says why. A new attempt comes from the user (channel switch, reopening).
+     * Returns true when it handled the situation.
+     */
+    private fun stopOnConnLimit(): Boolean {
+        val feeder: Any = stream.htspFeeder?.takeIf { it.connLimited }
+            ?: stream.httpFeeder?.takeIf { it.connLimited }
+            ?: return false
+        reconnect.cancel()
+        reconnect.clearPending()
+        // libVLC can report both an error and the end of the stream — one message per refused stream
+        if (connLimitShownFor !== feeder) {
+            connLimitShownFor = feeder
+            Toast.makeText(this, getString(R.string.err_conn_limit), Toast.LENGTH_LONG).show()
+        }
+        return true
+    }
+    private var connLimitShownFor: Any? = null
+
     /** Schedules a reconnect of the live stream after a dropout (increasing delay — ReconnectController). */
     private fun scheduleReconnect() {
         if (seekablePlayback) return  // a DVR recording is not reconnected (in-progress is handled by reopenDvrLive)
-        reconnect.scheduleReconnect { attempt -> opener.reconnectAttempt(attempt, seekablePlayback) }   // M670
+        if (stopOnConnLimit()) return   // M694
+        reconnect.scheduleReconnect { attempt ->
+            // M694: also checked here — the controller's 12 s watchdog retries without passing through this function
+            if (!stopOnConnLimit()) opener.reconnectAttempt(attempt, seekablePlayback)   // M670
+        }
     }
 
     override fun onPictureInPictureModeChanged(
@@ -1825,6 +1852,7 @@ class PlayerActivity : ComponentActivity() {
                 override fun saveDvrProgress() { this@PlayerActivity.saveDvrProgress() }
                 override fun onReachedEnd() { dvr.reachedEnd = true }
                 override fun showPlaybackError() {
+                    if (stopOnConnLimit()) return   // M694
                     Toast.makeText(this@PlayerActivity, getString(R.string.playback_error, "VLC"), Toast.LENGTH_LONG).show()
                 }
             })

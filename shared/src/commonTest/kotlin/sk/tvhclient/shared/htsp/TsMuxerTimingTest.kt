@@ -146,7 +146,7 @@ class TsMuxerTimingTest {
         for (i in 0 until 80) { audioOnly += m.mux(2, es, pts = apts, dts = null, randomAccess = false); apts += 2_160L }
         val stall = parse(audioOnly)
         assertTrue(stall.pcr.isNotEmpty(), "PCR-only packets must be sent while video is stalled")
-        assertTrue(stall.pcr.all { it.first == 0x1001 }, "PCR ostava na povodnom PCR PID (video)")
+        assertTrue(stall.pcr.all { it.first == 0x1001 }, "PCR stays on the original PCR PID (video)")
         var last = lastVideoPcr
         for ((_, v) in stall.pcr) { assertTrue(v >= last, "PCR must keep rising even without video: $last -> $v"); last = v }
         // the spacing of the PCR-only packets is ~250 ms, not on every audio packet
@@ -166,7 +166,7 @@ class TsMuxerTimingTest {
         val first = out.copyOfRange(0, 188)
         assertEquals(0x47, first[0].toInt() and 0xFF)
         val pid = ((first[1].toInt() and 0x1F) shl 8) or (first[2].toInt() and 0xFF)
-        assertEquals(0x1001, pid, "prvy paket je PCR-only na video PID")
+        assertEquals(0x1001, pid, "the first packet is PCR-only on the video PID")
         assertEquals(0x2, (first[3].toInt() shr 4) and 0x3, "AFC=10: len adaptation field")
         assertEquals(183, first[4].toInt() and 0xFF)
         assertEquals(0x10, first[5].toInt() and 0xFF, "PCR_flag")
