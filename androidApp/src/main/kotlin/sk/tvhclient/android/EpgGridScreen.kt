@@ -311,13 +311,12 @@ fun EpgGridScreen(
     }
     // The channel list for zapping and the list in the player (CH+/CH-, overlay)
     LaunchedEffect(rows) {
-        val srv = Tvh.store.active()
         val nowS = System.currentTimeMillis() / 1000
         LivePlaylist.channels = rows.map { r ->
             val cur = seed[r.channel.uuid]?.firstOrNull { it.start <= nowS && nowS < it.stop }
             val nt = (cur?.title?.ifBlank { null }) ?: r.nowTitle ?: ""
-            val ns = if (cur != null) cur.start else r.nowStart
-            val ne = if (cur != null) cur.stop else r.nowStop
+            val ns = cur?.start ?: r.nowStart
+            val ne = cur?.stop ?: r.nowStop
             LivePlaylist.LiveChannel(
                 uuid = r.channel.uuid,
                 name = r.channel.name,
@@ -479,6 +478,7 @@ fun EpgGridScreen(
     var selRow by remember { mutableStateOf(0) }
     var anchorTime by remember { mutableStateOf(now) }        // the time at which we hold the column
     var selStart by remember { mutableStateOf<Long?>(null) }  // the start of the selected cell
+    var centerCellOnHorizontal by remember { mutableStateOf(false) }
 
     // The cells of one channel — identical with the render: merged recordings + programmes without overlap, by time
     fun navCells(idx: Int): List<NavCell> {
@@ -507,13 +507,20 @@ fun EpgGridScreen(
         selStart = c?.start
         lastFocused = c?.detail
     }
-    fun moveVertical(delta: Int): Boolean {
-        val target = selRow + delta
+    val nowLineRatio = 0.50f
+    fun moveVertical(delta: Int, pageStep: Boolean = false): Boolean {
+        val step = if (pageStep) {
+            val visibleRows = listState.layoutInfo.visibleItemsInfo.size.coerceAtLeast(1)
+            visibleRows * delta
+        } else delta
+        val target = selRow + step
         if (target < 0 || target > rows.lastIndex) return false  // edge -> let it escape (days up / down)
+        centerCellOnHorizontal = false
         selectRowAt(target, anchorTime)
         return true
     }
     fun moveHorizontal(dir: Int): Boolean {
+        centerCellOnHorizontal = true
         val cells = navCells(selRow)
         if (cells.isEmpty()) return true
         var cur = cells.indexOfFirst { it.start == selStart }
@@ -535,6 +542,12 @@ fun EpgGridScreen(
     }
     val onGridKey: (androidx.compose.ui.input.key.KeyEvent) -> Boolean = handler@{ e ->
         if (e.type != KeyEventType.KeyDown) return@handler false
+        when (e.nativeKeyEvent.keyCode) {
+            android.view.KeyEvent.KEYCODE_CHANNEL_UP,
+            android.view.KeyEvent.KEYCODE_PAGE_UP -> return@handler moveVertical(-1, pageStep = true)
+            android.view.KeyEvent.KEYCODE_CHANNEL_DOWN,
+            android.view.KeyEvent.KEYCODE_PAGE_DOWN -> return@handler moveVertical(1, pageStep = true)
+        }
         when (e.key) {
             Key.DirectionDown -> moveVertical(1)
             Key.DirectionUp -> moveVertical(-1)
@@ -594,18 +607,39 @@ fun EpgGridScreen(
     }
     // Auto-scroll to the selected row / cell
     LaunchedEffect(selRow) { runCatching { listState.animateScrollToItem(selRow) } }
-    // Centring the horizontal scroll (TV): put the MIDDLE of the selected programme in the middle
-    // of the screen - on opening that is the currently running programme, so "what is on live" is in the middle
-    // (half to the left, half to the right). During cursor navigation it centres the selected cell.
-    LaunchedEffect(selStart) {
+    // Keep the current-time vertical line anchored at a fixed fraction of the visible timeline
+    // instead of re-centering on the selected channel. On a TV remote it avoids the whole screen
+    // wobbling horizontally when the user moves between channels.
+    LaunchedEffect(selStart, dayOffset, nowLineRatio, rows.size, centerCellOnHorizontal, now) {
         val s = selStart ?: return@LaunchedEffect
         val cell = navCells(selRow).firstOrNull { it.start == s }
-        val midSec = if (cell != null) (cell.start + cell.stop) / 2 else s
-        val midMin = (((midSec - dayStart) / 60).toInt()).coerceIn(0, DAY_MIN)
-        // to the middle of the visible timeline (the screen width without the logo column)
-        val halfVisPx = with(density) { ((configuration.screenWidthDp - chanColFor(configuration.screenWidthDp, epgCompact)) / 2).dp.toPx() }
-        val target = with(density) { (midMin * pxMin).dp.toPx() } - halfVisPx
-        runCatching { hScroll.animateScrollTo(target.toInt().coerceAtLeast(0)) }
+        val visibleTimelineW = (configuration.screenWidthDp - chanColFor(configuration.screenWidthDp, epgCompact)).toFloat()
+        val anchorPos = (visibleTimelineW * nowLineRatio).coerceAtLeast(0f)
+
+        val targetFromNow = if (dayOffset == 0) {
+            val anchorSec = now
+            val anchorMin = (((anchorSec - dayStart) / 60).toInt()).coerceIn(0, DAY_MIN)
+            val fixedPx = with(density) { (anchorMin * pxMin).dp.toPx() }
+            fixedPx - anchorPos
+        } else {
+            val anchorSec = dayStart + 12L * 3600
+            val anchorMin = (((anchorSec - dayStart) / 60).toInt()).coerceIn(0, DAY_MIN)
+            val fixedPx = with(density) { (anchorMin * pxMin).dp.toPx() }
+            fixedPx - anchorPos
+        }
+
+        if (!centerCellOnHorizontal) {
+            runCatching { hScroll.animateScrollTo(targetFromNow.toInt().coerceAtLeast(0).coerceAtMost(hScroll.maxValue)) }
+        }
+
+        if (centerCellOnHorizontal && cell != null) {
+            val midSec = (cell.start + cell.stop) / 2
+            val midMin = (((midSec - dayStart) / 60).toInt()).coerceIn(0, DAY_MIN)
+            val halfVisPx = with(density) { (visibleTimelineW / 2f).dp.toPx() }
+            val cellTarget = with(density) { (midMin * pxMin).dp.toPx() } - halfVisPx
+            runCatching { hScroll.animateScrollTo(cellTarget.toInt().coerceAtLeast(0).coerceAtMost(hScroll.maxValue)) }
+            centerCellOnHorizontal = false
+        }
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -1214,7 +1248,7 @@ private fun GridDetailContent(
             // Play only if there is something to play: a DVR recording, or an EPG programme
             // that is running right now (live). A future/unrecorded one cannot be played.
             val nowSec = currentTimeSeconds()
-            val playable = hasFile || (start <= nowSec && nowSec < stop)
+            val playable = hasFile || (nowSec in start..<stop)
             if (playable) {
                 // On TV/a remote, put the initial focus on Play, so that OK works straight away
                 LaunchedEffect(detail) {
@@ -1226,7 +1260,7 @@ private fun GridDetailContent(
                     modifier = Modifier.fillMaxWidth().focusRequester(playFocus)
                 ) {
                     androidx.compose.material3.Icon(
-                        androidx.compose.material.icons.Icons.Default.PlayArrow,
+                        Icons.Default.PlayArrow,
                         contentDescription = null
                     )
                     Spacer(Modifier.width(8.dp))
@@ -1272,7 +1306,7 @@ private fun GridDetailContent(
                 // M606: an optional DVR profile selection before recording
                 var askProfiles by remember { mutableStateOf<List<String>>(emptyList()) }
                 fun doRecord(profile: String?) {
-                        val srv = sk.tvhclient.shared.Tvh.store.active() ?: return
+                        val srv = Tvh.store.active() ?: return
                         recBusy = true; recMsg = null
                         dvrScope.launch {
                             if (profile != null) DvrAskPref.setLastUsed(context, srv.id, profile)
@@ -1308,7 +1342,7 @@ private fun GridDetailContent(
                         }
                 }
                 if (askProfiles.isNotEmpty()) {
-                    val srv = sk.tvhclient.shared.Tvh.store.active()
+                    val srv = Tvh.store.active()
                     DvrProfilePickDialog(
                         options = askProfiles,
                         subtitle = title,
@@ -1321,7 +1355,7 @@ private fun GridDetailContent(
                 }
                 androidx.compose.material3.OutlinedButton(
                     onClick = {
-                        val srv = sk.tvhclient.shared.Tvh.store.active() ?: return@OutlinedButton
+                        val srv = Tvh.store.active() ?: return@OutlinedButton
                         if (rec != null) { doRecord(null); return@OutlinedButton }
                         dvrScope.launch {
                             val opts = DvrProfileAsk.options(context, srv)
@@ -1425,7 +1459,7 @@ private fun GridDetailContent(
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = {
                     confirmDvr = false
-                    val srv = sk.tvhclient.shared.Tvh.store.active()
+                    val srv = Tvh.store.active()
                         ?: return@TextButton
                     recBusy = true; recMsg = null
                     dvrScope.launch {
@@ -1484,7 +1518,7 @@ private fun EpgGridRow(
     val modern = isModernUi()
     // M387: adaptive dimensions by window width; wide screens (>=600dp) stay
     // exactly as after M377 (k = 1, the original row heights)
-    val conf = androidx.compose.ui.platform.LocalConfiguration.current
+    val conf = LocalConfiguration.current
     // M388: compact density on a phone (the toggle in the EPG header)
     val ctxDen = LocalContext.current
     val epgCompact = conf.smallestScreenWidthDp < 600 && EpgDensityPref.compactStateOf(ctxDen).value
