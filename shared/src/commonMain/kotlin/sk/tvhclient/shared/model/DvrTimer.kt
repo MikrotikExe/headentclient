@@ -42,7 +42,9 @@ data class DvrAutorec(
     val configName: String = "",
     val comment: String = "",
     /** M704: the EPG series link; when set, the server matches episodes by it and ignores the title. */
-    val serieslink: String = ""
+    val serieslink: String = "",
+    /** M705: a sub-folder of the server's recording directory ("" = as the DVR profile says). */
+    val directory: String = ""
 ) {
     companion object {
         const val ALL_DAYS = 0x7F
@@ -61,7 +63,9 @@ data class DvrTimerec(
     val startMin: Int = 0,
     val stopMin: Int = 0,
     val configName: String = "",
-    val comment: String = ""
+    val comment: String = "",
+    /** M705: a sub-folder of the server's recording directory ("" = as the DVR profile says). */
+    val directory: String = ""
 )
 
 /**

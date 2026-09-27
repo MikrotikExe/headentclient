@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">The question \"Really exit Headent Client?\" when pressing Back on the home screen.</string>
     <string name="confirm_stop_playback">Ask before stopping playback</string>
     <string name="confirm_stop_playback_note">The question \"Stop playback?\" when pressing Back during live TV.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Folder (optional)</string>
+    <string name="timers_field_directory_note">A sub-folder in the server\'s recording directory. Empty = as set in the DVR profile.</string>
 </resources>

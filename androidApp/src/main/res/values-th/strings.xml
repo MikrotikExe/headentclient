@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">คำถาม \"ออกจาก Headent Client จริงหรือไม่?\" เมื่อกดย้อนกลับที่หน้าจอหลัก</string>
     <string name="confirm_stop_playback">ถามก่อนหยุดการเล่น</string>
     <string name="confirm_stop_playback_note">คำถาม \"หยุดการเล่น?\" เมื่อกดย้อนกลับระหว่างดูทีวีสด</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">โฟลเดอร์ (ไม่บังคับ)</string>
+    <string name="timers_field_directory_note">โฟลเดอร์ย่อยในไดเรกทอรีบันทึกของเซิร์ฟเวอร์ เว้นว่าง = ตามโปรไฟล์ DVR</string>
 </resources>

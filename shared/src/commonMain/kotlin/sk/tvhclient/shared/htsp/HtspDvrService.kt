@@ -97,7 +97,8 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
                 dupDetect = (l(m, "dupDetect") ?: 0L).toInt(),
                 configName = cfg[s(m, "configId")] ?: "",
                 comment = s(m, "comment"),
-                serieslink = s(m, "serieslinkUri")   // M704
+                serieslink = s(m, "serieslinkUri"),   // M704
+                directory = s(m, "directory")          // M705
             )
         }
     }
@@ -116,7 +117,8 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
                 startMin = (l(m, "start") ?: 0L).toInt(),
                 stopMin = (l(m, "stop") ?: 0L).toInt(),
                 configName = cfg[s(m, "configId")] ?: "",
-                comment = s(m, "comment")
+                comment = s(m, "comment"),
+                directory = s(m, "directory")   // M705
             )
         }
     }
@@ -146,6 +148,7 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
         if (a.configName.isNotBlank()) args["configName"] = a.configName
         // M704: sent only when set — on an update an absent field keeps the server's value
         if (a.serieslink.isNotBlank()) args["serieslinkUri"] = a.serieslink
+        args["directory"] = a.directory.trim()   // M705
         return args
     }
 
@@ -161,6 +164,7 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
         args["stop"] = a.stopMin.toLong()
         args["comment"] = a.comment
         if (a.configName.isNotBlank()) args["configName"] = a.configName
+        args["directory"] = a.directory.trim()   // M705
         return args
     }
 

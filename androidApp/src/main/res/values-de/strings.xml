@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">Die Frage „Headent Client wirklich beenden?“ beim Drücken von Zurück auf dem Startbildschirm.</string>
     <string name="confirm_stop_playback">Vor dem Stoppen der Wiedergabe fragen</string>
     <string name="confirm_stop_playback_note">Die Frage „Wiedergabe stoppen?“ beim Drücken von Zurück während Live-TV.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Ordner (optional)</string>
+    <string name="timers_field_directory_note">Ein Unterordner im Aufnahmeverzeichnis des Servers. Leer = wie im DVR-Profil eingestellt.</string>
 </resources>

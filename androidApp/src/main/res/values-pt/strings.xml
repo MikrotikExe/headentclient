@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">A pergunta \"Sair mesmo do Headent Client?\" ao premir Voltar no ecrã inicial.</string>
     <string name="confirm_stop_playback">Perguntar antes de parar a reprodução</string>
     <string name="confirm_stop_playback_note">A pergunta \"Parar a reprodução?\" ao premir Voltar durante a TV em direto.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Pasta (opcional)</string>
+    <string name="timers_field_directory_note">Uma subpasta no diretório de gravações do servidor. Vazio = conforme o perfil DVR.</string>
 </resources>

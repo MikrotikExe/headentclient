@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">Otázka „Naozaj ukončiť Headent Client?“ pri stlačení Späť na hlavnej obrazovke.</string>
     <string name="confirm_stop_playback">Pýtať sa pred zastavením prehrávania</string>
     <string name="confirm_stop_playback_note">Otázka „Zastaviť prehrávanie?“ pri stlačení Späť počas živého vysielania.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Priečinok (voliteľné)</string>
+    <string name="timers_field_directory_note">Podpriečinok v adresári nahrávok servera. Prázdne = podľa DVR profilu.</string>
 </resources>

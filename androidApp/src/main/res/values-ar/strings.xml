@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">سؤال \"هل تريد فعلاً الخروج من Headent Client؟\" عند الضغط على رجوع في الشاشة الرئيسية.</string>
     <string name="confirm_stop_playback">السؤال قبل إيقاف التشغيل</string>
     <string name="confirm_stop_playback_note">سؤال \"إيقاف التشغيل؟\" عند الضغط على رجوع أثناء البث المباشر.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">المجلد (اختياري)</string>
+    <string name="timers_field_directory_note">مجلد فرعي في دليل التسجيلات على الخادم. فارغ = حسب ملف تعريف DVR.</string>
 </resources>

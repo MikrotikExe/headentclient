@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">Pytanie „Na pewno zamknąć Headent Client?” po naciśnięciu Wstecz na ekranie głównym.</string>
     <string name="confirm_stop_playback">Pytaj przed zatrzymaniem odtwarzania</string>
     <string name="confirm_stop_playback_note">Pytanie „Zatrzymać odtwarzanie?” po naciśnięciu Wstecz podczas telewizji na żywo.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Folder (opcjonalnie)</string>
+    <string name="timers_field_directory_note">Podfolder w katalogu nagrań serwera. Puste = zgodnie z profilem DVR.</string>
 </resources>

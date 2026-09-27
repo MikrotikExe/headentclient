@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">Vprašanje »Res zapustim Headent Client?« ob pritisku Nazaj na začetnem zaslonu.</string>
     <string name="confirm_stop_playback">Vprašaj pred ustavitvijo predvajanja</string>
     <string name="confirm_stop_playback_note">Vprašanje »Ustavim predvajanje?« ob pritisku Nazaj med televizijo v živo.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Mapa (neobvezno)</string>
+    <string name="timers_field_directory_note">Podmapa v imeniku posnetkov strežnika. Prazno = po profilu DVR.</string>
 </resources>

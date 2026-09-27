@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">होम स्क्रीन पर वापस दबाने पर \"क्या वाकई Headent Client बंद करें?\" प्रश्न।</string>
     <string name="confirm_stop_playback">प्लेबैक रोकने से पहले पूछें</string>
     <string name="confirm_stop_playback_note">लाइव टीवी के दौरान वापस दबाने पर \"प्लेबैक रोकें?\" प्रश्न।</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">फ़ोल्डर (वैकल्पिक)</string>
+    <string name="timers_field_directory_note">सर्वर की रिकॉर्डिंग डायरेक्टरी में एक सब-फ़ोल्डर। खाली = DVR प्रोफ़ाइल के अनुसार।</string>
 </resources>

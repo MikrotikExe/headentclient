@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">在主屏幕按返回时询问“确定退出 Headent Client？”</string>
     <string name="confirm_stop_playback">停止播放前询问</string>
     <string name="confirm_stop_playback_note">观看直播时按返回询问“停止播放？”</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">文件夹（可选）</string>
+    <string name="timers_field_directory_note">服务器录制目录中的子文件夹。留空 = 按 DVR 配置文件设置。</string>
 </resources>

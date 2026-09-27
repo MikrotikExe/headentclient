@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">Pertanyaan \"Yakin keluar dari Headent Client?\" saat menekan Kembali di layar utama.</string>
     <string name="confirm_stop_playback">Tanya sebelum menghentikan pemutaran</string>
     <string name="confirm_stop_playback_note">Pertanyaan \"Hentikan pemutaran?\" saat menekan Kembali selama TV langsung.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Folder (opsional)</string>
+    <string name="timers_field_directory_note">Subfolder di direktori rekaman server. Kosong = sesuai profil DVR.</string>
 </resources>

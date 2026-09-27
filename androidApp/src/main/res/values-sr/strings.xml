@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">Питање „Заиста изаћи из Headent Client-а?” при притиску Назад на почетном екрану.</string>
     <string name="confirm_stop_playback">Питај пре заустављања репродукције</string>
     <string name="confirm_stop_playback_note">Питање „Зауставити репродукцију?” при притиску Назад током ТВ-а уживо.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Фасцикла (опционо)</string>
+    <string name="timers_field_directory_note">Потфасцикла у директоријуму снимака сервера. Празно = према DVR профилу.</string>
 </resources>

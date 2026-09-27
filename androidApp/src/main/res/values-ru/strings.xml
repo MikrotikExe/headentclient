@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">Вопрос «Выйти из Headent Client?» при нажатии Назад на главном экране.</string>
     <string name="confirm_stop_playback">Спрашивать перед остановкой воспроизведения</string>
     <string name="confirm_stop_playback_note">Вопрос «Остановить воспроизведение?» при нажатии Назад во время прямого эфира.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Папка (необязательно)</string>
+    <string name="timers_field_directory_note">Подпапка в каталоге записей сервера. Пусто = как в профиле DVR.</string>
 </resources>

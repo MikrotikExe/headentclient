@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">Въпросът „Наистина ли да изляза от Headent Client?“ при натискане на Назад на началния екран.</string>
     <string name="confirm_stop_playback">Питане преди спиране на възпроизвеждането</string>
     <string name="confirm_stop_playback_note">Въпросът „Спиране на възпроизвеждането?“ при натискане на Назад по време на телевизия на живо.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Папка (по избор)</string>
+    <string name="timers_field_directory_note">Подпапка в директорията за записи на сървъра. Празно = според DVR профила.</string>
 </resources>

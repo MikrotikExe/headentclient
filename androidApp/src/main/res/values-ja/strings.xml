@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">ホーム画面で戻るを押したときの「Headent Client を終了しますか？」の確認。</string>
     <string name="confirm_stop_playback">再生を停止する前に確認する</string>
     <string name="confirm_stop_playback_note">ライブ視聴中に戻るを押したときの「再生を停止しますか？」の確認。</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">フォルダー（任意）</string>
+    <string name="timers_field_directory_note">サーバーの録画ディレクトリ内のサブフォルダー。空欄 = DVR プロファイルの設定どおり。</string>
 </resources>

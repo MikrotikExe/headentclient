@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">La domanda \"Uscire davvero da Headent Client?\" premendo Indietro nella schermata principale.</string>
     <string name="confirm_stop_playback">Chiedi prima di interrompere la riproduzione</string>
     <string name="confirm_stop_playback_note">La domanda \"Interrompere la riproduzione?\" premendo Indietro durante la TV in diretta.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Cartella (facoltativa)</string>
+    <string name="timers_field_directory_note">Una sottocartella nella directory delle registrazioni del server. Vuoto = come nel profilo DVR.</string>
 </resources>

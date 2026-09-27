@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">Câu hỏi \"Thoát Headent Client?\" khi nhấn Quay lại ở màn hình chính.</string>
     <string name="confirm_stop_playback">Hỏi trước khi dừng phát</string>
     <string name="confirm_stop_playback_note">Câu hỏi \"Dừng phát?\" khi nhấn Quay lại trong lúc xem TV trực tiếp.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Thư mục (tùy chọn)</string>
+    <string name="timers_field_directory_note">Thư mục con trong thư mục ghi của máy chủ. Để trống = theo hồ sơ DVR.</string>
 </resources>

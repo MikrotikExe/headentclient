@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">Ana ekranda Geri\'ye basıldığında \"Headent Client\'tan çıkılsın mı?\" sorusu.</string>
     <string name="confirm_stop_playback">Oynatmayı durdurmadan önce sor</string>
     <string name="confirm_stop_playback_note">Canlı TV sırasında Geri\'ye basıldığında \"Oynatma durdurulsun mu?\" sorusu.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Klasör (isteğe bağlı)</string>
+    <string name="timers_field_directory_note">Sunucunun kayıt dizininde bir alt klasör. Boş = DVR profilindeki gibi.</string>
 </resources>

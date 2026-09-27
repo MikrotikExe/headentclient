@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">홈 화면에서 뒤로를 누를 때 \"Headent Client를 종료할까요?\" 질문.</string>
     <string name="confirm_stop_playback">재생 중지 전에 묻기</string>
     <string name="confirm_stop_playback_note">실시간 TV 중 뒤로를 누를 때 \"재생을 중지할까요?\" 질문.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">폴더(선택 사항)</string>
+    <string name="timers_field_directory_note">서버 녹화 디렉터리의 하위 폴더입니다. 비워 두면 DVR 프로필 설정을 따릅니다.</string>
 </resources>

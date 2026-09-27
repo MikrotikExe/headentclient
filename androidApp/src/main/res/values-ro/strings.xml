@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">Întrebarea „Sigur ieși din Headent Client?” la apăsarea Înapoi pe ecranul principal.</string>
     <string name="confirm_stop_playback">Întreabă înainte de a opri redarea</string>
     <string name="confirm_stop_playback_note">Întrebarea „Oprești redarea?” la apăsarea Înapoi în timpul TV în direct.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Dosar (opțional)</string>
+    <string name="timers_field_directory_note">Un subdosar în directorul de înregistrări al serverului. Gol = conform profilului DVR.</string>
 </resources>

@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">A „Valóban kilép a Headent Clientből?” kérdés a Vissza gomb megnyomásakor a kezdőképernyőn.</string>
     <string name="confirm_stop_playback">Kérdezzen a lejátszás leállítása előtt</string>
     <string name="confirm_stop_playback_note">A „Leállítja a lejátszást?” kérdés a Vissza gomb megnyomásakor élő adás közben.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Mappa (nem kötelező)</string>
+    <string name="timers_field_directory_note">Almappa a szerver felvételi könyvtárában. Üres = a DVR-profil szerint.</string>
 </resources>

@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">Dotaz „Opravdu ukončit Headent Client?“ při stisku Zpět na hlavní obrazovce.</string>
     <string name="confirm_stop_playback">Ptát se před zastavením přehrávání</string>
     <string name="confirm_stop_playback_note">Dotaz „Zastavit přehrávání?“ při stisku Zpět během živého vysílání.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Složka (volitelné)</string>
+    <string name="timers_field_directory_note">Podsložka v adresáři nahrávek serveru. Prázdné = podle DVR profilu.</string>
 </resources>

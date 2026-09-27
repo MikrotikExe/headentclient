@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">پرسش «واقعاً از Headent Client خارج شوید؟» هنگام زدن بازگشت در صفحه اصلی.</string>
     <string name="confirm_stop_playback">پرسش پیش از توقف پخش</string>
     <string name="confirm_stop_playback_note">پرسش «پخش متوقف شود؟» هنگام زدن بازگشت در پخش زنده.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">پوشه (اختیاری)</string>
+    <string name="timers_field_directory_note">یک زیرپوشه در پوشهٔ ضبط‌های سرور. خالی = طبق نمایهٔ DVR.</string>
 </resources>

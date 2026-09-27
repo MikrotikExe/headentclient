@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">Питання «Вийти з Headent Client?» під час натискання Назад на головному екрані.</string>
     <string name="confirm_stop_playback">Питати перед зупинкою відтворення</string>
     <string name="confirm_stop_playback_note">Питання «Зупинити відтворення?» під час натискання Назад у прямому ефірі.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Тека (необов\'язково)</string>
+    <string name="timers_field_directory_note">Підтека в каталозі записів сервера. Порожньо = як у профілі DVR.</string>
 </resources>

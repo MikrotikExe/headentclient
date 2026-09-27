@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">Η ερώτηση «Έξοδος από το Headent Client;» όταν πατάτε Πίσω στην αρχική οθόνη.</string>
     <string name="confirm_stop_playback">Ερώτηση πριν τη διακοπή αναπαραγωγής</string>
     <string name="confirm_stop_playback_note">Η ερώτηση «Διακοπή αναπαραγωγής;» όταν πατάτε Πίσω κατά τη ζωντανή TV.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Φάκελος (προαιρετικό)</string>
+    <string name="timers_field_directory_note">Υποφάκελος στον κατάλογο εγγραφών του διακομιστή. Κενό = όπως ορίζει το προφίλ DVR.</string>
 </resources>

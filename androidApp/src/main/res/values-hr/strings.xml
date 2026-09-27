@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">Pitanje „Stvarno izaći iz Headent Clienta?” pri pritisku Natrag na početnom zaslonu.</string>
     <string name="confirm_stop_playback">Pitaj prije zaustavljanja reprodukcije</string>
     <string name="confirm_stop_playback_note">Pitanje „Zaustaviti reprodukciju?” pri pritisku Natrag tijekom TV-a uživo.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Mapa (neobavezno)</string>
+    <string name="timers_field_directory_note">Podmapa u direktoriju snimki poslužitelja. Prazno = prema DVR profilu.</string>
 </resources>

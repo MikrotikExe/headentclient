@@ -553,6 +553,14 @@ private fun ProfileField(server: TvhServer, value: String, onChange: (String) ->
         optionLabel = { if (it.isBlank()) def else it }) { onChange(it) }
 }
 
+/** M705 (JiRo): a sub-folder of the server's recording directory, like the Kodi timer rule. */
+@Composable
+private fun DirectoryField(value: String, onChange: (String) -> Unit) {
+    TvTextField(stringResource(R.string.timers_field_directory), value, onChange)
+    Text(stringResource(R.string.timers_field_directory_note), style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp, start = 4.dp))
+}
+
 @Composable
 private fun FormDialog(title: String, onDismiss: () -> Unit, content: @Composable () -> Unit) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
@@ -614,6 +622,8 @@ private fun AutorecEditDialog(
             optionLabel = { dupLabel(it.toInt()) }) { rule = rule.copy(dupDetect = it.toInt()) }
         Spacer(Modifier.height(8.dp))
         ProfileField(server, rule.configName) { rule = rule.copy(configName = it) }
+        Spacer(Modifier.height(8.dp))
+        DirectoryField(rule.directory) { rule = rule.copy(directory = it) }   // M705
         Spacer(Modifier.height(4.dp))
         EnabledRow(rule.enabled) { rule = rule.copy(enabled = it) }
         Spacer(Modifier.height(12.dp))
@@ -650,6 +660,8 @@ private fun TimerecEditDialog(
         DaysField(rule.daysOfWeek) { rule = rule.copy(daysOfWeek = it) }
         Spacer(Modifier.height(8.dp))
         ProfileField(server, rule.configName) { rule = rule.copy(configName = it) }
+        Spacer(Modifier.height(8.dp))
+        DirectoryField(rule.directory) { rule = rule.copy(directory = it) }   // M705
         Spacer(Modifier.height(4.dp))
         EnabledRow(rule.enabled) { rule = rule.copy(enabled = it) }
         Spacer(Modifier.height(12.dp))

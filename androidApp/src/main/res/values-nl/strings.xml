@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">De vraag \"Headent Client echt afsluiten?\" bij het indrukken van Terug op het startscherm.</string>
     <string name="confirm_stop_playback">Vragen voor het stoppen van het afspelen</string>
     <string name="confirm_stop_playback_note">De vraag \"Afspelen stoppen?\" bij het indrukken van Terug tijdens live tv.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Map (optioneel)</string>
+    <string name="timers_field_directory_note">Een submap in de opnamemap van de server. Leeg = zoals ingesteld in het DVR-profiel.</string>
 </resources>

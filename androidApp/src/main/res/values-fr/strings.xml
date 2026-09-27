@@ -477,4 +477,7 @@
     <string name="confirm_exit_app_note">La question « Vraiment quitter Headent Client ? » en appuyant sur Retour sur l\'écran d\'accueil.</string>
     <string name="confirm_stop_playback">Demander avant d\'arrêter la lecture</string>
     <string name="confirm_stop_playback_note">La question « Arrêter la lecture ? » en appuyant sur Retour pendant la TV en direct.</string>
+    <!-- M705: timer rule folder -->
+    <string name="timers_field_directory">Dossier (facultatif)</string>
+    <string name="timers_field_directory_note">Un sous-dossier du répertoire d\'enregistrement du serveur. Vide = selon le profil DVR.</string>
 </resources>

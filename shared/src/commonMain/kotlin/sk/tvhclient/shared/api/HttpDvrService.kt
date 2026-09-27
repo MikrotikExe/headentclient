@@ -111,7 +111,8 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
                 dupDetect = int(o, "record", DupDetect.ALL),
                 configName = cfg.nameOf(str(o, "config_name")),
                 comment = str(o, "comment"),
-                serieslink = str(o, "serieslink")   // M704
+                serieslink = str(o, "serieslink"),   // M704
+                directory = str(o, "directory")       // M705
             )
         }
     }
@@ -129,7 +130,8 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
                 startMin = parseHm(str(o, "start")).coerceAtLeast(0),
                 stopMin = parseHm(str(o, "stop")).coerceAtLeast(0),
                 configName = cfg.nameOf(str(o, "config_name")),
-                comment = str(o, "comment")
+                comment = str(o, "comment"),
+                directory = str(o, "directory")   // M705
             )
         }
     }
@@ -152,6 +154,7 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
         m["record"] = JsonPrimitive(a.dupDetect)
         m["comment"] = JsonPrimitive(a.comment)
         if (a.serieslink.isNotBlank()) m["serieslink"] = JsonPrimitive(a.serieslink)   // M704
+        m["directory"] = JsonPrimitive(a.directory.trim())   // M705
         if (a.configName.isNotBlank()) configs().uuidOf(a.configName)?.let { m["config_name"] = JsonPrimitive(it) }
         return JsonObject(m)
     }
@@ -167,6 +170,7 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
         m["start"] = JsonPrimitive(formatHm(a.startMin))
         m["stop"] = JsonPrimitive(formatHm(a.stopMin))
         m["comment"] = JsonPrimitive(a.comment)
+        m["directory"] = JsonPrimitive(a.directory.trim())   // M705
         if (a.configName.isNotBlank()) configs().uuidOf(a.configName)?.let { m["config_name"] = JsonPrimitive(it) }
         return JsonObject(m)
     }
