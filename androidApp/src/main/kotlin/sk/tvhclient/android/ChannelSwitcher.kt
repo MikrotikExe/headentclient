@@ -92,12 +92,19 @@ internal class ChannelSwitcher(
                 // (libVLC cannot do digest via the URL); basic/none -> the direct
                 // seekable path.
                 scope.launch {
-                    val useFeeder = withContext(Dispatchers.IO) {
-                        DvrAuthProbe.needsFeeder(server, MediaFactory.stripCreds(streamUrl))
+                    // M701 (issue #19): digest-only -> the local proxy (DvrProxy), so libVLC seeks with
+                    // its own Range requests in every container. The pipe feeder stays only as the
+                    // fallback when the URL cannot be proxied.
+                    val proxied: String? = withContext(Dispatchers.IO) {
+                        if (DvrAuthProbe.needsFeeder(server, MediaFactory.stripCreds(streamUrl)))
+                            DvrProxy.urlFor(server, streamUrl) ?: FEEDER
+                        else null
                     }
-                    stream.dvrViaFeeder = useFeeder
-                    if (useFeeder) actions.playDvrViaFeeder(server, streamUrl)
-                    else actions.playHttp(streamUrl)
+                    when (proxied) {
+                        null -> { stream.dvrViaFeeder = false; actions.playHttp(streamUrl) }
+                        FEEDER -> { stream.dvrViaFeeder = true; actions.playDvrViaFeeder(server, streamUrl) }
+                        else -> { stream.dvrViaFeeder = false; actions.playHttp(proxied) }
+                    }
                     actions.pokeControls()
                 }
             } else {
@@ -247,5 +254,10 @@ internal class ChannelSwitcher(
         }
         actions.playLiveAuto(srv, url)
         if (poke) actions.pokeControls()
+    }
+
+    private companion object {
+        /** M701: marker = the recording cannot be proxied, use the pipe feeder. */
+        const val FEEDER = "\u0000feeder"
     }
 }

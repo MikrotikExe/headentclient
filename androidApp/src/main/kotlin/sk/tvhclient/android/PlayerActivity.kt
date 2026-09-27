@@ -1718,13 +1718,19 @@ class PlayerActivity : ComponentActivity() {
      * Returns true when it handled the situation.
      */
     private fun stopOnConnLimit(): Boolean {
+        // M701: a recording through DvrProxy — the proxy saw the late 405 (keyed by its time)
+        val proxyHit = DvrProxy.lastConnLimitAt.takeIf {
+            DvrProxy.isProxyUrl(stream.currentStreamUrl) && it > 0 &&
+                android.os.SystemClock.elapsedRealtime() - it < 15_000
+        }
         val feeder: Any = stream.htspFeeder?.takeIf { it.connLimited }
             ?: stream.httpFeeder?.takeIf { it.connLimited }
+            ?: proxyHit
             ?: return false
         reconnect.cancel()
         reconnect.clearPending()
         // libVLC can report both an error and the end of the stream — one message per refused stream
-        if (connLimitShownFor !== feeder) {
+        if (connLimitShownFor != feeder) {   // feeders: identity; M701 proxy: the refusal time
             connLimitShownFor = feeder
             Toast.makeText(this, getString(R.string.err_conn_limit), Toast.LENGTH_LONG).show()
         }
