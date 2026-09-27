@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">Tidak ada rekaman terjadwal</string>
     <string name="dvr_cancel_rec_title">Batalkan rekaman?</string>
     <string name="dvr_cancel_rec_msg">\"%1$s\" tidak akan direkam.</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">Konfirmasi</string>
+    <string name="confirm_exit_app">Tanya sebelum keluar dari aplikasi</string>
+    <string name="confirm_exit_app_note">Pertanyaan \"Yakin keluar dari Headent Client?\" saat menekan Kembali di layar utama.</string>
+    <string name="confirm_stop_playback">Tanya sebelum menghentikan pemutaran</string>
+    <string name="confirm_stop_playback_note">Pertanyaan \"Hentikan pemutaran?\" saat menekan Kembali selama TV langsung.</string>
 </resources>

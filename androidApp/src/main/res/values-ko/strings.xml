@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">예약된 녹화가 없습니다</string>
     <string name="dvr_cancel_rec_title">녹화를 취소할까요?</string>
     <string name="dvr_cancel_rec_msg">\"%1$s\"은(는) 녹화되지 않습니다.</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">확인</string>
+    <string name="confirm_exit_app">앱 종료 전에 묻기</string>
+    <string name="confirm_exit_app_note">홈 화면에서 뒤로를 누를 때 \"Headent Client를 종료할까요?\" 질문.</string>
+    <string name="confirm_stop_playback">재생 중지 전에 묻기</string>
+    <string name="confirm_stop_playback_note">실시간 TV 중 뒤로를 누를 때 \"재생을 중지할까요?\" 질문.</string>
 </resources>

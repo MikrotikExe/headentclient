@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">Nincs ütemezett felvétel</string>
     <string name="dvr_cancel_rec_title">Megszakítja a felvételt?</string>
     <string name="dvr_cancel_rec_msg">„%1$s” nem lesz felvéve.</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">Megerősítések</string>
+    <string name="confirm_exit_app">Kérdezzen az alkalmazásból való kilépés előtt</string>
+    <string name="confirm_exit_app_note">A „Valóban kilép a Headent Clientből?” kérdés a Vissza gomb megnyomásakor a kezdőképernyőn.</string>
+    <string name="confirm_stop_playback">Kérdezzen a lejátszás leállítása előtt</string>
+    <string name="confirm_stop_playback_note">A „Leállítja a lejátszást?” kérdés a Vissza gomb megnyomásakor élő adás közben.</string>
 </resources>

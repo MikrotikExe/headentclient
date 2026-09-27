@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">Немає запланованих записів</string>
     <string name="dvr_cancel_rec_title">Скасувати запис?</string>
     <string name="dvr_cancel_rec_msg">«%1$s» не буде записано.</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">Підтвердження</string>
+    <string name="confirm_exit_app">Питати перед виходом із застосунку</string>
+    <string name="confirm_exit_app_note">Питання «Вийти з Headent Client?» під час натискання Назад на головному екрані.</string>
+    <string name="confirm_stop_playback">Питати перед зупинкою відтворення</string>
+    <string name="confirm_stop_playback_note">Питання «Зупинити відтворення?» під час натискання Назад у прямому ефірі.</string>
 </resources>

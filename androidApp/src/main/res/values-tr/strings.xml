@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">Planlanmış kayıt yok</string>
     <string name="dvr_cancel_rec_title">Kayıt iptal edilsin mi?</string>
     <string name="dvr_cancel_rec_msg">\"%1$s\" kaydedilmeyecek.</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">Onaylar</string>
+    <string name="confirm_exit_app">Uygulamadan çıkmadan önce sor</string>
+    <string name="confirm_exit_app_note">Ana ekranda Geri\'ye basıldığında \"Headent Client\'tan çıkılsın mı?\" sorusu.</string>
+    <string name="confirm_stop_playback">Oynatmayı durdurmadan önce sor</string>
+    <string name="confirm_stop_playback_note">Canlı TV sırasında Geri\'ye basıldığında \"Oynatma durdurulsun mu?\" sorusu.</string>
 </resources>

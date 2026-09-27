@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">لا توجد تسجيلات مجدولة</string>
     <string name="dvr_cancel_rec_title">إلغاء التسجيل؟</string>
     <string name="dvr_cancel_rec_msg">لن يتم تسجيل \"%1$s\".</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">التأكيدات</string>
+    <string name="confirm_exit_app">السؤال قبل الخروج من التطبيق</string>
+    <string name="confirm_exit_app_note">سؤال \"هل تريد فعلاً الخروج من Headent Client؟\" عند الضغط على رجوع في الشاشة الرئيسية.</string>
+    <string name="confirm_stop_playback">السؤال قبل إيقاف التشغيل</string>
+    <string name="confirm_stop_playback_note">سؤال \"إيقاف التشغيل؟\" عند الضغط على رجوع أثناء البث المباشر.</string>
 </resources>

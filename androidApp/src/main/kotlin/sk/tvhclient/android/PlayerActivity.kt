@@ -1276,7 +1276,10 @@ class PlayerActivity : ComponentActivity() {
                         // M344: playing radio in modern mode does not end — it goes to the mini player,
                         // so the confirmation question makes no sense; TV live still has it
                         if (!radioHandoffIfPossible()) {
-                            exitConfirmSelState.value = 0; exitConfirmState.value = true
+                            // M702 (issue #18): the question can be switched off in the settings
+                            if (ConfirmPref.stopPlayback(this@PlayerActivity)) {
+                                exitConfirmSelState.value = 0; exitConfirmState.value = true
+                            } else closePlayer()
                         }
                     },
                     onClose = { closePlayer() },

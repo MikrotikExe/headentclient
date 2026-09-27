@@ -592,6 +592,23 @@ internal fun GeneralSettings(ctx: android.content.Context) {
             onChange = { v -> TimersPref.set(ctx, v) }
         )
     }
+    // M702 (issue #18): the confirmation questions can be switched off
+    SettingsGroup(stringResource(R.string.set_grp_confirm)) {
+        val exitQ = ConfirmPref.exitAppState(ctx)
+        SettingsSwitchRow(
+            label = stringResource(R.string.confirm_exit_app),
+            note = stringResource(R.string.confirm_exit_app_note),
+            checked = exitQ.value,
+            onChange = { v -> ConfirmPref.setExitApp(ctx, v) }
+        )
+        val stopQ = ConfirmPref.stopPlaybackState(ctx)
+        SettingsSwitchRow(
+            label = stringResource(R.string.confirm_stop_playback),
+            note = stringResource(R.string.confirm_stop_playback_note),
+            checked = stopQ.value,
+            onChange = { v -> ConfirmPref.setStopPlayback(ctx, v) }
+        )
+    }
 
     fun requestOverlay() {
         if (android.os.Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(ctx)) {

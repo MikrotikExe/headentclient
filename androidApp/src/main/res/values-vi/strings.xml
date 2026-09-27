@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">Không có bản ghi đã lên lịch</string>
     <string name="dvr_cancel_rec_title">Hủy ghi?</string>
     <string name="dvr_cancel_rec_msg">\"%1$s\" sẽ không được ghi.</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">Xác nhận</string>
+    <string name="confirm_exit_app">Hỏi trước khi thoát ứng dụng</string>
+    <string name="confirm_exit_app_note">Câu hỏi \"Thoát Headent Client?\" khi nhấn Quay lại ở màn hình chính.</string>
+    <string name="confirm_stop_playback">Hỏi trước khi dừng phát</string>
+    <string name="confirm_stop_playback_note">Câu hỏi \"Dừng phát?\" khi nhấn Quay lại trong lúc xem TV trực tiếp.</string>
 </resources>

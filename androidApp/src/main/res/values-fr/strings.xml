@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">Aucun enregistrement programmé</string>
     <string name="dvr_cancel_rec_title">Annuler l\'enregistrement ?</string>
     <string name="dvr_cancel_rec_msg">« %1$s » ne sera pas enregistré.</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">Confirmations</string>
+    <string name="confirm_exit_app">Demander avant de quitter l\'application</string>
+    <string name="confirm_exit_app_note">La question « Vraiment quitter Headent Client ? » en appuyant sur Retour sur l\'écran d\'accueil.</string>
+    <string name="confirm_stop_playback">Demander avant d\'arrêter la lecture</string>
+    <string name="confirm_stop_playback_note">La question « Arrêter la lecture ? » en appuyant sur Retour pendant la TV en direct.</string>
 </resources>

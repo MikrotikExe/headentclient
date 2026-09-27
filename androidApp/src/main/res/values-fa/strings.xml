@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">ضبط زمان‌بندی‌شده‌ای وجود ندارد</string>
     <string name="dvr_cancel_rec_title">ضبط لغو شود؟</string>
     <string name="dvr_cancel_rec_msg">«%1$s» ضبط نخواهد شد.</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">تأییدها</string>
+    <string name="confirm_exit_app">پرسش پیش از خروج از برنامه</string>
+    <string name="confirm_exit_app_note">پرسش «واقعاً از Headent Client خارج شوید؟» هنگام زدن بازگشت در صفحه اصلی.</string>
+    <string name="confirm_stop_playback">پرسش پیش از توقف پخش</string>
+    <string name="confirm_stop_playback_note">پرسش «پخش متوقف شود؟» هنگام زدن بازگشت در پخش زنده.</string>
 </resources>

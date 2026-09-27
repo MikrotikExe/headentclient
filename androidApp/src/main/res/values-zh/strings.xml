@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">没有已预约的录制</string>
     <string name="dvr_cancel_rec_title">取消录制？</string>
     <string name="dvr_cancel_rec_msg">“%1$s”将不会被录制。</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">确认</string>
+    <string name="confirm_exit_app">退出应用前询问</string>
+    <string name="confirm_exit_app_note">在主屏幕按返回时询问“确定退出 Headent Client？”</string>
+    <string name="confirm_stop_playback">停止播放前询问</string>
+    <string name="confirm_stop_playback_note">观看直播时按返回询问“停止播放？”</string>
 </resources>

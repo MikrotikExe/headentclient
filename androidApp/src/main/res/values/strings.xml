@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">No scheduled recordings</string>
     <string name="dvr_cancel_rec_title">Cancel recording?</string>
     <string name="dvr_cancel_rec_msg">\"%1$s\" will not be recorded.</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">Confirmations</string>
+    <string name="confirm_exit_app">Ask before exiting the app</string>
+    <string name="confirm_exit_app_note">The question \"Really exit Headent Client?\" when pressing Back on the home screen.</string>
+    <string name="confirm_stop_playback">Ask before stopping playback</string>
+    <string name="confirm_stop_playback_note">The question \"Stop playback?\" when pressing Back during live TV.</string>
 </resources>

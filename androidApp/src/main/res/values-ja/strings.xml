@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">予約済みの録画はありません</string>
     <string name="dvr_cancel_rec_title">録画をキャンセルしますか？</string>
     <string name="dvr_cancel_rec_msg">「%1$s」は録画されません。</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">確認</string>
+    <string name="confirm_exit_app">アプリを終了する前に確認する</string>
+    <string name="confirm_exit_app_note">ホーム画面で戻るを押したときの「Headent Client を終了しますか？」の確認。</string>
+    <string name="confirm_stop_playback">再生を停止する前に確認する</string>
+    <string name="confirm_stop_playback_note">ライブ視聴中に戻るを押したときの「再生を停止しますか？」の確認。</string>
 </resources>

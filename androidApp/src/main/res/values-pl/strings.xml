@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">Brak zaplanowanych nagrań</string>
     <string name="dvr_cancel_rec_title">Anulować nagranie?</string>
     <string name="dvr_cancel_rec_msg">„%1$s” nie zostanie nagrany.</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">Potwierdzenia</string>
+    <string name="confirm_exit_app">Pytaj przed zamknięciem aplikacji</string>
+    <string name="confirm_exit_app_note">Pytanie „Na pewno zamknąć Headent Client?” po naciśnięciu Wstecz na ekranie głównym.</string>
+    <string name="confirm_stop_playback">Pytaj przed zatrzymaniem odtwarzania</string>
+    <string name="confirm_stop_playback_note">Pytanie „Zatrzymać odtwarzanie?” po naciśnięciu Wstecz podczas telewizji na żywo.</string>
 </resources>

@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">Δεν υπάρχουν προγραμματισμένες εγγραφές</string>
     <string name="dvr_cancel_rec_title">Ακύρωση εγγραφής;</string>
     <string name="dvr_cancel_rec_msg">Το «%1$s» δεν θα εγγραφεί.</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">Επιβεβαιώσεις</string>
+    <string name="confirm_exit_app">Ερώτηση πριν την έξοδο από την εφαρμογή</string>
+    <string name="confirm_exit_app_note">Η ερώτηση «Έξοδος από το Headent Client;» όταν πατάτε Πίσω στην αρχική οθόνη.</string>
+    <string name="confirm_stop_playback">Ερώτηση πριν τη διακοπή αναπαραγωγής</string>
+    <string name="confirm_stop_playback_note">Η ερώτηση «Διακοπή αναπαραγωγής;» όταν πατάτε Πίσω κατά τη ζωντανή TV.</string>
 </resources>

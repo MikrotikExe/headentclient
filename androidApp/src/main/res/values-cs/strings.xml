@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">Žádné naplánované nahrávky</string>
     <string name="dvr_cancel_rec_title">Zrušit nahrávání?</string>
     <string name="dvr_cancel_rec_msg">„%1$s“ se nenahraje.</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">Potvrzovací dotazy</string>
+    <string name="confirm_exit_app">Ptát se před ukončením aplikace</string>
+    <string name="confirm_exit_app_note">Dotaz „Opravdu ukončit Headent Client?“ při stisku Zpět na hlavní obrazovce.</string>
+    <string name="confirm_stop_playback">Ptát se před zastavením přehrávání</string>
+    <string name="confirm_stop_playback_note">Dotaz „Zastavit přehrávání?“ při stisku Zpět během živého vysílání.</string>
 </resources>

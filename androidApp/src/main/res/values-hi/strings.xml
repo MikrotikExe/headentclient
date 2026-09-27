@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">कोई शेड्यूल्ड रिकॉर्डिंग नहीं</string>
     <string name="dvr_cancel_rec_title">रिकॉर्डिंग रद्द करें?</string>
     <string name="dvr_cancel_rec_msg">\"%1$s\" रिकॉर्ड नहीं होगा।</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">पुष्टियाँ</string>
+    <string name="confirm_exit_app">ऐप से बाहर निकलने से पहले पूछें</string>
+    <string name="confirm_exit_app_note">होम स्क्रीन पर वापस दबाने पर \"क्या वाकई Headent Client बंद करें?\" प्रश्न।</string>
+    <string name="confirm_stop_playback">प्लेबैक रोकने से पहले पूछें</string>
+    <string name="confirm_stop_playback_note">लाइव टीवी के दौरान वापस दबाने पर \"प्लेबैक रोकें?\" प्रश्न।</string>
 </resources>

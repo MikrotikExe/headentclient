@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">ไม่มีการบันทึกที่ตั้งเวลาไว้</string>
     <string name="dvr_cancel_rec_title">ยกเลิกการบันทึก?</string>
     <string name="dvr_cancel_rec_msg">\"%1$s\" จะไม่ถูกบันทึก</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">การยืนยัน</string>
+    <string name="confirm_exit_app">ถามก่อนออกจากแอป</string>
+    <string name="confirm_exit_app_note">คำถาม \"ออกจาก Headent Client จริงหรือไม่?\" เมื่อกดย้อนกลับที่หน้าจอหลัก</string>
+    <string name="confirm_stop_playback">ถามก่อนหยุดการเล่น</string>
+    <string name="confirm_stop_playback_note">คำถาม \"หยุดการเล่น?\" เมื่อกดย้อนกลับระหว่างดูทีวีสด</string>
 </resources>

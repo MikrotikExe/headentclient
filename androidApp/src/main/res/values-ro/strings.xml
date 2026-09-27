@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">Nicio înregistrare programată</string>
     <string name="dvr_cancel_rec_title">Anulezi înregistrarea?</string>
     <string name="dvr_cancel_rec_msg">„%1$s” nu va fi înregistrat.</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">Confirmări</string>
+    <string name="confirm_exit_app">Întreabă înainte de a ieși din aplicație</string>
+    <string name="confirm_exit_app_note">Întrebarea „Sigur ieși din Headent Client?” la apăsarea Înapoi pe ecranul principal.</string>
+    <string name="confirm_stop_playback">Întreabă înainte de a opri redarea</string>
+    <string name="confirm_stop_playback_note">Întrebarea „Oprești redarea?” la apăsarea Înapoi în timpul TV în direct.</string>
 </resources>

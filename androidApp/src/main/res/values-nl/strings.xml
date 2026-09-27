@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">Geen geplande opnamen</string>
     <string name="dvr_cancel_rec_title">Opname annuleren?</string>
     <string name="dvr_cancel_rec_msg">\"%1$s\" wordt niet opgenomen.</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">Bevestigingen</string>
+    <string name="confirm_exit_app">Vragen voor het afsluiten van de app</string>
+    <string name="confirm_exit_app_note">De vraag \"Headent Client echt afsluiten?\" bij het indrukken van Terug op het startscherm.</string>
+    <string name="confirm_stop_playback">Vragen voor het stoppen van het afspelen</string>
+    <string name="confirm_stop_playback_note">De vraag \"Afspelen stoppen?\" bij het indrukken van Terug tijdens live tv.</string>
 </resources>

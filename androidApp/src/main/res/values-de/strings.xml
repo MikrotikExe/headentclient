@@ -471,4 +471,10 @@
     <string name="dvr_scheduled_empty">Keine geplanten Aufnahmen</string>
     <string name="dvr_cancel_rec_title">Aufnahme abbrechen?</string>
     <string name="dvr_cancel_rec_msg">„%1$s“ wird nicht aufgenommen.</string>
+    <!-- M702: confirmation questions -->
+    <string name="set_grp_confirm">Bestätigungen</string>
+    <string name="confirm_exit_app">Vor dem Beenden der App fragen</string>
+    <string name="confirm_exit_app_note">Die Frage „Headent Client wirklich beenden?“ beim Drücken von Zurück auf dem Startbildschirm.</string>
+    <string name="confirm_stop_playback">Vor dem Stoppen der Wiedergabe fragen</string>
+    <string name="confirm_stop_playback_note">Die Frage „Wiedergabe stoppen?“ beim Drücken von Zurück während Live-TV.</string>
 </resources>

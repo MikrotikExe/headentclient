@@ -624,7 +624,11 @@ private fun TvHomeHost() {
             }
         }
         else -> {
-            androidx.activity.compose.BackHandler(enabled = !showExit) { showExit = true }
+            androidx.activity.compose.BackHandler(enabled = !showExit) {
+                // M702 (issue #18): without the question Back quits right away (the same as the dialog's Exit)
+                if (ConfirmPref.exitApp(ctx)) showExit = true
+                else { RadioPlayerService.stop(ctx); (ctx as? android.app.Activity)?.finish() }
+            }
             Box(Modifier.fillMaxSize()) {
                 // Interface mode: the classic launcher (default) or the modern one (UiModePref);
                 // it is read on every return to home, so switching it in the settings
@@ -947,7 +951,12 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
     androidx.activity.compose.BackHandler(enabled = !showExit) {
         if (tab != homeTab) { resetCh++; tab = homeTab }
         else if (onExitToHome != null) onExitToHome()   // TV: back to the launcher
-        else showExit = true
+        else {
+            // M702 (issue #18): without the question Back quits right away (the same as the dialog's Exit)
+            val a = activity
+            if (a == null || ConfirmPref.exitApp(a)) showExit = true
+            else { RadioPlayerService.stop(a); a.finish() }
+        }
     }
 
     val red = Color(0xFFE53935)
