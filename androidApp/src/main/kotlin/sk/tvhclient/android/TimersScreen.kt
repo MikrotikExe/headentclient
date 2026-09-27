@@ -291,7 +291,8 @@ internal fun TimersSection(server: TvhServer, vm: TimersViewModel = viewModel(),
                 Text(stringResource(R.string.timers_add_timer))
             }
             Spacer(Modifier.width(8.dp))
-            OutlinedButton(onClick = { editAutorec = DvrAutorec(dupDetect = DupDetect.UNIQUE) },
+            // M704: "record all" by default — "new episodes only" needs episode data many EPGs lack
+            OutlinedButton(onClick = { editAutorec = DvrAutorec(dupDetect = DupDetect.ALL) },
                 modifier = Modifier.dpadFocusable(RoundedCornerShape(20.dp))) {
                 Icon(Icons.Default.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp))
                 Text(stringResource(R.string.timers_add_rule))
@@ -683,7 +684,8 @@ internal fun RecordSeriesButton(
     title: String,
     channelUuid: String,
     canRecord: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    serieslink: String = ""   // M704
 ) {
     val ctx = LocalContext.current
     if (!TimersPref.stateOf(ctx).value || !canRecord || title.isBlank()) return
@@ -694,14 +696,14 @@ internal fun RecordSeriesButton(
     var reload by remember { mutableStateOf(0) }
     var askProfiles by remember { mutableStateOf<List<String>>(emptyList()) }
     LaunchedEffect(title, channelUuid, reload) {
-        existing = DvrController.seriesRuleFor(server, title, channelUuid)
+        existing = DvrController.seriesRuleFor(server, title, channelUuid, serieslink)
         known = true
     }
     fun create(profile: String?) {
         busy = true
         scope.launch {
             if (profile != null) DvrAskPref.setLastUsed(ctx, server.id, profile)
-            val r = DvrController.recordSeries(server, title, channelUuid, profile)
+            val r = DvrController.recordSeries(server, title, channelUuid, profile, serieslink)
             toast(ctx, resultText(ctx, r, R.string.rec_series_done))
             busy = false; reload++
         }

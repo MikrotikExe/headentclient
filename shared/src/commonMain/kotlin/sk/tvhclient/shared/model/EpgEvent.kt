@@ -8,6 +8,7 @@ import kotlinx.serialization.Serializable
  * it also carries the full description and metadata for the programme detail: summary,
  * description, genre (DVB content-type codes), ageRating, episode number.
  */
+@OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
 @Serializable
 data class EpgEvent(
     @SerialName("eventId") val eventId: Long? = null,
@@ -22,7 +23,14 @@ data class EpgEvent(
     @SerialName("genre") val genre: List<Int> = emptyList(),
     @SerialName("ageRating") val ageRating: Int = 0,
     @SerialName("episodeOnscreen") val episodeOnscreen: String = "",
-    @SerialName("nextEventId") val nextEventId: Long? = null
+    @SerialName("nextEventId") val nextEventId: Long? = null,
+    /**
+     * M704: the EPG series link (Tvheadend `serieslinkUri`, both HTSP and the HTTP grid). A "Record
+     * series" rule with it matches every episode of the series exactly, whatever the titles look
+     * like. Not written to the disk cache when empty (most events have none).
+     */
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    @SerialName("serieslinkUri") val serieslinkUri: String = ""
 ) {
     /** The best available description: description, falling back to summary. */
     val bestDescription: String

@@ -333,6 +333,8 @@ fun EpgGridScreen(
 
     // The programme/recording detail (overlays the grid); a click on a block opens it
     var detail by remember { mutableStateOf<GridDetail?>(null) }
+    // M704 (JiRo): the RECORD key on the remote opened the detail and pressed Record in it
+    var recordOnOpen by remember { mutableStateOf(false) }
     // The last focused block (D-pad) -> the INFO key shows its detail
     var lastFocused by remember { mutableStateOf<GridDetail?>(null) }
     val infoSig by TabController.infoKey
@@ -607,6 +609,13 @@ fun EpgGridScreen(
             android.view.KeyEvent.KEYCODE_PAGE_UP -> return@handler moveVertical(-1, pageStep = true)
             android.view.KeyEvent.KEYCODE_CHANNEL_DOWN,
             android.view.KeyEvent.KEYCODE_PAGE_DOWN -> return@handler moveVertical(1, pageStep = true)
+            // M704: RECORD on a programme = its detail with Record pressed (the same flow as the
+            // button: DVR profile choice, cancel when already scheduled, the result message)
+            android.view.KeyEvent.KEYCODE_MEDIA_RECORD -> {
+                val d = navCells(selRow).firstOrNull { it.start == selStart }?.detail
+                if (d is GridDetail.Epg) { recordOnOpen = true; detail = d }
+                return@handler true
+            }
         }
         when (e.key) {
             Key.DirectionDown -> moveVertical(1)
@@ -1059,7 +1068,9 @@ fun EpgGridScreen(
                     },
                     playLabelRes = if (d is GridDetail.InProgress) R.string.play_live else R.string.play,
                     // M483: after deleting/stopping, let the block disappear from the grid
-                    onDvrChanged = { dvrVm.refresh() }
+                    onDvrChanged = { dvrVm.refresh() },
+                    recordOnOpen = recordOnOpen,
+                    onRecordOnOpenUsed = { recordOnOpen = false }
                 )
             }
         }
@@ -1081,9 +1092,14 @@ private fun GridDetailContent(
     onPlay: () -> Unit,
     onPlayFromStart: (() -> Unit)? = null,
     playLabelRes: Int = R.string.play,
-    onDvrChanged: () -> Unit = {}
+    onDvrChanged: () -> Unit = {},
+    recordOnOpen: Boolean = false,
+    onRecordOnOpenUsed: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    // M704: the RECORD key — from the grid (recordOnOpen) or pressed while the detail is open
+    var recordRequest by remember(detail) { mutableStateOf(if (recordOnOpen) 1 else 0) }
+    LaunchedEffect(Unit) { if (recordOnOpen) onRecordOnOpenUsed() }
     val playFocus = remember { FocusRequester() }
     // M697: a programme that has not started has no Play button — without an initial focus the
     // D-pad kept driving the grid underneath and OK did nothing in the detail. Record (or the
@@ -1109,6 +1125,7 @@ private fun GridDetailContent(
         mutableStateOf<sk.tvhclient.shared.model.DvrEntry?>(null)
     }
     var recReload by remember { mutableStateOf(0) }
+    var recKnown by remember(detail) { mutableStateOf(false) }   // M704: existingRec has been determined
     // M483: the rights are needed for a DVR entry too (deleting), not just for an EPG programme
     LaunchedEffect(detail, recReload) {
         val ep = (detail as? GridDetail.Epg)
@@ -1116,6 +1133,7 @@ private fun GridDetailContent(
         canRecord = if (srv == null) false else DvrController.access(srv).canRecord
         existingRec = if (ep == null || srv == null) null
         else DvrController.scheduledFor(srv, ep.row.channel.uuid, ep.ev.start, ep.ev.stop)
+        recKnown = true
     }
     // M483: the entry that the delete/stop actions concern
     val dvrEntry: sk.tvhclient.shared.model.DvrEntry? = when (detail) {
@@ -1179,6 +1197,13 @@ private fun GridDetailContent(
     Column(
         Modifier
             .fillMaxSize()
+            // M704: RECORD pressed while the detail is open = the Record button
+            .onPreviewKeyEvent { e ->
+                if (e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_RECORD) {
+                    if (e.type == KeyEventType.KeyDown) recordRequest++
+                    true
+                } else false
+            }
             .verticalScroll(rememberScrollState())
     ) {
         // The header with the picon and the back button
@@ -1435,15 +1460,21 @@ private fun GridDetailContent(
                         dpad = true
                     )
                 }
+                fun recordClick() {
+                    if (recBusy) return
+                    val srv = Tvh.store.active() ?: return
+                    if (rec != null) { doRecord(null); return }
+                    dvrScope.launch {
+                        val opts = DvrProfileAsk.options(context, srv)
+                        if (opts.isEmpty()) doRecord(null) else askProfiles = opts
+                    }
+                }
+                // M704: RECORD key; waits until the scheduled state is known (existingRec loads async)
+                LaunchedEffect(recordRequest, recKnown) {
+                    if (recordRequest > 0 && recKnown) { recordRequest = 0; recordClick() }
+                }
                 androidx.compose.material3.OutlinedButton(
-                    onClick = {
-                        val srv = Tvh.store.active() ?: return@OutlinedButton
-                        if (rec != null) { doRecord(null); return@OutlinedButton }
-                        dvrScope.launch {
-                            val opts = DvrProfileAsk.options(context, srv)
-                            if (opts.isEmpty()) doRecord(null) else askProfiles = opts
-                        }
-                    },
+                    onClick = { recordClick() },
                     enabled = !recBusy,
                     // M483: the same width and internal layout as the playback
                     // buttons above — previously the button was narrow, sized to the text
@@ -1508,7 +1539,7 @@ private fun GridDetailContent(
             if (detail is GridDetail.Epg && canRecord) {
                 Tvh.store.active()?.let { s ->
                     Spacer(Modifier.height(8.dp))
-                    RecordSeriesButton(s, title, detail.row.channel.uuid, canRecord)
+                    RecordSeriesButton(s, title, detail.row.channel.uuid, canRecord, serieslink = detail.ev.serieslinkUri)
                 }
             }
 

@@ -16,6 +16,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -104,10 +106,18 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
             )
         }
     ) { padding ->
+        // M704: the RECORD key on the remote = the Record button
+        var recordRequest by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(0) }
         Column(
             Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .onPreviewKeyEvent { e ->
+                    if (e.nativeKeyEvent.keyCode == android.view.KeyEvent.KEYCODE_MEDIA_RECORD) {
+                        if (e.type == androidx.compose.ui.input.key.KeyEventType.KeyDown) recordRequest++
+                        true
+                    } else false
+                }
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
@@ -207,15 +217,20 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
                         dpad = true
                     )
                 }
+                fun recordClick() {
+                    if (recording) return
+                    val s = server ?: return
+                    if (rec != null) { doRecord(null); return }
+                    scope.launch {
+                        val opts = DvrProfileAsk.options(ctx, s)
+                        if (opts.isEmpty()) doRecord(null) else askProfiles = opts
+                    }
+                }
+                androidx.compose.runtime.LaunchedEffect(recordRequest) {
+                    if (recordRequest > 0) { recordRequest = 0; recordClick() }
+                }
                 OutlinedButton(
-                    onClick = {
-                        val s = server ?: return@OutlinedButton
-                        if (rec != null) { doRecord(null); return@OutlinedButton }
-                        scope.launch {
-                            val opts = DvrProfileAsk.options(ctx, s)
-                            if (opts.isEmpty()) doRecord(null) else askProfiles = opts
-                        }
-                    },
+                    onClick = { recordClick() },
                     enabled = !recording,
                     modifier = Modifier.fillMaxWidth().focusRequester(recFocus).dpadFocusable()
                 ) {
@@ -248,7 +263,7 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
                 // M696: a rule for the whole series (only with "Enable timers" on)
                 server?.let { s ->
                     Spacer(Modifier.height(6.dp))
-                    RecordSeriesButton(s, event.title, event.channelUuid ?: "", canRecord)
+                    RecordSeriesButton(s, event.title, event.channelUuid ?: "", canRecord, serieslink = event.serieslinkUri)
                 }
                 Spacer(Modifier.height(12.dp))
             }

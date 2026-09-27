@@ -314,27 +314,41 @@ object DvrController {
     private class RulesCache(val ts: Long, val list: List<DvrAutorec>)
     private val rulesCache = HashMap<String, RulesCache>()
 
-    suspend fun seriesRuleFor(server: TvhServer, title: String, channelUuid: String): DvrAutorec? {
+    suspend fun seriesRuleFor(server: TvhServer, title: String, channelUuid: String, serieslink: String = ""): DvrAutorec? {
         val key = title.trim().lowercase()
         if (key.isBlank()) return null
+        // M704: the rule the app itself creates has the escaped series title; older rules (M696)
+        // the raw title — both are recognised
+        val keyRe = sk.tvhclient.shared.model.regexLiteral(sk.tvhclient.shared.model.seriesTitle(title)).lowercase()
         val now = System.currentTimeMillis()
         val cached = rulesCache[server.id]?.takeIf { now - it.ts < SCHED_TTL_MS }?.list
         val list = cached ?: autorecs(server)?.also { rulesCache[server.id] = RulesCache(now, it) } ?: return null
+        if (serieslink.isNotBlank()) list.firstOrNull { it.serieslink == serieslink }?.let { return it }
         return list.firstOrNull {
-            it.title.trim().lowercase() == key && (it.channelUuid.isBlank() || it.channelUuid == channelUuid)
+            val t = it.title.trim().lowercase()
+            (t == key || t == keyRe) && (it.channelUuid.isBlank() || it.channelUuid == channelUuid)
         }
     }
 
     fun invalidateRules(serverId: String) { rulesCache.remove(serverId) }
 
     /** One-click "Record series": a rule by title on this channel, new episodes only. */
-    suspend fun recordSeries(server: TvhServer, title: String, channelUuid: String, profile: String?): DvrResult {
+    suspend fun recordSeries(
+        server: TvhServer, title: String, channelUuid: String, profile: String?, serieslink: String = ""
+    ): DvrResult {
+        // M704 (JiRo): the title is a regular expression on the server and the EPG often puts the
+        // episode into it ("Show VI (17)") — the raw title matched no other episode. Now: the EPG
+        // series link when the event has one (exact, Tvheadend then ignores the title), otherwise the
+        // title without the episode marker, escaped. "Record all": the "unique" duplicate check
+        // treats episodes without episode numbers and with the same title as one programme.
+        val series = sk.tvhclient.shared.model.seriesTitle(title)
         val rule = DvrAutorec(
-            name = title.trim(),
-            title = title.trim(),
+            name = series,
+            title = sk.tvhclient.shared.model.regexLiteral(series),
             channelUuid = channelUuid,
-            dupDetect = sk.tvhclient.shared.model.DupDetect.UNIQUE,
-            configName = profile ?: ""
+            dupDetect = sk.tvhclient.shared.model.DupDetect.ALL,
+            configName = profile ?: "",
+            serieslink = serieslink
         )
         return saveAutorec(server, rule).also { if (it.success) invalidateRules(server.id) }
     }

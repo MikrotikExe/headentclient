@@ -40,7 +40,9 @@ data class DvrAutorec(
     val dupDetect: Int = DupDetect.ALL,
     /** DVR profile: the app stores the profile NAME (as with recordEvent); "" = server default. */
     val configName: String = "",
-    val comment: String = ""
+    val comment: String = "",
+    /** M704: the EPG series link; when set, the server matches episodes by it and ignores the title. */
+    val serieslink: String = ""
 ) {
     companion object {
         const val ALL_DAYS = 0x7F
@@ -119,4 +121,37 @@ fun autorecWindow(around: Int): Pair<Int, Int> {
     if (around < 0) return -1 to -1
     val day = 24 * 60
     return ((around - 15 + day) % day) to ((around + 15) % day)
+}
+
+/**
+ * M704: the series title of an episode — trailing episode markers removed, so that a title-based
+ * "Record series" rule matches the other episodes too ("Show VI (17)" -> "Show VI"). Only markers
+ * that are clearly episode numbers are removed; a title that would become empty stays as it was.
+ */
+fun seriesTitle(title: String): String {
+    val patterns = listOf(
+        Regex("""\s*\(\s*\d{1,3}\s*(/\s*\d{1,3})?\s*\)\s*$"""),              // (17)  (17/40); not a year (2019)
+        Regex("""\s*\[\s*\d{1,4}\s*(/\s*\d{1,4})?\s*\]\s*$"""),              // [17]
+        Regex("""\s*\(?\s*[Ss]\d{1,2}\s*[Ee]\d{1,3}\s*\)?\s*$"""),            // S01E05  (S1 E5)
+        Regex("""\s*[-–:,]?\s*\d{1,4}\s*\.?\s*(časť|čast|diel|díl|část|epizóda|epizoda|ep\.?|folge|teil|odc\.?|rész)\s*$""", RegexOption.IGNORE_CASE),
+        Regex("""\s*[-–:,]?\s*(časť|diel|díl|část|epizóda|epizoda|ep\.?|folge|teil)\s*\d{1,4}\s*$""", RegexOption.IGNORE_CASE),
+        Regex("""\s*[-–:,]\s*\d{1,4}\s*$"""),                                  // "Show - 17"
+    )
+    var t = title.trim()
+    while (true) {
+        val before = t
+        for (p in patterns) t = t.replace(p, "").trim()
+        if (t == before) break
+    }
+    return t.ifBlank { title.trim() }
+}
+
+/** M704: [s] as a literal inside Tvheadend's title regex (it matches case-insensitively, anywhere). */
+fun regexLiteral(s: String): String {
+    val sb = StringBuilder()
+    for (c in s) {
+        if (c in ".^$*+?()[]{}|\\") sb.append('\\')
+        sb.append(c)
+    }
+    return sb.toString()
 }

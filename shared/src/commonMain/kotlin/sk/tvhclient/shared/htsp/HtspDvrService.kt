@@ -96,7 +96,8 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
                 startWindowMin = (l(m, "startWindow") ?: -1L).toInt(),
                 dupDetect = (l(m, "dupDetect") ?: 0L).toInt(),
                 configName = cfg[s(m, "configId")] ?: "",
-                comment = s(m, "comment")
+                comment = s(m, "comment"),
+                serieslink = s(m, "serieslinkUri")   // M704
             )
         }
     }
@@ -143,6 +144,8 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
         args["dupDetect"] = a.dupDetect.toLong()
         args["comment"] = a.comment
         if (a.configName.isNotBlank()) args["configName"] = a.configName
+        // M704: sent only when set — on an update an absent field keeps the server's value
+        if (a.serieslink.isNotBlank()) args["serieslinkUri"] = a.serieslink
         return args
     }
 

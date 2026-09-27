@@ -110,7 +110,8 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
                 startWindowMin = parseHm(str(o, "start_window")),
                 dupDetect = int(o, "record", DupDetect.ALL),
                 configName = cfg.nameOf(str(o, "config_name")),
-                comment = str(o, "comment")
+                comment = str(o, "comment"),
+                serieslink = str(o, "serieslink")   // M704
             )
         }
     }
@@ -150,6 +151,7 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
         m["start_window"] = JsonPrimitive(formatHm(before))
         m["record"] = JsonPrimitive(a.dupDetect)
         m["comment"] = JsonPrimitive(a.comment)
+        if (a.serieslink.isNotBlank()) m["serieslink"] = JsonPrimitive(a.serieslink)   // M704
         if (a.configName.isNotBlank()) configs().uuidOf(a.configName)?.let { m["config_name"] = JsonPrimitive(it) }
         return JsonObject(m)
     }

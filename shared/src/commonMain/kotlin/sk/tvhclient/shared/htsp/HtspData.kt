@@ -498,7 +498,8 @@ object HtspData {
             genre = if (ct > 0) listOf(ct) else emptyList(),
             ageRating = longOf(e, "ageRating")?.toInt() ?: 0,
             episodeOnscreen = strOf(e, "episodeOnscreen"),
-            nextEventId = longOf(e, "nextEventId")
+            nextEventId = longOf(e, "nextEventId"),
+            serieslinkUri = strOf(e, "serieslinkUri")   // M704
         )
     }
 
