@@ -9,6 +9,8 @@ import sk.tvhclient.shared.model.DupDetect
 import sk.tvhclient.shared.model.DvrAutorec
 import sk.tvhclient.shared.model.DvrTimerec
 import sk.tvhclient.shared.model.TvhServer
+import sk.tvhclient.shared.model.autorecAround
+import sk.tvhclient.shared.model.autorecWindow
 import sk.tvhclient.shared.model.formatHm
 import sk.tvhclient.shared.model.maskToWeekdays
 import sk.tvhclient.shared.model.parseHm
@@ -104,7 +106,7 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
                 title = str(o, "title"),
                 channelUuid = str(o, "channel"),
                 daysOfWeek = days(o),
-                startMin = parseHm(str(o, "start")),
+                startMin = autorecAround(parseHm(str(o, "start")), parseHm(str(o, "start_window"))),   // M700
                 startWindowMin = parseHm(str(o, "start_window")),
                 dupDetect = int(o, "record", DupDetect.ALL),
                 configName = cfg.nameOf(str(o, "config_name")),
@@ -141,9 +143,11 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
         m["title"] = JsonPrimitive(a.title)
         m["channel"] = JsonPrimitive(a.channelUuid)
         m["weekdays"] = weekdaysJson(a.daysOfWeek)
-        // "" = any (the setter treats a non-digit start as -1)
-        m["start"] = JsonPrimitive(formatHm(a.startMin))
-        m["start_window"] = JsonPrimitive(formatHm(a.startWindowMin))
+        // M700: "start after" / "start before" = ±15 min around the chosen time, "" = any
+        // (the setter treats a non-digit value as -1)
+        val (after, before) = autorecWindow(a.startMin)
+        m["start"] = JsonPrimitive(formatHm(after))
+        m["start_window"] = JsonPrimitive(formatHm(before))
         m["record"] = JsonPrimitive(a.dupDetect)
         m["comment"] = JsonPrimitive(a.comment)
         if (a.configName.isNotBlank()) configs().uuidOf(a.configName)?.let { m["config_name"] = JsonPrimitive(it) }

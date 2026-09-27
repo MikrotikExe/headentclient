@@ -27,9 +27,14 @@ data class DvrAutorec(
     val title: String = "",
     val channelUuid: String = "",
     val daysOfWeek: Int = ALL_DAYS,
-    /** Minutes after midnight the programme should start around; -1 = any time. */
+    /**
+     * Minutes after midnight the programme should start around; -1 = any time.
+     * M700: Tvheadend stores two times of day, "start after" (`start`) and "start before"
+     * (`start_window`) — not a duration. The app shows their midpoint and writes ±15 min around it,
+     * which is exactly what HTSP `approxTime` does on add ([autorecAround] / [autorecWindow]).
+     */
     val startMin: Int = -1,
-    /** Width of the start window in minutes; -1 = any. */
+    /** Tvheadend's "start before" time of day as read from the server; -1 = none. */
     val startWindowMin: Int = -1,
     /** Duplicate handling — Tvheadend `record` / HTSP `dupDetect`, see [DupDetect]. */
     val dupDetect: Int = DupDetect.ALL,
@@ -99,4 +104,19 @@ fun formatHm(min: Int): String {
     val h = min / 60
     val m = min % 60
     return (if (h < 10) "0$h" else "$h") + ":" + (if (m < 10) "0$m" else "$m")
+}
+
+/** M700: "start after" + "start before" (times of day, may wrap past midnight) -> the midpoint; -1 = any. */
+fun autorecAround(start: Int, window: Int): Int {
+    if (start < 0 || window < 0) return -1
+    var w = window
+    if (w < start) w += 24 * 60
+    return ((start + w) / 2) % (24 * 60)
+}
+
+/** M700: the midpoint -> ("start after", "start before") = ±15 min, like HTSP approxTime; (-1, -1) = any. */
+fun autorecWindow(around: Int): Pair<Int, Int> {
+    if (around < 0) return -1 to -1
+    val day = 24 * 60
+    return ((around - 15 + day) % day) to ((around + 15) % day)
 }

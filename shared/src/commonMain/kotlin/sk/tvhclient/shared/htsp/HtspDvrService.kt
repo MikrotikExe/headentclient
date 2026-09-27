@@ -6,6 +6,8 @@ import sk.tvhclient.shared.api.DvrService
 import sk.tvhclient.shared.model.DvrAutorec
 import sk.tvhclient.shared.model.DvrTimerec
 import sk.tvhclient.shared.model.TvhServer
+import sk.tvhclient.shared.model.autorecAround
+import sk.tvhclient.shared.model.autorecWindow
 
 /**
  * M472: recording over HTSP (addDvrEntry, cancelDvrEntry, deleteDvrEntry).
@@ -90,7 +92,7 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
                 title = s(m, "title"),
                 channelUuid = l(m, "channel")?.toString() ?: "",
                 daysOfWeek = (l(m, "daysOfWeek") ?: DvrAutorec.ALL_DAYS.toLong()).toInt(),
-                startMin = (l(m, "start") ?: -1L).toInt(),
+                startMin = autorecAround((l(m, "start") ?: -1L).toInt(), (l(m, "startWindow") ?: -1L).toInt()),   // M700
                 startWindowMin = (l(m, "startWindow") ?: -1L).toInt(),
                 dupDetect = (l(m, "dupDetect") ?: 0L).toInt(),
                 configName = cfg[s(m, "configId")] ?: "",
@@ -128,9 +130,16 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
         // field keeps the old channel, so -1 is sent explicitly)
         args["channelId"] = a.channelUuid.toLongOrNull() ?: -1L
         args["daysOfWeek"] = a.daysOfWeek.toLong()
-        // "approxTime" = start around (minutes after midnight); -1 = any time. The server then
-        // builds start/startWindow from it itself.
-        args["approxTime"] = a.startMin.toLong()
+        // "Start around" (minutes after midnight; -1 = any time). M700: on add the server builds
+        // start/startWindow from approxTime itself, but updateAutorecEntry ignores approxTime and only
+        // reads start/startWindow — so an edit of the time did nothing. Both are sent explicitly now.
+        if (update) {
+            val (after, before) = autorecWindow(a.startMin)
+            args["start"] = after.toLong()
+            args["startWindow"] = before.toLong()
+        } else {
+            args["approxTime"] = a.startMin.toLong()
+        }
         args["dupDetect"] = a.dupDetect.toLong()
         args["comment"] = a.comment
         if (a.configName.isNotBlank()) args["configName"] = a.configName
