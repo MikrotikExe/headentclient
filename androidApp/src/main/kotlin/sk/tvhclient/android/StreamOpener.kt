@@ -121,11 +121,14 @@ internal class StreamOpener(
         stream.resetForHttp(keepHttpFeeder = false)
         hooks.resetTimeshift()
         stream.currentStreamUrl = url
-        val m = media.forUrl(url)
+        val m = media.forUrl(url, demuxFor(url))   // M703
         player().media = m
         m.release()
         hooks.startPlayback()
     }
+
+    /** M703: avformat (with a fallback) for a Matroska recording, the default demuxer otherwise. */
+    private fun demuxFor(url: String): String? = if (url == stream.avformatUrl) "avformat,any" else null
 
     /**
      * M253 — DVR/archive via HttpTsFeeder: the app downloads the dvrfile with digest auth
@@ -194,7 +197,7 @@ internal class StreamOpener(
     /** A direct HTTP medium without resetting the feeders/teletext (reconnect, reopen, seek), optionally with :start-time. */
     private fun playUrlDirect(url: String, startTimeSec: Long?) {
         hooks.ensureHealthyPlayer()   // M539
-        val m = media.forUrl(url)
+        val m = media.forUrl(url, demuxFor(url))   // M703
         if (startTimeSec != null) m.addOption(":start-time=$startTimeSec")
         player().media = m
         m.release()

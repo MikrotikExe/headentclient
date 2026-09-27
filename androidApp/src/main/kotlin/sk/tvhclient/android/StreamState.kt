@@ -21,6 +21,15 @@ internal class StreamState {
         set(v) { htspStreamState.value = v }
     val htspLiveState = mutableStateOf(false)
     var currentStreamUrl: String? = null
+    /**
+     * M703 (issue #19): the URL of a Matroska recording, demuxed by libavformat instead of libVLC's
+     * own mkv demuxer. Tvheadend writes Matroska cues for the video keyframes only; libVLC's mkv
+     * demuxer seeks every track to its own cue, finds none for audio and starts reading from the
+     * beginning of the file — a seek or "continue from" effectively restarted the recording.
+     * avformat seeks by the video cues (like Kodi). Verified with VLC 3.0.20: --start-time=300 on
+     * such a file -> mkv demux requests bytes=123-, avformat requests the cluster at ~300 s.
+     */
+    var avformatUrl: String? = null
     /** Cache: does live HTTP on this server require a feeder (digest-only)? null = not determined. */
     var liveNeedsFeeder: Boolean? = null
 

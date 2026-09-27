@@ -76,6 +76,24 @@ object DvrProxy {
         "http://127.0.0.1:$port/$token" + bare.substring(base.length)
     }.getOrNull()
 
+    /**
+     * M703: is the recording Matroska? Reads the first 4 bytes (EBML magic 1A 45 DF A3) with the
+     * server's own authentication. null = could not tell (network, rights) — the caller keeps the
+     * default demuxer. Call off the main thread.
+     */
+    fun isMatroska(server: TvhServer, upstreamUrl: String): Boolean? = runCatching {
+        val req = Request.Builder().url(MediaFactory.stripCreds(upstreamUrl)).header("Range", "bytes=0-3").build()
+        client(server).newBuilder().callTimeout(5, TimeUnit.SECONDS).build().newCall(req).execute().use { resp ->
+            if (resp.code != 200 && resp.code != 206) return@use null
+            val b = ByteArray(4)
+            val src = resp.body?.byteStream() ?: return@use null
+            var n = 0
+            while (n < 4) { val r = src.read(b, n, 4 - n); if (r < 0) break; n += r }
+            n == 4 && (b[0].toInt() and 0xFF) == 0x1A && (b[1].toInt() and 0xFF) == 0x45 &&
+                (b[2].toInt() and 0xFF) == 0xDF && (b[3].toInt() and 0xFF) == 0xA3
+        }
+    }.getOrNull()
+
     private fun acceptLoop(s: ServerSocket) {
         while (!s.isClosed) {
             val c = try { s.accept() } catch (_: Throwable) { break }

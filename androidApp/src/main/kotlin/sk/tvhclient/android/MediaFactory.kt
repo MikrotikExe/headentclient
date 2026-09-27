@@ -17,8 +17,9 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
     fun userAgent(): String = sk.tvhclient.shared.ClientIdent.userAgent
 
     /** Direct URL (HTTP live / DVR): HW/SW decoder, User-Agent, deinterlacing. */
-    fun forUrl(url: String): Media {
+    fun forUrl(url: String, demux: String? = null): Media {
         val m = Media(libVlc(), Uri.parse(url))
+        if (demux != null) m.addOption(":demux=$demux")   // M703: e.g. "avformat,any" for Matroska recordings
         m.setHWDecoderEnabled(!SwDecodePref.get(ctx), false)  // M447
         // User-Agent: so that the server sees that HeadentClient is connecting
         m.addOption(":http-user-agent=" + userAgent())

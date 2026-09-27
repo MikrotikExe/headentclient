@@ -100,11 +100,27 @@ internal class ChannelSwitcher(
                             DvrProxy.urlFor(server, streamUrl) ?: FEEDER
                         else null
                     }
+                    // M703 (issue #19): Matroska recordings are demuxed by avformat (see
+                    // StreamState.avformatUrl); the pipe feeder cannot seek anyway, so it is not probed
+                    val url = proxied ?: streamUrl
+                    stream.avformatUrl = if (proxied != FEEDER && withContext(Dispatchers.IO) {
+                        DvrProxy.isMatroska(server, streamUrl) == true
+                    }) url else null
                     when (proxied) {
                         null -> { stream.dvrViaFeeder = false; actions.playHttp(streamUrl) }
                         FEEDER -> { stream.dvrViaFeeder = true; actions.playDvrViaFeeder(server, streamUrl) }
                         else -> { stream.dvrViaFeeder = false; actions.playHttp(proxied) }
                     }
+                    actions.pokeControls()
+                }
+            } else if (directUrl != null) {
+                // M703 (issue #19): a recording on a server without a login — the same container check
+                stream.dvrViaFeeder = false
+                scope.launch {
+                    stream.avformatUrl = if (withContext(Dispatchers.IO) {
+                        DvrProxy.isMatroska(server, streamUrl) == true
+                    }) streamUrl else null
+                    actions.playLiveAuto(server, streamUrl)
                     actions.pokeControls()
                 }
             } else {
