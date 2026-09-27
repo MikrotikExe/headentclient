@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">Složka (volitelné)</string>
     <string name="timers_field_directory_note">Podsložka v adresáři nahrávek serveru. Prázdné = podle DVR profilu.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">Podle profilu</string>
+    <string name="dvr_profile_unknown">Neznámý profil</string>
+    <string name="set_archive_by_profile">Třídit archiv podle profilu</string>
+    <string name="set_archive_by_profile_note">Do archivu přidá sekci Podle profilu: nahrávky seskupené podle profilu nahrávání, kterým vznikly.</string>
 </resources>

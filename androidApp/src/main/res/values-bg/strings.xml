@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">Папка (по избор)</string>
     <string name="timers_field_directory_note">Подпапка в директорията за записи на сървъра. Празно = според DVR профила.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">По профил</string>
+    <string name="dvr_profile_unknown">Неизвестен профил</string>
+    <string name="set_archive_by_profile">Сортиране на архива по профил</string>
+    <string name="set_archive_by_profile_note">Добавя в архива раздел По профил: записите, групирани по профила за запис, с който са направени.</string>
 </resources>

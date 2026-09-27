@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">Priečinok (voliteľné)</string>
     <string name="timers_field_directory_note">Podpriečinok v adresári nahrávok servera. Prázdne = podľa DVR profilu.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">Podľa profilu</string>
+    <string name="dvr_profile_unknown">Neznámy profil</string>
+    <string name="set_archive_by_profile">Triediť archív podľa profilu</string>
+    <string name="set_archive_by_profile_note">Do archívu pridá sekciu Podľa profilu: nahrávky zoskupené podľa profilu nahrávania, ktorým vznikli.</string>
 </resources>

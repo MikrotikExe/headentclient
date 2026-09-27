@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">Thư mục (tùy chọn)</string>
     <string name="timers_field_directory_note">Thư mục con trong thư mục ghi của máy chủ. Để trống = theo hồ sơ DVR.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">Theo hồ sơ</string>
+    <string name="dvr_profile_unknown">Hồ sơ không xác định</string>
+    <string name="set_archive_by_profile">Sắp xếp kho lưu trữ theo hồ sơ</string>
+    <string name="set_archive_by_profile_note">Thêm mục Theo hồ sơ vào kho lưu trữ: các bản ghi được nhóm theo hồ sơ ghi đã dùng.</string>
 </resources>

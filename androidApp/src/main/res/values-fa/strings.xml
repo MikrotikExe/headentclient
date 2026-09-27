@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">پوشه (اختیاری)</string>
     <string name="timers_field_directory_note">یک زیرپوشه در پوشهٔ ضبط‌های سرور. خالی = طبق نمایهٔ DVR.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">بر اساس نمایه</string>
+    <string name="dvr_profile_unknown">نمایهٔ ناشناخته</string>
+    <string name="set_archive_by_profile">مرتب‌سازی بایگانی بر اساس نمایه</string>
+    <string name="set_archive_by_profile_note">بخش بر اساس نمایه را به بایگانی می‌افزاید: ضبط‌ها بر اساس نمایهٔ ضبطی که با آن ساخته شده‌اند گروه‌بندی می‌شوند.</string>
 </resources>

@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">Mappa (nem kötelező)</string>
     <string name="timers_field_directory_note">Almappa a szerver felvételi könyvtárában. Üres = a DVR-profil szerint.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">Profil szerint</string>
+    <string name="dvr_profile_unknown">Ismeretlen profil</string>
+    <string name="set_archive_by_profile">Archívum rendezése profil szerint</string>
+    <string name="set_archive_by_profile_note">Profil szerint szakaszt ad az archívumhoz: a felvételek a készítésükhöz használt felvételi profil szerint csoportosítva.</string>
 </resources>

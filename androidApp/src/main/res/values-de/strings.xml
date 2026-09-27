@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">Ordner (optional)</string>
     <string name="timers_field_directory_note">Ein Unterordner im Aufnahmeverzeichnis des Servers. Leer = wie im DVR-Profil eingestellt.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">Nach Profil</string>
+    <string name="dvr_profile_unknown">Unbekanntes Profil</string>
+    <string name="set_archive_by_profile">Archiv nach Profil sortieren</string>
+    <string name="set_archive_by_profile_note">Fügt dem Archiv den Bereich Nach Profil hinzu: Aufnahmen gruppiert nach dem Aufnahmeprofil, mit dem sie erstellt wurden.</string>
 </resources>

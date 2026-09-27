@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">โฟลเดอร์ (ไม่บังคับ)</string>
     <string name="timers_field_directory_note">โฟลเดอร์ย่อยในไดเรกทอรีบันทึกของเซิร์ฟเวอร์ เว้นว่าง = ตามโปรไฟล์ DVR</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">ตามโปรไฟล์</string>
+    <string name="dvr_profile_unknown">โปรไฟล์ที่ไม่รู้จัก</string>
+    <string name="set_archive_by_profile">จัดเรียงคลังตามโปรไฟล์</string>
+    <string name="set_archive_by_profile_note">เพิ่มส่วน ตามโปรไฟล์ ในคลัง: การบันทึกจัดกลุ่มตามโปรไฟล์การบันทึกที่ใช้</string>
 </resources>

@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">Folder (opsional)</string>
     <string name="timers_field_directory_note">Subfolder di direktori rekaman server. Kosong = sesuai profil DVR.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">Menurut profil</string>
+    <string name="dvr_profile_unknown">Profil tidak dikenal</string>
+    <string name="set_archive_by_profile">Urutkan arsip menurut profil</string>
+    <string name="set_archive_by_profile_note">Menambahkan bagian Menurut profil ke arsip: rekaman dikelompokkan menurut profil rekaman yang digunakan.</string>
 </resources>

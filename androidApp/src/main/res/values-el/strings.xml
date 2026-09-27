@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">Φάκελος (προαιρετικό)</string>
     <string name="timers_field_directory_note">Υποφάκελος στον κατάλογο εγγραφών του διακομιστή. Κενό = όπως ορίζει το προφίλ DVR.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">Ανά προφίλ</string>
+    <string name="dvr_profile_unknown">Άγνωστο προφίλ</string>
+    <string name="set_archive_by_profile">Ταξινόμηση αρχείου ανά προφίλ</string>
+    <string name="set_archive_by_profile_note">Προσθέτει στο αρχείο την ενότητα Ανά προφίλ: εγγραφές ομαδοποιημένες κατά το προφίλ εγγραφής που χρησιμοποιήθηκε.</string>
 </resources>

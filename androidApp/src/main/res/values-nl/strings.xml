@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">Map (optioneel)</string>
     <string name="timers_field_directory_note">Een submap in de opnamemap van de server. Leeg = zoals ingesteld in het DVR-profiel.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">Per profiel</string>
+    <string name="dvr_profile_unknown">Onbekend profiel</string>
+    <string name="set_archive_by_profile">Archief sorteren op profiel</string>
+    <string name="set_archive_by_profile_note">Voegt aan het archief de sectie Per profiel toe: opnames gegroepeerd op het opnameprofiel waarmee ze zijn gemaakt.</string>
 </resources>

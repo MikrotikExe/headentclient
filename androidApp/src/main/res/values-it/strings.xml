@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">Cartella (facoltativa)</string>
     <string name="timers_field_directory_note">Una sottocartella nella directory delle registrazioni del server. Vuoto = come nel profilo DVR.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">Per profilo</string>
+    <string name="dvr_profile_unknown">Profilo sconosciuto</string>
+    <string name="set_archive_by_profile">Ordina l\'archivio per profilo</string>
+    <string name="set_archive_by_profile_note">Aggiunge all\'archivio la sezione Per profilo: registrazioni raggruppate in base al profilo di registrazione usato.</string>
 </resources>

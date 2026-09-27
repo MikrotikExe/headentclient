@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">Фасцикла (опционо)</string>
     <string name="timers_field_directory_note">Потфасцикла у директоријуму снимака сервера. Празно = према DVR профилу.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">По профилу</string>
+    <string name="dvr_profile_unknown">Непознат профил</string>
+    <string name="set_archive_by_profile">Сортирај архиву по профилу</string>
+    <string name="set_archive_by_profile_note">Додаје у архиву одељак По профилу: снимци груписани према профилу снимања којим су настали.</string>
 </resources>

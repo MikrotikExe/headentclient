@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">Тека (необов\'язково)</string>
     <string name="timers_field_directory_note">Підтека в каталозі записів сервера. Порожньо = як у профілі DVR.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">За профілем</string>
+    <string name="dvr_profile_unknown">Невідомий профіль</string>
+    <string name="set_archive_by_profile">Сортувати архів за профілем</string>
+    <string name="set_archive_by_profile_note">Додає до архіву розділ За профілем: записи, згруповані за профілем запису, яким їх зроблено.</string>
 </resources>

@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">फ़ोल्डर (वैकल्पिक)</string>
     <string name="timers_field_directory_note">सर्वर की रिकॉर्डिंग डायरेक्टरी में एक सब-फ़ोल्डर। खाली = DVR प्रोफ़ाइल के अनुसार।</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">प्रोफ़ाइल के अनुसार</string>
+    <string name="dvr_profile_unknown">अज्ञात प्रोफ़ाइल</string>
+    <string name="set_archive_by_profile">आर्काइव को प्रोफ़ाइल के अनुसार क्रमबद्ध करें</string>
+    <string name="set_archive_by_profile_note">आर्काइव में प्रोफ़ाइल के अनुसार सेक्शन जोड़ता है: रिकॉर्डिंग उस रिकॉर्डिंग प्रोफ़ाइल के अनुसार समूहित होती हैं जिससे वे बनीं।</string>
 </resources>

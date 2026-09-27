@@ -591,6 +591,14 @@ internal fun GeneralSettings(ctx: android.content.Context) {
             checked = timers.value,
             onChange = { v -> TimersPref.set(ctx, v) }
         )
+        // M707 (issue #18): "By profile" in the archive — off by default, see ArchiveProfilePref
+        val byProfile = ArchiveProfilePref.stateOf(ctx)
+        SettingsSwitchRow(
+            label = stringResource(R.string.set_archive_by_profile),
+            note = stringResource(R.string.set_archive_by_profile_note),
+            checked = byProfile.value,
+            onChange = { v -> ArchiveProfilePref.set(ctx, v) }
+        )
     }
     // M702 (issue #18): the confirmation questions can be switched off
     SettingsGroup(stringResource(R.string.set_grp_confirm)) {

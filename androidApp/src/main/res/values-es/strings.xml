@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">Carpeta (opcional)</string>
     <string name="timers_field_directory_note">Una subcarpeta en el directorio de grabaciones del servidor. Vacío = según el perfil DVR.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">Por perfil</string>
+    <string name="dvr_profile_unknown">Perfil desconocido</string>
+    <string name="set_archive_by_profile">Ordenar el archivo por perfil</string>
+    <string name="set_archive_by_profile_note">Añade al archivo la sección Por perfil: grabaciones agrupadas según el perfil de grabación con el que se hicieron.</string>
 </resources>

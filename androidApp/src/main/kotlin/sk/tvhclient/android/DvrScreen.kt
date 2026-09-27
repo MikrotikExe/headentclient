@@ -83,6 +83,8 @@ private sealed class DvrNav {
     data object Scheduled : DvrNav()   // M696
     data object Timers : DvrNav()      // M696
     data object Channels : DvrNav()
+    data object Profiles : DvrNav()                     // M707
+    data class Profile(val id: String) : DvrNav()       // M707
     data class Dates(val channel: String) : DvrNav()
     data class Day(val channel: String, val dateKey: String) : DvrNav()
     data class Category(val catKey: String) : DvrNav()
@@ -254,6 +256,8 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
                 is DvrNav.Day -> DvrNav.Dates(n.channel)
                 is DvrNav.Dates -> DvrNav.Channels
                 is DvrNav.Channels -> DvrNav.Root
+                is DvrNav.Profile -> DvrNav.Profiles   // M707
+                is DvrNav.Profiles -> DvrNav.Root
                 is DvrNav.Recent -> DvrNav.Root
                 is DvrNav.Scheduled, is DvrNav.Timers -> DvrNav.Root   // M696
                 is DvrNav.Series -> DvrNav.Subgenre(n.catKey, n.subKey)
@@ -384,6 +388,8 @@ private fun DvrContent(
 ) {
     val server = remember { Tvh.store.active() }
     val timersOn = TimersPref.stateOf(context).value   // M696
+    val profilesOn = ArchiveProfilePref.stateOf(context).value   // M707
+    val profileNames = rememberProfileNames(server, profilesOn)
     val piconLoader = remember(server?.id) { PiconImageLoader.get(context, server) }
     // Classification is expensive (stripping diacritics + regexes over title/subtitle/description/channel).
     // Classify each recording ONCE per load (memoised by entries), not on
@@ -402,6 +408,7 @@ private fun DvrContent(
             }
             val cats = DvrClassifier.order.filter { byCat.containsKey(it) }
             val chCount = entries.map { it.channelName }.distinct().size
+            val profCount = remember(entries) { entries.map { it.configId }.distinct().size }   // M707
             if (viewMode == ChannelViewMode.LIST) {
                 LazyColumn(Modifier.fillMaxSize()) {
                     item("hdr") { Header(stringResource(R.string.dvr_archive)) }
@@ -416,6 +423,11 @@ private fun DvrContent(
                             sub = "$chCount " + stringResource(R.string.dvr_channels_count),
                             iconKey = "channels"
                         ) { onNav(DvrNav.Channels) }
+                    }
+                    if (profilesOn) {   // M707
+                        item("by_profile") {
+                            FolderRow("\uD83D\uDDC2  " + stringResource(R.string.dvr_by_profile), sub = "$profCount", iconKey = "profiles") { onNav(DvrNav.Profiles) }
+                        }
                     }
                     item("cat_hdr") { Header(stringResource(R.string.dvr_by_genre)) }
                     items(cats, key = { it }) { cat ->
@@ -448,6 +460,11 @@ private fun DvrContent(
                             sub = "$chCount " + stringResource(R.string.dvr_channels_count),
                             iconKey = "channels"
                         ) { onNav(DvrNav.Channels) }
+                    }
+                    if (profilesOn) {   // M707
+                        item(key = "by_profile", span = { GridItemSpan(maxLineSpan) }) {
+                            FolderRow("\uD83D\uDDC2  " + stringResource(R.string.dvr_by_profile), sub = "$profCount", iconKey = "profiles") { onNav(DvrNav.Profiles) }
+                        }
                     }
                     item(key = "cat_hdr", span = { GridItemSpan(maxLineSpan) }) { Header(stringResource(R.string.dvr_by_genre)) }
                     gridItems(cats, key = { it }) { cat ->
@@ -528,6 +545,35 @@ private fun DvrContent(
                     }
                 }
             }
+        }
+
+        is DvrNav.Profiles -> {   // M707
+            val groups = remember(entries) { groupByProfile(entries) }
+            if (viewMode == ChannelViewMode.LIST) {
+                LazyColumn(Modifier.fillMaxSize()) {
+                    item("hdr") { Header(stringResource(R.string.dvr_by_profile)) }
+                    items(groups, key = { "p_" + it.first }) { (id, list) ->
+                        FolderRow("\uD83D\uDDC2  " + profileLabel(id, profileNames), sub = "${list.size}", iconKey = "profiles") {
+                            onNav(DvrNav.Profile(id))
+                        }
+                    }
+                }
+            } else {
+                val cols = if (viewMode == ChannelViewMode.GRID) 2 else 3
+                LazyVerticalGrid(columns = GridCells.Fixed(cols), modifier = Modifier.fillMaxSize()) {
+                    item(key = "hdr", span = { GridItemSpan(maxLineSpan) }) { Header(stringResource(R.string.dvr_by_profile)) }
+                    gridItems(groups, key = { "p_" + it.first }) { (id, list) ->
+                        FolderCard(profileLabel(id, profileNames), sub = "${list.size}", onClick = { onNav(DvrNav.Profile(id)) })
+                    }
+                }
+            }
+        }
+
+        is DvrNav.Profile -> {   // M707
+            val list = remember(entries, nav.id) {
+                entries.filter { it.configId == nav.id }.sortedByDescending { it.start }
+            }
+            RecordingList(list, context, progressTick, header = profileLabel(nav.id, profileNames), viewMode = viewMode)
         }
 
         is DvrNav.Dates -> {
@@ -1148,6 +1194,8 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
     val refreshingTv by vm.refreshing.collectAsState()   // M589
     val server = remember { Tvh.store.active() }
     val timersOn = TimersPref.stateOf(context).value   // M696
+    val profilesOn = ArchiveProfilePref.stateOf(context).value   // M707
+    val profileNames = rememberProfileNames(server, profilesOn)
     val loader = remember(server?.id) { PiconImageLoader.get(context, server) }
     // M528: request a fresh list on every opening of the archive.
     // `loadIfNeeded` returns immediately when it already has data, so a just-finished
@@ -1177,7 +1225,8 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
     var selChannelDate by remember { mutableStateOf<String?>(null) }
     var selSub by remember { mutableStateOf<String?>(null) }
     var selSeries by remember { mutableStateOf<String?>(null) }
-    fun openSection(key: String) { selKey = key; selChannel = null; selChannelDate = null; selSub = null; selSeries = null }
+    var selProfile by remember { mutableStateOf<String?>(null) }   // M707
+    fun openSection(key: String) { selKey = key; selChannel = null; selChannelDate = null; selSub = null; selSeries = null; selProfile = null }
     var query by remember { mutableStateOf("") }
     val searchFocus = remember { FocusRequester() }
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -1190,13 +1239,14 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
     }
 
-    LaunchedEffect(selKey) { selChannel = null; selChannelDate = null; selSub = null; selSeries = null }
+    LaunchedEffect(selKey) { selChannel = null; selChannelDate = null; selSub = null; selSeries = null; selProfile = null }
     BackHandler {
         when {
             selSeries != null -> selSeries = null
             selChannelDate != null -> selChannelDate = null
             selSub != null -> selSub = null
             selChannel != null -> selChannel = null
+            selProfile != null -> selProfile = null   // M707
             else -> onBack()
         }
     }
@@ -1246,6 +1296,9 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                 item("_recent") { ArcRailItem(stringResource(R.string.dvr_recent), recent.size, selKey == "_recent", iconKey = "recent") { openSection("_recent") } }
                 item("_search") { ArcRailItem(stringResource(R.string.dvr_search), null, selKey == "_search", iconKey = "search") { openSection("_search") } }
                 item("_channels") { ArcRailItem(stringResource(R.string.dvr_by_channel), null, selKey == "_channels", iconKey = "channels") { openSection("_channels") } }
+                if (profilesOn) {   // M707
+                    item("_profiles") { ArcRailItem(stringResource(R.string.dvr_by_profile), null, selKey == "_profiles", iconKey = "profiles") { openSection("_profiles") } }
+                }
                 item("all") { ArcRailItem(stringResource(R.string.dvr_all), entries.size, selKey == "all", iconKey = "all") { openSection("all") } }
                 items(cats, key = { it }) { c -> ArcRailItem(catLabel(c), byCat[c]?.size ?: 0, selKey == c, iconKey = c) { openSection(c) } }
                 if (timersOn) {   // M696
@@ -1290,6 +1343,16 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                     selKey == "_channels" -> {
                         val list = entries.filter { it.channelName == selChannel && dateKey(it.start) == selChannelDate }
                             .sortedByDescending { it.start }
+                        ArcRecGrid(list, loaded, loader, context, progressTick)
+                    }
+                    selKey == "_profiles" && selProfile == null -> {   // M707
+                        val groups = groupByProfile(entries)
+                        ArcFolderHeader(stringResource(R.string.dvr_by_profile))
+                        ArcFolderGrid(groups.map { (id, list) -> Triple(id, profileLabel(id, profileNames), list.size) }, iconKeyFor = { "profiles" }) { selProfile = it }
+                    }
+                    selKey == "_profiles" -> {   // M707
+                        val list = entries.filter { it.configId == selProfile }.sortedByDescending { it.start }
+                        ArcFolderHeader(profileLabel(selProfile ?: "", profileNames))
                         ArcRecGrid(list, loaded, loader, context, progressTick)
                     }
                     selKey == "all" -> {
@@ -1957,5 +2020,34 @@ private fun saveImdbCache(context: Context) {
     try {
         java.io.File(context.filesDir, "imdb_cache.json").writeText(ImdbLookup.exportJson())
     } catch (_: Exception) {
+    }
+}
+/** M707: profile uuid -> name (the server's default profile has an empty name); loaded while the pref is on. */
+@Composable
+private fun rememberProfileNames(server: sk.tvhclient.shared.model.TvhServer?, enabled: Boolean): Map<String, String> {
+    var names by remember(server?.id) { mutableStateOf<Map<String, String>>(emptyMap()) }
+    LaunchedEffect(server?.id, enabled) {
+        if (server == null || !enabled) return@LaunchedEffect
+        names = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching { Tvh.dvrConfigs(server).associate { it.uuid to it.name } }.getOrDefault(emptyMap())
+        }
+    }
+    return names
+}
+
+/** M707: the recordings grouped by their DVR profile, the biggest group first. */
+private fun groupByProfile(entries: List<DvrEntry>): List<Pair<String, List<DvrEntry>>> =
+    entries.groupBy { it.configId }.toList().sortedByDescending { it.second.size }
+
+/** M707: the name shown for a profile; a profile the server no longer has = "Unknown profile". */
+@Composable
+private fun profileLabel(id: String, names: Map<String, String>): String {
+    val n = names[id]
+    return when {
+        n == null && names.isEmpty() && id.isNotBlank() ->
+            stringResource(R.string.dvr_profile_unknown) + " (" + id.take(8) + ")"   // names not loaded (yet)
+        n == null -> stringResource(R.string.dvr_profile_unknown)
+        n.isBlank() -> stringResource(R.string.timers_profile_default)
+        else -> n
     }
 }

@@ -476,7 +476,8 @@ object HtspData {
             contentType = longOf(d, "contentType")?.toInt() ?: 0,
             // M483: the numeric id for cancelDvrEntry/deleteDvrEntry — uuid stays
             // hex (for /dvrfile), otherwise a finished recording could not be deleted.
-            dvrId = id.toString()
+            dvrId = id.toString(),
+            configId = strOf(d, "configId")   // M707
         )
     }
 

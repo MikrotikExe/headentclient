@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">Mapa (neobavezno)</string>
     <string name="timers_field_directory_note">Podmapa u direktoriju snimki poslužitelja. Prazno = prema DVR profilu.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">Po profilu</string>
+    <string name="dvr_profile_unknown">Nepoznat profil</string>
+    <string name="set_archive_by_profile">Razvrstaj arhivu po profilu</string>
+    <string name="set_archive_by_profile_note">Dodaje u arhivu odjeljak Po profilu: snimke grupirane prema profilu snimanja kojim su nastale.</string>
 </resources>

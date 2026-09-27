@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">المجلد (اختياري)</string>
     <string name="timers_field_directory_note">مجلد فرعي في دليل التسجيلات على الخادم. فارغ = حسب ملف تعريف DVR.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">حسب الملف الشخصي</string>
+    <string name="dvr_profile_unknown">ملف تعريف غير معروف</string>
+    <string name="set_archive_by_profile">فرز الأرشيف حسب ملف التعريف</string>
+    <string name="set_archive_by_profile_note">يضيف قسم حسب الملف الشخصي إلى الأرشيف: التسجيلات مجمعة حسب ملف تعريف التسجيل المستخدم.</string>
 </resources>

@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">فولڈر (اختیاری)</string>
     <string name="timers_field_directory_note">سرور کی ریکارڈنگ ڈائریکٹری میں ایک ذیلی فولڈر۔ خالی = DVR پروفائل کے مطابق۔</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">پروفائل کے مطابق</string>
+    <string name="dvr_profile_unknown">نامعلوم پروفائل</string>
+    <string name="set_archive_by_profile">آرکائیو کو پروفائل کے مطابق ترتیب دیں</string>
+    <string name="set_archive_by_profile_note">آرکائیو میں پروفائل کے مطابق سیکشن شامل کرتا ہے: ریکارڈنگز اس ریکارڈنگ پروفائل کے مطابق گروپ کی جاتی ہیں جس سے وہ بنیں۔</string>
 </resources>

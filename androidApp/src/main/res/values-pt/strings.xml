@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">Pasta (opcional)</string>
     <string name="timers_field_directory_note">Uma subpasta no diretório de gravações do servidor. Vazio = conforme o perfil DVR.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">Por perfil</string>
+    <string name="dvr_profile_unknown">Perfil desconhecido</string>
+    <string name="set_archive_by_profile">Ordenar arquivo por perfil</string>
+    <string name="set_archive_by_profile_note">Adiciona ao arquivo a secção Por perfil: gravações agrupadas pelo perfil de gravação com que foram feitas.</string>
 </resources>

@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">文件夹（可选）</string>
     <string name="timers_field_directory_note">服务器录制目录中的子文件夹。留空 = 按 DVR 配置文件设置。</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">按配置文件</string>
+    <string name="dvr_profile_unknown">未知配置文件</string>
+    <string name="set_archive_by_profile">按配置文件排序归档</string>
+    <string name="set_archive_by_profile_note">在归档中添加“按配置文件”分组：录制内容按所用的录制配置文件分组。</string>
 </resources>

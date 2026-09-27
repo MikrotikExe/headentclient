@@ -94,6 +94,7 @@ internal fun mgChipFor(key: String): MgChipColors = when (key) {
     "series" -> mgPalette[1]
     "scheduled" -> mgPalette[3]   // M696
     "timers" -> mgPalette[0]
+    "profiles" -> mgPalette[4]   // M707
     sk.tvhclient.shared.model.DvrClassifier.FILM -> mgPalette[0]
     sk.tvhclient.shared.model.DvrClassifier.SERIAL -> mgPalette[1]
     sk.tvhclient.shared.model.DvrClassifier.SPORT -> mgPalette[2]
@@ -187,6 +188,7 @@ internal fun mgIconFor(rawKey: String): androidx.compose.ui.graphics.vector.Imag
     key == "dates" -> Icons.Filled.CalendarMonth
     key == "scheduled" -> Icons.Filled.Event      // M696
     key == "timers" -> Icons.Filled.Alarm
+    key == "profiles" -> Icons.Filled.Category   // M707
     key == "series" -> Icons.Filled.VideoLibrary
     key == sk.tvhclient.shared.model.DvrClassifier.FILM || key.startsWith("mv_") -> Icons.Filled.Movie
     key == sk.tvhclient.shared.model.DvrClassifier.SERIAL -> Icons.Filled.Tv

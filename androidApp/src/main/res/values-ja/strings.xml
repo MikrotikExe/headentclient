@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">フォルダー（任意）</string>
     <string name="timers_field_directory_note">サーバーの録画ディレクトリ内のサブフォルダー。空欄 = DVR プロファイルの設定どおり。</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">プロファイル別</string>
+    <string name="dvr_profile_unknown">不明なプロファイル</string>
+    <string name="set_archive_by_profile">アーカイブをプロファイル別に並べる</string>
+    <string name="set_archive_by_profile_note">アーカイブに「プロファイル別」を追加します。録画は使用した録画プロファイルごとにまとめられます。</string>
 </resources>

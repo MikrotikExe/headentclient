@@ -39,7 +39,10 @@ data class DvrEntry(
     // M483: HTSP commands (cancelDvrEntry/deleteDvrEntry) take a NUMERIC id, while
     // /dvrfile needs the hex uuid for playback. With HTSP we therefore keep both.
     // HTTP does not have this field — there both the commands and playback go through the uuid.
-    val dvrId: String = ""
+    val dvrId: String = "",
+    // M707 (issue #18): the uuid of the recording's DVR profile — HTTP grid "config_name",
+    // HTSP "configId". "" = unknown (older servers).
+    @SerialName("config_name") val configId: String = ""
 ) {
     val title: String get() = dispTitle.ifBlank { "—" }
 

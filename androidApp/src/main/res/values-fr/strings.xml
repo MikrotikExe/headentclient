@@ -480,4 +480,9 @@
     <!-- M705: timer rule folder -->
     <string name="timers_field_directory">Dossier (facultatif)</string>
     <string name="timers_field_directory_note">Un sous-dossier du répertoire d\'enregistrement du serveur. Vide = selon le profil DVR.</string>
+    <!-- M707: archive by profile -->
+    <string name="dvr_by_profile">Par profil</string>
+    <string name="dvr_profile_unknown">Profil inconnu</string>
+    <string name="set_archive_by_profile">Trier les archives par profil</string>
+    <string name="set_archive_by_profile_note">Ajoute aux archives une section Par profil : enregistrements regroupés selon le profil d\'enregistrement utilisé.</string>
 </resources>
