@@ -1,7 +1,10 @@
 package sk.tvhclient.android
 
 import android.content.Context
+import android.os.SystemClock
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -195,14 +198,42 @@ internal class StreamOpener(
     // ---- M670: reconnect / reopen / seek (lambda bodies from the activity) ----
 
     /** A direct HTTP medium without resetting the feeders/teletext (reconnect, reopen, seek), optionally with :start-time. */
-    private fun playUrlDirect(url: String, startTimeSec: Long?) {
+    private fun playUrlDirect(url: String, startTimeSec: Long?, startFraction: Float? = null) {
+        startPositionJob?.cancel(); startPositionJob = null
         hooks.ensureHealthyPlayer()   // M539
         val m = media.forUrl(url, demuxFor(url))   // M703
-        if (startTimeSec != null) m.addOption(":start-time=$startTimeSec")
+        // M706: a TS recording starts at a position, not at a time (see StreamState.tsUrl)
+        val byPosition = startFraction != null && url == stream.tsUrl
+        if (startTimeSec != null && !byPosition) m.addOption(":start-time=$startTimeSec")
         player().media = m
         m.release()
         hooks.startPlayback()   // M539-fix2
+        if (byPosition) applyStartPosition(url, startFraction!!)
     }
+
+    private var startPositionJob: Job? = null
+
+    /** M706: once libVLC reports the new HTTP stream as seekable, jump to [fraction] (a byte position). */
+    private fun applyStartPosition(url: String, fraction: Float) {
+        val p = player()
+        val f = fraction.coerceIn(0f, 0.999f)
+        startPositionJob = scope.launch {
+            val until = SystemClock.elapsedRealtime() + 15_000L
+            while (SystemClock.elapsedRealtime() < until) {
+                if (player() !== p || stream.currentStreamUrl != url) return@launch   // rebuilt / another stream
+                if (p.isSeekable) {
+                    p.position = f
+                    return@launch
+                }
+                delay(100)
+            }
+            CrashLogger.report(ctx, "StreamOpener.tsSeek", "stream not seekable, start position $f skipped")
+        }
+    }
+
+    /** M706: [fileMs] as a fraction of a file [fileDurMs] long (a byte estimate, as with the feeder); null = unknown. */
+    private fun fractionOf(fileMs: Long, fileDurMs: Long): Float? =
+        if (fileDurMs > 0) (fileMs.toDouble() / fileDurMs).toFloat().coerceIn(0f, 0.999f) else null
 
     /** One attempt to reconnect the live stream (ReconnectController.scheduleReconnect). */
     fun reconnectAttempt(attempt: Int, seekable: Boolean) {
@@ -251,14 +282,14 @@ internal class StreamOpener(
     }
 
     /** In-progress recording: reopen the stream from [startSec] (feeder: from the point we got to). */
-    fun reopenDvrAt(url: String, startSec: Long) {
+    fun reopenDvrAt(url: String, startSec: Long, fileDurMs: Long = 0L) {
         if (stream.dvrViaFeeder) {
             // continue from the point we got to (a growing file) via HTTP Range
             val srv = live.server ?: return
             val from = stream.httpFeeder?.bytesWritten ?: 0L
             playDvrViaFeeder(srv, url, from)
         } else {
-            playUrlDirect(url, startSec)
+            playUrlDirect(url, startSec, fractionOf(startSec * 1000L, fileDurMs))   // M706
         }
     }
 
@@ -289,7 +320,7 @@ internal class StreamOpener(
                 }
                 playDvrViaFeeder(srv, url, targetByte)
             } else {
-                playUrlDirect(url, fileMs / 1000)
+                playUrlDirect(url, fileMs / 1000, fractionOf(fileMs, offsetMs + dur))   // M706
             }
         }
     }

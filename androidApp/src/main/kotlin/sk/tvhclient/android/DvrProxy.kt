@@ -76,21 +76,32 @@ object DvrProxy {
         "http://127.0.0.1:$port/$token" + bare.substring(base.length)
     }.getOrNull()
 
+    /** M706: the container of a recording, from its first bytes ([container]). */
+    const val MKV = "mkv"
+    const val TS = "ts"
+    const val OTHER = "other"
+
     /**
-     * M703: is the recording Matroska? Reads the first 4 bytes (EBML magic 1A 45 DF A3) with the
-     * server's own authentication. null = could not tell (network, rights) — the caller keeps the
-     * default demuxer. Call off the main thread.
+     * M703 / M706: the container of the recording — [MKV] (EBML magic 1A 45 DF A3), [TS] (sync byte
+     * 0x47 at 0 and at 188) or [OTHER]. Reads the first 189 bytes with the server's own
+     * authentication. null = could not tell (network, rights) — the caller keeps the defaults.
+     * Call off the main thread.
      */
-    fun isMatroska(server: TvhServer, upstreamUrl: String): Boolean? = runCatching {
-        val req = Request.Builder().url(MediaFactory.stripCreds(upstreamUrl)).header("Range", "bytes=0-3").build()
+    fun container(server: TvhServer, upstreamUrl: String): String? = runCatching {
+        val req = Request.Builder().url(MediaFactory.stripCreds(upstreamUrl)).header("Range", "bytes=0-188").build()
         client(server).newBuilder().callTimeout(5, TimeUnit.SECONDS).build().newCall(req).execute().use { resp ->
             if (resp.code != 200 && resp.code != 206) return@use null
-            val b = ByteArray(4)
+            val b = ByteArray(189)
             val src = resp.body?.byteStream() ?: return@use null
             var n = 0
-            while (n < 4) { val r = src.read(b, n, 4 - n); if (r < 0) break; n += r }
-            n == 4 && (b[0].toInt() and 0xFF) == 0x1A && (b[1].toInt() and 0xFF) == 0x45 &&
-                (b[2].toInt() and 0xFF) == 0xDF && (b[3].toInt() and 0xFF) == 0xA3
+            while (n < b.size) { val r = src.read(b, n, b.size - n); if (r < 0) break; n += r }
+            fun u(i: Int) = b[i].toInt() and 0xFF
+            when {
+                n >= 4 && u(0) == 0x1A && u(1) == 0x45 && u(2) == 0xDF && u(3) == 0xA3 -> MKV
+                n >= 189 && u(0) == 0x47 && u(188) == 0x47 -> TS
+                n > 0 -> OTHER
+                else -> null
+            }
         }
     }.getOrNull()
 

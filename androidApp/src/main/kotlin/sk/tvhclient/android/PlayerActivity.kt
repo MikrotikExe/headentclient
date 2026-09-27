@@ -1710,7 +1710,8 @@ class PlayerActivity : ComponentActivity() {
             (dvr.progStartSec - dvr.realStartSec) * 1000 else 0L
         // position in the file = offset + the programme's played time, a few seconds back as a margin
         val startSec = ((offsetMs + dvr.playheadMsState.value) / 1000 - 3).coerceAtLeast(0)
-        reconnect.reopenDvrLive { opener.reopenDvrAt(url, startSec) }   // M670
+        val fileDurMs = if (dvr.durationMs > 0) offsetMs + dvr.durationMs else 0L   // M706: TS starts by position
+        reconnect.reopenDvrLive { opener.reopenDvrAt(url, startSec, fileDurMs) }   // M670
     }
 
     /**

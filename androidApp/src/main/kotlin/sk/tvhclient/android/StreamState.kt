@@ -30,6 +30,14 @@ internal class StreamState {
      * such a file -> mkv demux requests bytes=123-, avformat requests the cluster at ~300 s.
      */
     var avformatUrl: String? = null
+    /**
+     * M706 (issue #19): the URL of an MPEG-TS recording played over HTTP (direct or DvrProxy).
+     * libVLC's TS demuxer cannot start at a time on an HTTP stream (":start-time" -> "SET_TIME failed
+     * or not possible": it knows the duration only on a fast-seekable local file) and played the
+     * recording from the beginning. Such a URL is started at a POSITION (a byte fraction, the same
+     * estimate the old pipe feeder used) once the stream is seekable. Verified with VLC 3.0.20.
+     */
+    var tsUrl: String? = null
     /** Cache: does live HTTP on this server require a feeder (digest-only)? null = not determined. */
     var liveNeedsFeeder: Boolean? = null
 
