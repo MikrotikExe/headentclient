@@ -387,7 +387,7 @@
     <string name="resume_last_enable">Starten met de laatste zender</string>
     <string name="resume_last_note">Na het starten van de app wordt de zenderlijst geladen en de laatst bekeken tv- of radiozender afgespeeld. Opnamen worden niet hervat.</string>
     <string name="profile_unknown_warn">De server biedt het profiel “%1$s” niet aan — hij gebruikt in plaats daarvan zijn standaardprofiel.</string>
-    <string name="profile_note_htsp">HTSP verstuurt elementaire streams, dus er wordt niet getranscodeerd. Laat de serverinstelling staan tenzij je account aan een profiel gebonden is.</string>
+    <string name="profile_note_htsp">Via HTSP biedt de server alleen HTSP- en transcodeerprofielen. Een transcodeerprofiel verlaagt de bitrate ook via HTSP. Laat het anders op de serverinstelling.</string>
     <string name="dvr_reload">Vernieuwen</string>
     <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Verborgen zenders</string>

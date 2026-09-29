@@ -387,7 +387,7 @@
     <string name="resume_last_enable">从上次的频道开始</string>
     <string name="resume_last_note">启动应用时加载频道列表，并播放上次观看的电视频道或广播。录制不会继续播放。</string>
     <string name="profile_unknown_warn">服务器没有“%1$s”配置——将改用默认配置。</string>
-    <string name="profile_note_htsp">HTSP 传输基本流，因此不会转码。除非账号被限定到特定配置，否则保持服务器设置。</string>
+    <string name="profile_note_htsp">通过 HTSP，服务器只提供 HTSP 和转码配置文件。转码配置文件在 HTSP 下同样会降低码率。否则请保持服务器设置。</string>
     <string name="dvr_reload">刷新</string>
     <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">隐藏的频道</string>

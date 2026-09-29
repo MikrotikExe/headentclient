@@ -387,7 +387,7 @@
     <string name="resume_last_enable">শেষ চ্যানেল দিয়ে শুরু</string>
     <string name="resume_last_note">অ্যাপ চালু হলে চ্যানেল তালিকা লোড হয় এবং শেষবার দেখা টিভি চ্যানেল বা রেডিও চালু হয়। রেকর্ডিং পুনরায় চালু হয় না।</string>
     <string name="profile_unknown_warn">সার্ভারে “%1$s” প্রোফাইল নেই — এর বদলে ডিফল্ট প্রোফাইল ব্যবহৃত হবে।</string>
-    <string name="profile_note_htsp">HTSP এলিমেন্টারি স্ট্রিম পাঠায়, তাই ট্রান্সকোডিং হয় না। অ্যাকাউন্ট নির্দিষ্ট প্রোফাইলে বাঁধা না হলে সার্ভারের সেটিংস রাখুন।</string>
+    <string name="profile_note_htsp">HTSP-তে সার্ভার শুধু HTSP ও ট্রান্সকোডিং প্রোফাইল দেয়। ট্রান্সকোডিং প্রোফাইল HTSP-তেও বিটরেট কমায়। নইলে সার্ভারের সেটিংয়ে রাখুন।</string>
     <string name="dvr_reload">রিফ্রেশ</string>
     <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">লুকানো চ্যানেল</string>

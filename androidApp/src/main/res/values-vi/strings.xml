@@ -387,7 +387,7 @@
     <string name="resume_last_enable">Bắt đầu với kênh cuối cùng</string>
     <string name="resume_last_note">Khi mở ứng dụng, danh sách kênh được tải và kênh TV hoặc radio xem gần nhất sẽ phát. Bản ghi không được phát tiếp.</string>
     <string name="profile_unknown_warn">Máy chủ không có hồ sơ “%1$s” — sẽ dùng hồ sơ mặc định thay thế.</string>
-    <string name="profile_note_htsp">HTSP truyền luồng nguyên bản nên không chuyển mã. Giữ thiết lập của máy chủ trừ khi tài khoản bị giới hạn ở một hồ sơ cụ thể.</string>
+    <string name="profile_note_htsp">Qua HTSP, máy chủ chỉ cung cấp hồ sơ HTSP và hồ sơ chuyển mã. Hồ sơ chuyển mã cũng giảm tốc độ bit qua HTSP. Nếu không, hãy để theo cài đặt máy chủ.</string>
     <string name="dvr_reload">Làm mới</string>
     <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Kênh ẩn</string>

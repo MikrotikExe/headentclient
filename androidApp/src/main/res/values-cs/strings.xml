@@ -387,7 +387,7 @@
     <string name="resume_last_enable">Spustit poslední kanál</string>
     <string name="resume_last_note">Po spuštění aplikace se načte seznam kanálů a pustí se TV kanál nebo rádio, které jsi sledoval naposledy. Nahrávky se neobnovují.</string>
     <string name="profile_unknown_warn">Server profil „%1$s“ nenabízí — použije místo něj svůj výchozí.</string>
-    <string name="profile_note_htsp">HTSP přenáší elementární streamy, takže se netranskóduje. Pokud účet nemá vyhrazený profil, nech nastavení serveru.</string>
+    <string name="profile_note_htsp">Přes HTSP nabízí server jen HTSP a transkódovací profily. Transkódovací profil sníží datový tok i přes HTSP. Jinak nech podle nastavení serveru.</string>
     <string name="dvr_reload">Obnovit</string>
     <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Skryté kanály</string>

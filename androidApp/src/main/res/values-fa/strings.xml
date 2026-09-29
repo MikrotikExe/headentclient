@@ -387,7 +387,7 @@
     <string name="resume_last_enable">شروع با آخرین کانال</string>
     <string name="resume_last_note">پس از اجرا، فهرست کانال‌ها بارگیری می‌شود و آخرین کانال تلویزیونی یا رادیویی پخش می‌شود. ضبط‌ها ادامه نمی‌یابند.</string>
     <string name="profile_unknown_warn">سرور نمایه «%1$s» را ارائه نمی‌دهد — به جای آن از نمایه پیش‌فرض خود استفاده می‌کند.</string>
-    <string name="profile_note_htsp">HTSP جریان‌های پایه را منتقل می‌کند، پس تبدیل کدک انجام نمی‌شود. اگر حساب به نمایه‌ای محدود نیست، تنظیم سرور را نگه دار.</string>
+    <string name="profile_note_htsp">از طریق HTSP سرور فقط نمایه‌های HTSP و تبدیل کدک را ارائه می‌دهد. نمایهٔ تبدیل کدک نرخ بیت را در HTSP هم کاهش می‌دهد. در غیر این صورت روی تنظیم سرور بگذارید.</string>
     <string name="dvr_reload">بازآوری</string>
     <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">کانال‌های پنهان</string>

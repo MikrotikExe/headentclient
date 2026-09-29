@@ -387,7 +387,7 @@
     <string name="resume_last_enable">Старт с последния канал</string>
     <string name="resume_last_note">След стартиране приложението зарежда списъка с канали и пуска ТВ канала или радиото, което си гледал последно. Записите не се възобновяват.</string>
     <string name="profile_unknown_warn">Сървърът не предлага профила „%1$s“ — ще използва своя подразбиращ се.</string>
-    <string name="profile_note_htsp">HTSP пренася елементарни потоци, така че няма транскодиране. Остави настройката на сървъра, освен ако профилът е зададен за акаунта.</string>
+    <string name="profile_note_htsp">По HTSP сървърът предлага само HTSP профили и профили за прекодиране. Профил за прекодиране намалява битрейта и по HTSP. Иначе остави настройката на сървъра.</string>
     <string name="dvr_reload">Обнови</string>
     <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Скрити канали</string>

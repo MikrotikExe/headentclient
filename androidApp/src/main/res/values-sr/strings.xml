@@ -387,7 +387,7 @@
     <string name="resume_last_enable">Покрени са последњим каналом</string>
     <string name="resume_last_note">По покретању апликација учитава листу канала и пушта ТВ канал или радио који си последњи гледао. Снимци се не настављају.</string>
     <string name="profile_unknown_warn">Сервер не нуди профил „%1$s“ — уместо њега користи подразумевани.</string>
-    <string name="profile_note_htsp">HTSP преноси елементарне токове па нема транскодирања. Остави подешавање сервера осим ако налог није везан за одређени профил.</string>
+    <string name="profile_note_htsp">Преко HTSP-а сервер нуди само HTSP профиле и профиле за транскодирање. Профил за транскодирање смањује проток и преко HTSP-а. Иначе остави подешавање сервера.</string>
     <string name="dvr_reload">Освежи</string>
     <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Skriveni kanali</string>

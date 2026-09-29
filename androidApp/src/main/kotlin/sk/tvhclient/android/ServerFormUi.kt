@@ -324,6 +324,8 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                 // M503: with HTSP the note takes a different form — "pass" is an HTTP profile
                 // (MPEG-TS passthrough) and the server does not even offer it in the menu; HTSP
                 // carries elementary streams and the profile is determined by the account on the server.
+                // M709: over HTSP the server accepts only profiles with a work chain (htsp + transcode,
+                // profile_verify / profile_get_htsp_list) — a transcode profile DOES transcode over HTSP.
                 Text(
                     stringResource(
                         if (connMode == "htsp") R.string.profile_note_htsp

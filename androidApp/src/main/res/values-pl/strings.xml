@@ -387,7 +387,7 @@
     <string name="resume_last_enable">Uruchom z ostatnim kanałem</string>
     <string name="resume_last_note">Po uruchomieniu aplikacja wczytuje listę kanałów i odtwarza ostatnio oglądany kanał TV lub radio. Nagrania nie są wznawiane.</string>
     <string name="profile_unknown_warn">Serwer nie udostępnia profilu „%1$s” — użyje zamiast niego domyślnego.</string>
-    <string name="profile_note_htsp">HTSP przesyła strumienie elementarne, więc nie ma transkodowania. Zostaw ustawienie serwera, chyba że konto ma przypisany konkretny profil.</string>
+    <string name="profile_note_htsp">Przez HTSP serwer oferuje tylko profile HTSP i transkodujące. Profil transkodujący obniża przepływność także przez HTSP. W innym razie zostaw ustawienie serwera.</string>
     <string name="dvr_reload">Odśwież</string>
     <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Ukryte kanały</string>

@@ -387,7 +387,7 @@
     <string name="resume_last_enable">Avvia con l\'ultimo canale</string>
     <string name="resume_last_note">All\'avvio l\'app carica l\'elenco dei canali e riproduce il canale TV o la radio guardati per ultimi. Le registrazioni non vengono riprese.</string>
     <string name="profile_unknown_warn">Il server non offre il profilo “%1$s” — userà invece quello predefinito.</string>
-    <string name="profile_note_htsp">HTSP trasporta flussi elementari, quindi non c\'è transcodifica. Lascia l\'impostazione del server se il tuo account non è vincolato a un profilo.</string>
+    <string name="profile_note_htsp">Via HTSP il server offre solo profili HTSP e di transcodifica. Un profilo di transcodifica riduce il bitrate anche via HTSP. Altrimenti lascia l\'impostazione del server.</string>
     <string name="dvr_reload">Aggiorna</string>
     <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Canali nascosti</string>

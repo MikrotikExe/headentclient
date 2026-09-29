@@ -387,7 +387,7 @@
     <string name="resume_last_enable">Mit dem letzten Sender starten</string>
     <string name="resume_last_note">Nach dem Start der App wird die Senderliste geladen und der zuletzt gesehene TV-Sender oder Radiosender wiedergegeben. Aufnahmen werden nicht fortgesetzt.</string>
     <string name="profile_unknown_warn">Der Server bietet das Profil „%1$s“ nicht an — er verwendet stattdessen sein Standardprofil.</string>
-    <string name="profile_note_htsp">HTSP überträgt Elementarströme, es wird also nicht transkodiert. Belasse die Servereinstellung, sofern dein Konto nicht an ein bestimmtes Profil gebunden ist.</string>
+    <string name="profile_note_htsp">Über HTSP bietet der Server nur HTSP- und Transcoding-Profile an. Ein Transcoding-Profil senkt die Bitrate auch über HTSP. Sonst die Servereinstellung beibehalten.</string>
     <string name="dvr_reload">Aktualisieren</string>
     <!-- M541: favourites in order + hidden channels -->
     <string name="hidden_channels">Ausgeblendete Sender</string>
