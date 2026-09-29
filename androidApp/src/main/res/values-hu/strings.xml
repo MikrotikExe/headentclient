@@ -487,4 +487,7 @@
     <string name="set_archive_by_profile_note">Profil szerint szakaszt ad az archívumhoz: a felvételek a készítésükhöz használt felvételi profil szerint csoportosítva.</string>
     <!-- M712 -->
     <string name="test_auth_403_hint">Ha a jelszó helyes, a fióknak hiányzik a HTTP módhoz szükséges „Webes felület” jogosultság. Állítsd a szervert HTSP-re, vagy add meg a jogot a Tvheadendben.</string>
+    <!-- M714 -->
+    <string name="err_no_tuner">A szervernek nincs szabad tunere ehhez a csatornához — egy felvétel vagy egy másik kliens használja.</string>
+    <string name="err_no_start">A szerver nem tudta elindítani ezt a csatornát — nincs szabad tuner, vagy a forrás nem sugároz.</string>
 </resources>

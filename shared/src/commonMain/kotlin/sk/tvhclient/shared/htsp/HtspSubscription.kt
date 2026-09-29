@@ -70,7 +70,9 @@ class HtspSubscription internal constructor(
         /** M552: the channel has a teletext track (from subscriptionStart). */
         onTeletextAvailable: (Boolean) -> Unit = {},
         /** M552: the teletext PES payload (the TELETEXT track does not go to libVLC, the app decodes it). */
-        onTeletext: (ByteArray) -> Unit = {}
+        onTeletext: (ByteArray) -> Unit = {},
+        /** M714: subscriptionStatus — [status] text and [error] code (e.g. "noFreeAdapter"); both null = OK again. */
+        onSubStatus: (status: String?, error: String?) -> Unit = { _, _ -> }
     ) {
         var teletextEs = -1   // M552
         try {
@@ -139,6 +141,11 @@ class HtspSubscription internal constructor(
                         val st = (m["start"] as? Long) ?: 0L
                         val en = (m["end"] as? Long) ?: 0L
                         onStatus(shift, full, st, en)
+                    }
+                    "subscriptionStatus" -> {
+                        // M714: sent while the server cannot start the subscription (SMT_NOSTART:
+                        // no free tuner, scrambled, bad signal...) and when packets flow again
+                        onSubStatus(m["status"] as? String, m["subscriptionError"] as? String)
                     }
                     "subscriptionStop" -> {
                         onStop(m["subscriptionError"] as? String)

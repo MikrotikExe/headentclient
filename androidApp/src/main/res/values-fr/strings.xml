@@ -487,4 +487,7 @@
     <string name="set_archive_by_profile_note">Ajoute aux archives une section Par profil : enregistrements regroupés selon le profil d\'enregistrement utilisé.</string>
     <!-- M712 -->
     <string name="test_auth_403_hint">Si le mot de passe est correct, il manque au compte le droit « Interface web » nécessaire au mode HTTP. Passe le serveur en HTSP ou ajoute ce droit dans Tvheadend.</string>
+    <!-- M714 -->
+    <string name="err_no_tuner">Le serveur n’a pas de tuner libre pour cette chaîne : il est utilisé par un enregistrement ou un autre client.</string>
+    <string name="err_no_start">Le serveur n’a pas pu démarrer cette chaîne : aucun tuner libre ou la source n’émet pas.</string>
 </resources>

@@ -44,6 +44,8 @@ internal class StreamOpener(
         fun teletextAttachFeeder(feeder: HttpTsFeeder)
         fun subtitlePage(page: sk.tvhclient.shared.htsp.DvbSubtitleDecoder.DecodedPage, ms: Long)
         fun subtitleReset()
+        /** M714: a live channel went straight into libVLC — the activity arms its start watchdog. */
+        fun onDirectLiveStart()
         /** Substitute channel name used when fixing the identity (EXTRA_TITLE from the intent). */
         fun fallbackTitle(): String?
     }
@@ -132,6 +134,7 @@ internal class StreamOpener(
         player().media = m
         m.release()
         hooks.startPlayback()
+        if (url.contains("/stream/")) hooks.onDirectLiveStart()   // M714
     }
 
     /** M703: avformat (with a fallback) for a Matroska recording, the default demuxer otherwise. */

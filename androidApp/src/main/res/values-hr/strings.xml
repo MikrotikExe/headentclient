@@ -487,4 +487,7 @@
     <string name="set_archive_by_profile_note">Dodaje u arhivu odjeljak Po profilu: snimke grupirane prema profilu snimanja kojim su nastale.</string>
     <!-- M712 -->
     <string name="test_auth_403_hint">Ako je lozinka ispravna, računu nedostaje pravo „Web sučelje” koje HTTP način treba. Prebaci poslužitelj na HTSP ili dodaj pravo u Tvheadendu.</string>
+    <!-- M714 -->
+    <string name="err_no_tuner">Poslužitelj nema slobodan tuner za ovaj kanal — koristi ga snimanje ili drugi klijent.</string>
+    <string name="err_no_start">Poslužitelj nije mogao pokrenuti ovaj kanal — nema slobodnog tunera ili izvor ne emitira.</string>
 </resources>

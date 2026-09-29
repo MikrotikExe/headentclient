@@ -53,6 +53,18 @@ class HtspTsFeeder(
     @Volatile var connLimited: Boolean = false
         private set
 
+    /**
+     * M714: the server has no free tuner for this channel — before the start (subscriptionStatus
+     * noFreeAdapter, sent once it has lasted 2 s, subscriptions.c) or the running stream was taken
+     * over by a recording or a client with a higher priority (subscriptionStop subscriptionOverridden).
+     * The player then says why instead of retrying. Set before the pipe is closed.
+     */
+    @Volatile var noTuner: Boolean = false
+        private set
+    @Volatile private var gotData = false
+
+    private class NoTunerException : Exception("HTSP: no free tuner")
+
 
     /** Complete list of the channel's DVB subtitle tracks from subscriptionStart (esIndex + language).
      *  Independent of libVLC, so it is the same on every device. Set after subscriptionStart. */
@@ -139,6 +151,7 @@ class HtspTsFeeder(
                         // pressure when libVLC is not reading), but once playback has stopped
                         // nobody drains the queue any more and the loop would hang forever.
                         if (bytes.isNotEmpty()) {
+                            gotData = true   // M714
                             if (!queue.offer(bytes, 10, java.util.concurrent.TimeUnit.SECONDS)) {
                                 throw java.io.IOException("TS queue did not drain")
                             }
@@ -150,7 +163,15 @@ class HtspTsFeeder(
                     onSubtitles = { subs -> subtitleStreams = subs },
                     onSubtitlePage = { page, targetMs -> onSubtitlePage?.invoke(page, targetMs) },
                     onTeletextAvailable = { a -> hasTeletext = a; onTeletextAvailable?.invoke(a) },   // M552
-                    onTeletext = { es -> onTeletext?.invoke(es) }
+                    onTeletext = { es -> onTeletext?.invoke(es) },
+                    // M714: no free tuner before the start -> end with the reason (the server would
+                    // keep retrying silently and the player would wait on a black screen)
+                    onSubStatus = { _, err ->
+                        if (!gotData && err == "noFreeAdapter") { noTuner = true; throw NoTunerException() }
+                    },
+                    onStop = { err ->
+                        if (err == "noFreeAdapter" || err == "subscriptionOverridden") noTuner = true
+                    }
                 )
             } catch (e: Throwable) {
                 // cancellation / broken pipe / connection error

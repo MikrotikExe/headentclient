@@ -487,4 +487,7 @@
     <string name="set_archive_by_profile_note">Voegt aan het archief de sectie Per profiel toe: opnames gegroepeerd op het opnameprofiel waarmee ze zijn gemaakt.</string>
     <!-- M712 -->
     <string name="test_auth_403_hint">Als het wachtwoord klopt, mist het account het recht ‘Webinterface’ dat de HTTP-modus nodig heeft. Zet de server op HTSP of voeg het recht toe in Tvheadend.</string>
+    <!-- M714 -->
+    <string name="err_no_tuner">De server heeft geen vrije tuner voor deze zender — die wordt gebruikt door een opname of een andere client.</string>
+    <string name="err_no_start">De server kon deze zender niet starten — geen vrije tuner of de bron zendt niet uit.</string>
 </resources>

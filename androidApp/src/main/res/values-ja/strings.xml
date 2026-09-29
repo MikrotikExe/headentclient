@@ -487,4 +487,7 @@
     <string name="set_archive_by_profile_note">アーカイブに「プロファイル別」を追加します。録画は使用した録画プロファイルごとにまとめられます。</string>
     <!-- M712 -->
     <string name="test_auth_403_hint">パスワードが正しい場合、HTTP モードに必要な「Web インターフェース」権限がアカウントにありません。サーバーを HTSP に切り替えるか、Tvheadend で権限を追加してください。</string>
+    <!-- M714 -->
+    <string name="err_no_tuner">サーバーにこのチャンネル用の空きチューナーがありません。録画または別のクライアントが使用中です。</string>
+    <string name="err_no_start">サーバーはこのチャンネルを開始できませんでした。空きチューナーがないか、ソースが放送していません。</string>
 </resources>

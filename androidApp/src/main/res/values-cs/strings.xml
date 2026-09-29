@@ -487,4 +487,7 @@
     <string name="set_archive_by_profile_note">Do archivu přidá sekci Podle profilu: nahrávky seskupené podle profilu nahrávání, kterým vznikly.</string>
     <!-- M712 -->
     <string name="test_auth_403_hint">Pokud je heslo správné, účtu chybí právo „Webové rozhraní“, které režim HTTP potřebuje. Přepni server na HTSP nebo právo přidej v Tvheadendu.</string>
+    <!-- M714 -->
+    <string name="err_no_tuner">Server nemá pro tento kanál volný tuner — používá ho nahrávání nebo jiný klient.</string>
+    <string name="err_no_start">Server nemohl spustit tento kanál — není volný tuner nebo zdroj nevysílá.</string>
 </resources>

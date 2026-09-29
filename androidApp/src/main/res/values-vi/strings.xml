@@ -487,4 +487,7 @@
     <string name="set_archive_by_profile_note">Thêm mục Theo hồ sơ vào kho lưu trữ: các bản ghi được nhóm theo hồ sơ ghi đã dùng.</string>
     <!-- M712 -->
     <string name="test_auth_403_hint">Nếu mật khẩu đúng, tài khoản thiếu quyền “Giao diện web” mà chế độ HTTP cần. Hãy chuyển máy chủ sang HTSP hoặc thêm quyền trong Tvheadend.</string>
+    <!-- M714 -->
+    <string name="err_no_tuner">Máy chủ không còn tuner trống cho kênh này — đang được một bản ghi hoặc máy khách khác sử dụng.</string>
+    <string name="err_no_start">Máy chủ không thể phát kênh này — không còn tuner trống hoặc nguồn không phát sóng.</string>
 </resources>

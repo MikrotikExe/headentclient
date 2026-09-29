@@ -49,6 +49,8 @@ internal class VlcEvents(
         fun saveDvrProgress()
         fun onReachedEnd()
         fun showPlaybackError()
+        /** M714: the stream has answered (Buffering / Playing) — the live start watchdog is not needed. */
+        fun onStreamActivity()
     }
 
     /** true = the stream has video; false = radio (PlayerUi shows the logo). */
@@ -75,6 +77,7 @@ internal class VlcEvents(
                 }
             }
             MediaPlayer.Event.Playing -> {
+                actions.onStreamActivity()   // M714
                 actions.setPlaying(true); actions.refreshPipIfActive()
                 actions.onPlayingForSeek()   // M594
                 actions.onPlayingForStall()   // M539
@@ -95,6 +98,7 @@ internal class VlcEvents(
                 actions.maybeReparseForTracks()
             }
             MediaPlayer.Event.Buffering -> {
+                actions.onStreamActivity()   // M714
                 if (event.buffering >= 100f) actions.hideSeekSpinner()
             }
             MediaPlayer.Event.Paused -> { actions.setPlaying(false); actions.keepScreenOn(false); actions.refreshPipIfActive() }

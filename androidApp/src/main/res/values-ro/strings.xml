@@ -487,4 +487,7 @@
     <string name="set_archive_by_profile_note">Adaugă în arhivă secțiunea După profil: înregistrări grupate după profilul de înregistrare folosit.</string>
     <!-- M712 -->
     <string name="test_auth_403_hint">Dacă parola este corectă, contului îi lipsește dreptul „Interfață web” necesar modului HTTP. Comută serverul pe HTSP sau adaugă dreptul în Tvheadend.</string>
+    <!-- M714 -->
+    <string name="err_no_tuner">Serverul nu are un tuner liber pentru acest canal — este folosit de o înregistrare sau de alt client.</string>
+    <string name="err_no_start">Serverul nu a putut porni acest canal — nu există tuner liber sau sursa nu emite.</string>
 </resources>

@@ -487,4 +487,7 @@
     <string name="set_archive_by_profile_note">보관함에 프로필별 섹션을 추가합니다. 녹화물이 사용된 녹화 프로필에 따라 묶입니다.</string>
     <!-- M712 -->
     <string name="test_auth_403_hint">비밀번호가 맞다면 계정에 HTTP 모드에 필요한 “웹 인터페이스” 권한이 없습니다. 서버를 HTSP로 바꾸거나 Tvheadend에서 권한을 추가하세요.</string>
+    <!-- M714 -->
+    <string name="err_no_tuner">서버에 이 채널에 사용할 수 있는 튜너가 없습니다. 녹화나 다른 클라이언트가 사용 중입니다.</string>
+    <string name="err_no_start">서버가 이 채널을 시작하지 못했습니다. 사용 가능한 튜너가 없거나 소스가 방송 중이 아닙니다.</string>
 </resources>

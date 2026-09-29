@@ -288,6 +288,7 @@ class PlayerActivity : ComponentActivity() {
                 override fun teletextAttachFeeder(feeder: HttpTsFeeder) { teletext.attachFeeder(feeder) }   // M713
                 override fun subtitlePage(page: sk.tvhclient.shared.htsp.DvbSubtitleDecoder.DecodedPage, ms: Long) { subOverlay?.onPage(page, ms) }
                 override fun subtitleReset() { subOverlay?.reset() }
+                override fun onDirectLiveStart() { armLiveStartWatchdog() }   // M714
                 override fun fallbackTitle(): String? = intent.getStringExtra(EXTRA_TITLE)
             })
     }
@@ -1730,6 +1731,8 @@ class PlayerActivity : ComponentActivity() {
      * on login or subscribe; HTTP: a late 405, see HttpTsFeeder.isConnLimitResponse). Further attempts
      * would only be refused again, so instead of the "Reconnecting" spinner and the generic error the
      * player stops retrying and says why. A new attempt comes from the user (channel switch, reopening).
+     * M714: the same for a channel the server could not start (no free tuner / the tuner was taken
+     * over by a recording — HtspTsFeeder.noTuner; HTTP: no response at all — HttpTsFeeder.noStart).
      * Returns true when it handled the situation.
      */
     private fun stopOnConnLimit(): Boolean {
@@ -1738,18 +1741,49 @@ class PlayerActivity : ComponentActivity() {
             DvrProxy.isProxyUrl(stream.currentStreamUrl) && it > 0 &&
                 android.os.SystemClock.elapsedRealtime() - it < 15_000
         }
-        val feeder: Any = stream.htspFeeder?.takeIf { it.connLimited }
-            ?: stream.httpFeeder?.takeIf { it.connLimited }
-            ?: proxyHit
-            ?: return false
+        val htspF = stream.htspFeeder
+        val httpF = stream.httpFeeder
+        val (feeder: Any, msg: Int) = when {
+            htspF != null && htspF.connLimited -> htspF to R.string.err_conn_limit
+            httpF != null && httpF.connLimited -> httpF to R.string.err_conn_limit
+            proxyHit != null -> proxyHit to R.string.err_conn_limit
+            htspF != null && htspF.noTuner -> htspF to R.string.err_no_tuner   // M714
+            httpF != null && httpF.noStart -> httpF to R.string.err_no_start   // M714
+            else -> return false
+        }
         reconnect.cancel()
         reconnect.clearPending()
         // libVLC can report both an error and the end of the stream — one message per refused stream
         if (connLimitShownFor != feeder) {   // feeders: identity; M701 proxy: the refusal time
             connLimitShownFor = feeder
-            Toast.makeText(this, getString(R.string.err_conn_limit), Toast.LENGTH_LONG).show()
+            if (msg != R.string.err_conn_limit) CrashLogger.report(this, "PlayerActivity.noStart", getString(msg))
+            Toast.makeText(this, getString(msg), Toast.LENGTH_LONG).show()
         }
         return true
+    }
+
+    /**
+     * M714: a live channel played straight by libVLC. When Tvheadend cannot start it (no free
+     * tuner), it sends no HTTP response and keeps the connection open (keep-alive); libVLC then
+     * waits without any event — a black screen for good. If neither Buffering nor Playing comes
+     * within 12 s, a reconnect is started: its first attempt goes through the feeder, which sees
+     * why (HttpTsFeeder.noStart / the connection limit) and the player reports it. On a slow but
+     * working start it only means one restart.
+     */
+    @Volatile private var liveStartGen = 0
+    private val liveStartHandler by lazy { android.os.Handler(android.os.Looper.getMainLooper()) }
+    private fun armLiveStartWatchdog() {
+        if (seekablePlayback) return
+        val gen = ++liveStartGen
+        val url = stream.currentStreamUrl
+        liveStartHandler.postDelayed({
+            if (gen != liveStartGen || isFinishing) return@postDelayed
+            if (seekablePlayback || stream.htspStream || stream.httpFeeder != null) return@postDelayed
+            if (stream.currentStreamUrl != url || reconnect.reconnecting.value) return@postDelayed
+            if (!engine.ready || engine.tornDown) return@postDelayed
+            CrashLogger.report(this, "PlayerActivity.liveStart", "no answer from the server in 12 s -> reconnect via feeder")
+            scheduleReconnect()
+        }, 12_000L)
     }
     private var connLimitShownFor: Any? = null
 
@@ -1876,6 +1910,7 @@ class PlayerActivity : ComponentActivity() {
                     if (stopOnConnLimit()) return   // M694
                     Toast.makeText(this@PlayerActivity, getString(R.string.playback_error, "VLC"), Toast.LENGTH_LONG).show()
                 }
+                override fun onStreamActivity() { liveStartGen++ }   // M714: disarms the start watchdog
             })
     }
 

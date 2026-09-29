@@ -487,4 +487,7 @@
     <string name="set_archive_by_profile_note">Fügt dem Archiv den Bereich Nach Profil hinzu: Aufnahmen gruppiert nach dem Aufnahmeprofil, mit dem sie erstellt wurden.</string>
     <!-- M712 -->
     <string name="test_auth_403_hint">Wenn das Passwort stimmt, fehlt dem Konto das Recht „Web-Oberfläche“, das der HTTP-Modus braucht. Stelle den Server auf HTSP um oder ergänze das Recht in Tvheadend.</string>
+    <!-- M714 -->
+    <string name="err_no_tuner">Der Server hat für diesen Sender keinen freien Tuner — er wird von einer Aufnahme oder einem anderen Client belegt.</string>
+    <string name="err_no_start">Der Server konnte diesen Sender nicht starten — kein freier Tuner oder die Quelle sendet nicht.</string>
 </resources>

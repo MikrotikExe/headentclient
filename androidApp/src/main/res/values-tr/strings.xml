@@ -487,4 +487,7 @@
     <string name="set_archive_by_profile_note">Arşive Profile göre bölümü ekler: kayıtlar, yapıldıkları kayıt profiline göre gruplanır.</string>
     <!-- M712 -->
     <string name="test_auth_403_hint">Parola doğruysa hesapta HTTP modunun gerektirdiği “Web arayüzü” yetkisi yok. Sunucuyu HTSP\'ye geçirin veya yetkiyi Tvheadend\'de ekleyin.</string>
+    <!-- M714 -->
+    <string name="err_no_tuner">Sunucunun bu kanal için boş tuner\'ı yok — bir kayıt veya başka bir istemci kullanıyor.</string>
+    <string name="err_no_start">Sunucu bu kanalı başlatamadı — boş tuner yok veya kaynak yayın yapmıyor.</string>
 </resources>

@@ -59,6 +59,18 @@ class HttpTsFeeder(
      */
     @Volatile var onData: ((ByteArray, Int, Int) -> Unit)? = null
 
+    /**
+     * M714: the server did not start this live stream — no free tuner, the source is not
+     * broadcasting, or the subscription could not be created. Tvheadend then ends the request
+     * without any HTTP response (webui.c http_stream_run: SMT_NOSTART before SMT_START, headers
+     * are only sent on SMT_START) or answers 503. Set before the pipe is closed, like [connLimited].
+     */
+    @Volatile var noStart: Boolean = false
+        private set
+
+    /** M714: a live channel (/stream/...), not a recording file. */
+    private val isLive: Boolean = url.contains("/stream/")
+
     /** Starts the download and returns the read FileDescriptor for Media(libVlc, fd). */
     fun start(scope: CoroutineScope): FileDescriptor {
         val pipe = ParcelFileDescriptor.createPipe()
@@ -88,16 +100,27 @@ class HttpTsFeeder(
         if (hasCreds && server.authMode != "none") {
             builder.authenticator(DigestAuthenticator(server.username, server.password))
         }
+        // M714: an empty answer (see [noStart]) must not be retried silently by OkHttp
+        if (isLive) builder.retryOnConnectionFailure(false)
         val ok = builder.build()
 
         val reqB = Request.Builder().url(url)
         if (startByte > 0) reqB.header("Range", "bytes=$startByte-")
+        // M714: without it Tvheadend keeps the connection open after an empty answer and waits for
+        // the next request (keep-alive) — the client would only give up after its read timeout
+        if (isLive) reqB.header("Connection", "close")
         val req = reqB.build()
 
         job = scope.launch(Dispatchers.IO) {
+            var gotResponse = false   // M714
             try {
                 val sentAt = android.os.SystemClock.elapsedRealtime()
                 ok.newCall(req).execute().use { resp ->
+                    gotResponse = true
+                    if (isLive && resp.code == 503) {
+                        noStart = true   // M714: the subscription could not be created
+                        return@use
+                    }
                     if (isConnLimitResponse(resp.code, android.os.SystemClock.elapsedRealtime() - sentAt)) {
                         connLimited = true   // M694: do not pass the error page to libVLC
                         return@use
@@ -118,8 +141,9 @@ class HttpTsFeeder(
                         onData?.let { cb -> try { cb(buf, 0, n) } catch (_: Throwable) { onData = null } }   // M713
                     }
                 }
-            } catch (_: Throwable) {
+            } catch (e: Throwable) {
                 // cancellation / broken pipe / connection error
+                if (isLive && !gotResponse && isNoStartFailure(e)) noStart = true   // M714
             } finally {
                 try { os.close() } catch (_: Throwable) {}
             }
@@ -136,6 +160,18 @@ class HttpTsFeeder(
          * a late one counts — otherwise the app would blame the limit for an unrelated error.
          */
         fun isConnLimitResponse(code: Int, elapsedMs: Long): Boolean = code == 405 && elapsedMs >= 4000L
+
+        /**
+         * M714: the request reached Tvheadend but no response came: the connection was closed
+         * before the status line (OkHttp "unexpected end of stream", EOFException), or nothing came
+         * within the read timeout (a profile with "Restart on error" keeps waiting for a tuner).
+         * A refused or failed connect (server down) is not this case.
+         */
+        fun isNoStartFailure(e: Throwable): Boolean {
+            if (e !is java.io.IOException) return false
+            if (e is java.net.SocketTimeoutException) return e.message?.contains("connect", ignoreCase = true) != true
+            return e.message?.startsWith("unexpected end of stream") == true || e.cause is java.io.EOFException
+        }
     }
 
     fun stop() {

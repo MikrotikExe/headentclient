@@ -487,4 +487,7 @@
     <string name="set_archive_by_profile_note">Añade al archivo la sección Por perfil: grabaciones agrupadas según el perfil de grabación con el que se hicieron.</string>
     <!-- M712 -->
     <string name="test_auth_403_hint">Si la contraseña es correcta, a la cuenta le falta el permiso «Interfaz web» que necesita el modo HTTP. Cambia el servidor a HTSP o añade el permiso en Tvheadend.</string>
+    <!-- M714 -->
+    <string name="err_no_tuner">El servidor no tiene un sintonizador libre para este canal: lo está usando una grabación u otro cliente.</string>
+    <string name="err_no_start">El servidor no pudo iniciar este canal: no hay sintonizador libre o la fuente no emite.</string>
 </resources>

@@ -487,4 +487,7 @@
     <string name="set_archive_by_profile_note">Aggiunge all\'archivio la sezione Per profilo: registrazioni raggruppate in base al profilo di registrazione usato.</string>
     <!-- M712 -->
     <string name="test_auth_403_hint">Se la password è corretta, all\'account manca il permesso «Interfaccia web» richiesto dalla modalità HTTP. Passa il server a HTSP o aggiungi il permesso in Tvheadend.</string>
+    <!-- M714 -->
+    <string name="err_no_tuner">Il server non ha un sintonizzatore libero per questo canale: è usato da una registrazione o da un altro client.</string>
+    <string name="err_no_start">Il server non è riuscito ad avviare questo canale: nessun sintonizzatore libero o la sorgente non trasmette.</string>
 </resources>
