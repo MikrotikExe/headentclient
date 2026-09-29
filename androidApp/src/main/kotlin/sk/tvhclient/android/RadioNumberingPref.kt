@@ -27,5 +27,5 @@ object RadioNumberingPref {
     /** Renumbers the list 1…n (without changing the order), if the option is on. */
     fun apply(context: Context, rows: List<ChannelRow>): List<ChannelRow> =
         if (!get(context)) rows
-        else rows.mapIndexed { i, r -> r.copy(channel = r.channel.copy(number = i + 1)) }
+        else rows.mapIndexed { i, r -> r.copy(channel = r.channel.copy(number = i + 1, numberMinor = 0)) }
 }

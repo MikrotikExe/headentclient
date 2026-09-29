@@ -141,6 +141,7 @@ object Tvh {
         else api.dvrUpcoming().filter {
             // M399: TVH dev builds also use "Running" / other capitalisation
             it.schedStatus.equals("recording", ignoreCase = true) ||
+                it.schedStatus.equals("recordingError", ignoreCase = true) ||   // M710
                 it.status.equals("recording", ignoreCase = true) ||
                 it.status.equals("running", ignoreCase = true) ||
                 it.fileSize > 0

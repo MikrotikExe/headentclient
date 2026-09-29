@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">Неизвестен профил</string>
     <string name="set_archive_by_profile">Сортиране на архива по профил</string>
     <string name="set_archive_by_profile_note">Добавя в архива раздел По профил: записите, групирани по профила за запис, с който са направени.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">Ако паролата е вярна, на акаунта липсва правото „Уеб интерфейс“, нужно за режим HTTP. Превключи сървъра на HTSP или добави правото в Tvheadend.</string>
 </resources>

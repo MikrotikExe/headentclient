@@ -177,7 +177,7 @@ fun ModernPhoneHomeScreen(
                                 )
                                 Spacer(Modifier.width(6.dp))
                             }
-                            val num = hero.channel.number?.takeIf { it > 0 }?.toString()
+                            val num = hero.channel.numberText.ifEmpty { null }   // M711
                             Text(listOfNotNull(num, hero.channel.name).joinToString(" · "),
                                 color = fgDim, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }

@@ -397,7 +397,9 @@ object HtspData {
             Channel(
                 uuid = cid.toString(),
                 name = strOf(ch, "channelName").ifBlank { cid.toString() },
-                number = longOf(ch, "channelNumber")?.toInt(),
+                // M711: 0 = the channel has no number (channels.c); the minor part is sent separately
+                number = longOf(ch, "channelNumber")?.toInt()?.takeIf { it > 0 },
+                numberMinor = longOf(ch, "channelNumberMinor")?.toInt() ?: 0,
                 iconPublicUrl = strOf(ch, "channelIcon").ifBlank { null },
                 tags = tagIds,
                 serviceTypes = svcTypes,   // M504

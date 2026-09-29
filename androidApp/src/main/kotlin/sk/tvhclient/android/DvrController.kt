@@ -261,7 +261,16 @@ object DvrController {
      * `uuid` is hex (because of /dvrfile), so deleting via `uuid` would always fail.
      */
     suspend fun cancel(server: TvhServer, entry: sk.tvhclient.shared.model.DvrEntry): DvrResult =
-        cancel(server, entry.commandId).also { if (it.success) forgetEntry(server.id, entry) }
+        // M710: a running recording is STOPPED (kept as a finished recording), only a scheduled
+        // one is cancelled. Cancel on a running one ended it as "Aborted by user" (failed).
+        if (entry.isRecordingNow) stop(server, entry)
+        else cancel(server, entry.commandId).also { if (it.success) forgetEntry(server.id, entry) }
+
+    /** M710: stops a running recording gracefully (api/dvr/entry/stop, HTSP stopDvrEntry). */
+    suspend fun stop(server: TvhServer, entry: sk.tvhclient.shared.model.DvrEntry): DvrResult =
+        ioResult { serviceFor(server).stop(entry.commandId) }.also {
+            if (it.success) { invalidateScheduled(server.id); forgetEntry(server.id, entry) }
+        }
 
     suspend fun delete(server: TvhServer, entry: sk.tvhclient.shared.model.DvrEntry): DvrResult =
         delete(server, entry.commandId).also { if (it.success) forgetEntry(server.id, entry) }

@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">ملف تعريف غير معروف</string>
     <string name="set_archive_by_profile">فرز الأرشيف حسب ملف التعريف</string>
     <string name="set_archive_by_profile_note">يضيف قسم حسب الملف الشخصي إلى الأرشيف: التسجيلات مجمعة حسب ملف تعريف التسجيل المستخدم.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">إذا كانت كلمة المرور صحيحة، فالحساب يفتقد صلاحية «واجهة الويب» التي يحتاجها وضع HTTP. حوّل الخادم إلى HTSP أو أضف الصلاحية في Tvheadend.</string>
 </resources>

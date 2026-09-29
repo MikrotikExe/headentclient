@@ -418,7 +418,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                     val rows = when {
                         // M541: in the order of favourites and numbered 1..n
                         favOnly -> favs.mapNotNull { u -> s.allRows.firstOrNull { it.channel.uuid == u } }
-                            .mapIndexed { i, r -> r.copy(channel = r.channel.copy(number = i + 1)) }
+                            .mapIndexed { i, r -> r.copy(channel = r.channel.copy(number = i + 1, numberMinor = 0)) }
                         // M533: "All" must be sorted by channel NUMBER.
                         // Until now the categories were merely concatenated, so the order
                         // was determined by the order of the tags — a channel with a different tag ended up out of
@@ -1160,9 +1160,9 @@ private fun ChannelItem(
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (row.channel.number != null) {
+                if (row.channel.numberText.isNotEmpty()) {   // M711: "5.1", no "0"
                     Text(
-                        "${row.channel.number}  ",
+                        "${row.channel.numberText}  ",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )

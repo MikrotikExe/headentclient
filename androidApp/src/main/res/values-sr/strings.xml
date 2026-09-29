@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">Непознат профил</string>
     <string name="set_archive_by_profile">Сортирај архиву по профилу</string>
     <string name="set_archive_by_profile_note">Додаје у архиву одељак По профилу: снимци груписани према профилу снимања којим су настали.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">Ако је лозинка исправна, налогу недостаје право „Веб интерфејс“ које HTTP режим захтева. Пребаци сервер на HTSP или додај право у Tvheadend-у.</string>
 </resources>

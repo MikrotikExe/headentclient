@@ -5,6 +5,7 @@ import android.util.Base64
 import coil.ImageLoader
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import sk.tvhclient.shared.model.TvhServer
@@ -46,14 +47,20 @@ object PiconImageLoader {
         // We send Basic pre-emptively only when digest is not forced (saves a roundtrip
         // on basic/auto servers); for digest-only the Authenticator below sorts it out.
         val preemptiveBasic: String? = if (hasCreds && server!!.authMode != "digest") {
-            val raw = "${server.username}:${server.password}"
+            val raw = sk.tvhclient.shared.net.TvhCredEscape.basicPair(server.username, server.password)   /* M712 */
             "Basic " + Base64.encodeToString(raw.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
         } else null
 
+        // M712: the server's own host/port as OkHttp sees it (null = cannot tell -> no restriction)
+        val ownUrl = server?.baseUrl?.let { runCatching { it.toHttpUrlOrNull() }.getOrNull() }
         val builder = OkHttpClient.Builder()
             .addInterceptor(Interceptor { chain ->
+                // M712: credentials only to the Tvheadend server itself — a picon may be an
+                // external logo URL (icon_public_url when the server's image cache is off)
+                val u = chain.request().url
+                val own = ownUrl == null || (u.host.equals(ownUrl.host, ignoreCase = true) && u.port == ownUrl.port)
                 val req = chain.request().newBuilder().apply {
-                    if (preemptiveBasic != null) header("Authorization", preemptiveBasic)
+                    if (preemptiveBasic != null && own) header("Authorization", preemptiveBasic)
                 }.build()
                 chain.proceed(req)
             })
@@ -61,7 +68,7 @@ object PiconImageLoader {
         // Digest (and the Basic fallback) via the 401 challenge — so picons come through from
         // a digest-only server too, not only when Basic is forced.
         if (hasCreds && server!!.authMode != "none") {
-            builder.authenticator(DigestAuthenticator(server.username, server.password))
+            builder.authenticator(DigestAuthenticator(server.username, server.password, onlyHost = ownUrl?.host, onlyPort = ownUrl?.port ?: -1))   // M712
         }
 
         val ok = builder.build()

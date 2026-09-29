@@ -1584,7 +1584,7 @@ private fun GridDetailContent(
                         ?: return@TextButton
                     recBusy = true; recMsg = null
                     dvrScope.launch {
-                        val r = if (stopping) DvrController.cancel(srv, dvrEntry)
+                        val r = if (stopping) DvrController.stop(srv, dvrEntry)   // M710
                         else DvrController.delete(srv, dvrEntry)
                         recBusy = false
                         recOk = r.success
@@ -1713,7 +1713,7 @@ private fun EpgGridRow(
                 val num = row.channel.number
                 if (num != null && num > 0) {
                     Text(
-                        num.toString(),
+                        row.channel.numberText,   // M711
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                         color = cs.primary,
@@ -1735,7 +1735,7 @@ private fun EpgGridRow(
             // a single "number · name" line (ellipsised); without a picon, a large number.
             val cs = MaterialTheme.colorScheme
             val num = row.channel.number
-            val label = if (num != null && num > 0) "$num · ${row.channel.name}" else row.channel.name
+            val label = if (num != null && num > 0) "${row.channel.numberText} · ${row.channel.name}" else row.channel.name   // M711
             Column(
                 Modifier.width(chanW.dp).height(rowH.dp)
                     .padding(horizontal = 4.dp, vertical = 3.dp)

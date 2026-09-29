@@ -23,7 +23,13 @@ data class Channel(
      * looked up in api/mpegts/service/grid. Empty = the server did not provide them.
      */
     @SerialName("service_types") val serviceTypes: List<String> = emptyList(),
-    @SerialName("enabled") val enabled: Boolean = true
+    @SerialName("enabled") val enabled: Boolean = true,
+    /**
+     * M711: the minor part of the channel number (5.1 -> 1, 0 = none). HTSP sends it as
+     * channelNumberMinor; the HTTP grid sends the whole number as the string "5.1"
+     * (prop.c, CHANNEL_SPLIT) — [TvhApi.channels] splits it before decoding.
+     */
+    @SerialName("number_minor") val numberMinor: Int = 0
 ) {
     /**
      * M504: is the channel a radio station according to its service type? Kodi
@@ -34,7 +40,24 @@ data class Channel(
      */
     val isRadioByService: Boolean?
         get() {
-            if (serviceTypes.isEmpty()) return null
-            return serviceTypes.any { it.contains("radio", ignoreCase = true) }
+            // M711: "Other" = Tvheadend does not know the type yet (e.g. an IPTV service that was
+            // never tuned, service.c) — unknown, so the tag-name fallback decides
+            val known = serviceTypes.filterNot { it.isBlank() || it.equals("Other", ignoreCase = true) }
+            if (known.isEmpty()) return null
+            return known.any { it.contains("radio", ignoreCase = true) }
         }
+
+    /** M711: the number as shown by Tvheadend ("5", "5.1"); "" = no number. */
+    val numberText: String get() {
+        val n = number ?: return ""
+        if (n <= 0) return ""
+        return if (numberMinor > 0) "$n.$numberMinor" else "$n"
+    }
+
+    companion object {
+        /** M711: sort order by number (major, then minor), channels without a number at the end. */
+        val byNumber: Comparator<Channel> = compareBy<Channel>(
+            { it.number?.takeIf { n -> n > 0 } ?: Int.MAX_VALUE }, { it.numberMinor }, { it.name.lowercase() }
+        )
+    }
 }

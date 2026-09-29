@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">Perfil desconhecido</string>
     <string name="set_archive_by_profile">Ordenar arquivo por perfil</string>
     <string name="set_archive_by_profile_note">Adiciona ao arquivo a secção Por perfil: gravações agrupadas pelo perfil de gravação com que foram feitas.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">Se a palavra-passe estiver correta, falta à conta a permissão «Interface web» de que o modo HTTP precisa. Muda o servidor para HTSP ou adiciona a permissão no Tvheadend.</string>
 </resources>

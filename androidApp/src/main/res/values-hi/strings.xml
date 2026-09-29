@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">अज्ञात प्रोफ़ाइल</string>
     <string name="set_archive_by_profile">आर्काइव को प्रोफ़ाइल के अनुसार क्रमबद्ध करें</string>
     <string name="set_archive_by_profile_note">आर्काइव में प्रोफ़ाइल के अनुसार सेक्शन जोड़ता है: रिकॉर्डिंग उस रिकॉर्डिंग प्रोफ़ाइल के अनुसार समूहित होती हैं जिससे वे बनीं।</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">अगर पासवर्ड सही है, तो खाते में HTTP मोड के लिए ज़रूरी “वेब इंटरफ़ेस” अधिकार नहीं है। सर्वर को HTSP पर करें या Tvheadend में अधिकार जोड़ें।</string>
 </resources>

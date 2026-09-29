@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">نامعلوم پروفائل</string>
     <string name="set_archive_by_profile">آرکائیو کو پروفائل کے مطابق ترتیب دیں</string>
     <string name="set_archive_by_profile_note">آرکائیو میں پروفائل کے مطابق سیکشن شامل کرتا ہے: ریکارڈنگز اس ریکارڈنگ پروفائل کے مطابق گروپ کی جاتی ہیں جس سے وہ بنیں۔</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">اگر پاس ورڈ درست ہے تو اکاؤنٹ کے پاس HTTP موڈ کے لیے درکار “ویب انٹرفیس” کی اجازت نہیں۔ سرور کو HTSP پر کریں یا Tvheadend میں اجازت شامل کریں۔</string>
 </resources>

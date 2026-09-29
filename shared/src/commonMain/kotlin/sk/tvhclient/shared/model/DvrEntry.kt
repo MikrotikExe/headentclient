@@ -59,7 +59,9 @@ data class DvrEntry(
     val isRecordingNow: Boolean get() =
         status.equals("recording", ignoreCase = true) ||
             status.equals("running", ignoreCase = true) ||
-            schedStatus.equals("recording", ignoreCase = true)
+            schedStatus.equals("recording", ignoreCase = true) ||
+            // M710: HTTP sched_status "recordingError" = recording with a problem (dvr_db.c)
+            schedStatus.equals("recordingError", ignoreCase = true)
 
     val durationSec: Long
         get() = if (duration > 0) duration else (if (stop > start) stop - start else 0)

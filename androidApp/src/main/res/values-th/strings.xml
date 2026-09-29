@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">โปรไฟล์ที่ไม่รู้จัก</string>
     <string name="set_archive_by_profile">จัดเรียงคลังตามโปรไฟล์</string>
     <string name="set_archive_by_profile_note">เพิ่มส่วน ตามโปรไฟล์ ในคลัง: การบันทึกจัดกลุ่มตามโปรไฟล์การบันทึกที่ใช้</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">หากรหัสผ่านถูกต้อง บัญชีนี้ไม่มีสิทธิ์ “เว็บอินเทอร์เฟซ” ที่โหมด HTTP ต้องใช้ ให้เปลี่ยนเซิร์ฟเวอร์เป็น HTSP หรือเพิ่มสิทธิ์ใน Tvheadend</string>
 </resources>

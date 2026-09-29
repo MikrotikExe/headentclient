@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">不明なプロファイル</string>
     <string name="set_archive_by_profile">アーカイブをプロファイル別に並べる</string>
     <string name="set_archive_by_profile_note">アーカイブに「プロファイル別」を追加します。録画は使用した録画プロファイルごとにまとめられます。</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">パスワードが正しい場合、HTTP モードに必要な「Web インターフェース」権限がアカウントにありません。サーバーを HTSP に切り替えるか、Tvheadend で権限を追加してください。</string>
 </resources>

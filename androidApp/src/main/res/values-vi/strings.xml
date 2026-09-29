@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">Hồ sơ không xác định</string>
     <string name="set_archive_by_profile">Sắp xếp kho lưu trữ theo hồ sơ</string>
     <string name="set_archive_by_profile_note">Thêm mục Theo hồ sơ vào kho lưu trữ: các bản ghi được nhóm theo hồ sơ ghi đã dùng.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">Nếu mật khẩu đúng, tài khoản thiếu quyền “Giao diện web” mà chế độ HTTP cần. Hãy chuyển máy chủ sang HTSP hoặc thêm quyền trong Tvheadend.</string>
 </resources>

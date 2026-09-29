@@ -44,7 +44,13 @@ data class DvrAutorec(
     /** M704: the EPG series link; when set, the server matches episodes by it and ignores the title. */
     val serieslink: String = "",
     /** M705: a sub-folder of the server's recording directory ("" = as the DVR profile says). */
-    val directory: String = ""
+    val directory: String = "",
+    /**
+     * M710: [configName] as read from the server; null = unknown (new rule, or the profile names
+     * could not be loaded). An update sends an empty profile ("back to the default") only when
+     * the user really changed a known non-default profile — never because a lookup failed.
+     */
+    val configNameRead: String? = null
 ) {
     companion object {
         const val ALL_DAYS = 0x7F
@@ -65,8 +71,14 @@ data class DvrTimerec(
     val configName: String = "",
     val comment: String = "",
     /** M705: a sub-folder of the server's recording directory ("" = as the DVR profile says). */
-    val directory: String = ""
+    val directory: String = "",
+    /** M710: see [DvrAutorec.configNameRead]. */
+    val configNameRead: String? = null
 )
+
+/** M710: send an empty profile on update = the user switched a known profile back to the default. */
+fun resetToDefaultProfile(configName: String, configNameRead: String?): Boolean =
+    configName.isBlank() && !configNameRead.isNullOrBlank()
 
 /**
  * Tvheadend's `dvr_autorec_dedup_t` (dvr.h). The app offers only the four everyday choices;

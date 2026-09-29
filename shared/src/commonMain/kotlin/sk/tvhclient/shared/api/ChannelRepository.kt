@@ -87,7 +87,7 @@ class ChannelRepository(
         for (tag in tags) {
             val rows = tvChannels
                 .filter { tag.uuid in it.tags }
-                .sortedWith(compareBy({ it.number ?: Int.MAX_VALUE }, { it.name.lowercase() }))
+                .sortedWith(Channel.byNumber)   // M711
                 .map(::rowOf)
             if (rows.isNotEmpty()) categories.add(ChannelCategory(tag, rows))
         }
@@ -98,7 +98,7 @@ class ChannelRepository(
             categories.add(ChannelCategory(
                 tag = null,
                 rows = untagged
-                    .sortedWith(compareBy({ it.number ?: Int.MAX_VALUE }, { it.name.lowercase() }))
+                    .sortedWith(Channel.byNumber)   // M711
                     .map(::rowOf)
             ))
         }
@@ -114,7 +114,7 @@ class ChannelRepository(
         val epgNow = epgNow()
         return channels
             .filterNot { isRadioChannel(it, tagNameOf) }
-            .sortedWith(compareBy({ it.number ?: Int.MAX_VALUE }, { it.name.lowercase() }))
+            .sortedWith(Channel.byNumber)   // M711
             .map { ch ->
                 val ev = epgNow[ch.uuid]
                 ChannelRow(ch, piconUrlFor(ch), ev?.title?.ifBlank { null },
@@ -155,7 +155,7 @@ class ChannelRepository(
             return ChannelRow(ch, piconUrlFor(ch), ev?.title?.ifBlank { null },
                 ev?.start ?: 0, ev?.stop ?: 0)
         }
-        val byNumber = compareBy<Channel>({ it.number ?: Int.MAX_VALUE }, { it.name.lowercase() })
+        val byNumber = Channel.byNumber   // M711
 
         val out = mutableListOf<ChannelCategory>()
         for (tag in tags) {
@@ -181,7 +181,7 @@ class ChannelRepository(
         val epgNow = epgNow()
         return channels
             .filter { isRadioChannel(it, tagNameOf) }
-            .sortedWith(compareBy({ it.number ?: Int.MAX_VALUE }, { it.name.lowercase() }))
+            .sortedWith(Channel.byNumber)   // M711
             .map { ch ->
                 val ev = epgNow[ch.uuid]
                 ChannelRow(ch, piconUrlFor(ch), ev?.title?.ifBlank { null },

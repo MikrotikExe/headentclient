@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">Neznan profil</string>
     <string name="set_archive_by_profile">Razvrsti arhiv po profilu</string>
     <string name="set_archive_by_profile_note">V arhiv doda razdelek Po profilu: posnetki, združeni po profilu snemanja, s katerim so nastali.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">Če je geslo pravilno, računu manjka pravica »Spletni vmesnik«, ki jo potrebuje način HTTP. Preklopi strežnik na HTSP ali dodaj pravico v Tvheadendu.</string>
 </resources>

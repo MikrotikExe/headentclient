@@ -227,7 +227,10 @@ class TsMuxer(streams: List<Stream>) {
             heldClearPayload = null; heldClearTrack = null
         }
         val (op, od) = remap(pts, dts)
-        val body = if (t.isAac) {
+        // M713: Tvheadend's parsers already deliver AAC as ADTS frames (parse_mp4a_data keeps the
+        // whole ADTS frame, parser_latm builds a 7-byte ADTS header). Only raw AAC (e.g. from a
+        // transcoding profile) gets our header; a second header broke the audio on AAC channels.
+        val body = if (t.isAac && !isAdtsFrame(buf, off, len)) {
             val au = adtsWrap(t, buf.copyOfRange(off, off + len))
             emitPes(t, au, 0, au.size, op, od, randomAccess)
         } else emitPes(t, buf, off, len, op, od, randomAccess)
@@ -354,7 +357,21 @@ class TsMuxer(streams: List<Stream>) {
         return out
     }
 
-    /** Prepends a 7-byte ADTS header to a raw AAC frame (TVH sends it without ADTS).
+    /**
+     * M713: does the payload already start with an ADTS header? Sync word 0xFFF, layer 00 and a
+     * frame length that fits the payload (one or more whole ADTS frames).
+     */
+    private fun isAdtsFrame(b: ByteArray, off: Int, len: Int): Boolean {
+        if (len < 7) return false
+        val b0 = b[off].toInt() and 0xFF
+        val b1 = b[off + 1].toInt() and 0xFF
+        if (b0 != 0xFF || (b1 and 0xF6) != 0xF0) return false
+        val frameLen = ((b[off + 3].toInt() and 0x03) shl 11) or
+            ((b[off + 4].toInt() and 0xFF) shl 3) or ((b[off + 5].toInt() and 0xE0) ushr 5)
+        return frameLen in 7..len
+    }
+
+    /** Prepends a 7-byte ADTS header to a raw AAC frame (when Tvheadend sends it without ADTS).
      *  profile = AAC LC (object_type 2), sample-rate index and channels from subscriptionStart
      *  (rate = es_sri, channels). Without them the fallback is 48 kHz / 2 channels (usual for TV). */
     private fun adtsWrap(t: Track, au: ByteArray): ByteArray {

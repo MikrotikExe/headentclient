@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">Nepoznat profil</string>
     <string name="set_archive_by_profile">Razvrstaj arhivu po profilu</string>
     <string name="set_archive_by_profile_note">Dodaje u arhivu odjeljak Po profilu: snimke grupirane prema profilu snimanja kojim su nastale.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">Ako je lozinka ispravna, računu nedostaje pravo „Web sučelje” koje HTTP način treba. Prebaci poslužitelj na HTSP ili dodaj pravo u Tvheadendu.</string>
 </resources>

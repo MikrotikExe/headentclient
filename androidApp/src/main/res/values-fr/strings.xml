@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">Profil inconnu</string>
     <string name="set_archive_by_profile">Trier les archives par profil</string>
     <string name="set_archive_by_profile_note">Ajoute aux archives une section Par profil : enregistrements regroupés selon le profil d\'enregistrement utilisé.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">Si le mot de passe est correct, il manque au compte le droit « Interface web » nécessaire au mode HTTP. Passe le serveur en HTSP ou ajoute ce droit dans Tvheadend.</string>
 </resources>

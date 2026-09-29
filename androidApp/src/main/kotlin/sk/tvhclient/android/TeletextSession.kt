@@ -81,7 +81,7 @@ class TeletextSession(private val ctx: Context) {
         val hasCreds = server.username.isNotEmpty()
         val preemptiveBasic: String? = if (hasCreds && server.authMode != "digest") {
             "Basic " + Base64.encodeToString(
-                "${server.username}:${server.password}".toByteArray(Charsets.UTF_8), Base64.NO_WRAP
+                sk.tvhclient.shared.net.TvhCredEscape.basicPair(server.username, server.password)   /* M712 */.toByteArray(Charsets.UTF_8), Base64.NO_WRAP
             )
         } else null
         val builder = OkHttpClient.Builder()

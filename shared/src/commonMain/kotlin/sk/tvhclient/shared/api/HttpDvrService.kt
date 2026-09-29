@@ -11,6 +11,7 @@ import sk.tvhclient.shared.model.DvrTimerec
 import sk.tvhclient.shared.model.TvhServer
 import sk.tvhclient.shared.model.autorecAround
 import sk.tvhclient.shared.model.autorecWindow
+import sk.tvhclient.shared.model.resetToDefaultProfile
 import sk.tvhclient.shared.model.formatHm
 import sk.tvhclient.shared.model.maskToWeekdays
 import sk.tvhclient.shared.model.parseHm
@@ -52,8 +53,16 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
         // server decide" means: dvr_config_find_by_list("") finds no profile by uuid or name and
         // falls back to the first profile the user is allowed, or to the server default.
         params["config_uuid"] = cfg ?: ""
-        api.apiPost("api/dvr/entry/create_by_event", params)
-        DvrResult.OK
+        val resp = api.apiPost("api/dvr/entry/create_by_event", params)
+        // M710: Tvheadend answers 200 even when it created nothing (unknown event, no profile);
+        // only a response with the new entry's uuid means success (api_dvr_entry_create_by_event)
+        val created = when (val u = resp["uuid"]) {
+            is JsonArray -> u.firstOrNull()?.let { (it as? JsonPrimitive)?.content }
+            is JsonPrimitive -> u.content
+            else -> null
+        }?.takeIf { it.isNotBlank() }
+        if (created != null) DvrResult(true, id = created)
+        else DvrResult.fail("The server did not create the recording (programme not found)")
     } catch (e: TvhHttpException) {
         DvrResult.fail(httpMessage(e.httpCode))
     } catch (e: Throwable) { DvrResult.fail(e.message) }
@@ -63,6 +72,14 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
         DvrResult.OK
     } catch (e: TvhHttpException) {
         DvrResult.fail(httpMessage(e.httpCode))
+    } catch (e: Throwable) { DvrResult.fail(e.message) }
+
+    override suspend fun stop(id: String): DvrResult = try {   // M710
+        api.apiPost("api/dvr/entry/stop", mapOf("uuid" to id))
+        DvrResult.OK
+    } catch (e: TvhHttpException) {
+        // a server without dvr/entry/stop (404): the old way, so stopping still works
+        if (e.httpCode == 404) cancel(id) else DvrResult.fail(httpMessage(e.httpCode))
     } catch (e: Throwable) { DvrResult.fail(e.message) }
 
     override suspend fun delete(id: String): DvrResult = try {
@@ -110,6 +127,7 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
                 startWindowMin = parseHm(str(o, "start_window")),
                 dupDetect = int(o, "record", DupDetect.ALL),
                 configName = cfg.nameOf(str(o, "config_name")),
+                configNameRead = if (cfg.isEmpty()) null else cfg.nameOf(str(o, "config_name")),   // M710
                 comment = str(o, "comment"),
                 serieslink = str(o, "serieslink"),   // M704
                 directory = str(o, "directory")       // M705
@@ -130,6 +148,7 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
                 startMin = parseHm(str(o, "start")).coerceAtLeast(0),
                 stopMin = parseHm(str(o, "stop")).coerceAtLeast(0),
                 configName = cfg.nameOf(str(o, "config_name")),
+                configNameRead = if (cfg.isEmpty()) null else cfg.nameOf(str(o, "config_name")),   // M710
                 comment = str(o, "comment"),
                 directory = str(o, "directory")   // M705
             )
@@ -156,6 +175,8 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
         if (a.serieslink.isNotBlank()) m["serieslink"] = JsonPrimitive(a.serieslink)   // M704
         m["directory"] = JsonPrimitive(a.directory.trim())   // M705
         if (a.configName.isNotBlank()) configs().uuidOf(a.configName)?.let { m["config_name"] = JsonPrimitive(it) }
+        // M710: "" = the default profile (config_name setter -> dvr_config_find_by_name_default)
+        else if (withUuid && resetToDefaultProfile(a.configName, a.configNameRead)) m["config_name"] = JsonPrimitive("")
         return JsonObject(m)
     }
 
@@ -172,6 +193,8 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
         m["comment"] = JsonPrimitive(a.comment)
         m["directory"] = JsonPrimitive(a.directory.trim())   // M705
         if (a.configName.isNotBlank()) configs().uuidOf(a.configName)?.let { m["config_name"] = JsonPrimitive(it) }
+        // M710: "" = the default profile (config_name setter -> dvr_config_find_by_name_default)
+        else if (withUuid && resetToDefaultProfile(a.configName, a.configNameRead)) m["config_name"] = JsonPrimitive("")
         return JsonObject(m)
     }
 

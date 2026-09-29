@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">Profil necunoscut</string>
     <string name="set_archive_by_profile">Sortează arhiva după profil</string>
     <string name="set_archive_by_profile_note">Adaugă în arhivă secțiunea După profil: înregistrări grupate după profilul de înregistrare folosit.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">Dacă parola este corectă, contului îi lipsește dreptul „Interfață web” necesar modului HTTP. Comută serverul pe HTSP sau adaugă dreptul în Tvheadend.</string>
 </resources>

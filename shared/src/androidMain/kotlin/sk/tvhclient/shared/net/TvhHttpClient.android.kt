@@ -16,7 +16,7 @@ actual fun tvhHttpClient(server: TvhServer, json: Json): HttpClient {
     val hasCreds = server.username.isNotEmpty()
     val preemptiveBasic: String? = if (hasCreds && server.authMode != "digest" && server.authMode != "none") {
         "Basic " + Base64.encodeToString(
-            "${server.username}:${server.password}".toByteArray(Charsets.UTF_8),
+            sk.tvhclient.shared.net.TvhCredEscape.basicPair(server.username, server.password)   /* M712 */.toByteArray(Charsets.UTF_8),
             Base64.NO_WRAP
         )
     } else null

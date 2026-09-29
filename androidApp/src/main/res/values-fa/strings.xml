@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">نمایهٔ ناشناخته</string>
     <string name="set_archive_by_profile">مرتب‌سازی بایگانی بر اساس نمایه</string>
     <string name="set_archive_by_profile_note">بخش بر اساس نمایه را به بایگانی می‌افزاید: ضبط‌ها بر اساس نمایهٔ ضبطی که با آن ساخته شده‌اند گروه‌بندی می‌شوند.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">اگر گذرواژه درست است، حساب مجوز «رابط وب» را که حالت HTTP نیاز دارد ندارد. سرور را به HTSP تغییر دهید یا این مجوز را در Tvheadend اضافه کنید.</string>
 </resources>

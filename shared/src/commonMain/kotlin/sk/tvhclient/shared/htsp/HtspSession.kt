@@ -139,19 +139,30 @@ class HtspSession internal constructor(
         lock.withLock {
             when (m["method"] as? String) {
                 "channelAdd" -> upsert(channels, "channelId", merge = false)
-                "channelUpdate" -> upsert(channels, "channelId", merge = true)   // only the changed fields
+                // M710: a full channelUpdate (with channelName) replaces the entry — optional fields
+                // (icon, minor number) are left out when not set, a merge kept the old values.
+                // The now/next form (channelId + eventId/nextEventId only) is merged.
+                "channelUpdate" -> upsert(channels, "channelId", merge = !m.containsKey("channelName"))
                 "channelDelete" -> remove(channels, "channelId")
                 "tagAdd" -> upsert(tags, "tagId", merge = false)
-                "tagUpdate" -> upsert(tags, "tagId", merge = true)
+                "tagUpdate" -> upsert(tags, "tagId", merge = !m.containsKey("tagName"))   // M710
                 "tagDelete" -> remove(tags, "tagId")
                 "dvrEntryAdd" -> upsert(dvr, "id", merge = false)
-                "dvrEntryUpdate" -> upsert(dvr, "id", merge = true)
+                // M710: a full dvrEntryUpdate (has "enabled") replaces the entry; the stats-only form
+                // (htsp_dvr_entry_update_stats) is merged, but the fields it recomputes are dropped
+                // first — they are sent only when set, so a cleared error or a removed file stays stale.
+                "dvrEntryUpdate" -> if (m.containsKey("enabled")) upsert(dvr, "id", merge = false) else {
+                    (m["id"] as? Long)?.let { id ->
+                        dvr[id]?.let { e -> for (k in DVR_VOLATILE) e.remove(k) }
+                    }
+                    upsert(dvr, "id", merge = true)
+                }
                 "dvrEntryDelete" -> remove(dvr, "id")
                 "autorecEntryAdd" -> upsertS(autorecs, merge = false)     // M696
-                "autorecEntryUpdate" -> upsertS(autorecs, merge = true)
+                "autorecEntryUpdate" -> upsertS(autorecs, merge = false)   // M710: always a full entry
                 "autorecEntryDelete" -> removeS(autorecs)
                 "timerecEntryAdd" -> upsertS(timerecs, merge = false)
-                "timerecEntryUpdate" -> upsertS(timerecs, merge = true)
+                "timerecEntryUpdate" -> upsertS(timerecs, merge = false)   // M710: always a full entry
                 "timerecEntryDelete" -> removeS(timerecs)
                 "accessUpdate" -> client.applyAccessUpdate(m)
                 "initialSyncCompleted" -> syncDone.complete(Unit)
@@ -332,6 +343,9 @@ class HtspSession internal constructor(
     companion object {
         /** No request and no stream for this long -> the connection is closed. */
         const val IDLE_CLOSE_SEC = 300L
+
+        /** M710: dvrEntry fields Tvheadend sends only when set (htsp_build_dvrentry). */
+        private val DVR_VOLATILE = listOf("error", "subscriptionError", "streamErrors", "dataErrors", "dataSize", "duplicate")
     }
 }
 

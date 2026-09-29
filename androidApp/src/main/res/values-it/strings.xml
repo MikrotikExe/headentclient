@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">Profilo sconosciuto</string>
     <string name="set_archive_by_profile">Ordina l\'archivio per profilo</string>
     <string name="set_archive_by_profile_note">Aggiunge all\'archivio la sezione Per profilo: registrazioni raggruppate in base al profilo di registrazione usato.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">Se la password è corretta, all\'account manca il permesso «Interfaccia web» richiesto dalla modalità HTTP. Passa il server a HTSP o aggiungi il permesso in Tvheadend.</string>
 </resources>

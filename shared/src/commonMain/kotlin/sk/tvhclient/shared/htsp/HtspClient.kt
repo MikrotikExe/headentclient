@@ -53,10 +53,12 @@ class HtspClient(
     private var challenge: ByteArray? = null
 
     /**
-     * M471: the logged-in user's rights from the asynchronous `accessUpdate` message.
-     * Tvheadend sends it by itself after login (htsp_server.c). The `dvr` field
-     * corresponds to the ACCESS_HTSP_RECORDER right — the app shows or
-     * hides recording based on it. The server enforces the rights anyway, this is only for the UI.
+     * M471 / M710: the logged-in user's rights. Tvheadend returns them in the REPLY to
+     * `authenticate` (htsp_method_authenticate, htspversion > 25: admin, streaming, dvr,
+     * faileddvr, limit*). There is no HTSP `accessUpdate` message — that one exists only for the
+     * web UI (comet), so until M710 the rights were never known over HTSP. The `dvr` field
+     * corresponds to the ACCESS_HTSP_RECORDER right — the app shows or hides recording based on
+     * it. The server enforces the rights anyway, this is only for the UI.
      */
     data class Access(
         val admin: Boolean = false,
@@ -215,7 +217,10 @@ class HtspClient(
 
     private suspend fun auth(): Boolean {
         val ch = challenge
-        val s = if (pwd.isNotEmpty() && ch != null) {
+        // M710: the digest also for an empty password. Without it Tvheadend only logs the name as
+        // "unverified" and keeps the anonymous (IP-based) rights, so an account with an empty
+        // password never got its own rights (htsp_authenticate).
+        val s = if (ch != null && user.isNotEmpty()) {
             val digest = Sha1.digest(pwd.encodeToByteArray() + ch)
             send("authenticate", mapOf("username" to user, "digest" to digest))
         } else {
@@ -228,6 +233,8 @@ class HtspClient(
         // connection limit is used up (typically by the stream that is playing). Reported separately —
         // it is not a wrong password and it must not be retried straight away.
         if (denied && ((r["connlimit"] as? Long) ?: 0L) != 0L) throw HtspConnLimitException()
+        // M710: the rights come in this reply (htspversion > 25); older servers do not send them
+        if (!denied && r.containsKey("dvr")) applyAccessUpdate(r)
         return !denied
     }
 

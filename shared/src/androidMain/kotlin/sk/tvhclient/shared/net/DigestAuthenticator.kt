@@ -19,6 +19,13 @@ import kotlin.random.Random
 class DigestAuthenticator(
     private val username: String,
     private val password: String,
+    /**
+     * M712: answer only challenges from this host (and port, when > 0). Picons can point to
+     * external logo servers (icon_public_url with the image cache off, imagecache.c) — the
+     * Tvheadend credentials must never be sent there. null = no restriction (old behaviour).
+     */
+    private val onlyHost: String? = null,
+    private val onlyPort: Int = -1,
 ) : Authenticator {
 
     override fun authenticate(route: Route?, response: Response): Request? {
@@ -31,6 +38,8 @@ class DigestAuthenticator(
     }
 
     private fun buildAuth(response: Response): Request? {
+        val u = response.request.url
+        if (onlyHost != null && (!u.host.equals(onlyHost, ignoreCase = true) || (onlyPort > 0 && u.port != onlyPort))) return null   // M712
         if (response.request.header("Authorization")?.startsWith("Digest") == true) return null
         if (priorResponseCount(response) >= 3) return null
 
@@ -67,7 +76,9 @@ class DigestAuthenticator(
         }
 
         val sb = StringBuilder("Digest ")
-        sb.append("username=\"").append(username).append("\", ")
+        // M712: Tvheadend de-escapes the user name from the header (http_deescape) but hashes
+        // with the real one — the header carries the escaped form, HA1 the real name
+        sb.append("username=\"").append(TvhCredEscape.escape(username)).append("\", ")
         sb.append("realm=\"").append(realm).append("\", ")
         sb.append("nonce=\"").append(nonce).append("\", ")
         sb.append("uri=\"").append(uri).append("\", ")

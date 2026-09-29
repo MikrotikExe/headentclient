@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">Neznámy profil</string>
     <string name="set_archive_by_profile">Triediť archív podľa profilu</string>
     <string name="set_archive_by_profile_note">Do archívu pridá sekciu Podľa profilu: nahrávky zoskupené podľa profilu nahrávania, ktorým vznikli.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">Ak je heslo správne, účtu chýba právo „Webové rozhranie“, ktoré HTTP režim potrebuje. Prepni server na HTSP alebo právo pridaj v Tvheadende.</string>
 </resources>

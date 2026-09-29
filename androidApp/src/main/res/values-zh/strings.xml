@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">未知配置文件</string>
     <string name="set_archive_by_profile">按配置文件排序归档</string>
     <string name="set_archive_by_profile_note">在归档中添加“按配置文件”分组：录制内容按所用的录制配置文件分组。</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">如果密码正确，则该账户缺少 HTTP 模式所需的“Web 界面”权限。请将服务器切换为 HTSP，或在 Tvheadend 中添加该权限。</string>
 </resources>

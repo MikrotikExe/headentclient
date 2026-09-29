@@ -36,7 +36,10 @@ object StreamUrlBuilder {
         val scheme = if (server.useHttps) "https://" else "http://"
         if (!fullUrl.startsWith(scheme)) return fullUrl
         val rest = fullUrl.substring(scheme.length)
-        val creds = encode(server.username) + ":" + encode(server.password) + "@"
+        // M712: libVLC URL-decodes the userinfo and sends it as Basic; Tvheadend URL-decodes it
+        // once more (http_deescape) — escape "+"/"%" first so both decodings end at the original
+        val creds = encode(sk.tvhclient.shared.net.TvhCredEscape.escape(server.username)) + ":" +
+            encode(sk.tvhclient.shared.net.TvhCredEscape.escape(server.password)) + "@"
         return scheme + creds + rest
     }
 

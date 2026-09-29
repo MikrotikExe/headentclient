@@ -131,7 +131,7 @@ object DvrProxy {
             // set to digest, and a digest authenticator for the 401 challenge
             val preemptiveBasic: String? = if (hasCreds && server.authMode != "digest") {
                 "Basic " + Base64.encodeToString(
-                    "${server.username}:${server.password}".toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
+                    sk.tvhclient.shared.net.TvhCredEscape.basicPair(server.username, server.password)   /* M712 */.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
             } else null
             val b = OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)

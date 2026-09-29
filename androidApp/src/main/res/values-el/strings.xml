@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">Άγνωστο προφίλ</string>
     <string name="set_archive_by_profile">Ταξινόμηση αρχείου ανά προφίλ</string>
     <string name="set_archive_by_profile_note">Προσθέτει στο αρχείο την ενότητα Ανά προφίλ: εγγραφές ομαδοποιημένες κατά το προφίλ εγγραφής που χρησιμοποιήθηκε.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">Αν ο κωδικός είναι σωστός, στον λογαριασμό λείπει το δικαίωμα «Διεπαφή ιστού» που χρειάζεται η λειτουργία HTTP. Άλλαξε τον διακομιστή σε HTSP ή πρόσθεσε το δικαίωμα στο Tvheadend.</string>
 </resources>

@@ -8,6 +8,7 @@ import sk.tvhclient.shared.model.DvrTimerec
 import sk.tvhclient.shared.model.TvhServer
 import sk.tvhclient.shared.model.autorecAround
 import sk.tvhclient.shared.model.autorecWindow
+import sk.tvhclient.shared.model.resetToDefaultProfile
 
 /**
  * M472: recording over HTSP (addDvrEntry, cancelDvrEntry, deleteDvrEntry).
@@ -31,16 +32,10 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
     }
 
     override suspend fun access(): DvrAccess = try {
-        val s = session()
-        // M471/M480: the rights arrive asynchronously right after login (accessUpdate) — the session's
-        // reader keeps them; on a brand-new connection wait for them briefly
-        var acc = s.access
-        var guard = 0
-        while (acc == null && guard++ < 10) {
-            kotlinx.coroutines.delay(200)
-            acc = s.access
-        }
-        val a = acc
+        // M710: the rights are read from the authenticate reply while connecting, so they are
+        // known as soon as the session exists (null = a server older than htspversion 26).
+        // The former wait for an accessUpdate message cost ~2 s per call and never succeeded.
+        val a = session().access
         if (a == null) DvrAccess.UNKNOWN
         else DvrAccess(
             canRecord = a.dvr, canSeeFailed = a.failedDvr, isAdmin = a.admin,
@@ -60,6 +55,11 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
     override suspend fun cancel(id: String): DvrResult = try {
         val n = id.toLongOrNull() ?: return DvrResult.fail("Invalid recording ID")
         reply(session().request("cancelDvrEntry", mapOf("id" to n)))
+    } catch (e: Throwable) { DvrResult.fail(e.message) }
+
+    override suspend fun stop(id: String): DvrResult = try {   // M710
+        val n = id.toLongOrNull() ?: return DvrResult.fail("Invalid recording ID")
+        reply(session().request("stopDvrEntry", mapOf("id" to n)))
     } catch (e: Throwable) { DvrResult.fail(e.message) }
 
     override suspend fun delete(id: String): DvrResult = try {
@@ -96,6 +96,7 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
                 startWindowMin = (l(m, "startWindow") ?: -1L).toInt(),
                 dupDetect = (l(m, "dupDetect") ?: 0L).toInt(),
                 configName = cfg[s(m, "configId")] ?: "",
+                configNameRead = if (cfg.isEmpty()) null else cfg[s(m, "configId")],   // M710
                 comment = s(m, "comment"),
                 serieslink = s(m, "serieslinkUri"),   // M704
                 directory = s(m, "directory")          // M705
@@ -117,6 +118,7 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
                 startMin = (l(m, "start") ?: 0L).toInt(),
                 stopMin = (l(m, "stop") ?: 0L).toInt(),
                 configName = cfg[s(m, "configId")] ?: "",
+                configNameRead = if (cfg.isEmpty()) null else cfg[s(m, "configId")],   // M710
                 comment = s(m, "comment"),
                 directory = s(m, "directory")   // M705
             )
@@ -146,6 +148,7 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
         args["dupDetect"] = a.dupDetect.toLong()
         args["comment"] = a.comment
         if (a.configName.isNotBlank()) args["configName"] = a.configName
+        else if (update && resetToDefaultProfile(a.configName, a.configNameRead)) args["configName"] = ""   // M710
         // M704: sent only when set — on an update an absent field keeps the server's value
         if (a.serieslink.isNotBlank()) args["serieslinkUri"] = a.serieslink
         args["directory"] = a.directory.trim()   // M705
@@ -164,6 +167,7 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
         args["stop"] = a.stopMin.toLong()
         args["comment"] = a.comment
         if (a.configName.isNotBlank()) args["configName"] = a.configName
+        else if (update && resetToDefaultProfile(a.configName, a.configNameRead)) args["configName"] = ""   // M710
         args["directory"] = a.directory.trim()   // M705
         return args
     }

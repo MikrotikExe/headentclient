@@ -36,6 +36,13 @@ interface DvrService {
     /** Cancels a scheduled/running recording, the entry remains. */
     suspend fun cancel(id: String): DvrResult
 
+    /**
+     * M710: stops a RUNNING recording gracefully — the recording is kept as finished. Cancelling a
+     * running recording makes Tvheadend end it with SM_CODE_ABORTED ("Aborted by user"), i.e. as a
+     * failed recording (dvr_entry_cancel vs dvr_entry_stop in dvr_db.c).
+     */
+    suspend fun stop(id: String): DvrResult
+
     /** Deletes the recording together with its file. */
     suspend fun delete(id: String): DvrResult
 

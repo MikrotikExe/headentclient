@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">Nieznany profil</string>
     <string name="set_archive_by_profile">Sortuj archiwum według profilu</string>
     <string name="set_archive_by_profile_note">Dodaje do archiwum sekcję Według profilu: nagrania pogrupowane według profilu nagrywania, którym powstały.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">Jeśli hasło jest poprawne, kontu brakuje uprawnienia „Interfejs WWW”, którego wymaga tryb HTTP. Przełącz serwer na HTSP albo dodaj uprawnienie w Tvheadend.</string>
 </resources>

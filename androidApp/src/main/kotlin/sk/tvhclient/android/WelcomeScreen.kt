@@ -200,7 +200,7 @@ fun WelcomeScreen(vm: ServersViewModel) {
                     fontWeight = FontWeight.SemiBold
                 )
             } else {
-                TestResultView(testState)
+                TestResultView(testState, httpMode = connMode != "htsp")   // M712
             }
             else -> {}
         }

@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">অজানা প্রোফাইল</string>
     <string name="set_archive_by_profile">প্রোফাইল অনুযায়ী আর্কাইভ সাজান</string>
     <string name="set_archive_by_profile_note">আর্কাইভে প্রোফাইল অনুযায়ী বিভাগ যোগ করে: রেকর্ডিংগুলি যে রেকর্ডিং প্রোফাইলে তৈরি হয়েছে সে অনুযায়ী গোষ্ঠীবদ্ধ।</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">পাসওয়ার্ড ঠিক থাকলে অ্যাকাউন্টে HTTP মোডের জন্য প্রয়োজনীয় “ওয়েব ইন্টারফেস” অধিকার নেই। সার্ভার HTSP-তে বদলান বা Tvheadend-এ অধিকার যোগ করুন।</string>
 </resources>

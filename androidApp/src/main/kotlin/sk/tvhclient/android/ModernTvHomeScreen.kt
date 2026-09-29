@@ -221,7 +221,7 @@ fun ModernTvHomeScreen(
                             )
                             Spacer(Modifier.width(8.dp))
                         }
-                        val num = hero.channel.number?.takeIf { it > 0 }?.toString()
+                        val num = hero.channel.numberText.ifEmpty { null }   // M711
                         Text(listOfNotNull(num, hero.channel.name).joinToString(" · "),
                             color = fgDim, fontSize = 14.sp)
                     }

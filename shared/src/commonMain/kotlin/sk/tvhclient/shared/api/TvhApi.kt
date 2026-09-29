@@ -14,6 +14,8 @@ import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.int
@@ -179,7 +181,7 @@ class TvhApi(private val server: TvhServer) {
      */
     suspend fun channels(): List<Channel> {
         val list = apiGetAll("api/channel/grid", pageLimit = 1000).mapNotNull {
-            runCatching { decode<Channel>(it) }.getOrNull()
+            runCatching { decode<Channel>(splitChannelNumber(it)) }.getOrNull()
         }
         if (list.none { it.services.isNotEmpty() }) return list
         val typeOf = runCatching { serviceTypes() }.getOrDefault(emptyMap())
@@ -202,6 +204,21 @@ class TvhApi(private val server: TvhServer) {
      * whose type Tvheadend itself derives from the stream (IPTV, unknown DVB types) keeps the
      * previous name-based value, so nothing changes for those.
      */
+    /**
+     * M711: Tvheadend sends a channel number with a minor part as the STRING "5.1" (prop.c,
+     * CHANNEL_SPLIT) and a plain number otherwise. Decoding "5.1" into Int failed and the whole
+     * channel silently dropped out of the list. Split it into number + number_minor; 0 = no number.
+     */
+    private fun splitChannelNumber(o: JsonObject): JsonObject {
+        val raw = (o["number"] as? JsonPrimitive)?.takeIf { it !is JsonNull }?.content ?: return o
+        val major = raw.substringBefore('.').trim().toLongOrNull()
+        val minor = if (raw.contains('.')) raw.substringAfter('.').trim().toLongOrNull() ?: 0L else 0L
+        val m = LinkedHashMap(o)
+        if (major == null || major <= 0L) m.remove("number") else m["number"] = JsonPrimitive(major)
+        if (minor > 0L) m["number_minor"] = JsonPrimitive(minor)
+        return JsonObject(m)
+    }
+
     private suspend fun serviceTypes(): Map<String, String> =
         apiGetAll("api/mpegts/service/grid", pageLimit = 1000).mapNotNull { o ->
             val uuid = (o["uuid"] as? JsonPrimitive)?.content ?: return@mapNotNull null
@@ -211,7 +228,11 @@ class TvhApi(private val server: TvhServer) {
                 user != null && user > 0 -> if (user == ST_RADIO) "Radio" else "TV"
                 dvb == DVB_RADIO -> "Radio"
                 dvb != null && dvb in DVB_TV -> "TV"
-                else -> (o["svcname"] as? JsonPrimitive)?.content
+                // M711: an unknown type (IPTV, 0x0A advanced-codec radio, ...) — Tvheadend decides
+                // from the elementary streams, which HTTP does not show. "radio" in the name still
+                // counts; otherwise the type stays unknown and the tag names decide (before M711 the
+                // service name itself was used as the type, which blocked the tag fallback).
+                else -> if ((o["svcname"] as? JsonPrimitive)?.content?.contains("radio", ignoreCase = true) == true) "Radio" else null
             } ?: return@mapNotNull null
             uuid to type
         }.toMap()
@@ -275,17 +296,29 @@ class TvhApi(private val server: TvhServer) {
      * filtering the whole grid on the client as the plugin did). Sorted by start.
      */
     suspend fun epgForChannel(channelUuid: String, limit: Int = 500): List<EpgEvent> {
-        val data = runCatching {
-            apiGet("api/epg/events/grid", epgArgs(
-                "channel" to channelUuid,
-                "limit" to limit.toString(),
-                "sort" to "start",
-                "dir" to "ASC"
-            ))
-        }.getOrNull() ?: return emptyList()
-        return ((data["entries"] as? JsonArray)?.mapNotNull { el ->
+        // M711: paged — a long EPG (two weeks of short programmes) has more than one page; the
+        // grid reports the total as totalCount (api_epg.c). At most 8 pages as a safety net.
+        val all = ArrayList<JsonElement>()
+        var start = 0
+        for (page in 0 until 8) {
+            val data = runCatching {
+                apiGet("api/epg/events/grid", epgArgs(
+                    "channel" to channelUuid,
+                    "start" to start.toString(),
+                    "limit" to limit.toString(),
+                    "sort" to "start",
+                    "dir" to "ASC"
+                ))
+            }.getOrNull() ?: if (page == 0) return emptyList() else break
+            val entries = (data["entries"] as? JsonArray) ?: break
+            all.addAll(entries)
+            val total = (data["totalCount"] as? JsonPrimitive)?.content?.toIntOrNull() ?: 0
+            start += entries.size
+            if (entries.size < limit || start >= total) break
+        }
+        return (all.mapNotNull { el ->
             (el as? JsonObject)?.let { runCatching { decode<EpgEvent>(it) }.getOrNull() }
-        } ?: emptyList())
+        })
             // M398-fix: some Tvheadend builds (e.g. 4.3~dev) ignore
             // the channel parameter and return the global grid — every channel would then
             // have an identical merged list with overlaps. We therefore always
@@ -296,11 +329,24 @@ class TvhApi(private val server: TvhServer) {
             .sortedBy { it.start }
     }
 
-    /** Finished DVR recordings (grid_finished). */
-    suspend fun dvrFinished(): List<sk.tvhclient.shared.model.DvrEntry> =
-        apiGetAll("api/dvr/entry/grid_finished", pageLimit = 500).mapNotNull {
+    /**
+     * Finished DVR recordings (grid_finished).
+     * M710: plus the failed ones that still have a file (grid_failed, filesize > 0) — e.g. a
+     * recording interrupted by a signal loss. HTSP has always listed them (state "completed"
+     * with an error), HTTP hid them, so the same server showed a different archive.
+     * Without the right to see failed recordings the second grid is simply empty.
+     */
+    suspend fun dvrFinished(): List<sk.tvhclient.shared.model.DvrEntry> {
+        val ok = apiGetAll("api/dvr/entry/grid_finished", pageLimit = 500).mapNotNull {
             runCatching { decode<sk.tvhclient.shared.model.DvrEntry>(it) }.getOrNull()
-        }.dedupByUuid()
+        }
+        val failed = runCatching {
+            apiGetAll("api/dvr/entry/grid_failed", pageLimit = 500).mapNotNull {
+                runCatching { decode<sk.tvhclient.shared.model.DvrEntry>(it) }.getOrNull()
+            }.filter { it.fileSize > 0 }
+        }.getOrDefault(emptyList())
+        return (ok + failed).dedupByUuid()
+    }
 
     /** Scheduled/in-progress recordings (grid_upcoming). */
     suspend fun dvrUpcoming(): List<sk.tvhclient.shared.model.DvrEntry> =

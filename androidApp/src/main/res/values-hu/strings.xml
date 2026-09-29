@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">Ismeretlen profil</string>
     <string name="set_archive_by_profile">Archívum rendezése profil szerint</string>
     <string name="set_archive_by_profile_note">Profil szerint szakaszt ad az archívumhoz: a felvételek a készítésükhöz használt felvételi profil szerint csoportosítva.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">Ha a jelszó helyes, a fióknak hiányzik a HTTP módhoz szükséges „Webes felület” jogosultság. Állítsd a szervert HTSP-re, vagy add meg a jogot a Tvheadendben.</string>
 </resources>

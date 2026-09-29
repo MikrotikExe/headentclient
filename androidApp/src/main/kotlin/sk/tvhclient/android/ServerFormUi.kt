@@ -375,7 +375,7 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
                 onSelect = { authMode = it }
             )
 
-            TestResultView(testState)
+            TestResultView(testState, httpMode = connMode != "htsp")   // M712
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
@@ -405,7 +405,7 @@ fun ServerForm(vm: ServersViewModel, existing: TvhServer?, onClose: () -> Unit) 
 }
 
 @Composable
-fun TestResultView(state: TestState) {
+fun TestResultView(state: TestState, httpMode: Boolean = false) {
     when (state) {
         is TestState.Idle -> {}
         is TestState.Running -> Row(verticalAlignment = Alignment.CenterVertically) {
@@ -422,10 +422,19 @@ fun TestResultView(state: TestState) {
                 ),
                 color = MaterialTheme.colorScheme.primary
             )
-            is ConnectionResult.AuthFailed -> Text(
-                stringResource(R.string.test_auth_failed),
-                color = MaterialTheme.colorScheme.error
-            )
+            is ConnectionResult.AuthFailed -> Column {
+                Text(
+                    stringResource(R.string.test_auth_failed),
+                    color = MaterialTheme.colorScheme.error
+                )
+                // M712: 403 with a name = wrong password OR the account lacks the "Web interface"
+                // right — Tvheadend serves the whole /api only with it (webui_api.c)
+                if (httpMode && r.httpCode == 403) Text(
+                    stringResource(R.string.test_auth_403_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             is ConnectionResult.HttpError -> Text(
                 stringResource(R.string.test_http_error, r.httpCode),
                 color = MaterialTheme.colorScheme.error

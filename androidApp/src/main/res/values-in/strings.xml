@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">Profil tidak dikenal</string>
     <string name="set_archive_by_profile">Urutkan arsip menurut profil</string>
     <string name="set_archive_by_profile_note">Menambahkan bagian Menurut profil ke arsip: rekaman dikelompokkan menurut profil rekaman yang digunakan.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">Jika kata sandi benar, akun tidak memiliki hak “Antarmuka web” yang dibutuhkan mode HTTP. Ubah server ke HTSP atau tambahkan hak itu di Tvheadend.</string>
 </resources>

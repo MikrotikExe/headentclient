@@ -308,7 +308,7 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
                     val base = when {
                         q.isNotBlank() -> s.rows
                         favOnly -> radioFavs.mapNotNull { u -> s.rows.firstOrNull { it.channel.uuid == u } }
-                            .mapIndexed { i, r -> r.copy(channel = r.channel.copy(number = i + 1)) }
+                            .mapIndexed { i, r -> r.copy(channel = r.channel.copy(number = i + 1, numberMinor = 0)) }
                         selectedTag == null -> s.rows
                         else -> s.categories.firstOrNull { it.tag?.uuid == selectedTag }?.rows
                             ?: emptyList()
@@ -585,8 +585,8 @@ private fun RadioRow(
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            row.channel.number?.let {
-                Text("$it", style = MaterialTheme.typography.bodySmall,
+            row.channel.numberText.takeIf { it.isNotEmpty() }?.let {   // M711
+                Text(it, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {

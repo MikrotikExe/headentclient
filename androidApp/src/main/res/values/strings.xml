@@ -485,4 +485,6 @@
     <string name="dvr_profile_unknown">Unknown profile</string>
     <string name="set_archive_by_profile">Sort archive by profile</string>
     <string name="set_archive_by_profile_note">Adds a By profile section to the archive: recordings grouped by the recording profile they were made with.</string>
+    <!-- M712 -->
+    <string name="test_auth_403_hint">If the password is right, the account is missing the “Web interface” right, which HTTP mode needs. Switch the server to HTSP or add the right in Tvheadend.</string>
 </resources>
