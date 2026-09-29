@@ -43,7 +43,7 @@ object LivePlaylist {
     /** M541: favourites in the saved order, renumbered 1..n. */
     fun favChannels(): List<LiveChannel> {
         val byUuid = allChannels.associateBy { it.uuid }
-        return favOrder.mapNotNull { byUuid[it] }.mapIndexed { i, ch -> ch.copy(number = i + 1, numberMinor = 0) }
+        return favOrder.mapNotNull { byUuid[it] }.mapIndexed { i, ch -> ch.copy(number = i + 1) }
     }
 
     @Volatile
