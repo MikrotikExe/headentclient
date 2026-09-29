@@ -967,14 +967,7 @@ class PlayerActivity : ComponentActivity() {
         subOverlay = ov
         ov.start(
             clockSource = { if (engine.ready) engine.player.time else 0L },
-            aspectSource = {
-                val vt = if (engine.ready) runCatching { engine.player.currentVideoTrack }.getOrNull() else null
-                if (vt != null && vt.width > 0 && vt.height > 0) {
-                    val sn = if (vt.sarNum > 0) vt.sarNum else 1
-                    val sd = if (vt.sarDen > 0) vt.sarDen else 1
-                    (vt.width.toFloat() * sn) / (vt.height.toFloat() * sd)
-                } else 16f / 9f
-            }
+            aspectSource = { videoAspect() }   // M708
         )
     }
 
@@ -1904,6 +1897,25 @@ class PlayerActivity : ComponentActivity() {
     }
 
     // ---- M626: AFR (M346) and the stream locks (M452) split out into AfrController / StreamLocks ----
+    // M708: the video aspect for the subtitle overlay, cached and refreshed off the main thread
+    // at most every 2 s (getCurrentVideoTrack on the main thread could wait for libVLC -> ANR)
+    private var cachedVideoAspect = 16f / 9f
+    private var videoAspectAskedAt = 0L
+    private fun videoAspect(): Float {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now - videoAspectAskedAt > 2000L && engine.ready && !engine.tornDown) {
+            videoAspectAskedAt = now
+            VlcEngine.videoInfoAsync(engine.player) { vi ->
+                if (vi != null && vi.width > 0 && vi.height > 0) {
+                    val sn = if (vi.sarNum > 0) vi.sarNum else 1
+                    val sd = if (vi.sarDen > 0) vi.sarDen else 1
+                    cachedVideoAspect = (vi.width.toFloat() * sn) / (vi.height.toFloat() * sd)
+                }
+            }
+        }
+        return cachedVideoAspect
+    }
+
     private val afr: AfrController by lazy {
         AfrController(this, isTvBox,
             player = { if (engine.ready && !engine.tornDown) engine.player else null },

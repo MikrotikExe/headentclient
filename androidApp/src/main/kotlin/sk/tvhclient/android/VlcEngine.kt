@@ -208,6 +208,47 @@ internal class VlcEngine(
     fun allowRelease() { destroyedLatch.countDown() }
 
     companion object {
+        /** M708: what AFR and the subtitle overlay need from the current video track. */
+        data class VideoInfo(val width: Int, val height: Int, val sarNum: Int, val sarDen: Int,
+                             val fpsNum: Int, val fpsDen: Int)
+
+        /**
+         * M708: native calls on a player from [videoInfoAsync] hold the read lock, [releaseVlc] takes
+         * the write lock around release(). A player is therefore never released while another
+         * thread is inside one of its native calls (the vlc_mutex_destroy assert).
+         */
+        private val nativeCallLock = java.util.concurrent.locks.ReentrantReadWriteLock()
+        private val queryExec = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+            Thread(r, "HeadentClient:vlcQuery").apply { isDaemon = true }
+        }
+        private val mainHandler = Handler(Looper.getMainLooper())
+
+        /**
+         * M708: reads the current video track OFF the main thread and hands the result to
+         * [onResult] on the main thread (null = no video track / not readable).
+         *
+         * MediaPlayer.getCurrentVideoTrack waits for the input lock of libVLC. While a stream starts,
+         * changes or stops, libVLC holds that lock for seconds; AFR and the subtitle overlay called it
+         * on the main thread, which gave an ANR (Play Console: maybeApplyAfr -> libvlc_video_get_track
+         * -> vlc_mutex_lock, arm64 and armeabi-v7a).
+         */
+        fun videoInfoAsync(mp: MediaPlayer, onResult: (VideoInfo?) -> Unit) {
+            runCatching {
+                queryExec.execute {
+                    val rl = nativeCallLock.readLock()
+                    rl.lock()
+                    val info = try {
+                        runCatching {
+                            mp.currentVideoTrack?.let {
+                                VideoInfo(it.width, it.height, it.sarNum, it.sarDen, it.frameRateNum, it.frameRateDen)
+                            }
+                        }.getOrNull()
+                    } finally { rl.unlock() }
+                    mainHandler.post { onResult(info) }
+                }
+            }
+        }
+
         /**
          * M622: safe release of libVLC from the worker thread.
          *
@@ -237,7 +278,11 @@ internal class VlcEngine(
             }
             // letting the internal libVLC threads (vout/audio) finish before the mutexes are destroyed
             runCatching { Thread.sleep(150) }
-            runCatching { mp.release() }
+            // M708: not while a video-track query is inside a native call on this player
+            val wl = nativeCallLock.writeLock()
+            val locked = runCatching { wl.tryLock(3, TimeUnit.SECONDS) }.getOrDefault(false)
+            if (!locked) CrashLogger.report(ctx, "PlayerActivity.$where", "video-track query still running, releasing anyway")
+            try { runCatching { mp.release() } } finally { if (locked) wl.unlock() }
             runCatching { Thread.sleep(100) }
             runCatching { lib?.release() }
             val ms = SystemClock.elapsedRealtime() - t0

@@ -36,9 +36,15 @@ class AfrController(
         if (Build.VERSION.SDK_INT < 23) return
         if (!AfrPref.get(activity)) return
         val mp = player() ?: return
-        val vt = runCatching { mp.currentVideoTrack }.getOrNull()
-        val num = vt?.frameRateNum ?: 0
-        val den = vt?.frameRateDen ?: 0
+        // M708: the track is read off the main thread (the input lock of libVLC -> ANR)
+        VlcEngine.videoInfoAsync(mp) { info ->
+            if (player() === mp) applyWith(mp, info)
+        }
+    }
+
+    private fun applyWith(mp: MediaPlayer, info: VlcEngine.Companion.VideoInfo?) {
+        val num = info?.fpsNum ?: 0
+        val den = info?.fpsDen ?: 0
         if (num <= 0 || den <= 0) {
             // the track is not ready yet — one deferred attempt
             if (!retryPosted) {
