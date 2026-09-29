@@ -190,7 +190,24 @@ class PlayerActivity : ComponentActivity() {
             liveServer = { live.server },
             liveUuid = { live.uuidState.value },
             seekable = { seekablePlayback },
-            onOpened = { modernOv.close() })
+            onOpened = { modernOv.close() },
+            onHttpConnLimit = { restartLiveForTeletext() })
+    }
+
+    /**
+     * M713: teletext in HTTP mode opens a second connection to the channel; an account with a
+     * connection limit of 1 refuses it (a late 405). The channel is then played through the feeder
+     * (the app downloads the stream itself) and the teletext is read from that same stream.
+     * For the rest of the session live goes through the feeder, so it does not repeat.
+     */
+    private fun restartLiveForTeletext() {
+        val srv = live.server ?: return
+        val url = stream.currentStreamUrl ?: return
+        if (stream.htspStream || stream.httpFeeder != null || seekablePlayback) return
+        CrashLogger.report(this, "Teletext", "side branch refused (connection limit) -> live via feeder")
+        stream.liveNeedsFeeder = true
+        opener.playLiveViaFeeder(srv, url)
+        openTeletext()
     }
     /** M552: the current channel's teletext (HTSP: data from the feeder, HTTP: a separate branch of our own). */
     val teletext: TeletextSession get() = ttx.session
@@ -268,6 +285,7 @@ class PlayerActivity : ComponentActivity() {
                 override fun resetTeletext() { closeTeletext(); teletext.reset() }   // M552/M553
                 override fun teletextSetHtspAvailable(available: Boolean) { teletext.setHtspAvailable(available) }
                 override fun teletextFeedHtsp(es: ByteArray) { teletext.feedHtsp(es) }
+                override fun teletextAttachFeeder(feeder: HttpTsFeeder) { teletext.attachFeeder(feeder) }   // M713
                 override fun subtitlePage(page: sk.tvhclient.shared.htsp.DvbSubtitleDecoder.DecodedPage, ms: Long) { subOverlay?.onPage(page, ms) }
                 override fun subtitleReset() { subOverlay?.reset() }
                 override fun fallbackTitle(): String? = intent.getStringExtra(EXTRA_TITLE)

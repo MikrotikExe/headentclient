@@ -21,10 +21,24 @@ class TeletextController(
     private val liveServer: () -> TvhServer?,
     private val liveUuid: () -> String?,
     private val seekable: () -> Boolean,
-    private val onOpened: () -> Unit
+    private val onOpened: () -> Unit,
+    /** M713: the HTTP side branch hit the account's connection limit — play the channel through the feeder. */
+    private val onHttpConnLimit: () -> Unit = {}
 ) {
     /** M552: teletext of the current channel (HTSP: data from the feeder, HTTP: our own side branch). */
-    val session: TeletextSession by lazy { TeletextSession(activity) }
+    val session: TeletextSession by lazy {
+        TeletextSession(activity).also { s ->
+            // M713: the player's stream turned out unusable (other profile / no PMT) -> side branch
+            s.onMainTapGaveUp = { if (openState.value) startSideBranch() }
+            s.onSideBranchConnLimit = { uuid -> if (openState.value && liveUuid() == uuid) onHttpConnLimit() }
+        }
+    }
+
+    private fun startSideBranch() {
+        if (isHtspLiveServer() || session.mainTapUsable) return
+        val uuid = liveUuid() ?: return
+        liveServer()?.let { session.startHttp(it, uuid, activity.lifecycleScope) }
+    }
 
     val openState = mutableStateOf(false)
     val pageState = mutableStateOf(0x100)
@@ -53,7 +67,7 @@ class TeletextController(
         revealState.value = false
         openState.value = true
         onOpened()
-        if (!isHtspLiveServer()) liveServer()?.let { session.startHttp(it, uuid, activity.lifecycleScope) }
+        startSideBranch()   // M713: not when the player's own stream carries the teletext
     }
 
     fun close() {

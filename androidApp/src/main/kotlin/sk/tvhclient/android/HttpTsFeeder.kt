@@ -51,6 +51,14 @@ class HttpTsFeeder(
     @Volatile var connLimited: Boolean = false
         private set
 
+    /**
+     * M713: a copy of every received chunk (on the download thread, after it went to libVLC).
+     * Live teletext in HTTP mode reads the teletext PID from here instead of opening a second
+     * connection (which an account with a connection limit of 1 does not get). An exception in the
+     * callback only switches the tap off, the stream goes on.
+     */
+    @Volatile var onData: ((ByteArray, Int, Int) -> Unit)? = null
+
     /** Starts the download and returns the read FileDescriptor for Media(libVlc, fd). */
     fun start(scope: CoroutineScope): FileDescriptor {
         val pipe = ParcelFileDescriptor.createPipe()
@@ -107,6 +115,7 @@ class HttpTsFeeder(
                         if (n < 0) break
                         os.write(buf, 0, n)
                         bytesWritten += n
+                        onData?.let { cb -> try { cb(buf, 0, n) } catch (_: Throwable) { onData = null } }   // M713
                     }
                 }
             } catch (_: Throwable) {

@@ -27,6 +27,9 @@ import java.util.concurrent.TimeUnit
  *    is opened we open a second connection to the same channel (the pass profile,
  *    so the server does not drop the teletext PID) and [TeletextTsTap] extracts only the
  *    teletext from it. The connection lives as long as teletext is open (+ a short run-out).
+ *  - M713: HTTP live played through HttpTsFeeder — the teletext is read from the player's own
+ *    stream ([attachFeeder]), no second connection. If the side branch is refused because of the
+ *    account's connection limit, the player restarts the channel through the feeder.
  *
  * State for the UI: [availableState] (the channel has teletext), [pageVersion] (grows with
  * every received page — Compose redraws), [httpNoTeletext] (HTTP: the PMT was
@@ -54,6 +57,7 @@ class TeletextSession(private val ctx: Context) {
     /** New channel / stop: discard the pages and the HTTP side branch. */
     fun reset() {
         stopHttp()
+        detachFeeder()   // M713
         decoder.clear()
         availableState.value = false
         httpNoTeletext.value = false
@@ -66,7 +70,65 @@ class TeletextSession(private val ctx: Context) {
 
     fun feedHtsp(payload: ByteArray) { decoder.feedPes(payload) }
 
-    // ---- HTTP ----
+    // ---- HTTP: the player's own stream (M713) ----
+
+    private var mainFeeder: HttpTsFeeder? = null
+    /** 0 = PMT not read yet, 1 = the main stream carries teletext, -1 = unusable (no PMT / no teletext PID). */
+    @Volatile private var mainState = 0
+    /** The main stream's PMT was read and has no teletext PID (it may still be a profile that drops it). */
+    @Volatile private var mainPmtWithoutTtx = false
+
+    /** M713: the main stream stopped being usable for teletext (main thread) — the controller opens the side branch if teletext is open. */
+    var onMainTapGaveUp: (() -> Unit)? = null
+    /** M713: the side branch was refused because of the account's connection limit (main thread; the channel uuid). */
+    var onSideBranchConnLimit: ((String) -> Unit)? = null
+
+    /** The live stream plays through [HttpTsFeeder]: teletext is read from it (also while the overlay is closed, as with HTSP). */
+    val mainTapUsable: Boolean get() = mainFeeder != null && mainState >= 0
+
+    /**
+     * M713: live HTTP played through the feeder — the teletext is read from the same data, so no
+     * second connection is needed (an account with a connection limit of 1 refuses it with a late 405).
+     */
+    fun attachFeeder(feeder: HttpTsFeeder) {
+        detachFeeder()
+        val tap = TeletextTsTap(decoder)
+        var total = 0L
+        mainState = 0
+        mainPmtWithoutTtx = false
+        mainFeeder = feeder
+        feeder.onData = { b, o, n ->
+            tap.feed(b, o, n)
+            total += n
+            if (tap.pmtSeen) {
+                if (tap.teletextPid >= 0) {
+                    mainState = 1
+                } else {
+                    mainPmtWithoutTtx = true
+                    giveUpMain(feeder, "main stream: no teletext PID in PMT")
+                }
+            } else if (total > 4L * 1024 * 1024) {
+                giveUpMain(feeder, "main stream: no PMT in 4 MB")
+            }
+        }
+    }
+
+    private fun giveUpMain(feeder: HttpTsFeeder, why: String) {
+        feeder.onData = null
+        if (mainFeeder !== feeder || mainState < 0) return
+        mainState = -1
+        CrashLogger.report(ctx, "Teletext", why)
+        mainHandler.post { if (mainFeeder === feeder) onMainTapGaveUp?.invoke() }
+    }
+
+    fun detachFeeder() {
+        mainFeeder?.onData = null
+        mainFeeder = null
+        mainState = 0
+        mainPmtWithoutTtx = false
+    }
+
+    // ---- HTTP: side branch ----
 
     val httpRunning: Boolean get() = httpJob?.isActive == true
 
@@ -101,7 +163,15 @@ class TeletextSession(private val ctx: Context) {
         val tap = TeletextTsTap(decoder)
         httpJob = scope.launch(Dispatchers.IO) {
             try {
+                val sentAt = android.os.SystemClock.elapsedRealtime()
                 ok.newCall(Request.Builder().url(url).build()).execute().use { resp ->
+                    // M713: the account's connection limit (the player's stream holds the only slot)
+                    if (HttpTsFeeder.isConnLimitResponse(resp.code, android.os.SystemClock.elapsedRealtime() - sentAt)) {
+                        CrashLogger.report(ctx, "Teletext", "http tap refused: connection limit")
+                        if (mainPmtWithoutTtx) mainHandler.post { httpNoTeletext.value = true }
+                        else mainHandler.post { onSideBranchConnLimit?.invoke(channelUuid) }
+                        return@use
+                    }
                     if (!resp.isSuccessful) {
                         CrashLogger.report(ctx, "Teletext", "http tap failed: HTTP ${resp.code}")
                         return@use

@@ -40,6 +40,8 @@ internal class StreamOpener(
         fun resetTeletext()
         fun teletextSetHtspAvailable(available: Boolean)
         fun teletextFeedHtsp(es: ByteArray)
+        /** M713: live HTTP through the feeder — teletext is read from the same stream. */
+        fun teletextAttachFeeder(feeder: HttpTsFeeder)
         fun subtitlePage(page: sk.tvhclient.shared.htsp.DvbSubtitleDecoder.DecodedPage, ms: Long)
         fun subtitleReset()
         /** Substitute channel name used when fixing the identity (EXTRA_TITLE from the intent). */
@@ -56,6 +58,7 @@ internal class StreamOpener(
         stream.currentStreamUrl = url
         val feeder = HttpTsFeeder(server, MediaFactory.stripCreds(url), 0L)
         stream.httpFeeder = feeder
+        hooks.teletextAttachFeeder(feeder)   // M713: before start, so the PMT is not missed
         val fd = feeder.start(scope)
         val m = media.forFeeder(fd, media.feederDemuxFor(url), BufferPref.ms(ctx))   // M381/M509
         player().media = m
@@ -102,7 +105,8 @@ internal class StreamOpener(
     /** Live HTTP with auth auto-detection: digest-only -> feeder, otherwise the direct path. */
     fun playLiveAuto(server: TvhServer, url: String) {
         if (server.connectionMode != "htsp" && healStaleLiveId(server, url)) return
-        if (server.username.isEmpty()) { playHttp(url); return }
+        // M713: without an account only if teletext has not already switched this session to the feeder
+        if (server.username.isEmpty() && stream.liveNeedsFeeder != true) { playHttp(url); return }
         val cached = stream.liveNeedsFeeder
         if (cached != null) {
             if (cached) playLiveViaFeeder(server, url) else playHttp(url)
