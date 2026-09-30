@@ -54,7 +54,7 @@ internal class ChannelInfo(
         val srv = Tvh.store.active() ?: return
         val nowSec = System.currentTimeMillis() / 1000
         fun pick(list: List<EpgEvent>) =
-            list.firstOrNull { it.start <= nowSec && nowSec < it.stop } ?: list.minByOrNull { it.start }
+            list.firstOrNull { it.isCurrentAt(nowSec) } ?: list.minByOrNull { it.start }
         val cached = epgUpcoming()[ch.uuid]
         if (!cached.isNullOrEmpty()) {
             pick(cached)?.let { applyInfo(it) }

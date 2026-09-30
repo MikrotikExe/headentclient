@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">Máy chủ không còn tuner trống cho kênh này — đang được một bản ghi hoặc máy khách khác sử dụng.</string>
     <string name="err_no_start">Máy chủ không thể phát kênh này — không còn tuner trống hoặc nguồn không phát sóng.</string>
+    <!-- M715 -->
+    <string name="err_no_access">Tài khoản trên máy chủ không có quyền thực hiện thao tác này.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">Một bản ghi đã chiếm tuner. Phát lại sẽ tiếp tục khi tuner rảnh.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">Không ngày nào</string>
 </resources>

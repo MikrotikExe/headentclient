@@ -77,6 +77,7 @@ internal fun ContinueWatchingRail(
     }
 
     val items = remember(entries, tick) {
+        WatchProgress.migrateLegacy(ctx, server.id, entries)   // M715
         WatchProgress.recent(ctx, server.id, 60)
             .asSequence()
             .filter { (_, info) -> !info.completed && info.posMs >= 60_000 && info.durMs > 0 }

@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">O servidor não tem um sintonizador livre para este canal — está a ser usado por uma gravação ou outro cliente.</string>
     <string name="err_no_start">O servidor não conseguiu iniciar este canal — não há sintonizador livre ou a fonte não está a emitir.</string>
+    <!-- M715 -->
+    <string name="err_no_access">A conta no servidor não tem permissão para esta ação.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">Uma gravação ocupou o sintonizador. A reprodução continuará quando ficar livre.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">Nenhum dia</string>
 </resources>

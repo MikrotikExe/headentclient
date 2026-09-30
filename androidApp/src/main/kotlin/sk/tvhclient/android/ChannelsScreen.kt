@@ -764,7 +764,7 @@ private fun currentNow(
     nowSec: Long
 ): Triple<String?, Long, Long> {
     return if (epgList != null) {
-        val cur = epgList.firstOrNull { it.start <= nowSec && nowSec < it.stop }
+        val cur = epgList.firstOrNull { it.isCurrentAt(nowSec) }
         Triple(cur?.title?.ifBlank { null }, cur?.start ?: 0, cur?.stop ?: 0)
     } else {
         Triple(row.nowTitle, row.nowStart, row.nowStop)

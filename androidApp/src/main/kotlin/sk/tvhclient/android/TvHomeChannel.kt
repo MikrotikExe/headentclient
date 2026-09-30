@@ -87,7 +87,7 @@ object TvHomeChannel {
         val nextLabel = app.getString(R.string.mh_next)
         favs.forEachIndexed { i, row ->
             val events = epg[row.channel.uuid].orEmpty().sortedBy { it.start }
-            val cur = events.firstOrNull { it.start <= nowSec && it.stop > nowSec }
+            val cur = events.firstOrNull { it.isCurrentAt(nowSec) }
             val curTitle = cur?.title ?: row.nowTitle.orEmpty()
             val curStart = cur?.start ?: row.nowStart
             val curStop = cur?.stop ?: row.nowStop
@@ -112,7 +112,7 @@ object TvHomeChannel {
             // -> both Now and Next go into a single description
             val desc = listOf(line1, line2).filter { it.isNotEmpty() }.joinToString("   ")
             if (desc.isNotEmpty()) b.setDescription(desc)
-            if (curStart > 0 && curStop > 0) { b.setStartTimeUtcMillis(curStart * 1000); b.setEndTimeUtcMillis(curStop * 1000) }
+            if (curStart > 0 && curStop > 0) { b.setStartTimeUtcMillis(curStart * 1000); b.setEndTimeUtcMillis(maxOf(curStop, nowSec + 60) * 1000) }   // M715: overrun
             if (poster != null) b.setPosterArtUri(poster)
             val values = b.build().toContentValues()
             keep += row.channel.uuid

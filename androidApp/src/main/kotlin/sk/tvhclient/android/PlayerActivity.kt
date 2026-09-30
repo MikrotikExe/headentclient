@@ -289,6 +289,11 @@ class PlayerActivity : ComponentActivity() {
                 override fun subtitlePage(page: sk.tvhclient.shared.htsp.DvbSubtitleDecoder.DecodedPage, ms: Long) { subOverlay?.onPage(page, ms) }
                 override fun subtitleReset() { subOverlay?.reset() }
                 override fun onDirectLiveStart() { armLiveStartWatchdog() }   // M714
+                override fun onWaitingForTuner() {   // M715
+                    runOnUiThread {
+                        if (!isFinishing) Toast.makeText(this@PlayerActivity, getString(R.string.err_tuner_waiting), Toast.LENGTH_LONG).show()
+                    }
+                }
                 override fun fallbackTitle(): String? = intent.getStringExtra(EXTRA_TITLE)
             })
     }
@@ -365,6 +370,12 @@ class PlayerActivity : ComponentActivity() {
             isPlayingState.value = false
             engine.player.pause()
         } else {
+            // M715 (R4): HTSP without timeshift dropped the stream while paused — back to live afresh
+            if (stream.htspStream && !stream.htspLive && stream.htspFeeder?.discarding == true) {
+                isPlayingState.value = true
+                opener.replayCurrentLive()
+                return
+            }
             if (stream.htspStream) stream.htspFeeder?.resume()
             if (stream.htspLive) timeshift.onResumed()
             isPlayingState.value = true

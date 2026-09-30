@@ -403,6 +403,7 @@ private fun DvrContent(
             val recentCount = remember(progressTick, entries) {
                 if (server == null) 0 else {
                     val uuids = entries.mapTo(HashSet()) { it.uuid }
+                    WatchProgress.migrateLegacy(context, server.id, entries)   // M715
                     WatchProgress.recent(context, server.id).count { it.first in uuids }
                 }
             }
@@ -490,6 +491,7 @@ private fun DvrContent(
             val list = remember(progressTick, entries) {
                 if (server == null) emptyList() else {
                     val byUuid = entries.associateBy { it.uuid }
+                    WatchProgress.migrateLegacy(context, server.id, entries)   // M715
                     WatchProgress.recent(context, server.id).mapNotNull { byUuid[it.first] }
                 }
             }
@@ -772,7 +774,7 @@ internal fun playDvr(context: Context, entry: DvrEntry) {
 private fun RecordingCard(entry: DvrEntry, context: Context, progressTick: Int) {
     val server = remember { Tvh.store.active() }
     val info = remember(entry.uuid, progressTick) {
-        server?.let { WatchProgress.get(context, it.id, entry.uuid) }
+        server?.let { WatchProgress.get(context, it.id, entry.uuid, entry.dvrId) }
     }
     val modernRec = isModernUi()
     val cs = MaterialTheme.colorScheme
@@ -864,7 +866,7 @@ object DvrViewPref {
 private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int) {
     val server = remember { Tvh.store.active() }
     val info = remember(entry.uuid, progressTick) {
-        server?.let { WatchProgress.get(context, it.id, entry.uuid) }
+        server?.let { WatchProgress.get(context, it.id, entry.uuid, entry.dvrId) }
     }
     val modernRec = isModernUi()
     val cs = MaterialTheme.colorScheme
@@ -1260,6 +1262,7 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
         if (sid == null) emptyList()
         else {
             val byUuid = entries.associateBy { it.uuid }
+            WatchProgress.migrateLegacy(context, sid, entries)   // M715
             WatchProgress.recent(context, sid).mapNotNull { byUuid[it.first] }
         }
     }
@@ -1858,7 +1861,7 @@ private fun ArcPicon(picon: String?, fallback: String, loader: coil.ImageLoader,
 private fun ArcRecCard(e: DvrEntry, picon: String?, loader: coil.ImageLoader, context: Context, progressTick: Int,
                        onFocus: () -> Unit, onClick: () -> Unit, onLong: () -> Unit) {
     val server = remember { Tvh.store.active() }
-    val info = remember(e.uuid, progressTick) { server?.let { WatchProgress.get(context, it.id, e.uuid) } }
+    val info = remember(e.uuid, progressTick) { server?.let { WatchProgress.get(context, it.id, e.uuid, e.dvrId) } }
     val seen = info?.completed == true
     var longFired by remember { mutableStateOf(false) }
     Column(

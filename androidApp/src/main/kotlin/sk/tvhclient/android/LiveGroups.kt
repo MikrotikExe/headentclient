@@ -68,7 +68,7 @@ internal class LiveGroups(
         val filtered = filteredRaw.map { ch ->
             if (ch.nowTitle.isNotBlank()) ch
             else {
-                val ev = epg[ch.uuid]?.firstOrNull { it.start <= nowSec && nowSec < it.stop }
+                val ev = epg[ch.uuid]?.firstOrNull { it.isCurrentAt(nowSec) }
                 if (ev != null) ch.copy(nowTitle = ev.title, nowStart = ev.start, nowStop = ev.stop) else ch
             }
         }

@@ -27,7 +27,7 @@ actual fun tvhHttpClient(server: TvhServer, json: Json): HttpClient {
             if (preemptiveBasic != null) {
                 addInterceptor(Interceptor { chain ->
                     val r = chain.request()
-                    val req = if (r.header("Authorization") == null)
+                    val req = if (r.header("Authorization") == null && AuthSchemeMemo.basicAllowed(server.authMode, r.url))   // M715
                         r.newBuilder().header("Authorization", preemptiveBasic).build()
                     else r
                     chain.proceed(req)

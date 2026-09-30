@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">Sunucunun bu kanal için boş tuner\'ı yok — bir kayıt veya başka bir istemci kullanıyor.</string>
     <string name="err_no_start">Sunucu bu kanalı başlatamadı — boş tuner yok veya kaynak yayın yapmıyor.</string>
+    <!-- M715 -->
+    <string name="err_no_access">Sunucudaki hesabın bu işlem için yetkisi yok.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">Bir kayıt tuner\'ı aldı. Tuner boşaldığında oynatma devam edecek.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">Hiçbir gün</string>
 </resources>

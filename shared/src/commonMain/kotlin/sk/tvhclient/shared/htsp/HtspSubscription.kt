@@ -2,6 +2,7 @@ package sk.tvhclient.shared.htsp
 
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
+import sk.tvhclient.shared.currentTimeSeconds
 
 /**
  * M693: one live HTSP subscription on the shared [HtspSession] connection, remuxed into MPEG-TS.
@@ -19,11 +20,45 @@ class HtspSubscription internal constructor(
     val subscriptionId: Int
 ) {
     /**
-     * Messages from the session reader. Bounded: when the consumer (libVLC via the TS queue) stops
-     * reading, the reader waits — the same back pressure as the former own connection had (TCP),
-     * only with a bigger reserve. Kept small on purpose: a muxpkt can carry a 100 kB key frame.
+     * Messages from the session reader. M715: unlimited, the reader never waits; the number of
+     * waiting media packets is bounded in [fromReader] (a muxpkt can carry a 100 kB key frame).
      */
-    internal val inbox = Channel<Map<String, Any?>>(capacity = 256)
+    internal val inbox = Channel<Map<String, Any?>>(capacity = Channel.UNLIMITED)
+
+    // M715: media packets waiting in [inbox] = pktIn - pktOut. Each counter has a single writer
+    // (pktIn the session reader, pktOut [run]), so @Volatile is enough without atomics.
+    @kotlin.concurrent.Volatile private var pktIn = 0L
+    @kotlin.concurrent.Volatile private var pktOut = 0L
+    /** M715: the stream has a video track (set by [run] on subscriptionStart). */
+    @kotlin.concurrent.Volatile private var hasVideo = false
+    // reader-only state
+    private var dropping = false
+    private var dropSince = 0L
+
+    /**
+     * M715: called by the session reader for every message of this subscription; never waits.
+     * Control messages (start/stop/status/queueStatus/signalStatus/timeshiftStatus) always go
+     * through, in order. Media packets beyond [MAX_PENDING] waiting ones are dropped, and then
+     * dropped until the backlog has halved and a video key frame arrives (so the decoder does not
+     * get broken references); a stream without video, or after [RESYNC_MAX_SEC], resumes as soon
+     * as there is room.
+     */
+    internal fun fromReader(m: Map<String, Any?>) {
+        if (m["method"] == "muxpkt") {
+            val pending = pktIn - pktOut
+            if (dropping) {
+                val key = (m["frametype"] as? Long)?.toInt() == 'I'.code
+                val late = currentTimeSeconds() - dropSince >= RESYNC_MAX_SEC
+                if (pending <= MAX_PENDING / 2 && (!hasVideo || key || late)) dropping = false else return
+            } else if (pending >= MAX_PENDING) {
+                dropping = true
+                dropSince = currentTimeSeconds()
+                return
+            }
+            pktIn++
+        }
+        inbox.trySend(m)   // unlimited: fails only once the subscription has ended
+    }
 
     private var muxer: TsMuxer? = null
     private val subDecoder = DvbSubtitleDecoder()
@@ -34,6 +69,14 @@ class HtspSubscription internal constructor(
     fun selectSubtitle(esIndex: Int) {
         subDecodeEs = esIndex
         subDecoder.reset()
+    }
+
+    private companion object {
+        /** M715: ~5 s of packets of an HD channel; more is dropped (see [fromReader]). */
+        const val MAX_PENDING = 512L
+        const val RESYNC_MAX_SEC = 3L
+        val VIDEO_TYPES = setOf("MPEG2VIDEO", "H264", "HEVC", "VP8", "VP9", "AV1", "MPEG4VIDEO", "THEORA")
+        val TUNER_LOST = setOf("subscriptionOverridden", "noFreeAdapter")
     }
 
     /** subscriptionSpeed: 0 = pause, 100 = normal (positive FF, negative RW). */
@@ -72,9 +115,18 @@ class HtspSubscription internal constructor(
         /** M552: the teletext PES payload (the TELETEXT track does not go to libVLC, the app decodes it). */
         onTeletext: (ByteArray) -> Unit = {},
         /** M714: subscriptionStatus — [status] text and [error] code (e.g. "noFreeAdapter"); both null = OK again. */
-        onSubStatus: (status: String?, error: String?) -> Unit = { _, _ -> }
+        onSubStatus: (status: String?, error: String?) -> Unit = { _, _ -> },
+        /**
+         * M715 (R3): a running stream lost its tuner (subscriptionStop "subscriptionOverridden" /
+         * "noFreeAdapter" — a recording or a client with a higher priority took it). Tvheadend keeps
+         * the subscription and starts it again once a tuner is free (subscriptions.c reschedule);
+         * the subscription therefore waits instead of ending. [run] returns when the server starts
+         * it again, so the caller opens a fresh stream (a new timeline for libVLC).
+         */
+        onWaitingForTuner: ((String?) -> Unit)? = null
     ) {
         var teletextEs = -1   // M552
+        var waitingForTuner = false   // M715
         try {
             while (true) {
                 val m = try {
@@ -85,6 +137,8 @@ class HtspSubscription internal constructor(
                 }
                 when (m["method"] as? String) {
                     "subscriptionStart" -> {
+                        // M715: the tuner is back after a takeover — end here, the caller starts afresh
+                        if (waitingForTuner) return
                         @Suppress("UNCHECKED_CAST")
                         val sl = (m["streams"] as? List<Any?>) ?: emptyList()
                         val streams = sl.mapNotNull {
@@ -100,6 +154,7 @@ class HtspSubscription internal constructor(
                         }
                         // M552: teletext — the first track of type TELETEXT
                         teletextEs = streams.firstOrNull { it.type == "TELETEXT" }?.index ?: -1
+                        hasVideo = streams.any { it.type in VIDEO_TYPES }   // M715
                         onTeletextAvailable(teletextEs >= 0)
                         val existing = muxer
                         if (existing == null) {
@@ -114,6 +169,7 @@ class HtspSubscription internal constructor(
                         }
                     }
                     "muxpkt" -> {
+                        pktOut++   // M715: every dequeued media packet, before any early continue
                         val mx = muxer ?: continue
                         val esBin = (m["payload"] as? Htsmsg.Bin) ?: continue   // M673: a slice without a copy
                         val streamIdx = (m["stream"] as? Long)?.toInt() ?: continue
@@ -148,7 +204,14 @@ class HtspSubscription internal constructor(
                         onSubStatus(m["status"] as? String, m["subscriptionError"] as? String)
                     }
                     "subscriptionStop" -> {
-                        onStop(m["subscriptionError"] as? String)
+                        val err = m["subscriptionError"] as? String
+                        // M715 (R3): a running stream whose tuner was taken — wait for the restart
+                        if (onWaitingForTuner != null && muxer != null && err in TUNER_LOST) {
+                            waitingForTuner = true
+                            onWaitingForTuner(err)
+                            continue
+                        }
+                        onStop(err)
                         return
                     }
                 }

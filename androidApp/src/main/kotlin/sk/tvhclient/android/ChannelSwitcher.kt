@@ -87,50 +87,70 @@ internal class ChannelSwitcher(
                 actions.pokeControls()
             }
         } else {
-            if (directUrl != null && server.username.isNotEmpty()) {
-                // M254: auto-detection of the auth. A digest-only server -> feeder
-                // (libVLC cannot do digest via the URL); basic/none -> the direct
-                // seekable path.
-                scope.launch {
-                    // M701 (issue #19): digest-only -> the local proxy (DvrProxy), so libVLC seeks with
-                    // its own Range requests in every container. The pipe feeder stays only as the
-                    // fallback when the URL cannot be proxied.
-                    val proxied: String? = withContext(Dispatchers.IO) {
-                        if (DvrAuthProbe.needsFeeder(server, MediaFactory.stripCreds(streamUrl)))
-                            DvrProxy.urlFor(server, streamUrl) ?: FEEDER
-                        else null
+            // the HTTP recording / live paths (M254, M701, M703, M706)
+            val startHttpPath: () -> Unit = {
+                if (directUrl != null && server.username.isNotEmpty()) {
+                    // M254: auto-detection of the auth. A digest-only server -> feeder
+                    // (libVLC cannot do digest via the URL); basic/none -> the direct
+                    // seekable path.
+                    scope.launch {
+                        // M701 (issue #19): digest-only -> the local proxy (DvrProxy), so libVLC seeks with
+                        // its own Range requests in every container. The pipe feeder stays only as the
+                        // fallback when the URL cannot be proxied.
+                        val proxied: String? = withContext(Dispatchers.IO) {
+                            if (DvrAuthProbe.needsFeeder(server, MediaFactory.stripCreds(streamUrl)))
+                                DvrProxy.urlFor(server, streamUrl) ?: FEEDER
+                            else null
+                        }
+                        // M703 (issue #19): Matroska recordings are demuxed by avformat (see
+                        // StreamState.avformatUrl); the pipe feeder cannot seek anyway, so it is not probed
+                        val url = proxied ?: streamUrl
+                        // M706: a TS recording seeks by position (see StreamState.tsUrl)
+                        val kind = if (proxied != FEEDER) withContext(Dispatchers.IO) {
+                            DvrProxy.container(server, streamUrl)
+                        } else null
+                        stream.avformatUrl = if (kind == DvrProxy.MKV) url else null
+                        stream.tsUrl = if (kind == DvrProxy.TS) url else null
+                        when (proxied) {
+                            null -> { stream.dvrViaFeeder = false; actions.playHttp(streamUrl) }
+                            FEEDER -> { stream.dvrViaFeeder = true; actions.playDvrViaFeeder(server, streamUrl) }
+                            else -> { stream.dvrViaFeeder = false; actions.playHttp(proxied) }
+                        }
+                        actions.pokeControls()
                     }
-                    // M703 (issue #19): Matroska recordings are demuxed by avformat (see
-                    // StreamState.avformatUrl); the pipe feeder cannot seek anyway, so it is not probed
-                    val url = proxied ?: streamUrl
-                    // M706: a TS recording seeks by position (see StreamState.tsUrl)
-                    val kind = if (proxied != FEEDER) withContext(Dispatchers.IO) {
-                        DvrProxy.container(server, streamUrl)
-                    } else null
-                    stream.avformatUrl = if (kind == DvrProxy.MKV) url else null
-                    stream.tsUrl = if (kind == DvrProxy.TS) url else null
-                    when (proxied) {
-                        null -> { stream.dvrViaFeeder = false; actions.playHttp(streamUrl) }
-                        FEEDER -> { stream.dvrViaFeeder = true; actions.playDvrViaFeeder(server, streamUrl) }
-                        else -> { stream.dvrViaFeeder = false; actions.playHttp(proxied) }
+                } else if (directUrl != null) {
+                    // M703 (issue #19): a recording on a server without a login — the same container check
+                    stream.dvrViaFeeder = false
+                    scope.launch {
+                        val kind = withContext(Dispatchers.IO) { DvrProxy.container(server, streamUrl) }
+                        stream.avformatUrl = if (kind == DvrProxy.MKV) streamUrl else null
+                        stream.tsUrl = if (kind == DvrProxy.TS) streamUrl else null   // M706
+                        actions.playLiveAuto(server, streamUrl)
+                        actions.pokeControls()
                     }
-                    actions.pokeControls()
-                }
-            } else if (directUrl != null) {
-                // M703 (issue #19): a recording on a server without a login — the same container check
-                stream.dvrViaFeeder = false
-                scope.launch {
-                    val kind = withContext(Dispatchers.IO) { DvrProxy.container(server, streamUrl) }
-                    stream.avformatUrl = if (kind == DvrProxy.MKV) streamUrl else null
-                    stream.tsUrl = if (kind == DvrProxy.TS) streamUrl else null   // M706
+                } else {
+                    stream.dvrViaFeeder = false
                     actions.playLiveAuto(server, streamUrl)
                     actions.pokeControls()
                 }
-            } else {
-                stream.dvrViaFeeder = false
-                actions.playLiveAuto(server, streamUrl)
-                actions.pokeControls()
             }
+            if (directUrl != null && server.connectionMode == "htsp") {
+                // M715: an HTSP account without an HTTP streaming right gets 403 from /dvrfile —
+                // the recording is then read over HTSP behind DvrProxy (seek keeps working)
+                scope.launch {
+                    val proxied = withContext(Dispatchers.IO) {
+                        if (DvrProxy.needsHtspFile(server, streamUrl)) DvrProxy.urlFor(server, streamUrl, viaHtsp = true) else null
+                    }
+                    if (proxied != null) {
+                        val kind = withContext(Dispatchers.IO) { DvrProxy.containerHtsp(server, streamUrl) }
+                        stream.avformatUrl = if (kind == DvrProxy.MKV) proxied else null
+                        stream.tsUrl = if (kind == DvrProxy.TS) proxied else null
+                        stream.dvrViaFeeder = false
+                        actions.playHttp(proxied)
+                        actions.pokeControls()
+                    } else startHttpPath()
+                }
+            } else startHttpPath()
         }
     }
 

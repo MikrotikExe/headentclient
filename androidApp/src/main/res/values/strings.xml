@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">The server has no free tuner for this channel — it is being used by a recording or another client.</string>
     <string name="err_no_start">The server could not start this channel — no free tuner, or the source is not broadcasting.</string>
+    <!-- M715 -->
+    <string name="err_no_access">The account on the server does not have the right for this action.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">A recording has taken the tuner. Playback will continue when the tuner is free.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">No day</string>
 </resources>

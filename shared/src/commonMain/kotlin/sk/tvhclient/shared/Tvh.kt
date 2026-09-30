@@ -107,10 +107,27 @@ object Tvh {
      * in HTSP mode the profile is not dealt with, hence an empty list. Errors (server
      * unreachable, old API) are not thrown upwards: the caller uses a fallback.
      */
+    /** M715: server id -> profile names usable over HTSP (from the HTTP API; empty = not readable). */
+    @kotlin.concurrent.Volatile private var htspUsableProfiles: Map<String, List<String>> = emptyMap()
+
     suspend fun streamProfiles(server: TvhServer): List<String> {
         // M476: HTSP has its own getProfiles (v16+), the HTTP port is not needed
-        if (server.connectionMode == "htsp")
-            return sk.tvhclient.shared.htsp.HtspData.streamProfiles(server)
+        if (server.connectionMode == "htsp") {
+            val htsp = sk.tvhclient.shared.htsp.HtspData.streamProfiles(server)
+            // M715: getProfiles also lists disabled profiles (profile.c profile_get_htsp_list has no
+            // enabled check) and the server then silently plays another one. api/profile/list?htsp=1
+            // lists only the usable ones — when the account can read the HTTP API, keep only those.
+            // one attempt (the HTTP port may be closed for an HTSP-only setup), remembered per server
+            val usable = htspUsableProfiles[server.id] ?: try {
+                val api = TvhApi(server, retryAttempts = 1)
+                val list = try { api.streamProfiles(htsp = true) } finally { api.close() }
+                if (list.isNotEmpty()) htspUsableProfiles = htspUsableProfiles + (server.id to list)
+                list
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) { emptyList() }
+            return if (usable.isEmpty()) htsp else htsp.filter { it in usable }.ifEmpty { htsp }
+        }
         return runCatching { TvhApi(server).streamProfiles() }.getOrDefault(emptyList())
     }
 

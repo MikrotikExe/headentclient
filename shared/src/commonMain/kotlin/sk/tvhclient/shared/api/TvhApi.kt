@@ -50,7 +50,11 @@ private val DVB_TV = setOf(
  * the plugin's HTTPDigestAuthMulti. M1 connected with stock Ktor, so your
  * server is OK for now.
  */
-class TvhApi(private val server: TvhServer) {
+class TvhApi(
+    private val server: TvhServer,
+    /** M715: 1 = a quick optional query (no retries), e.g. the HTSP profile filter. */
+    private val retryAttempts: Int = 3
+) {
 
     // M399: coerceInputValues + isLenient — dev builds of Tvheadend sometimes change
     // the types of fields (number <-> string, null); without this tolerance the whole entry
@@ -60,7 +64,6 @@ class TvhApi(private val server: TvhServer) {
     private val client = sk.tvhclient.shared.net.tvhHttpClient(server, json)
 
     // ---- retry pattern from the plugin (FIX 0.48) ----
-    private val retryAttempts = 3
     private val retryBackoffBaseMs = 500L
     private val retryStatusCodes = setOf(500, 502, 503, 504, 408, 429)
 
@@ -184,6 +187,13 @@ class TvhApi(private val server: TvhServer) {
             runCatching { decode<Channel>(splitChannelNumber(it)) }.getOrNull()
         }
         if (list.none { it.services.isNotEmpty() }) return list
+        // M715: HTSP does not send a channel without any service ("unplayable", htsp_server.c
+        // htsp_user_access_channel); the HTTP grid does. The two modes now show the same channels.
+        // (Only when the grid reports services at all — otherwise nothing is filtered.)
+        return playableWithTypes(list.filter { it.services.isNotEmpty() })
+    }
+
+    private suspend fun playableWithTypes(list: List<Channel>): List<Channel> {
         val typeOf = runCatching { serviceTypes() }.getOrDefault(emptyMap())
         if (typeOf.isEmpty()) return list
         return list.map { ch ->
@@ -243,8 +253,9 @@ class TvhApi(private val server: TvhServer) {
      * no longer guesses the list from hardcoded values. The response has the shape
      * {"entries":[{"key":"<uuid>","val":"<name>"}, ...]}; I take "val".
      */
-    suspend fun streamProfiles(): List<String> =
-        (apiGet("api/profile/list")["entries"] as? JsonArray)
+    suspend fun streamProfiles(htsp: Boolean = false): List<String> =
+        // M715: htsp=1 = only the profiles usable for an HTSP subscription (api_profile.c)
+        (apiGet("api/profile/list", if (htsp) mapOf("htsp" to "1") else emptyMap())["entries"] as? JsonArray)
             ?.mapNotNull { e ->
                 (e as? JsonObject)?.get("val")
                     ?.let { it as? kotlinx.serialization.json.JsonPrimitive }

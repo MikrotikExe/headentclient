@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">Server nemá pro tento kanál volný tuner — používá ho nahrávání nebo jiný klient.</string>
     <string name="err_no_start">Server nemohl spustit tento kanál — není volný tuner nebo zdroj nevysílá.</string>
+    <!-- M715 -->
+    <string name="err_no_access">Účet na serveru nemá pro tuto akci oprávnění.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">Tuner převzalo nahrávání. Přehrávání bude pokračovat, až se tuner uvolní.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">Žádný den</string>
 </resources>

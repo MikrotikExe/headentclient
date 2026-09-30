@@ -65,6 +65,17 @@ class HtspTsFeeder(
 
     private class NoTunerException : Exception("HTSP: no free tuner")
 
+    /**
+     * M715 (R4): paused without timeshift. The server does not pause such a subscription (it only
+     * answers subscriptionSpeed), so the packets are dropped here instead of filling the queues;
+     * the player starts the channel afresh on resume.
+     */
+    @Volatile var discarding: Boolean = false
+        private set
+
+    /** M715: called (on the feeder's thread) when the stream starts waiting for a tuner. */
+    @Volatile var onWaitingForTuner: (() -> Unit)? = null
+
 
     /** Complete list of the channel's DVB subtitle tracks from subscriptionStart (esIndex + language).
      *  Independent of libVLC, so it is the same on every device. Set after subscriptionStart. */
@@ -150,6 +161,7 @@ class HtspTsFeeder(
                         // M481: waits at most 10 s. Blocking is deliberate here (back
                         // pressure when libVLC is not reading), but once playback has stopped
                         // nobody drains the queue any more and the loop would hang forever.
+                        if (discarding) return@run   // M715: paused without timeshift
                         if (bytes.isNotEmpty()) {
                             gotData = true   // M714
                             if (!queue.offer(bytes, 10, java.util.concurrent.TimeUnit.SECONDS)) {
@@ -171,7 +183,8 @@ class HtspTsFeeder(
                     },
                     onStop = { err ->
                         if (err == "noFreeAdapter" || err == "subscriptionOverridden") noTuner = true
-                    }
+                    },
+                    onWaitingForTuner = { _ -> onWaitingForTuner?.invoke() }   // M715
                 )
             } catch (e: Throwable) {
                 // cancellation / broken pipe / connection error
@@ -200,6 +213,7 @@ class HtspTsFeeder(
 
     /** Pause of live playback (the server holds the buffer). */
     fun pause() {
+        if (timeshiftPeriodSec <= 0) discarding = true   // M715: nothing holds the stream -> drop it
         val c = sub ?: return
         scope?.launch { runCatching { c.setSpeed(0) } }
     }

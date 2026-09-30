@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">سرور برای این کانال گیرنده آزاد ندارد — یک ضبط یا کلاینت دیگر از آن استفاده می‌کند.</string>
     <string name="err_no_start">سرور نتوانست این کانال را اجرا کند — گیرنده آزاد نیست یا منبع پخش نمی‌کند.</string>
+    <!-- M715 -->
+    <string name="err_no_access">حساب روی سرور مجوز این کار را ندارد.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">یک ضبط گیرنده را گرفته است. پخش وقتی گیرنده آزاد شود ادامه می‌یابد.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">هیچ روزی</string>
 </resources>

@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">Le serveur n’a pas de tuner libre pour cette chaîne : il est utilisé par un enregistrement ou un autre client.</string>
     <string name="err_no_start">Le serveur n’a pas pu démarrer cette chaîne : aucun tuner libre ou la source n’émet pas.</string>
+    <!-- M715 -->
+    <string name="err_no_access">Le compte sur le serveur n’a pas le droit d’effectuer cette action.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">Un enregistrement a pris le tuner. La lecture reprendra quand il sera libre.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">Aucun jour</string>
 </resources>

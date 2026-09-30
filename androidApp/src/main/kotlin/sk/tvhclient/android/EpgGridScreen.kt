@@ -314,7 +314,7 @@ fun EpgGridScreen(
     LaunchedEffect(rows) {
         val nowS = System.currentTimeMillis() / 1000
         LivePlaylist.channels = rows.map { r ->
-            val cur = seed[r.channel.uuid]?.firstOrNull { it.start <= nowS && nowS < it.stop }
+            val cur = seed[r.channel.uuid]?.firstOrNull { it.isCurrentAt(nowS) }
             val nt = (cur?.title?.ifBlank { null }) ?: r.nowTitle ?: ""
             val ns = cur?.start ?: r.nowStart
             val ne = cur?.stop ?: r.nowStop
@@ -1591,7 +1591,7 @@ private fun GridDetailContent(
                         recMsg = when {
                             r.success && stopping -> context.getString(R.string.dvr_stop_done)
                             r.success -> context.getString(R.string.dvr_del_done)
-                            else -> r.error ?: context.getString(
+                            else -> ConnLimitText.of(context, r.error) ?: context.getString(   // M715
                                 if (r.timeout) R.string.err_timeout else R.string.dvr_del_failed
                             )
                         }

@@ -43,7 +43,23 @@ class DigestAuthenticator(
         if (response.request.header("Authorization")?.startsWith("Digest") == true) return null
         if (priorResponseCount(response) >= 3) return null
 
-        val header = response.headers("WWW-Authenticate")
+        val challenges = response.headers("WWW-Authenticate")
+        val sentBasic = response.request.header("Authorization")?.startsWith("Basic") == true
+        val offersBasic = challenges.any { it.trim().startsWith("Basic", ignoreCase = true) }
+        val offersDigest = challenges.any { it.trim().startsWith("Digest", ignoreCase = true) }
+        // M715: Tvheadend offers only "Digest" both in the digest and the "both" mode (http.c), so the
+        // challenge alone cannot tell them apart. Only a REFUSED Basic marks the server as digest-only
+        // (the "both" mode accepts Basic and never gets here).
+        if (sentBasic && offersDigest && !offersBasic) AuthSchemeMemo.markDigestOnly(u)
+        // M715: the server was switched to plain meanwhile — Basic again (the memo is dropped)
+        if (!offersDigest && offersBasic && AuthSchemeMemo.isDigestOnly(u) &&
+            response.request.header("Authorization") == null) {
+            AuthSchemeMemo.unmark(u)
+            val basic = "Basic " + android.util.Base64.encodeToString(
+                TvhCredEscape.basicPair(username, password).toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP)
+            return response.request.newBuilder().header("Authorization", basic).build()
+        }
+        val header = challenges
             .firstOrNull { it.trim().startsWith("Digest", ignoreCase = true) } ?: return null
 
         val p = parseChallenge(header)

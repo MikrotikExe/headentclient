@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">服务器没有可用于此频道的空闲调谐器——它正被录制或其他客户端占用。</string>
     <string name="err_no_start">服务器无法启动此频道——没有空闲调谐器，或信号源未在播出。</string>
+    <!-- M715 -->
+    <string name="err_no_access">服务器上的账户没有执行此操作的权限。</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">录制占用了调谐器。调谐器空闲后将继续播放。</string>
+    <!-- M715 -->
+    <string name="timers_no_day">无日期</string>
 </resources>

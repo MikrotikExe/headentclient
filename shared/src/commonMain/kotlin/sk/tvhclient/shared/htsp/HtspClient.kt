@@ -48,6 +48,11 @@ class HtspClient(
         private set
     var serverSwVersion: String? = null
         private set
+    /** M715: the server's default EPG languages (hello "language", e.g. "cze,eng"); null = not set. */
+    var serverLanguage: String? = null
+        private set
+    /** M715: the language list for EPG requests on this connection (see ClientIdent.htspEpgLanguage). */
+    val epgLanguage: String get() = sk.tvhclient.shared.ClientIdent.htspEpgLanguage(serverLanguage)
     var serverCapabilities: List<String> = emptyList()
         private set
     private var challenge: ByteArray? = null
@@ -209,6 +214,7 @@ class HtspClient(
         serverVersion = r["htspversion"] as? Long
         serverSwVersion = r["serverversion"] as? String
         serverName = r["servername"] as? String
+        serverLanguage = r["language"] as? String   // M715
         challenge = (r["challenge"] as? Htsmsg.Bin)?.toByteArray()
         @Suppress("UNCHECKED_CAST")
         serverCapabilities = (r["servercapability"] as? List<Any?>)
@@ -253,7 +259,7 @@ class HtspClient(
         if (numFollowing > 0) args["numFollowing"] = numFollowing.toLong()
         if (maxTime > 0) args["maxTime"] = maxTime
         // M511: language preference for the per-channel query too
-        sk.tvhclient.shared.ClientIdent.lang2.takeIf { it.isNotBlank() }
+        epgLanguage.takeIf { it.isNotBlank() }   // M715
             ?.let { args["language"] = it }
         val s = send("getEvents", args)
         val r = recvReply(s)
@@ -279,7 +285,7 @@ class HtspClient(
         args["query"] = ""
         args["channelId"] = channelId
         args["full"] = 1L
-        sk.tvhclient.shared.ClientIdent.lang2.takeIf { it.isNotBlank() }
+        epgLanguage.takeIf { it.isNotBlank() }   // M715
             ?.let { args["language"] = it }
         val s = send("epgQuery", args)
         val r = recvReply(s)
@@ -301,7 +307,7 @@ class HtspClient(
             args["epgMaxTime"] = nowSec + epgMaxDays * 86400L
         }
         // M511: in the async EPG dump as well
-        sk.tvhclient.shared.ClientIdent.lang2.takeIf { it.isNotBlank() }
+        epgLanguage.takeIf { it.isNotBlank() }   // M715
             ?.let { args["language"] = it }
         send("enableAsyncMetadata", args, withSeq = false)
 
@@ -343,9 +349,8 @@ class HtspClient(
      *  answers any method; getDiskSpace changes nothing and is cheap.
      *  We ignore the reply, the point is just to have traffic flowing on the connection. */
     suspend fun keepAlive() {
-        // M408-fix: send it WITHOUT seq — the server then does not send a reply, which would otherwise
-        // arrive in the stream's receive loop and jam it after a while (the channel
-        // stopped coming up after a minute or two). Without seq it is enough to keep the connection alive.
+        // M408-fix: sent WITHOUT seq. M715: the server still replies (htsp_reply just leaves the seq
+        // out), so a reader of this connection must skip messages without a method it knows.
         runCatching { send("getDiskSpace", withSeq = false) }
     }
 }

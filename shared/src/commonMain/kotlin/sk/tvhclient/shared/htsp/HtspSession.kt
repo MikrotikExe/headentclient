@@ -69,12 +69,18 @@ class HtspSession internal constructor(
     private val timerecs = LinkedHashMap<String, MutableMap<String, Any?>>()
     private val syncDone = CompletableDeferred<Unit>()
 
-    internal fun hasActiveSubscriptions(): Boolean = subs.isNotEmpty()
+    /** M715: recordings open over HTSP (HtspDvrFile) — they keep the connection in use like a stream. */
+    @kotlin.concurrent.Volatile private var openFiles = 0
+    internal suspend fun fileOpened() { lock.withLock { openFiles++ } }
+    internal suspend fun fileClosed() { lock.withLock { if (openFiles > 0) openFiles-- } }
+    internal fun hasActiveSubscriptions(): Boolean = subs.isNotEmpty() || openFiles > 0
 
     internal fun start() {
         scope.launch(Dispatchers.Default) { readLoop() }
         scope.launch {
-            // M408: keepalive — without seq, the server does not answer it
+            // M408: keepalive. M715: the server answers it even without seq (htsp_reply); such a
+            // reply has no seq and no subscriptionId, so the reader passes it to applyMetadata,
+            // which ignores a message without a known method
             while (isActive && alive) {
                 delay(10_000)
                 try { client.send("getDiskSpace", withSeq = false) }
@@ -86,7 +92,7 @@ class HtspSession internal constructor(
                 val args = HashMap<String, Any?>()
                 args["epg"] = 0L
                 // M511: the language preference for the metadata as well
-                sk.tvhclient.shared.ClientIdent.lang2.takeIf { it.isNotBlank() }
+                client.epgLanguage.takeIf { it.isNotBlank() }   // M715
                     ?.let { args["language"] = it }
                 client.send("enableAsyncMetadata", args, withSeq = false)
             } catch (e: Throwable) { if (e !is kotlinx.coroutines.CancellationException) die(e) }
@@ -107,8 +113,10 @@ class HtspSession internal constructor(
                 val sid = (m["subscriptionId"] as? Long)?.toInt()
                 if (sid != null) {
                     val sub = lock.withLock { subs[sid] }
-                    // bounded channel: waits when the stream consumer is behind (back pressure)
-                    if (sub != null) runCatching { sub.inbox.send(m) }
+                    // M715: the reader must never wait for a stream — the same connection carries the
+                    // EPG/DVR replies, which stalled behind a full inbox (a paused or slow libVLC) and
+                    // after 10 s the stream died ("TS queue did not drain"). See HtspSubscription.fromReader.
+                    sub?.fromReader(m)
                     continue
                 }
                 applyMetadata(m)
@@ -211,6 +219,33 @@ class HtspSession internal constructor(
             )
         }
     }
+
+    /** M715: the channel's current "now" event id from the live metadata (0/none = no pointer). */
+    internal suspend fun channelNowEventId(channelId: Long): Long? {
+        withTimeoutOrNull(15_000) { syncDone.await() }   // a fresh connection: no channels yet
+        return channelNowEventId0(channelId)
+    }
+
+    private suspend fun channelNowEventId0(channelId: Long): Long? = lock.withLock {
+        (channels[channelId]?.get("eventId") as? Long)?.takeIf { it > 0 }
+    }
+
+    /** M715: the HTSP numeric id of the recording with the hex [uuid] (/dvrfile form), from the live metadata. */
+    internal suspend fun dvrIdForUuid(uuid: String): Long? {
+        // a fresh connection has no recordings until the initial sync is done
+        withTimeoutOrNull(15_000) { syncDone.await() }
+        return dvrIdForUuid0(uuid)
+    }
+
+    private suspend fun dvrIdForUuid0(uuid: String): Long? = lock.withLock {
+        // the server sends the uuid as "idStr" (htsp_build_dvrentry); "uuid" kept for older builds
+        dvr.values.firstOrNull {
+            (it["idStr"] as? String).equals(uuid, ignoreCase = true) || (it["uuid"] as? String).equals(uuid, ignoreCase = true)
+        }?.get("id") as? Long
+    }
+
+    /** M715: the EPG language list of this connection. */
+    internal val epgLanguage: String get() = client.epgLanguage
 
     internal class Rules(
         val autorecs: List<Map<String, Any?>>,

@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">Il server non ha un sintonizzatore libero per questo canale: è usato da una registrazione o da un altro client.</string>
     <string name="err_no_start">Il server non è riuscito ad avviare questo canale: nessun sintonizzatore libero o la sorgente non trasmette.</string>
+    <!-- M715 -->
+    <string name="err_no_access">L\'account sul server non ha il permesso per questa azione.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">Una registrazione ha occupato il sintonizzatore. La riproduzione riprenderà quando sarà libero.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">Nessun giorno</string>
 </resources>

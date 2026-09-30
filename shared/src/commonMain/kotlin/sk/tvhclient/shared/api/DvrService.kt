@@ -17,6 +17,8 @@ data class DvrResult(
 ) {
     companion object {
         val OK = DvrResult(true)
+        /** M715: the account lacks the right for this action (HTSP noaccess, HTTP 403) — translated by the UI. */
+        const val NO_ACCESS = "[noaccess]"
         fun fail(msg: String?, timeout: Boolean = false) =
             DvrResult(false, msg, timeout = timeout)
     }

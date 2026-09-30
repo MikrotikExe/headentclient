@@ -33,10 +33,13 @@ object WatchProgress {
         )
     }
 
-    fun get(context: Context, serverId: String, uuid: String): Info? {
+    /** [legacyId]: M715 — the older HTSP key (numeric id), read when the uuid has nothing yet. */
+    fun get(context: Context, serverId: String, uuid: String, legacyId: String? = null): Info? {
         if (uuid.isBlank()) return null
-        val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(key(serverId, uuid), null) ?: return null
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val raw = prefs.getString(key(serverId, uuid), null)
+            ?: legacyId?.takeIf { it.isNotBlank() && it != uuid }?.let { prefs.getString(key(serverId, it), null) }
+            ?: return null
         return parse(raw)
     }
 
@@ -53,6 +56,28 @@ object WatchProgress {
         if (uuid.isBlank()) return
         val d = if (durMs > 0) durMs else 1
         save(context, serverId, uuid, d, d)
+    }
+
+    /**
+     * M715: over HTSP a recording was keyed by its numeric id until now (the hex uuid was read
+     * from a field the server does not send). Moves such positions to the hex uuid, so nothing
+     * saved is lost after the update and HTSP and HTTP share one key. Cheap — only the entries
+     * whose numeric key exists are touched.
+     */
+    fun migrateLegacy(context: Context, serverId: String, entries: List<sk.tvhclient.shared.model.DvrEntry>) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        var ed: android.content.SharedPreferences.Editor? = null
+        for (e in entries) {
+            val old = e.dvrId
+            if (old.isBlank() || old == e.uuid || e.uuid.isBlank()) continue
+            val v = prefs.getString(key(serverId, old), null) ?: continue
+            val editor = ed ?: prefs.edit().also { ed = it }
+            val cur = prefs.getString(key(serverId, e.uuid), null)
+            // keep the more recent one (both can exist after switching between HTSP and HTTP)
+            if (cur == null || (parse(v)?.ts ?: 0L) > (parse(cur)?.ts ?: 0L)) editor.putString(key(serverId, e.uuid), v)
+            editor.remove(key(serverId, old))
+        }
+        ed?.apply()
     }
 
     /** uuid -> Info for the given server, ordered from the most recently watched. */

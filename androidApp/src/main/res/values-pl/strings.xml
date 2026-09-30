@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">Serwer nie ma wolnego tunera dla tego kanału — używa go nagrywanie lub inny klient.</string>
     <string name="err_no_start">Serwer nie mógł uruchomić tego kanału — brak wolnego tunera albo źródło nie nadaje.</string>
+    <!-- M715 -->
+    <string name="err_no_access">Konto na serwerze nie ma uprawnień do tej czynności.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">Nagrywanie zajęło tuner. Odtwarzanie będzie kontynuowane, gdy tuner się zwolni.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">Żaden dzień</string>
 </resources>

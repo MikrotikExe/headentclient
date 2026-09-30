@@ -524,7 +524,7 @@ private fun RadioRow(
     if (isModernUi()) {
         // modern row: a card with "what is playing now", progress and minutes;
         // the last listened station has a teal highlight. The classic one below is untouched.
-        val ev = epgList?.firstOrNull { nowSec in it.start until it.stop }
+        val ev = epgList?.firstOrNull { it.isCurrentAt(nowSec) }   /* M715 */
         val nt = ev?.title?.takeIf { it.isNotBlank() } ?: row.nowTitle
         val ns = ev?.start ?: row.nowStart
         val ne = ev?.stop ?: row.nowStop
@@ -554,7 +554,7 @@ private fun RadioRow(
     }
     // M609: the classic radio row — "now playing" and progress as in the channel list.
     // M586 added now/next only into the modern row, the classic one was left with just the name.
-    val cEv = epgList?.firstOrNull { nowSec in it.start until it.stop }
+    val cEv = epgList?.firstOrNull { it.isCurrentAt(nowSec) }   /* M715 */
     val cTitle = cEv?.title?.takeIf { it.isNotBlank() } ?: row.nowTitle?.takeIf { it.isNotBlank() }
     val cStart = cEv?.start ?: row.nowStart
     val cStop = cEv?.stop ?: row.nowStop

@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">서버에 이 채널에 사용할 수 있는 튜너가 없습니다. 녹화나 다른 클라이언트가 사용 중입니다.</string>
     <string name="err_no_start">서버가 이 채널을 시작하지 못했습니다. 사용 가능한 튜너가 없거나 소스가 방송 중이 아닙니다.</string>
+    <!-- M715 -->
+    <string name="err_no_access">서버 계정에 이 작업을 할 권한이 없습니다.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">녹화가 튜너를 사용 중입니다. 튜너가 비면 재생이 계속됩니다.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">요일 없음</string>
 </resources>

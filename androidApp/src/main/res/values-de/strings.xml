@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">Der Server hat für diesen Sender keinen freien Tuner — er wird von einer Aufnahme oder einem anderen Client belegt.</string>
     <string name="err_no_start">Der Server konnte diesen Sender nicht starten — kein freier Tuner oder die Quelle sendet nicht.</string>
+    <!-- M715 -->
+    <string name="err_no_access">Das Konto auf dem Server hat für diese Aktion keine Berechtigung.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">Eine Aufnahme hat den Tuner übernommen. Die Wiedergabe geht weiter, sobald er frei ist.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">Kein Tag</string>
 </resources>

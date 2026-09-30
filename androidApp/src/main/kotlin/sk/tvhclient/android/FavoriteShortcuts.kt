@@ -146,7 +146,7 @@ object FavoriteShortcuts {
         val nowSec = System.currentTimeMillis() / 1000
         val sig = picked.joinToString("|") { r ->
             val ev = e[r.channel.uuid].orEmpty()
-            val cur = ev.firstOrNull { it.start <= nowSec && it.stop > nowSec }
+            val cur = ev.firstOrNull { it.isCurrentAt(nowSec) }
             val curStop = cur?.stop ?: r.nowStop
             val next = ev.firstOrNull { it.start >= (if (curStop > 0) curStop else nowSec) }
             r.channel.uuid + ":" + r.channel.name + ":" + (cur?.title ?: r.nowTitle.orEmpty()) + ":" + curStop + ":" + (next?.title ?: "")

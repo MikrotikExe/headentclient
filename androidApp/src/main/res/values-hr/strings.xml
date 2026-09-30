@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">Poslužitelj nema slobodan tuner za ovaj kanal — koristi ga snimanje ili drugi klijent.</string>
     <string name="err_no_start">Poslužitelj nije mogao pokrenuti ovaj kanal — nema slobodnog tunera ili izvor ne emitira.</string>
+    <!-- M715 -->
+    <string name="err_no_access">Račun na poslužitelju nema pravo za ovu radnju.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">Snimanje je preuzelo tuner. Reprodukcija će se nastaviti kad se tuner oslobodi.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">Nijedan dan</string>
 </resources>

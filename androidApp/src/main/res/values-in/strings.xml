@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">Server tidak memiliki tuner kosong untuk saluran ini — sedang dipakai rekaman atau klien lain.</string>
     <string name="err_no_start">Server tidak dapat memulai saluran ini — tidak ada tuner kosong atau sumber tidak menyiarkan.</string>
+    <!-- M715 -->
+    <string name="err_no_access">Akun di server tidak memiliki hak untuk tindakan ini.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">Rekaman mengambil alih tuner. Pemutaran akan berlanjut saat tuner kosong.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">Tidak ada hari</string>
 </resources>

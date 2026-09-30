@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">A szervernek nincs szabad tunere ehhez a csatornához — egy felvétel vagy egy másik kliens használja.</string>
     <string name="err_no_start">A szerver nem tudta elindítani ezt a csatornát — nincs szabad tuner, vagy a forrás nem sugároz.</string>
+    <!-- M715 -->
+    <string name="err_no_access">A szerveren lévő fióknak nincs jogosultsága ehhez a művelethez.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">Egy felvétel lefoglalta a tunert. A lejátszás folytatódik, amikor felszabadul.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">Egyik nap sem</string>
 </resources>

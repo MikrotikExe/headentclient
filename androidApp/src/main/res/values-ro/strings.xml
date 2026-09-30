@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">Serverul nu are un tuner liber pentru acest canal — este folosit de o înregistrare sau de alt client.</string>
     <string name="err_no_start">Serverul nu a putut porni acest canal — nu există tuner liber sau sursa nu emite.</string>
+    <!-- M715 -->
+    <string name="err_no_access">Contul de pe server nu are dreptul pentru această acțiune.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">O înregistrare a preluat tunerul. Redarea va continua când tunerul se eliberează.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">Nicio zi</string>
 </resources>

@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">لا يوجد لدى الخادم موالف متاح لهذه القناة — يستخدمه تسجيل أو عميل آخر.</string>
     <string name="err_no_start">تعذّر على الخادم تشغيل هذه القناة — لا يوجد موالف متاح أو أن المصدر لا يبث.</string>
+    <!-- M715 -->
+    <string name="err_no_access">لا يملك الحساب على الخادم صلاحية هذا الإجراء.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">استحوذ تسجيل على الموالف. سيستمر التشغيل عندما يصبح الموالف متاحًا.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">لا يوم</string>
 </resources>

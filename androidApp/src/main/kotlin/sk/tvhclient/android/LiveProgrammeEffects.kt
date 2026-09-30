@@ -36,9 +36,14 @@ internal fun LiveProgrammeEffects(
             // right after a switch load the full EPG (description + next programme),
             // then refresh when the current programme runs out
             var firstDone = false
+            var overrun = false   // M715: the current programme runs past its end (server: running)
+            var lastFetch = 0L
             while (true) {
                 val now = System.currentTimeMillis() / 1000
-                if (!firstDone || progStart() == 0L || progStop() == 0L || now >= progStop()) {
+                // M715: while it overruns, its end is unknown -> ask again every 30 s, not every 5 s
+                val due = now >= progStop() && (!overrun || now - lastFetch >= 30)
+                if (!firstDone || progStart() == 0L || progStop() == 0L || due) {
+                    lastFetch = now
                     val list = try {
                         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                             val api = Tvh.apiFor(server)
@@ -46,7 +51,8 @@ internal fun LiveProgrammeEffects(
                             finally { api.close() }
                         }
                     } catch (e: Exception) { emptyList() }
-                    val cur = list.firstOrNull { it.start <= now && now < it.stop }
+                    val cur = list.firstOrNull { it.isCurrentAt(now) }
+                    overrun = cur?.running == true
                     if (cur != null) {
                         val nx = list.firstOrNull { it.start >= cur.stop }
                         onProgramme(cur, nx)

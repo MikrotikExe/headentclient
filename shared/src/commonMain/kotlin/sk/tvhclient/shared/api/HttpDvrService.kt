@@ -105,7 +105,9 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
     private fun days(o: JsonObject): Int {
         val arr = o["weekdays"] as? JsonArray ?: return DvrAutorec.ALL_DAYS
         val list = arr.mapNotNull { (it as? JsonPrimitive)?.content?.toIntOrNull() }
-        return if (list.isEmpty()) DvrAutorec.ALL_DAYS else weekdaysToMask(list)
+        // M715: an empty list is "no day" on the server (dvr_autorec.c: weekdays 0 never matches),
+        // not "every day" — shown as it is, so the rule does not look active when it is not
+        return if (list.isEmpty()) 0 else weekdaysToMask(list)
     }
 
     private suspend fun configs(): List<DvrConfig> = runCatching { api.dvrConfigs() }.getOrDefault(emptyList())

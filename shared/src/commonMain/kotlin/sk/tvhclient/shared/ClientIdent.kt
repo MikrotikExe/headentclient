@@ -24,4 +24,20 @@ object ClientIdent {
      */
     var lang2: String = ""
     var lang3: String = ""
+
+    /**
+     * M715: the EPG language list for HTSP, the same as the HTTP api builds it. Over HTTP the
+     * server puts the client's language first and then its own default languages
+     * (lang_codes.c lang_code_user); over HTSP it takes only what the client sends (htsp_server.c
+     * getEvents/epgQuery). With [lang2] = "sk,en" a programme with Czech and English variants
+     * therefore came in English over HTSP and in Czech over HTTP (server languages "cze,eng").
+     * [serverLangs] = the server's default languages from the HTSP hello reply ("language").
+     * Without them the list stays [lang2] (M511).
+     */
+    fun htspEpgLanguage(serverLangs: String?): String {
+        val srv = serverLangs?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
+        if (srv.isEmpty()) return lang2
+        val dev = lang2.substringBefore(',').trim()
+        return (listOf(dev).filter { it.isNotEmpty() } + srv).joinToString(",")
+    }
 }

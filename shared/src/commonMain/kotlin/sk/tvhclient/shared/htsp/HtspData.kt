@@ -118,7 +118,7 @@ object HtspData {
         args["channelId"] = channelId
         if (numFollowing > 0) args["numFollowing"] = numFollowing.toLong()
         if (maxTime > 0) args["maxTime"] = maxTime
-        sk.tvhclient.shared.ClientIdent.lang2.takeIf { it.isNotBlank() }?.let { args["language"] = it }
+        s.epgLanguage.takeIf { it.isNotBlank() }?.let { args["language"] = it }   // M715
         return listOfMaps(s.request("getEvents", args)["events"])
     }
 
@@ -128,7 +128,7 @@ object HtspData {
         args["query"] = ""
         args["channelId"] = channelId
         args["full"] = 1L
-        sk.tvhclient.shared.ClientIdent.lang2.takeIf { it.isNotBlank() }?.let { args["language"] = it }
+        s.epgLanguage.takeIf { it.isNotBlank() }?.let { args["language"] = it }   // M715
         return listOfMaps(s.request("epgQuery", args)["events"])
     }
 
@@ -251,7 +251,9 @@ object HtspData {
     suspend fun epgUpcomingMap(server: TvhServer, nowSec: Long): Map<String, List<EpgEvent>> {
         val nc = nowCache[server.id]
         lastEpgSkipped = false
-        if (nc != null && nowSec - nc.ts < 600) return nc.map
+        // M715: an overrunning programme ends at an unknown time -> such a round is kept only for a minute
+        val ncTtl = if (nc != null && nc.map.values.any { l -> l.any { it.running } }) 60 else 600
+        if (nc != null && nowSec - nc.ts < ncTtl) return nc.map
         // M693: the M595 skip during playback is gone — now/next goes over the shared connection,
         // which the stream uses too, so it no longer costs a second connection (limit 1 is fine).
         // M572: the counters always apply only to the round currently running — when a round ended
@@ -271,6 +273,13 @@ object HtspData {
         } catch (e: HtspConnLimitException) { return skippedByConnLimit() }
         val channelIds = meta.channels.mapNotNull { longOf(it, "channelId") }
         if (channelIds.isEmpty()) return emptyMap()
+        // M715: the server's "now" pointer of each channel (channelAdd/Update eventId, kept current
+        // by the async metadata) — it stays on a programme that runs past its scheduled end
+        val nowIds: Map<Long, Long> = meta.channels.mapNotNull { ch ->
+            val id = longOf(ch, "channelId") ?: return@mapNotNull null
+            val ev = longOf(ch, "eventId")?.takeIf { it > 0 } ?: return@mapNotNull null
+            id to ev
+        }.toMap()
         var session = try {
             HtspSessions.get(server)
         } catch (e: HtspConnLimitException) { return skippedByConnLimit() }
@@ -303,8 +312,9 @@ object HtspData {
         }
         for (cid in channelIds) {
             var mapped = try {
-                getEvents(session, cid, numFollowing = 5, maxTime = 0)
-                    .mapNotNull { mapEvent(it) }.filter { it.stop > nowSec }
+                markOverrun(getEvents(session, cid, numFollowing = 5, maxTime = 0)
+                    .mapNotNull { mapEvent(it) }, nowIds[cid], nowSec)
+                    .filter { it.stop > nowSec || it.running }   // M715
             } catch (e: Exception) { if (onFailure(e)) continue else break }
             // M551-fix2: some channels return nothing without maxTime (the server has no "now"
             // pointer, e.g. a gap in the EPG) — a second attempt with a time window as
@@ -336,6 +346,19 @@ object HtspData {
         else nowCache.remove(server.id)
         lastEpgFailed = failed
         return out
+    }
+
+    /**
+     * M715: getEvents starts at the channel's now pointer. When that programme has passed its
+     * scheduled end and the server still points at it (it is running), it is marked [EpgEvent.running]
+     * instead of being dropped — before, the next programme was shown as "now" during e.g. extra time.
+     */
+    internal fun markOverrun(events: List<EpgEvent>, nowId: Long?, nowSec: Long): List<EpgEvent> {
+        if (nowId == null) return events
+        return events.map { e ->
+            if (e.eventId == nowId && e.start <= nowSec && nowSec - e.stop >= EpgEvent.OVERRUN_MIN_SEC &&
+                nowSec - e.stop < EpgEvent.MAX_OVERRUN_SEC) e.copy(running = true, runningAt = nowSec) else e
+        }
     }
 
     fun clear(serverId: String) {
@@ -456,8 +479,11 @@ object HtspData {
 
     private fun mapDvrEntry(d: Map<String, Any?>): DvrEntry? {
         val id = longOf(d, "id") ?: return null
-        // /dvrfile needs the hex uuid; HTSP gives it in "uuid" (if present), otherwise the id
-        val uuid = (d["uuid"] as? String)?.ifBlank { null } ?: id.toString()
+        // /dvrfile needs the hex uuid; HTSP sends it as "idStr" (htsp_build_dvrentry), M715 — before
+        // only "uuid" was read, which the server does not send, so the numeric id was used and the
+        // saved positions (WatchProgress) differed between HTSP and HTTP. Numeric id = last resort.
+        val uuid = (d["idStr"] as? String)?.ifBlank { null }
+            ?: (d["uuid"] as? String)?.ifBlank { null } ?: id.toString()
         val start = longOf(d, "start") ?: 0
         val stop = longOf(d, "stop") ?: 0
         return DvrEntry(
@@ -483,6 +509,24 @@ object HtspData {
         )
     }
 
+    /**
+     * M715: the episode label when the server has no on-screen text. The HTTP grid builds it itself
+     * (api_epg.c: "s%02d" "." "e%02d"), HTSP sends only seasonNumber/episodeNumber — so XMLTV
+     * numbers (s01.e02) showed only over HTTP. The same format here.
+     */
+    internal fun episodeText(season: Long?, episode: Long?): String {
+        val s = season ?: 0L
+        val e = episode ?: 0L
+        if (s <= 0 && e <= 0) return ""
+        val sb = StringBuilder()
+        if (s > 0) {
+            sb.append('s').append(s.toString().padStart(2, '0'))
+            if (e > 0) sb.append('.')
+        }
+        if (e > 0) sb.append('e').append(e.toString().padStart(2, '0'))
+        return sb.toString()
+    }
+
     /** All EPG events (only if the metadata was loaded withEpg). */
 
     private fun mapEvent(e: Map<String, Any?>): EpgEvent? {
@@ -500,7 +544,7 @@ object HtspData {
             description = strOf(e, "description"),
             genre = if (ct > 0) listOf(ct) else emptyList(),
             ageRating = longOf(e, "ageRating")?.toInt() ?: 0,
-            episodeOnscreen = strOf(e, "episodeOnscreen"),
+            episodeOnscreen = strOf(e, "episodeOnscreen").ifBlank { episodeText(longOf(e, "seasonNumber"), longOf(e, "episodeNumber")) },   // M715
             nextEventId = longOf(e, "nextEventId"),
             serieslinkUri = strOf(e, "serieslinkUri")   // M704
         )
@@ -542,7 +586,9 @@ object HtspData {
     /** Programme for a channel via HTSP getEvents (fast, per-channel). */
     suspend fun epgForChannel(server: TvhServer, channelId: String, nowSec: Long): List<EpgEvent> {
         val cid = channelId.toLongOrNull() ?: return emptyList()
-        return channelEvents(HtspSessions.get(server), cid, nowSec)   // M693: the shared connection
+        val session = HtspSessions.get(server)   // M693: the shared connection
+        // M715: the player's programme — an overrunning programme stays "now" (see markOverrun)
+        return markOverrun(channelEvents(session, cid, nowSec), session.channelNowEventId(cid), nowSec)
     }
 
     /** EPG for the grid PROGRESSIVELY on ONE connection: it goes through all channels in

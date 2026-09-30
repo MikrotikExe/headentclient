@@ -13,7 +13,10 @@ internal object ConnLimitText {
     fun isConnLimit(msg: String?): Boolean =
         msg != null && msg.contains(HtspConnLimitException.MARKER)
 
-    /** The translated text for a connlimit error, otherwise [msg] unchanged. */
-    fun of(ctx: Context, msg: String?): String? =
-        if (isConnLimit(msg)) ctx.getString(R.string.err_conn_limit) else msg
+    /** The translated text for a connlimit error (M715: or a missing right), otherwise [msg] unchanged. */
+    fun of(ctx: Context, msg: String?): String? = when {
+        isConnLimit(msg) -> ctx.getString(R.string.err_conn_limit)
+        msg == sk.tvhclient.shared.api.DvrResult.NO_ACCESS || msg == "HTTP 403" -> ctx.getString(R.string.err_no_access)
+        else -> msg
+    }
 }

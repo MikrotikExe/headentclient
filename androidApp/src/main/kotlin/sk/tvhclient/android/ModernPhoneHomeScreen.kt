@@ -147,7 +147,7 @@ fun ModernPhoneHomeScreen(
             ) {
                 Column {
                     if (hero != null) {
-                        val ev = epgMap[hero.channel.uuid]?.firstOrNull { nowSec in it.start until it.stop }
+                        val ev = epgMap[hero.channel.uuid]?.firstOrNull { it.isCurrentAt(nowSec) }   /* M715 */
                         val title = ev?.title?.takeIf { it.isNotBlank() } ?: hero.nowTitle ?: hero.channel.name
                         val startSec = ev?.start ?: hero.nowStart
                         val stopSec = ev?.stop ?: hero.nowStop
@@ -247,7 +247,7 @@ fun ModernPhoneHomeScreen(
                 Spacer(Modifier.height(8.dp))
             }
             items(listRows, key = { it.channel.uuid }) { r ->
-                val ev = epgMap[r.channel.uuid]?.firstOrNull { nowSec in it.start until it.stop }
+                val ev = epgMap[r.channel.uuid]?.firstOrNull { it.isCurrentAt(nowSec) }   /* M715 */
                 val t = ev?.title?.takeIf { it.isNotBlank() } ?: r.nowTitle ?: ""
                 val s = ev?.start ?: r.nowStart
                 val e = ev?.stop ?: r.nowStop

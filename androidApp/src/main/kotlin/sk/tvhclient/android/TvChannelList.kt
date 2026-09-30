@@ -109,8 +109,9 @@ internal fun TvChannelListOverlay(
         onLoadChannelEpg(uuid) { list -> epgT = list }
     }
     val nowT = liveNowSec
-    val curT = epgT.firstOrNull { it.start <= nowT && nowT < it.stop }
-    val nextT = epgT.filter { it.start >= nowT }.sortedBy { it.start }.take(4)
+    val curT = epgT.firstOrNull { it.isCurrentAt(nowT) }
+    // M715: during an overrun the next programme has already "started" by the schedule — list from the current's end
+    val nextT = epgT.filter { it !== curT && it.start >= (curT?.stop ?: nowT) }.sortedBy { it.start }.take(4)
     val dateStr = java.text.SimpleDateFormat("EEEE d. MMMM", java.util.Locale.getDefault())
         .format(java.util.Date(nowT * 1000)).replaceFirstChar { it.uppercase() }
     val accentC = playerAccent()

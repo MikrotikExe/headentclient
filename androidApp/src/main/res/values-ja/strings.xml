@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">サーバーにこのチャンネル用の空きチューナーがありません。録画または別のクライアントが使用中です。</string>
     <string name="err_no_start">サーバーはこのチャンネルを開始できませんでした。空きチューナーがないか、ソースが放送していません。</string>
+    <!-- M715 -->
+    <string name="err_no_access">サーバー上のアカウントには、この操作の権限がありません。</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">録画がチューナーを使用しています。チューナーが空くと再生が再開されます。</string>
+    <!-- M715 -->
+    <string name="timers_no_day">曜日なし</string>
 </resources>

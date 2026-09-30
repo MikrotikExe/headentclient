@@ -99,9 +99,9 @@ data class DvrEntry(
     }
 
     /** DVB top nibble from content_type for the classifier.
-     *  The HTTP API (grid_finished) already returns the upper nibble (0-11), HTSP returns
-     *  the full DVB byte (major<<4 | minor). We normalize both: <=15 is already a
-     *  nibble, anything larger is the full byte -> /16. */
+     *  M715: both HTTP (grid "content_type") and HTSP ("contentType") send only the upper nibble
+     *  (dvr_db.c stores genre->code / 16), so the minor part of the genre is never available for
+     *  recordings. The "> 15" branch stays only as a guard for other data. */
     val dvbGenreTop: Int get() = when {
         contentType <= 0 -> 0
         contentType <= 15 -> contentType

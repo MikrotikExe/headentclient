@@ -93,7 +93,8 @@ class HttpTsFeeder(
             .addInterceptor { chain ->
                 val r = chain.request().newBuilder().apply {
                     header("User-Agent", sk.tvhclient.shared.ClientIdent.userAgent)
-                    if (preemptiveBasic != null) header("Authorization", preemptiveBasic)
+                    if (preemptiveBasic != null && sk.tvhclient.shared.net.AuthSchemeMemo.basicAllowed(server.authMode, chain.request().url))   // M715
+                        header("Authorization", preemptiveBasic)
                 }.build()
                 chain.proceed(r)
             }

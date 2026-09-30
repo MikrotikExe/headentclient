@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">Strežnik za ta kanal nima prostega sprejemnika — uporablja ga snemanje ali drug odjemalec.</string>
     <string name="err_no_start">Strežnik ni mogel zagnati tega kanala — ni prostega sprejemnika ali vir ne oddaja.</string>
+    <!-- M715 -->
+    <string name="err_no_access">Račun na strežniku nima pravice za to dejanje.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">Snemanje je prevzelo sprejemnik. Predvajanje se bo nadaljevalo, ko se sprosti.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">Noben dan</string>
 </resources>

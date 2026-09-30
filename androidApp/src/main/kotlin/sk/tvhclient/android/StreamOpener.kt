@@ -44,6 +44,8 @@ internal class StreamOpener(
         fun teletextAttachFeeder(feeder: HttpTsFeeder)
         fun subtitlePage(page: sk.tvhclient.shared.htsp.DvbSubtitleDecoder.DecodedPage, ms: Long)
         fun subtitleReset()
+        /** M715: an HTSP stream lost its tuner to a recording and waits for it (any thread). */
+        fun onWaitingForTuner()
         /** M714: a live channel went straight into libVLC — the activity arms its start watchdog. */
         fun onDirectLiveStart()
         /** Substitute channel name used when fixing the identity (EXTRA_TITLE from the intent). */
@@ -185,6 +187,7 @@ internal class StreamOpener(
             hooks.resetTeletext()
             feeder.onTeletextAvailable = { a -> hooks.teletextSetHtspAvailable(a) }
             feeder.onTeletext = { es -> hooks.teletextFeedHtsp(es) }
+            feeder.onWaitingForTuner = { hooks.onWaitingForTuner() }   // M715
             // a new channel = a new subtitle list, reset the chosen language
             tracks.selectedSubEs.value = -1
             tracks.desiredSubName = null

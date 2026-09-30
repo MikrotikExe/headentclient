@@ -28,6 +28,8 @@ class HtspDvrService(private val server: TvhServer) : DvrService {
             val id = (r["id"] as? Long)?.toString() ?: (r["id"] as? String)
             return DvrResult(true, id = id)
         }
+        // M715: a method the account has no right for comes back as noaccess=1 without any text
+        if (((r["noaccess"] as? Long) ?: 0L) != 0L) return DvrResult.fail(DvrResult.NO_ACCESS)
         return DvrResult.fail((r["error"] as? String) ?: "The server rejected the request")
     }
 

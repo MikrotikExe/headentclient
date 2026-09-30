@@ -87,7 +87,7 @@ class PlayerEpgStore(
                     scheduleEpgRetry()
                 } else epgRetries = 0
                 val enrichHtsp: (LivePlaylist.LiveChannel) -> LivePlaylist.LiveChannel = { ch ->
-                    val ev = map[ch.uuid]?.firstOrNull { it.start <= nowS && nowS < it.stop }
+                    val ev = map[ch.uuid]?.firstOrNull { it.isCurrentAt(nowS) }
                     val b = if (ev != null) ch.copy(nowTitle = ev.title, nowStart = ev.start, nowStop = ev.stop) else ch
                     b.copy(recording = (b.uuid in recMap || b.name in recMap))
                 }
@@ -279,7 +279,7 @@ class PlayerEpgStore(
         val nowS = System.currentTimeMillis() / 1000
         val recMap = recInProgress.value
         val updated = cur.map { ch ->
-            val ev = map[ch.uuid]?.firstOrNull { it.start <= nowS && nowS < it.stop }
+            val ev = map[ch.uuid]?.firstOrNull { it.isCurrentAt(nowS) }
             val b = if (ev != null) ch.copy(nowTitle = ev.title, nowStart = ev.start, nowStop = ev.stop) else ch
             if (recMap.isEmpty()) b else b.copy(recording = (b.uuid in recMap || b.name in recMap))
         }

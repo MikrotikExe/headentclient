@@ -60,7 +60,8 @@ object PiconImageLoader {
                 val u = chain.request().url
                 val own = ownUrl == null || (u.host.equals(ownUrl.host, ignoreCase = true) && u.port == ownUrl.port)
                 val req = chain.request().newBuilder().apply {
-                    if (preemptiveBasic != null && own) header("Authorization", preemptiveBasic)
+                    if (preemptiveBasic != null && own && sk.tvhclient.shared.net.AuthSchemeMemo.basicAllowed(server!!.authMode, u))   // M715
+                        header("Authorization", preemptiveBasic)
                 }.build()
                 chain.proceed(req)
             })

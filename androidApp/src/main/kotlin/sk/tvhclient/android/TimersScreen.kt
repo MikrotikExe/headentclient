@@ -163,6 +163,7 @@ private fun weekdayNames(): List<String> {
 @Composable
 private fun daysLabel(mask: Int): String {
     if (mask and DvrAutorec.ALL_DAYS == DvrAutorec.ALL_DAYS) return stringResource(R.string.timers_every_day)
+    if (mask and DvrAutorec.ALL_DAYS == 0) return stringResource(R.string.timers_no_day)   // M715
     val names = remember { weekdayNames() }
     return (1..7).filter { mask and weekdayBit(it) != 0 }.joinToString(", ") { names[it - 1] }
 }

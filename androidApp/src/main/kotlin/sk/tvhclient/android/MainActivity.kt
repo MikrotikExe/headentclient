@@ -498,7 +498,7 @@ private fun TvHomeHost() {
                 // the player thus has the programme right away, not only after fetching the EPG itself
                 val nowSecR = System.currentTimeMillis() / 1000
                 fun radioCh(r: sk.tvhclient.shared.api.ChannelRow): LivePlaylist.LiveChannel {
-                    val ev = epgMap[r.channel.uuid]?.firstOrNull { nowSecR in it.start until it.stop }
+                    val ev = epgMap[r.channel.uuid]?.firstOrNull { it.isCurrentAt(nowSecR) }   /* M715 */
                     return LivePlaylist.LiveChannel(
                         uuid = r.channel.uuid, name = r.channel.name,
                         number = r.channel.number ?: 0, piconUrl = r.piconUrl,

@@ -490,4 +490,10 @@
     <!-- M714 -->
     <string name="err_no_tuner">De server heeft geen vrije tuner voor deze zender — die wordt gebruikt door een opname of een andere client.</string>
     <string name="err_no_start">De server kon deze zender niet starten — geen vrije tuner of de bron zendt niet uit.</string>
+    <!-- M715 -->
+    <string name="err_no_access">Het account op de server heeft geen recht voor deze actie.</string>
+    <!-- M715 -->
+    <string name="err_tuner_waiting">Een opname heeft de tuner overgenomen. Het afspelen gaat verder zodra de tuner vrij is.</string>
+    <!-- M715 -->
+    <string name="timers_no_day">Geen dag</string>
 </resources>
