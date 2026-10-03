@@ -161,6 +161,8 @@
     <string name="resume_question">Συνέχεια από την τελευταία θέση;</string>
     <string name="dvr_recent">Πρόσφατα</string>
     <string name="dvr_resume_at">Διακόπηκε στο %1$s</string>
+    <string name="dvr_info_file_size">Μέγεθος αρχείου</string>
+    <string name="dvr_info_recording_status">Κατάσταση εγγραφής</string>
     <string name="favorites">Αγαπημένα</string>
     <string name="menu_program">Πρόγραμμα (EPG)</string>
     <string name="fav_add">Προσθήκη στα αγαπημένα</string>

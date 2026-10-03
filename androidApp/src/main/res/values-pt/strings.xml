@@ -161,6 +161,8 @@
     <string name="resume_question">Retomar a partir da última posição?</string>
     <string name="dvr_recent">Vistos recentemente</string>
     <string name="dvr_resume_at">Parado em %1$s</string>
+    <string name="dvr_info_file_size">Tamanho do ficheiro</string>
+    <string name="dvr_info_recording_status">Estado de gravação</string>
     <string name="favorites">Favoritos</string>
     <string name="menu_program">Programa (EPG)</string>
     <string name="fav_add">Adicionar aos favoritos</string>

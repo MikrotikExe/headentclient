@@ -161,6 +161,8 @@
     <string name="resume_question">अंतिम स्थिति से फिर से शुरू करें?</string>
     <string name="dvr_recent">हाल ही में देखे गए</string>
     <string name="dvr_resume_at">%1$s पर रुका</string>
+    <string name="dvr_info_file_size">फ़ाइल का आकार</string>
+    <string name="dvr_info_recording_status">रिकॉर्डिंग स्थिति</string>
     <string name="favorites">पसंदीदा</string>
     <string name="menu_program">कार्यक्रम (EPG)</string>
     <string name="fav_add">पसंदीदा में जोड़ें</string>

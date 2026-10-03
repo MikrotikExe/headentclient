@@ -66,14 +66,11 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.util.VLCVideoLayout
 import sk.tvhclient.shared.Tvh
+import sk.tvhclient.shared.model.DvrEntry
 import kotlin.math.roundToInt
 
 /**
@@ -956,6 +953,7 @@ class PlayerActivity : ComponentActivity() {
 
     // DVR progress (position tracking for the archive) — M665: state in DvrPlayback.kt (M677: accessed directly via dvr)
     private val dvr = DvrPlayback(this)
+    private val dvrInfoState = androidx.compose.runtime.mutableStateOf<sk.tvhclient.shared.model.DvrEntry?>(null)
 
     private fun saveDvrProgress() {
         dvr.saveProgress(if (engine.ready && !engine.tornDown) engine.player else null)
@@ -1106,6 +1104,20 @@ class PlayerActivity : ComponentActivity() {
         dvr.progStartSec = args.dvrProgStartSec
         dvr.progStopSec = args.dvrProgStopSec
         dvr.realStartSec = args.dvrRealStartSec
+        dvrInfoState.value = if (dvr.uuid != null || intent.hasExtra(EXTRA_DVR_CHANNEL_NAME) || intent.hasExtra(EXTRA_DVR_START_SEC) || intent.hasExtra(EXTRA_DVR_STOP_SEC) || intent.hasExtra(EXTRA_DVR_DESCRIPTION) || intent.hasExtra(EXTRA_DVR_STATUS)) {
+            sk.tvhclient.shared.model.DvrEntry(
+                uuid = dvr.uuid.orEmpty(),
+                dispTitle = progTitle.ifBlank { intent.getStringExtra(EXTRA_TITLE).orEmpty() },
+                dispSubtitle = intent.getStringExtra(EXTRA_DVR_SUBTITLE).orEmpty(),
+                dispDescription = intent.getStringExtra(EXTRA_DVR_DESCRIPTION).orEmpty(),
+                channelName = intent.getStringExtra(EXTRA_DVR_CHANNEL_NAME).orEmpty(),
+                start = intent.getLongExtra(EXTRA_DVR_START_SEC, 0L),
+                stop = intent.getLongExtra(EXTRA_DVR_STOP_SEC, 0L),
+                fileSize = intent.getLongExtra(EXTRA_DVR_FILE_SIZE, 0L),
+                status = intent.getStringExtra(EXTRA_DVR_STATUS).orEmpty(),
+                schedStatus = intent.getStringExtra(EXTRA_DVR_SCHED_STATUS).orEmpty()
+            )
+        } else null
         // A programme in progress: the duration grows towards the live edge; the bar must ALWAYS be visible.
         // If we have the programme's boundaries we compute relative to its start (capped by the programme's length).
         // If the boundaries are missing (the recording has no start/stop filled in) we keep pace with the length from VLC.
@@ -1403,7 +1415,8 @@ class PlayerActivity : ComponentActivity() {
                     onOpenList = { pin.openList() },
                     gridRow = pin.gridRowState.value,
                     gridCol = pin.gridColState.value,
-                )
+                ),
+                dvrInfoEntry = dvrInfoState.value
             )
             }
             // The choice on an archived channel (live / from the start) — an overlay in the player's style
@@ -2032,6 +2045,14 @@ class PlayerActivity : ComponentActivity() {
         const val EXTRA_PROG_STOP = "prog_stop"
         const val EXTRA_PROG_TITLE = "prog_title"
         const val EXTRA_DVR_UUID = "dvr_uuid"
+        const val EXTRA_DVR_CHANNEL_NAME = "dvr_channel_name"
+        const val EXTRA_DVR_START_SEC = "dvr_start_sec"
+        const val EXTRA_DVR_STOP_SEC = "dvr_stop_sec"
+        const val EXTRA_DVR_DESCRIPTION = "dvr_description"
+        const val EXTRA_DVR_SUBTITLE = "dvr_subtitle"
+        const val EXTRA_DVR_FILE_SIZE = "dvr_file_size"
+        const val EXTRA_DVR_STATUS = "dvr_status"
+        const val EXTRA_DVR_SCHED_STATUS = "dvr_sched_status"
         const val EXTRA_PROG_START_FRAC = "prog_start_frac"
         const val EXTRA_PROG_STOP_FRAC = "prog_stop_frac"
         const val EXTRA_REQUIRE_PIN = "require_pin"
@@ -2242,7 +2263,8 @@ private fun PlayerUi(
     search: ChannelSearchArgs = ChannelSearchArgs(),
     // M383: the stream profile switcher
     profile: ProfileArgs = ProfileArgs(),
-    pin: PinArgs = PinArgs()
+    pin: PinArgs = PinArgs(),
+    dvrInfoEntry: DvrEntry? = null
 ) {
     var controlsVisible by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
@@ -2702,7 +2724,8 @@ private fun PlayerUi(
                 liveNowSec = liveNowSec,
                 liveChannels = channelList.channels,
                 liveCurrentIndex = channelList.currentIndex,
-                dvrActivity = dvrActivity
+                dvrActivity = dvrActivity,
+                dvrEntry = dvrInfoEntry
             )
         }
 
