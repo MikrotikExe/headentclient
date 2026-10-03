@@ -161,6 +161,8 @@
     <string name="resume_question">마지막 위치에서 이어서 재생할까요?</string>
     <string name="dvr_recent">최근 시청</string>
     <string name="dvr_resume_at">%1$s에서 멈춤</string>
+    <string name="dvr_info_file_size">파일 크기</string>
+    <string name="dvr_info_recording_status">녹화 상태</string>
     <string name="favorites">즐겨찾기</string>
     <string name="menu_program">프로그램 (EPG)</string>
     <string name="fav_add">즐겨찾기에 추가</string>

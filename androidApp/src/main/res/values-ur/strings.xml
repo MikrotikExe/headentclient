@@ -161,6 +161,8 @@
     <string name="resume_question">آخری مقام سے جاری رکھیں؟</string>
     <string name="dvr_recent">حال ہی میں دیکھے گئے</string>
     <string name="dvr_resume_at">%1$s پر رُکا</string>
+    <string name="dvr_info_file_size">فائل کا سائز</string>
+    <string name="dvr_info_recording_status">ریکارڈنگ کی حالت</string>
     <string name="favorites">پسندیدہ</string>
     <string name="menu_program">پروگرام (EPG)</string>
     <string name="fav_add">پسندیدہ میں شامل کریں</string>

@@ -161,6 +161,8 @@
     <string name="resume_question">前回の位置から再開しますか？</string>
     <string name="dvr_recent">最近見た番組</string>
     <string name="dvr_resume_at">%1$s で停止</string>
+    <string name="dvr_info_file_size">ファイルサイズ</string>
+    <string name="dvr_info_recording_status">録画状態</string>
     <string name="favorites">お気に入り</string>
     <string name="menu_program">番組 (EPG)</string>
     <string name="fav_add">お気に入りに追加</string>
