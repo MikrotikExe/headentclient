@@ -21,8 +21,19 @@ class TvhApplication : Application() {
             if (!AutostartPref.isWakeEnabled(context)) return
             // M535: just bring a running task to the front (do not tear the player down), otherwise start
             AutostartLaunch.bringToFrontOrStart(context)
+            // M716: the box can open its home screen a moment after waking — then once more
+            wakeRetry.removeCallbacksAndMessages(null)
+            wakeRetry.postDelayed({
+                if (resumedActivities == 0 && AutostartPref.isWakeEnabled(context)) {
+                    AutostartLaunch.bringToFrontOrStart(context)
+                }
+            }, 4000)
         }
     }
+
+    private val wakeRetry = android.os.Handler(android.os.Looper.getMainLooper())
+    /** M716: activities of the app currently resumed (0 = the app is not in front). */
+    @Volatile private var resumedActivities = 0
 
     // Change of the system 12/24 hour setting (M423-fix). Android reports it
     // via ACTION_TIME_CHANGED — the system TextClock handles it the same way.
@@ -75,6 +86,20 @@ class TvhApplication : Application() {
             addAction(Intent.ACTION_USER_PRESENT)
         }
         runCatching { registerReceiver(screenOnReceiver, filter) }
+        // M716: the app in front -> (re)start WakeKeeperService when "start on wake" is on; a
+        // foreground service may only be started from the foreground, so this is the place
+        registerActivityLifecycleCallbacks(object : android.app.Application.ActivityLifecycleCallbacks {
+            override fun onActivityResumed(a: android.app.Activity) {
+                resumedActivities++
+                WakeKeeperService.ensure(a)
+            }
+            override fun onActivityPaused(a: android.app.Activity) { if (resumedActivities > 0) resumedActivities-- }
+            override fun onActivityCreated(a: android.app.Activity, b: android.os.Bundle?) {}
+            override fun onActivityStarted(a: android.app.Activity) {}
+            override fun onActivityStopped(a: android.app.Activity) {}
+            override fun onActivitySaveInstanceState(a: android.app.Activity, b: android.os.Bundle) {}
+            override fun onActivityDestroyed(a: android.app.Activity) {}
+        })
         runCatching {
             registerReceiver(timeFormatReceiver, IntentFilter(Intent.ACTION_TIME_CHANGED))
         }

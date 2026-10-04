@@ -56,6 +56,7 @@ class BootReceiver : BroadcastReceiver() {
             action == "android.intent.action.QUICKBOOT_POWERON" ||
             action == "com.htc.intent.action.QUICKBOOT_POWERON"
         if (!boot) return
+        WakeKeeperService.ensure(context)   // M716: "start on wake" also after a reboot without opening the app
         if (!AutostartPref.isEnabled(context)) return
         AutostartLaunch.bringToFrontOrStart(context)   // M535
     }

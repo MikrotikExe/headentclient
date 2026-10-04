@@ -14,6 +14,8 @@
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- M716: WakeKeeperService — keeps the app from being frozen while "start on wake" is on -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- M452: WifiLock/WakeLock during playback — without them Android switches
@@ -87,6 +89,15 @@
             android:name=".RadioPlayerService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
+        <!-- M716: only while "Start app on wake from sleep" is on; see WakeKeeperService -->
+        <service
+            android:name=".WakeKeeperService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Opens the TV app when the set-top box wakes from standby (user option). Without it Android freezes the app and it never learns about the wake-up." />
+        </service>
         <!-- M580-fix: tile images for the row on the TV home screen (only PNGs from cache/tvhome) -->
         <provider
             android:name=".TvHomeImageProvider"

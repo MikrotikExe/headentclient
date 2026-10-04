@@ -656,6 +656,8 @@ internal fun GeneralSettings(ctx: android.content.Context) {
             autostartWake = on; AutostartPref.setWakeEnabled(ctx, on)
             TabController.settingsDirty.value = true
             if (on) requestOverlay()
+            // M716: keeps the app from being frozen in the background (Android 14+), only while on
+            if (on) WakeKeeperService.ensure(ctx) else WakeKeeperService.stop(ctx)
         }
     )
     // M494: resume where the user left off (live channel / recording)
