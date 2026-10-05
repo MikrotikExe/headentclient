@@ -405,6 +405,10 @@
     <string name="one_ok_title">Zenderlijst</string>
     <string name="one_ok_enable">Zender wisselen met één OK</string>
     <string name="one_ok_note">In de zenderlijst van de speler start één druk op OK de zender meteen schermvullend. Zonder deze optie schakelt de eerste OK alleen de zender achter de open lijst en sluit pas de tweede de lijst. OK ingedrukt houden opent nog steeds het zendermenu.</string>
+    <string name="player_theme_follow_app">Zoals de app</string>
+    <string name="ok_controls_title">OK-knop in de speler</string>
+    <string name="ok_controls_enable">Eerst bediening, dan zenderlijst</string>
+    <string name="ok_controls_note">Bij live-tv toont de eerste OK de bediening (pauze, terugspoelen…) en de volgende OK opent de zenderlijst. Als je tussendoor met de pijlen beweegt, activeert OK de gemarkeerde knop. Alleen in de klassieke modus.</string>
     <string name="radio_number_title">Radiozenders nummeren vanaf 1</string>
     <string name="radio_number_note">Zenders worden genummerd 1, 2, 3… in de getoonde volgorde in plaats van de nummers van de server. Geldt voor het tabblad Radio, de gids en de zenderlijst in de speler.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->

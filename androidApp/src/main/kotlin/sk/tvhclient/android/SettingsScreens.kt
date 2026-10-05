@@ -376,7 +376,7 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
         when (v) {
             PlayerThemePref.LIGHT -> stringResource(R.string.theme_light)
             PlayerThemePref.DARK -> stringResource(R.string.theme_dark)
-            else -> stringResource(R.string.theme_auto)
+            else -> stringResource(R.string.player_theme_follow_app)   // M717
         }
     }
     DropdownField(
@@ -1180,6 +1180,16 @@ internal fun RemoteSettings(
             note = stringResource(R.string.one_ok_note),
             checked = oneOk,
             onChange = { v -> oneOk = v; OneOkPref.set(ctx, v) }
+        )
+    }
+    // M717 (issue #24): first OK = controls, the next OK = channel list (classic mode)
+    SettingsGroup(stringResource(R.string.ok_controls_title), classicTitle = true) {
+        var okFirst by remember { mutableStateOf(OkControlsFirstPref.get(ctx)) }
+        SettingsSwitchRow(
+            label = stringResource(R.string.ok_controls_enable),
+            note = stringResource(R.string.ok_controls_note),
+            checked = okFirst,
+            onChange = { v -> okFirst = v; OkControlsFirstPref.set(ctx, v) }
         )
     }
 }

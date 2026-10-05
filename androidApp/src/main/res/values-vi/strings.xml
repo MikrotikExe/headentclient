@@ -405,6 +405,10 @@
     <string name="one_ok_title">Danh sách kênh</string>
     <string name="one_ok_enable">Chuyển kênh chỉ với một lần OK</string>
     <string name="one_ok_note">Trong danh sách kênh của trình phát, OK chuyển kênh ngay khi nhấn, không chờ nhả nút và không hỏi về bản ghi. Giữ OK vẫn mở menu của kênh.</string>
+    <string name="player_theme_follow_app">Theo ứng dụng</string>
+    <string name="ok_controls_title">Nút OK trong trình phát</string>
+    <string name="ok_controls_enable">Điều khiển trước, rồi danh sách kênh</string>
+    <string name="ok_controls_note">Khi xem trực tiếp, lần nhấn OK đầu hiện điều khiển (tạm dừng, tua lại…) và lần OK tiếp theo mở danh sách kênh. Nếu bạn di chuyển bằng phím mũi tên ở giữa, OK sẽ kích hoạt nút đang chọn. Chỉ ở chế độ cổ điển.</string>
     <string name="radio_number_title">Đánh số đài phát thanh từ 1</string>
     <string name="radio_number_note">Các đài được đánh số 1, 2, 3… theo thứ tự hiển thị thay cho số từ máy chủ. Áp dụng cho thẻ Radio, lịch phát sóng và danh sách đài trong trình phát.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->

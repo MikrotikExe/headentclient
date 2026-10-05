@@ -405,6 +405,10 @@
     <string name="one_ok_title">Daftar saluran</string>
     <string name="one_ok_enable">Ganti saluran dengan satu OK</string>
     <string name="one_ok_note">Di daftar saluran pemutar, satu tekanan OK langsung membuka saluran layar penuh. Tanpa opsi ini, OK pertama hanya mengganti saluran di balik daftar yang terbuka dan OK kedua menutup daftar. Menahan OK tetap membuka menu saluran.</string>
+    <string name="player_theme_follow_app">Sesuai aplikasi</string>
+    <string name="ok_controls_title">Tombol OK di pemutar</string>
+    <string name="ok_controls_enable">Kontrol dulu, lalu daftar saluran</string>
+    <string name="ok_controls_note">Pada TV langsung, OK pertama menampilkan kontrol (jeda, mundur…) dan OK berikutnya membuka daftar saluran. Jika Anda berpindah dengan panah di antaranya, OK menjalankan tombol yang disorot. Hanya di mode klasik.</string>
     <string name="radio_number_title">Nomori stasiun radio dari 1</string>
     <string name="radio_number_note">Stasiun diberi nomor 1, 2, 3… sesuai urutan yang ditampilkan, bukan nomor dari server. Berlaku untuk tab Radio, panduan, dan daftar stasiun di pemutar.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->

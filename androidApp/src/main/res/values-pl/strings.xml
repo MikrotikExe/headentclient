@@ -405,6 +405,10 @@
     <string name="one_ok_title">Lista kanałów</string>
     <string name="one_ok_enable">Przełączanie kanału jednym OK</string>
     <string name="one_ok_note">Na liście kanałów w odtwarzaczu jedno naciśnięcie OK uruchamia kanał od razu na pełnym ekranie. Bez tej opcji pierwsze OK tylko przełącza kanał za otwartą listą, a dopiero drugie zamyka listę. Przytrzymanie OK nadal otwiera menu kanału.</string>
+    <string name="player_theme_follow_app">Jak w aplikacji</string>
+    <string name="ok_controls_title">Przycisk OK w odtwarzaczu</string>
+    <string name="ok_controls_enable">Najpierw sterowanie, potem lista kanałów</string>
+    <string name="ok_controls_note">W telewizji na żywo pierwsze OK pokazuje sterowanie (pauza, przewijanie…), a kolejne OK otwiera listę kanałów. Jeśli w międzyczasie przesuniesz się strzałkami, OK uruchomi zaznaczony przycisk. Tylko w trybie klasycznym.</string>
     <string name="radio_number_title">Numeruj stacje radiowe od 1</string>
     <string name="radio_number_note">Stacje są numerowane 1, 2, 3… w wyświetlanej kolejności zamiast numerami z serwera. Dotyczy karty Radio, przewodnika i listy stacji w odtwarzaczu.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->

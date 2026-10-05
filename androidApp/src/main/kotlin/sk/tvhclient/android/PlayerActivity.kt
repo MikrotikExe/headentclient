@@ -1169,7 +1169,13 @@ class PlayerActivity : ComponentActivity() {
             val pDark = when (pThemeMode) {
                 PlayerThemePref.DARK -> true
                 PlayerThemePref.LIGHT -> false
-                else -> isSystemInDarkTheme()
+                // M717 (issue #22): "Like the app" — follows the app theme; the system decides only
+                // when the app is on automatic too (Android 9 boxes have no system dark mode)
+                else -> when (ThemePref.stateOf(this).value) {
+                    ThemePref.DARK -> true
+                    ThemePref.LIGHT -> false
+                    else -> isSystemInDarkTheme()
+                }
             }
             MaterialTheme(
                 colorScheme = when {

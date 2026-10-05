@@ -405,6 +405,10 @@
     <string name="one_ok_title">قائمة القنوات</string>
     <string name="one_ok_enable">تبديل القناة بضغطة OK واحدة</string>
     <string name="one_ok_note">في قائمة القنوات داخل المشغّل، ضغطة واحدة على OK تشغّل القناة مباشرة بملء الشاشة. بدون هذا الخيار، تبدّل الضغطة الأولى القناة خلف القائمة المفتوحة فقط، والثانية هي التي تغلق القائمة. الضغط المطوّل على OK لا يزال يفتح قائمة القناة.</string>
+    <string name="player_theme_follow_app">مثل التطبيق</string>
+    <string name="ok_controls_title">زر OK في المشغل</string>
+    <string name="ok_controls_enable">عناصر التحكم أولاً ثم قائمة القنوات</string>
+    <string name="ok_controls_note">في البث المباشر يعرض أول ضغط على OK عناصر التحكم (إيقاف مؤقت، ترجيع…) ويفتح الضغط التالي قائمة القنوات. إذا تنقلت بالأسهم بينهما، يفعّل OK الزر المحدد. في الوضع الكلاسيكي فقط.</string>
     <string name="radio_number_title">ترقيم محطات الراديو من 1</string>
     <string name="radio_number_note">تُرقَّم المحطات 1، 2، 3… حسب الترتيب المعروض بدلاً من أرقام الخادم. يسري ذلك على تبويب الراديو ودليل البرامج وقائمة المحطات في المشغّل.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->

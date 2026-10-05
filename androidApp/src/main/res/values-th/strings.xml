@@ -405,6 +405,10 @@
     <string name="one_ok_title">รายการช่อง</string>
     <string name="one_ok_enable">เปลี่ยนช่องด้วย OK ครั้งเดียว</string>
     <string name="one_ok_note">ในรายการช่องของเครื่องเล่น การกด OK เพียงครั้งเดียวจะเปิดช่องแบบเต็มจอทันที หากไม่เปิดตัวเลือกนี้ การกด OK ครั้งแรกจะเปลี่ยนช่องอยู่ด้านหลังรายการที่เปิดค้างไว้ และครั้งที่สองจึงปิดรายการ การกด OK ค้างไว้ยังคงเปิดเมนูของช่อง</string>
+    <string name="player_theme_follow_app">ตามแอป</string>
+    <string name="ok_controls_title">ปุ่ม OK ในเครื่องเล่น</string>
+    <string name="ok_controls_enable">แสดงตัวควบคุมก่อน แล้วจึงรายการช่อง</string>
+    <string name="ok_controls_note">ขณะดูสด กด OK ครั้งแรกจะแสดงตัวควบคุม (หยุดชั่วคราว ย้อนกลับ…) และกด OK ครั้งถัดไปจะเปิดรายการช่อง หากเลื่อนด้วยปุ่มลูกศรในระหว่างนั้น OK จะสั่งงานปุ่มที่ไฮไลต์ เฉพาะโหมดคลาสสิก</string>
     <string name="radio_number_title">นับหมายเลขสถานีวิทยุจาก 1</string>
     <string name="radio_number_note">สถานีจะถูกนับ 1, 2, 3… ตามลำดับที่แสดงแทนหมายเลขจากเซิร์ฟเวอร์ ใช้กับแท็บวิทยุ ผังรายการ และรายการสถานีในเครื่องเล่น</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->

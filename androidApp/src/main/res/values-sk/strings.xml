@@ -405,6 +405,10 @@
     <string name="one_ok_title">Zoznam kanálov</string>
     <string name="one_ok_enable">Prepnúť kanál jedným OK</string>
     <string name="one_ok_note">V zozname kanálov v prehrávači spustí jedno stlačenie OK kanál rovno na celú obrazovku. Bez tejto voľby prvé OK kanál len prepne (zoznam ostane cez obraz) a až druhé ho zavrie. Podržanie OK naďalej otvára ponuku kanála.</string>
+    <string name="player_theme_follow_app">Podľa aplikácie</string>
+    <string name="ok_controls_title">Tlačidlo OK v prehrávači</string>
+    <string name="ok_controls_enable">Najprv ovládanie, potom zoznam kanálov</string>
+    <string name="ok_controls_note">Pri živom vysielaní prvé OK zobrazí ovládanie (pauza, pretáčanie…) a ďalšie OK otvorí zoznam kanálov. Ak sa medzitým posunieš šípkami, OK spustí označené tlačidlo. Platí len pre klasický režim.</string>
     <string name="radio_number_title">Číslovať rádiá od 1</string>
     <string name="radio_number_note">Stanice sa číslujú 1, 2, 3… podľa zobrazeného poradia namiesto čísel zo servera. Platí pre záložku Rádio, TV program aj zoznam staníc v prehrávači.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->

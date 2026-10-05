@@ -405,6 +405,10 @@
     <string name="one_ok_title">Liste des chaînes</string>
     <string name="one_ok_enable">Changer de chaîne avec un seul OK</string>
     <string name="one_ok_note">Dans la liste des chaînes du lecteur, une seule pression sur OK lance la chaîne directement en plein écran. Sans cette option, le premier OK ne fait que changer de chaîne derrière la liste ouverte et seul le second la ferme. Un appui long sur OK ouvre toujours le menu de la chaîne.</string>
+    <string name="player_theme_follow_app">Comme l\'application</string>
+    <string name="ok_controls_title">Touche OK dans le lecteur</string>
+    <string name="ok_controls_enable">D\'abord les commandes, puis la liste des chaînes</string>
+    <string name="ok_controls_note">En direct, le premier OK affiche les commandes (pause, retour…) et le OK suivant ouvre la liste des chaînes. Si vous vous déplacez entre-temps avec les flèches, OK active le bouton sélectionné. Mode classique uniquement.</string>
     <string name="radio_number_title">Numéroter les radios à partir de 1</string>
     <string name="radio_number_note">Les stations sont numérotées 1, 2, 3… dans l\'ordre affiché au lieu des numéros du serveur. S\'applique à l\'onglet Radio, au guide et à la liste des stations du lecteur.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->

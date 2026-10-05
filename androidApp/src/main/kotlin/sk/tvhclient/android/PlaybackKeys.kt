@@ -47,6 +47,10 @@ internal class PlaybackKeys(
         fun initScrub()
     }
 
+    /** M717: the controls were opened by OK (OkControlsFirstPref) — the next OK opens the channel list.
+     *  Any other key cancels it, so after moving in the bar OK activates the highlighted item again. */
+    private var okListArmed = false
+
     private fun afterZap() {
         if (!ZapOverlayPref.get(ctx)) actions.showZapBar()
         else if (modernTvActive()) actions.openModernOverlayAtCurrent()
@@ -55,6 +59,7 @@ internal class PlaybackKeys(
 
     fun handleKey(kc: Int, down: Boolean, event: KeyEvent): Boolean? {
         val seekablePlayback = seekable()
+        if (down && !DialogKeys.isOk(kc)) okListArmed = false
         // M598-fix2: releasing the arrow ends the smooth seeking and schedules the jump
         if (!down && seekablePlayback &&
             (kc == KeyEvent.KEYCODE_DPAD_LEFT || kc == KeyEvent.KEYCODE_DPAD_RIGHT) &&
@@ -154,7 +159,12 @@ internal class PlaybackKeys(
                         actions.pokeControls(); return true
                     }
                     KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
-                        if (down && event.repeatCount == 0) actions.activateControl(order.getOrNull(controlNav.value))
+                        if (down && event.repeatCount == 0) {
+                            if (okListArmed) {
+                                okListArmed = false
+                                actions.openChannelListLong()   // M717: second OK -> channel list
+                            } else actions.activateControl(order.getOrNull(controlNav.value))
+                        }
                         return true
                     }
                 }
@@ -172,6 +182,14 @@ internal class PlaybackKeys(
                 if (modernTvActive()) {
                     // Short OK -> overlay only on UP; holding -> straight to the big list (M328, M642).
                     return actions.modernPlaybackOk(down, event)
+                }
+                // M717 (issue #24): first OK = controls, the next OK = channel list
+                if (OkControlsFirstPref.get(ctx)) {
+                    if (down && event.repeatCount == 0) {
+                        actions.showControlsFocused()
+                        okListArmed = true
+                    }
+                    return true
                 }
                 if (down && event.repeatCount == 0) {
                     actions.openChannelListLong()  // okLongFired swallows the following OK-up

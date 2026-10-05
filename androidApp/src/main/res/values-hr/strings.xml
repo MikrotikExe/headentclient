@@ -405,6 +405,10 @@
     <string name="one_ok_title">Popis kanala</string>
     <string name="one_ok_enable">Promjena kanala jednim OK</string>
     <string name="one_ok_note">Na popisu kanala u playeru jedan pritisak na OK pokreće kanal odmah preko cijelog zaslona. Bez te opcije prvi OK samo mijenja kanal iza otvorenog popisa, a tek drugi zatvara popis. Dugi pritisak na OK i dalje otvara izbornik kanala.</string>
+    <string name="player_theme_follow_app">Kao aplikacija</string>
+    <string name="ok_controls_title">Tipka OK u playeru</string>
+    <string name="ok_controls_enable">Prvo kontrole, zatim popis kanala</string>
+    <string name="ok_controls_note">Kod TV-a uživo prvi OK prikazuje kontrole (pauza, premotavanje…), a sljedeći OK otvara popis kanala. Ako se u međuvremenu pomaknete strelicama, OK aktivira označeni gumb. Samo u klasičnom načinu.</string>
     <string name="radio_number_title">Numeriraj radijske postaje od 1</string>
     <string name="radio_number_note">Postaje se numeriraju 1, 2, 3… prema prikazanom redoslijedu umjesto brojeva s poslužitelja. Vrijedi za karticu Radio, vodič i popis postaja u playeru.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->

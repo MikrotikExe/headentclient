@@ -405,6 +405,10 @@
     <string name="one_ok_title">Csatornalista</string>
     <string name="one_ok_enable">Csatornaváltás egyetlen OK gombbal</string>
     <string name="one_ok_note">A lejátszó csatornalistájában egyetlen OK azonnal teljes képernyőn indítja a csatornát. Enélkül az első OK csak átvált a nyitott lista mögött, és csak a második zárja be a listát. Az OK nyomva tartása továbbra is a csatorna menüjét nyitja meg.</string>
+    <string name="player_theme_follow_app">Az alkalmazás szerint</string>
+    <string name="ok_controls_title">OK gomb a lejátszóban</string>
+    <string name="ok_controls_enable">Előbb vezérlők, aztán csatornalista</string>
+    <string name="ok_controls_note">Élő adásnál az első OK megjeleníti a vezérlőket (szünet, tekerés…), a következő OK pedig megnyitja a csatornalistát. Ha közben a nyilakkal mozogsz, az OK a kijelölt gombot aktiválja. Csak klasszikus módban.</string>
     <string name="radio_number_title">Rádióállomások számozása 1-től</string>
     <string name="radio_number_note">Az állomások a megjelenített sorrendben 1, 2, 3… számot kapnak a szerver számai helyett. A Rádió lapra, a műsorújságra és a lejátszó állomáslistájára vonatkozik.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->

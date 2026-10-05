@@ -405,6 +405,10 @@
     <string name="one_ok_title">频道列表</string>
     <string name="one_ok_enable">一次 OK 切换频道</string>
     <string name="one_ok_note">在播放器的频道列表中，按一次 OK 即可直接全屏播放该频道。未启用时，第一次 OK 只会在列表后面切换频道，第二次才关闭列表。长按 OK 仍会打开频道菜单。</string>
+    <string name="player_theme_follow_app">跟随应用</string>
+    <string name="ok_controls_title">播放器中的 OK 键</string>
+    <string name="ok_controls_enable">先显示控制栏，再显示频道列表</string>
+    <string name="ok_controls_note">直播时第一次按 OK 显示控制栏（暂停、倒退…），再按 OK 打开频道列表。如果中间用方向键移动过，OK 会执行当前高亮的按钮。仅限经典模式。</string>
     <string name="radio_number_title">电台从 1 开始编号</string>
     <string name="radio_number_note">电台按显示顺序编为 1、2、3…，而不使用服务器上的编号。适用于电台标签页、节目指南和播放器中的电台列表。</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->

@@ -405,6 +405,10 @@
     <string name="one_ok_title">چینل کی فہرست</string>
     <string name="one_ok_enable">ایک OK سے چینل بدلیں</string>
     <string name="one_ok_note">پلیئر کی چینل فہرست میں OK ایک بار دبانے سے چینل فوراً پوری اسکرین پر چلتا ہے۔ اس آپشن کے بغیر پہلا OK صرف کھلی فہرست کے پیچھے چینل بدلتا ہے اور دوسرا فہرست بند کرتا ہے۔ OK دبائے رکھنے سے اب بھی چینل مینو کھلتا ہے۔</string>
+    <string name="player_theme_follow_app">ایپ کے مطابق</string>
+    <string name="ok_controls_title">پلیئر میں OK بٹن</string>
+    <string name="ok_controls_enable">پہلے کنٹرولز، پھر چینل کی فہرست</string>
+    <string name="ok_controls_note">لائیو ٹی وی پر پہلا OK کنٹرولز (توقف، پیچھے کرنا…) دکھاتا ہے اور اگلا OK چینل کی فہرست کھولتا ہے۔ اگر درمیان میں تیروں سے حرکت کریں تو OK نمایاں بٹن چلاتا ہے۔ صرف کلاسک موڈ میں۔</string>
     <string name="radio_number_title">ریڈیو اسٹیشنوں کی نمبرنگ 1 سے</string>
     <string name="radio_number_note">اسٹیشنوں کو سرور کے نمبروں کی بجائے دکھائی گئی ترتیب میں 1، 2، 3… نمبر دیے جاتے ہیں۔ ریڈیو ٹیب، گائیڈ اور پلیئر کی اسٹیشن فہرست پر لاگو ہوتا ہے۔</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->

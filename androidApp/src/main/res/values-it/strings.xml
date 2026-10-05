@@ -405,6 +405,10 @@
     <string name="one_ok_title">Elenco canali</string>
     <string name="one_ok_enable">Cambia canale con un solo OK</string>
     <string name="one_ok_note">Nell\'elenco canali del lettore, una sola pressione di OK avvia il canale subito a schermo intero. Senza questa opzione il primo OK cambia solo canale dietro l\'elenco aperto e il secondo lo chiude. Tenendo premuto OK si apre ancora il menu del canale.</string>
+    <string name="player_theme_follow_app">Come l\'app</string>
+    <string name="ok_controls_title">Tasto OK nel player</string>
+    <string name="ok_controls_enable">Prima i controlli, poi l\'elenco canali</string>
+    <string name="ok_controls_note">In diretta il primo OK mostra i controlli (pausa, riavvolgimento…) e l\'OK successivo apre l\'elenco dei canali. Se nel frattempo ti sposti con le frecce, OK attiva il pulsante evidenziato. Solo in modalità classica.</string>
     <string name="radio_number_title">Numera le radio da 1</string>
     <string name="radio_number_note">Le stazioni sono numerate 1, 2, 3… nell\'ordine mostrato invece dei numeri del server. Vale per la scheda Radio, la guida e l\'elenco delle stazioni nel lettore.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->

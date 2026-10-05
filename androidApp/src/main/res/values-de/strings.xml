@@ -405,6 +405,10 @@
     <string name="one_ok_title">Kanalliste</string>
     <string name="one_ok_enable">Kanal mit einem OK umschalten</string>
     <string name="one_ok_note">In der Kanalliste des Players startet ein Druck auf OK den Kanal sofort im Vollbild. Ohne diese Option schaltet das erste OK nur den Kanal hinter der offenen Liste um, erst das zweite schließt die Liste. Langes Drücken von OK öffnet weiterhin das Kanalmenü.</string>
+    <string name="player_theme_follow_app">Wie die App</string>
+    <string name="ok_controls_title">OK-Taste im Player</string>
+    <string name="ok_controls_enable">Zuerst Steuerung, dann Senderliste</string>
+    <string name="ok_controls_note">Beim Live-TV zeigt das erste OK die Steuerung (Pause, Zurückspulen…) und das nächste OK öffnet die Senderliste. Wenn Sie sich dazwischen mit den Pfeiltasten bewegen, aktiviert OK die markierte Schaltfläche. Nur im klassischen Modus.</string>
     <string name="radio_number_title">Radiosender ab 1 nummerieren</string>
     <string name="radio_number_note">Sender werden in der angezeigten Reihenfolge mit 1, 2, 3… nummeriert statt mit den Nummern vom Server. Gilt für den Radio-Tab, den Programmführer und die Senderliste im Player.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->

@@ -405,6 +405,10 @@
     <string name="one_ok_title">Seznam kanalov</string>
     <string name="one_ok_enable">Preklop kanala z enim OK</string>
     <string name="one_ok_note">Na seznamu kanalov v predvajalniku en pritisk na OK zažene kanal takoj čez cel zaslon. Brez te možnosti prvi OK kanal samo preklopi za odprtim seznamom, drugi pa seznam zapre. Dolg pritisk na OK še vedno odpre meni kanala.</string>
+    <string name="player_theme_follow_app">Kot aplikacija</string>
+    <string name="ok_controls_title">Tipka OK v predvajalniku</string>
+    <string name="ok_controls_enable">Najprej kontrolniki, nato seznam kanalov</string>
+    <string name="ok_controls_note">Pri TV v živo prvi OK prikaže kontrolnike (premor, previjanje…), naslednji OK pa odpre seznam kanalov. Če se vmes premaknete s puščicami, OK sproži označeni gumb. Samo v klasičnem načinu.</string>
     <string name="radio_number_title">Oštevilči radijske postaje od 1</string>
     <string name="radio_number_note">Postaje so oštevilčene 1, 2, 3… po prikazanem vrstnem redu namesto s številkami s strežnika. Velja za zavihek Radio, vodnik in seznam postaj v predvajalniku.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
