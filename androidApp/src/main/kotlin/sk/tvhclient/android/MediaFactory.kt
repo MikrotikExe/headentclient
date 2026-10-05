@@ -41,22 +41,44 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
     }
 
     /** Deinterlacing mode from the settings -> (the --deinterlace value, the mode or null).
-     *  -1 = automatic (deinterlaces only an interlaced source), 0 = off, 1 = on. */
-    fun deinterlaceSpec(): Pair<String, String?> = when (DeinterlacePref.get(ctx)) {
-        DeinterlacePref.OFF -> "0" to null
-        DeinterlacePref.BOB -> "1" to "bob"
-        DeinterlacePref.YADIF -> "1" to "yadif"
-        DeinterlacePref.YADIF2X -> "1" to "yadif2x"
-        DeinterlacePref.X -> "1" to "x"
-        else -> "-1" to "yadif"   // AUTO
+     *  -1 = automatic (deinterlaces only an interlaced source), 0 = off, 1 = on.
+     *
+     *  M718 (issue #23): with HW decoding the explicit modes run without MediaCodec direct
+     *  rendering (see [applyDeinterlace]); the frames then arrive as NV12, where VLC's yadif / yadif2x / x
+     *  are not available and VLC silently falls back to the blurry "blend". That is why with HW decoding
+     *  they map to "linear" (yadif) and "bob" (yadif2x, x) — both work on NV12 and are cheap on the CPU. */
+    fun deinterlaceSpec(): Pair<String, String?> {
+        val hw = !SwDecodePref.get(ctx)
+        return when (DeinterlacePref.get(ctx)) {
+            DeinterlacePref.OFF -> "0" to null
+            DeinterlacePref.BOB -> "1" to "bob"
+            DeinterlacePref.YADIF -> "1" to (if (hw) "linear" else "yadif")
+            DeinterlacePref.YADIF2X -> "1" to (if (hw) "bob" else "yadif2x")
+            DeinterlacePref.X -> "1" to (if (hw) "bob" else "x")
+            else -> "-1" to "yadif"   // AUTO (unchanged, direct rendering stays on)
+        }
+    }
+
+    /** True when an explicit deinterlacing mode is chosen and the video is decoded in HW (MediaCodec). */
+    private fun explicitDeinterlaceOnHw(): Boolean {
+        val mode = DeinterlacePref.get(ctx)
+        return !SwDecodePref.get(ctx) && mode != DeinterlacePref.OFF && mode != DeinterlacePref.AUTO
     }
 
     /** Applies deinterlacing to the given medium (deals with comb lines / combing on
-     *  interlaced DVB video in fast shots). */
+     *  interlaced DVB video in fast shots).
+     *
+     *  M718 (issue #23): with MediaCodec direct rendering the decoded picture goes straight to the
+     *  Android surface and VLC's deinterlace filter never gets the frames (VLC devs: "HW decoding
+     *  (mediacodec) with Android prevents deinterlacing"), so the setting had no effect on boxes.
+     *  For the explicit modes we turn direct rendering off for this medium only — decoding stays
+     *  in HW, the frames are copied out and the filter can work (the same option VLC for Android uses
+     *  for its "decoding acceleration" mode). AUTO and OFF keep direct rendering (4K/HDR unaffected). */
     private fun applyDeinterlace(m: Media) {
         val (en, mode) = deinterlaceSpec()
         m.addOption(":deinterlace=$en")
         if (mode != null) m.addOption(":deinterlace-mode=$mode")
+        if (explicitDeinterlaceOnHw()) m.addOption(":no-mediacodec-dr")
     }
 
     /**
