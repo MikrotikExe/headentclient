@@ -162,7 +162,6 @@
     <string name="dvr_recent">最近观看</string>
     <string name="dvr_resume_at">停止于 %1$s</string>
     <string name="dvr_info_file_size">文件大小</string>
-    <string name="dvr_info_recording_status">录制状态</string>
     <string name="favorites">收藏</string>
     <string name="menu_program">节目 (EPG)</string>
     <string name="fav_add">添加到收藏</string>

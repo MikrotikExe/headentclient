@@ -162,7 +162,6 @@
     <string name="dvr_recent">Posledné sledované</string>
     <string name="dvr_resume_at">Skončili ste na %1$s</string>
     <string name="dvr_info_file_size">Veľkosť súboru</string>
-    <string name="dvr_info_recording_status">Stav nahrávania</string>
     <string name="favorites">Obľúbené</string>
     <string name="menu_program">Program (EPG)</string>
     <string name="fav_add">Pridať do obľúbených</string>

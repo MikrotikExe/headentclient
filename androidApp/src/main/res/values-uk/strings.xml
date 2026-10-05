@@ -162,7 +162,6 @@
     <string name="dvr_recent">Нещодавно переглянуті</string>
     <string name="dvr_resume_at">Зупинено на %1$s</string>
     <string name="dvr_info_file_size">Розмір файлу</string>
-    <string name="dvr_info_recording_status">Статус запису</string>
     <string name="favorites">Обране</string>
     <string name="menu_program">Програма (EPG)</string>
     <string name="fav_add">Додати в обране</string>

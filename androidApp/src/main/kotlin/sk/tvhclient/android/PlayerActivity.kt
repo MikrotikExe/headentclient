@@ -1104,7 +1104,7 @@ class PlayerActivity : ComponentActivity() {
         dvr.progStartSec = args.dvrProgStartSec
         dvr.progStopSec = args.dvrProgStopSec
         dvr.realStartSec = args.dvrRealStartSec
-        dvrInfoState.value = if (dvr.uuid != null || intent.hasExtra(EXTRA_DVR_CHANNEL_NAME) || intent.hasExtra(EXTRA_DVR_START_SEC) || intent.hasExtra(EXTRA_DVR_STOP_SEC) || intent.hasExtra(EXTRA_DVR_DESCRIPTION) || intent.hasExtra(EXTRA_DVR_STATUS)) {
+        dvrInfoState.value = if (dvr.uuid != null || intent.hasExtra(EXTRA_DVR_CHANNEL_NAME) || intent.hasExtra(EXTRA_DVR_START_SEC) || intent.hasExtra(EXTRA_DVR_STOP_SEC) || intent.hasExtra(EXTRA_DVR_DESCRIPTION)) {
             sk.tvhclient.shared.model.DvrEntry(
                 uuid = dvr.uuid.orEmpty(),
                 dispTitle = progTitle.ifBlank { intent.getStringExtra(EXTRA_TITLE).orEmpty() },
@@ -1113,9 +1113,7 @@ class PlayerActivity : ComponentActivity() {
                 channelName = intent.getStringExtra(EXTRA_DVR_CHANNEL_NAME).orEmpty(),
                 start = intent.getLongExtra(EXTRA_DVR_START_SEC, 0L),
                 stop = intent.getLongExtra(EXTRA_DVR_STOP_SEC, 0L),
-                fileSize = intent.getLongExtra(EXTRA_DVR_FILE_SIZE, 0L),
-                status = intent.getStringExtra(EXTRA_DVR_STATUS).orEmpty(),
-                schedStatus = intent.getStringExtra(EXTRA_DVR_SCHED_STATUS).orEmpty()
+                fileSize = intent.getLongExtra(EXTRA_DVR_FILE_SIZE, 0L)
             )
         } else null
         // A programme in progress: the duration grows towards the live edge; the bar must ALWAYS be visible.
@@ -2051,8 +2049,16 @@ class PlayerActivity : ComponentActivity() {
         const val EXTRA_DVR_DESCRIPTION = "dvr_description"
         const val EXTRA_DVR_SUBTITLE = "dvr_subtitle"
         const val EXTRA_DVR_FILE_SIZE = "dvr_file_size"
-        const val EXTRA_DVR_STATUS = "dvr_status"
-        const val EXTRA_DVR_SCHED_STATUS = "dvr_sched_status"
+
+        /** Recording details for the info window - one place for every DVR playback path. */
+        fun putDvrInfo(intent: android.content.Intent, e: DvrEntry) {
+            intent.putExtra(EXTRA_DVR_CHANNEL_NAME, e.channelName)
+            intent.putExtra(EXTRA_DVR_START_SEC, e.start)
+            intent.putExtra(EXTRA_DVR_STOP_SEC, e.stop)
+            intent.putExtra(EXTRA_DVR_DESCRIPTION, e.dispDescription)
+            intent.putExtra(EXTRA_DVR_SUBTITLE, e.dispSubtitle)
+            intent.putExtra(EXTRA_DVR_FILE_SIZE, e.fileSize)
+        }
         const val EXTRA_PROG_START_FRAC = "prog_start_frac"
         const val EXTRA_PROG_STOP_FRAC = "prog_stop_frac"
         const val EXTRA_REQUIRE_PIN = "require_pin"

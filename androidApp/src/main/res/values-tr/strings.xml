@@ -162,7 +162,6 @@
     <string name="dvr_recent">Son izlenenler</string>
     <string name="dvr_resume_at">%1$s konumunda durduruldu</string>
     <string name="dvr_info_file_size">Dosya boyutu</string>
-    <string name="dvr_info_recording_status">Kayıt durumu</string>
     <string name="favorites">Favoriler</string>
     <string name="menu_program">Program (EPG)</string>
     <string name="fav_add">Favorilere ekle</string>

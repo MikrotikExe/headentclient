@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -69,85 +68,55 @@ internal fun PlayerInfoWindow(
         contentAlignment = Alignment.Center
     ) {
         androidx.compose.material3.Surface(
-            shape = RoundedCornerShape(14.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp,
+            color = playerScrim(),
+            shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth(0.72f).widthIn(max = 560.dp)
         ) {
             Column(
                 Modifier
-                    .padding(20.dp)
+                    .padding(28.dp)
                     .verticalScroll(androidx.compose.foundation.rememberScrollState())
             ) {
-                val dvrTitle = dvrEntry?.title?.ifBlank { progTitle.ifBlank { title } } ?: progTitle.ifBlank { title }
+                val dvrTitle = dvrEntry?.dispTitle?.ifBlank { null } ?: progTitle.ifBlank { title }
                 if (dvrEntry != null) {
+                    // recording: title, channel / date / time, description, file size
+                    // (same colours and sizes as the live info, readable in light and dark player theme)
                     Text(
                         dvrTitle,
-                        style = MaterialTheme.typography.titleMedium,
+                        color = playerFg(),
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        fontSize = 22.sp
                     )
                     val dvrDate = if (dvrEntry.start > 0) java.text.SimpleDateFormat(
                         "EEE, d. MMM yyyy", java.util.Locale.getDefault()
                     ).format(java.util.Date(dvrEntry.start * 1000)) else ""
-                    val dvrStart = if (dvrEntry.start > 0) java.text.SimpleDateFormat(
-                        sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault()
-                    ).format(java.util.Date(dvrEntry.start * 1000)) else ""
-                    val dvrStop = if (dvrEntry.stop > 0) java.text.SimpleDateFormat(
-                        sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault()
-                    ).format(java.util.Date(dvrEntry.stop * 1000)) else ""
-                    val dvrMeta = buildList {
-                        if (dvrEntry.channelName.isNotBlank()) add(dvrEntry.channelName)
-                        if (dvrDate.isNotBlank()) add(dvrDate)
-                        if (dvrStart.isNotBlank() || dvrStop.isNotBlank()) {
-                            val startText = dvrStart.ifBlank { "—" }
-                            val stopText = dvrStop.ifBlank { "—" }
-                            add(startText + "–" + stopText)
-                        }
-                    }
+                    val dvrMeta = listOf(dvrEntry.channelName, dvrDate, fmtRange(dvrEntry.start, dvrEntry.stop))
+                        .filter { it.isNotBlank() }
                     if (dvrMeta.isNotEmpty()) {
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            dvrMeta.joinToString("  •  "),
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(dvrMeta.joinToString("  \u2022  "), color = playerFgDim(), fontSize = 15.sp)
                     }
-                    val fileSizeLabel = stringResource(R.string.dvr_info_file_size)
-                    val recordingStatusLabel = stringResource(R.string.dvr_info_recording_status)
-                    val detailList = buildList {
-                        if (dvrEntry.fileSize > 0L) {
-                            val units = arrayOf("B", "KiB", "MiB", "GiB")
-                            var size = dvrEntry.fileSize.toDouble()
-                            var unit = 0
-                            while (size >= 1024.0 && unit < units.size - 1) {
-                                size /= 1024.0
-                                unit++
-                            }
-                            val sizeText = if (unit == 0) "${size.toLong()} ${units[unit]}" else "%.1f %s".format(size, units[unit])
-                            add(fileSizeLabel to sizeText)
-                        }
-                        if (dvrEntry.status.isNotBlank()) add(recordingStatusLabel to dvrEntry.status)
-                    }
+                    // the description stays in the outer scrolling column (an inner scroll can't be moved with a TV remote)
                     val displayDesc = dvrEntry.dispDescription.ifBlank { dvrEntry.dispSubtitle.ifBlank { progDesc } }
                     if (displayDesc.isNotBlank()) {
-                        Spacer(Modifier.height(10.dp))
-                        Column(Modifier.heightIn(max = 240.dp).verticalScroll(androidx.compose.foundation.rememberScrollState())) {
-                            Text(displayDesc, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
-                        }
+                        Spacer(Modifier.height(14.dp))
+                        Text(displayDesc, color = playerFgDim(), fontSize = 16.sp, lineHeight = 22.sp)
                     }
-                    if (detailList.isNotEmpty()) {
-                        Spacer(Modifier.height(10.dp))
-                        detailList.forEach { (label, value) ->
-                            Text(
-                                "$label: $value",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(vertical = 2.dp)
-                            )
+                    if (dvrEntry.fileSize > 0L) {
+                        val units = arrayOf("B", "KiB", "MiB", "GiB", "TiB")
+                        var size = dvrEntry.fileSize.toDouble()
+                        var unit = 0
+                        while (size >= 1024.0 && unit < units.size - 1) {
+                            size /= 1024.0
+                            unit++
                         }
+                        val sizeText = if (unit == 0) "${dvrEntry.fileSize} B" else "%.1f %s".format(size, units[unit])
+                        Spacer(Modifier.height(14.dp))
+                        Text(
+                            stringResource(R.string.dvr_info_file_size) + ": " + sizeText,
+                            color = playerFgFaint(),
+                            fontSize = 13.sp
+                        )
                     }
                 } else {
                     // channel header (live broadcast only)
