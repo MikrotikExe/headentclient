@@ -161,6 +161,7 @@
     <string name="resume_question">Продолжить с последней позиции?</string>
     <string name="dvr_recent">Недавно просмотренные</string>
     <string name="dvr_resume_at">Остановлено на %1$s</string>
+    <string name="dvr_info_file_size">Размер файла</string>
     <string name="favorites">Избранное</string>
     <string name="menu_program">Программа (EPG)</string>
     <string name="fav_add">Добавить в избранное</string>

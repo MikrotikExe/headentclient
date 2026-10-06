@@ -26,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import sk.tvhclient.shared.model.DvrEntry
 
 /*
  * M661: the player info window extracted from PlayerUi (PlayerActivity.kt) — the 64 kB method limit.
@@ -48,7 +49,8 @@ internal fun PlayerInfoWindow(
     liveNowSec: Long,
     liveChannels: List<LivePlaylist.LiveChannel>,
     liveCurrentIndex: Int,
-    dvrActivity: PlayerActivity?
+    dvrActivity: PlayerActivity?,
+    dvrEntry: DvrEntry? = null
 ) {
     // Info window: detail of the currently running programme (INFO key / button)
     androidx.activity.compose.BackHandler { setShowInfo(false) }
@@ -75,57 +77,100 @@ internal fun PlayerInfoWindow(
                     .padding(28.dp)
                     .verticalScroll(androidx.compose.foundation.rememberScrollState())
             ) {
-                // channel header (live broadcast only)
-                val infoCh = liveChannels.getOrNull(liveCurrentIndex)
-                if (infoCh != null) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (infoCh.number > 0) {
-                            Text(
-                                "${infoCh.number}",
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp
-                            )
-                            Spacer(Modifier.width(10.dp))
+                val dvrTitle = dvrEntry?.dispTitle?.ifBlank { null } ?: progTitle.ifBlank { title }
+                if (dvrEntry != null) {
+                    // recording: title, channel / date / time, description, file size
+                    // (same colours and sizes as the live info, readable in light and dark player theme)
+                    Text(
+                        dvrTitle,
+                        color = playerFg(),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp
+                    )
+                    val dvrDate = if (dvrEntry.start > 0) java.text.SimpleDateFormat(
+                        "EEE, d. MMM yyyy", java.util.Locale.getDefault()
+                    ).format(java.util.Date(dvrEntry.start * 1000)) else ""
+                    val dvrMeta = listOf(dvrEntry.channelName, dvrDate, fmtRange(dvrEntry.start, dvrEntry.stop))
+                        .filter { it.isNotBlank() }
+                    if (dvrMeta.isNotEmpty()) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(dvrMeta.joinToString("  \u2022  "), color = playerFgDim(), fontSize = 15.sp)
+                    }
+                    // the description stays in the outer scrolling column (an inner scroll can't be moved with a TV remote)
+                    val displayDesc = dvrEntry.dispDescription.ifBlank { dvrEntry.dispSubtitle.ifBlank { progDesc } }
+                    if (displayDesc.isNotBlank()) {
+                        Spacer(Modifier.height(14.dp))
+                        Text(displayDesc, color = playerFgDim(), fontSize = 16.sp, lineHeight = 22.sp)
+                    }
+                    if (dvrEntry.fileSize > 0L) {
+                        val units = arrayOf("B", "KiB", "MiB", "GiB", "TiB")
+                        var size = dvrEntry.fileSize.toDouble()
+                        var unit = 0
+                        while (size >= 1024.0 && unit < units.size - 1) {
+                            size /= 1024.0
+                            unit++
                         }
+                        val sizeText = if (unit == 0) "${dvrEntry.fileSize} B" else "%.1f %s".format(size, units[unit])
+                        Spacer(Modifier.height(14.dp))
                         Text(
-                            infoCh.name,
-                            color = playerFgDim(),
-                            fontSize = 15.sp,
-                            maxLines = 1,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            stringResource(R.string.dvr_info_file_size) + ": " + sizeText,
+                            color = playerFgFaint(),
+                            fontSize = 13.sp
                         )
                     }
-                    Spacer(Modifier.height(14.dp))
-                }
-                Text(
-                    progTitle.ifBlank { title },
-                    color = playerFg(),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 22.sp
-                )
-                if (tRange.isNotBlank()) {
-                    Spacer(Modifier.height(6.dp))
-                    Text(tRange, color = playerFgDim(), fontSize = 15.sp)
-                }
-                // progress + remaining time (live broadcast only)
-                if (!seekable && progStart > 0 && progStop > progStart) {
-                    val totalI = (progStop - progStart).coerceAtLeast(1)
-                    val fracI = ((liveNowSec - progStart).toFloat() / totalI.toFloat())
-                        .coerceIn(0f, 1f)
-                    val remainI = ((progStop - liveNowSec) / 60).coerceAtLeast(0)
-                    Spacer(Modifier.height(12.dp))
-                    androidx.compose.material3.LinearProgressIndicator(
-                        progress = { fracI },
-                        modifier = Modifier.fillMaxWidth().height(4.dp),
-                        trackColor = playerTrack()
+                } else {
+                    // channel header (live broadcast only)
+                    val infoCh = liveChannels.getOrNull(liveCurrentIndex)
+                    if (infoCh != null) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (infoCh.number > 0) {
+                                Text(
+                                    "${infoCh.number}",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
+                                )
+                                Spacer(Modifier.width(10.dp))
+                            }
+                            Text(
+                                infoCh.name,
+                                color = playerFgDim(),
+                                fontSize = 15.sp,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        }
+                        Spacer(Modifier.height(14.dp))
+                    }
+                    Text(
+                        dvrTitle,
+                        color = playerFg(),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp
                     )
-                    Spacer(Modifier.height(6.dp))
-                    Text(stringResource(R.string.time_remaining, remainI), color = playerFgFaint(), fontSize = 13.sp)
-                }
-                if (progDesc.isNotBlank()) {
-                    Spacer(Modifier.height(14.dp))
-                    Text(progDesc, color = playerFgDim(), fontSize = 16.sp, lineHeight = 22.sp)
+                    if (tRange.isNotBlank()) {
+                        Spacer(Modifier.height(6.dp))
+                        Text(tRange, color = playerFgDim(), fontSize = 15.sp)
+                    }
+                    // progress + remaining time (live broadcast only)
+                    if (!seekable && progStart > 0 && progStop > progStart) {
+                        val totalI = (progStop - progStart).coerceAtLeast(1)
+                        val fracI = ((liveNowSec - progStart).toFloat() / totalI.toFloat())
+                            .coerceIn(0f, 1f)
+                        val remainI = ((progStop - liveNowSec) / 60).coerceAtLeast(0)
+                        Spacer(Modifier.height(12.dp))
+                        androidx.compose.material3.LinearProgressIndicator(
+                            progress = { fracI },
+                            modifier = Modifier.fillMaxWidth().height(4.dp),
+                            trackColor = playerTrack()
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(stringResource(R.string.time_remaining, remainI), color = playerFgFaint(), fontSize = 13.sp)
+                    }
+                    if (progDesc.isNotBlank()) {
+                        Spacer(Modifier.height(14.dp))
+                        Text(progDesc, color = playerFgDim(), fontSize = 16.sp, lineHeight = 22.sp)
+                    }
                 }
                 // M490: recording from the info window too (phone — touch, without focus)
                 if (dvrActivity?.dvrRecordVisible() == true) {

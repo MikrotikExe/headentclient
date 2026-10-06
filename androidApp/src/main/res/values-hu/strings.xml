@@ -161,6 +161,7 @@
     <string name="resume_question">Folytatás az utolsó pozíciótól?</string>
     <string name="dvr_recent">Nemrég megtekintett</string>
     <string name="dvr_resume_at">Megállítva itt: %1$s</string>
+    <string name="dvr_info_file_size">Fájlméret</string>
     <string name="favorites">Kedvencek</string>
     <string name="menu_program">Műsor (EPG)</string>
     <string name="fav_add">Hozzáadás a kedvencekhez</string>

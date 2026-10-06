@@ -763,6 +763,7 @@ internal fun playDvr(context: Context, entry: DvrEntry) {
         putExtra(PlayerActivity.EXTRA_TITLE, entry.title)
         putExtra(PlayerActivity.EXTRA_DURATION_MS, entry.realLengthSec * 1000)
         putExtra(PlayerActivity.EXTRA_DVR_UUID, entry.uuid)
+        PlayerActivity.putDvrInfo(this, entry)
         putExtra(PlayerActivity.EXTRA_PROG_START_FRAC, entry.programStartFraction)
         putExtra(PlayerActivity.EXTRA_PROG_STOP_FRAC, entry.programStopFraction)
     }

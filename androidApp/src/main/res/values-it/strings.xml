@@ -161,6 +161,7 @@
     <string name="resume_question">Riprendere dall\'ultima posizione?</string>
     <string name="dvr_recent">Visti di recente</string>
     <string name="dvr_resume_at">Interrotto a %1$s</string>
+    <string name="dvr_info_file_size">Dimensione file</string>
     <string name="favorites">Preferiti</string>
     <string name="menu_program">Programma (EPG)</string>
     <string name="fav_add">Aggiungi ai preferiti</string>

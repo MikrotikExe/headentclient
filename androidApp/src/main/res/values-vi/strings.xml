@@ -161,6 +161,7 @@
     <string name="resume_question">Tiếp tục từ vị trí cuối?</string>
     <string name="dvr_recent">Đã xem gần đây</string>
     <string name="dvr_resume_at">Đã dừng tại %1$s</string>
+    <string name="dvr_info_file_size">Kích thước tệp</string>
     <string name="favorites">Yêu thích</string>
     <string name="menu_program">Chương trình (EPG)</string>
     <string name="fav_add">Thêm vào yêu thích</string>

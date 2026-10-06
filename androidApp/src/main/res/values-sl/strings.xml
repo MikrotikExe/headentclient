@@ -161,6 +161,7 @@
     <string name="resume_question">Nadaljujem od zadnjega položaja?</string>
     <string name="dvr_recent">Nedavno gledano</string>
     <string name="dvr_resume_at">Ustavljeno pri %1$s</string>
+    <string name="dvr_info_file_size">Velikost datoteke</string>
     <string name="favorites">Priljubljeni</string>
     <string name="menu_program">Program (EPG)</string>
     <string name="fav_add">Dodaj med priljubljene</string>

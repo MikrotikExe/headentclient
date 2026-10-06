@@ -209,6 +209,7 @@ internal class ChannelSwitcher(
             putExtra(PlayerActivity.EXTRA_TITLE, rec.title)
             putExtra(PlayerActivity.EXTRA_DURATION_MS, rec.durationSec * 1000)
             putExtra(PlayerActivity.EXTRA_DVR_UUID, rec.uuid)
+            PlayerActivity.putDvrInfo(this, rec)
             putExtra(PlayerActivity.EXTRA_DVR_RECORDING, inProgress)
             putExtra(PlayerActivity.EXTRA_DVR_PROG_START_SEC, pStart)
             putExtra(PlayerActivity.EXTRA_DVR_PROG_STOP_SEC, pStop)
