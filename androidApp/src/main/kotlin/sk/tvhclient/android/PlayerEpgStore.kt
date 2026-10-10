@@ -166,6 +166,9 @@ class PlayerEpgStore(
      *  empty/stale and the load takes longer than the threshold (350 ms) — with a fast server
      *  it does not appear either when switching or on the periodic refresh. */
     fun refreshOverlayEpgInitial() {
+        // M720: the names under the channels from the cache first — the list opens with the programme
+        // on air now, not with the one from the last refresh (the window/rollover kept the cache current)
+        applyCachedEpgToChannels()
         // M524: refresh the recording flag (red dot) ALWAYS, independently of the EPG.
         // So far the small DVR query was only made when the EPG cache was fresh; when it was
         // stale, the app downloaded the whole EPG and the dots only appeared after that —
@@ -344,5 +347,59 @@ class PlayerEpgStore(
     fun prefetchEpgIfStale() {
         if (!epgIsStale()) return
         activity.lifecycleScope.launch { refreshOverlayEpg() }
+    }
+
+    // ---- M720: the live EPG window ----
+
+    private var liveJob: kotlinx.coroutines.Job? = null
+
+    /**
+     * M720: keeps the player's EPG current from the live window (LiveEpg) the server pushes —
+     * HTSP async EPG / HTTP comet — the way Kodi does it. Every change of the window refreshes
+     * the now/next cache ([upcoming]) and the programme names under the channels, and a 30 s
+     * tick moves the names on when a programme ends even with the list closed (so far the list
+     * was refreshed only while it was open, and after an hour of playback it showed the programme
+     * from when it was last opened until its 60 s round came).
+     */
+    fun startLive(srv: TvhServer) {
+        if (liveJob?.isActive == true) return
+        val live = Tvh.liveEpg(srv)
+        liveJob = activity.lifecycleScope.launch {
+            launch {
+                var lastApply = 0L
+                live.revision.collect {
+                    if (live.syncedAt == 0L) return@collect
+                    // a wave of eventUpdate ticks often — apply at most every 2 s (the StateFlow
+                    // conflates, the snapshot read after the pause is the latest one)
+                    val since = System.currentTimeMillis() - lastApply
+                    if (since < 2_000) kotlinx.coroutines.delay(2_000 - since)
+                    lastApply = System.currentTimeMillis()
+                    applyLiveWindow(live)
+                }
+            }
+            while (true) {
+                kotlinx.coroutines.delay(30_000)
+                applyCachedEpgToChannels()
+                if (AppForeground.isForeground) Tvh.liveEpg(srv)   // keeps the feed alive (HTTP) / wakes an idle-closed connection (HTSP)
+            }
+        }
+    }
+
+    /** The window's programmes replace the next hours of every channel's cached list; the daily
+     *  guide a screen cached beyond the window is kept (LiveEpg.mergeWindow). */
+    private fun applyLiveWindow(live: sk.tvhclient.shared.epg.LiveEpgStore) {
+        val nowSec = System.currentTimeMillis() / 1000
+        val win = live.snapshot
+        if (win.isEmpty()) return
+        val end = live.windowEnd(nowSec)
+        val m = upcoming.value.toMutableMap()
+        for ((ch, l) in win) m[ch] = sk.tvhclient.shared.epg.LiveEpg.mergeWindow(m[ch], l, end)
+        upcoming.value = m
+        LivePlaylist.epgUpcoming = m
+        epgLastOkMs = System.currentTimeMillis()
+        LivePlaylist.epgLastOkMs = epgLastOkMs
+        applyCachedEpgToChannels()
+        onDvrStateChanged()   // the recording button follows the programme on air
+        persistEpg(m)         // M275/M456: coalesced, so a wave of eventUpdate costs one write
     }
 }

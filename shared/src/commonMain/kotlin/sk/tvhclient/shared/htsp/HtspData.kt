@@ -165,6 +165,9 @@ object HtspData {
     private data class CapCache(val ts: Long, val reachable: Boolean, val caps: List<String>)
     private val capCache = HashMap<String, CapCache>()
 
+    /** M720: how long now/next waits for the pushed EPG window of a fresh connection. */
+    private const val LIVE_WINDOW_WAIT_MS = 12_000L
+
     private fun longOf(m: Map<String, Any?>, key: String): Long? = (m[key] as? Long)
     private fun strOf(m: Map<String, Any?>, key: String): String = (m[key] as? String) ?: ""
 
@@ -249,6 +252,12 @@ object HtspData {
     /** Map channel -> list of upcoming programmes (the current one + the following ones).
      *  The list lets the client switch to the next programme without a new download. */
     suspend fun epgUpcomingMap(server: TvhServer, nowSec: Long): Map<String, List<EpgEvent>> {
+        // M720: the live window the server pushes (LiveEpg) — no getEvents round at all while it is fresh
+        val live = sk.tvhclient.shared.epg.LiveEpg.store(server.id)
+        if (live.isFresh(nowSec)) {
+            lastEpgSkipped = false; lastEpgFailed = 0; lastEpgEmpty = emptyList()
+            return live.upcomingMap(nowSec)
+        }
         val nc = nowCache[server.id]
         lastEpgSkipped = false
         // M715: an overrunning programme ends at an unknown time -> such a round is kept only for a minute
@@ -283,6 +292,12 @@ object HtspData {
         var session = try {
             HtspSessions.get(server)
         } catch (e: HtspConnLimitException) { return skippedByConnLimit() }
+        // M720: a fresh connection is receiving its window right now — wait for it instead of
+        // asking every channel one by one (the old round below stays as the fallback)
+        if (live.awaitFresh(LIVE_WINDOW_WAIT_MS)) {
+            lastEpgFailed = 0; lastEpgEmpty = emptyList()
+            return live.upcomingMap(nowSec)
+        }
         val out = HashMap<String, List<EpgEvent>>()
         var failed = 0
         val empty = ArrayList<Long>()
@@ -529,7 +544,8 @@ object HtspData {
 
     /** All EPG events (only if the metadata was loaded withEpg). */
 
-    private fun mapEvent(e: Map<String, Any?>): EpgEvent? {
+    /** An HTSP event (getEvents / epgQuery / eventAdd) in the app's shape; M720: shared with HtspSession. */
+    internal fun mapEvent(e: Map<String, Any?>): EpgEvent? {
         val cid = longOf(e, "channelId") ?: return null
         val ct = longOf(e, "contentType")?.toInt() ?: 0
         return EpgEvent(

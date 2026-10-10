@@ -32,8 +32,10 @@ class TvhApplication : Application() {
     }
 
     private val wakeRetry = android.os.Handler(android.os.Looper.getMainLooper())
-    /** M716: activities of the app currently resumed (0 = the app is not in front). */
-    @Volatile private var resumedActivities = 0
+    /** M716: activities of the app currently resumed (0 = the app is not in front). M720: AppForeground. */
+    private var resumedActivities: Int
+        get() = AppForeground.resumedActivities
+        set(v) { AppForeground.resumedActivities = v }
 
     // Change of the system 12/24 hour setting (M423-fix). Android reports it
     // via ACTION_TIME_CHANGED — the system TextClock handles it the same way.
@@ -104,6 +106,12 @@ class TvhApplication : Application() {
             registerReceiver(timeFormatReceiver, IntentFilter(Intent.ACTION_TIME_CHANGED))
         }
     }
+}
+
+/** M720: is any activity of the app resumed? (the EPG feeds wake a connection only in front) */
+object AppForeground {
+    @Volatile var resumedActivities = 0
+    val isForeground: Boolean get() = resumedActivities > 0
 }
 
 /**

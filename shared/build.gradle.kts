@@ -51,6 +51,7 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)   // M720: runTest for the live EPG store
         }
     }
 }

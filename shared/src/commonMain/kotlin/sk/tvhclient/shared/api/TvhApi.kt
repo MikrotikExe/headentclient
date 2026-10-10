@@ -302,6 +302,64 @@ class TvhApi(
     }
 
     /**
+     * M720: every channel's programmes from now until [untilSec] (the live window, LiveEpg) — one
+     * paged grid query with a server-side filter on the start time; ended events are never in the
+     * grid (epg.c). At most [maxPages] pages as a safety net on a huge line-up.
+     */
+    suspend fun epgWindow(untilSec: Long, pageLimit: Int = 500, maxPages: Int = 60): List<EpgEvent> {
+        val filter = "[{\"field\":\"start\",\"type\":\"numeric\",\"value\":$untilSec,\"comparison\":\"lt\"}]"
+        val out = ArrayList<EpgEvent>()
+        var start = 0
+        for (page in 0 until maxPages) {
+            val data = apiGet("api/epg/events/grid", epgArgs(
+                "filter" to filter,
+                "start" to start.toString(),
+                "limit" to pageLimit.toString(),
+                "sort" to "start",
+                "dir" to "ASC"
+            ))
+            val entries = (data["entries"] as? JsonArray) ?: break
+            entries.forEach { el ->
+                (el as? JsonObject)?.let { runCatching { decode<EpgEvent>(it) }.getOrNull() }?.let { out.add(it) }
+            }
+            val total = (data["totalCount"] as? JsonPrimitive)?.content?.toIntOrNull() ?: 0
+            start += entries.size
+            if (entries.size < pageLimit || start >= total) break
+        }
+        return out
+    }
+
+    /** M720: the given events by id (api/epg/events/load) — the comet feed loads what changed. */
+    suspend fun epgLoad(ids: Collection<Long>): List<EpgEvent> {
+        if (ids.isEmpty()) return emptyList()
+        val out = ArrayList<EpgEvent>()
+        ids.chunked(100).forEach { chunk ->
+            val data = apiGet("api/epg/events/load", epgArgs("eventId" to chunk.joinToString(",", "[", "]")))
+            (data["entries"] as? JsonArray)?.forEach { el ->
+                (el as? JsonObject)?.let { runCatching { decode<EpgEvent>(it) }.getOrNull() }?.let { out.add(it) }
+            }
+        }
+        return out
+    }
+
+    /**
+     * M720: one comet poll (the push channel of the web interface, comet.c). Without [boxid] the
+     * server opens a mailbox and returns its id; with it the call waits up to 10 s for messages.
+     * Needs the "Web interface" right — 401/403 come back as TvhHttpException (no retry).
+     */
+    suspend fun cometPoll(boxid: String?, immediate: Boolean): CometReply {
+        val params = LinkedHashMap<String, String>()
+        if (boxid != null) params["boxid"] = boxid
+        if (immediate) params["immediate"] = "1"
+        val data = apiGet("comet/poll", params)
+        val id = (data["boxid"] as? JsonPrimitive)?.content
+        val msgs = (data["messages"] as? JsonArray)?.mapNotNull { it as? JsonObject } ?: emptyList()
+        return CometReply(id, msgs)
+    }
+
+    class CometReply(val boxid: String?, val messages: List<JsonObject>)
+
+    /**
      * EPG programme for a specific channel (daily grid). TVH api/epg/events/grid
      * can filter by channel uuid directly on the server (more efficient than
      * filtering the whole grid on the client as the plugin did). Sorted by start.

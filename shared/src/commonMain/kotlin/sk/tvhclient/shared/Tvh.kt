@@ -7,6 +7,7 @@ import sk.tvhclient.shared.model.TvhServer
 import sk.tvhclient.shared.stream.StreamUrlBuilder
 import sk.tvhclient.shared.storage.ServerStore
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.launch
 
 /**
  * The entry point for both platforms. Holds the store and the factories for the API/repositories.
@@ -86,10 +87,17 @@ object Tvh {
                 ) else api.tags()
             },
             epgNowProvider = {
-                // HTSP: now/next would require a heavy EPG dump -> skip it for
-                // a fast channel load. The daily guide (EpgScreen) downloads the EPG
-                // only on demand.
-                if (htsp) emptyMap() else api.epgNow()
+                // M720: the live window (LiveEpg) when it is fresh — HTSP gets now/next for free
+                // from the server's push, HTTP from the comet feed (started here on first use);
+                // until the first window arrives HTTP asks the grid (one request) as before and
+                // HTSP stays without it (the daily guide loads the EPG on demand).
+                val live = sk.tvhclient.shared.epg.LiveEpg.store(server.id)
+                if (!htsp) sk.tvhclient.shared.epg.HttpEpgFeed.ensure(server)
+                when {
+                    live.isFresh() -> live.nowMap()
+                    htsp -> emptyMap()
+                    else -> api.epgNow()
+                }
             },
             piconUrlFor = { ch -> StreamUrlBuilder.piconUrlNoCreds(server, ch.iconPublicUrl) },
             nowSec = { currentTimeSeconds() }
@@ -168,13 +176,55 @@ object Tvh {
     suspend fun fetchEpgUpcoming(server: TvhServer): Map<String, List<sk.tvhclient.shared.model.EpgEvent>> =
         if (server.connectionMode == "htsp")
             sk.tvhclient.shared.htsp.HtspData.epgUpcomingMap(server, currentTimeSeconds())
-        else emptyMap()
+        else {
+            // M720: HTTP has a window too (comet feed) — the same now/next map as HTSP
+            val live = sk.tvhclient.shared.epg.LiveEpg.store(server.id)
+            sk.tvhclient.shared.epg.HttpEpgFeed.ensure(server)
+            if (live.awaitFresh(LIVE_WINDOW_WAIT_MS)) live.upcomingMap() else emptyMap()
+        }
+
+    /** M720: how long a now/next reader waits for the first live window. */
+    private const val LIVE_WINDOW_WAIT_MS = 12_000L
+
+    /**
+     * M720: the live EPG window of the server (see LiveEpg). HTTP: starts the comet feed when it
+     * is not running. HTSP: the window lives with the shared connection — when it was closed for
+     * idleness, reconnects in the background (at most once a minute, inside the connlimit rules),
+     * so a screen that keeps showing now/next gets a fresh window again.
+     */
+    fun liveEpg(server: TvhServer): sk.tvhclient.shared.epg.LiveEpgStore {
+        val live = sk.tvhclient.shared.epg.LiveEpg.store(server.id)
+        if (server.connectionMode != "htsp") {
+            sk.tvhclient.shared.epg.HttpEpgFeed.ensure(server)
+        } else if (live.feedAlive) {
+            sk.tvhclient.shared.htsp.HtspSessions.keepAlive(server.id)   // a reader is here: no idle close
+        } else {
+            val now = currentTimeSeconds()
+            if (now - htspWake >= 60) {
+                htspWake = now
+                bgScope.launch {
+                    runCatching { sk.tvhclient.shared.htsp.HtspSessions.get(server) }
+                }
+            }
+        }
+        return live
+    }
+    private val bgScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)
+    @kotlin.concurrent.Volatile private var htspWake = 0L
 
     /** EPG for a channel (daily guide): HTSP getEvents (fast) or HTTP. */
-    suspend fun fetchEpgForChannel(server: TvhServer, api: TvhApi, channelUuid: String): List<sk.tvhclient.shared.model.EpgEvent> =
-        if (server.connectionMode == "htsp") {
-            sk.tvhclient.shared.htsp.HtspData.epgForChannel(server, channelUuid, currentTimeSeconds())
+    suspend fun fetchEpgForChannel(server: TvhServer, api: TvhApi, channelUuid: String): List<sk.tvhclient.shared.model.EpgEvent> {
+        val now = currentTimeSeconds()
+        val list = if (server.connectionMode == "htsp") {
+            sk.tvhclient.shared.htsp.HtspData.epgForChannel(server, channelUuid, now)
         } else api.epgForChannel(channelUuid)
+        // M720: the next hours come from the live window the server keeps current (titles, times,
+        // the running pointer); the rest of the day stays as fetched
+        val live = sk.tvhclient.shared.epg.LiveEpg.store(server.id)
+        if (!live.isFresh(now)) return list
+        val window = live.snapshot[channelUuid] ?: return list
+        return sk.tvhclient.shared.epg.LiveEpg.mergeWindow(list, window, live.windowEnd(now))
+    }
 
     /** HTSP: progressive EPG for the grid over a single connection (callback per channel). */
     suspend fun fetchEpgGridProgressive(
@@ -182,7 +232,15 @@ object Tvh {
         onChannel: (String, List<sk.tvhclient.shared.model.EpgEvent>) -> Unit
     ) {
         if (server.connectionMode != "htsp") return
-        sk.tvhclient.shared.htsp.HtspData.epgProgressive(server, currentTimeSeconds(), onChannel)
+        val now = currentTimeSeconds()
+        // M720: the next hours from the live window (fresh titles, the running pointer), the rest as fetched
+        val live = sk.tvhclient.shared.epg.LiveEpg.store(server.id)
+        val fresh = live.isFresh(now)
+        val end = live.windowEnd(now)
+        sk.tvhclient.shared.htsp.HtspData.epgProgressive(server, now) { uuid, evs ->
+            val win = if (fresh) live.snapshot[uuid] else null
+            onChannel(uuid, if (win.isNullOrEmpty()) evs else sk.tvhclient.shared.epg.LiveEpg.mergeWindow(evs, win, end))
+        }
     }
 
     fun liveUrl(server: TvhServer, channelUuid: String, channelTitle: String?, profile: String): String =

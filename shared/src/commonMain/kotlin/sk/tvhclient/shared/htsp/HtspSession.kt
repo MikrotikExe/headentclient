@@ -13,6 +13,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import sk.tvhclient.shared.currentTimeSeconds
+import sk.tvhclient.shared.epg.LiveEpg
 import sk.tvhclient.shared.model.TvhServer
 
 /**
@@ -29,8 +30,11 @@ import sk.tvhclient.shared.model.TvhServer
  *  - a single reader coroutine reads every message: replies go to the waiting [request] by `seq`,
  *    subscription messages to their [HtspSubscription], async metadata to [model],
  *  - channels, tags and recordings come as async metadata (enableAsyncMetadata, epg=0) and the server
- *    keeps them up to date by itself; EPG is asked for on demand with getEvents / epgQuery over the same
- *    connection (a full EPG push of all channels was dropped earlier for speed and memory on weak boxes),
+ *    keeps them up to date by itself; the daily guide is asked for on demand with getEvents / epgQuery
+ *    over the same connection (a full EPG push of all channels was dropped earlier for speed and memory
+ *    on weak boxes). M720: the next hours of every channel ARE pushed again — a bounded window
+ *    (enableAsyncMetadata epg=1 + epgMaxTime, asked for after the initial sync) kept in LiveEpg, so
+ *    now/next everywhere in the app is as current as in Kodi,
  *  - a stream is a subscription on the same connection — Tvheadend only re-launches the connection as
  *    a streaming one, so it still counts as one,
  *  - a keepalive every 10 s (M408) keeps NAT/routers from dropping the idle connection,
@@ -68,6 +72,9 @@ class HtspSession internal constructor(
     private val autorecs = LinkedHashMap<String, MutableMap<String, Any?>>()
     private val timerecs = LinkedHashMap<String, MutableMap<String, Any?>>()
     private val syncDone = CompletableDeferred<Unit>()
+    // M720: the live EPG window the server pushes (eventAdd/Update/Delete) — see LiveEpg
+    private val epg = LiveEpg.store(server.id)
+    @kotlin.concurrent.Volatile private var epgRequested = false
 
     /** M715: recordings open over HTSP (HtspDvrFile) — they keep the connection in use like a stream. */
     @kotlin.concurrent.Volatile private var openFiles = 0
@@ -146,11 +153,14 @@ class HtspSession internal constructor(
         }
         lock.withLock {
             when (m["method"] as? String) {
-                "channelAdd" -> upsert(channels, "channelId", merge = false)
+                "channelAdd" -> { upsert(channels, "channelId", merge = false); nowPointer(m) }
                 // M710: a full channelUpdate (with channelName) replaces the entry — optional fields
                 // (icon, minor number) are left out when not set, a merge kept the old values.
                 // The now/next form (channelId + eventId/nextEventId only) is merged.
-                "channelUpdate" -> upsert(channels, "channelId", merge = !m.containsKey("channelName"))
+                "channelUpdate" -> { upsert(channels, "channelId", merge = !m.containsKey("channelName")); nowPointer(m) }
+                // M720: the EPG window pushed by the server (enableAsyncMetadata epg=1)
+                "eventAdd", "eventUpdate" -> HtspData.mapEvent(m)?.let { epg.upsert(listOf(it)) }
+                "eventDelete" -> (m["eventId"] as? Long)?.let { epg.delete(listOf(it)) }
                 "channelDelete" -> remove(channels, "channelId")
                 "tagAdd" -> upsert(tags, "tagId", merge = false)
                 "tagUpdate" -> upsert(tags, "tagId", merge = !m.containsKey("tagName"))   // M710
@@ -173,7 +183,46 @@ class HtspSession internal constructor(
                 "timerecEntryUpdate" -> upsertS(timerecs, merge = false)   // M710: always a full entry
                 "timerecEntryDelete" -> removeS(timerecs)
                 "accessUpdate" -> client.applyAccessUpdate(m)
-                "initialSyncCompleted" -> syncDone.complete(Unit)
+                "initialSyncCompleted" -> { syncDone.complete(Unit); requestEpgWindow() }
+            }
+        }
+    }
+
+    /** M720: the channel's "now" pointer (channelAdd / the now-next channelUpdate carry eventId). */
+    private suspend fun nowPointer(m: Map<String, Any?>) {
+        if (!m.containsKey("eventId")) return
+        val cid = m["channelId"] as? Long ?: return
+        epg.setNowPointer(cid.toString(), m["eventId"] as? Long)
+    }
+
+    /**
+     * M720: asks the server for the EPG window AFTER the initial sync, so that channels, tags and
+     * recordings are not held up by thousands of events (htsp_method_async sends the EPG before
+     * initialSyncCompleted when epg=1 is in the first request). A second enableAsyncMetadata with
+     * epg=1 is allowed in async mode and only sends the waiting events (htsp_epg_send_waiting);
+     * the server then slides the window every 30 s and pushes every change. A request with a reply
+     * sent right behind it is answered only after the whole burst (one connection, one queue) —
+     * its reply marks the window as complete.
+     */
+    private fun requestEpgWindow() {
+        if (epgRequested) return
+        epgRequested = true
+        scope.launch {
+            delay(EPG_REQUEST_DELAY_MS)   // the stream (if any) gets the connection first
+            if (!alive) return@launch
+            try {
+                val args = HashMap<String, Any?>()
+                args["epg"] = 1L
+                args["epgMaxTime"] = currentTimeSeconds() + LiveEpg.WINDOW_SEC
+                client.epgLanguage.takeIf { it.isNotBlank() }?.let { args["language"] = it }
+                client.send("enableAsyncMetadata", args, withSeq = false)
+                request("getDiskSpace", timeoutMs = 300_000)   // the sentinel: replied after the burst (a huge EPG on a slow link takes a while)
+                epg.markSynced(alive = alive)
+                if (!alive) epg.markFeedDead()
+            } catch (e: Throwable) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                // no window this time (slow or dead connection) — the readers keep their old data
+                // and fall back to getEvents; the next connection asks again
             }
         }
     }
@@ -351,11 +400,14 @@ class HtspSession internal constructor(
     }
 
     private fun touch() { lastUseSec = currentTimeSeconds() }
+    /** M720: a screen keeps reading the live EPG window — count it as use (no idle close). */
+    internal fun keepAlive() = touch()
 
     /** The connection is gone: fail everyone who waits, end the subscriptions, close the socket. */
     internal fun die(cause: Throwable) {
         if (!alive) return
         alive = false
+        epg.markFeedDead()   // M720: no more pushes — the window stays, only its freshness goes
         HtspSessions.forget(this)
         scope.launch {
             val (ps, ss) = lock.withLock {
@@ -378,6 +430,8 @@ class HtspSession internal constructor(
     companion object {
         /** No request and no stream for this long -> the connection is closed. */
         const val IDLE_CLOSE_SEC = 300L
+        /** M720: the EPG window is asked for this long after the initial sync. */
+        const val EPG_REQUEST_DELAY_MS = 1_500L
 
         /** M710: dvrEntry fields Tvheadend sends only when set (htsp_build_dvrentry). */
         private val DVR_VOLATILE = listOf("error", "subscriptionError", "streamErrors", "dataErrors", "dataSize", "duplicate")
@@ -413,6 +467,9 @@ object HtspSessions {
 
     /** The live session for the server without connecting (null = none). */
     fun peek(serverId: String): HtspSession? = sessions[serverId]?.takeIf { it.alive }
+
+    /** M720: marks the server's live session as in use (a reader of the EPG window is in front). */
+    fun keepAlive(serverId: String) { peek(serverId)?.keepAlive() }
 
     internal fun forget(s: HtspSession) {
         janitorScope.launch {

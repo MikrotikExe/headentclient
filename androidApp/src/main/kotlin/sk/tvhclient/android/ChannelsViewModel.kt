@@ -109,6 +109,7 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 _state.value = ChannelsState.Loaded(result.first, result.second)
                 loadedOnce = true
+                startLive(server)   // M720: now/next from the live EPG window (HTSP push / HTTP comet)
 
                 // HTSP: now/next is not in the quick dump -> we fill it in in the background
                 if (server.connectionMode == "htsp") {
@@ -190,6 +191,54 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
                         EpgCache.saveLive(appCtx, sid(), map, System.currentTimeMillis() / 1000, EpgRangePref.daysBack(appCtx))
                     }
                 }
+            }
+        }
+    }
+
+    // ---- M720: the live EPG window ----
+
+    private var liveJob: kotlinx.coroutines.Job? = null
+    private var liveServerId: String? = null
+    private var liveSavedMs = 0L
+
+    /**
+     * M720: the home screens read [epgMap] — fed from the live window (LiveEpg) the server keeps
+     * current, so the programme names on the tiles change the moment a programme ends or the EPG
+     * is corrected, in HTTP mode too (so far HTTP tiles only knew the dump's now/next). The disk
+     * live cache is refreshed from it as well (at most once a minute).
+     */
+    private fun startLive(server: sk.tvhclient.shared.model.TvhServer) {
+        if (liveJob?.isActive == true && liveServerId == server.id) return
+        liveJob?.cancel()
+        liveServerId = server.id
+        val live = Tvh.liveEpg(server)
+        liveJob = viewModelScope.launch {
+            launch {
+                var lastApply = 0L
+                live.revision.collect {
+                    if (live.syncedAt == 0L) return@collect
+                    val since = System.currentTimeMillis() - lastApply   // at most every 2 s (conflated)
+                    if (since < 2_000) kotlinx.coroutines.delay(2_000 - since)
+                    lastApply = System.currentTimeMillis()
+                    val nowSec = System.currentTimeMillis() / 1000
+                    val win = live.snapshot
+                    if (win.isEmpty()) return@collect
+                    val end = live.windowEnd(nowSec)
+                    val m = _epgMap.value.toMutableMap()
+                    for ((ch, l) in win) m[ch] = sk.tvhclient.shared.epg.LiveEpg.mergeWindow(m[ch], l, end)
+                    _epgMap.value = m
+                    val nowMs = System.currentTimeMillis()
+                    if (nowMs - liveSavedMs >= 60_000L) {
+                        liveSavedMs = nowMs
+                        launch(Dispatchers.IO) {
+                            runCatching { EpgCache.saveLive(appCtx, sid(), m, nowSec, EpgRangePref.daysBack(appCtx)) }
+                        }
+                    }
+                }
+            }
+            while (true) {
+                kotlinx.coroutines.delay(60_000)
+                if (AppForeground.isForeground) Tvh.liveEpg(server)   // in front: keep the feed/connection alive, restart it when it is gone
             }
         }
     }

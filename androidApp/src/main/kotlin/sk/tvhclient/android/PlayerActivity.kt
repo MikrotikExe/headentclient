@@ -1044,6 +1044,7 @@ class PlayerActivity : ComponentActivity() {
             live.server = server
             switcher.saveLastLive(server.id, channelUuid)
             epg.hydrateEpgFromDisk(server)   // M275: load the EPG from disk (survives a box restart)
+            epg.startLive(server)            // M720: the live EPG window keeps now/next current
         }
         switcher.rememberPlayback()   // M494: already at start, not only after the first switch
         live.channelsState.value = LivePlaylist.channels

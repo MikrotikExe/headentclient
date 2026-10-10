@@ -74,6 +74,7 @@ class ServersViewModel : ViewModel() {
         store.upsert(server)
         // a change of server configuration (e.g. the connection method) -> the old cache is invalid
         sk.tvhclient.shared.htsp.HtspData.clear(server.id)
+        forgetLiveEpg(server.id)   // M720: the live window belongs to the old configuration
         // M557: a different connection method = different channel identifiers (HTSP channelId vs HTTP
         // uuid) -> the player's process playlist and the remembered "last watched" are invalid
         if (old != null && old.connectionMode != server.connectionMode) {
@@ -90,6 +91,7 @@ class ServersViewModel : ViewModel() {
 
     fun delete(id: String) {
         sk.tvhclient.shared.htsp.HtspData.clear(id)
+        forgetLiveEpg(id)   // M720
         store.delete(id)
         refresh()
         TabController.dataReload.value++
@@ -100,6 +102,12 @@ class ServersViewModel : ViewModel() {
         refresh()
         // a different active server -> reload the data
         TabController.dataReload.value++
+    }
+
+    /** M720: stops the HTTP comet feed and drops the live EPG window of the server. */
+    private fun forgetLiveEpg(id: String) {
+        sk.tvhclient.shared.epg.HttpEpgFeed.stop(id)
+        viewModelScope.launch { sk.tvhclient.shared.epg.LiveEpg.forget(id) }
     }
 
     fun newId(): String = Tvh.newServerId()
