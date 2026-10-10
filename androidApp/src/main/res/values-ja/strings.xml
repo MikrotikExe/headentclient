@@ -274,6 +274,12 @@
     <string name="auto_pip_title">自動ピクチャーインピクチャー</string>
     <string name="sw_decode_title">ソフトウェアによる映像デコード</string>
     <string name="sw_decode_note">一部のチャンネルで映像がカクつく・止まる場合のみ有効にしてください。CPU負荷が上がります。</string>
+    <string name="hw_decode_title">ハードウェア動画デコード</string>
+    <string name="hw_decode_decode">デコードのみ</string>
+    <string name="hw_decode_off">オフ（ソフトウェア）</string>
+    <string name="hw_decode_note">自動はチップでデコードした映像を直接画面へ送ります。デコードのみはチップでデコードしつつフレームをプレーヤー経由にするため、インターレース解除が効きます（輪郭がギザギザなら選択）。オフはソフトウェアでデコードします。</string>
+    <string name="mpeg2_sw_title">MPEG-2（SDチャンネル）：最高画質</string>
+    <string name="mpeg2_sw_note">MPEG-2チャンネルはソフトウェアでインターレース解除してデコードします。ギザギザのない鮮明な映像になります。HDチャンネル（H.264、HEVC）はハードウェアのままです。</string>
     <string name="vlc_verbose_title">プレーヤーの詳細ログ</string>
     <string name="vlc_verbose_note">再生の問題を調べるときだけ使用してください。動作が重くなるため、確認後はオフに。</string>
     <string name="dvr_rec_button">録画</string>

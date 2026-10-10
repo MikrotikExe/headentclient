@@ -274,6 +274,12 @@
     <string name="auto_pip_title">Automatický režim PiP</string>
     <string name="sw_decode_title">Softwarové dekódování videa</string>
     <string name="sw_decode_note">Zapni jen když se obraz na některých kanálech trhá nebo zamrzá. Více zatěžuje procesor.</string>
+    <string name="hw_decode_title">Hardwarové dekódování videa</string>
+    <string name="hw_decode_decode">Jen dekódování</string>
+    <string name="hw_decode_off">Vypnuto (software)</string>
+    <string name="hw_decode_note">Automaticky posílá dekódovaný obraz z čipu rovnou na obrazovku. Jen dekódování nechá čip dekódovat, ale snímky projdou přehrávačem, takže funguje odstranění prokladu (zvolte, když jsou hrany zubaté). Vypnuto dekóduje softwarově.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (SD kanály): nejlepší kvalita obrazu</string>
+    <string name="mpeg2_sw_note">MPEG-2 kanály dekóduje software s odstraněním prokladu – ostrý obraz bez zubatých hran. HD kanály (H.264, HEVC) zůstávají v hardwaru.</string>
     <string name="vlc_verbose_title">Podrobný záznam přehrávače</string>
     <string name="vlc_verbose_note">Jen pro hledání problémů s přehráváním. Zpomaluje přehrávač, po diagnostice vypni.</string>
     <string name="dvr_rec_button">Nahrát</string>

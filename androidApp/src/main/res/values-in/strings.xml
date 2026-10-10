@@ -274,6 +274,12 @@
     <string name="auto_pip_title">Gambar dalam gambar otomatis</string>
     <string name="sw_decode_title">Dekode video via perangkat lunak</string>
     <string name="sw_decode_note">Aktifkan hanya jika video tersendat atau membeku di beberapa saluran. Lebih banyak CPU.</string>
+    <string name="hw_decode_title">Dekode video perangkat keras</string>
+    <string name="hw_decode_decode">Hanya dekode</string>
+    <string name="hw_decode_off">Nonaktif (perangkat lunak)</string>
+    <string name="hw_decode_note">Otomatis mengirim gambar hasil dekode dari chip langsung ke layar. Hanya dekode membiarkan chip mendekode, tetapi frame melewati pemutar sehingga deinterlacing berfungsi (pilih jika tepi tampak bergerigi). Nonaktif mendekode dengan perangkat lunak.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (saluran SD): kualitas gambar terbaik</string>
+    <string name="mpeg2_sw_note">Saluran MPEG-2 didekode dengan perangkat lunak beserta deinterlacing – gambar tajam tanpa tepi bergerigi. Saluran HD (H.264, HEVC) tetap di perangkat keras.</string>
     <string name="vlc_verbose_title">Log pemutar terperinci</string>
     <string name="vlc_verbose_note">Hanya untuk mendiagnosis masalah pemutaran. Memperlambat pemutar; matikan setelah selesai.</string>
     <string name="dvr_rec_button">Rekam</string>

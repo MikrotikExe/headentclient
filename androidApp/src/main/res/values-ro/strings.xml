@@ -274,6 +274,12 @@
     <string name="auto_pip_title">Imagine în imagine automată</string>
     <string name="sw_decode_title">Decodare video software</string>
     <string name="sw_decode_note">Activează doar dacă imaginea se blochează sau se întrerupe pe unele canale. Consum CPU mai mare.</string>
+    <string name="hw_decode_title">Decodare video hardware</string>
+    <string name="hw_decode_decode">Doar decodare</string>
+    <string name="hw_decode_off">Oprit (software)</string>
+    <string name="hw_decode_note">Automat trimite imaginea decodată din cip direct pe ecran. Doar decodare lasă cipul să decodeze, dar cadrele trec prin player, deci deinterlacing-ul funcționează (alege-l când marginile par zimțate). Oprit decodează software.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (canale SD): cea mai bună calitate a imaginii</string>
+    <string name="mpeg2_sw_note">Canalele MPEG-2 sunt decodate software cu deinterlacing – imagine clară fără margini zimțate. Canalele HD (H.264, HEVC) rămân hardware.</string>
     <string name="vlc_verbose_title">Jurnal detaliat al playerului</string>
     <string name="vlc_verbose_note">Doar pentru diagnosticarea problemelor de redare. Încetinește playerul; dezactivează după.</string>
     <string name="dvr_rec_button">Înregistrează</string>

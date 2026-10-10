@@ -274,6 +274,12 @@
     <string name="auto_pip_title">Otomatik resim içinde resim</string>
     <string name="sw_decode_title">Yazılımsal video kod çözme</string>
     <string name="sw_decode_note">Yalnızca bazı kanallarda görüntü takılıyor veya donuyorsa açın. Daha fazla CPU kullanır.</string>
+    <string name="hw_decode_title">Donanımsal video çözme</string>
+    <string name="hw_decode_decode">Yalnızca çözme</string>
+    <string name="hw_decode_off">Kapalı (yazılım)</string>
+    <string name="hw_decode_note">Otomatik, çözülen görüntüyü çipten doğrudan ekrana gönderir. Yalnızca çözme, çözmeyi çipe bırakır ama kareler oynatıcıdan geçer, böylece taramasızlaştırma çalışır (kenarlar tırtıklı görünüyorsa seçin). Kapalı yazılımla çözer.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (SD kanallar): en iyi görüntü kalitesi</string>
+    <string name="mpeg2_sw_note">MPEG-2 kanallar taramasızlaştırmayla yazılımda çözülür – tırtıklı kenarlar olmadan net görüntü. HD kanallar (H.264, HEVC) donanımda kalır.</string>
     <string name="vlc_verbose_title">Ayrıntılı oynatıcı günlüğü</string>
     <string name="vlc_verbose_note">Yalnızca oynatma sorunlarını bulmak için. Oynatıcıyı yavaşlatır; sonra kapatın.</string>
     <string name="dvr_rec_button">Kaydet</string>

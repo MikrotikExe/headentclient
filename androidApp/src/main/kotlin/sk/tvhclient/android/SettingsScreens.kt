@@ -708,17 +708,43 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
     // Default screen rotation in the player — makes no sense on TV/STB, hide it
     val isTvDev = remember { isTvUiMode(ctx) }   // M679
     SettingsGroup(stringResource(R.string.set_grp_video)) {
-    // M447: forced software decoding — a rescue for devices
-    // with a broken HW decoder (Mi Box S and 10-bit HEVC).
+    // M722 (issue #23): the decoder mode — the three modes of the VLC app (replaces the M447
+    // "software decoding" switch, which lives on as the OFF mode)
     run {
-        var swDec by remember { mutableStateOf(SwDecodePref.get(ctx)) }
+        var hw by remember { mutableStateOf(HwDecodePref.get(ctx)) }
+        val hwLabel: @Composable (String) -> String = { v ->
+            when (v) {
+                HwDecodePref.DECODE -> stringResource(R.string.hw_decode_decode)
+                HwDecodePref.OFF -> stringResource(R.string.hw_decode_off)
+                else -> stringResource(R.string.orient_auto)
+            }
+        }
+        DropdownField(
+            label = stringResource(R.string.hw_decode_title),
+            value = hw,
+            options = HwDecodePref.options,
+            optionLabel = hwLabel,
+            onSelect = { v ->
+                hw = v
+                HwDecodePref.set(ctx, v)
+                TabController.settingsDirty.value = true
+            }
+        )
+        Text(
+            stringResource(R.string.hw_decode_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.dpadReadable().padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+        // MPEG-2 (SD) in software for a sharp, deinterlaced picture (Dream Player's default)
+        var mpeg2 by remember { mutableStateOf(Mpeg2SoftwarePref.get(ctx)) }
         SettingsSwitchRow(
-            label = stringResource(R.string.sw_decode_title),
-            note = stringResource(R.string.sw_decode_note),
-            checked = swDec,
+            label = stringResource(R.string.mpeg2_sw_title),
+            note = stringResource(R.string.mpeg2_sw_note),
+            checked = mpeg2,
             onChange = { on ->
-                swDec = on
-                SwDecodePref.set(ctx, on)
+                mpeg2 = on
+                Mpeg2SoftwarePref.set(ctx, on)
                 TabController.settingsDirty.value = true
             }
         )

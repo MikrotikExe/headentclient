@@ -297,6 +297,12 @@
     <string name="auto_pip_title">Automatic picture-in-picture</string>
     <string name="sw_decode_title">Software video decoding</string>
     <string name="sw_decode_note">Turn on only if video stutters or freezes on some channels. Uses more CPU.</string>
+    <string name="hw_decode_title">Hardware video decoding</string>
+    <string name="hw_decode_decode">Decoding only</string>
+    <string name="hw_decode_off">Off (software)</string>
+    <string name="hw_decode_note">Automatic sends the decoded picture from the chip straight to the screen. Decoding only keeps the chip decoding but passes the frames through the player, so deinterlacing works (choose it when edges look jagged). Off decodes in software.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (SD channels): best picture quality</string>
+    <string name="mpeg2_sw_note">MPEG-2 channels are decoded in software with deinterlacing – a sharp picture without jagged edges. HD channels (H.264, HEVC) stay in hardware.</string>
     <string name="vlc_verbose_title">Verbose player log</string>
     <string name="vlc_verbose_note">Only for troubleshooting playback issues. Slows the player down; turn off when done.</string>
     <string name="dvr_rec_button">Record</string>

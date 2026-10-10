@@ -274,6 +274,12 @@
     <string name="auto_pip_title">Аутоматска слика у слици</string>
     <string name="sw_decode_title">Softversko dekodiranje videa</string>
     <string name="sw_decode_note">Uključi samo ako se slika na nekim kanalima trza ili zamrzava. Veće opterećenje procesora.</string>
+    <string name="hw_decode_title">Хардверско декодирање видеа</string>
+    <string name="hw_decode_decode">Само декодирање</string>
+    <string name="hw_decode_off">Искључено (софтвер)</string>
+    <string name="hw_decode_note">Аутоматски шаље декодирану слику из чипа право на екран. Само декодирање оставља декодирање чипу, али сличице пролазе кроз плејер па ради уклањање преплитања (изабери кад су ивице назубљене). Искључено декодира софтверски.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (SD канали): најбољи квалитет слике</string>
+    <string name="mpeg2_sw_note">MPEG-2 канали се декодирају софтверски са уклањањем преплитања – оштра слика без назубљених ивица. HD канали (H.264, HEVC) остају хардверски.</string>
     <string name="vlc_verbose_title">Detaljan zapis plejera</string>
     <string name="vlc_verbose_note">Samo za dijagnostiku problema sa reprodukcijom. Usporava plejer; posle isključi.</string>
     <string name="dvr_rec_button">Snimi</string>

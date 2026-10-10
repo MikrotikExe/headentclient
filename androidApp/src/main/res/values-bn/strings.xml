@@ -274,6 +274,12 @@
     <string name="auto_pip_title">স্বয়ংক্রিয় পিকচার-ইন-পিকচার</string>
     <string name="sw_decode_title">সফটওয়্যার ভিডিও ডিকোডিং</string>
     <string name="sw_decode_note">কিছু চ্যানেলে ভিডিও আটকে গেলে বা থেমে গেলে তবেই চালু করুন। বেশি CPU লাগে.</string>
+    <string name="hw_decode_title">হার্ডওয়্যার ভিডিও ডিকোডিং</string>
+    <string name="hw_decode_decode">শুধু ডিকোডিং</string>
+    <string name="hw_decode_off">বন্ধ (সফটওয়্যার)</string>
+    <string name="hw_decode_note">স্বয়ংক্রিয় ডিকোড করা ছবি চিপ থেকে সরাসরি পর্দায় পাঠায়। শুধু ডিকোডিং-এ চিপ ডিকোড করে কিন্তু ফ্রেম প্লেয়ারের মধ্য দিয়ে যায়, তাই ডিইন্টারলেসিং কাজ করে (কিনারা খাঁজকাটা দেখালে বেছে নিন)। বন্ধ সফটওয়্যারে ডিকোড করে।</string>
+    <string name="mpeg2_sw_title">MPEG-2 (SD চ্যানেল): সেরা ছবির মান</string>
+    <string name="mpeg2_sw_note">MPEG-2 চ্যানেল ডিইন্টারলেসিংসহ সফটওয়্যারে ডিকোড হয় – খাঁজকাটা কিনারা ছাড়া পরিষ্কার ছবি। HD চ্যানেল (H.264, HEVC) হার্ডওয়্যারে থাকে।</string>
     <string name="vlc_verbose_title">বিস্তারিত প্লেয়ার লগ</string>
     <string name="vlc_verbose_note">শুধু প্লেব্যাক সমস্যা খোঁজার জন্য। প্লেয়ার ধীর হয়, পরে বন্ধ করুন.</string>
     <string name="dvr_rec_button">রেকর্ড</string>

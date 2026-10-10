@@ -274,6 +274,12 @@
     <string name="auto_pip_title">خودکار تصویر در تصویر</string>
     <string name="sw_decode_title">سافٹ ویئر ویڈیو ڈی کوڈنگ</string>
     <string name="sw_decode_note">صرف اس صورت میں آن کریں جب کچھ چینلز پر تصویر رکتی یا جمتی ہو۔ پروسیسر زیادہ استعمال ہوتا ہے۔</string>
+    <string name="hw_decode_title">ہارڈویئر ویڈیو ڈی کوڈنگ</string>
+    <string name="hw_decode_decode">صرف ڈی کوڈنگ</string>
+    <string name="hw_decode_off">بند (سافٹ ویئر)</string>
+    <string name="hw_decode_note">خودکار ڈی کوڈ شدہ تصویر چپ سے سیدھی اسکرین پر بھیجتا ہے۔ صرف ڈی کوڈنگ ڈی کوڈنگ چپ پر چھوڑتا ہے مگر فریم پلیئر سے گزرتے ہیں، اس لیے ڈی انٹرلیسنگ کام کرتی ہے (جب کنارے دندانے دار لگیں تو منتخب کریں)۔ بند سافٹ ویئر سے ڈی کوڈ کرتا ہے۔</string>
+    <string name="mpeg2_sw_title">MPEG-2 (SD چینل): بہترین تصویری معیار</string>
+    <string name="mpeg2_sw_note">MPEG-2 چینل سافٹ ویئر میں ڈی انٹرلیسنگ کے ساتھ ڈی کوڈ ہوتے ہیں – دندانے دار کناروں کے بغیر صاف تصویر۔ HD چینل (H.264، HEVC) ہارڈویئر میں رہتے ہیں۔</string>
     <string name="vlc_verbose_title">تفصیلی پلیئر لاگ</string>
     <string name="vlc_verbose_note">صرف پلے بیک مسائل کی تشخیص کے لیے۔ پلیئر سست ہوتا ہے، بعد میں بند کر دیں۔</string>
     <string name="dvr_rec_button">ریکارڈ</string>

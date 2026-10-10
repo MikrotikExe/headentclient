@@ -274,6 +274,12 @@
     <string name="auto_pip_title">자동 화면 속 화면</string>
     <string name="sw_decode_title">소프트웨어 영상 디코딩</string>
     <string name="sw_decode_note">일부 채널에서 영상이 끊기거나 멈출 때만 켜세요. CPU 사용량이 늘어납니다.</string>
+    <string name="hw_decode_title">하드웨어 비디오 디코딩</string>
+    <string name="hw_decode_decode">디코딩만</string>
+    <string name="hw_decode_off">끔(소프트웨어)</string>
+    <string name="hw_decode_note">자동은 칩에서 디코딩한 영상을 바로 화면으로 보냅니다. 디코딩만은 칩이 디코딩하되 프레임이 플레이어를 거치므로 디인터레이싱이 동작합니다(가장자리가 계단처럼 보이면 선택). 끔은 소프트웨어로 디코딩합니다.</string>
+    <string name="mpeg2_sw_title">MPEG-2(SD 채널): 최상의 화질</string>
+    <string name="mpeg2_sw_note">MPEG-2 채널은 디인터레이싱과 함께 소프트웨어로 디코딩되어 계단 현상 없는 선명한 화면을 보여줍니다. HD 채널(H.264, HEVC)은 하드웨어를 유지합니다.</string>
     <string name="vlc_verbose_title">플레이어 상세 로그</string>
     <string name="vlc_verbose_note">재생 문제 진단용입니다. 재생이 느려지므로 확인 후 끄세요.</string>
     <string name="dvr_rec_button">녹화</string>

@@ -274,6 +274,12 @@
     <string name="auto_pip_title">Automatisch beeld-in-beeld</string>
     <string name="sw_decode_title">Softwarematige videodecodering</string>
     <string name="sw_decode_note">Alleen inschakelen als het beeld op sommige zenders hapert of vastloopt. Meer CPU-gebruik.</string>
+    <string name="hw_decode_title">Hardwarematige videodecodering</string>
+    <string name="hw_decode_decode">Alleen decoderen</string>
+    <string name="hw_decode_off">Uit (software)</string>
+    <string name="hw_decode_note">Automatisch stuurt het gedecodeerde beeld van de chip rechtstreeks naar het scherm. Alleen decoderen laat de chip decoderen, maar de beelden gaan door de speler, zodat deinterlacing werkt (kies dit als randen gekarteld zijn). Uit decodeert in software.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (SD-zenders): beste beeldkwaliteit</string>
+    <string name="mpeg2_sw_note">MPEG-2-zenders worden in software gedecodeerd met deinterlacing – scherp beeld zonder gekartelde randen. HD-zenders (H.264, HEVC) blijven in hardware.</string>
     <string name="vlc_verbose_title">Uitgebreid spelerlogboek</string>
     <string name="vlc_verbose_note">Alleen om afspeelproblemen op te sporen. Vertraagt de speler; daarna uitschakelen.</string>
     <string name="dvr_rec_button">Opnemen</string>

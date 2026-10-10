@@ -274,6 +274,12 @@
     <string name="auto_pip_title">Автоматично картина в картина</string>
     <string name="sw_decode_title">Софтуерно декодиране на видео</string>
     <string name="sw_decode_note">Включете само ако видеото засича или замръзва на някои канали. Повече натоварване на процесора.</string>
+    <string name="hw_decode_title">Хардуерно декодиране на видео</string>
+    <string name="hw_decode_decode">Само декодиране</string>
+    <string name="hw_decode_off">Изключено (софтуер)</string>
+    <string name="hw_decode_note">Автоматично изпраща декодираната картина от чипа направо на екрана. Само декодиране оставя декодирането на чипа, но кадрите минават през плейъра, така че премахването на презредовостта работи (изберете, когато ръбовете са назъбени). Изключено декодира софтуерно.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (SD канали): най-добро качество на картината</string>
+    <string name="mpeg2_sw_note">MPEG-2 каналите се декодират софтуерно с премахване на презредовостта – ясна картина без назъбени ръбове. HD каналите (H.264, HEVC) остават хардуерни.</string>
     <string name="vlc_verbose_title">Подробен дневник на плейъра</string>
     <string name="vlc_verbose_note">Само за диагностика на проблеми с възпроизвеждането. Забавя плейъра, после изключете.</string>
     <string name="dvr_rec_button">Запис</string>

@@ -210,7 +210,9 @@ internal class VlcEngine(
     companion object {
         /** M708: what AFR and the subtitle overlay need from the current video track. */
         data class VideoInfo(val width: Int, val height: Int, val sarNum: Int, val sarDen: Int,
-                             val fpsNum: Int, val fpsDen: Int)
+                             val fpsNum: Int, val fpsDen: Int,
+                             /** M722: the track's codec fourcc ("mpgv", "h264", "hevc"…). */
+                             val codec: String? = null)
 
         /**
          * M708: native calls on a player from [videoInfoAsync] hold the read lock, [releaseVlc] takes
@@ -240,7 +242,7 @@ internal class VlcEngine(
                     val info = try {
                         runCatching {
                             mp.currentVideoTrack?.let {
-                                VideoInfo(it.width, it.height, it.sarNum, it.sarDen, it.frameRateNum, it.frameRateDen)
+                                VideoInfo(it.width, it.height, it.sarNum, it.sarDen, it.frameRateNum, it.frameRateDen, it.codec)
                             }
                         }.getOrNull()
                     } finally { rl.unlock() }

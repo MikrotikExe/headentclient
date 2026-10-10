@@ -274,6 +274,12 @@
     <string name="auto_pip_title">自动画中画</string>
     <string name="sw_decode_title">软件视频解码</string>
     <string name="sw_decode_note">仅当部分频道画面卡顿或停顿时开启。会占用更多 CPU。</string>
+    <string name="hw_decode_title">硬件视频解码</string>
+    <string name="hw_decode_decode">仅解码</string>
+    <string name="hw_decode_off">关闭（软件）</string>
+    <string name="hw_decode_note">自动将芯片解码后的画面直接送到屏幕。仅解码仍由芯片解码，但帧会经过播放器，因此反交错可用（边缘有锯齿时选择）。关闭则用软件解码。</string>
+    <string name="mpeg2_sw_title">MPEG-2（标清频道）：最佳画质</string>
+    <string name="mpeg2_sw_note">MPEG-2 频道用软件解码并反交错——画面清晰无锯齿。高清频道（H.264、HEVC）仍用硬件。</string>
     <string name="vlc_verbose_title">播放器详细日志</string>
     <string name="vlc_verbose_note">仅用于排查播放问题。会拖慢播放，排查后请关闭。</string>
     <string name="dvr_rec_button">录制</string>

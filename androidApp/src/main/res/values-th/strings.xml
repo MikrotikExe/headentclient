@@ -274,6 +274,12 @@
     <string name="auto_pip_title">ภาพซ้อนภาพอัตโนมัติ</string>
     <string name="sw_decode_title">ถอดรหัสวิดีโอด้วยซอฟต์แวร์</string>
     <string name="sw_decode_note">เปิดเฉพาะเมื่อภาพกระตุกหรือค้างในบางช่อง ใช้ CPU มากขึ้น</string>
+    <string name="hw_decode_title">ถอดรหัสวิดีโอด้วยฮาร์ดแวร์</string>
+    <string name="hw_decode_decode">ถอดรหัสเท่านั้น</string>
+    <string name="hw_decode_off">ปิด (ซอฟต์แวร์)</string>
+    <string name="hw_decode_note">อัตโนมัติส่งภาพที่ถอดรหัสจากชิปไปยังหน้าจอโดยตรง ถอดรหัสเท่านั้นให้ชิปถอดรหัสแต่เฟรมผ่านเครื่องเล่น จึงใช้การลบการสลับเส้นได้ (เลือกเมื่อขอบดูเป็นขั้นบันได) ปิดถอดรหัสด้วยซอฟต์แวร์</string>
+    <string name="mpeg2_sw_title">MPEG-2 (ช่อง SD): คุณภาพภาพดีที่สุด</string>
+    <string name="mpeg2_sw_note">ช่อง MPEG-2 ถอดรหัสด้วยซอฟต์แวร์พร้อมลบการสลับเส้น – ภาพคมชัดไม่มีขอบเป็นขั้นบันได ช่อง HD (H.264, HEVC) ยังใช้ฮาร์ดแวร์</string>
     <string name="vlc_verbose_title">บันทึกละเอียดของตัวเล่น</string>
     <string name="vlc_verbose_note">ใช้เพื่อวิเคราะห์ปัญหาการเล่นเท่านั้น ทำให้ช้าลง ปิดเมื่อเสร็จ</string>
     <string name="dvr_rec_button">บันทึก</string>

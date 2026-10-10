@@ -16,14 +16,21 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
 
     fun userAgent(): String = sk.tvhclient.shared.ClientIdent.userAgent
 
-    /** Direct URL (HTTP live / DVR): HW/SW decoder, User-Agent, deinterlacing. */
-    fun forUrl(url: String, demux: String? = null): Media {
+    /** M722: was the last medium built for software decoding? (the one-off restart after the codec is known) */
+    @Volatile var lastSoftware: Boolean = false
+        private set
+
+    /** M722: software decoding for this [codec] (HTSP name, null = unknown)? OFF mode, or MPEG-2 with the quality option. */
+    fun softwareFor(codec: String?): Boolean =
+        HwDecodePref.get(ctx) == HwDecodePref.OFF || (Mpeg2SoftwarePref.get(ctx) && codec == "MPEG2VIDEO")
+
+    /** Direct URL (HTTP live / DVR): HW/SW decoder, User-Agent, deinterlacing. [codec] = the channel's known video codec. */
+    fun forUrl(url: String, demux: String? = null, codec: String? = null): Media {
         val m = Media(libVlc(), Uri.parse(url))
         if (demux != null) m.addOption(":demux=$demux")   // M703: e.g. "avformat,any" for Matroska recordings
-        m.setHWDecoderEnabled(!SwDecodePref.get(ctx), false)  // M447
+        applyDecoder(m, codec)   // M447 / M722
         // User-Agent: so that the server sees that HeadentClient is connecting
         m.addOption(":http-user-agent=" + userAgent())
-        applyDeinterlace(m)
         return m
     }
 
@@ -31,54 +38,55 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
      * Feeder path (bytes through an fd): HW/SW decoder, [demux] (":demux=ts" or null = VLC probing),
      * file-caching [cachingMs], deinterlacing.
      */
-    fun forFeeder(fd: FileDescriptor, demux: String?, cachingMs: Int): Media {
+    fun forFeeder(fd: FileDescriptor, demux: String?, cachingMs: Int, codec: String? = null): Media {
         val media = Media(libVlc(), fd)
-        media.setHWDecoderEnabled(!SwDecodePref.get(ctx), false)  // M447
+        applyDecoder(media, codec)   // M447 / M722
         if (demux != null) media.addOption(":demux=$demux")
         media.addOption(":file-caching=$cachingMs")
-        applyDeinterlace(media)
         return media
+    }
+
+    /**
+     * M722 (issue #23): the decoder and the deinterlacer for one medium.
+     *  - software (OFF, or MPEG-2 with the quality option): libVLC decodes and deinterlaces (yadif).
+     *  - hardware DECODE mode, or AUTO with an explicit deinterlacing mode (M718): the hardware
+     *    decoder without direct rendering — the frames pass through VLC's filters.
+     *  - hardware AUTO: direct rendering as before (4K/HDR untouched; the filter never runs).
+     */
+    private fun applyDecoder(m: Media, codec: String?) {
+        val sw = softwareFor(codec)
+        lastSoftware = sw
+        m.setHWDecoderEnabled(!sw, false)
+        val (en, mode) = deinterlaceSpec(sw)
+        m.addOption(":deinterlace=$en")
+        if (mode != null) m.addOption(":deinterlace-mode=$mode")
+        if (!sw && (HwDecodePref.get(ctx) == HwDecodePref.DECODE || explicitDeinterlaceOnHw())) {
+            m.addOption(":no-mediacodec-dr")
+            m.addOption(":no-omxil-dr")
+        }
     }
 
     /** Deinterlacing mode from the settings -> (the --deinterlace value, the mode or null).
      *  -1 = automatic (deinterlaces only an interlaced source), 0 = off, 1 = on.
      *
-     *  M718 (issue #23): with HW decoding the explicit modes run without MediaCodec direct
-     *  rendering (see [applyDeinterlace]); the frames then arrive as NV12, where VLC's yadif / yadif2x / x
-     *  are not available and VLC silently falls back to the blurry "blend". That is why with HW decoding
-     *  they map to "linear" (yadif) and "bob" (yadif2x, x) — both work on NV12 and are cheap on the CPU. */
-    fun deinterlaceSpec(): Pair<String, String?> {
-        val hw = !SwDecodePref.get(ctx)
-        return when (DeinterlacePref.get(ctx)) {
+     *  M718 (issue #23): with hardware decoding (without direct rendering) the frames arrive as
+     *  NV12, where VLC's yadif / yadif2x / x are not available and VLC silently falls back to the
+     *  blurry "blend". That is why in hardware they map to "linear" (yadif) and "bob" (yadif2x, x)
+     *  — both work on NV12 and are cheap on the CPU. M722: [sw] = the medium is decoded in software. */
+    fun deinterlaceSpec(sw: Boolean = HwDecodePref.get(ctx) == HwDecodePref.OFF): Pair<String, String?> =
+        when (DeinterlacePref.get(ctx)) {
             DeinterlacePref.OFF -> "0" to null
             DeinterlacePref.BOB -> "1" to "bob"
-            DeinterlacePref.YADIF -> "1" to (if (hw) "linear" else "yadif")
-            DeinterlacePref.YADIF2X -> "1" to (if (hw) "bob" else "yadif2x")
-            DeinterlacePref.X -> "1" to (if (hw) "bob" else "x")
-            else -> "-1" to "yadif"   // AUTO (unchanged, direct rendering stays on)
+            DeinterlacePref.YADIF -> "1" to (if (sw) "yadif" else "linear")
+            DeinterlacePref.YADIF2X -> "1" to (if (sw) "yadif2x" else "bob")
+            DeinterlacePref.X -> "1" to (if (sw) "x" else "bob")
+            else -> "-1" to (if (sw) "yadif" else "linear")   // AUTO: only an interlaced source
         }
-    }
 
-    /** True when an explicit deinterlacing mode is chosen and the video is decoded in HW (MediaCodec). */
+    /** True when an explicit deinterlacing mode is chosen (it then needs the frames even in hardware AUTO mode, M718). */
     private fun explicitDeinterlaceOnHw(): Boolean {
         val mode = DeinterlacePref.get(ctx)
-        return !SwDecodePref.get(ctx) && mode != DeinterlacePref.OFF && mode != DeinterlacePref.AUTO
-    }
-
-    /** Applies deinterlacing to the given medium (deals with comb lines / combing on
-     *  interlaced DVB video in fast shots).
-     *
-     *  M718 (issue #23): with MediaCodec direct rendering the decoded picture goes straight to the
-     *  Android surface and VLC's deinterlace filter never gets the frames (VLC devs: "HW decoding
-     *  (mediacodec) with Android prevents deinterlacing"), so the setting had no effect on boxes.
-     *  For the explicit modes we turn direct rendering off for this medium only — decoding stays
-     *  in HW, the frames are copied out and the filter can work (the same option VLC for Android uses
-     *  for its "decoding acceleration" mode). AUTO and OFF keep direct rendering (4K/HDR unaffected). */
-    private fun applyDeinterlace(m: Media) {
-        val (en, mode) = deinterlaceSpec()
-        m.addOption(":deinterlace=$en")
-        if (mode != null) m.addOption(":deinterlace-mode=$mode")
-        if (explicitDeinterlaceOnHw()) m.addOption(":no-mediacodec-dr")
+        return mode != DeinterlacePref.OFF && mode != DeinterlacePref.AUTO
     }
 
     /**

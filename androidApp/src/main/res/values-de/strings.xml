@@ -274,6 +274,12 @@
     <string name="auto_pip_title">Automatisches Bild-in-Bild</string>
     <string name="sw_decode_title">Software-Videodekodierung</string>
     <string name="sw_decode_note">Nur aktivieren, wenn das Bild auf manchen Kanälen ruckelt oder einfriert. Höhere CPU-Last.</string>
+    <string name="hw_decode_title">Hardware-Videodekodierung</string>
+    <string name="hw_decode_decode">Nur Dekodierung</string>
+    <string name="hw_decode_off">Aus (Software)</string>
+    <string name="hw_decode_note">Automatisch schickt das dekodierte Bild vom Chip direkt auf den Bildschirm. Nur Dekodierung lässt den Chip dekodieren, leitet die Bilder aber durch den Player, sodass Deinterlacing funktioniert (wählen, wenn Kanten gezackt aussehen). Aus dekodiert per Software.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (SD-Sender): beste Bildqualität</string>
+    <string name="mpeg2_sw_note">MPEG-2-Sender werden per Software mit Deinterlacing dekodiert – scharfes Bild ohne gezackte Kanten. HD-Sender (H.264, HEVC) bleiben in Hardware.</string>
     <string name="vlc_verbose_title">Ausführliches Player-Protokoll</string>
     <string name="vlc_verbose_note">Nur zur Fehlersuche bei der Wiedergabe. Bremst den Player; danach ausschalten.</string>
     <string name="dvr_rec_button">Aufnehmen</string>

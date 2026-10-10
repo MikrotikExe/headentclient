@@ -274,6 +274,12 @@
     <string name="auto_pip_title">Hình trong hình tự động</string>
     <string name="sw_decode_title">Giải mã video bằng phần mềm</string>
     <string name="sw_decode_note">Chỉ bật nếu hình bị giật hoặc đứng ở một số kênh. Tốn CPU hơn.</string>
+    <string name="hw_decode_title">Giải mã video bằng phần cứng</string>
+    <string name="hw_decode_decode">Chỉ giải mã</string>
+    <string name="hw_decode_off">Tắt (phần mềm)</string>
+    <string name="hw_decode_note">Tự động gửi hình đã giải mã từ chip thẳng ra màn hình. Chỉ giải mã để chip giải mã nhưng khung hình đi qua trình phát, nên khử xen kẽ hoạt động (chọn khi viền bị răng cưa). Tắt giải mã bằng phần mềm.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (kênh SD): chất lượng hình tốt nhất</string>
+    <string name="mpeg2_sw_note">Kênh MPEG-2 được giải mã bằng phần mềm kèm khử xen kẽ – hình sắc nét không răng cưa. Kênh HD (H.264, HEVC) vẫn dùng phần cứng.</string>
     <string name="vlc_verbose_title">Nhật ký chi tiết của trình phát</string>
     <string name="vlc_verbose_note">Chỉ để chẩn đoán lỗi phát. Làm chậm trình phát; xong thì tắt.</string>
     <string name="dvr_rec_button">Ghi</string>

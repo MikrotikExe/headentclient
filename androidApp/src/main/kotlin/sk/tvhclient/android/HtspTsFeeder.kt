@@ -91,6 +91,8 @@ class HtspTsFeeder(
     /** M552: teletext PES payload for TeletextSession. */
     @Volatile var onTeletext: ((ByteArray) -> Unit)? = null
     @Volatile var onTeletextAvailable: ((Boolean) -> Unit)? = null
+    /** M722: the video codec from subscriptionStart (HTSP type name, e.g. "MPEG2VIDEO"). */
+    @Volatile var onVideoCodec: ((String) -> Unit)? = null
 
     /** Starts the feed for a channel and returns the read FileDescriptor for libVLC. */
     /**
@@ -175,6 +177,7 @@ class HtspTsFeeder(
                     onSubtitles = { subs -> subtitleStreams = subs },
                     onSubtitlePage = { page, targetMs -> onSubtitlePage?.invoke(page, targetMs) },
                     onTeletextAvailable = { a -> hasTeletext = a; onTeletextAvailable?.invoke(a) },   // M552
+                    onVideoCodec = { c -> onVideoCodec?.invoke(c) },   // M722
                     onTeletext = { es -> onTeletext?.invoke(es) },
                     // M714: no free tuner before the start -> end with the reason (the server would
                     // keep retrying silently and the player would wait on a black screen)

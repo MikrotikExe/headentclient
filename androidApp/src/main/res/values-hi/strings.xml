@@ -274,6 +274,12 @@
     <string name="auto_pip_title">स्वचालित पिक्चर-इन-पिक्चर</string>
     <string name="sw_decode_title">सॉफ़्टवेयर वीडियो डिकोडिंग</string>
     <string name="sw_decode_note">केवल तभी चालू करें जब कुछ चैनलों पर वीडियो अटके या रुके। CPU अधिक उपयोग होता है.</string>
+    <string name="hw_decode_title">हार्डवेयर वीडियो डिकोडिंग</string>
+    <string name="hw_decode_decode">केवल डिकोडिंग</string>
+    <string name="hw_decode_off">बंद (सॉफ़्टवेयर)</string>
+    <string name="hw_decode_note">स्वचालित डिकोड की गई तस्वीर चिप से सीधे स्क्रीन पर भेजता है। केवल डिकोडिंग में चिप डिकोड करता है लेकिन फ़्रेम प्लेयर से गुज़रते हैं, इसलिए डीइंटरलेसिंग काम करती है (किनारे दांतेदार दिखें तो चुनें)। बंद सॉफ़्टवेयर से डिकोड करता है।</string>
+    <string name="mpeg2_sw_title">MPEG-2 (SD चैनल): सर्वोत्तम चित्र गुणवत्ता</string>
+    <string name="mpeg2_sw_note">MPEG-2 चैनल सॉफ़्टवेयर में डीइंटरलेसिंग के साथ डिकोड होते हैं – दांतेदार किनारों के बिना साफ़ तस्वीर। HD चैनल (H.264, HEVC) हार्डवेयर में रहते हैं।</string>
     <string name="vlc_verbose_title">विस्तृत प्लेयर लॉग</string>
     <string name="vlc_verbose_note">केवल प्लेबैक समस्याओं की जाँच के लिए। प्लेयर धीमा होता है, बाद में बंद करें.</string>
     <string name="dvr_rec_button">रिकॉर्ड करें</string>

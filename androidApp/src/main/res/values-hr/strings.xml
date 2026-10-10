@@ -274,6 +274,12 @@
     <string name="auto_pip_title">Automatska slika u slici</string>
     <string name="sw_decode_title">Softversko dekodiranje videa</string>
     <string name="sw_decode_note">Uključi samo ako se slika na nekim kanalima trza ili zamrzava. Veće opterećenje procesora.</string>
+    <string name="hw_decode_title">Hardversko dekodiranje videa</string>
+    <string name="hw_decode_decode">Samo dekodiranje</string>
+    <string name="hw_decode_off">Isključeno (softver)</string>
+    <string name="hw_decode_note">Automatski šalje dekodiranu sliku iz čipa izravno na zaslon. Samo dekodiranje ostavlja dekodiranje čipu, ali sličice prolaze kroz player pa radi uklanjanje preplitanja (odaberi kad su rubovi nazubljeni). Isključeno dekodira softverski.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (SD kanali): najbolja kvaliteta slike</string>
+    <string name="mpeg2_sw_note">MPEG-2 kanali dekodiraju se softverski s uklanjanjem preplitanja – oštra slika bez nazubljenih rubova. HD kanali (H.264, HEVC) ostaju hardverski.</string>
     <string name="vlc_verbose_title">Detaljan zapis reproduktora</string>
     <string name="vlc_verbose_note">Samo za dijagnostiku problema s reprodukcijom. Usporava reproduktor; poslije isključi.</string>
     <string name="dvr_rec_button">Snimi</string>

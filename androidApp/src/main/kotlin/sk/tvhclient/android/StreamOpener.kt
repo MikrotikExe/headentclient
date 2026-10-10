@@ -50,7 +50,13 @@ internal class StreamOpener(
         fun onDirectLiveStart()
         /** Substitute channel name used when fixing the identity (EXTRA_TITLE from the intent). */
         fun fallbackTitle(): String?
+        /** M722: the video codec of the live stream is known (HTSP subscriptionStart) — any thread. */
+        fun onVideoCodec(codec: String)
     }
+
+    /** M722: the video codec the current live channel had last time (ChannelCodecMemo), null = unknown. */
+    private fun liveCodec(): String? =
+        ChannelCodecMemo.get(ctx, live.server?.id, live.uuids.getOrNull(live.index))
 
     /** M255 — live over HTTP on a digest-only server: download via the feeder (same
      *  as DVR), because libVLC cannot handle digest via the URL. No seek is needed for live. */
@@ -64,7 +70,7 @@ internal class StreamOpener(
         stream.httpFeeder = feeder
         hooks.teletextAttachFeeder(feeder)   // M713: before start, so the PMT is not missed
         val fd = feeder.start(scope)
-        val m = media.forFeeder(fd, media.feederDemuxFor(url), BufferPref.ms(ctx))   // M381/M509
+        val m = media.forFeeder(fd, media.feederDemuxFor(url), BufferPref.ms(ctx), liveCodec())   // M381/M509/M722
         player().media = m
         m.release()
         hooks.startPlayback()
@@ -132,7 +138,8 @@ internal class StreamOpener(
         stream.resetForHttp(keepHttpFeeder = false)
         hooks.resetTimeshift()
         stream.currentStreamUrl = url
-        val m = media.forUrl(url, demuxFor(url))   // M703
+        // M722: a live channel brings its remembered codec (MPEG-2 -> software); a recording not
+        val m = media.forUrl(url, demuxFor(url), if (url.contains("/stream/")) liveCodec() else null)   // M703
         player().media = m
         m.release()
         hooks.startPlayback()
@@ -188,12 +195,13 @@ internal class StreamOpener(
             feeder.onTeletextAvailable = { a -> hooks.teletextSetHtspAvailable(a) }
             feeder.onTeletext = { es -> hooks.teletextFeedHtsp(es) }
             feeder.onWaitingForTuner = { hooks.onWaitingForTuner() }   // M715
+            feeder.onVideoCodec = { c -> hooks.onVideoCodec(c) }        // M722
             // a new channel = a new subtitle list, reset the chosen language
             tracks.selectedSubEs.value = -1
             tracks.desiredSubName = null
             hooks.resetTimeshift()
             val fd = feeder.start(channelId, scope, live.server?.profile)   // M476
-            val m = media.forFeeder(fd, "ts", BufferPref.htspMs(ctx))
+            val m = media.forFeeder(fd, "ts", BufferPref.htspMs(ctx), liveCodec())   // M722
             player().media = m
             m.release()
             hooks.startPlayback()

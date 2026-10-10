@@ -274,6 +274,12 @@
     <string name="auto_pip_title">Automatikus kép a képben</string>
     <string name="sw_decode_title">Szoftveres videódekódolás</string>
     <string name="sw_decode_note">Csak akkor kapcsold be, ha a kép egyes csatornákon akadozik vagy lefagy. Nagyobb CPU-terhelés.</string>
+    <string name="hw_decode_title">Hardveres videódekódolás</string>
+    <string name="hw_decode_decode">Csak dekódolás</string>
+    <string name="hw_decode_off">Ki (szoftveres)</string>
+    <string name="hw_decode_note">Az Automatikus a dekódolt képet a chipből egyenesen a képernyőre küldi. A Csak dekódolás a chipre hagyja a dekódolást, de a képkockák a lejátszón mennek át, így működik a váltottsoros szűrés (válaszd, ha a szélek fogazottak). A Ki szoftveresen dekódol.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (SD csatornák): legjobb képminőség</string>
+    <string name="mpeg2_sw_note">Az MPEG-2 csatornákat szoftver dekódolja váltottsoros szűréssel – éles kép fogazott szélek nélkül. A HD csatornák (H.264, HEVC) hardveresek maradnak.</string>
     <string name="vlc_verbose_title">Részletes lejátszónapló</string>
     <string name="vlc_verbose_note">Csak lejátszási hibák kereséséhez. Lassítja a lejátszót, utána kapcsold ki.</string>
     <string name="dvr_rec_button">Felvétel</string>

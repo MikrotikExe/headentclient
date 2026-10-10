@@ -292,7 +292,39 @@ class PlayerActivity : ComponentActivity() {
                     }
                 }
                 override fun fallbackTitle(): String? = intent.getStringExtra(EXTRA_TITLE)
+                override fun onVideoCodec(codec: String) { runOnUiThread { this@PlayerActivity.onVideoCodec(codec) } }   // M722
             })
+    }
+
+    // ---- M722 (issue #23): the decoder follows the channel's codec ----
+
+    /** The live channel whose medium was already restarted once for its codec (never twice). */
+    private var codecRestartedFor: String? = null
+
+    /**
+     * The video codec of the playing live channel is known (HTSP: subscriptionStart, before the
+     * first frame; HTTP: the libVLC track once it plays). Remembered per channel, so the next
+     * opening picks the decoder up front. When the medium already playing was built with the
+     * wrong decoder (an MPEG-2 channel in hardware while the quality option is on, or the other
+     * way round), the stream is reopened once by the same path — a second or so, like a profile
+     * switch — and from then on the channel opens right the first time.
+     */
+    private fun onVideoCodec(codec: String) {
+        if (seekablePlayback) return   // recordings keep the global mode
+        val uuid = live.uuids.getOrNull(live.index) ?: return
+        ChannelCodecMemo.set(this, live.server?.id, uuid, codec)
+        val wanted = mediaFactory.softwareFor(codec)
+        if (wanted == mediaFactory.lastSoftware || codecRestartedFor == uuid) return
+        codecRestartedFor = uuid
+        opener.replayCurrentLive()
+    }
+
+    /** HTTP live: the codec from the libVLC video track (HTSP has it from subscriptionStart). */
+    private fun probeVideoCodec() {
+        if (seekablePlayback || stream.htspStream || !engine.ready || engine.tornDown) return
+        VlcEngine.videoInfoAsync(engine.player) { vi ->
+            ChannelCodecMemo.fromVlc(vi?.codec)?.let { onVideoCodec(it) }
+        }
     }
 
     private fun pokeControls() {
@@ -1927,7 +1959,7 @@ class PlayerActivity : ComponentActivity() {
                 override fun onPlayingForStall() { stall.onPlaying() }
                 override fun applyPendingSpuRestore() { lifecycleScope.launch { this@PlayerActivity.applyPendingSpuRestore() } }
                 override fun applyDesiredSpu() { lifecycleScope.launch { tracks.applyDesiredSpu() } }
-                override fun maybeApplyAfr() { afr.apply() }
+                override fun maybeApplyAfr() { afr.apply(); probeVideoCodec() }   // M722: the codec too
                 override fun keepScreenOn(on: Boolean) { this@PlayerActivity.keepScreenOn(on) }
                 override fun hideSeekSpinner() { this@PlayerActivity.hideSeekSpinner() }
                 override fun scheduleTrackRefresh() { tracks.scheduleRefresh() }

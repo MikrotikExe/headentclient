@@ -274,6 +274,12 @@
     <string name="auto_pip_title">Automatyczny obraz w obrazie</string>
     <string name="sw_decode_title">Programowe dekodowanie wideo</string>
     <string name="sw_decode_note">Włącz tylko gdy obraz na niektórych kanałach przycina się lub zamarza. Większe obciążenie CPU.</string>
+    <string name="hw_decode_title">Sprzętowe dekodowanie wideo</string>
+    <string name="hw_decode_decode">Tylko dekodowanie</string>
+    <string name="hw_decode_off">Wyłączone (programowe)</string>
+    <string name="hw_decode_note">Automatycznie wysyła zdekodowany obraz z układu prosto na ekran. Tylko dekodowanie zostawia dekodowanie układowi, ale klatki przechodzą przez odtwarzacz, więc działa usuwanie przeplotu (wybierz, gdy krawędzie są postrzępione). Wyłączone dekoduje programowo.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (kanały SD): najlepsza jakość obrazu</string>
+    <string name="mpeg2_sw_note">Kanały MPEG-2 są dekodowane programowo z usuwaniem przeplotu – ostry obraz bez postrzępionych krawędzi. Kanały HD (H.264, HEVC) pozostają sprzętowe.</string>
     <string name="vlc_verbose_title">Szczegółowy dziennik odtwarzacza</string>
     <string name="vlc_verbose_note">Tylko do diagnozowania problemów z odtwarzaniem. Spowalnia odtwarzacz; potem wyłącz.</string>
     <string name="dvr_rec_button">Nagraj</string>

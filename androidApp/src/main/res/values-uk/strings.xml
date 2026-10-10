@@ -274,6 +274,12 @@
     <string name="auto_pip_title">Автоматичний «картинка в картинці»</string>
     <string name="sw_decode_title">Програмне декодування відео</string>
     <string name="sw_decode_note">Вмикайте, лише якщо відео смикається або завмирає на деяких каналах. Більше навантаження на CPU.</string>
+    <string name="hw_decode_title">Апаратне декодування відео</string>
+    <string name="hw_decode_decode">Лише декодування</string>
+    <string name="hw_decode_off">Вимк. (програмне)</string>
+    <string name="hw_decode_note">Автоматично надсилає декодоване зображення з чипа прямо на екран. Лише декодування залишає декодування чипу, але кадри проходять через плеєр, тому працює деінтерлейсинг (оберіть, якщо краї зубчасті). Вимк. декодує програмно.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (SD-канали): найкраща якість зображення</string>
+    <string name="mpeg2_sw_note">Канали MPEG-2 декодуються програмно з деінтерлейсингом – чітке зображення без зубчастих країв. HD-канали (H.264, HEVC) лишаються апаратними.</string>
     <string name="vlc_verbose_title">Докладний журнал плеєра</string>
     <string name="vlc_verbose_note">Лише для діагностики проблем відтворення. Сповільнює плеєр, потім вимкніть.</string>
     <string name="dvr_rec_button">Записати</string>

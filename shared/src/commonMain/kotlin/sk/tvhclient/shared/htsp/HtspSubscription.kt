@@ -112,6 +112,8 @@ class HtspSubscription internal constructor(
         onSubtitlePage: (DvbSubtitleDecoder.DecodedPage, Long) -> Unit = { _, _ -> },
         /** M552: the channel has a teletext track (from subscriptionStart). */
         onTeletextAvailable: (Boolean) -> Unit = {},
+        /** M722: the type of the first video track (from subscriptionStart), e.g. "MPEG2VIDEO". */
+        onVideoCodec: (String) -> Unit = {},
         /** M552: the teletext PES payload (the TELETEXT track does not go to libVLC, the app decodes it). */
         onTeletext: (ByteArray) -> Unit = {},
         /** M714: subscriptionStatus — [status] text and [error] code (e.g. "noFreeAdapter"); both null = OK again. */
@@ -156,6 +158,7 @@ class HtspSubscription internal constructor(
                         teletextEs = streams.firstOrNull { it.type == "TELETEXT" }?.index ?: -1
                         hasVideo = streams.any { it.type in VIDEO_TYPES }   // M715
                         onTeletextAvailable(teletextEs >= 0)
+                        streams.firstOrNull { it.type in VIDEO_TYPES }?.let { onVideoCodec(it.type) }   // M722
                         val existing = muxer
                         if (existing == null) {
                             val mx = TsMuxer(streams)

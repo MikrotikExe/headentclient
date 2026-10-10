@@ -274,6 +274,12 @@
     <string name="auto_pip_title">صورة داخل صورة تلقائية</string>
     <string name="sw_decode_title">فك ترميز الفيديو برمجيًا</string>
     <string name="sw_decode_note">فعّله فقط إذا كان الفيديو يتقطع أو يتجمد في بعض القنوات. يستهلك معالجًا أكثر.</string>
+    <string name="hw_decode_title">فك ترميز الفيديو بالعتاد</string>
+    <string name="hw_decode_decode">فك الترميز فقط</string>
+    <string name="hw_decode_off">متوقف (برمجي)</string>
+    <string name="hw_decode_note">تلقائي يرسل الصورة المفكوكة من الشريحة إلى الشاشة مباشرة. فك الترميز فقط يترك الفك للشريحة لكن الإطارات تمر عبر المشغل، فيعمل إزالة التشابك (اختره عندما تبدو الحواف مسننة). متوقف يفك الترميز برمجياً.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (قنوات SD): أفضل جودة صورة</string>
+    <string name="mpeg2_sw_note">تُفك قنوات MPEG-2 برمجياً مع إزالة التشابك – صورة حادة بلا حواف مسننة. تبقى قنوات HD ‏(H.264، HEVC) على العتاد.</string>
     <string name="vlc_verbose_title">سجل مفصّل للمشغّل</string>
     <string name="vlc_verbose_note">للتشخيص فقط عند مشاكل التشغيل. يبطئ المشغّل، أطفئه بعد الانتهاء.</string>
     <string name="dvr_rec_button">تسجيل</string>

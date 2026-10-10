@@ -274,6 +274,12 @@
     <string name="auto_pip_title">Samodejna slika v sliki</string>
     <string name="sw_decode_title">Programsko dekodiranje videa</string>
     <string name="sw_decode_note">Vklopi le, če se slika na nekaterih kanalih trga ali zamrzne. Večja obremenitev procesorja.</string>
+    <string name="hw_decode_title">Strojno dekodiranje videa</string>
+    <string name="hw_decode_decode">Samo dekodiranje</string>
+    <string name="hw_decode_off">Izklopljeno (programsko)</string>
+    <string name="hw_decode_note">Samodejno pošlje dekodirano sliko iz čipa naravnost na zaslon. Samo dekodiranje pusti čipu dekodiranje, a sličice gredo skozi predvajalnik, zato razpletanje deluje (izberi, ko so robovi nazobčani). Izklopljeno dekodira programsko.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (SD kanali): najboljša kakovost slike</string>
+    <string name="mpeg2_sw_note">MPEG-2 kanali se dekodirajo programsko z razpletanjem – ostra slika brez nazobčanih robov. HD kanali (H.264, HEVC) ostanejo strojni.</string>
     <string name="vlc_verbose_title">Podroben dnevnik predvajalnika</string>
     <string name="vlc_verbose_note">Samo za diagnostiko težav s predvajanjem. Upočasni predvajalnik; nato izklopi.</string>
     <string name="dvr_rec_button">Snemaj</string>

@@ -274,6 +274,12 @@
     <string name="auto_pip_title">تصویر در تصویر خودکار</string>
     <string name="sw_decode_title">رمزگشایی نرم‌افزاری ویدیو</string>
     <string name="sw_decode_note">فقط اگر تصویر در برخی کانال‌ها می‌پرد یا یخ می‌زند فعال کنید. مصرف پردازنده بیشتر است.</string>
+    <string name="hw_decode_title">رمزگشایی سخت‌افزاری ویدیو</string>
+    <string name="hw_decode_decode">فقط رمزگشایی</string>
+    <string name="hw_decode_off">خاموش (نرم‌افزاری)</string>
+    <string name="hw_decode_note">خودکار تصویر رمزگشایی‌شده را از تراشه مستقیم به صفحه می‌فرستد. فقط رمزگشایی رمزگشایی را به تراشه می‌سپارد اما فریم‌ها از پخش‌کننده می‌گذرند، پس رفع درهم‌بافتگی کار می‌کند (وقتی لبه‌ها دندانه‌دار است انتخاب کنید). خاموش نرم‌افزاری رمزگشایی می‌کند.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (شبکه‌های SD): بهترین کیفیت تصویر</string>
+    <string name="mpeg2_sw_note">شبکه‌های MPEG-2 نرم‌افزاری با رفع درهم‌بافتگی رمزگشایی می‌شوند – تصویر واضح بدون لبه‌های دندانه‌دار. شبکه‌های HD ‏(H.264، HEVC) سخت‌افزاری می‌مانند.</string>
     <string name="vlc_verbose_title">گزارش کامل پخش‌کننده</string>
     <string name="vlc_verbose_note">فقط برای عیب‌یابی مشکلات پخش. پخش‌کننده را کند می‌کند؛ بعد خاموش کنید.</string>
     <string name="dvr_rec_button">ضبط</string>

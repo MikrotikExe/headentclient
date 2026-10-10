@@ -274,6 +274,12 @@
     <string name="auto_pip_title">Image dans l\'image automatique</string>
     <string name="sw_decode_title">Décodage vidéo logiciel</string>
     <string name="sw_decode_note">À activer seulement si l\'image saccade ou se fige sur certaines chaînes. Consomme plus de CPU.</string>
+    <string name="hw_decode_title">Décodage vidéo matériel</string>
+    <string name="hw_decode_decode">Décodage seul</string>
+    <string name="hw_decode_off">Désactivé (logiciel)</string>
+    <string name="hw_decode_note">Automatique envoie l\'image décodée de la puce directement à l\'écran. Décodage seul laisse la puce décoder mais fait passer les images par le lecteur, donc le désentrelacement fonctionne (à choisir quand les bords sont en escalier). Désactivé décode par logiciel.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (chaînes SD) : meilleure qualité d\'image</string>
+    <string name="mpeg2_sw_note">Les chaînes MPEG-2 sont décodées par logiciel avec désentrelacement : image nette sans bords en escalier. Les chaînes HD (H.264, HEVC) restent en matériel.</string>
     <string name="vlc_verbose_title">Journal détaillé du lecteur</string>
     <string name="vlc_verbose_note">Uniquement pour diagnostiquer des problèmes de lecture. Ralentit le lecteur ; à désactiver ensuite.</string>
     <string name="dvr_rec_button">Enregistrer</string>

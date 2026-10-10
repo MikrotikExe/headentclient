@@ -274,6 +274,12 @@
     <string name="auto_pip_title">Picture-in-picture automatico</string>
     <string name="sw_decode_title">Decodifica video software</string>
     <string name="sw_decode_note">Attiva solo se il video scatta o si blocca su alcuni canali. Usa più CPU.</string>
+    <string name="hw_decode_title">Decodifica video hardware</string>
+    <string name="hw_decode_decode">Solo decodifica</string>
+    <string name="hw_decode_off">Disattivata (software)</string>
+    <string name="hw_decode_note">Automatico invia l\'immagine decodificata dal chip direttamente allo schermo. Solo decodifica lascia decodificare al chip, ma i fotogrammi passano dal lettore, quindi il deinterlacciamento funziona (sceglilo se i bordi appaiono seghettati). Disattivata decodifica via software.</string>
+    <string name="mpeg2_sw_title">MPEG-2 (canali SD): migliore qualità dell\'immagine</string>
+    <string name="mpeg2_sw_note">I canali MPEG-2 sono decodificati via software con deinterlacciamento: immagine nitida senza bordi seghettati. I canali HD (H.264, HEVC) restano in hardware.</string>
     <string name="vlc_verbose_title">Log dettagliato del lettore</string>
     <string name="vlc_verbose_note">Solo per diagnosticare problemi di riproduzione. Rallenta il lettore; disattivalo dopo.</string>
     <string name="dvr_rec_button">Registra</string>
