@@ -376,9 +376,21 @@ object HtspData {
         }
     }
 
+    /**
+     * Drops the cached snapshots (a forced reload). M721: it no longer closes the shared connection —
+     * since M693 one session serves every screen, so a refresh on the archive screen closed the
+     * connection under the home screen's load and under the DVR load it had itself just started
+     * ("HTSP: connection lost (closed)" in the diagnostics, three times per opening). A broken
+     * connection dies on its own (keepalive, no reply) and the next use reconnects; a changed
+     * server goes through [reset].
+     */
     fun clear(serverId: String) {
         cache.remove(serverId); nowCache.remove(serverId); capCache.remove(serverId)
-        // M693: a suspected broken connection -> reconnect on the next use, but never under a running stream
+    }
+
+    /** M721: the server was edited or removed — drop the caches AND the connection (never under a running stream). */
+    fun reset(serverId: String) {
+        clear(serverId)
         HtspSessions.peek(serverId)?.takeIf { !it.hasActiveSubscriptions() }?.let { HtspSessions.close(serverId) }
     }
 

@@ -160,7 +160,7 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     // M529: `loadIfNeeded` returns immediately on reopening when it already has the data —
     // a recording just scheduled therefore did not show up in the list. `refresh` keeps the old
     // data and fetches the new without flicker.
-    LaunchedEffect(Unit) { dvrVm.loadIfNeeded(); dvrVm.refresh() }
+    LaunchedEffect(Unit) { if (!dvrVm.loadIfNeeded()) dvrVm.refresh() }   // M721: not both at once
 
     // The channel list for zapping and the list in the player (CH+/CH-, overlay).
     // Hidden channels do not belong here (they are not shown in the player).

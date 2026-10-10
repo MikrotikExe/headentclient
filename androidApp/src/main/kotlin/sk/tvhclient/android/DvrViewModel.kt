@@ -47,12 +47,14 @@ class DvrViewModel : ViewModel() {
     val refreshFailed: StateFlow<Int> = _refreshFailed
 
     /** Loads only if we do not have data yet, or if the server has changed (reload token). */
-    fun loadIfNeeded() {
+    /** Returns true when a load was started (M721: the caller then does not refresh on top of it). */
+    fun loadIfNeeded(): Boolean {
         val tok = TabController.dataReload.value
         val changed = tok != reloadToken
-        if (loadedOnce && _state.value is DvrState.Loaded && !changed) return
+        if (loadedOnce && _state.value is DvrState.Loaded && !changed) return false
         reloadToken = tok
         load(showLoading = true)
+        return true
     }
 
     /** A forced refresh (e.g. the button) — without flicker, keeps the old data. */

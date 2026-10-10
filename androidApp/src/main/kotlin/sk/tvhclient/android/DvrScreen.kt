@@ -1205,7 +1205,9 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
     // recording only appeared after an app restart. `refresh` keeps the old data
     // and pulls the new one in without flicker. The TV archive moreover has no refresh button
     // (that is only in the phone version), so there is no other way to refresh it.
-    LaunchedEffect(Unit) { vm.loadIfNeeded(); vm.refresh() }
+    // M721: one load per opening — `refresh` right after `loadIfNeeded` fetched everything twice
+    // (and, before M721, closed the shared HTSP connection under the first load).
+    LaunchedEffect(Unit) { if (!vm.loadIfNeeded()) vm.refresh() }
     LaunchedEffect(Unit) {
         if (!DvrClassifier.hasCorpus())
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { loadCorpusFromAssets(context) }

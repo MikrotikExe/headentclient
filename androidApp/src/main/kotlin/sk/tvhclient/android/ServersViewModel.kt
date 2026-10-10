@@ -72,8 +72,8 @@ class ServersViewModel : ViewModel() {
     fun save(server: TvhServer) {
         val old = store.list().firstOrNull { it.id == server.id }
         store.upsert(server)
-        // a change of server configuration (e.g. the connection method) -> the old cache is invalid
-        sk.tvhclient.shared.htsp.HtspData.clear(server.id)
+        // a change of server configuration (e.g. the connection method) -> the old cache and connection are invalid
+        sk.tvhclient.shared.htsp.HtspData.reset(server.id)   // M721
         forgetLiveEpg(server.id)   // M720: the live window belongs to the old configuration
         // M557: a different connection method = different channel identifiers (HTSP channelId vs HTTP
         // uuid) -> the player's process playlist and the remembered "last watched" are invalid
@@ -90,7 +90,7 @@ class ServersViewModel : ViewModel() {
     }
 
     fun delete(id: String) {
-        sk.tvhclient.shared.htsp.HtspData.clear(id)
+        sk.tvhclient.shared.htsp.HtspData.reset(id)   // M721
         forgetLiveEpg(id)   // M720
         store.delete(id)
         refresh()
