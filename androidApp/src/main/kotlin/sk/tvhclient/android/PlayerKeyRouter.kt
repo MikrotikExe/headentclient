@@ -50,6 +50,10 @@ internal class PlayerKeyRouter(
         val seekablePlayback: Boolean
         val liveIndex: Int
         val channelListOpen: Boolean
+        /** M724-fix2: the INFO window (PlayerInfoWindow) is open — up/down scroll it, not the channel. */
+        val infoWindowOpen: Boolean
+        fun scrollInfoWindow(dir: Int)
+        fun closeInfoWindow()
         val returnLiveUuid: String?
         val optionsOpen: Boolean
         val trackMenuOpen: Boolean
@@ -137,6 +141,23 @@ internal class PlayerKeyRouter(
 
         // 0d) Programme info (detail) -> any OK/BACK/left closes it (M643: ChannelInfo)
         if (info.isOpen) return info.handleKey(kc, down)
+
+        // 0d2) M724-fix2: the INFO window (programme + the Stream section) -> up/down scroll the
+        // window (until now they zapped the channel underneath), OK closes it, BACK goes to its
+        // BackHandler; the rest is swallowed so the controls do not pop up over it
+        if (actions.infoWindowOpen) {
+            when (kc) {
+                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP -> { if (down) actions.scrollInfoWindow(-1); return true }
+                KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_PAGE_DOWN -> { if (down) actions.scrollInfoWindow(+1); return true }
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> return true
+                KeyEvent.KEYCODE_INFO -> { if (down && event.repeatCount == 0) actions.closeInfoWindow(); return true }
+                KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.KEYCODE_VOLUME_MUTE -> return null
+                else -> {
+                    if (okKey) { if (down && event.repeatCount == 0) actions.closeInfoWindow(); return true }
+                    return true
+                }
+            }
+        }
 
         // 0e) Confirmation of ending live playback (BACK) -> arrows + OK + BACK are handled by us
         if (exitConfirmState.value) return DialogKeys.twoChoice(kc, down, event, exitConfirmSelState,

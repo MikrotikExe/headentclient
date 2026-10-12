@@ -19,7 +19,13 @@ import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -52,8 +58,20 @@ internal fun PlayerInfoWindow(
     dvrActivity: PlayerActivity?,
     dvrEntry: DvrEntry? = null,
     /** M724: the "Stream" section (Settings → Advanced); null = off / not available. */
-    streamDetails: StreamDetails? = null
+    streamDetails: StreamDetails? = null,
+    /** M724-fix2: a D-pad scroll request from the key router (tick changes, dir = -1 up / +1 down). */
+    scrollTick: Int = 0,
+    scrollDir: Int = 0
 ) {
+    val infoScroll = androidx.compose.foundation.rememberScrollState()
+    val stepPx = with(androidx.compose.ui.platform.LocalDensity.current) { 120.dp.toPx() }
+    var seenTick by remember { mutableStateOf(scrollTick) }   // a tick from before the window opened is ignored
+    LaunchedEffect(scrollTick) {
+        if (scrollTick != seenTick) {
+            seenTick = scrollTick
+            if (scrollDir != 0) infoScroll.animateScrollBy(scrollDir * stepPx)
+        }
+    }
     // Info window: detail of the currently running programme (INFO key / button)
     androidx.activity.compose.BackHandler { setShowInfo(false) }
     val clk: (Long) -> String = { sec ->
@@ -77,7 +95,7 @@ internal fun PlayerInfoWindow(
             Column(
                 Modifier
                     .padding(28.dp)
-                    .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                    .verticalScroll(infoScroll)
             ) {
                 val dvrTitle = dvrEntry?.dispTitle?.ifBlank { null } ?: progTitle.ifBlank { title }
                 if (dvrEntry != null) {

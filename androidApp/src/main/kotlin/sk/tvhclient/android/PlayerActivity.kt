@@ -307,6 +307,12 @@ class PlayerActivity : ComponentActivity() {
 
     // ---- M724: the "Stream" section of the info window (Settings → Advanced → Stream details) ----
 
+    /** M724-fix2: the INFO window is open (set by PlayerUi); the D-pad then scrolls it instead of zapping. */
+    val infoWindowOpen = mutableStateOf(false)
+    val infoScrollTick = mutableStateOf(0)
+    val infoScrollDir = mutableStateOf(0)
+    val infoWindowCloseTick = mutableStateOf(0)
+
     /** HTSP: the source of the playing stream (subscriptionStart) and the last signalStatus. */
     val streamSource = mutableStateOf<sk.tvhclient.shared.htsp.HtspSourceInfo?>(null)
     val streamSignal = mutableStateOf<sk.tvhclient.shared.htsp.HtspSignal?>(null)
@@ -993,6 +999,9 @@ class PlayerActivity : ComponentActivity() {
                 override val seekablePlayback: Boolean get() = this@PlayerActivity.seekablePlayback
                 override val liveIndex: Int get() = live.index
                 override val channelListOpen: Boolean get() = this@PlayerActivity.channelListOpen
+                override val infoWindowOpen: Boolean get() = this@PlayerActivity.infoWindowOpen.value   // M724-fix2
+                override fun scrollInfoWindow(dir: Int) { infoScrollDir.value = dir; infoScrollTick.value++ }
+                override fun closeInfoWindow() { infoWindowCloseTick.value++ }
                 override val returnLiveUuid: String? get() = this@PlayerActivity.returnLiveUuid
                 override val optionsOpen: Boolean get() = this@PlayerActivity.optionsOpen
                 override val trackMenuOpen: Boolean get() = this@PlayerActivity.trackMenuOpen
@@ -2802,6 +2811,11 @@ private fun PlayerUi(
         }
 
         // Info window: details of the currently running programme (INFO key / button) — M661: PlayerInfoWindow.kt
+        // M724-fix2: tell the activity the INFO window is open (the key router scrolls it / closes it)
+        LaunchedEffect(showInfo) { dvrActivity?.infoWindowOpen?.value = showInfo }
+        androidx.compose.runtime.DisposableEffect(Unit) { onDispose { dvrActivity?.infoWindowOpen?.value = false } }
+        val infoCloseTick = dvrActivity?.infoWindowCloseTick?.value ?: 0
+        LaunchedEffect(infoCloseTick) { if (infoCloseTick > 0 && showInfo) showInfo = false }
         if (showInfo) {
             // M724: the "Stream" section — only with the Advanced setting on; refreshed every second
             // while the window is open (the signal changes), read off the main thread
@@ -2830,7 +2844,9 @@ private fun PlayerUi(
                 liveCurrentIndex = channelList.currentIndex,
                 dvrActivity = dvrActivity,
                 dvrEntry = dvrInfoEntry,
-                streamDetails = streamDetails   // M724
+                streamDetails = streamDetails,   // M724
+                scrollTick = dvrActivity?.infoScrollTick?.value ?: 0,   // M724-fix2
+                scrollDir = dvrActivity?.infoScrollDir?.value ?: 0
             )
         }
 
