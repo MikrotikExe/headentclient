@@ -7,6 +7,13 @@ import android.content.Context
  */
 object Favorites {
     private const val PREFS = "favorites"
+
+    /**
+     * M723 (issue #7): bumped on every change (add / remove / move), so the screens that show the
+     * favourites — the home row, the channel and radio lists — refresh in place instead of
+     * on the next app start (the launcher shortcuts were already republished, M573).
+     */
+    val revision = kotlinx.coroutines.flow.MutableStateFlow(0)
     private fun key(serverId: String) = "fav:$serverId"
 
     fun all(context: Context, serverId: String): Set<String> {
@@ -58,5 +65,6 @@ object Favorites {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putString(key(serverId), order.joinToString(",")).apply()
         FavoriteShortcuts.onFavoritesChanged(context, serverId)   // M573
+        revision.value = revision.value + 1   // M723
     }
 }

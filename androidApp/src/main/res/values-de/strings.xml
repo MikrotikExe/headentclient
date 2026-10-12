@@ -400,6 +400,7 @@
     <string name="hidden_channels">Ausgeblendete Sender</string>
     <string name="fav_reorder">Favoriten sortieren</string>
     <string name="fav_reorder_hint">Sortieren: OK greifen/ablegen · ▲▼ verschieben · BACK fertig</string>
+    <string name="fav_reorder_row_hint">Sortieren: OK greifen/ablegen · ◀▶ verschieben · BACK fertig</string>
     <string name="fav_reorder_grabbed">Verschiebe: %1$s</string>
     <string name="ch_unhide_player">Sender einblenden</string>
     <string name="fav_reorder_row">▲▼ verschieben · OK ablegen</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Startseite (TV)</string>
     <string name="tile_list_title">Kacheln „TV-Sender“ und „Radio“ öffnen die Liste</string>
     <string name="tile_list_note">Der letzte Sender startet wie bisher, und die Sender- bzw. Stationsliste öffnet sich sofort darüber.</string>
+    <string name="tile_mode_title">Kacheln TV-Sender und Radio</string>
+    <string name="tile_mode_play">Letzten Sender starten</string>
+    <string name="tile_mode_list">Letzten Sender starten und die Liste darüber öffnen</string>
+    <string name="tile_mode_only">Nur die Senderliste öffnen</string>
+    <string name="tile_mode_note">Nur Liste: die Kachel öffnet die Sender- bzw. Stationsliste der App wie am Telefon – nichts läuft, bis ein Sender gewählt ist, BACK führt zum Startbildschirm. Letzter Sender nach dem Start, Verknüpfungen und Favoritenzeile bleiben unverändert.</string>
     <string name="dvr_ask_title">Nach dem Aufnahmeprofil fragen</string>
     <string name="dvr_ask_note">Beim Aufnehmen das Tvheadend-Aufnahmeprofil wählen (Speicherordner, Aufbewahrung). Erscheint nur, wenn der Server mehr als ein Profil anbietet.</string>
     <string name="dvr_pick_title">In Profil aufnehmen</string>

@@ -400,6 +400,7 @@
     <string name="hidden_channels">Κρυφά κανάλια</string>
     <string name="fav_reorder">Ταξινόμηση αγαπημένων</string>
     <string name="fav_reorder_hint">Ταξινόμηση: OK πιάσε/άφησε · ▲▼ μετακίνηση · ΠΙΣΩ τέλος</string>
+    <string name="fav_reorder_row_hint">Ταξινόμηση: OK πιάσε/άφησε · ◀▶ μετακίνηση · ΠΙΣΩ τέλος</string>
     <string name="fav_reorder_grabbed">Μετακίνηση: %1$s</string>
     <string name="ch_unhide_player">Εμφάνιση καναλιού</string>
     <string name="fav_reorder_row">▲▼ μετακίνηση · OK άφησε</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Αρχική οθόνη (TV)</string>
     <string name="tile_list_title">Τα πλακίδια Κανάλια TV και Ραδιόφωνο ανοίγουν τη λίστα</string>
     <string name="tile_list_note">Το τελευταίο κανάλι ξεκινά όπως πριν και η λίστα καναλιών ή σταθμών ανοίγει αμέσως από πάνω.</string>
+    <string name="tile_mode_title">Πλακίδια Κανάλια TV και Ραδιόφωνο</string>
+    <string name="tile_mode_play">Έναρξη του τελευταίου καναλιού</string>
+    <string name="tile_mode_list">Έναρξη του τελευταίου καναλιού και άνοιγμα της λίστας από πάνω</string>
+    <string name="tile_mode_only">Άνοιγμα μόνο της λίστας καναλιών</string>
+    <string name="tile_mode_note">Μόνο λίστα: το πλακίδιο ανοίγει τη λίστα καναλιών ή σταθμών της εφαρμογής όπως στο τηλέφωνο – τίποτα δεν παίζει μέχρι να επιλέξεις κανάλι, το BACK επιστρέφει στην αρχική οθόνη. Το τελευταίο κανάλι μετά την εκκίνηση, οι συντομεύσεις και η σειρά αγαπημένων δεν αλλάζουν.</string>
     <string name="dvr_ask_title">Ερώτηση για προφίλ εγγραφής</string>
     <string name="dvr_ask_note">Κατά την εγγραφή επιλέξτε το προφίλ εγγραφής Tvheadend (φάκελος, διατήρηση). Εμφανίζεται μόνο όταν ο διακομιστής προσφέρει περισσότερα από ένα προφίλ.</string>
     <string name="dvr_pick_title">Εγγραφή στο προφίλ</string>

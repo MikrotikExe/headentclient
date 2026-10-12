@@ -400,6 +400,7 @@
     <string name="hidden_channels">القنوات المخفية</string>
     <string name="fav_reorder">ترتيب المفضلة</string>
     <string name="fav_reorder_hint">الترتيب: OK إمساك/إفلات · ▲▼ نقل · رجوع تم</string>
+    <string name="fav_reorder_row_hint">الترتيب: OK إمساك/إفلات · ◀▶ نقل · رجوع تم</string>
     <string name="fav_reorder_grabbed">نقل: %1$s</string>
     <string name="ch_unhide_player">إظهار القناة</string>
     <string name="fav_reorder_row">▲▼ نقل · OK إفلات</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">الشاشة الرئيسية (TV)</string>
     <string name="tile_list_title">بلاطتا قنوات التلفزيون والراديو تفتحان القائمة</string>
     <string name="tile_list_note">تبدأ آخر قناة كما في السابق وتُفتح فوقها فوراً قائمة القنوات أو المحطات.</string>
+    <string name="tile_mode_title">مربعات قنوات التلفاز والراديو</string>
+    <string name="tile_mode_play">تشغيل آخر قناة</string>
+    <string name="tile_mode_list">تشغيل آخر قناة وفتح القائمة فوقها</string>
+    <string name="tile_mode_only">فتح قائمة القنوات فقط</string>
+    <string name="tile_mode_note">القائمة فقط: يفتح المربع قائمة القنوات أو المحطات في التطبيق كما على الهاتف – لا يُشغَّل شيء حتى تختار قناة، ويعيدك BACK إلى الشاشة الرئيسية. آخر قناة بعد التشغيل والاختصارات وصف المفضلة لا تتغير.</string>
     <string name="dvr_ask_title">السؤال عن ملف تعريف التسجيل</string>
     <string name="dvr_ask_note">عند التسجيل اختر ملف تعريف التسجيل في Tvheadend (المجلد، مدة الاحتفاظ). يظهر فقط عندما يوفر الخادم أكثر من ملف تعريف واحد.</string>
     <string name="dvr_pick_title">التسجيل في ملف التعريف</string>

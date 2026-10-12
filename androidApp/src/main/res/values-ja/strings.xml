@@ -400,6 +400,7 @@
     <string name="hidden_channels">非表示のチャンネル</string>
     <string name="fav_reorder">お気に入りを並べ替え</string>
     <string name="fav_reorder_hint">並べ替え: OK つかむ/置く · ▲▼ 移動 · 戻る 完了</string>
+    <string name="fav_reorder_row_hint">並べ替え: OK つかむ/置く · ◀▶ 移動 · 戻る 完了</string>
     <string name="fav_reorder_grabbed">移動中: %1$s</string>
     <string name="ch_unhide_player">チャンネルを表示</string>
     <string name="fav_reorder_row">▲▼ 移動 · OK 置く</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">ホーム画面 (TV)</string>
     <string name="tile_list_title">TVチャンネルとラジオのタイルで一覧を開く</string>
     <string name="tile_list_note">最後のチャンネルはこれまで通り再生され、その上にチャンネルまたは局の一覧がすぐに開きます。</string>
+    <string name="tile_mode_title">TVチャンネルとラジオのタイル</string>
+    <string name="tile_mode_play">最後のチャンネルを再生</string>
+    <string name="tile_mode_list">最後のチャンネルを再生し、その上にリストを開く</string>
+    <string name="tile_mode_only">チャンネルリストのみを開く</string>
+    <string name="tile_mode_note">リストのみ: タイルはスマホと同じようにアプリのチャンネル/局リストを開きます – チャンネルを選ぶまで何も再生されず、BACK でホーム画面に戻ります。起動後の最後のチャンネル、ショートカット、お気に入りの行は変わりません。</string>
     <string name="dvr_ask_title">録画プロファイルを確認する</string>
     <string name="dvr_ask_note">録画時に Tvheadend の録画プロファイル（保存先フォルダー、保持期間）を選びます。サーバーに複数のプロファイルがある場合のみ表示されます。</string>
     <string name="dvr_pick_title">プロファイルに録画</string>

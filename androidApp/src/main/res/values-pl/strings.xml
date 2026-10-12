@@ -400,6 +400,7 @@
     <string name="hidden_channels">Ukryte kanały</string>
     <string name="fav_reorder">Uporządkuj ulubione</string>
     <string name="fav_reorder_hint">Porządkowanie: OK chwyć/upuść · ▲▼ przesuń · WSTECZ gotowe</string>
+    <string name="fav_reorder_row_hint">Porządkowanie: OK chwyć/upuść · ◀▶ przesuń · WSTECZ gotowe</string>
     <string name="fav_reorder_grabbed">Przenoszenie: %1$s</string>
     <string name="ch_unhide_player">Pokaż kanał</string>
     <string name="fav_reorder_row">▲▼ przesuń · OK upuść</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Ekran główny (TV)</string>
     <string name="tile_list_title">Kafelki Kanały TV i Radio otwierają listę</string>
     <string name="tile_list_note">Ostatni kanał uruchamia się jak dotąd, a lista kanałów lub stacji otwiera się od razu nad nim.</string>
+    <string name="tile_mode_title">Kafelki Kanały TV i Radio</string>
+    <string name="tile_mode_play">Uruchom ostatni kanał</string>
+    <string name="tile_mode_list">Uruchom ostatni kanał i otwórz nad nim listę</string>
+    <string name="tile_mode_only">Otwórz tylko listę kanałów</string>
+    <string name="tile_mode_note">Tylko lista: kafelek otwiera listę kanałów lub stacji aplikacji jak w telefonie – nic nie gra, dopóki nie wybierzesz kanału, BACK wraca na ekran główny. Ostatni kanał po starcie, skróty i rząd ulubionych bez zmian.</string>
     <string name="dvr_ask_title">Pytaj o profil nagrywania</string>
     <string name="dvr_ask_note">Podczas nagrywania wybierz profil nagrywania Tvheadend (folder, czas przechowywania). Widoczne tylko, gdy serwer oferuje więcej niż jeden profil.</string>
     <string name="dvr_pick_title">Nagraj do profilu</string>

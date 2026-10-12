@@ -400,6 +400,7 @@
     <string name="hidden_channels">Skriveni kanali</string>
     <string name="fav_reorder">Rasporedi omiljene</string>
     <string name="fav_reorder_hint">Raspored: OK uhvati/pusti · ▲▼ pomeri · NAZAD gotovo</string>
+    <string name="fav_reorder_row_hint">Raspored: OK uhvati/pusti · ◀▶ pomeri · NAZAD gotovo</string>
     <string name="fav_reorder_grabbed">Pomeranje: %1$s</string>
     <string name="ch_unhide_player">Prikaži kanal</string>
     <string name="fav_reorder_row">▲▼ pomeri · OK pusti</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Početni ekran (TV)</string>
     <string name="tile_list_title">Pločice TV kanali i Radio otvaraju listu</string>
     <string name="tile_list_note">Poslednji kanal se pokreće kao i do sada, a lista kanala ili stanica se odmah otvara iznad njega.</string>
+    <string name="tile_mode_title">Плочице ТВ канали и Радио</string>
+    <string name="tile_mode_play">Покрени последњи канал</string>
+    <string name="tile_mode_list">Покрени последњи канал и отвори листу преко њега</string>
+    <string name="tile_mode_only">Отвори само листу канала</string>
+    <string name="tile_mode_note">Само листа: плочица отвара листу канала или станица апликације као на телефону – ништа не свира док не изабереш канал, BACK враћа на почетни екран. Последњи канал након покретања, пречице и ред омиљених се не мењају.</string>
     <string name="dvr_ask_title">Pitaj za profil snimanja</string>
     <string name="dvr_ask_note">Pri snimanju izaberi Tvheadend profil snimanja (fascikla, čuvanje). Prikazuje se samo kad server nudi više od jednog profila.</string>
     <string name="dvr_pick_title">Snimi u profil</string>

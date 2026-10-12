@@ -400,6 +400,7 @@
     <string name="hidden_channels">Canale ascunse</string>
     <string name="fav_reorder">Reordonează favoritele</string>
     <string name="fav_reorder_hint">Reordonare: OK apucă/lasă · ▲▼ mută · ÎNAPOI gata</string>
+    <string name="fav_reorder_row_hint">Reordonare: OK apucă/lasă · ◀▶ mută · ÎNAPOI gata</string>
     <string name="fav_reorder_grabbed">Se mută: %1$s</string>
     <string name="ch_unhide_player">Afișează canalul</string>
     <string name="fav_reorder_row">▲▼ mută · OK lasă</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Ecran de start (TV)</string>
     <string name="tile_list_title">Dalele Canale TV și Radio deschid lista</string>
     <string name="tile_list_note">Ultimul canal pornește ca înainte, iar lista de canale sau posturi se deschide imediat deasupra.</string>
+    <string name="tile_mode_title">Dalele Canale TV și Radio</string>
+    <string name="tile_mode_play">Pornește ultimul canal</string>
+    <string name="tile_mode_list">Pornește ultimul canal și deschide lista peste el</string>
+    <string name="tile_mode_only">Deschide doar lista de canale</string>
+    <string name="tile_mode_note">Doar lista: dala deschide lista de canale sau posturi a aplicației ca pe telefon – nu se redă nimic până alegi un canal, BACK revine la ecranul principal. Ultimul canal la pornire, scurtăturile și rândul de favorite nu se schimbă.</string>
     <string name="dvr_ask_title">Întreabă profilul de înregistrare</string>
     <string name="dvr_ask_note">La înregistrare, alege profilul de înregistrare Tvheadend (dosar, păstrare). Apare doar când serverul oferă mai multe profiluri.</string>
     <string name="dvr_pick_title">Înregistrează în profilul</string>

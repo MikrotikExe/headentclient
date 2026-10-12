@@ -400,6 +400,7 @@
     <string name="hidden_channels">پوشیدہ چینلز</string>
     <string name="fav_reorder">پسندیدہ ترتیب دیں</string>
     <string name="fav_reorder_hint">ترتیب: OK پکڑیں/چھوڑیں · ▲▼ منتقل کریں · BACK مکمل</string>
+    <string name="fav_reorder_row_hint">ترتیب: OK پکڑیں/چھوڑیں · ◀▶ منتقل کریں · BACK مکمل</string>
     <string name="fav_reorder_grabbed">منتقلی: %1$s</string>
     <string name="ch_unhide_player">چینل دکھائیں</string>
     <string name="fav_reorder_row">▲▼ منتقل کریں · OK چھوڑیں</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">ہوم اسکرین (TV)</string>
     <string name="tile_list_title">TV چینلز اور ریڈیو ٹائلیں فہرست کھولتی ہیں</string>
     <string name="tile_list_note">آخری چینل پہلے کی طرح شروع ہوتا ہے اور اس کے اوپر فوراً چینلز یا اسٹیشنز کی فہرست کھل جاتی ہے۔</string>
+    <string name="tile_mode_title">ٹی وی چینلز اور ریڈیو ٹائلیں</string>
+    <string name="tile_mode_play">آخری چینل چلائیں</string>
+    <string name="tile_mode_list">آخری چینل چلائیں اور اس پر فہرست کھولیں</string>
+    <string name="tile_mode_only">صرف چینلز کی فہرست کھولیں</string>
+    <string name="tile_mode_note">صرف فہرست: ٹائل ایپ کی چینلز یا اسٹیشنز کی فہرست فون کی طرح کھولتی ہے – جب تک آپ چینل منتخب نہ کریں کچھ نہیں چلتا، BACK ہوم اسکرین پر واپس لے جاتا ہے۔ اسٹارٹ کے بعد آخری چینل، شارٹ کٹس اور پسندیدہ قطار تبدیل نہیں ہوتے۔</string>
     <string name="dvr_ask_title">ریکارڈنگ پروفائل پوچھیں</string>
     <string name="dvr_ask_note">ریکارڈ کرتے وقت Tvheadend ریکارڈنگ پروفائل منتخب کریں (فولڈر، رکھنے کی مدت)۔ صرف اس وقت دکھایا جاتا ہے جب سرور ایک سے زیادہ پروفائل دے۔</string>
     <string name="dvr_pick_title">پروفائل میں ریکارڈ کریں</string>

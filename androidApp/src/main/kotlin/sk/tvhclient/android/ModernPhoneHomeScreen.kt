@@ -88,7 +88,8 @@ fun ModernPhoneHomeScreen(
     val sid = remember { Tvh.store.active()?.id ?: "default" }
     val server = remember { Tvh.store.active() }
     val piconLoader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
-    val favUuids = remember(rows) { Favorites.all(ctx, sid) }
+    val favRev by Favorites.revision.collectAsState()   // M723: refresh in place
+    val favUuids = remember(rows, favRev) { Favorites.all(ctx, sid) }
     val lastUuid = remember(rows) { LastChannel.get(ctx, sid) }
 
     val hero: ChannelRow? = remember(rows, lastUuid) {

@@ -17,6 +17,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.CalendarViewDay
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.material.icons.automirrored.filled.Dvr
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
@@ -29,6 +33,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -74,6 +79,8 @@ fun ModernTvHomeScreen(
     chState: ChannelsState,
     epgMap: Map<String, List<EpgEvent>>,
     onPlayChannel: (uuid: String, title: String) -> Unit,
+    /** M723 (issue #7): the channel's programme (EPG) from the favourites row menu. */
+    onProgram: (uuid: String, title: String) -> Unit = { _, _ -> },
     onChannels: () -> Unit,
     onRadio: () -> Unit,
     onTvProgram: () -> Unit,
@@ -105,7 +112,8 @@ fun ModernTvHomeScreen(
     val sid = remember { Tvh.store.active()?.id ?: "default" }
     val server = remember { Tvh.store.active() }
     val piconLoader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
-    val favUuids = remember(rows) { Favorites.list(ctx, sid) }   // M541: in order
+    val favRev by Favorites.revision.collectAsState()   // M723 (issue #7): refresh in place
+    val favUuids = remember(rows, favRev) { Favorites.list(ctx, sid) }   // M541: in order
     val lastUuid = remember(rows) { LastChannel.get(ctx, sid) }
 
     // hero channel: last watched -> first favourite -> first in the list
@@ -119,6 +127,13 @@ fun ModernTvHomeScreen(
         val favs = favUuids.mapNotNull { u -> rows.firstOrNull { it.channel.uuid == u } }   // M541: order of the favourites
         if (favs.isNotEmpty()) favs.take(12) else rows.take(8)
     }
+    val railIsFav = remember(rows, favUuids) { favUuids.any { u -> rows.any { it.channel.uuid == u } } }
+
+    // M723 (issue #7): the channel menu on a favourites tile (long OK) and the reorder mode of the row
+    var menuRow by remember { mutableStateOf<ChannelRow?>(null) }
+    var reorder by remember { mutableStateOf(false) }
+    var grabbed by remember { mutableStateOf<String?>(null) }   // uuid being moved
+    androidx.activity.compose.BackHandler(enabled = reorder) { reorder = false; grabbed = null }
 
     fun EpgEvent?.timeRange(): String {
         val e = this ?: return ""
@@ -311,8 +326,19 @@ fun ModernTvHomeScreen(
 
         // ===== row: favourite channels · now =====
         if (railRows.isNotEmpty()) {
-            Text(stringResource(R.string.mh_fav_now), color = fg, fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.mh_fav_now), color = fg, fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold)
+                if (reorder) {   // M723: the reorder hint
+                    Spacer(Modifier.width(16.dp))
+                    val g = grabbed?.let { u -> railRows.firstOrNull { it.channel.uuid == u }?.channel?.name }
+                    Text(
+                        if (g != null) stringResource(R.string.fav_reorder_grabbed, g)
+                        else stringResource(R.string.fav_reorder_row_hint),
+                        color = accent, fontSize = 14.sp
+                    )
+                }
+            }
             Spacer(Modifier.height(10.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 itemsIndexed(railRows, key = { _, r -> r.channel.uuid }) { _, r ->
@@ -322,13 +348,54 @@ fun ModernTvHomeScreen(
                     val s = ev?.start ?: r.nowStart
                     val e = ev?.stop ?: r.nowStop
                     val frac = if (s in 1 until e) ((nowSec - s).toFloat() / (e - s)).coerceIn(0f, 1f) else 0f
+                    val isGrabbed = reorder && grabbed == r.channel.uuid
+                    var longFired by remember { mutableStateOf(false) }
                     Column(
                         Modifier
                             .width(210.dp)
                             .dpadFocusable(RoundedCornerShape(14.dp))
+                            // M723 (issue #7): long OK = the channel menu (the same pattern as the archive
+                            // tiles); in the reorder mode OK grabs / drops and ◀▶ move the grabbed tile
+                            .onPreviewKeyEvent { ev ->
+                                val k = ev.nativeKeyEvent
+                                val okKey = k.keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
+                                    k.keyCode == android.view.KeyEvent.KEYCODE_ENTER ||
+                                    k.keyCode == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER
+                                if (reorder) {
+                                    if (k.action != android.view.KeyEvent.ACTION_DOWN) return@onPreviewKeyEvent okKey
+                                    val sidR = sid
+                                    when {
+                                        okKey -> { if (k.repeatCount == 0) grabbed = if (isGrabbed) null else r.channel.uuid; true }
+                                        // the neighbour in the ROW (the saved order also holds radios, M583)
+                                        isGrabbed && k.keyCode == android.view.KeyEvent.KEYCODE_DPAD_LEFT -> {
+                                            val i = railRows.indexOfFirst { it.channel.uuid == r.channel.uuid }
+                                            railRows.getOrNull(i - 1)?.let { Favorites.moveUuid(ctx, sidR, r.channel.uuid, it.channel.uuid) }
+                                            true
+                                        }
+                                        isGrabbed && k.keyCode == android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                                            val i = railRows.indexOfFirst { it.channel.uuid == r.channel.uuid }
+                                            railRows.getOrNull(i + 1)?.let { Favorites.moveUuid(ctx, sidR, r.channel.uuid, it.channel.uuid) }
+                                            true
+                                        }
+                                        isGrabbed && (k.keyCode == android.view.KeyEvent.KEYCODE_DPAD_UP ||
+                                            k.keyCode == android.view.KeyEvent.KEYCODE_DPAD_DOWN) -> true   // stay in the row
+                                        else -> false
+                                    }
+                                } else if (okKey) {
+                                    when (k.action) {
+                                        android.view.KeyEvent.ACTION_DOWN -> when (k.repeatCount) {
+                                            0 -> { longFired = false; false }
+                                            1 -> { longFired = true; menuRow = r; true }
+                                            else -> true
+                                        }
+                                        android.view.KeyEvent.ACTION_UP -> if (longFired) { longFired = false; true } else false
+                                        else -> false
+                                    }
+                                } else false
+                            }
                             .clip(RoundedCornerShape(14.dp))
-                            .background(cardBg)
-                            .clickable { onPlayChannel(r.channel.uuid, r.channel.name) }
+                            .background(if (isGrabbed) cs.primaryContainer else cardBg)
+                            .clickable { if (!reorder) onPlayChannel(r.channel.uuid, r.channel.name) }
                             .padding(12.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -363,6 +430,51 @@ fun ModernTvHomeScreen(
                             color = if (frac > 0f) accent2 else cs.outlineVariant,
                             trackColor = cs.outlineVariant
                         )
+                    }
+                }
+            }
+        }
+    }
+
+    // M723 (issue #7): the favourites-row channel menu (long OK on a tile)
+    val mr = menuRow
+    if (mr != null) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { menuRow = null }) {
+            androidx.compose.material3.Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = if (isLightTheme()) cs.surfaceContainerLowest else cs.surfaceContainer,
+                tonalElevation = 6.dp
+            ) {
+                Column(Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        if (mr.piconUrl != null) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(ctx).data(mr.piconUrl).build(),
+                                contentDescription = null,
+                                imageLoader = piconLoader,
+                                modifier = Modifier.size(30.dp)
+                            )
+                            Spacer(Modifier.width(12.dp))
+                        }
+                        Text(mr.channel.name, style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    ModernActionRow(Icons.Default.CalendarViewDay, stringResource(R.string.menu_program)) {
+                        menuRow = null; onProgram(mr.channel.uuid, mr.channel.name)
+                    }
+                    ModernActionRow(Icons.Default.Star,
+                        if (railIsFav) stringResource(R.string.fav_remove) else stringResource(R.string.fav_add)) {
+                        menuRow = null
+                        Favorites.toggle(ctx, sid, mr.channel.uuid)   // the row refreshes through Favorites.revision
+                    }
+                    if (railIsFav && railRows.size > 1) {
+                        ModernActionRow(Icons.Default.SwapHoriz, stringResource(R.string.fav_reorder)) {
+                            menuRow = null; grabbed = null; reorder = true
+                        }
                     }
                 }
             }

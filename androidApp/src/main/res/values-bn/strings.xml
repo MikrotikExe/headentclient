@@ -400,6 +400,7 @@
     <string name="hidden_channels">লুকানো চ্যানেল</string>
     <string name="fav_reorder">পছন্দের ক্রম সাজান</string>
     <string name="fav_reorder_hint">সাজানো: OK ধরুন/ছাড়ুন · ▲▼ সরান · BACK শেষ</string>
+    <string name="fav_reorder_row_hint">সাজানো: OK ধরুন/ছাড়ুন · ◀▶ সরান · BACK শেষ</string>
     <string name="fav_reorder_grabbed">সরানো হচ্ছে: %1$s</string>
     <string name="ch_unhide_player">চ্যানেল দেখান</string>
     <string name="fav_reorder_row">▲▼ সরান · OK ছাড়ুন</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">হোম স্ক্রিন (TV)</string>
     <string name="tile_list_title">TV চ্যানেল ও রেডিও টাইল তালিকা খোলে</string>
     <string name="tile_list_note">শেষ চ্যানেল আগের মতোই চালু হয় এবং তার উপরে সঙ্গে সঙ্গে চ্যানেল বা স্টেশন তালিকা খোলে।</string>
+    <string name="tile_mode_title">TV চ্যানেল ও রেডিও টাইল</string>
+    <string name="tile_mode_play">শেষ চ্যানেল চালু করুন</string>
+    <string name="tile_mode_list">শেষ চ্যানেল চালু করুন এবং তার উপরে তালিকা খুলুন</string>
+    <string name="tile_mode_only">শুধু চ্যানেল তালিকা খুলুন</string>
+    <string name="tile_mode_note">শুধু তালিকা: টাইল ফোনের মতো অ্যাপের চ্যানেল বা স্টেশন তালিকা খোলে – চ্যানেল না বাছা পর্যন্ত কিছু চলে না, BACK হোম স্ক্রিনে ফেরায়। চালুর পরের শেষ চ্যানেল, শর্টকাট ও পছন্দের সারি বদলায় না।</string>
     <string name="dvr_ask_title">রেকর্ডিং প্রোফাইল জিজ্ঞাসা করুন</string>
     <string name="dvr_ask_note">রেকর্ড করার সময় Tvheadend রেকর্ডিং প্রোফাইল বেছে নিন (ফোল্ডার, সংরক্ষণকাল)। সার্ভার একাধিক প্রোফাইল দিলে তবেই দেখানো হয়।</string>
     <string name="dvr_pick_title">প্রোফাইলে রেকর্ড করুন</string>

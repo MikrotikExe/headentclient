@@ -88,6 +88,9 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     var epgFor by remember { mutableStateOf<ChannelRow?>(null) }
     var contextRow by remember { mutableStateOf<ChannelRow?>(null) }
     var favTick by remember { mutableStateOf(0) }
+    // M723 (issue #7): favourites changed elsewhere (the home row, the player) -> the list refreshes in place
+    val favRev by Favorites.revision.collectAsState()
+    LaunchedEffect(favRev) { if (favRev > 0) favTick++ }
     var lockTick by remember { mutableStateOf(0) }
     var hiddenTick by remember { mutableStateOf(0) }
     // For a locked channel / settings: the action performed after the correct PIN
@@ -666,7 +669,7 @@ fun ChannelActionDialog(
 }
 
 @Composable
-private fun ModernActionRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+internal fun ModernActionRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Row(
         Modifier

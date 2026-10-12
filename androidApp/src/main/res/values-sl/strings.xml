@@ -400,6 +400,7 @@
     <string name="hidden_channels">Skriti kanali</string>
     <string name="fav_reorder">Uredi priljubljene</string>
     <string name="fav_reorder_hint">Urejanje: OK primi/spusti · ▲▼ premakni · NAZAJ končano</string>
+    <string name="fav_reorder_row_hint">Urejanje: OK primi/spusti · ◀▶ premakni · NAZAJ končano</string>
     <string name="fav_reorder_grabbed">Premikanje: %1$s</string>
     <string name="ch_unhide_player">Prikaži kanal</string>
     <string name="fav_reorder_row">▲▼ premakni · OK spusti</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Začetni zaslon (TV)</string>
     <string name="tile_list_title">Ploščici TV-kanali in Radio odpreta seznam</string>
     <string name="tile_list_note">Zadnji kanal se zažene kot doslej, nad njim pa se takoj odpre seznam kanalov ali postaj.</string>
+    <string name="tile_mode_title">Ploščici TV kanali in Radio</string>
+    <string name="tile_mode_play">Zaženi zadnji kanal</string>
+    <string name="tile_mode_list">Zaženi zadnji kanal in odpri seznam nad njim</string>
+    <string name="tile_mode_only">Odpri samo seznam kanalov</string>
+    <string name="tile_mode_note">Samo seznam: ploščica odpre seznam kanalov ali postaj aplikacije kot na telefonu – nič ne predvaja, dokler ne izbereš kanala, BACK vrne na začetni zaslon. Zadnji kanal po zagonu, bližnjice in vrstica priljubljenih se ne spremenijo.</string>
     <string name="dvr_ask_title">Vprašaj za profil snemanja</string>
     <string name="dvr_ask_note">Pri snemanju izberi Tvheadend profil snemanja (mapa, hramba). Prikaže se le, če strežnik ponuja več kot en profil.</string>
     <string name="dvr_pick_title">Snemaj v profil</string>

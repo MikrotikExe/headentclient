@@ -400,6 +400,7 @@
     <string name="hidden_channels">Rejtett csatornák</string>
     <string name="fav_reorder">Kedvencek rendezése</string>
     <string name="fav_reorder_hint">Rendezés: OK megfog/letesz · ▲▼ mozgat · VISSZA kész</string>
+    <string name="fav_reorder_row_hint">Rendezés: OK megfog/letesz · ◀▶ mozgat · VISSZA kész</string>
     <string name="fav_reorder_grabbed">Mozgatás: %1$s</string>
     <string name="ch_unhide_player">Csatorna megjelenítése</string>
     <string name="fav_reorder_row">▲▼ mozgat · OK letesz</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Kezdőképernyő (TV)</string>
     <string name="tile_list_title">A TV-csatornák és Rádió csempék a listát nyitják meg</string>
     <string name="tile_list_note">Az utolsó csatorna a megszokott módon elindul, és fölötte azonnal megnyílik a csatorna- vagy állomáslista.</string>
+    <string name="tile_mode_title">TV-csatornák és Rádió csempék</string>
+    <string name="tile_mode_play">Az utolsó csatorna indítása</string>
+    <string name="tile_mode_list">Az utolsó csatorna indítása és a lista megnyitása fölötte</string>
+    <string name="tile_mode_only">Csak a csatornalista megnyitása</string>
+    <string name="tile_mode_note">Csak lista: a csempe az app csatorna- vagy állomáslistáját nyitja meg, mint telefonon – semmi nem szól, amíg nem választasz csatornát, a BACK a kezdőképernyőre visz. Az indítás utáni utolsó csatorna, a parancsikonok és a kedvencek sora nem változik.</string>
     <string name="dvr_ask_title">Kérdezzen rá a felvételi profilra</string>
     <string name="dvr_ask_note">Felvételkor a Tvheadend felvételi profil kiválasztása (mappa, megőrzés). Csak akkor jelenik meg, ha a kiszolgáló egynél több profilt kínál.</string>
     <string name="dvr_pick_title">Felvétel profilba</string>

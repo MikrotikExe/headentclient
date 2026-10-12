@@ -400,6 +400,7 @@
     <string name="hidden_channels">Canales ocultos</string>
     <string name="fav_reorder">Reordenar favoritos</string>
     <string name="fav_reorder_hint">Reordenar: OK coger/soltar · ▲▼ mover · ATRÁS listo</string>
+    <string name="fav_reorder_row_hint">Reordenar: OK coger/soltar · ◀▶ mover · ATRÁS listo</string>
     <string name="fav_reorder_grabbed">Moviendo: %1$s</string>
     <string name="ch_unhide_player">Mostrar canal</string>
     <string name="fav_reorder_row">▲▼ mover · OK soltar</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Pantalla de inicio (TV)</string>
     <string name="tile_list_title">Los mosaicos Canales de TV y Radio abren la lista</string>
     <string name="tile_list_note">El último canal se inicia como antes y la lista de canales o emisoras se abre encima de inmediato.</string>
+    <string name="tile_mode_title">Mosaicos Canales de TV y Radio</string>
+    <string name="tile_mode_play">Iniciar el último canal</string>
+    <string name="tile_mode_list">Iniciar el último canal y abrir la lista encima</string>
+    <string name="tile_mode_only">Abrir solo la lista de canales</string>
+    <string name="tile_mode_note">Solo lista: el mosaico abre la lista de canales o emisoras de la app como en un teléfono – no se reproduce nada hasta elegir un canal, BACK vuelve a la pantalla de inicio. El último canal al iniciar, los accesos directos y la fila de favoritos no cambian.</string>
     <string name="dvr_ask_title">Preguntar el perfil de grabación</string>
     <string name="dvr_ask_note">Al grabar, elegir el perfil de grabación de Tvheadend (carpeta, retención). Solo se muestra si el servidor ofrece más de un perfil.</string>
     <string name="dvr_pick_title">Grabar en el perfil</string>

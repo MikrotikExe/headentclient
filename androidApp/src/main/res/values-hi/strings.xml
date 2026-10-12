@@ -400,6 +400,7 @@
     <string name="hidden_channels">छिपे चैनल</string>
     <string name="fav_reorder">पसंदीदा क्रमबद्ध करें</string>
     <string name="fav_reorder_hint">क्रम: OK पकड़ें/छोड़ें · ▲▼ हटाएँ · BACK पूर्ण</string>
+    <string name="fav_reorder_row_hint">क्रम: OK पकड़ें/छोड़ें · ◀▶ हटाएँ · BACK पूर्ण</string>
     <string name="fav_reorder_grabbed">स्थानांतरण: %1$s</string>
     <string name="ch_unhide_player">चैनल दिखाएँ</string>
     <string name="fav_reorder_row">▲▼ हटाएँ · OK छोड़ें</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">होम स्क्रीन (TV)</string>
     <string name="tile_list_title">TV चैनल और रेडियो टाइल सूची खोलती हैं</string>
     <string name="tile_list_note">आख़िरी चैनल पहले की तरह शुरू होता है और उसके ऊपर तुरंत चैनल या स्टेशन सूची खुल जाती है।</string>
+    <string name="tile_mode_title">TV चैनल और रेडियो टाइलें</string>
+    <string name="tile_mode_play">आख़िरी चैनल शुरू करें</string>
+    <string name="tile_mode_list">आख़िरी चैनल शुरू करें और उसके ऊपर सूची खोलें</string>
+    <string name="tile_mode_only">केवल चैनल सूची खोलें</string>
+    <string name="tile_mode_note">केवल सूची: टाइल ऐप की चैनल या स्टेशन सूची फ़ोन की तरह खोलती है – चैनल चुनने तक कुछ नहीं चलता, BACK होम स्क्रीन पर लौटाता है। शुरू होने के बाद का आख़िरी चैनल, शॉर्टकट और पसंदीदा पंक्ति नहीं बदलते।</string>
     <string name="dvr_ask_title">रिकॉर्डिंग प्रोफ़ाइल पूछें</string>
     <string name="dvr_ask_note">रिकॉर्ड करते समय Tvheadend रिकॉर्डिंग प्रोफ़ाइल चुनें (फ़ोल्डर, रखने की अवधि)। केवल तब दिखता है जब सर्वर एक से अधिक प्रोफ़ाइल देता है।</string>
     <string name="dvr_pick_title">प्रोफ़ाइल में रिकॉर्ड करें</string>

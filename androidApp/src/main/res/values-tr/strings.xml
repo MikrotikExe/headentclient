@@ -400,6 +400,7 @@
     <string name="hidden_channels">Gizli kanallar</string>
     <string name="fav_reorder">Favorileri sırala</string>
     <string name="fav_reorder_hint">Sıralama: OK tut/bırak · ▲▼ taşı · GERİ bitti</string>
+    <string name="fav_reorder_row_hint">Sıralama: OK tut/bırak · ◀▶ taşı · GERİ bitti</string>
     <string name="fav_reorder_grabbed">Taşınıyor: %1$s</string>
     <string name="ch_unhide_player">Kanalı göster</string>
     <string name="fav_reorder_row">▲▼ taşı · OK bırak</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Ana ekran (TV)</string>
     <string name="tile_list_title">TV Kanalları ve Radyo kutucukları listeyi açar</string>
     <string name="tile_list_note">Son kanal eskisi gibi başlar ve kanal ya da istasyon listesi hemen üstünde açılır.</string>
+    <string name="tile_mode_title">TV Kanalları ve Radyo kutucukları</string>
+    <string name="tile_mode_play">Son kanalı başlat</string>
+    <string name="tile_mode_list">Son kanalı başlat ve üzerinde listeyi aç</string>
+    <string name="tile_mode_only">Yalnızca kanal listesini aç</string>
+    <string name="tile_mode_note">Yalnızca liste: kutucuk, uygulamanın kanal veya istasyon listesini telefondaki gibi açar – bir kanal seçene kadar hiçbir şey çalmaz, BACK ana ekrana döner. Başlangıçtaki son kanal, kısayollar ve favoriler satırı değişmez.</string>
     <string name="dvr_ask_title">Kayıt profilini sor</string>
     <string name="dvr_ask_note">Kaydederken Tvheadend kayıt profilini seç (klasör, saklama). Yalnızca sunucu birden fazla profil sunuyorsa gösterilir.</string>
     <string name="dvr_pick_title">Profile kaydet</string>

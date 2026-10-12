@@ -400,6 +400,7 @@
     <string name="hidden_channels">숨긴 채널</string>
     <string name="fav_reorder">즐겨찾기 정렬</string>
     <string name="fav_reorder_hint">정렬: OK 잡기/놓기 · ▲▼ 이동 · 뒤로 완료</string>
+    <string name="fav_reorder_row_hint">정렬: OK 잡기/놓기 · ◀▶ 이동 · 뒤로 완료</string>
     <string name="fav_reorder_grabbed">이동 중: %1$s</string>
     <string name="ch_unhide_player">채널 표시</string>
     <string name="fav_reorder_row">▲▼ 이동 · OK 놓기</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">홈 화면 (TV)</string>
     <string name="tile_list_title">TV 채널 및 라디오 타일이 목록을 엽니다</string>
     <string name="tile_list_note">마지막 채널은 이전처럼 재생되고 그 위에 채널 또는 방송국 목록이 바로 열립니다.</string>
+    <string name="tile_mode_title">TV 채널 및 라디오 타일</string>
+    <string name="tile_mode_play">마지막 채널 재생</string>
+    <string name="tile_mode_list">마지막 채널을 재생하고 그 위에 목록 열기</string>
+    <string name="tile_mode_only">채널 목록만 열기</string>
+    <string name="tile_mode_note">목록만: 타일이 휴대폰처럼 앱의 채널 또는 방송국 목록을 엽니다 – 채널을 고를 때까지 아무것도 재생되지 않으며 BACK 은 홈 화면으로 돌아갑니다. 시작 후 마지막 채널, 바로가기, 즐겨찾기 행은 바뀌지 않습니다.</string>
     <string name="dvr_ask_title">녹화 프로필 묻기</string>
     <string name="dvr_ask_note">녹화할 때 Tvheadend 녹화 프로필(저장 폴더, 보관 기간)을 선택합니다. 서버에 프로필이 둘 이상일 때만 표시됩니다.</string>
     <string name="dvr_pick_title">프로필에 녹화</string>

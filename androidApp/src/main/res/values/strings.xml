@@ -400,6 +400,7 @@
     <string name="hidden_channels">Hidden channels</string>
     <string name="fav_reorder">Reorder favorites</string>
     <string name="fav_reorder_hint">Reorder: OK grab/drop · ▲▼ move · BACK done</string>
+    <string name="fav_reorder_row_hint">Reorder: OK grab/drop · ◀▶ move · BACK done</string>
     <string name="fav_reorder_grabbed">Moving: %1$s</string>
     <string name="ch_unhide_player">Unhide channel</string>
     <string name="fav_reorder_row">▲▼ move · OK drop</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Home screen (TV)</string>
     <string name="tile_list_title">TV Channels and Radio tiles open the list</string>
     <string name="tile_list_note">The last channel starts as before and the channel or station list opens over it right away.</string>
+    <string name="tile_mode_title">TV Channels and Radio tiles</string>
+    <string name="tile_mode_play">Start the last channel</string>
+    <string name="tile_mode_list">Start the last channel and open the list over it</string>
+    <string name="tile_mode_only">Open the channel list only</string>
+    <string name="tile_mode_note">Open the list only: the tile opens the channel or station list of the app, like on a phone — nothing plays until you pick a channel, BACK returns to the home screen. The last channel after start-up, the shortcuts and the favourites row are not affected.</string>
     <string name="dvr_ask_title">Ask for the recording profile</string>
     <string name="dvr_ask_note">When recording, choose the Tvheadend recording profile (storage folder, retention). Shown only when the server offers more than one profile.</string>
     <string name="dvr_pick_title">Record to profile</string>

@@ -476,12 +476,27 @@ internal fun AppearanceSettings(ctx: android.content.Context) {
     // M605: the TV channels tile opens the list first (TV only)
     if (ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)) {
         SettingsGroup(stringResource(R.string.tile_list_group), classicTitle = true) {
-            var listFirst by remember { mutableStateOf(TileListPref.get(ctx)) }
-            SettingsSwitchRow(
-                label = stringResource(R.string.tile_list_title),
-                note = stringResource(R.string.tile_list_note),
-                checked = listFirst,
-                onChange = { v -> listFirst = v; TileListPref.set(ctx, v) }
+            // M723 (issue #14): three-way — play / play + list over it / the list screen only
+            var tileMode by remember { mutableStateOf(TileListPref.mode(ctx)) }
+            val tileLabel: @Composable (String) -> String = { v ->
+                when (v) {
+                    TileListPref.LIST -> stringResource(R.string.tile_mode_list)
+                    TileListPref.ONLY -> stringResource(R.string.tile_mode_only)
+                    else -> stringResource(R.string.tile_mode_play)
+                }
+            }
+            DropdownField(
+                label = stringResource(R.string.tile_mode_title),
+                value = tileMode,
+                options = TileListPref.options,
+                optionLabel = tileLabel,
+                onSelect = { v -> tileMode = v; TileListPref.set(ctx, v) }
+            )
+            Text(
+                stringResource(R.string.tile_mode_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.dpadReadable().padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }
     }

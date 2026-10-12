@@ -400,6 +400,7 @@
     <string name="hidden_channels">Kênh ẩn</string>
     <string name="fav_reorder">Sắp xếp yêu thích</string>
     <string name="fav_reorder_hint">Sắp xếp: OK nắm/thả · ▲▼ di chuyển · BACK xong</string>
+    <string name="fav_reorder_row_hint">Sắp xếp: OK nắm/thả · ◀▶ di chuyển · BACK xong</string>
     <string name="fav_reorder_grabbed">Đang di chuyển: %1$s</string>
     <string name="ch_unhide_player">Hiện kênh</string>
     <string name="fav_reorder_row">▲▼ di chuyển · OK thả</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Màn hình chính (TV)</string>
     <string name="tile_list_title">Ô Kênh TV và Radio mở danh sách</string>
     <string name="tile_list_note">Kênh gần nhất phát như trước và danh sách kênh hoặc đài mở ngay bên trên.</string>
+    <string name="tile_mode_title">Ô Kênh TV và Radio</string>
+    <string name="tile_mode_play">Mở kênh gần nhất</string>
+    <string name="tile_mode_list">Mở kênh gần nhất và mở danh sách đè lên</string>
+    <string name="tile_mode_only">Chỉ mở danh sách kênh</string>
+    <string name="tile_mode_note">Chỉ danh sách: ô mở danh sách kênh hoặc đài của ứng dụng như trên điện thoại – không phát gì cho đến khi bạn chọn kênh, BACK quay về màn hình chính. Kênh gần nhất sau khi khởi động, lối tắt và hàng yêu thích không thay đổi.</string>
     <string name="dvr_ask_title">Hỏi hồ sơ ghi hình</string>
     <string name="dvr_ask_note">Khi ghi hình, chọn hồ sơ ghi hình Tvheadend (thư mục, thời gian lưu). Chỉ hiện khi máy chủ có nhiều hơn một hồ sơ.</string>
     <string name="dvr_pick_title">Ghi vào hồ sơ</string>

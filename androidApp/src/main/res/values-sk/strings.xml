@@ -400,6 +400,7 @@
     <string name="hidden_channels">Skryté kanály</string>
     <string name="fav_reorder">Usporiadať obľúbené</string>
     <string name="fav_reorder_hint">Usporiadanie: OK uchopiť/položiť · ▲▼ presunúť · BACK hotovo</string>
+    <string name="fav_reorder_row_hint">Usporiadanie: OK uchopiť/položiť · ◀▶ presunúť · BACK hotovo</string>
     <string name="fav_reorder_grabbed">Presúvam: %1$s</string>
     <string name="ch_unhide_player">Odkryť kanál</string>
     <string name="fav_reorder_row">▲▼ presunúť · OK položiť</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Úvodná obrazovka (TV)</string>
     <string name="tile_list_title">Dlaždice TV kanály a Rádio otvoria zoznam</string>
     <string name="tile_list_note">Posledný kanál sa spustí ako doteraz a hneď nad ním sa otvorí zoznam kanálov alebo staníc.</string>
+    <string name="tile_mode_title">Dlaždice TV kanály a Rádio</string>
+    <string name="tile_mode_play">Spustia posledný kanál</string>
+    <string name="tile_mode_list">Spustia posledný kanál a otvoria nad ním zoznam</string>
+    <string name="tile_mode_only">Otvoria len zoznam kanálov</string>
+    <string name="tile_mode_note">Len zoznam: dlaždica otvorí zoznam kanálov alebo staníc appky ako na telefóne – nič nehrá, kým nevyberieš kanál, BACK vráti na úvodnú obrazovku. Posledný kanál po štarte, skratky a riadok obľúbených sa nemenia.</string>
     <string name="dvr_ask_title">Pýtať sa na profil nahrávania</string>
     <string name="dvr_ask_note">Pri nahrávaní vybrať profil nahrávania Tvheadendu (priečinok, doba uchovania). Zobrazí sa, len keď server ponúka viac než jeden profil.</string>
     <string name="dvr_pick_title">Nahrať do profilu</string>

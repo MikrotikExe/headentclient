@@ -400,6 +400,7 @@
     <string name="hidden_channels">Canais ocultos</string>
     <string name="fav_reorder">Reordenar favoritos</string>
     <string name="fav_reorder_hint">Reordenar: OK pegar/soltar · ▲▼ mover · VOLTAR concluir</string>
+    <string name="fav_reorder_row_hint">Reordenar: OK pegar/soltar · ◀▶ mover · VOLTAR concluir</string>
     <string name="fav_reorder_grabbed">A mover: %1$s</string>
     <string name="ch_unhide_player">Mostrar canal</string>
     <string name="fav_reorder_row">▲▼ mover · OK soltar</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Ecrã inicial (TV)</string>
     <string name="tile_list_title">Os mosaicos Canais de TV e Rádio abrem a lista</string>
     <string name="tile_list_note">O último canal inicia como antes e a lista de canais ou estações abre-se logo por cima.</string>
+    <string name="tile_mode_title">Blocos Canais de TV e Rádio</string>
+    <string name="tile_mode_play">Iniciar o último canal</string>
+    <string name="tile_mode_list">Iniciar o último canal e abrir a lista por cima</string>
+    <string name="tile_mode_only">Abrir apenas a lista de canais</string>
+    <string name="tile_mode_note">Só lista: o bloco abre a lista de canais ou estações da app como no telemóvel – nada toca até escolher um canal, BACK volta ao ecrã inicial. O último canal ao iniciar, os atalhos e a fila de favoritos não mudam.</string>
     <string name="dvr_ask_title">Perguntar o perfil de gravação</string>
     <string name="dvr_ask_note">Ao gravar, escolher o perfil de gravação do Tvheadend (pasta, retenção). Só aparece se o servidor oferecer mais do que um perfil.</string>
     <string name="dvr_pick_title">Gravar no perfil</string>

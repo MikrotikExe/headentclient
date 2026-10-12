@@ -400,6 +400,7 @@
     <string name="hidden_channels">Скрытые каналы</string>
     <string name="fav_reorder">Упорядочить избранное</string>
     <string name="fav_reorder_hint">Порядок: OK взять/отпустить · ▲▼ переместить · НАЗАД готово</string>
+    <string name="fav_reorder_row_hint">Порядок: OK взять/отпустить · ◀▶ переместить · НАЗАД готово</string>
     <string name="fav_reorder_grabbed">Перемещение: %1$s</string>
     <string name="ch_unhide_player">Показать канал</string>
     <string name="fav_reorder_row">▲▼ переместить · OK отпустить</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Главный экран (TV)</string>
     <string name="tile_list_title">Плитки «ТВ-каналы» и «Радио» открывают список</string>
     <string name="tile_list_note">Последний канал запускается как раньше, и поверх него сразу открывается список каналов или станций.</string>
+    <string name="tile_mode_title">Плитки ТВ-каналы и Радио</string>
+    <string name="tile_mode_play">Запустить последний канал</string>
+    <string name="tile_mode_list">Запустить последний канал и открыть над ним список</string>
+    <string name="tile_mode_only">Открыть только список каналов</string>
+    <string name="tile_mode_note">Только список: плитка открывает список каналов или станций приложения, как на телефоне – ничего не играет, пока не выбран канал, BACK возвращает на главный экран. Последний канал после запуска, ярлыки и ряд избранного не меняются.</string>
     <string name="dvr_ask_title">Спрашивать профиль записи</string>
     <string name="dvr_ask_note">При записи выбирать профиль записи Tvheadend (папка, срок хранения). Показывается, только если сервер предлагает несколько профилей.</string>
     <string name="dvr_pick_title">Записать в профиль</string>

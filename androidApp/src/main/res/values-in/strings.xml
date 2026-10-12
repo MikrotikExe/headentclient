@@ -400,6 +400,7 @@
     <string name="hidden_channels">Saluran tersembunyi</string>
     <string name="fav_reorder">Urutkan favorit</string>
     <string name="fav_reorder_hint">Urutkan: OK ambil/lepas · ▲▼ pindah · BACK selesai</string>
+    <string name="fav_reorder_row_hint">Urutkan: OK ambil/lepas · ◀▶ pindah · BACK selesai</string>
     <string name="fav_reorder_grabbed">Memindahkan: %1$s</string>
     <string name="ch_unhide_player">Tampilkan saluran</string>
     <string name="fav_reorder_row">▲▼ pindah · OK lepas</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Layar utama (TV)</string>
     <string name="tile_list_title">Ubin Saluran TV dan Radio membuka daftar</string>
     <string name="tile_list_note">Saluran terakhir diputar seperti biasa dan daftar saluran atau stasiun langsung terbuka di atasnya.</string>
+    <string name="tile_mode_title">Ubin Saluran TV dan Radio</string>
+    <string name="tile_mode_play">Mulai saluran terakhir</string>
+    <string name="tile_mode_list">Mulai saluran terakhir dan buka daftar di atasnya</string>
+    <string name="tile_mode_only">Hanya buka daftar saluran</string>
+    <string name="tile_mode_note">Hanya daftar: ubin membuka daftar saluran atau stasiun aplikasi seperti di ponsel – tidak ada yang diputar sampai Anda memilih saluran, BACK kembali ke layar beranda. Saluran terakhir setelah mulai, pintasan, dan baris favorit tidak berubah.</string>
     <string name="dvr_ask_title">Tanyakan profil perekaman</string>
     <string name="dvr_ask_note">Saat merekam, pilih profil perekaman Tvheadend (folder, masa simpan). Hanya tampil jika server menawarkan lebih dari satu profil.</string>
     <string name="dvr_pick_title">Rekam ke profil</string>

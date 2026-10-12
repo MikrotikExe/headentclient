@@ -103,6 +103,8 @@ fun RadioScreen(vm: RadioViewModel = viewModel(), resetSignal: Int = 0, onGoToNa
     var epgFor by remember { mutableStateOf<ChannelRow?>(null) }
     var showGrid by remember { mutableStateOf(false) }   // M587: the TV guide grid for radios
     var favTick by remember { mutableStateOf(0) }
+    val favRev by Favorites.revision.collectAsState()   // M723
+    LaunchedEffect(favRev) { if (favRev > 0) favTick++ }
     var lockTick by remember { mutableStateOf(0) }
     var hiddenTick by remember { mutableStateOf(0) }
     var viewMode by remember { mutableStateOf(RadioViewPref.get(context)) }

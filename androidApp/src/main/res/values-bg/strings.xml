@@ -400,6 +400,7 @@
     <string name="hidden_channels">Скрити канали</string>
     <string name="fav_reorder">Подреди любимите</string>
     <string name="fav_reorder_hint">Подреждане: OK хвани/пусни · ▲▼ премести · НАЗАД готово</string>
+    <string name="fav_reorder_row_hint">Подреждане: OK хвани/пусни · ◀▶ премести · НАЗАД готово</string>
     <string name="fav_reorder_grabbed">Преместване: %1$s</string>
     <string name="ch_unhide_player">Покажи канала</string>
     <string name="fav_reorder_row">▲▼ премести · OK пусни</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Начален екран (TV)</string>
     <string name="tile_list_title">Плочките ТВ канали и Радио отварят списъка</string>
     <string name="tile_list_note">Последният канал стартира както досега и списъкът с канали или станции се отваря веднага върху него.</string>
+    <string name="tile_mode_title">Плочки ТВ канали и Радио</string>
+    <string name="tile_mode_play">Пусни последния канал</string>
+    <string name="tile_mode_list">Пусни последния канал и отвори списъка върху него</string>
+    <string name="tile_mode_only">Отвори само списъка с канали</string>
+    <string name="tile_mode_note">Само списък: плочката отваря списъка с канали или станции на приложението като на телефон – нищо не се възпроизвежда, докато не избереш канал, BACK връща към началния екран. Последният канал след стартиране, преките пътища и редът с любими не се променят.</string>
     <string name="dvr_ask_title">Питай за профила за запис</string>
     <string name="dvr_ask_note">При запис избери профила за запис на Tvheadend (папка, съхранение). Показва се само когато сървърът предлага повече от един профил.</string>
     <string name="dvr_pick_title">Запис в профил</string>

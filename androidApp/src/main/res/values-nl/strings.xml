@@ -400,6 +400,7 @@
     <string name="hidden_channels">Verborgen zenders</string>
     <string name="fav_reorder">Favorieten ordenen</string>
     <string name="fav_reorder_hint">Ordenen: OK pakken/loslaten · ▲▼ verplaatsen · TERUG klaar</string>
+    <string name="fav_reorder_row_hint">Ordenen: OK pakken/loslaten · ◀▶ verplaatsen · TERUG klaar</string>
     <string name="fav_reorder_grabbed">Verplaatsen: %1$s</string>
     <string name="ch_unhide_player">Zender tonen</string>
     <string name="fav_reorder_row">▲▼ verplaatsen · OK loslaten</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Startscherm (TV)</string>
     <string name="tile_list_title">Tegels TV-zenders en Radio openen de lijst</string>
     <string name="tile_list_note">De laatste zender start zoals voorheen en de zender- of stationslijst gaat er meteen overheen open.</string>
+    <string name="tile_mode_title">Tegels TV-zenders en Radio</string>
+    <string name="tile_mode_play">Laatste zender starten</string>
+    <string name="tile_mode_list">Laatste zender starten en de lijst erover openen</string>
+    <string name="tile_mode_only">Alleen de zenderlijst openen</string>
+    <string name="tile_mode_note">Alleen lijst: de tegel opent de zender- of stationslijst van de app zoals op een telefoon – er speelt niets tot je een zender kiest, BACK gaat terug naar het startscherm. Laatste zender na het opstarten, snelkoppelingen en de favorietenrij veranderen niet.</string>
     <string name="dvr_ask_title">Vragen om het opnameprofiel</string>
     <string name="dvr_ask_note">Bij opnemen het Tvheadend-opnameprofiel kiezen (map, bewaartermijn). Alleen zichtbaar als de server meer dan één profiel aanbiedt.</string>
     <string name="dvr_pick_title">Opnemen in profiel</string>

@@ -324,9 +324,21 @@ private fun TvHomeHost() {
     }
     var lastTile by remember { mutableStateOf("channels") }
     var play by remember { mutableStateOf("") }
+    // M723 (issue #7): the programme of one channel from the favourites-row menu (section "chepg")
+    var chEpg by remember { mutableStateOf<Pair<String, String>?>(null) }
     // M605: the option "tiles open the list" — the player opens with the list open
     // over the last channel playing (the TV channels / Radios tiles, the restore after startup)
     var tileListFirst by remember { mutableStateOf(false) }
+    // M723 (issue #14): the TV channels / Radio tile by the three-way option (TileListPref):
+    // the player with the last channel, the player with the list over it, or the list screen only
+    fun openChannelsTile() {
+        if (TileListPref.listOnly(ctx)) { play = ""; chVm.loadIfNeeded(); section = "channels" }
+        else { tileListFirst = TileListPref.get(ctx); chVm.loadIfNeeded(); play = "tv" }
+    }
+    fun openRadioTile() {
+        if (TileListPref.listOnly(ctx)) { play = ""; raVm.load(); chVm.loadIfNeeded(); section = "radio" }
+        else { tileListFirst = TileListPref.get(ctx); raVm.load(); chVm.loadIfNeeded(); play = "radio" }
+    }
     // M613: coloured buttons on the remote on TV as well — red Channels, green Radio,
     // yellow Archive, blue Settings. Until now they were handled only by the phone host
     // (AppMain); on TV the signal from MainActivity.dispatchKeyEvent was never consumed,
@@ -339,11 +351,11 @@ private fun TvHomeHost() {
         when (t) {
             0 -> {   // Channels: the player with the last channel (the same as the tile)
                 lastTile = "channels"; section = ""
-                tileListFirst = TileListPref.get(ctx); chVm.loadIfNeeded(); play = "tv"
+                openChannelsTile()
             }
             1 -> {   // Radio
                 lastTile = "radio"; section = ""
-                tileListFirst = TileListPref.get(ctx); raVm.load(); chVm.loadIfNeeded(); play = "radio"
+                openRadioTile()
             }
             2 -> { lastTile = "archive"; play = ""; section = "archive" }
             3 -> { lastTile = "settings"; play = ""; section = "settings" }
@@ -596,6 +608,28 @@ private fun TvHomeHost() {
                 CenterLoading()
             }
         }
+        section == "chepg" && chEpg != null -> {
+            val (u, n) = chEpg!!
+            androidx.activity.compose.BackHandler { section = "" }
+            androidx.compose.material3.Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = androidx.compose.material3.MaterialTheme.colorScheme.background
+            ) {
+                EpgScreen(channelUuid = u, channelName = n, onBack = { section = "" })
+            }
+        }
+        section == "channels" || section == "radio" -> {
+            // M723 (issue #14): "the tile opens the channel list only" — the same list screen as on a
+            // phone (groups, search, now/next, long OK = the channel menu); the player starts only
+            // after a channel is chosen, BACK returns to home
+            androidx.activity.compose.BackHandler { section = "" }
+            androidx.compose.material3.Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = androidx.compose.material3.MaterialTheme.colorScheme.background
+            ) {
+                if (section == "channels") ChannelsScreen() else RadioScreen()
+            }
+        }
         section == "archive" -> {
             TvArchiveScreen(onBack = { section = "" })
         }
@@ -677,8 +711,9 @@ private fun TvHomeHost() {
                             LivePlaylist.setIndexForUuid(uuid)
                             playUuid(uuid, title)
                         },
-                        onChannels = { lastTile = "channels"; tileListFirst = TileListPref.get(ctx); chVm.loadIfNeeded(); play = "tv" },   // M531, M605
-                        onRadio = { lastTile = "radio"; tileListFirst = TileListPref.get(ctx); raVm.load(); chVm.loadIfNeeded(); play = "radio" },   // M531, M605-fix
+                        onProgram = { uuid, name -> chEpg = uuid to name; section = "chepg" },   // M723
+                        onChannels = { lastTile = "channels"; openChannelsTile() },   // M531, M605, M723
+                        onRadio = { lastTile = "radio"; openRadioTile() },   // M531, M605-fix, M723
                         onTvProgram = { lastTile = "epg"; section = "epg" },
                         onArchive = { lastTile = "archive"; section = "archive" },
                         onSettings = { lastTile = "settings"; section = "settings" },
@@ -686,8 +721,8 @@ private fun TvHomeHost() {
                 } else {
                 TvHomeScreen(   // during a pending (play) the launcher stays visible until the player comes up
                     focusKey = lastTile,
-                    onChannels = { lastTile = "channels"; tileListFirst = TileListPref.get(ctx); chVm.loadIfNeeded(); play = "tv" },   // M531, M605
-                    onRadio = { lastTile = "radio"; tileListFirst = TileListPref.get(ctx); raVm.load(); chVm.loadIfNeeded(); play = "radio" },   // M531, M605-fix
+                    onChannels = { lastTile = "channels"; openChannelsTile() },   // M531, M605, M723
+                    onRadio = { lastTile = "radio"; openRadioTile() },   // M531, M605-fix, M723
                     onTvProgram = { lastTile = "epg"; section = "epg" },
                     onArchive = { lastTile = "archive"; section = "archive" },
                     onSettings = { lastTile = "settings"; section = "settings" },

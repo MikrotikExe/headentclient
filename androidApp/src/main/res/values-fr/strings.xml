@@ -400,6 +400,7 @@
     <string name="hidden_channels">Chaînes masquées</string>
     <string name="fav_reorder">Réorganiser les favoris</string>
     <string name="fav_reorder_hint">Réorganiser : OK saisir/déposer · ▲▼ déplacer · RETOUR terminer</string>
+    <string name="fav_reorder_row_hint">Réorganiser : OK saisir/déposer · ◀▶ déplacer · RETOUR terminer</string>
     <string name="fav_reorder_grabbed">Déplacement : %1$s</string>
     <string name="ch_unhide_player">Afficher la chaîne</string>
     <string name="fav_reorder_row">▲▼ déplacer · OK déposer</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Écran d’accueil (TV)</string>
     <string name="tile_list_title">Les tuiles Chaînes TV et Radio ouvrent la liste</string>
     <string name="tile_list_note">La dernière chaîne démarre comme avant et la liste des chaînes ou des stations s’ouvre aussitôt par-dessus.</string>
+    <string name="tile_mode_title">Tuiles Chaînes TV et Radio</string>
+    <string name="tile_mode_play">Lancer la dernière chaîne</string>
+    <string name="tile_mode_list">Lancer la dernière chaîne et ouvrir la liste par-dessus</string>
+    <string name="tile_mode_only">Ouvrir seulement la liste des chaînes</string>
+    <string name="tile_mode_note">Liste seule : la tuile ouvre la liste des chaînes ou stations de l\'app comme sur un téléphone – rien ne joue tant qu\'une chaîne n\'est pas choisie, BACK revient à l\'accueil. La dernière chaîne au démarrage, les raccourcis et la ligne des favoris ne changent pas.</string>
     <string name="dvr_ask_title">Demander le profil d’enregistrement</string>
     <string name="dvr_ask_note">Lors de l’enregistrement, choisir le profil d’enregistrement Tvheadend (dossier, conservation). Affiché seulement si le serveur propose plusieurs profils.</string>
     <string name="dvr_pick_title">Enregistrer dans le profil</string>

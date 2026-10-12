@@ -400,6 +400,7 @@
     <string name="hidden_channels">Canali nascosti</string>
     <string name="fav_reorder">Riordina preferiti</string>
     <string name="fav_reorder_hint">Riordina: OK prendi/rilascia · ▲▼ sposta · INDIETRO fine</string>
+    <string name="fav_reorder_row_hint">Riordina: OK prendi/rilascia · ◀▶ sposta · INDIETRO fine</string>
     <string name="fav_reorder_grabbed">Spostamento: %1$s</string>
     <string name="ch_unhide_player">Mostra canale</string>
     <string name="fav_reorder_row">▲▼ sposta · OK rilascia</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">Schermata iniziale (TV)</string>
     <string name="tile_list_title">I riquadri Canali TV e Radio aprono l’elenco</string>
     <string name="tile_list_note">L’ultimo canale parte come prima e l’elenco dei canali o delle stazioni si apre subito sopra.</string>
+    <string name="tile_mode_title">Riquadri Canali TV e Radio</string>
+    <string name="tile_mode_play">Avvia l\'ultimo canale</string>
+    <string name="tile_mode_list">Avvia l\'ultimo canale e apri la lista sopra</string>
+    <string name="tile_mode_only">Apri solo la lista dei canali</string>
+    <string name="tile_mode_note">Solo lista: il riquadro apre la lista dei canali o delle stazioni dell\'app come su un telefono – non parte nulla finché non scegli un canale, BACK torna alla schermata iniziale. L\'ultimo canale all\'avvio, le scorciatoie e la riga dei preferiti non cambiano.</string>
     <string name="dvr_ask_title">Chiedi il profilo di registrazione</string>
     <string name="dvr_ask_note">Durante la registrazione scegli il profilo di registrazione Tvheadend (cartella, conservazione). Mostrato solo se il server offre più profili.</string>
     <string name="dvr_pick_title">Registra nel profilo</string>

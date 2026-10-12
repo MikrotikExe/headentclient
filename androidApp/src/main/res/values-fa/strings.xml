@@ -400,6 +400,7 @@
     <string name="hidden_channels">کانال‌های پنهان</string>
     <string name="fav_reorder">مرتب‌سازی علاقه‌مندی‌ها</string>
     <string name="fav_reorder_hint">مرتب‌سازی: OK گرفتن/رها کردن · ▲▼ جابه‌جایی · بازگشت پایان</string>
+    <string name="fav_reorder_row_hint">مرتب‌سازی: OK گرفتن/رها کردن · ◀▶ جابه‌جایی · بازگشت پایان</string>
     <string name="fav_reorder_grabbed">جابه‌جایی: %1$s</string>
     <string name="ch_unhide_player">نمایش کانال</string>
     <string name="fav_reorder_row">▲▼ جابه‌جایی · OK رها کردن</string>
@@ -422,6 +423,11 @@
     <string name="tile_list_group">صفحهٔ اصلی (TV)</string>
     <string name="tile_list_title">کاشی‌های کانال‌های تلویزیون و رادیو فهرست را باز می‌کنند</string>
     <string name="tile_list_note">آخرین کانال مانند قبل شروع می‌شود و فهرست کانال‌ها یا ایستگاه‌ها بلافاصله روی آن باز می‌شود.</string>
+    <string name="tile_mode_title">کاشی‌های کانال‌های تلویزیون و رادیو</string>
+    <string name="tile_mode_play">پخش آخرین کانال</string>
+    <string name="tile_mode_list">پخش آخرین کانال و باز کردن فهرست روی آن</string>
+    <string name="tile_mode_only">فقط باز کردن فهرست کانال‌ها</string>
+    <string name="tile_mode_note">فقط فهرست: کاشی فهرست کانال‌ها یا ایستگاه‌های برنامه را مانند تلفن باز می‌کند – تا کانالی انتخاب نکنید چیزی پخش نمی‌شود، BACK به صفحهٔ اصلی برمی‌گردد. آخرین کانال پس از شروع، میان‌برها و ردیف علاقه‌مندی‌ها تغییر نمی‌کنند.</string>
     <string name="dvr_ask_title">پرسیدن نمایهٔ ضبط</string>
     <string name="dvr_ask_note">هنگام ضبط، نمایهٔ ضبط Tvheadend را انتخاب کنید (پوشه، مدت نگهداری). فقط زمانی نمایش داده می‌شود که سرور بیش از یک نمایه ارائه دهد.</string>
     <string name="dvr_pick_title">ضبط در نمایه</string>
