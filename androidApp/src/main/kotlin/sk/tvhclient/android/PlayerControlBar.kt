@@ -49,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -225,16 +226,28 @@ internal fun PlayerControlsOverlay(
                             )
                             Spacer(Modifier.width(8.dp))
                             if (onTogglePin != null) {
-                                // filled = pinned (the panel stays), outlined = normal auto-hide (Material convention)
-                                androidx.compose.material3.Icon(
-                                    if (pinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
-                                    contentDescription = null,
-                                    tint = if (pinned) playerFg() else playerFgDim(),
-                                    modifier = Modifier
-                                        .clickable(onClick = onTogglePin)
-                                        .padding(8.dp)
-                                        .size((18 * k).dp)
-                                )
+                                // filled = pinned (the panel stays), outlined = normal auto-hide (Material convention).
+                                // A 48 dp touch target, but the row keeps the icon's height: the box is
+                                // laid out as tall as the icon and centred over it, so the panel doesn't grow.
+                                val pinIcon = (18 * k).dp
+                                Box(
+                                    Modifier
+                                        .layout { measurable, constraints ->
+                                            val p = measurable.measure(constraints)
+                                            val h = pinIcon.roundToPx()
+                                            layout(p.width, h) { p.place(0, (h - p.height) / 2) }
+                                        }
+                                        .size(48.dp)
+                                        .clickable(onClick = onTogglePin),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    androidx.compose.material3.Icon(
+                                        if (pinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                                        contentDescription = null,
+                                        tint = if (pinned) playerFg() else playerFgDim(),
+                                        modifier = Modifier.size(pinIcon)
+                                    )
+                                }
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
