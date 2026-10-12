@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.SettingsRemote
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.automirrored.filled.Dvr
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LiveTv
@@ -1193,6 +1194,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
             "plock" to androidx.compose.ui.focus.FocusRequester(),
             "servers" to androidx.compose.ui.focus.FocusRequester(),
             "remote" to androidx.compose.ui.focus.FocusRequester(),
+            "advanced" to androidx.compose.ui.focus.FocusRequester(),   // M724
             "info" to androidx.compose.ui.focus.FocusRequester()
         )
     }
@@ -1261,6 +1263,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
                 restoreEditFocus = editRestoreFocus,
                 addFocus = addRestoreFocus)
             "remote" -> RemoteSettings(ctx, servers, activeId)
+            "advanced" -> AdvancedSettings(ctx)   // M724
             "info" -> InfoSettings(ctx, servers, activeId) { legalDoc = it }
             else -> {}
         }
@@ -1275,6 +1278,7 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
             "plock" -> stringResource(R.string.plock_title)
             "servers" -> stringResource(R.string.set_cat_servers)
             "remote" -> stringResource(R.string.set_cat_remote)
+            "advanced" -> stringResource(R.string.set_cat_advanced)   // M724
             "info" -> stringResource(R.string.set_cat_info)
             else -> stringResource(R.string.tab_settings)
         }
@@ -1340,6 +1344,10 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
                         subtitle = stringResource(R.string.set_sub_remote),
                         chipBgL = 0xFFFFECCC, chipFgL = 0xFFC07A17, chipBgD = 0xFF3A2B12, chipFgD = 0xFFE8B96A
                     ) { lastSection = "remote"; section = "remote" }
+                    SettingsNavItem(Icons.Filled.Build, stringResource(R.string.set_cat_advanced), effective == "advanced", catFocus["advanced"],   // M724
+                        subtitle = stringResource(R.string.set_sub_advanced),
+                        chipBgL = 0xFFECEFF4, chipFgL = 0xFF5A6678, chipBgD = 0xFF262C36, chipFgD = 0xFFB4BFCF
+                    ) { lastSection = "advanced"; section = "advanced" }
                     SettingsNavItem(Icons.Filled.Info, stringResource(R.string.set_cat_info), effective == "info", catFocus["info"],
                         subtitle = stringResource(R.string.set_sub_info),
                         badge = BuildConfig.VERSION_NAME,
@@ -1401,6 +1409,10 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
                         icon = Icons.Filled.SettingsRemote, subtitle = stringResource(R.string.set_sub_remote),
                         chipBgL = 0xFFFFECCC, chipFgL = 0xFFC07A17, chipBgD = 0xFF3A2B12, chipFgD = 0xFFE8B96A
                     ) { lastSection = "remote"; section = "remote" }
+                    SettingsCategory(stringResource(R.string.set_cat_advanced), catFocus["advanced"],   // M724
+                        icon = Icons.Filled.Build, subtitle = stringResource(R.string.set_sub_advanced),
+                        chipBgL = 0xFFECEFF4, chipFgL = 0xFF5A6678, chipBgD = 0xFF262C36, chipFgD = 0xFFB4BFCF
+                    ) { lastSection = "advanced"; section = "advanced" }
                     SettingsCategory(stringResource(R.string.set_cat_info), catFocus["info"],
                         icon = Icons.Filled.Info, subtitle = stringResource(R.string.set_sub_info),
                         badge = BuildConfig.VERSION_NAME,

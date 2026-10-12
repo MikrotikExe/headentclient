@@ -251,6 +251,42 @@ internal class VlcEngine(
             }
         }
 
+        /** M724: the current audio track and the demux bitrate for the info window. */
+        data class AudioInfo(val codec: String?, val channels: Int, val rate: Int, val bitrateKbps: Int)
+
+        /**
+         * M724: reads the current audio track (codec, channels, sample rate) and the demux bitrate
+         * OFF the main thread (the same locking as [videoInfoAsync]); null = not readable.
+         */
+        fun audioInfoAsync(mp: MediaPlayer, onResult: (AudioInfo?) -> Unit) {
+            runCatching {
+                queryExec.execute {
+                    val rl = nativeCallLock.readLock()
+                    rl.lock()
+                    val info = try {
+                        runCatching {
+                            val m = mp.media ?: return@runCatching null
+                            try {
+                                val id = mp.audioTrack
+                                var codec: String? = null; var ch = 0; var rate = 0
+                                for (i in 0 until m.trackCount) {
+                                    val t = m.getTrack(i) ?: continue
+                                    if (t.type != org.videolan.libvlc.interfaces.IMedia.Track.Type.Audio) continue
+                                    val at = t as? org.videolan.libvlc.interfaces.IMedia.AudioTrack ?: continue
+                                    if (id >= 0 && t.id != id && codec != null) continue
+                                    codec = t.codec; ch = at.channels; rate = at.rate
+                                    if (t.id == id) break
+                                }
+                                val kbps = runCatching { (m.stats?.demuxBitrate ?: 0f) * 8000f }.getOrDefault(0f).toInt()
+                                AudioInfo(codec, ch, rate, kbps)
+                            } finally { runCatching { m.release() } }
+                        }.getOrNull()
+                    } finally { rl.unlock() }
+                    mainHandler.post { onResult(info) }
+                }
+            }
+        }
+
         /**
          * M622: safe release of libVLC from the worker thread.
          *

@@ -723,34 +723,7 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
     // Default screen rotation in the player — makes no sense on TV/STB, hide it
     val isTvDev = remember { isTvUiMode(ctx) }   // M679
     SettingsGroup(stringResource(R.string.set_grp_video)) {
-    // M722 (issue #23): the decoder mode — the three modes of the VLC app (replaces the M447
-    // "software decoding" switch, which lives on as the OFF mode)
     run {
-        var hw by remember { mutableStateOf(HwDecodePref.get(ctx)) }
-        val hwLabel: @Composable (String) -> String = { v ->
-            when (v) {
-                HwDecodePref.DECODE -> stringResource(R.string.hw_decode_decode)
-                HwDecodePref.OFF -> stringResource(R.string.hw_decode_off)
-                else -> stringResource(R.string.orient_auto)
-            }
-        }
-        DropdownField(
-            label = stringResource(R.string.hw_decode_title),
-            value = hw,
-            options = HwDecodePref.options,
-            optionLabel = hwLabel,
-            onSelect = { v ->
-                hw = v
-                HwDecodePref.set(ctx, v)
-                TabController.settingsDirty.value = true
-            }
-        )
-        Text(
-            stringResource(R.string.hw_decode_note),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.dpadReadable().padding(horizontal = 8.dp, vertical = 4.dp)
-        )
         // MPEG-2 (SD) in software for a sharp, deinterlaced picture (Dream Player's default)
         var mpeg2 by remember { mutableStateOf(Mpeg2SoftwarePref.get(ctx)) }
         SettingsSwitchRow(
@@ -779,20 +752,6 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
             }
         )
         if (afr && isTvDev) {
-            var afrDelay by remember { mutableStateOf(AfrDelayPref.get(ctx)) }
-            DropdownField(
-                label = stringResource(R.string.afr_delay_title),
-                value = afrDelay.toString(),
-                options = AfrDelayPref.options.map { it.toString() },
-                optionLabel = { v ->
-                    if (v == "0") stringResource(R.string.sleep_off) else "$v s"
-                },
-                onSelect = { v ->
-                    afrDelay = v.toIntOrNull() ?: 2
-                    AfrDelayPref.set(ctx, afrDelay)
-                    TabController.settingsDirty.value = true
-                }
-            )
             // Switching into HDR: turning it off limits AFR to a smooth frame rate
             // change (without an HDMI re-sync), so the box does not flip into HDR.
             var hdrSwitch by remember { mutableStateOf(AfrHdrSwitchPref.get(ctx)) }
@@ -831,60 +790,6 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         )
         SettingsGroupDivider()
     }
-
-    // Deinterlacing — removes comb bands (combing) on interlaced DVB
-    // video in fast shots. AUTO deinterlaces only when needed.
-    // M406: network buffer size — bigger = more resilient on wifi/mobile (fewer stutters)
-    run {
-        var buf by remember { mutableStateOf(BufferPref.get(ctx)) }
-        val bufLabel: @Composable (String) -> String = { v ->
-            when (v) {
-                BufferPref.SMALL -> stringResource(R.string.buf_small)
-                BufferPref.LARGE -> stringResource(R.string.buf_large)
-                else -> stringResource(R.string.buf_medium)
-            }
-        }
-        DropdownField(
-            label = stringResource(R.string.buf_title),
-            value = buf,
-            options = BufferPref.options,
-            optionLabel = bufLabel,
-            onSelect = { v ->
-                buf = v
-                BufferPref.set(ctx, v)
-                TabController.settingsDirty.value = true
-            }
-        )
-        Text(
-            stringResource(R.string.buf_note),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.dpadReadable().padding(horizontal = 8.dp, vertical = 4.dp)
-        )
-    }
-
-    var deint by remember { mutableStateOf(DeinterlacePref.get(ctx)) }
-    val deintLabel: @Composable (String) -> String = { v ->
-        when (v) {
-            DeinterlacePref.OFF -> stringResource(R.string.track_off)
-            DeinterlacePref.BOB -> "Bob"
-            DeinterlacePref.YADIF -> "Yadif"
-            DeinterlacePref.YADIF2X -> "Yadif (2x)"
-            DeinterlacePref.X -> "X"
-            else -> stringResource(R.string.orient_auto)
-        }
-    }
-    DropdownField(
-        label = stringResource(R.string.deint_title),
-        value = deint,
-        options = DeinterlacePref.options,
-        optionLabel = deintLabel,
-        onSelect = { v ->
-            deint = v
-            DeinterlacePref.set(ctx, v)
-            TabController.settingsDirty.value = true
-        }
-    )
 
     // Audio output — deals with drifting / delayed audio. PASSTHROUGH
     // (direct transport) sends the audio straight to the TV/AVR (fixes sync on some boxes).
@@ -1020,27 +925,6 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
         )
     }
 
-    }
-    SettingsGroup(stringResource(R.string.set_grp_maintenance)) {
-    // M272: manual refresh of the channel list, EPG and picons — clears the cache and downloads afresh.
-    val reloadDone = stringResource(R.string.reload_data_done)
-    OutlinedButton(onClick = {
-        val srv = sk.tvhclient.shared.Tvh.store.active()
-        LivePlaylist.clearEpg()
-        LivePlaylist.channels = emptyList()
-        if (srv != null) EpgCache.clearLive(ctx, srv.id)
-        PiconImageLoader.clearCache(ctx, srv)
-        TabController.dataReload.value++
-        android.widget.Toast.makeText(ctx, reloadDone, android.widget.Toast.LENGTH_SHORT).show()
-    }) {
-        Text(stringResource(R.string.reload_data_title))
-    }
-    Spacer(Modifier.height(8.dp))
-    Text(
-        stringResource(R.string.reload_data_note),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
     }
 }
 
@@ -1204,15 +1088,6 @@ internal fun RemoteSettings(
     servers: List<TvhServer>,
     activeId: String?
 ) {
-    SettingsGroup(stringResource(R.string.remote_debug_title), classicTitle = true) {
-    var on by remember { mutableStateOf(RemoteDebugPref.isEnabled(ctx)) }
-    SettingsSwitchRow(
-        label = stringResource(R.string.remote_debug_enable),
-        note = stringResource(R.string.remote_debug_note),
-        checked = on,
-        onChange = { v -> on = v; RemoteDebugPref.setEnabled(ctx, v) }
-    )
-    }
     // M596: switch the channel with a single OK (modern and classic mode)
     SettingsGroup(stringResource(R.string.one_ok_title), classicTitle = true) {
         var oneOk by remember { mutableStateOf(OneOkPref.get(ctx)) }
@@ -1308,6 +1183,148 @@ internal fun InfoSettings(
     InfoLinkRow(stringResource(R.string.terms_of_use)) { onOpenDoc(LegalText.terms(lang)) }
     }
 
+}
+
+/**
+ * M724: Settings → Advanced — the settings that normally need no change (a wrong value spoils the
+ * picture or slows playback down) and the diagnostics, collected from Playback, Remote control and
+ * Information. The stored keys are untouched, only the place in the settings changed.
+ */
+@Composable
+internal fun AdvancedSettings(ctx: android.content.Context) {
+    val isTvDev = remember { isTvUiMode(ctx) }
+    SettingsGroup(null) {
+        Text(
+            stringResource(R.string.set_adv_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.dpadReadable().padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+    // --- player: decoder, deinterlacing, buffer, AFR delay ---
+    SettingsGroup(stringResource(R.string.set_grp_player)) {
+    run {
+        var hw by remember { mutableStateOf(HwDecodePref.get(ctx)) }
+        val hwLabel: @Composable (String) -> String = { v ->
+            when (v) {
+                HwDecodePref.DECODE -> stringResource(R.string.hw_decode_decode)
+                HwDecodePref.OFF -> stringResource(R.string.hw_decode_off)
+                else -> stringResource(R.string.orient_auto)
+            }
+        }
+        DropdownField(
+            label = stringResource(R.string.hw_decode_title),
+            value = hw,
+            options = HwDecodePref.options,
+            optionLabel = hwLabel,
+            onSelect = { v ->
+                hw = v
+                HwDecodePref.set(ctx, v)
+                TabController.settingsDirty.value = true
+            }
+        )
+        Text(
+            stringResource(R.string.hw_decode_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.dpadReadable().padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+    SettingsGroupDivider()
+    // Deinterlacing — removes comb bands (combing) on interlaced DVB
+    // video in fast shots. AUTO deinterlaces only when needed.
+    // M406: network buffer size — bigger = more resilient on wifi/mobile (fewer stutters)
+    run {
+        var buf by remember { mutableStateOf(BufferPref.get(ctx)) }
+        val bufLabel: @Composable (String) -> String = { v ->
+            when (v) {
+                BufferPref.SMALL -> stringResource(R.string.buf_small)
+                BufferPref.LARGE -> stringResource(R.string.buf_large)
+                else -> stringResource(R.string.buf_medium)
+            }
+        }
+        DropdownField(
+            label = stringResource(R.string.buf_title),
+            value = buf,
+            options = BufferPref.options,
+            optionLabel = bufLabel,
+            onSelect = { v ->
+                buf = v
+                BufferPref.set(ctx, v)
+                TabController.settingsDirty.value = true
+            }
+        )
+        Text(
+            stringResource(R.string.buf_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.dpadReadable().padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+
+    var deint by remember { mutableStateOf(DeinterlacePref.get(ctx)) }
+    val deintLabel: @Composable (String) -> String = { v ->
+        when (v) {
+            DeinterlacePref.OFF -> stringResource(R.string.track_off)
+            DeinterlacePref.BOB -> "Bob"
+            DeinterlacePref.YADIF -> "Yadif"
+            DeinterlacePref.YADIF2X -> "Yadif (2x)"
+            DeinterlacePref.X -> "X"
+            else -> stringResource(R.string.orient_auto)
+        }
+    }
+    DropdownField(
+        label = stringResource(R.string.deint_title),
+        value = deint,
+        options = DeinterlacePref.options,
+        optionLabel = deintLabel,
+        onSelect = { v ->
+            deint = v
+            DeinterlacePref.set(ctx, v)
+            TabController.settingsDirty.value = true
+        }
+    )
+
+    if (isTvDev) {
+        SettingsGroupDivider()
+        run {
+            var afrDelay by remember { mutableStateOf(AfrDelayPref.get(ctx)) }
+            DropdownField(
+                label = stringResource(R.string.afr_delay_title),
+                value = afrDelay.toString(),
+                options = AfrDelayPref.options.map { it.toString() },
+                optionLabel = { v ->
+                    if (v == "0") stringResource(R.string.sleep_off) else "$v s"
+                },
+                onSelect = { v ->
+                    afrDelay = v.toIntOrNull() ?: 2
+                    AfrDelayPref.set(ctx, afrDelay)
+                    TabController.settingsDirty.value = true
+                }
+            )
+        }
+    }
+    }
+    // --- display: stream details in the info window, key codes ---
+    SettingsGroup(stringResource(R.string.set_grp_display)) {
+        var streamInfo by remember { mutableStateOf(StreamInfoPref.get(ctx)) }
+        SettingsSwitchRow(
+            label = stringResource(R.string.stream_info_title),
+            note = stringResource(R.string.stream_info_note),
+            checked = streamInfo,
+            onChange = { v -> streamInfo = v; StreamInfoPref.set(ctx, v) }
+        )
+        if (isTvDev) {
+            SettingsGroupDivider()
+            var on by remember { mutableStateOf(RemoteDebugPref.isEnabled(ctx)) }
+            SettingsSwitchRow(
+                label = stringResource(R.string.remote_debug_enable),
+                note = stringResource(R.string.remote_debug_note),
+                checked = on,
+                onChange = { v -> on = v; RemoteDebugPref.setEnabled(ctx, v) }
+            )
+        }
+    }
     // Diagnostic log (M353) — show / send / clear
     SettingsGroup(stringResource(R.string.set_grp_diag)) {
     // M448: detailed player log — for diagnosing stuttering/freezing
@@ -1375,6 +1392,27 @@ internal fun InfoSettings(
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
             )
         }
+    }
+    SettingsGroup(stringResource(R.string.set_grp_maintenance)) {
+    // M272: manual refresh of the channel list, EPG and picons — clears the cache and downloads afresh.
+    val reloadDone = stringResource(R.string.reload_data_done)
+    OutlinedButton(onClick = {
+        val srv = sk.tvhclient.shared.Tvh.store.active()
+        LivePlaylist.clearEpg()
+        LivePlaylist.channels = emptyList()
+        if (srv != null) EpgCache.clearLive(ctx, srv.id)
+        PiconImageLoader.clearCache(ctx, srv)
+        TabController.dataReload.value++
+        android.widget.Toast.makeText(ctx, reloadDone, android.widget.Toast.LENGTH_SHORT).show()
+    }) {
+        Text(stringResource(R.string.reload_data_title))
+    }
+    Spacer(Modifier.height(8.dp))
+    Text(
+        stringResource(R.string.reload_data_note),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
     }
 }
 

@@ -80,6 +80,10 @@ object ChannelCodecMemo {
         "hevc", "hvc1", "hev1", "h265" -> "HEVC"
         "vp9", "vp90" -> "VP9"
         "av01", "av1" -> "AV1"
+        "mpga", "mp3", "mp2a" -> "MPEG2AUDIO"   // M724: audio too (the info window)
+        "a52", "a52b" -> "AC3"
+        "eac3" -> "EAC3"
+        "mp4a", "aac" -> "AAC"
         null -> null
         else -> fourcc.uppercase()
     }

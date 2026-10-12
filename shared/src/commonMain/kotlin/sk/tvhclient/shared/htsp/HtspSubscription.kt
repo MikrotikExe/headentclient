@@ -71,7 +71,7 @@ class HtspSubscription internal constructor(
         subDecoder.reset()
     }
 
-    private companion object {
+    internal companion object {
         /** M715: ~5 s of packets of an HD channel; more is dropped (see [fromReader]). */
         const val MAX_PENDING = 512L
         const val RESYNC_MAX_SEC = 3L
@@ -114,6 +114,10 @@ class HtspSubscription internal constructor(
         onTeletextAvailable: (Boolean) -> Unit = {},
         /** M722: the type of the first video track (from subscriptionStart), e.g. "MPEG2VIDEO". */
         onVideoCodec: (String) -> Unit = {},
+        /** M724: the source of the stream (subscriptionStart: sourceinfo + the tracks) for the info window. */
+        onSourceInfo: (HtspSourceInfo) -> Unit = {},
+        /** M724: signalStatus (about once a second) for the info window. */
+        onSignal: (HtspSignal) -> Unit = {},
         /** M552: the teletext PES payload (the TELETEXT track does not go to libVLC, the app decodes it). */
         onTeletext: (ByteArray) -> Unit = {},
         /** M714: subscriptionStatus — [status] text and [error] code (e.g. "noFreeAdapter"); both null = OK again. */
@@ -159,6 +163,7 @@ class HtspSubscription internal constructor(
                         hasVideo = streams.any { it.type in VIDEO_TYPES }   // M715
                         onTeletextAvailable(teletextEs >= 0)
                         streams.firstOrNull { it.type in VIDEO_TYPES }?.let { onVideoCodec(it.type) }   // M722
+                        onSourceInfo(HtspSourceInfo.from(m, sl))   // M724
                         val existing = muxer
                         if (existing == null) {
                             val mx = TsMuxer(streams)
@@ -201,6 +206,15 @@ class HtspSubscription internal constructor(
                         val en = (m["end"] as? Long) ?: 0L
                         onStatus(shift, full, st, en)
                     }
+                    "signalStatus" -> {   // M724
+                        onSignal(HtspSignal(
+                            status = m["feStatus"] as? String,
+                            snr = (m["feSNR"] as? Long)?.toInt() ?: -1,
+                            signal = (m["feSignal"] as? Long)?.toInt() ?: -1,
+                            ber = (m["feBER"] as? Long)?.toInt() ?: -1,
+                            unc = (m["feUNC"] as? Long)?.toInt() ?: -1
+                        ))
+                    }
                     "subscriptionStatus" -> {
                         // M714: sent while the server cannot start the subscription (SMT_NOSTART:
                         // no free tuner, scrambled, bad signal...) and when packets flow again
@@ -224,3 +238,51 @@ class HtspSubscription internal constructor(
         }
     }
 }
+
+/**
+ * M724: what the server says about the stream's source in subscriptionStart (`sourceinfo`, htsp.c)
+ * and the first video / audio track — shown in the player's info window ("Stream" section).
+ */
+data class HtspSourceInfo(
+    val adapter: String?,
+    val network: String?,
+    val mux: String?,
+    val provider: String?,
+    val service: String?,
+    val satpos: String?,
+    val videoType: String?,
+    val width: Int,
+    val height: Int,
+    val audioType: String?,
+    val audioChannels: Int,
+    val audioRate: Int
+) {
+    companion object {
+        /** HTSP `rate` of an audio track is the MPEG sample-rate index (es_sri). */
+        private val SRI = intArrayOf(96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350)
+
+        fun from(m: Map<String, Any?>, streams: List<Any?>): HtspSourceInfo {
+            val si = m["sourceinfo"] as? Map<*, *>
+            fun s(k: String) = (si?.get(k) as? String)?.takeIf { it.isNotBlank() }
+            val maps = streams.mapNotNull { it as? Map<*, *> }
+            val v = maps.firstOrNull { (it["type"] as? String) in HtspSubscription.VIDEO_TYPES }
+            val a = maps.firstOrNull { (it["type"] as? String) in AUDIO_TYPES }
+            val sri = (a?.get("rate") as? Long)?.toInt() ?: -1
+            return HtspSourceInfo(
+                adapter = s("adapter"), network = s("network"), mux = s("mux"),
+                provider = s("provider"), service = s("service"), satpos = s("satpos"),
+                videoType = v?.get("type") as? String,
+                width = (v?.get("width") as? Long)?.toInt() ?: 0,
+                height = (v?.get("height") as? Long)?.toInt() ?: 0,
+                audioType = a?.get("type") as? String,
+                audioChannels = (a?.get("channels") as? Long)?.toInt() ?: 0,
+                audioRate = if (sri in SRI.indices) SRI[sri] else 0
+            )
+        }
+
+        val AUDIO_TYPES = setOf("MPEG2AUDIO", "AC3", "EAC3", "AAC", "AAC-LATM", "VORBIS", "OPUS", "AC4")
+    }
+}
+
+/** M724: HTSP signalStatus. [snr] and [signal] are relative 0..65535 (as Kodi shows them, in %), -1 = unknown. */
+data class HtspSignal(val status: String?, val snr: Int, val signal: Int, val ber: Int, val unc: Int)

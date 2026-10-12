@@ -52,6 +52,9 @@ internal class StreamOpener(
         fun fallbackTitle(): String?
         /** M722: the video codec of the live stream is known (HTSP subscriptionStart) — any thread. */
         fun onVideoCodec(codec: String)
+        /** M724: the HTSP stream source / signal for the info window — any thread; null = a new stream starts. */
+        fun onSourceInfo(info: sk.tvhclient.shared.htsp.HtspSourceInfo?)
+        fun onSignal(sig: sk.tvhclient.shared.htsp.HtspSignal)
     }
 
     /** M722: the video codec the current live channel had last time (ChannelCodecMemo), null = unknown. */
@@ -66,6 +69,7 @@ internal class StreamOpener(
         stream.resetForHttp(keepHttpFeeder = true)
         hooks.resetTimeshift()
         stream.currentStreamUrl = url
+        hooks.onSourceInfo(null)   // M724
         val feeder = HttpTsFeeder(server, MediaFactory.stripCreds(url), 0L)
         stream.httpFeeder = feeder
         hooks.teletextAttachFeeder(feeder)   // M713: before start, so the PMT is not missed
@@ -138,6 +142,7 @@ internal class StreamOpener(
         stream.resetForHttp(keepHttpFeeder = false)
         hooks.resetTimeshift()
         stream.currentStreamUrl = url
+        hooks.onSourceInfo(null)   // M724: HTTP has no source info
         // M722: a live channel brings its remembered codec (MPEG-2 -> software); a recording not
         val m = media.forUrl(url, demuxFor(url), if (url.contains("/stream/")) liveCodec() else null)   // M703
         player().media = m
@@ -196,6 +201,9 @@ internal class StreamOpener(
             feeder.onTeletext = { es -> hooks.teletextFeedHtsp(es) }
             feeder.onWaitingForTuner = { hooks.onWaitingForTuner() }   // M715
             feeder.onVideoCodec = { c -> hooks.onVideoCodec(c) }        // M722
+            feeder.onSourceInfo = { si -> hooks.onSourceInfo(si) }      // M724
+            feeder.onSignal = { sg -> hooks.onSignal(sg) }              // M724
+            hooks.onSourceInfo(null)
             // a new channel = a new subtitle list, reset the chosen language
             tracks.selectedSubEs.value = -1
             tracks.desiredSubName = null

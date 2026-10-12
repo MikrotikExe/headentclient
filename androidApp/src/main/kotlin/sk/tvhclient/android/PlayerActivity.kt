@@ -293,6 +293,10 @@ class PlayerActivity : ComponentActivity() {
                 }
                 override fun fallbackTitle(): String? = intent.getStringExtra(EXTRA_TITLE)
                 override fun onVideoCodec(codec: String) { runOnUiThread { this@PlayerActivity.onVideoCodec(codec) } }   // M722
+                override fun onSourceInfo(info: sk.tvhclient.shared.htsp.HtspSourceInfo?) {   // M724
+                    runOnUiThread { streamSource.value = info; if (info == null) streamSignal.value = null }
+                }
+                override fun onSignal(sig: sk.tvhclient.shared.htsp.HtspSignal) { runOnUiThread { streamSignal.value = sig } }   // M724
             })
     }
 
@@ -300,6 +304,50 @@ class PlayerActivity : ComponentActivity() {
 
     /** The live channel whose medium was already restarted once for its codec (never twice). */
     private var codecRestartedFor: String? = null
+
+    // ---- M724: the "Stream" section of the info window (Settings → Advanced → Stream details) ----
+
+    /** HTSP: the source of the playing stream (subscriptionStart) and the last signalStatus. */
+    val streamSource = mutableStateOf<sk.tvhclient.shared.htsp.HtspSourceInfo?>(null)
+    val streamSignal = mutableStateOf<sk.tvhclient.shared.htsp.HtspSignal?>(null)
+
+    /**
+     * One snapshot for the info window: the libVLC video / audio track and the demux bitrate (read
+     * off the main thread), the decoder in use, the HTSP source and signal, the connection. [onResult]
+     * on the main thread; null when the player is not ready.
+     */
+    internal fun streamDetails(onResult: (StreamDetails?) -> Unit) {
+        if (!engine.ready || engine.tornDown) { onResult(null); return }
+        val mp = engine.player
+        val decoder = when {
+            mediaFactory.lastSoftware -> StreamDetails.DEC_SOFTWARE
+            HwDecodePref.get(this) == HwDecodePref.DECODE || DeinterlacePref.get(this).let { it != DeinterlacePref.OFF && it != DeinterlacePref.AUTO } -> StreamDetails.DEC_DECODE
+            else -> StreamDetails.DEC_HARDWARE
+        }
+        val htsp = stream.htspStream
+        val profile = tracks.currentProfile.value
+        VlcEngine.videoInfoAsync(mp) { vi ->
+            VlcEngine.audioInfoAsync(mp) { ai ->
+                val src = streamSource.value
+                onResult(StreamDetails(
+                    videoCodec = ChannelCodecMemo.fromVlc(vi?.codec) ?: src?.videoType,
+                    width = vi?.width?.takeIf { it > 0 } ?: src?.width ?: 0,
+                    height = vi?.height?.takeIf { it > 0 } ?: src?.height ?: 0,
+                    fps = if (vi != null && vi.fpsDen > 0 && vi.fpsNum > 0) vi.fpsNum.toDouble() / vi.fpsDen else 0.0,
+                    audioCodec = ChannelCodecMemo.fromVlc(ai?.codec) ?: src?.audioType,
+                    audioChannels = ai?.channels?.takeIf { it > 0 } ?: src?.audioChannels ?: 0,
+                    audioRate = ai?.rate?.takeIf { it > 0 } ?: src?.audioRate ?: 0,
+                    decoder = decoder,
+                    source = if (htsp) src else null,
+                    signal = if (htsp) streamSignal.value else null,
+                    htsp = htsp,
+                    live = !seekablePlayback,
+                    profile = profile,
+                    bitrateKbps = ai?.bitrateKbps ?: 0
+                ))
+            }
+        }
+    }
 
     /**
      * The video codec of the playing live channel is known (HTSP: subscriptionStart, before the
@@ -2755,6 +2803,17 @@ private fun PlayerUi(
 
         // Info window: details of the currently running programme (INFO key / button) — M661: PlayerInfoWindow.kt
         if (showInfo) {
+            // M724: the "Stream" section — only with the Advanced setting on; refreshed every second
+            // while the window is open (the signal changes), read off the main thread
+            var streamDetails by remember { mutableStateOf<StreamDetails?>(null) }
+            val streamInfoOn = remember { StreamInfoPref.get(ctx) }
+            LaunchedEffect(streamInfoOn) {
+                if (!streamInfoOn || dvrActivity == null) return@LaunchedEffect
+                while (true) {
+                    dvrActivity.streamDetails { d -> streamDetails = d }
+                    kotlinx.coroutines.delay(1000)
+                }
+            }
             PlayerInfoWindow(
                 setShowInfo = { v -> showInfo = v },
                 title = title,
@@ -2770,7 +2829,8 @@ private fun PlayerUi(
                 liveChannels = channelList.channels,
                 liveCurrentIndex = channelList.currentIndex,
                 dvrActivity = dvrActivity,
-                dvrEntry = dvrInfoEntry
+                dvrEntry = dvrInfoEntry,
+                streamDetails = streamDetails   // M724
             )
         }
 

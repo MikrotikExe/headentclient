@@ -50,7 +50,9 @@ internal fun PlayerInfoWindow(
     liveChannels: List<LivePlaylist.LiveChannel>,
     liveCurrentIndex: Int,
     dvrActivity: PlayerActivity?,
-    dvrEntry: DvrEntry? = null
+    dvrEntry: DvrEntry? = null,
+    /** M724: the "Stream" section (Settings → Advanced); null = off / not available. */
+    streamDetails: StreamDetails? = null
 ) {
     // Info window: detail of the currently running programme (INFO key / button)
     androidx.activity.compose.BackHandler { setShowInfo(false) }
@@ -206,6 +208,7 @@ internal fun PlayerInfoWindow(
                         fontSize = 14.sp
                     )
                 }
+                if (streamDetails != null) StreamInfoSection(streamDetails)   // M724
             }
         }
     }
