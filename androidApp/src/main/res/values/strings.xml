@@ -362,7 +362,7 @@
     <string name="set_grp_player">Player</string>
     <string name="set_grp_display">Display</string>
     <string name="stream_info_title">Stream details in the info window</string>
-    <string name="stream_info_note">Codec, resolution, service, mux, adapter, signal (like Kodi). Over HTTP only the player's data.</string>
+    <string name="stream_info_note">Codec, resolution, service, mux, adapter, signal (like Kodi). Over HTTP only the player\'s data.</string>
     <string name="si_section">STREAM</string>
     <string name="si_video">Video</string>
     <string name="si_audio">Audio</string>
