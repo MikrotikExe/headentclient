@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -33,12 +34,14 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PictureInPictureAlt
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Replay30
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -69,6 +72,9 @@ import sk.tvhclient.shared.model.TvhServer
 internal fun PlayerControlsOverlay(
     controlsVisible: Boolean,
     onControlsVisibleSet: (Boolean) -> Unit,
+    // the pin next to the clock (ControlsPinPref.kt); null = not offered (TV)
+    pinned: Boolean,
+    onTogglePin: (() -> Unit)?,
     ctx: Context,
     dvrActivity: PlayerActivity?,
     title: String,
@@ -218,6 +224,18 @@ internal fun PlayerControlsOverlay(
                                 modifier = Modifier.weight(1f)
                             )
                             Spacer(Modifier.width(8.dp))
+                            if (onTogglePin != null) {
+                                // filled = pinned (the panel stays), outlined = normal auto-hide (Material convention)
+                                androidx.compose.material3.Icon(
+                                    if (pinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                                    contentDescription = null,
+                                    tint = if (pinned) playerFg() else playerFgDim(),
+                                    modifier = Modifier
+                                        .clickable(onClick = onTogglePin)
+                                        .padding(8.dp)
+                                        .size((18 * k).dp)
+                                )
+                            }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
                                     dateTime,
