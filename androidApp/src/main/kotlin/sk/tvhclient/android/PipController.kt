@@ -35,10 +35,11 @@ internal class PipController(
     private val togglePlayPause: () -> Unit,
     private val close: () -> Unit
 ) {
-    /** The device supports PiP (API 26+ and the system feature). */
+    /** The device supports PiP (API 26+ and the system feature). Never in a car: a parked app must not stay visible. */
     val supported: Boolean by lazy {
         Build.VERSION.SDK_INT >= 26 &&
-            activity.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+            activity.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
+            !isAutomotive(activity)
     }
 
     private var receiver: BroadcastReceiver? = null
@@ -84,7 +85,7 @@ internal class PipController(
 
     /** Manual entry into PiP (button / BACK). */
     fun enterIfPossible(): Boolean {
-        if (Build.VERSION.SDK_INT >= 26 &&
+        if (Build.VERSION.SDK_INT >= 26 && !isAutomotive(activity) &&
             activity.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
             playerReady()
         ) {

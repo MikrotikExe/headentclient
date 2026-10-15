@@ -722,10 +722,11 @@ internal fun playRadio(
     // M340: on a phone the radio plays through the mini player (a foreground service + a bar
     // above the tabs) — the app stays usable. M624: in classic mode too.
     // TV and locked stations go the original path (the full player, which handles
-    // both PIN and D-pad control).
+    // both PIN and D-pad control). So does a car (Android Automotive OS): the radio must stop
+    // when driving starts, which the player does and a background service would not.
     val needsPin = ParentalLock.channelNeedsPin(context, server.id, row.channel.uuid)
     val tvDevice = context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
-    if (!tvDevice && !needsPin) {
+    if (!tvDevice && !needsPin && !isAutomotive(context)) {
         RadioCenter.stations = allRows.map {
             RadioCenter.RadioStation(
                 it.channel.uuid, it.channel.name, it.piconUrl,

@@ -11,6 +11,10 @@
     <!-- Android TV: leanback is not required, the app runs on both mobile and TV -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <!-- Android Automotive OS: the same APK runs in the car as a parked video app (see isAutomotive).
+         Wi-Fi is implied as required by ACCESS_WIFI_STATE, which would keep the app off cars. -->
+    <uses-feature android:name="android.hardware.type.automotive" android:required="false" />
+    <uses-feature android:name="android.hardware.wifi" android:required="false" />
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
@@ -38,6 +42,7 @@
         android:banner="@drawable/tv_banner"
         android:usesCleartextTraffic="true"
         android:supportsRtl="true"
+        android:appCategory="video"
         android:theme="@style/Theme.Headent">
 
         <activity
@@ -72,7 +77,7 @@
             android:screenOrientation="fullUser"
             android:supportsPictureInPicture="true"
             android:resizeableActivity="true"
-            android:configChanges="orientation|screenSize|smallestScreenSize|keyboardHidden|screenLayout"
+            android:configChanges="orientation|screenSize|smallestScreenSize|keyboardHidden|screenLayout|uiMode"
             android:theme="@android:style/Theme.Black.NoTitleBar" />
 
         <receiver
