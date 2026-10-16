@@ -299,7 +299,8 @@ internal class StreamOpener(
         runCatching {
             if (stream.htspStream && srv != null && cid != null) {
                 playHtspLive(srv, cid, stream.htspLive)
-            } else if (stream.liveNeedsFeeder == true && srv != null && url != null) {
+            } else if ((stream.liveNeedsFeeder == true || stream.httpFeeder != null) && srv != null && url != null) {
+                // a live feeder is also in use after reconnect attempt 1 (M694), which does not set liveNeedsFeeder
                 playLiveViaFeeder(srv, url)
             } else if (url != null) {
                 playHttp(url)

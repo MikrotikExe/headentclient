@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.util.VLCVideoLayout
@@ -277,7 +278,7 @@ class PlayerActivity : ComponentActivity() {
             player = { engine.player },
             hooks = object : StreamOpener.Hooks {
                 override fun ensureHealthyPlayer() { this@PlayerActivity.ensureHealthyPlayer() }
-                override fun startPlayback() { engine.startPlayback() }
+                override fun startPlayback() { clearHttpPauseDrop(); engine.startPlayback() }   // a new medium ends a paused HTTP live (issue #32)
                 override fun resetTimeshift() { this@PlayerActivity.resetTimeshift() }
                 override fun resetTeletext() { closeTeletext(); teletext.reset() }   // M552/M553
                 override fun teletextSetHtspAvailable(available: Boolean) { teletext.setHtspAvailable(available) }
@@ -452,10 +453,20 @@ class PlayerActivity : ComponentActivity() {
             }
             isPlayingState.value = false
             engine.player.pause()
+            if (!stream.htspStream && !seekablePlayback) armHttpPauseDrop()   // issue #32: HTTP live
         } else {
             if (onCar) restoreCarVolume()   // a car or audio focus pause muted libVLC (muteForCarPause)
             // M715 (R4): HTSP without timeshift dropped the stream while paused — back to live afresh
             if (stream.htspStream && !stream.htspLive && stream.htspFeeder?.discarding == true) {
+                isPlayingState.value = true
+                opener.replayCurrentLive()
+                return
+            }
+            // issue #32: HTTP live paused past the grace period dropped its input -> back to live afresh;
+            // a quick resume just cancels the timer and goes on from libVLC's buffer
+            val httpDropped = httpInputDropped
+            clearHttpPauseDrop()
+            if (httpDropped) {
                 isPlayingState.value = true
                 opener.replayCurrentLive()
                 return
@@ -480,6 +491,41 @@ class PlayerActivity : ComponentActivity() {
 
     /** Relative skip within timeshift (seconds; negative = backwards). */
     private fun timeshiftSkip(seconds: Int) { if (stream.htspLive) timeshift.skip(seconds) }
+
+    // Issue #32: a paused HTTP live stream. libVLC only pauses the decoding: the server keeps the
+    // subscription (and the tuner) until the blocked socket times out, and on Play the stale buffer
+    // played out into the end-of-stream recovery ("Reconnecting"). So after a short grace period the
+    // input is dropped: the OkHttp feeder is stopped (the pipe closes, the frozen frame stays), or on the
+    // direct URL path libVLC itself is stopped (it holds the connection). Play then starts the channel
+    // afresh at the live point, as the HTSP no-timeshift branch does. A pause shorter than the grace
+    // period continues from libVLC's buffer as before. HTSP and recordings are not affected.
+    private var httpPauseDropJob: Job? = null
+    /** The paused HTTP live input has been dropped; Play replays the channel instead of continuing. */
+    private var httpInputDropped = false
+
+    private fun armHttpPauseDrop() {
+        httpPauseDropJob?.cancel()
+        val pausedUrl = stream.currentStreamUrl
+        httpPauseDropJob = lifecycleScope.launch {
+            kotlinx.coroutines.delay(HTTP_PAUSE_DROP_MS)
+            // a zap meanwhile (the switch sets the url before an async auth probe) belongs to the new channel
+            if (isPlayingState.value || stream.currentStreamUrl != pausedUrl || stream.htspStream || seekablePlayback ||
+                !engine.ready || engine.tornDown) return@launch
+            httpInputDropped = true
+            val feeder = stream.httpFeeder
+            if (feeder != null) feeder.stop() else runCatching { engine.player.stop() }
+            ttx.session.stopHttp()   // the teletext side branch (M713) is a second subscription on the same tuner
+            CrashLogger.report(this@PlayerActivity, "PlayerActivity.httpPause",
+                "paused ${HTTP_PAUSE_DROP_MS / 1000} s -> HTTP live input dropped (${if (feeder != null) "feeder" else "libVLC"}), Play starts the channel afresh")
+        }
+    }
+
+    /** Cancels the pending drop and forgets a done one (resume, or a new medium via startPlayback). */
+    private fun clearHttpPauseDrop() {
+        httpPauseDropJob?.cancel()
+        httpPauseDropJob = null
+        httpInputDropped = false
+    }
 
     /** Turns off the seek spinner (Playing/Buffering reached 100 %, or a new live start). */
     private fun hideSeekSpinner() { seekSpinnerJob?.cancel(); seekingState.value = false }
@@ -1910,6 +1956,7 @@ class PlayerActivity : ComponentActivity() {
     /** Schedules a reconnect of the live stream after a dropout (increasing delay — ReconnectController). */
     private fun scheduleReconnect() {
         if (pausedForCar) return   // Android Automotive OS: covered while driving, Play continues after parking
+        if (httpInputDropped) return   // issue #32: the paused HTTP input was dropped on purpose, Play starts afresh
         if (seekablePlayback) return  // a DVR recording is not reconnected (in-progress is handled by reopenDvrLive)
         if (stopOnConnLimit()) return   // M694
         reconnect.scheduleReconnect { attempt ->
@@ -2198,6 +2245,9 @@ class PlayerActivity : ComponentActivity() {
     }
 
     companion object {
+        /** Issue #32: how long an HTTP live stream stays paused before its input is dropped (tuner released). */
+        private const val HTTP_PAUSE_DROP_MS = 5_000L
+
         /** M622: releasing libVLC from a worker thread — VlcEngine.releaseVlc. */
         fun releaseVlc(ctx: android.content.Context, mp: org.videolan.libvlc.MediaPlayer, lib: org.videolan.libvlc.LibVLC?, where: String) = VlcEngine.releaseVlc(ctx, mp, lib, where)
 
