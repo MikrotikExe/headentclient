@@ -32,6 +32,8 @@ internal class BackgroundResume(
         fun recreatePlayer()
         fun replayCurrentLive()
         fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, channelIndex: Int)
+        /** Android Automotive OS: paused because driving covered the player (always false elsewhere). */
+        fun pausedForCar(): Boolean
     }
 
     private var wasPlaying = false
@@ -46,7 +48,9 @@ internal class BackgroundResume(
         // isInPictureInPictureMode - that one often still reports true while PiP is closing) and the app is only going
         // to the background. If the activity is finishing, fall through and stop playback.
         if (android.os.Build.VERSION.SDK_INT >= 24 && hooks.inPip() && !activity.isFinishing) return true
-        wasPlaying = engine.ready && engine.player.isPlaying
+        // a car pause is not "was playing": libVLC may still report playing right after the pause,
+        // and after the drive the player stays paused until the user taps Play (PlayerActivity.onResume)
+        wasPlaying = engine.ready && engine.player.isPlaying && !hooks.pausedForCar()
         return false
     }
 

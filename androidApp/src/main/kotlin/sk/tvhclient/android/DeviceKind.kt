@@ -2,6 +2,7 @@ package sk.tvhclient.android
 
 import android.app.UiModeManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 
 /**
@@ -14,3 +15,12 @@ internal fun isTvUiMode(ctx: Context): Boolean {
     val um = ctx.getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager
     return um?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
 }
+
+/**
+ * Android Automotive OS (a car's infotainment system). The app runs there as a parked video app:
+ * the system hides it while driving, so playback must stop when the player is paused and must not
+ * continue in the background (no PiP, no radio handoff to the service, no autostart).
+ * See https://developer.android.com/training/cars/parked
+ */
+internal fun isAutomotive(ctx: Context): Boolean =
+    ctx.packageManager.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE)

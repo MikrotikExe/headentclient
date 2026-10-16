@@ -453,6 +453,7 @@ class PlayerActivity : ComponentActivity() {
             isPlayingState.value = false
             engine.player.pause()
         } else {
+            if (onCar) restoreCarVolume()   // a car or audio focus pause muted libVLC (muteForCarPause)
             // M715 (R4): HTSP without timeshift dropped the stream while paused — back to live afresh
             if (stream.htspStream && !stream.htspLive && stream.htspFeeder?.discarding == true) {
                 isPlayingState.value = true
@@ -591,6 +592,7 @@ class PlayerActivity : ComponentActivity() {
      *  panel, so the radio would play with no controls. */
     private fun radioHandoffIfPossible(): Boolean {
         if (live.playKind != "radio") return false
+        if (isAutomotive(this)) return false   // parked app: no playback outside the player
         if (UiModePref.get(this) != UiModePref.MODERN && isTvDevice()) return false
         val uuid = live.uuids.getOrNull(live.indexState.value) ?: return false
         val server = live.server ?: sk.tvhclient.shared.Tvh.store.active() ?: return false
@@ -1052,7 +1054,7 @@ class PlayerActivity : ComponentActivity() {
      *  to the background (screen off, lock, home screen, another app) does not pause the radio.
      *  In the player itself the screen stays lit (KEEP_SCREEN_ON as on TV). */
     private fun radioBackground(): Boolean =
-        live.playKind == "radio" && RadioBackgroundPref.get(this)
+        live.playKind == "radio" && RadioBackgroundPref.get(this) && !isAutomotive(this)
 
     private fun keepScreenOn(on: Boolean) {
         runOnUiThread {
@@ -1907,6 +1909,7 @@ class PlayerActivity : ComponentActivity() {
 
     /** Schedules a reconnect of the live stream after a dropout (increasing delay — ReconnectController). */
     private fun scheduleReconnect() {
+        if (pausedForCar) return   // Android Automotive OS: covered while driving, Play continues after parking
         if (seekablePlayback) return  // a DVR recording is not reconnected (in-progress is handled by reopenDvrLive)
         if (stopOnConnLimit()) return   // M694
         reconnect.scheduleReconnect { attempt ->
@@ -1958,12 +1961,83 @@ class PlayerActivity : ComponentActivity() {
             override fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, channelIndex: Int) {
                 this@PlayerActivity.requestPin(onOk = onOk, onCancel = onCancel, channelIndex = channelIndex)
             }
+            override fun pausedForCar(): Boolean = this@PlayerActivity.pausedForCar
         })
     }
 
     override fun onStart() {
         super.onStart()
         bg.onStart()
+    }
+
+    /** Android Automotive OS (DeviceKind.kt), checked once: every car-only path below depends on it. */
+    private val onCar by lazy { isAutomotive(this) }
+
+    // Audio focus: another app's audio stops when ours starts; a call/another app pauses us (PlayerAudioFocus.kt).
+    // Android Automotive OS only for now: the car arbitrates its media sources by focus. Phone/TV unchanged.
+    private val audioFocus: PlayerAudioFocus by lazy {
+        PlayerAudioFocus(this,
+            isPlaying = { engine.ready && !engine.tornDown && isPlayingState.value },
+            // muted like the car pause: a call or another app must not get the ~2 s libVLC tail
+            pause = { if (isPlayingState.value) { muteForCarPause(); togglePlayPause() } },
+            resume = { if (!isPlayingState.value && !engine.tornDown) togglePlayPause() },
+            // not while the player is covered (driving) or a PIN prompt is up (it stays paused then, see onResume)
+            canResume = { lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) && !pin.promptState.value },
+            deferResume = { pausedForCar = true }
+        )
+    }
+
+    /** Android Automotive OS: playback was paused because the system covered the player (driving started). */
+    private var pausedForCar = false
+    /** libVLC volume before a car or audio focus pause muted it (-1 = not muted). */
+    private var carMutedVolume = -1
+
+    /** libVLC can still play out up to ~2 s of buffered audio after a pause: mute until playback resumes. */
+    private fun muteForCarPause() {
+        if (carMutedVolume < 0) runCatching { carMutedVolume = engine.player.volume; engine.player.setVolume(0) }
+    }
+
+    private fun restoreCarVolume() {
+        if (carMutedVolume < 0) return
+        if (engine.ready && !engine.tornDown) runCatching { engine.player.setVolume(carMutedVolume) }
+        carMutedVolume = -1
+    }
+
+    // Android Automotive OS (guideline DD-2): when driving starts the system covers the player
+    // with its own activity, which only pauses ours (onStop may not follow). Video and audio must
+    // stop right away. Back in front (onResume, parked) playback stays paused with the controls shown:
+    // it continues only on an explicit tap on Play (or a PIN entry), not on its own, which would also
+    // take the audio back from whatever the driver listened to on the way.
+    // The pause is the pause button's (togglePlayPause): it also pauses the HTSP feed / timeshift,
+    // so the subscription does not run into the full TS queue during a long drive. libVLC can still play
+    // out up to ~2 s of buffered audio after the pause, so the player is also muted until it resumes.
+    override fun onPause() {
+        super.onPause()
+        if (onCar && engine.ready && !engine.tornDown && isPlayingState.value) {
+            muteForCarPause()
+            togglePlayPause()
+            pausedForCar = true
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        restoreCarVolume()
+        if (!pausedForCar) return
+        pausedForCar = false
+        if (!engine.ready || engine.tornDown || isPlayingState.value || pin.promptState.value) return
+        // back from a drive to a locked live channel = PIN again, as BackgroundResume.onStart does when
+        // returning from the background on a phone (M263); the car pause left wasPlaying false there, so it
+        // is handled here. Not tied to onStop: the driving block may only pause the player.
+        val curUuid = live.uuids.getOrNull(live.index)
+        if (!seekablePlayback && ParentalLock.channelLockedProtected(
+                this, live.server?.id ?: sk.tvhclient.shared.Tvh.store.active()?.id, curUuid)
+        ) {
+            ParentalLock.clearGrace(this)
+            requestPin(onOk = { togglePlayPause() }, onCancel = { finish() }, channelIndex = live.index)
+        } else {
+            pokeControls()
+        }
     }
 
     override fun onUserLeaveHint() {
@@ -2010,7 +2084,10 @@ class PlayerActivity : ComponentActivity() {
                 override fun hideReconnecting() { reconnect.reconnecting.value = false }
                 override fun reopenDvrLive() { this@PlayerActivity.reopenDvrLive() }
                 override fun recoverAfterSeek(): Boolean = dvrSeek.recoverAfterSeek()
-                override fun setPlaying(playing: Boolean) { isPlayingState.value = playing }
+                override fun setPlaying(playing: Boolean) {
+                    isPlayingState.value = playing
+                    if (onCar) { if (playing) audioFocus.onPlaying() else audioFocus.onPaused() }
+                }
                 override fun refreshPipIfActive() { pip.refreshIfActive() }
                 override fun onPlayingForSeek() { dvrSeek.onPlaying() }
                 override fun onPlayingForStall() { stall.onPlaying() }
@@ -2096,6 +2173,7 @@ class PlayerActivity : ComponentActivity() {
 
     override fun onDestroy() {
         pip.destroy() // M578 session + receiver (M653)
+        if (onCar) audioFocus.release()
         teletext.stopHttp()   // M552
         streamLocks.release()  // M452
         epg.flushEpgPersist()     // M456

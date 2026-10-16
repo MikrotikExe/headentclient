@@ -34,6 +34,8 @@ object AutostartPref {
  */
 object AutostartLaunch {
     fun bringToFrontOrStart(context: Context) {
+        // Android Automotive OS: a parked app must never open itself (it could do so while driving)
+        if (isAutomotive(context)) return
         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
         val task = runCatching {
             am?.appTasks?.firstOrNull { t -> runCatching { t.taskInfo.numActivities > 0 }.getOrDefault(false) }

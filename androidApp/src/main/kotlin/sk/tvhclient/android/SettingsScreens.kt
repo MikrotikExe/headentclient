@@ -849,7 +849,8 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
     }
     SettingsGroup(stringResource(R.string.set_grp_behavior)) {
     // Automatic PiP mode (only devices with PiP support - phones/tablets)
-    if (ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
+    if (ctx.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE) &&
+        !isAutomotive(ctx)) {
         var autoPip by remember { mutableStateOf(AutoPipPref.get(ctx)) }
         SettingsSwitchRow(
             label = stringResource(R.string.auto_pip_title),
@@ -863,8 +864,9 @@ internal fun PlaybackSettings(ctx: android.content.Context) {
     }
 
     // M623: radio plays in the background (phone and TV) — leaving the player (screen off,
-    // lock, home screen, another app) does not pause the radio
-    run {
+    // lock, home screen, another app) does not pause the radio. Not in a car (Android Automotive OS):
+    // there the radio stops with the player when driving starts.
+    if (!isAutomotive(ctx)) {
         var radioBg by remember { mutableStateOf(RadioBackgroundPref.get(ctx)) }
         SettingsSwitchRow(
             label = stringResource(R.string.radio_bg_title),
