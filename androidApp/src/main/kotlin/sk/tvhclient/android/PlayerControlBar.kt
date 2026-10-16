@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -33,12 +34,14 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PictureInPictureAlt
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Replay30
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -69,6 +73,9 @@ import sk.tvhclient.shared.model.TvhServer
 internal fun PlayerControlsOverlay(
     controlsVisible: Boolean,
     onControlsVisibleSet: (Boolean) -> Unit,
+    // the pin next to the clock (ControlsPinPref.kt); null = not offered (TV)
+    pinned: Boolean,
+    onTogglePin: (() -> Unit)?,
     ctx: Context,
     dvrActivity: PlayerActivity?,
     title: String,
@@ -218,6 +225,30 @@ internal fun PlayerControlsOverlay(
                                 modifier = Modifier.weight(1f)
                             )
                             Spacer(Modifier.width(8.dp))
+                            if (onTogglePin != null) {
+                                // filled = pinned (the panel stays), outlined = normal auto-hide (Material convention).
+                                // A 48 dp touch target, but the row keeps the icon's height: the box is
+                                // laid out as tall as the icon and centred over it, so the panel doesn't grow.
+                                val pinIcon = (18 * k).dp
+                                Box(
+                                    Modifier
+                                        .layout { measurable, constraints ->
+                                            val p = measurable.measure(constraints)
+                                            val h = pinIcon.roundToPx()
+                                            layout(p.width, h) { p.place(0, (h - p.height) / 2) }
+                                        }
+                                        .size(48.dp)
+                                        .clickable(onClick = onTogglePin),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    androidx.compose.material3.Icon(
+                                        if (pinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
+                                        contentDescription = null,
+                                        tint = if (pinned) playerFg() else playerFgDim(),
+                                        modifier = Modifier.size(pinIcon)
+                                    )
+                                }
+                            }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
                                     dateTime,

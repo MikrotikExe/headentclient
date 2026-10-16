@@ -2421,6 +2421,12 @@ private fun PlayerUi(
     // menu: null = none, "audio" = audio tracks, "spu" = subtitles
     var menu by remember { mutableStateOf<String?>(null) }
     var showOptions by remember { mutableStateOf(false) }
+    // The pinned control panel (ControlsPinPref.kt, touch only): while pinned the panel stays on
+    // screen: shown whenever no menu / list / sheet covers it, no auto-hide, a tap does not hide it.
+    // controlsVisible stays the "toggled" state (BackHandlers and D-pad keep using it).
+    var pinned by remember { mutableStateOf(!isTvGest && ControlsPinPref.get(ctxTvGest)) }
+    val barVisible = controlsVisible || (pinned && !flags.inPip &&
+        !(showChannelList || listFrac > 0.001f || showMoreSheet || menu != null || showOptions || showInfo))
 
     // the D-pad / remote sent a signal -> show the controls (panel navigation is handled by the Activity)
     LaunchedEffect(signals.controlsPoke) {
@@ -2628,7 +2634,7 @@ private fun PlayerUi(
     // M662: the EPG effects (M266 prefetch + M522/M525 periodic refresh) are in PlayerEpgEffects.kt
     PlayerEpgEffects(
         showChannelList = showChannelList,
-        controlsVisible = controlsVisible,
+        controlsVisible = barVisible,
         modernOvVisible = modern.visible,
         onPrefetchEpg = channelList.onPrefetchEpg,
         onRefreshEpgInitial = channelList.onRefreshEpgInitial,
@@ -2645,7 +2651,7 @@ private fun PlayerUi(
                 isTvGest = isTvGest,
                 seekable = flags.seekable,
                 timeshiftEngaged = flags.timeshiftEngaged,
-                controlsVisible = controlsVisible,
+                controlsVisible = barVisible,
                 overlayOpen = { showChannelList || showMoreSheet || menu != null || showOptions },
                 listScope = listScope,
                 listFrac = { listFrac },
@@ -2659,7 +2665,7 @@ private fun PlayerUi(
             )
             .pointerInput(Unit) {
                 detectTapGestures(
-                    onTap = { if (menu != null) menu = null else controlsVisible = !controlsVisible },
+                    onTap = { if (menu != null) menu = null else if (!pinned) controlsVisible = !controlsVisible },
                     onDoubleTap = { off -> dvr.onDoubleTapSeek(off.x > size.width / 2f) }
                 )
             }
@@ -2694,8 +2700,15 @@ private fun PlayerUi(
 
         // M661: the control bar (the top info block + seekbar + buttons) is in PlayerControlBar.kt
         PlayerControlsOverlay(
-            controlsVisible = controlsVisible,
+            controlsVisible = barVisible,
             onControlsVisibleSet = { controlsVisible = it },
+            pinned = pinned,
+            onTogglePin = if (isTvGest) null else ({
+                pinned = !pinned
+                ControlsPinPref.set(ctx, pinned)
+                // unpinned: stay visible for now, then the normal 3 s auto-hide takes over
+                if (!pinned) controlsVisible = true
+            }),
             ctx = ctx,
             dvrActivity = dvrActivity,
             title = title,
