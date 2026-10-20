@@ -59,6 +59,8 @@
     <string name="cat_hobby">Hobbi</string>
     <string name="cat_other">Kategória nélkül</string>
     <string name="dvr_all">Mind</string>
+    <string name="dvr_recording_now">Most rögzítés alatt</string>
+    <string name="dvr_all_recordings">Összes felvétel</string>
     <string name="dvr_archive">Archívum</string>
     <string name="dvr_by_channel">Csatorna szerint</string>
     <string name="dvr_by_genre">Műfaj szerint</string>

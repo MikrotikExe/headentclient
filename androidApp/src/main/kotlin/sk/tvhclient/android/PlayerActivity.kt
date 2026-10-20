@@ -2668,6 +2668,7 @@ private fun PlayerUi(
     var progStop by remember(liveChannelUuid) { mutableStateOf(programme.stopSec) }
     var progTitle by remember(liveChannelUuid) { mutableStateOf(programme.title) }
     var progDesc by remember(liveChannelUuid) { mutableStateOf("") }
+    var progImage by remember(liveChannelUuid) { mutableStateOf("") }   // M728 (issue #31)
     var nextTitle by remember(liveChannelUuid) { mutableStateOf(programme.nextTitle) }
     var nextStart by remember(liveChannelUuid) { mutableStateOf(programme.nextStart) }
     var nextStop by remember(liveChannelUuid) { mutableStateOf(programme.nextStop) }
@@ -2686,6 +2687,7 @@ private fun PlayerUi(
             progStart = cur.start; progStop = cur.stop
             progTitle = cur.title
             progDesc = cur.bestDescription
+            progImage = cur.image   // M728
             if (nx != null) {
                 nextTitle = nx.title; nextStart = nx.start; nextStop = nx.stop
             }
@@ -2956,6 +2958,7 @@ private fun PlayerUi(
                 dvrActivity = dvrActivity,
                 dvrEntry = dvrInfoEntry,
                 streamDetails = streamDetails,   // M724
+                progImage = progImage,   // M728
                 scrollTick = dvrActivity?.infoScrollTick?.value ?: 0,   // M724-fix2
                 scrollDir = dvrActivity?.infoScrollDir?.value ?: 0
             )

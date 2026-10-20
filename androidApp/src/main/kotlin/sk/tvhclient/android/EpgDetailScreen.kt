@@ -268,6 +268,8 @@ fun EpgDetailScreen(event: EpgEvent, onBack: () -> Unit) {
                 Spacer(Modifier.height(12.dp))
             }
 
+            ProgrammeImage(event.image)   // M728 (issue #31)
+
             // The full description
             val desc = event.bestDescription
             Text(

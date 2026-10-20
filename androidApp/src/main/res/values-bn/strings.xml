@@ -59,6 +59,8 @@
     <string name="cat_hobby">শখ</string>
     <string name="cat_other">শ্রেণিবিহীন</string>
     <string name="dvr_all">সব</string>
+    <string name="dvr_recording_now">এখন রেকর্ড হচ্ছে</string>
+    <string name="dvr_all_recordings">সব রেকর্ডিং</string>
     <string name="dvr_archive">আর্কাইভ</string>
     <string name="dvr_by_channel">চ্যানেল অনুসারে</string>
     <string name="dvr_by_genre">ধরন অনুসারে</string>

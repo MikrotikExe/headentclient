@@ -59,6 +59,8 @@
     <string name="cat_hobby">Hobby</string>
     <string name="cat_other">Nezaradené</string>
     <string name="dvr_all">Všetko</string>
+    <string name="dvr_recording_now">Práve sa nahráva</string>
+    <string name="dvr_all_recordings">Všetky nahrávky</string>
     <string name="dvr_archive">Archív</string>
     <string name="dvr_by_channel">Podľa kanálov</string>
     <string name="dvr_by_genre">Podľa žánru</string>

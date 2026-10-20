@@ -59,6 +59,8 @@
     <string name="cat_hobby">취미</string>
     <string name="cat_other">미분류</string>
     <string name="dvr_all">전체</string>
+    <string name="dvr_recording_now">녹화 중</string>
+    <string name="dvr_all_recordings">모든 녹화</string>
     <string name="dvr_archive">보관함</string>
     <string name="dvr_by_channel">채널별</string>
     <string name="dvr_by_genre">장르별</string>

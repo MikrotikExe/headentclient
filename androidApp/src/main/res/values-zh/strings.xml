@@ -59,6 +59,8 @@
     <string name="cat_hobby">爱好</string>
     <string name="cat_other">未分类</string>
     <string name="dvr_all">全部</string>
+    <string name="dvr_recording_now">正在录制</string>
+    <string name="dvr_all_recordings">全部录像</string>
     <string name="dvr_archive">存档</string>
     <string name="dvr_by_channel">按频道</string>
     <string name="dvr_by_genre">按类型</string>

@@ -80,6 +80,8 @@ import androidx.compose.foundation.lazy.grid.items as gridItems
 private sealed class DvrNav {
     data object Root : DvrNav()
     data object Recent : DvrNav()
+    data object All : DvrNav()           // M728 (issue #35): every recording, newest first
+    data object RecordingNow : DvrNav()  // M728 (issue #34): recordings still running
     data object Scheduled : DvrNav()   // M696
     data object Timers : DvrNav()      // M696
     data object Channels : DvrNav()
@@ -259,6 +261,7 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
                 is DvrNav.Profile -> DvrNav.Profiles   // M707
                 is DvrNav.Profiles -> DvrNav.Root
                 is DvrNav.Recent -> DvrNav.Root
+                is DvrNav.All, is DvrNav.RecordingNow -> DvrNav.Root   // M728
                 is DvrNav.Scheduled, is DvrNav.Timers -> DvrNav.Root   // M696
                 is DvrNav.Series -> DvrNav.Subgenre(n.catKey, n.subKey)
                 is DvrNav.Subgenre -> DvrNav.Category(n.catKey)
@@ -362,11 +365,12 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
                                 header = stringResource(R.string.dvr_search_results) + " (${results.size})",
                                 viewMode = viewMode)
                         }
-                    } else if (s.entries.isEmpty()) {
+                    } else if (s.entries.isEmpty() && s.recording.isEmpty()) {
                         EmptyStatus(stringResource(R.string.dvr_empty))
                     } else {
                         androidx.compose.runtime.key(corpusReady, imdbTick) {
-                            DvrContent(s.entries, s.channelOrder, s.channelPicons, nav, context, progressTick, viewMode = viewMode, onNav = { nav = it })
+                            DvrContent(s.entries, s.channelOrder, s.channelPicons, nav, context, progressTick, viewMode = viewMode, onNav = { nav = it },
+                                recording = s.recording)   // M728
                         }
                     }
                 }
@@ -384,10 +388,19 @@ private fun DvrContent(
     context: Context,
     progressTick: Int,
     viewMode: ChannelViewMode = ChannelViewMode.LIST,
-    onNav: (DvrNav) -> Unit
+    onNav: (DvrNav) -> Unit,
+    /** M728 (issue #34): recordings still running (played from the start while they record). */
+    recording: List<DvrEntry> = emptyList()
 ) {
     val server = remember { Tvh.store.active() }
     val timersOn = TimersPref.stateOf(context).value   // M696
+    // M728: one running recording is played straight away, several open their list
+    val openRecordingNow: () -> Unit = {
+        if (recording.size == 1) playDvrFile(context, recording.first()) else onNav(DvrNav.RecordingNow)
+    }
+    val recNowSub: String = recording.singleOrNull()?.let { r ->
+        listOf(r.title, r.channelName).filter { it.isNotBlank() }.joinToString(" · ")
+    } ?: "${recording.size}"
     val profilesOn = ArchiveProfilePref.stateOf(context).value   // M707
     val profileNames = rememberProfileNames(server, profilesOn)
     val piconLoader = remember(server?.id) { PiconImageLoader.get(context, server) }
@@ -413,6 +426,16 @@ private fun DvrContent(
             if (viewMode == ChannelViewMode.LIST) {
                 LazyColumn(Modifier.fillMaxSize()) {
                     item("hdr") { Header(stringResource(R.string.dvr_archive)) }
+                    if (recording.isNotEmpty()) {   // M728 (issue #34)
+                        item("rec_now") {
+                            FolderRow("\uD83D\uDD34  " + stringResource(R.string.dvr_recording_now), sub = recNowSub, iconKey = "recording", onClick = openRecordingNow)
+                        }
+                    }
+                    if (entries.isNotEmpty()) {   // M728 (issue #35)
+                        item("all") {
+                            FolderRow("\u2630  " + stringResource(R.string.dvr_all_recordings), sub = "${entries.size}", iconKey = "all") { onNav(DvrNav.All) }
+                        }
+                    }
                     if (recentCount > 0) {
                         item("recent") {
                             FolderRow("\u25B6  " + stringResource(R.string.dvr_recent), sub = "$recentCount", iconKey = "recent") { onNav(DvrNav.Recent) }
@@ -450,6 +473,16 @@ private fun DvrContent(
                 val cols = if (viewMode == ChannelViewMode.GRID) 2 else 3
                 LazyVerticalGrid(columns = GridCells.Fixed(cols), modifier = Modifier.fillMaxSize()) {
                     item(key = "hdr", span = { GridItemSpan(maxLineSpan) }) { Header(stringResource(R.string.dvr_archive)) }
+                    if (recording.isNotEmpty()) {   // M728 (issue #34)
+                        item(key = "rec_now", span = { GridItemSpan(maxLineSpan) }) {
+                            FolderRow("\uD83D\uDD34  " + stringResource(R.string.dvr_recording_now), sub = recNowSub, iconKey = "recording", onClick = openRecordingNow)
+                        }
+                    }
+                    if (entries.isNotEmpty()) {   // M728 (issue #35)
+                        item(key = "all", span = { GridItemSpan(maxLineSpan) }) {
+                            FolderRow("\u2630  " + stringResource(R.string.dvr_all_recordings), sub = "${entries.size}", iconKey = "all") { onNav(DvrNav.All) }
+                        }
+                    }
                     if (recentCount > 0) {
                         item(key = "recent", span = { GridItemSpan(maxLineSpan) }) {
                             FolderRow("\u25B6  " + stringResource(R.string.dvr_recent), sub = "$recentCount", iconKey = "recent") { onNav(DvrNav.Recent) }
@@ -485,6 +518,18 @@ private fun DvrContent(
         }
 
         is DvrNav.Scheduled -> if (server != null) ScheduledSection(server, header = true)   // M696
+        // M728 (issue #35): one flat list, newest first, a header per day
+        is DvrNav.All -> {
+            val sorted = remember(entries) { entries.sortedByDescending { it.start } }
+            RecordingList(sorted, context, progressTick, header = stringResource(R.string.dvr_all_recordings),
+                viewMode = viewMode, dayHeaders = true)
+        }
+        // M728 (issue #34): the running recordings, played from the start while they record
+        is DvrNav.RecordingNow -> {
+            val sorted = remember(recording) { recording.sortedBy { it.start } }
+            RecordingList(sorted, context, progressTick, header = stringResource(R.string.dvr_recording_now),
+                viewMode = viewMode, onPlay = { playDvrFile(context, it) })
+        }
         is DvrNav.Timers -> if (server != null) TimersSection(server, header = true)         // M696
 
         is DvrNav.Recent -> {
@@ -707,13 +752,30 @@ private fun RecordingList(
     context: Context,
     progressTick: Int,
     header: String,
-    viewMode: ChannelViewMode = ChannelViewMode.LIST
+    viewMode: ChannelViewMode = ChannelViewMode.LIST,
+    /** M728: a header for every day (the list must be sorted by start). */
+    dayHeaders: Boolean = false,
+    /** M728: what a tap does (a running recording plays from the start, playDvrFile). */
+    onPlay: ((DvrEntry) -> Unit)? = null
 ) {
+    // M728: the list split into days (the key of a day = yyyyMMdd), only when asked for
+    val days: List<Pair<String, List<DvrEntry>>> = remember(list, dayHeaders) {
+        if (!dayHeaders) listOf("" to list) else {
+            val keyFmt = java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.ROOT)
+            list.groupBy { keyFmt.format(java.util.Date(it.start * 1000)) }.toList()
+        }
+    }
+    val dayFmt = remember { java.text.SimpleDateFormat("EEEE d. MMMM yyyy", java.util.Locale.getDefault()) }
+    fun dayLabel(day: List<DvrEntry>): String =
+        day.firstOrNull()?.let { dayFmt.format(java.util.Date(it.start * 1000)).replaceFirstChar { c -> c.uppercase() } } ?: ""
     when (viewMode) {
         ChannelViewMode.LIST -> LazyColumn(Modifier.fillMaxSize()) {
             item("hdr") { Header(header) }
-            items(list, key = { it.uuid }) { entry ->
-                RecordingRow(entry, context, progressTick)
+            for ((key, day) in days) {
+                if (dayHeaders) item("day_$key") { DayHeader(dayLabel(day)) }
+                items(day, key = { it.uuid }) { entry ->
+                    RecordingRow(entry, context, progressTick, onPlay)
+                }
             }
         }
         ChannelViewMode.GRID, ChannelViewMode.TILES -> {
@@ -723,12 +785,26 @@ private fun RecordingList(
                 modifier = Modifier.fillMaxSize()
             ) {
                 item(key = "hdr", span = { GridItemSpan(maxLineSpan) }) { Header(header) }
-                gridItems(list, key = { it.uuid }) { entry ->
-                    RecordingCard(entry, context, progressTick)
+                for ((key, day) in days) {
+                    if (dayHeaders) item(key = "day_$key", span = { GridItemSpan(maxLineSpan) }) { DayHeader(dayLabel(day)) }
+                    gridItems(day, key = { it.uuid }) { entry ->
+                        RecordingCard(entry, context, progressTick, onPlay)
+                    }
                 }
             }
         }
     }
+}
+
+/** M728: the day separator in "All recordings" (smaller than a section header). */
+@Composable
+private fun DayHeader(text: String) {
+    Text(
+        text,
+        Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 2.dp),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary
+    )
 }
 
 private fun isMediaPlayKey(code: Int): Boolean = when (code) {
@@ -772,7 +848,8 @@ internal fun playDvr(context: Context, entry: DvrEntry) {
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun RecordingCard(entry: DvrEntry, context: Context, progressTick: Int) {
+private fun RecordingCard(entry: DvrEntry, context: Context, progressTick: Int, onPlay: ((DvrEntry) -> Unit)? = null) {
+    val play: () -> Unit = { if (onPlay != null) onPlay(entry) else playDvr(context, entry) }   // M728
     val server = remember { Tvh.store.active() }
     val info = remember(entry.uuid, progressTick) {
         server?.let { WatchProgress.get(context, it.id, entry.uuid, entry.dvrId) }
@@ -791,10 +868,10 @@ private fun RecordingCard(entry: DvrEntry, context: Context, progressTick: Int) 
                     .dpadFocusable(RoundedCornerShape(14.dp))
                 else Modifier.dpadFocusable()
             )
-            .playOnMediaKey { playDvr(context, entry) }
+            .playOnMediaKey { play() }
             // M483: long press = offer to delete the recording
             .combinedClickable(
-                onClick = { playDvr(context, entry) },
+                onClick = { play() },
                 onLongClick = { DvrDeleteRequest.ask(entry) }
             )
             .then(if (modernRec) Modifier.padding(6.dp) else Modifier),
@@ -864,7 +941,8 @@ object DvrViewPref {
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int) {
+private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int, onPlay: ((DvrEntry) -> Unit)? = null) {
+    val play: () -> Unit = { if (onPlay != null) onPlay(entry) else playDvr(context, entry) }   // M728
     val server = remember { Tvh.store.active() }
     val info = remember(entry.uuid, progressTick) {
         server?.let { WatchProgress.get(context, it.id, entry.uuid, entry.dvrId) }
@@ -884,10 +962,10 @@ private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int) {
                     .dpadFocusable(RoundedCornerShape(14.dp))
                 else Modifier.dpadFocusable()
             )
-            .playOnMediaKey { playDvr(context, entry) }
+            .playOnMediaKey { play() }
             // M483: long press = offer to delete the recording
             .combinedClickable(
-                onClick = { playDvr(context, entry) },
+                onClick = { play() },
                 onLongClick = { DvrDeleteRequest.ask(entry) }
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -1299,6 +1377,9 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                     )
                     .padding(vertical = 8.dp)
             ) {
+                if (loaded.recording.isNotEmpty()) {   // M728 (issue #34)
+                    item("_recnow") { ArcRailItem(stringResource(R.string.dvr_recording_now), loaded.recording.size, selKey == "_recnow", iconKey = "recording") { openSection("_recnow") } }
+                }
                 item("_recent") { ArcRailItem(stringResource(R.string.dvr_recent), recent.size, selKey == "_recent", iconKey = "recent") { openSection("_recent") } }
                 item("_search") { ArcRailItem(stringResource(R.string.dvr_search), null, selKey == "_search", iconKey = "search") { openSection("_search") } }
                 item("_channels") { ArcRailItem(stringResource(R.string.dvr_by_channel), null, selKey == "_channels", iconKey = "channels") { openSection("_channels") } }
@@ -1317,6 +1398,11 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                     selKey == "_recent" -> {
                         ArcFolderHeader(stringResource(R.string.dvr_recent))
                         ArcRecGrid(recent, loaded, loader, context, progressTick)
+                    }
+                    selKey == "_recnow" -> {   // M728 (issue #34): OK = from the start while it records
+                        ArcFolderHeader(stringResource(R.string.dvr_recording_now))
+                        ArcRecGrid(loaded.recording.sortedBy { it.start }, loaded, loader, context, progressTick,
+                            onPlay = { playDvrFile(context, it) })
                     }
                     selKey == "_scheduled" && server != null -> {   // M696
                         ArcFolderHeader(stringResource(R.string.dvr_scheduled))
@@ -1401,7 +1487,9 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
 }
 
 @Composable
-private fun ColumnScope.ArcRecGrid(list: List<DvrEntry>, loaded: DvrState.Loaded, loader: coil.ImageLoader, context: Context, progressTick: Int) {
+private fun ColumnScope.ArcRecGrid(list: List<DvrEntry>, loaded: DvrState.Loaded, loader: coil.ImageLoader, context: Context, progressTick: Int,
+                                   /** M728: a running recording plays from the start (playDvrFile). */
+                                   onPlay: ((DvrEntry) -> Unit)? = null) {
     var focused by remember { mutableStateOf<DvrEntry?>(null) }
     var infoEntry by remember { mutableStateOf<DvrEntry?>(null) }
     LazyVerticalGrid(GridCells.Fixed(4), Modifier.fillMaxWidth().weight(1f).padding(8.dp)) {
@@ -1410,7 +1498,7 @@ private fun ColumnScope.ArcRecGrid(list: List<DvrEntry>, loaded: DvrState.Loaded
             // on the first programme, not hop back to "Recently watched"
             Box(Modifier.arcAutoFocus(e.uuid == list.firstOrNull()?.uuid)) {
                 ArcRecCard(e, loaded.channelPicons[e.channelName], loader, context, progressTick,
-                    onFocus = { focused = e }, onClick = { playDvr(context, e) }, onLong = { infoEntry = e })
+                    onFocus = { focused = e }, onClick = { if (onPlay != null) onPlay(e) else playDvr(context, e) }, onLong = { infoEntry = e })
             }
         }
     }

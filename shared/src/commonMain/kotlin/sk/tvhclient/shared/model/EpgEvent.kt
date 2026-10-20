@@ -32,6 +32,12 @@ data class EpgEvent(
     @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
     @SerialName("serieslinkUri") val serieslinkUri: String = "",
     /**
+     * M728 (issue #31): the programme image (Tvheadend `image`, both the HTTP grid and HTSP) — a full
+     * URL or an "imagecache/N" link of the server. Not written to the disk cache when empty.
+     */
+    @kotlinx.serialization.EncodeDefault(kotlinx.serialization.EncodeDefault.Mode.NEVER)
+    @SerialName("image") val image: String = "",
+    /**
      * M715: the server still holds this programme as the running one after its scheduled end
      * (EIT running status, epg.c: ch_epg_now is not moved on while the event is running — e.g.
      * a match with extra time). Only HTSP tells it (the channel's eventId); not stored on disk.

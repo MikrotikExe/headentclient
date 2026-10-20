@@ -59,6 +59,8 @@
     <string name="cat_hobby">Хоби</string>
     <string name="cat_other">Без категорије</string>
     <string name="dvr_all">Све</string>
+    <string name="dvr_recording_now">Управо се снима</string>
+    <string name="dvr_all_recordings">Сви снимци</string>
     <string name="dvr_archive">Архива</string>
     <string name="dvr_by_channel">По каналу</string>
     <string name="dvr_by_genre">По жанру</string>

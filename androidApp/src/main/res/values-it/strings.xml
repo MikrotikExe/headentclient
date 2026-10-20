@@ -59,6 +59,8 @@
     <string name="cat_hobby">Hobby</string>
     <string name="cat_other">Senza categoria</string>
     <string name="dvr_all">Tutto</string>
+    <string name="dvr_recording_now">In registrazione</string>
+    <string name="dvr_all_recordings">Tutte le registrazioni</string>
     <string name="dvr_archive">Archivio</string>
     <string name="dvr_by_channel">Per canale</string>
     <string name="dvr_by_genre">Per genere</string>

@@ -59,6 +59,8 @@
     <string name="cat_hobby">هوايات</string>
     <string name="cat_other">غير مصنف</string>
     <string name="dvr_all">الكل</string>
+    <string name="dvr_recording_now">يُسجَّل الآن</string>
+    <string name="dvr_all_recordings">كل التسجيلات</string>
     <string name="dvr_archive">الأرشيف</string>
     <string name="dvr_by_channel">حسب القناة</string>
     <string name="dvr_by_genre">حسب النوع</string>

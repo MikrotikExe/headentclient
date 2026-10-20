@@ -574,7 +574,8 @@ object HtspData {
             ageRating = longOf(e, "ageRating")?.toInt() ?: 0,
             episodeOnscreen = strOf(e, "episodeOnscreen").ifBlank { episodeText(longOf(e, "seasonNumber"), longOf(e, "episodeNumber")) },   // M715
             nextEventId = longOf(e, "nextEventId"),
-            serieslinkUri = strOf(e, "serieslinkUri")   // M704
+            serieslinkUri = strOf(e, "serieslinkUri"),   // M704
+            image = strOf(e, "image")   // M728 (issue #31)
         )
     }
 

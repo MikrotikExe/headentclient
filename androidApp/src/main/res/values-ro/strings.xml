@@ -59,6 +59,8 @@
     <string name="cat_hobby">Hobby</string>
     <string name="cat_other">Fără categorie</string>
     <string name="dvr_all">Tot</string>
+    <string name="dvr_recording_now">Se înregistrează acum</string>
+    <string name="dvr_all_recordings">Toate înregistrările</string>
     <string name="dvr_archive">Arhivă</string>
     <string name="dvr_by_channel">După canal</string>
     <string name="dvr_by_genre">După gen</string>

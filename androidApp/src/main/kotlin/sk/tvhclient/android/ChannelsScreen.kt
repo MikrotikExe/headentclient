@@ -732,7 +732,7 @@ private fun playChannel(
 }
 
 /** Playing an ongoing/finished recording from the start via /dvrfile/<uuid>. */
-private fun playDvrFile(
+internal fun playDvrFile(
     context: android.content.Context,
     rec: sk.tvhclient.shared.model.DvrEntry,
     progStart: Long = 0,

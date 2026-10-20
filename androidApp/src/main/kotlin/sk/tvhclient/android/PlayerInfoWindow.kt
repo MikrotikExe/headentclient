@@ -59,6 +59,8 @@ internal fun PlayerInfoWindow(
     dvrEntry: DvrEntry? = null,
     /** M724: the "Stream" section (Settings → Advanced); null = off / not available. */
     streamDetails: StreamDetails? = null,
+    /** M728 (issue #31): the image of the running programme (EPG), "" = none. */
+    progImage: String = "",
     /** M724-fix2: a D-pad scroll request from the key router (tick changes, dir = -1 up / +1 down). */
     scrollTick: Int = 0,
     scrollDir: Int = 0
@@ -186,6 +188,10 @@ internal fun PlayerInfoWindow(
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(stringResource(R.string.time_remaining, remainI), color = playerFgFaint(), fontSize = 13.sp)
+                    }
+                    if (!seekable && progImage.isNotBlank()) {   // M728 (issue #31)
+                        Spacer(Modifier.height(14.dp))
+                        ProgrammeImage(progImage, maxHeight = 160.dp, spaceAfter = 0.dp)
                     }
                     if (progDesc.isNotBlank()) {
                         Spacer(Modifier.height(14.dp))

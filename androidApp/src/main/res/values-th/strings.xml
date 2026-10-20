@@ -59,6 +59,8 @@
     <string name="cat_hobby">งานอดิเรก</string>
     <string name="cat_other">ไม่จัดหมวด</string>
     <string name="dvr_all">ทั้งหมด</string>
+    <string name="dvr_recording_now">กำลังบันทึก</string>
+    <string name="dvr_all_recordings">การบันทึกทั้งหมด</string>
     <string name="dvr_archive">คลังบันทึก</string>
     <string name="dvr_by_channel">ตามช่อง</string>
     <string name="dvr_by_genre">ตามประเภท</string>

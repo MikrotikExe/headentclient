@@ -1543,6 +1543,11 @@ private fun GridDetailContent(
                 }
             }
 
+            // M728 (issue #31): the programme image from the EPG (only an EPG programme carries it)
+            (detail as? GridDetail.Epg)?.ev?.image?.takeIf { it.isNotBlank() }?.let { img ->
+                Spacer(Modifier.height(16.dp))
+                ProgrammeImage(img, spaceAfter = 0.dp)
+            }
             if (desc.isNotBlank() && detailModern) {
                 Spacer(Modifier.height(16.dp))
                 Box(

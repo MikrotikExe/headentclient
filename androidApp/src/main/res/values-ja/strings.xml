@@ -59,6 +59,8 @@
     <string name="cat_hobby">趣味</string>
     <string name="cat_other">未分類</string>
     <string name="dvr_all">すべて</string>
+    <string name="dvr_recording_now">録画中</string>
+    <string name="dvr_all_recordings">すべての録画</string>
     <string name="dvr_archive">アーカイブ</string>
     <string name="dvr_by_channel">チャンネル別</string>
     <string name="dvr_by_genre">ジャンル別</string>

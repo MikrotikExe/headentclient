@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.LocalPolice
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Newspaper
@@ -87,6 +88,7 @@ internal val mgPalette = listOf(
 
 internal fun mgChipFor(key: String): MgChipColors = when (key) {
     "recent" -> mgPalette[6]
+    "recording" -> mgPalette[0]   // M728
     "search" -> mgPalette[5]
     "all" -> mgPalette[7]
     "channels" -> mgPalette[5]
@@ -182,6 +184,7 @@ internal fun mgIconFor(rawKey: String): androidx.compose.ui.graphics.vector.Imag
     mgSubIcon(rawKey)?.let { return it }
     val key = rawKey.substringBefore('|'); return when {
     key == "recent" -> Icons.Filled.PlayArrow
+    key == "recording" -> Icons.Filled.FiberManualRecord   // M728
     key == "search" -> Icons.Filled.Search
     key == "all" -> Icons.Filled.VideoLibrary
     key == "channels" -> Icons.Filled.LiveTv

@@ -59,6 +59,8 @@
     <string name="cat_hobby">Sở thích</string>
     <string name="cat_other">Chưa phân loại</string>
     <string name="dvr_all">Tất cả</string>
+    <string name="dvr_recording_now">Đang ghi</string>
+    <string name="dvr_all_recordings">Tất cả bản ghi</string>
     <string name="dvr_archive">Lưu trữ</string>
     <string name="dvr_by_channel">Theo kênh</string>
     <string name="dvr_by_genre">Theo thể loại</string>

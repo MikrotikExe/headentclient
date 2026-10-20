@@ -59,6 +59,8 @@
     <string name="cat_hobby">سرگرمی</string>
     <string name="cat_other">بدون دسته</string>
     <string name="dvr_all">همه</string>
+    <string name="dvr_recording_now">در حال ضبط</string>
+    <string name="dvr_all_recordings">همهٔ ضبط‌ها</string>
     <string name="dvr_archive">بایگانی</string>
     <string name="dvr_by_channel">بر اساس کانال</string>
     <string name="dvr_by_genre">بر اساس ژانر</string>
