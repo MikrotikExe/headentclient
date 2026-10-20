@@ -513,9 +513,11 @@ class PlayerActivity : ComponentActivity() {
                 !engine.ready || engine.tornDown) return@launch
             httpInputDropped = true
             val feeder = stream.httpFeeder
-            if (feeder != null) feeder.stop() else runCatching { engine.player.stop() }
+            // libVLC's stop() is synchronous and may hang (M535) -> never on the main thread
+            if (feeder != null) feeder.stop() else VlcEngine.stopAsync(engine.player)
             ttx.session.stopHttp()   // the teletext side branch (M713) is a second subscription on the same tuner
-            CrashLogger.report(this@PlayerActivity, "PlayerActivity.httpPause",
+            // a normal event, not a fault: only with the verbose player log, so the diagnostic log stays clean
+            if (VlcVerbosePref.get(this@PlayerActivity)) CrashLogger.report(this@PlayerActivity, "PlayerActivity.httpPause",
                 "paused ${HTTP_PAUSE_DROP_MS / 1000} s -> HTTP live input dropped (${if (feeder != null) "feeder" else "libVLC"}), Play starts the channel afresh")
         }
     }

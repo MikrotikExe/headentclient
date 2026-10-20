@@ -226,6 +226,21 @@ internal class VlcEngine(
         private val mainHandler = Handler(Looper.getMainLooper())
 
         /**
+         * Issue #32: stops [mp] OFF the main thread. `stop()` is synchronous and can hang on a box whose
+         * audio decoder is stuck (M535: an ANR when it ran on the main thread). Its own thread, so a
+         * hanging stop does not block [videoInfoAsync]; under the read lock, so [releaseVlc] waits for it.
+         */
+        fun stopAsync(mp: MediaPlayer) {
+            runCatching {
+                Thread({
+                    val rl = nativeCallLock.readLock()
+                    rl.lock()
+                    try { runCatching { mp.stop() } } finally { rl.unlock() }
+                }, "HeadentClient:vlcStop").apply { isDaemon = true }.start()
+            }
+        }
+
+        /**
          * M708: reads the current video track OFF the main thread and hands the result to
          * [onResult] on the main thread (null = no video track / not readable).
          *
