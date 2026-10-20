@@ -168,7 +168,7 @@ object DvrProxy {
      * ([viaHtsp], M715). Returns null on any failure; a refusal because of the account's connection
      * limit also returns null (the index then switches itself off). Call off the main thread.
      */
-    fun rangeReader(server: TvhServer, upstreamUrl: String, viaHtsp: Boolean): suspend (Long, Int) -> TsTimeIndex.RangeRead? {
+    internal fun rangeReader(server: TvhServer, upstreamUrl: String, viaHtsp: Boolean): suspend (Long, Int) -> TsTimeIndex.RangeRead? {
         if (viaHtsp) {
             val id = MediaFactory.stripCreds(upstreamUrl).substringAfter("/dvrfile/", "").substringBefore('?')
             return { from, len ->
