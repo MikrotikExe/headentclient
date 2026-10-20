@@ -50,6 +50,8 @@ internal class StreamOpener(
         fun onDirectLiveStart()
         /** Substitute channel name used when fixing the identity (EXTRA_TITLE from the intent). */
         fun fallbackTitle(): String?
+        /** M727: a TS seek landed at file time [fileMs] (read from the file's own clock) — main thread. */
+        fun onDvrSeekLanded(fileMs: Long)
         /** M722: the video codec of the live stream is known (HTSP subscriptionStart) — any thread. */
         fun onVideoCodec(codec: String)
         /** M724: the HTSP stream source / signal for the info window — any thread; null = a new stream starts. */
@@ -231,6 +233,9 @@ internal class StreamOpener(
         // M706: a TS recording starts at a position, not at a time (see StreamState.tsUrl)
         val byPosition = startFraction != null && url == stream.tsUrl
         if (startTimeSec != null && !byPosition) m.addOption(":start-time=$startTimeSec")
+        // M727: the position is a BYTE fraction. Without this libVLC's TS demuxer maps it onto its own
+        // time span (pcr first .. the last dts seen so far — near the start right after opening).
+        if (byPosition) m.addOption(":ts-seek-percent")
         player().media = m
         m.release()
         hooks.startPlayback()   // M539-fix2
@@ -238,6 +243,8 @@ internal class StreamOpener(
     }
 
     private var startPositionJob: Job? = null
+    /** M727: the pending TS seek (locate + restart); a newer seek cancels it. */
+    private var tsSeekJob: Job? = null
 
     /** M706: once libVLC reports the new HTTP stream as seekable, jump to [fraction] (a byte position). */
     private fun applyStartPosition(url: String, fraction: Float) {
@@ -326,6 +333,25 @@ internal class StreamOpener(
      * programme in the file, [fromMs] = where we are seeking from, [dur] = currently recorded duration of the programme.
      */
     fun seekDvrFile(url: String, fileMs: Long, offsetMs: Long, fromMs: Long, dur: Long) {
+        // M727 (issue #28): a finished TS recording — find the byte by the file's own clock
+        // (a few short Range reads), start there and seed the bar with the time actually found.
+        // Falls back to the old estimate when the index is not usable.
+        val idx = stream.tsIndex
+        if (!stream.dvrViaFeeder && idx != null && url == stream.tsUrl) {
+            tsSeekJob?.cancel()
+            tsSeekJob = scope.launch {
+                val loc = withContext(Dispatchers.IO) { idx.locate(fileMs) }
+                if (stream.currentStreamUrl != url || stream.tsIndex !== idx) return@launch
+                val size = idx.sizeBytes
+                if (loc != null && size > 0) {
+                    playUrlDirect(url, null, (loc.first.toDouble() / size).toFloat())
+                    hooks.onDvrSeekLanded(loc.second)
+                } else {
+                    playUrlDirect(url, fileMs / 1000, fractionOf(fileMs, offsetMs + dur))
+                }
+            }
+            return
+        }
         runCatching {
             if (stream.dvrViaFeeder) {
                 val srv = live.server ?: return

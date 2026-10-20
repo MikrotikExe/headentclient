@@ -38,6 +38,8 @@ internal class StreamState {
      * estimate the old pipe feeder used) once the stream is seekable. Verified with VLC 3.0.20.
      */
     var tsUrl: String? = null
+    /** M727 (issue #28): the time <-> byte map of the finished TS recording at [tsUrl] (null = none). */
+    var tsIndex: TsTimeIndex? = null
     /** Cache: does live HTTP on this server require a feeder (digest-only)? null = not determined. */
     var liveNeedsFeeder: Boolean? = null
 

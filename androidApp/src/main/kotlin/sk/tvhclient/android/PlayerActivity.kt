@@ -293,6 +293,11 @@ class PlayerActivity : ComponentActivity() {
                 }
                 override fun fallbackTitle(): String? = intent.getStringExtra(EXTRA_TITLE)
                 override fun onVideoCodec(codec: String) { runOnUiThread { this@PlayerActivity.onVideoCodec(codec) } }   // M722
+                override fun onDvrSeekLanded(fileMs: Long) {   // M727: the bar shows where the stream really is
+                    val ms = (fileMs - dvrFileOffsetMs()).coerceAtLeast(0L)
+                    dvr.playheadMsState.value = ms
+                    dvr.seekSeedState.value = ms
+                }
                 override fun onSourceInfo(info: sk.tvhclient.shared.htsp.HtspSourceInfo?) {   // M724
                     runOnUiThread { streamSource.value = info; if (info == null) streamSignal.value = null }
                 }
@@ -498,11 +503,15 @@ class PlayerActivity : ComponentActivity() {
      *  Direct URL -> a new Media with :start-time (libVLC seeks via HTTP Range).
      *  Feeder/pipe -> restart the HTTP feed at an estimated byte offset (a pipe cannot be seeked).
      *  In both cases it seeds the playhead clock to the target time. */
+    /** Where the programme starts in the recorded file (the padding before it), ms. */
+    private fun dvrFileOffsetMs(): Long =
+        if (dvr.progStartSec > 0 && dvr.realStartSec in 1 until dvr.progStartSec)
+            (dvr.progStartSec - dvr.realStartSec) * 1000 else 0L
+
     private fun seekDvrTo(targetMs: Long, fromMs: Long, dur: Long) {
         val url = stream.currentStreamUrl ?: return
         if (!engine.ready) return
-        val offsetMs = if (dvr.progStartSec > 0 && dvr.realStartSec in 1 until dvr.progStartSec)
-            (dvr.progStartSec - dvr.realStartSec) * 1000 else 0L
+        val offsetMs = dvrFileOffsetMs()
         val fileMs = (offsetMs + targetMs).coerceAtLeast(0L)   // time in the file (0 = the real start of the recording)
         reconnect.clearPending()
         // An ordinary seek = a short stream restart; show only the light seek spinner, NOT "Reconnecting"
@@ -579,6 +588,17 @@ class PlayerActivity : ComponentActivity() {
             override fun setArchiveChoiceSel(v: Int) { archiveChoiceSelState.value = v }
             override fun recInProgressByChan(): Map<String, sk.tvhclient.shared.model.DvrEntry> = this@PlayerActivity.recInProgressByChan.value
             override fun dvrUuid(): String? = dvr.uuid
+            override fun dvrFinished(): Boolean = seekablePlayback && dvr.uuid != null && !dvr.recording   // M727
+            override fun onTsDuration(fileMs: Long) {   // M727 (issue #28): the file's own length
+                if (!seekablePlayback || dvr.recording) return
+                val len = fileMs - dvrFileOffsetMs()
+                if (len > 1000L && kotlin.math.abs(len - dvr.durationMs) > 5000L) {
+                    if (VlcVerbosePref.get(this@PlayerActivity)) CrashLogger.report(this@PlayerActivity, "PlayerActivity.tsDuration",
+                        "recording length ${dvr.durationMs / 1000} s (planned) -> ${len / 1000} s (from the file)")
+                    dvr.durationMs = len
+                    dvr.durationState.value = len
+                }
+            }
             override fun intentUuid(): String? = intent.getStringExtra(EXTRA_UUID)
             override fun startActivity(i: android.content.Intent) { this@PlayerActivity.startActivity(i) }
         })

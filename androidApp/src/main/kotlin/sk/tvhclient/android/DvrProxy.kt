@@ -162,6 +162,61 @@ object DvrProxy {
         }
     }.getOrNull()
 
+    /**
+     * M727 (issue #28): a Range reader of the recording for [TsTimeIndex] — the same authentication
+     * as [container] (OkHttp with digest/basic), or fileRead over HTSP for an HTSP-only account
+     * ([viaHtsp], M715). Returns null on any failure; a refusal because of the account's connection
+     * limit also returns null (the index then switches itself off). Call off the main thread.
+     */
+    fun rangeReader(server: TvhServer, upstreamUrl: String, viaHtsp: Boolean): suspend (Long, Int) -> TsTimeIndex.RangeRead? {
+        if (viaHtsp) {
+            val id = MediaFactory.stripCreds(upstreamUrl).substringAfter("/dvrfile/", "").substringBefore('?')
+            return { from, len ->
+                runCatching {
+                    val f = HtspDvrFile.open(server, id)
+                    try {
+                        val buf = ByteArray(len)
+                        var n = 0
+                        while (n < len) {
+                            val c = f.read(from + n, len - n) ?: break
+                            if (c.length <= 0) break
+                            System.arraycopy(c.data, c.offset, buf, n, c.length)
+                            n += c.length
+                        }
+                        if (n > 0) TsTimeIndex.RangeRead(buf, n, f.size) else null
+                    } finally { f.close() }
+                }.getOrNull()
+            }
+        }
+        val url = MediaFactory.stripCreds(upstreamUrl)
+        val http = client(server).newBuilder().callTimeout(6, TimeUnit.SECONDS).build()
+        return { from, len ->
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching {
+                    val req = Request.Builder().url(url).header("Range", "bytes=$from-${from + len - 1}").build()
+                    val sentAt = android.os.SystemClock.elapsedRealtime()
+                    http.newCall(req).execute().use { resp ->
+                        if (HttpTsFeeder.isConnLimitResponse(resp.code, android.os.SystemClock.elapsedRealtime() - sentAt)) {
+                            lastConnLimitAt = android.os.SystemClock.elapsedRealtime()
+                            return@use null
+                        }
+                        if (resp.code != 206 && resp.code != 200) return@use null
+                        val total = resp.header("Content-Range")?.substringAfter('/', "")?.toLongOrNull()
+                            ?: if (resp.code == 200) resp.header("Content-Length")?.toLongOrNull() else null
+                        if (total == null || total <= 0) return@use null
+                        val src = resp.body?.byteStream() ?: return@use null
+                        val buf = ByteArray(len)
+                        var n = 0
+                        while (n < len) { val r = src.read(buf, n, len - n); if (r < 0) break; n += r }
+                        // a 200 answer ignored the Range: only a read from 0 is usable then
+                        if (resp.code == 200 && from > 0) return@use null
+                        if (n > 0) TsTimeIndex.RangeRead(buf, n, total) else null
+                    }
+                }.getOrNull()
+            }
+        }
+    }
+
     private fun acceptLoop(s: ServerSocket) {
         while (!s.isClosed) {
             val c = try { s.accept() } catch (_: Throwable) { break }

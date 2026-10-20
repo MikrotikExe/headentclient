@@ -54,6 +54,26 @@ internal class ChannelSwitcher(
         fun intentUuid(): String?
         /** A new PlayerActivity in DVR mode (playRecordingFromStart). */
         fun startActivity(intent: android.content.Intent)
+        /** M727: a FINISHED recording is being opened (not live, not in progress). */
+        fun dvrFinished(): Boolean
+        /** M727: the real duration of the TS recording file from its own clock (main thread). */
+        fun onTsDuration(fileMs: Long)
+    }
+
+    /**
+     * M727 (issue #28): for a finished MPEG-TS recording, start reading its own clock in the
+     * background (TsTimeIndex): the real duration replaces the planned one, and seeks land on the
+     * right time. Anything else clears the index.
+     */
+    private fun armTsIndex(server: sk.tvhclient.shared.model.TvhServer, upstreamUrl: String, isTs: Boolean, viaHtsp: Boolean) {
+        stream.tsIndex = null
+        if (!isTs || !actions.dvrFinished()) return
+        val idx = TsTimeIndex(DvrProxy.rangeReader(server, upstreamUrl, viaHtsp))
+        stream.tsIndex = idx
+        scope.launch {
+            val ok = withContext(Dispatchers.IO) { idx.init() }
+            if (ok && stream.tsIndex === idx) actions.onTsDuration(idx.durationMs)
+        }
     }
 
     /**
@@ -111,6 +131,7 @@ internal class ChannelSwitcher(
                         } else null
                         stream.avformatUrl = if (kind == DvrProxy.MKV) url else null
                         stream.tsUrl = if (kind == DvrProxy.TS) url else null
+                        armTsIndex(server, streamUrl, kind == DvrProxy.TS, viaHtsp = false)   // M727
                         when (proxied) {
                             null -> { stream.dvrViaFeeder = false; actions.playHttp(streamUrl) }
                             FEEDER -> { stream.dvrViaFeeder = true; actions.playDvrViaFeeder(server, streamUrl) }
@@ -125,6 +146,7 @@ internal class ChannelSwitcher(
                         val kind = withContext(Dispatchers.IO) { DvrProxy.container(server, streamUrl) }
                         stream.avformatUrl = if (kind == DvrProxy.MKV) streamUrl else null
                         stream.tsUrl = if (kind == DvrProxy.TS) streamUrl else null   // M706
+                        armTsIndex(server, streamUrl, kind == DvrProxy.TS, viaHtsp = false)   // M727
                         actions.playLiveAuto(server, streamUrl)
                         actions.pokeControls()
                     }
@@ -145,6 +167,7 @@ internal class ChannelSwitcher(
                         val kind = withContext(Dispatchers.IO) { DvrProxy.containerHtsp(server, streamUrl) }
                         stream.avformatUrl = if (kind == DvrProxy.MKV) proxied else null
                         stream.tsUrl = if (kind == DvrProxy.TS) proxied else null
+                        armTsIndex(server, streamUrl, kind == DvrProxy.TS, viaHtsp = true)   // M727
                         stream.dvrViaFeeder = false
                         actions.playHttp(proxied)
                         actions.pokeControls()
