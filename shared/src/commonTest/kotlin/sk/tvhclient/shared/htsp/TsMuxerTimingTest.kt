@@ -149,8 +149,8 @@ class TsMuxerTimingTest {
         assertTrue(stall.pcr.all { it.first == 0x1001 }, "PCR stays on the original PCR PID (video)")
         var last = lastVideoPcr
         for ((_, v) in stall.pcr) { assertTrue(v >= last, "PCR must keep rising even without video: $last -> $v"); last = v }
-        // the spacing of the PCR-only packets is ~250 ms, not on every audio packet
-        assertTrue(stall.pcr.size in 5..12, "PCR-only paketov: ${stall.pcr.size}")
+        // the spacing of the PCR-only packets is ~500 ms (M732, was 250 ms), not on every audio packet
+        assertTrue(stall.pcr.size in 3..6, "PCR-only paketov: ${stall.pcr.size}")
         // video returns: the PCR does not go backwards
         val resumed = parse(m.mux(1, es, pts = apts + 7_200L, dts = apts, randomAccess = true))
         assertTrue(resumed.pcr.first().second >= last, "PCR must not go backwards after video returns")
@@ -162,7 +162,7 @@ class TsMuxerTimingTest {
         val m = muxer()
         m.start()
         m.mux(1, es, pts = 1_007_200L, dts = 1_000_000L, randomAccess = true)
-        val out = m.mux(2, es, pts = 1_000_000L + 30_000L, dts = null, randomAccess = false)   // audio 333 ms behind the video
+        val out = m.mux(2, es, pts = 1_000_000L + 60_000L, dts = null, randomAccess = false)   // audio 667 ms ahead of the video (M732: > 500 ms)
         val first = out.copyOfRange(0, 188)
         assertEquals(0x47, first[0].toInt() and 0xFF)
         val pid = ((first[1].toInt() and 0x1F) shl 8) or (first[2].toInt() and 0xFF)
@@ -173,5 +173,37 @@ class TsMuxerTimingTest {
         // the next video packet continues with the CC that the PCR-only packet did not advance
         val nextVideo = parse(m.mux(1, es, pts = 1_010_800L, dts = 1_003_600L, randomAccess = false))
         assertTrue(nextVideo.pes.any { it.pid == 0x1001 })
+    }
+
+    /** M732 (audit R4): a frame with a DTS but no PTS gets PTS = DTS instead of no timestamp. */
+    @Test
+    fun dtsWithoutPtsBecomesPts() {
+        val m = muxer()
+        m.start()
+        val out = parse(m.mux(1, es, pts = null, dts = 1_000_000L, randomAccess = true))
+        val v = out.pes.first { it.pid == 0x1001 }
+        assertNotNull(v.pts)
+        assertEquals(null, v.dts, "PTS only — no separate DTS")
+    }
+
+    /** M732 (audit B2): a second subscriptionStart with other tracks rebuilds the PMT; the same list is a no-op. */
+    @Test
+    fun replaceStreamsRebuildsOnlyOnChange() {
+        val m = muxer()
+        m.start()
+        assertTrue(!m.replaceStreams(listOf(TsMuxer.Stream(index = 1, type = "H264"), TsMuxer.Stream(index = 2, type = "MPEG2AUDIO", language = "slk"))))
+        assertTrue(m.replaceStreams(listOf(TsMuxer.Stream(index = 3, type = "HEVC"), TsMuxer.Stream(index = 4, type = "AC3", language = "eng"))))
+        // the new indexes are muxed, the old ones are not
+        assertTrue(m.mux(3, es, pts = 1_007_200L, dts = 1_000_000L, randomAccess = true).isNotEmpty())
+        assertEquals(0, m.mux(1, es, pts = 1_010_800L, dts = 1_003_600L, randomAccess = false).size)
+        assertTrue(m.hasTracks())
+    }
+
+    /** M732 (audit R5): AAC-LATM is announced in the PMT like AAC (the server hands over ADTS frames). */
+    @Test
+    fun aacLatmIsATrack() {
+        val m = TsMuxer(listOf(TsMuxer.Stream(index = 1, type = "H264"), TsMuxer.Stream(index = 2, type = "AAC-LATM", language = "eng")))
+        m.start()
+        assertTrue(m.mux(2, es, pts = 1_000_000L, dts = null, randomAccess = false).isNotEmpty())
     }
 }

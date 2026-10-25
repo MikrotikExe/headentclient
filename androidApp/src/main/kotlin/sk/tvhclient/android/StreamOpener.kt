@@ -205,6 +205,7 @@ internal class StreamOpener(
             feeder.onVideoCodec = { c, h -> hooks.onVideoCodec(c, h) }  // M722 / M730
             feeder.onSourceInfo = { si -> hooks.onSourceInfo(si) }      // M724
             feeder.onSignal = { sg -> hooks.onSignal(sg) }              // M724
+            if (VlcVerbosePref.get(ctx)) feeder.onDiag = { msg -> CrashLogger.report(ctx, "HtspTsFeeder", msg) }   // M732
             hooks.onSourceInfo(null)
             // a new channel = a new subtitle list, reset the chosen language
             tracks.selectedSubEs.value = -1

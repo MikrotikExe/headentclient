@@ -31,6 +31,14 @@ class HtspSubscription internal constructor(
     @kotlin.concurrent.Volatile private var pktOut = 0L
     /** M715: the stream has a video track (set by [run] on subscriptionStart). */
     @kotlin.concurrent.Volatile private var hasVideo = false
+    /** M732 (audit R3): the muxer's audio-minus-video input pts offset in ms, null = unknown. */
+    fun avDeltaMs(): Long? = muxer?.avDeltaMs()
+    /** M732: media packets waiting for the pipe right now. */
+    fun pendingPackets(): Long = pktIn - pktOut
+
+    /** M732: when the first media packet arrived (epoch s), 0 = none yet — the session holds the EPG burst until the player has a buffer. */
+    @kotlin.concurrent.Volatile internal var firstDataSec = 0L
+        private set
     // reader-only state
     private var dropping = false
     private var dropSince = 0L
@@ -45,6 +53,7 @@ class HtspSubscription internal constructor(
      */
     internal fun fromReader(m: Map<String, Any?>) {
         if (m["method"] == "muxpkt") {
+            if (firstDataSec == 0L) firstDataSec = currentTimeSeconds()
             val pending = pktIn - pktOut
             if (dropping) {
                 val key = (m["frametype"] as? Long)?.toInt() == 'I'.code
@@ -176,7 +185,10 @@ class HtspSubscription internal constructor(
                             if (mx.hasTracks()) onTs(mx.start())
                         } else {
                             // another subscriptionStart (e.g. after a seek) — keep a continuous
-                            // timeline, just send PAT/PMT again
+                            // timeline, just send PAT/PMT again; M732 (audit B2): with a different
+                            // stream list (the service restarted with other tracks) the tracks are
+                            // rebuilt first and the subtitle menu refreshed
+                            if (existing.replaceStreams(streams)) onSubtitles(existing.subtitleStreams())
                             onTs(existing.start())
                         }
                     }

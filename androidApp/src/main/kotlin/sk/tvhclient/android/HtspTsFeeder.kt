@@ -62,6 +62,9 @@ class HtspTsFeeder(
     @Volatile var noTuner: Boolean = false
         private set
     @Volatile private var gotData = false
+    /** M732: a diagnostic line about once a minute (the A/V offset, the backlog) — only wired with the verbose player log. */
+    @Volatile var onDiag: ((String) -> Unit)? = null
+    private var lastDiagMs = 0L
 
     private class NoTunerException : Exception("HTSP: no free tuner")
 
@@ -169,6 +172,14 @@ class HtspTsFeeder(
                         if (discarding) return@run   // M715: paused without timeshift
                         if (bytes.isNotEmpty()) {
                             gotData = true   // M714
+                            onDiag?.let { d ->   // M732 (audit R3): the A/V offset of the server's stream
+                                val nowMs = System.currentTimeMillis()
+                                if (lastDiagMs == 0L) lastDiagMs = nowMs - 50_000L   // the first line ~10 s in
+                                if (nowMs - lastDiagMs >= 60_000L) {
+                                    lastDiagMs = nowMs
+                                    d("A/V pts offset (audio - video) ${subscription.avDeltaMs() ?: "?"} ms, pending ${subscription.pendingPackets()} pkts, buffer ${bufferTicks / 90} ms")
+                                }
+                            }
                             if (!queue.offer(bytes, 10, java.util.concurrent.TimeUnit.SECONDS)) {
                                 throw java.io.IOException("TS queue did not drain")
                             }
@@ -240,6 +251,10 @@ class HtspTsFeeder(
 
     fun stop() {
         if (streamMarked) { streamMarked = false; sk.tvhclient.shared.htsp.HtspData.streamStopped() }   // M595
+        // M732 (audit R17): no callbacks from a stopped feeder — a late subscriptionStart of the old
+        // subscription could otherwise write the codec memo / source info of the NEXT channel
+        onVideoCodec = null; onSourceInfo = null; onSignal = null; onDiag = null
+        onTeletextAvailable = null; onTeletext = null; onSubtitlePage = null; onWaitingForTuner = null
         job?.cancel()
         job = null
         // M481: terminate the writer thread WITHOUT blocking.

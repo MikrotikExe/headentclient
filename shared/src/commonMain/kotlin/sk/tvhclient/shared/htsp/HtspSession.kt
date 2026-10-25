@@ -209,6 +209,22 @@ class HtspSession internal constructor(
         epgRequested = true
         scope.launch {
             delay(EPG_REQUEST_DELAY_MS)   // the stream (if any) gets the connection first
+            // M732 (audit B1, issues #25/#38): the server's control queue goes ahead of the stream on
+            // the one connection, so the EPG burst (6 h x every channel) stalled a stream that had
+            // just started — at every connection start: app start, reconnect, the box after standby.
+            // With a subscription on this connection the burst now waits until the stream has been
+            // flowing for EPG_STREAM_SETTLE_SEC (the player has its buffer); without one it goes
+            // right away (the lists want now/next).
+            val t0 = currentTimeSeconds()
+            while (alive) {
+                val sub = lock.withLock { subs.values.firstOrNull() }
+                val now = currentTimeSeconds()
+                if (sub == null) { if (now - t0 >= EPG_NO_STREAM_WAIT_SEC) break; delay(500); continue }
+                val fd = sub.firstDataSec
+                if (fd > 0L && now - fd >= EPG_STREAM_SETTLE_SEC) break
+                if (now - t0 >= EPG_MAX_WAIT_SEC) break
+                delay(500)
+            }
             if (!alive) return@launch
             try {
                 val args = HashMap<String, Any?>()
@@ -438,6 +454,12 @@ class HtspSession internal constructor(
         const val IDLE_CLOSE_SEC = 300L
         /** M720: the EPG window is asked for this long after the initial sync. */
         const val EPG_REQUEST_DELAY_MS = 1_500L
+        /** M732: no subscription appears within this -> the EPG is asked for at once. */
+        const val EPG_NO_STREAM_WAIT_SEC = 3L
+        /** M732: a stream on the connection has to flow this long before the EPG burst. */
+        const val EPG_STREAM_SETTLE_SEC = 8L
+        /** M732: the EPG never waits longer than this (a stream that never gets data). */
+        const val EPG_MAX_WAIT_SEC = 30L
 
         /** M710: dvrEntry fields Tvheadend sends only when set (htsp_build_dvrentry). */
         private val DVR_VOLATILE = listOf("error", "subscriptionError", "streamErrors", "dataErrors", "dataSize", "duplicate")

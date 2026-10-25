@@ -69,15 +69,27 @@ class TsMuxer(streams: List<Stream>) {
     /** M674: the last written PCR (90 kHz) — the PCR must not go backwards, not even after a PCR-only packet. */
     private var lastPcrOut: Long = -1L
     /** M674: if audio gets ahead of the last PCR (the video PID is silent — an outage, scrambling, waiting for a
-     *  keyframe) by more than 250 ms, I send a PCR-only packet on the PCR PID so that libVLC's clock does not stall.
-     *  250 ms: audio DTS normally leads video DTS by the B-frame reorder delay (up to ~120 ms)
-     *  and after a seek (re-base) by frameGap + the PTS-DTS gap (~115 ms) — that is not a stall. */
-    private val PCR_STALL_TICKS = 22_500L
+     *  keyframe) by more than this, I send a PCR-only packet on the PCR PID so that libVLC's clock does not stall.
+     *  M732 (audit R2): 500 ms, was 250 ms — with HEVC and a deep B-pyramid (DVB-T2, issue #25) the
+     *  audio lead is 160-200 ms plus the server parsers' delay, so the 250 ms threshold tripped in
+     *  ordinary playback: the PCR jumped ahead and then stood until the video caught up. A real
+     *  outage still shows within half a second. */
+    private val PCR_STALL_TICKS = 45_000L
+
+    /** M732: the last INPUT pts of audio / video (90 kHz) — the A/V offset for the diagnostic log. */
+    private var lastAudioPtsIn: Long? = null
+    private var lastVideoPtsIn: Long? = null
+    /** Audio pts minus video pts of the last packets, in ms; null until both have arrived. */
+    fun avDeltaMs(): Long? {
+        val a = lastAudioPtsIn ?: return null
+        val v = lastVideoPtsIn ?: return null
+        return (a - v) / 90L
+    }
 
     private val tracks = ArrayList<Track>()
     private var trackByEs: Map<Int, Track> = emptyMap()
     private val pendingSubs = ArrayList<Track>()   // DVB subtitles waiting for the first packet
-    private val pcrPid: Int
+    private var pcrPid: Int = 0x1001
     private var patCc = 0
     private var pmtCc = 0
     private var psiCounter = 0
@@ -102,7 +114,31 @@ class TsMuxer(streams: List<Stream>) {
     private val discontTicks = 90000L * 4   // 4 s = discontinuity -> re-base
     private val frameGapTicks = 3000L        // a ~33 ms gap after a seek
 
-    init {
+    /** The stream list the tracks were built from (M732: compared on the next subscriptionStart). */
+    private var layout: List<Stream> = emptyList()
+
+    init { buildTracks(streams) }
+
+    /**
+     * M732 (audit B2): a LATER subscriptionStart with a different stream list (the server restarted
+     * the service: a PMT change, a retune, another tuner — new indexes or codecs). Until now only
+     * PAT/PMT were re-sent for the OLD tracks, so packets of unknown indexes were dropped and known
+     * indexes with another codec were muxed under the old type — sound only, a black picture or
+     * artefacts until the next channel change (issue #25: "sometimes fine, back after a few
+     * switches"). The tracks are rebuilt (new PIDs, PMT version + 1), the output timeline is kept so
+     * libVLC sees a track change, not a jump. Returns true when the layout changed.
+     */
+    fun replaceStreams(streams: List<Stream>): Boolean {
+        if (streams == layout) return false
+        tracks.clear(); pendingSubs.clear()
+        buildTracks(streams)
+        pmtVersion = (pmtVersion + 1) and 0x1F
+        heldClearPayload = null; heldClearTrack = null
+        return true
+    }
+
+    private fun buildTracks(streams: List<Stream>) {
+        layout = streams
         var nextPid = 0x1001
         for (s in streams) {
             if (s.type == "DVBSUB") {
@@ -158,6 +194,9 @@ class TsMuxer(streams: List<Stream>) {
         "AC3" -> Triple(0x81, 0xBD, false)
         "EAC3" -> Triple(0x87, 0xBD, false)
         "AAC" -> Triple(0x0F, 0xC0, false)
+        // M732 (audit R5): Tvheadend's LATM parser hands over ADTS frames too (parser_latm), so the
+        // same ADTS stream type; until now the track was missing from the PMT -> a mute channel
+        "AAC-LATM" -> Triple(0x0F, 0xC0, false)
         else -> null
     }
 
@@ -227,6 +266,8 @@ class TsMuxer(streams: List<Stream>) {
             heldClearPayload = null; heldClearTrack = null
         }
         val (op, od) = remap(pts, dts)
+        // M732 (audit R3): the input A/V offset for the diagnostic log (issue #25)
+        if (pts != null) { if (t.isVideo) lastVideoPtsIn = pts else lastAudioPtsIn = pts }
         // M713: Tvheadend's parsers already deliver AAC as ADTS frames (parse_mp4a_data keeps the
         // whole ADTS frame, parser_latm builds a 7-byte ADTS header). Only raw AAC (e.g. from a
         // transcoding profile) gets our header; a second header broke the audio on AAC channels.
@@ -536,7 +577,10 @@ class TsMuxer(streams: List<Stream>) {
     private val pesHdr = ByteArray(19)
 
     /** Builds the PES header for an ES of length [esLen] into [pesHdr]; returns its length (9, 14 or 19). */
-    private fun buildPesHeader(t: Track, esLen: Int, pts: Long?, dts: Long?): Int {
+    private fun buildPesHeader(t: Track, esLen: Int, ptsIn: Long?, dts: Long?): Int {
+        // M732 (audit R4): a DTS without a PTS is not allowed in a PES (the flags 01 are forbidden) —
+        // such a frame went out with no timestamp at all; PTS = DTS instead
+        val pts = ptsIn ?: dts
         val hasPts = pts != null
         // DVB subtitles must have only a PTS (a DTS is invalid for them and some stream sources
         // send it inconsistently -> sometimes the subtitle shows up, sometimes it does not). We force PTS-only.
