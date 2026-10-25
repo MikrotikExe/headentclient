@@ -224,8 +224,13 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
                     val win = live.snapshot
                     if (win.isEmpty()) return@collect
                     val end = live.windowEnd(nowSec)
-                    val m = _epgMap.value.toMutableMap()
-                    for ((ch, l) in win) m[ch] = sk.tvhclient.shared.epg.LiveEpg.mergeWindow(m[ch], l, end)
+                    // M731 (audit R11): the merge of hundreds of channels runs off the main thread
+                    val base = _epgMap.value
+                    val m = withContext(Dispatchers.Default) {
+                        val mm = base.toMutableMap()
+                        for ((ch, l) in win) mm[ch] = sk.tvhclient.shared.epg.LiveEpg.mergeWindow(mm[ch], l, end)
+                        mm
+                    }
                     _epgMap.value = m
                     val nowMs = System.currentTimeMillis()
                     if (nowMs - liveSavedMs >= 60_000L) {

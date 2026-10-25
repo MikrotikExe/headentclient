@@ -99,7 +99,11 @@ object HttpEpgFeed {
                                 cometOk = false
                                 store.markSynced(alive = false, nowSec = currentTimeSeconds())
                             }
-                            400 -> boxid = null           // the mailbox expired (server restart) -> a new one
+                            400 -> {                      // the mailbox expired (server restart) -> a new one
+                                boxid = null
+                                // M731 (audit R11): a proxy that answers 400 for good must not spin
+                                failures++; delay(minOf(60_000L, 2_000L * failures))
+                            }
                             else -> { failures++; delay(minOf(60_000L, 5_000L * failures)) }
                         }
                     } catch (e: Throwable) {
@@ -122,19 +126,26 @@ object HttpEpgFeed {
     /** The `epg` notifications: {"notificationClass":"epg","create":[ids],"update":[ids],"delete":[ids]}. */
     private suspend fun apply(messages: List<JsonObject>, api: TvhApi, store: LiveEpgStore) {
         if (messages.isEmpty()) return
-        val changed = HashSet<Long>()
+        val created = LinkedHashSet<Long>()
+        val updated = LinkedHashSet<Long>()
         val deleted = HashSet<Long>()
         for (m in messages) {
             if ((m["notificationClass"] as? JsonPrimitive)?.content != "epg") continue
-            ids(m["create"]).let { changed.addAll(it) }
-            ids(m["update"]).let { changed.addAll(it) }
+            ids(m["create"]).let { created.addAll(it) }
+            ids(m["update"]).let { updated.addAll(it) }
             ids(m["delete"]).let { deleted.addAll(it) }
         }
-        changed.removeAll(deleted)
+        created.removeAll(deleted); updated.removeAll(deleted)
         if (deleted.isNotEmpty()) store.delete(deleted)
-        if (changed.isNotEmpty()) {
-            // only what we hold or what starts inside the window matters; the store drops the rest
-            val list = api.epgLoad(changed.take(MAX_LOAD_PER_POLL))
+        // M731 (audit R10): an update matters only for an event we hold (the rest is outside the
+        // window and the store would drop it anyway — an EIT wave listed hundreds of them); a
+        // created event may fall into the window, so creates go first, up to the per-poll cap
+        val known = store.knownIds
+        val wanted = ArrayList<Long>()
+        for (id in created) { if (wanted.size >= MAX_LOAD_PER_POLL) break; wanted.add(id) }
+        for (id in updated) { if (wanted.size >= MAX_LOAD_PER_POLL) break; if (id in known && id !in created) wanted.add(id) }
+        if (wanted.isNotEmpty()) {
+            val list = api.epgLoad(wanted)
             if (list.isNotEmpty()) store.upsert(list)
         }
     }

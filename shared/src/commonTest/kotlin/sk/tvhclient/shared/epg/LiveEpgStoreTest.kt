@@ -92,4 +92,37 @@ class LiveEpgStoreTest {
         assertEquals(window, LiveEpg.mergeWindow(null, window, end))
         assertEquals(cached, LiveEpg.mergeWindow(cached, emptyList(), end))
     }
+
+    @Test
+    fun httpWindowEndIsFixedUntilTheNextReload() = runTest {   // M731 (audit B6)
+        val s = LiveEpgStore("t5")
+        assertEquals(now + LiveEpg.WINDOW_SEC, s.windowEnd(now))                 // sliding (HTSP) before any load
+        s.replaceAll(listOf(ev(1, "a", now, now + 600)), now)
+        s.markSynced(alive = true, nowSec = now)
+        assertEquals(now + LiveEpg.WINDOW_SEC, s.windowEnd(now + 1800))          // 30 min later: still the loaded end
+        assertEquals(now + LiveEpg.WINDOW_SEC, s.windowEnd(now + LiveEpg.WINDOW_SEC + 20))   // never beyond the loaded end
+        s.clear()
+        assertEquals(now + LiveEpg.WINDOW_SEC, s.windowEnd(now))
+    }
+
+    @Test
+    fun awaitFreshWaitsForTheNextSyncAfterALostFeed() = runTest {   // M731 (audit R9)
+        val s = LiveEpgStore("t6")
+        s.markSynced(alive = true, nowSec = now)
+        assertTrue(s.awaitFresh(10))
+        s.markFeedDead()
+        assertFalse(s.awaitFresh(50))                                             // no new sync inside the wait
+        s.markSynced(alive = true, nowSec = now + 1)
+        assertTrue(s.awaitFresh(10))
+    }
+
+    @Test
+    fun knownIdsFollowThePublishedWindow() = runTest {   // M731 (audit R10)
+        val s = LiveEpgStore("t7")
+        s.upsert(listOf(ev(1, "a", now, now + 600), ev(2, "a", now + 600, now + 1200)), now)
+        s.publish(now)
+        assertEquals(setOf(1L, 2L), s.knownIds)
+        s.delete(listOf(1L)); s.publish(now)
+        assertEquals(setOf(2L), s.knownIds)
+    }
 }

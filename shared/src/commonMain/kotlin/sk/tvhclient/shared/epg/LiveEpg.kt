@@ -58,12 +58,22 @@ class LiveEpgStore internal constructor(val serverId: String) {
     /** A live feed (HTSP push / comet) is keeping the window current right now. */
     @Volatile var feedAlive = false
         private set
-    /** When a reader last used the store (HttpEpgFeed stops after a long idle). */
+    /** When a reader last used the store (HttpEpgFeed stops after a long idle). M731 (audit R8): only
+     *  the entry points touch it (Tvh.liveEpg / HttpEpgFeed.ensure, called from the foreground), not
+     *  every read — a player in the background kept the comet feed alive for ever. */
     @Volatile var lastUseSec = currentTimeSeconds()
+        private set
+    /** M731 (audit B6): HTTP loads a FIXED window (load time + WINDOW_SEC) that does not slide until
+     *  the next reload; 0 = the server slides it (HTSP). [windowEnd] never claims more than this. */
+    @Volatile private var loadedUntil = 0L
+    /** M731 (audit R10): the ids held right now (replaced with every publish) — the comet feed loads
+     *  updates only for these. */
+    @Volatile var knownIds: Set<Long> = emptySet()
         private set
 
     private var dirty = false
     private var flushJob: Job? = null
+    private var tickJob: Job? = null
 
     /** Fresh = a complete window exists and either a feed is alive or it is recent (polling mode). */
     fun isFresh(nowSec: Long = currentTimeSeconds()): Boolean {
@@ -71,10 +81,14 @@ class LiveEpgStore internal constructor(val serverId: String) {
         return s > 0 && (feedAlive || nowSec - s < POLL_FRESH_SEC)
     }
 
-    /** Waits until the first complete window has arrived; false on timeout. */
+    /** Waits until a complete window has arrived; false on timeout. M731 (audit R9): after a lost
+     *  feed it waits for the NEXT sync (the old syncedAt is no longer fresh) instead of returning at
+     *  once — otherwise a reconnect sent a full getEvents round behind the arriving burst. */
     suspend fun awaitFresh(timeoutMs: Long): Boolean {
         if (isFresh()) return true
-        return withTimeoutOrNull(timeoutMs) { _syncedAt.first { it > 0 } } != null && isFresh()
+        val before = _syncedAt.value
+        withTimeoutOrNull(timeoutMs) { _syncedAt.first { it > 0 && it != before } }
+        return isFresh()
     }
 
     fun touch() { lastUseSec = currentTimeSeconds() }
@@ -120,6 +134,7 @@ class LiveEpgStore internal constructor(val serverId: String) {
             events.clear(); byChannel.clear()
             dirty = true
         }
+        loadedUntil = nowSec + LiveEpg.WINDOW_SEC   // M731 (B6): a fixed window until the next reload
         upsert(list, nowSec)
     }
 
@@ -138,6 +153,23 @@ class LiveEpgStore internal constructor(val serverId: String) {
         feedAlive = alive
         publish(nowSec)
         _syncedAt.value = nowSec
+        startTick()
+    }
+
+    /** M731 (audit R11): the `running` flag of an overrunning programme (M715) was baked into the
+     *  snapshot only when something changed; on a quiet server it was never set, or stayed set
+     *  past the 15-minute limit. A minute tick rebuilds the snapshot while a server pointer exists. */
+    private fun startTick() {
+        if (tickJob?.isActive == true) return
+        tickJob = scope.launch {
+            while (true) {
+                delay(TICK_MS)
+                if (_syncedAt.value == 0L) continue
+                val hasPointer = mutex.withLock { nowPointer.isNotEmpty() }
+                if (hasPointer) publish(currentTimeSeconds(), force = true)
+                else publish(currentTimeSeconds())   // the trim alone (events that ended)
+            }
+        }
     }
 
     /** The feed is gone (connection lost / idle close) — the data stays, only freshness changes. */
@@ -147,6 +179,7 @@ class LiveEpgStore internal constructor(val serverId: String) {
     suspend fun clear() {
         mutex.withLock { events.clear(); byChannel.clear(); nowPointer.clear(); dirty = true }
         feedAlive = false
+        loadedUntil = 0L
         _syncedAt.value = 0L
         publish(currentTimeSeconds())
     }
@@ -160,9 +193,10 @@ class LiveEpgStore internal constructor(val serverId: String) {
         }
     }
 
-    /** Trims the window and publishes a new [snapshot] (if anything changed). */
-    suspend fun publish(nowSec: Long) {
-        val out: Map<String, List<EpgEvent>>? = mutex.withLock {
+    /** Trims the window and publishes a new [snapshot] (if anything changed, or [force]). */
+    suspend fun publish(nowSec: Long, force: Boolean = false) {
+        mutex.withLock {
+            if (force) dirty = true
             // trim: long over (except the channel's pointer — an overrunning programme), far future
             val maxStart = nowSec + LiveEpg.WINDOW_SEC + WINDOW_MARGIN_SEC
             val it = events.values.iterator()
@@ -186,12 +220,12 @@ class LiveEpgStore internal constructor(val serverId: String) {
                     l.sortBy { it.start }
                     m[ch] = l
                 }
-                m
-            } else null
-        }
-        if (out != null) {
-            snapshot = out
-            _revision.value = _revision.value + 1
+                // M731 (audit R11): published inside the lock — two publishers (the flush and
+                // markSynced) could otherwise install the older snapshot last
+                knownIds = HashSet(events.keys)
+                snapshot = m
+                _revision.value = _revision.value + 1
+            }
         }
     }
 
@@ -206,14 +240,12 @@ class LiveEpgStore internal constructor(val serverId: String) {
 
     /** The programme on air on [channelUuid] (time rule + the running pointer), or null. */
     fun currentFor(channelUuid: String, nowSec: Long = currentTimeSeconds()): EpgEvent? {
-        touch()
         val l = snapshot[channelUuid] ?: return null
         return l.firstOrNull { it.running && it.isCurrentAt(nowSec) } ?: l.firstOrNull { it.isCurrentAt(nowSec) }
     }
 
     /** The current programme followed by the next ones (at most [max]); empty = nothing known. */
     fun nowNext(channelUuid: String, nowSec: Long = currentTimeSeconds(), max: Int = 6): List<EpgEvent> {
-        touch()
         val l = snapshot[channelUuid] ?: return emptyList()
         val cur = currentFor(channelUuid, nowSec)
         val from = cur?.stop ?: nowSec
@@ -228,7 +260,6 @@ class LiveEpgStore internal constructor(val serverId: String) {
 
     /** channelUuid -> current + following programmes for every channel in the window (the now/next map). */
     fun upcomingMap(nowSec: Long = currentTimeSeconds(), max: Int = 6): Map<String, List<EpgEvent>> {
-        touch()
         val snap = snapshot
         val out = HashMap<String, List<EpgEvent>>(snap.size * 2)
         for (ch in snap.keys) {
@@ -240,14 +271,19 @@ class LiveEpgStore internal constructor(val serverId: String) {
 
     /** channelUuid -> the programme on air (what api/epg/events/grid?mode=now returns). */
     fun nowMap(nowSec: Long = currentTimeSeconds()): Map<String, EpgEvent> {
-        touch()
         val out = HashMap<String, EpgEvent>()
         for (ch in snapshot.keys) currentFor(ch, nowSec)?.let { out[ch] = it }
         return out
     }
 
-    /** The end of the window as the server slides it (events beyond it are not here yet). */
-    fun windowEnd(nowSec: Long = currentTimeSeconds()): Long = nowSec + LiveEpg.WINDOW_SEC
+    /** The end of the window: as the server slides it (HTSP), or where the last HTTP load ended
+     *  (M731, audit B6 — between reloads the fixed HTTP window is up to 30 min shorter than
+     *  now + 6 h, and mergeWindow cut the cached guide there, leaving a hole). */
+    fun windowEnd(nowSec: Long = currentTimeSeconds()): Long {
+        val slide = nowSec + LiveEpg.WINDOW_SEC
+        val fixed = loadedUntil
+        return if (fixed > 0L && fixed < slide) fixed else slide
+    }
 
     companion object {
         /** How long a complete window counts as fresh without a live feed (HTTP without comet). */
@@ -257,6 +293,8 @@ class LiveEpgStore internal constructor(val serverId: String) {
         /** Creates beyond the window may arrive a little early (the server's 30 s slide). */
         const val WINDOW_MARGIN_SEC = 600L
         const val FLUSH_DELAY_MS = 400L
+        /** M731: the running-flag / trim tick. */
+        const val TICK_MS = 60_000L
     }
 }
 
@@ -282,10 +320,12 @@ object LiveEpg {
         }
     }
 
-    /** Drops the server's window (data reset / server removed). */
+    /** Drops the server's window (data reset / server edited or removed). M731 (audit B5): the store
+     *  object stays registered — ChannelsViewModel, PlayerEpgStore and the HTSP session hold it and
+     *  collect its revision; a NEW object for the same id left them listening to an orphan (now/next
+     *  froze until the ViewModel restarted, the HTSP session filled a store nobody read). */
     suspend fun forget(serverId: String) {
-        val s = locked { val r = view[serverId]; view = view - serverId; r }
-        s?.clear()
+        view[serverId]?.clear()
     }
 
     /**

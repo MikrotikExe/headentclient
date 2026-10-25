@@ -25,6 +25,9 @@ object EpgCache {
      * huge String over the whole map -> OutOfMemoryError on large servers, ~96 MB).
      * Written via .tmp + rename, so that no corrupted file is left behind on failure.
      */
+    // M731 (audit R11): two writers (ChannelsViewModel every 60 s, PlayerEpgStore every 30 s) wrote
+    // the same live.tmp at once -> a torn file that was dropped silently at the next start
+    @Synchronized
     private fun writeStreamed(f: File, data: Map<String, List<EpgEvent>>) {
         val tmp = File(f.parentFile, f.name + ".tmp")
         tmp.bufferedWriter().use { w ->
@@ -36,8 +39,8 @@ object EpgCache {
                 w.write("\n")
             }
         }
-        f.delete()
-        if (!tmp.renameTo(f)) { tmp.copyTo(f, overwrite = true); tmp.delete() }
+        // rename over the old file (atomic on Linux) — a reader never sees a missing file
+        if (!tmp.renameTo(f)) { f.delete(); if (!tmp.renameTo(f)) { tmp.copyTo(f, overwrite = true); tmp.delete() } }
     }
 
     /** Streaming read of the cache line by line — peak memory = one channel. */

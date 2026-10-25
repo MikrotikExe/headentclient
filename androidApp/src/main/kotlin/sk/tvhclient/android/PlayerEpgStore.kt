@@ -387,13 +387,18 @@ class PlayerEpgStore(
 
     /** The window's programmes replace the next hours of every channel's cached list; the daily
      *  guide a screen cached beyond the window is kept (LiveEpg.mergeWindow). */
-    private fun applyLiveWindow(live: sk.tvhclient.shared.epg.LiveEpgStore) {
+    private suspend fun applyLiveWindow(live: sk.tvhclient.shared.epg.LiveEpgStore) {
         val nowSec = System.currentTimeMillis() / 1000
         val win = live.snapshot
         if (win.isEmpty()) return
         val end = live.windowEnd(nowSec)
-        val m = upcoming.value.toMutableMap()
-        for ((ch, l) in win) m[ch] = sk.tvhclient.shared.epg.LiveEpg.mergeWindow(m[ch], l, end)
+        // M731 (audit R11): the merge of hundreds of channels runs off the main thread
+        val base = upcoming.value
+        val m = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            val mm = base.toMutableMap()
+            for ((ch, l) in win) mm[ch] = sk.tvhclient.shared.epg.LiveEpg.mergeWindow(mm[ch], l, end)
+            mm
+        }
         upcoming.value = m
         LivePlaylist.epgUpcoming = m
         epgLastOkMs = System.currentTimeMillis()

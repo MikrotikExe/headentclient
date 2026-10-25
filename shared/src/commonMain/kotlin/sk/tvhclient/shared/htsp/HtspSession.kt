@@ -221,8 +221,14 @@ class HtspSession internal constructor(
                 if (!alive) epg.markFeedDead()
             } catch (e: Throwable) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                // no window this time (slow or dead connection) — the readers keep their old data
-                // and fall back to getEvents; the next connection asks again
+                // M731 (audit B7): the sentinel timed out but the connection lives — the events ARE
+                // in the store (the server keeps pushing and sliding the window), so the window
+                // counts as synced; until now it stayed "never fresh" for the whole connection and
+                // every reader went the old getEvents way for hours. A dead connection leaves the
+                // old data as it was; the next connection asks again.
+                if (alive) {
+                    runCatching { epg.markSynced(alive = true) }
+                }
             }
         }
     }
