@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (κανάλια SD): καλύτερη ποιότητα εικόνας</string>
     <string name="mpeg2_sw_note">Τα κανάλια MPEG-2 αποκωδικοποιούνται σε λογισμικό με απόπλεξη – καθαρή εικόνα χωρίς οδοντωτές ακμές. Τα κανάλια HD (H.264, HEVC) παραμένουν σε υλικό.</string>
     <string name="vlc_verbose_title">Αναλυτικό αρχείο καταγραφής</string>
-    <string name="vlc_verbose_note">Μόνο για διάγνωση προβλημάτων αναπαραγωγής. Επιβραδύνει την αναπαραγωγή· απενεργοποιήστε μετά.</string>
+    <string name="vlc_verbose_note">Μόνο για διάγνωση προβλημάτων αναπαραγωγής. Επιβραδύνει την αναπαραγωγή· απενεργοποιήστε μετά. Όσο είναι ενεργό, το αρχείο καταγραφής του player αποθηκεύεται και στέλνεται μαζί με το διαγνωστικό.</string>
+    <string name="diag_player_log_note">Καταγράφηκε και αναλυτικό αρχείο του player· επισυνάπτεται κατά την αποστολή.</string>
     <string name="dvr_rec_button">Εγγραφή</string>
     <string name="dvr_rec_working">Προγραμματισμός…</string>
     <string name="dvr_rec_scheduled">Η εγγραφή προγραμματίστηκε</string>

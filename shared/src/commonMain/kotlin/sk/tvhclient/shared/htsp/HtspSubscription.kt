@@ -112,8 +112,9 @@ class HtspSubscription internal constructor(
         onSubtitlePage: (DvbSubtitleDecoder.DecodedPage, Long) -> Unit = { _, _ -> },
         /** M552: the channel has a teletext track (from subscriptionStart). */
         onTeletextAvailable: (Boolean) -> Unit = {},
-        /** M722: the type of the first video track (from subscriptionStart), e.g. "MPEG2VIDEO". */
-        onVideoCodec: (String) -> Unit = {},
+        /** M722: the type of the first video track (from subscriptionStart), e.g. "MPEG2VIDEO", and
+         *  M730: its picture height in lines (0 = the server does not know it yet). */
+        onVideoCodec: (codec: String, height: Int) -> Unit = { _, _ -> },
         /** M724: the source of the stream (subscriptionStart: sourceinfo + the tracks) for the info window. */
         onSourceInfo: (HtspSourceInfo) -> Unit = {},
         /** M724: signalStatus (about once a second) for the info window. */
@@ -162,7 +163,10 @@ class HtspSubscription internal constructor(
                         teletextEs = streams.firstOrNull { it.type == "TELETEXT" }?.index ?: -1
                         hasVideo = streams.any { it.type in VIDEO_TYPES }   // M715
                         onTeletextAvailable(teletextEs >= 0)
-                        streams.firstOrNull { it.type in VIDEO_TYPES }?.let { onVideoCodec(it.type) }   // M722
+                        streams.firstOrNull { it.type in VIDEO_TYPES }?.let { v ->   // M722 / M730
+                            val vm = sl.firstOrNull { (it as? Map<*, *>)?.get("index") == v.index.toLong() } as? Map<*, *>
+                            onVideoCodec(v.type, (vm?.get("height") as? Long)?.toInt() ?: 0)
+                        }
                         onSourceInfo(HtspSourceInfo.from(m, sl))   // M724
                         val existing = muxer
                         if (existing == null) {

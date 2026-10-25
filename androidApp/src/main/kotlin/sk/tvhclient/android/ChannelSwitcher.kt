@@ -57,7 +57,8 @@ internal class ChannelSwitcher(
         /** M727: a FINISHED recording is being opened (not live, not in progress). */
         fun dvrFinished(): Boolean
         /** M727: the real duration of the TS recording file from its own clock (main thread). */
-        fun onTsDuration(fileMs: Long)
+        /** M727: the finished recording's real length from its PCR; false = not plausible (M730), the index is dropped. */
+        fun onTsDuration(fileMs: Long): Boolean
     }
 
     /**
@@ -72,7 +73,11 @@ internal class ChannelSwitcher(
         stream.tsIndex = idx
         scope.launch {
             val ok = withContext(Dispatchers.IO) { idx.init() }
-            if (ok && stream.tsIndex === idx) actions.onTsDuration(idx.durationMs)
+            if (ok && stream.tsIndex === idx && !actions.onTsDuration(idx.durationMs)) {
+                // M730 (audit R13): a PCR jump inside the file (an input failover) gives a length of up to
+                // 26 h — such a map would also mislead every seek, so it is not used at all
+                idx.disable(); stream.tsIndex = null
+            }
         }
     }
 

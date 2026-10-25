@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (canali SD): migliore qualità dell\'immagine</string>
     <string name="mpeg2_sw_note">I canali MPEG-2 sono decodificati via software con deinterlacciamento: immagine nitida senza bordi seghettati. I canali HD (H.264, HEVC) restano in hardware.</string>
     <string name="vlc_verbose_title">Log dettagliato del lettore</string>
-    <string name="vlc_verbose_note">Solo per diagnosticare problemi di riproduzione. Rallenta il lettore; disattivalo dopo.</string>
+    <string name="vlc_verbose_note">Solo per diagnosticare problemi di riproduzione. Rallenta il lettore; disattivalo dopo. Mentre è attivo, il log del lettore viene salvato e inviato insieme al log diagnostico.</string>
+    <string name="diag_player_log_note">È stato registrato anche un log dettagliato del lettore; viene allegato all\'invio del log.</string>
     <string name="dvr_rec_button">Registra</string>
     <string name="dvr_rec_working">Programmazione…</string>
     <string name="dvr_rec_scheduled">Registrazione programmata</string>

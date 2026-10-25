@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (SD چینل): بہترین تصویری معیار</string>
     <string name="mpeg2_sw_note">MPEG-2 چینل سافٹ ویئر میں ڈی انٹرلیسنگ کے ساتھ ڈی کوڈ ہوتے ہیں – دندانے دار کناروں کے بغیر صاف تصویر۔ HD چینل (H.264، HEVC) ہارڈویئر میں رہتے ہیں۔</string>
     <string name="vlc_verbose_title">تفصیلی پلیئر لاگ</string>
-    <string name="vlc_verbose_note">صرف پلے بیک مسائل کی تشخیص کے لیے۔ پلیئر سست ہوتا ہے، بعد میں بند کر دیں۔</string>
+    <string name="vlc_verbose_note">صرف پلے بیک مسائل کی تشخیص کے لیے۔ پلیئر سست ہوتا ہے، بعد میں بند کر دیں۔ جب تک آن ہے، پلیئر کا لاگ محفوظ ہوتا ہے اور تشخیصی لاگ کے ساتھ بھیجا جاتا ہے۔</string>
+    <string name="diag_player_log_note">پلیئر کا تفصیلی لاگ بھی ریکارڈ ہوا؛ لاگ بھیجتے وقت منسلک کیا جاتا ہے۔</string>
     <string name="dvr_rec_button">ریکارڈ</string>
     <string name="dvr_rec_working">شیڈول ہو رہا ہے…</string>
     <string name="dvr_rec_scheduled">ریکارڈنگ شیڈول ہو گئی</string>

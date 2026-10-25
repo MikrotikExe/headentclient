@@ -69,10 +69,13 @@ internal fun StreamInfoSection(d: StreamDetails) {
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
     }
+    /**
+     * M730 (audit R7): HTSP signalStatus carries no scale. Relative drivers send 0..65535; DVBv5
+     * drivers in decibels (linuxdvb, SAT>IP) send feSNR = dB × 1000 and feSignal = dBm × 1000
+     * (negative). [pct] = the bar, [text] = what is written next to it.
+     */
     @Composable
-    fun bar(name: String, raw: Int) {
-        if (raw < 0) return
-        val pct = (raw.coerceIn(0, 65535) * 100) / 65535
+    fun bar(name: String, pct: Int, text: String) {
         Row(Modifier.fillMaxWidth().height(22.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(name, color = label, fontSize = 13.sp, modifier = Modifier.width(118.dp))
             androidx.compose.foundation.layout.Box(
@@ -84,7 +87,7 @@ internal fun StreamInfoSection(d: StreamDetails) {
                 )
             }
             Spacer(Modifier.width(10.dp))
-            Text("$pct %", color = value, fontSize = 14.sp)
+            Text(text, color = value, fontSize = 14.sp)
         }
     }
 
@@ -123,8 +126,27 @@ internal fun StreamInfoSection(d: StreamDetails) {
         val sig = d.signal
         if (sig != null) {
             Spacer(Modifier.height(6.dp))
-            bar(stringResource(R.string.si_signal), sig.signal)
-            bar(stringResource(R.string.si_snr), sig.snr)
+            val decibel = sig.signal < 0 && sig.signal != -1 || (sig.signal == -1 && sig.snr in 1..25000)
+            if (sig.signal != -1) {
+                if (decibel) {   // dBm × 1000: -90 dBm = empty, -30 dBm = full
+                    val dbm = sig.signal / 1000.0
+                    bar(stringResource(R.string.si_signal), (((dbm + 90.0) / 60.0) * 100).toInt().coerceIn(0, 100),
+                        String.format(java.util.Locale.US, "%.1f dBm", dbm))
+                } else {
+                    val pct = (sig.signal.coerceIn(0, 65535) * 100) / 65535
+                    bar(stringResource(R.string.si_signal), pct, "$pct %")
+                }
+            }
+            if (sig.snr >= 0) {
+                if (decibel) {   // dB × 1000: 30 dB = full
+                    val db = sig.snr / 1000.0
+                    bar(stringResource(R.string.si_snr), ((db / 30.0) * 100).toInt().coerceIn(0, 100),
+                        String.format(java.util.Locale.US, "%.1f dB", db))
+                } else {
+                    val pct = (sig.snr.coerceIn(0, 65535) * 100) / 65535
+                    bar(stringResource(R.string.si_snr), pct, "$pct %")
+                }
+            }
             if (sig.ber >= 0 || sig.unc >= 0) {
                 row(stringResource(R.string.si_errors), listOfNotNull(
                     if (sig.ber >= 0) "BER ${sig.ber}" else null,

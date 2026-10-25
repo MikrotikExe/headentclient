@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (SD-zenders): beste beeldkwaliteit</string>
     <string name="mpeg2_sw_note">MPEG-2-zenders worden in software gedecodeerd met deinterlacing – scherp beeld zonder gekartelde randen. HD-zenders (H.264, HEVC) blijven in hardware.</string>
     <string name="vlc_verbose_title">Uitgebreid spelerlogboek</string>
-    <string name="vlc_verbose_note">Alleen om afspeelproblemen op te sporen. Vertraagt de speler; daarna uitschakelen.</string>
+    <string name="vlc_verbose_note">Alleen om afspeelproblemen op te sporen. Vertraagt de speler; daarna uitschakelen. Zolang het aan staat, wordt het spelerlogboek opgeslagen en met het diagnoselogboek meegestuurd.</string>
+    <string name="diag_player_log_note">Er is ook een gedetailleerd spelerlogboek opgenomen; het wordt bij het verzenden bijgevoegd.</string>
     <string name="dvr_rec_button">Opnemen</string>
     <string name="dvr_rec_working">Plannen…</string>
     <string name="dvr_rec_scheduled">Opname gepland</string>

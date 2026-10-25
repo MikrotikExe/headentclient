@@ -51,7 +51,14 @@ internal class VlcEvents(
         fun showPlaybackError()
         /** M714: the stream has answered (Buffering / Playing) — the live start watchdog is not needed. */
         fun onStreamActivity()
+        /** M730 (issue #37): playing with a video track for seconds, yet no video output was opened. */
+        fun onNoPictureFromHardware()
     }
+
+    /** M730: libVLC has a video output open (the last Vout event had a count > 0). Not reset on a
+     *  new medium on purpose: libVLC reports the old output closing (count 0) before the new one
+     *  opens, and a resume from pause must not look like a missing picture. */
+    private var voutOpen = false
 
     /** true = the stream has video; false = radio (PlayerUi shows the logo). */
     val hasVideo = mutableStateOf(true)
@@ -93,6 +100,14 @@ internal class VlcEvents(
                     val n = runCatching { player()?.videoTracksCount }.getOrNull()
                     if (n != null && n >= 0) hasVideo.value = n > 0
                 }, 1500)
+                // M730 (issue #37): a video track but no video output 8 s into playback = the hardware
+                // decoder swallows the frames (black picture) -> the activity reopens the channel in software
+                videoCheckHandler.postDelayed({
+                    val p = player() ?: return@postDelayed
+                    val n = runCatching { p.videoTracksCount }.getOrDefault(0)
+                    val playing = runCatching { p.isPlaying }.getOrDefault(false)
+                    if (playing && n > 0 && !seekable() && !voutOpen) actions.onNoPictureFromHardware()
+                }, 8000)
                 // filling in the audio languages / DVB subtitles that libVLC only finishes parsing after start
                 actions.scheduleTrackRefresh()
                 actions.maybeReparseForTracks()
@@ -103,7 +118,7 @@ internal class VlcEvents(
             }
             MediaPlayer.Event.Paused -> { actions.setPlaying(false); actions.keepScreenOn(false); actions.refreshPipIfActive() }
             MediaPlayer.Event.Stopped -> { actions.setPlaying(false); actions.keepScreenOn(false); actions.refreshPipIfActive() }
-            MediaPlayer.Event.Vout -> { if (event.voutCount > 0) hasVideo.value = true }
+            MediaPlayer.Event.Vout -> { voutOpen = event.voutCount > 0; if (voutOpen) hasVideo.value = true }
             MediaPlayer.Event.ESSelected -> {
                 // M392-fix2: libVLC has just picked a track on its own (e.g. the default subtitles
                 // in a matroska) — enforce the user's wish (off / a specific language)

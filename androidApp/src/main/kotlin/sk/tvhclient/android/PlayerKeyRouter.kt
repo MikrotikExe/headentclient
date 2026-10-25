@@ -145,16 +145,33 @@ internal class PlayerKeyRouter(
         // 0d2) M724-fix2: the INFO window (programme + the Stream section) -> up/down scroll the
         // window (until now they zapped the channel underneath), OK closes it, BACK goes to its
         // BackHandler; the rest is swallowed so the controls do not pop up over it
+        // M730 (audit B4): CH+/CH-, digits, media, teletext, guide, subtitle and audio keys CLOSE the
+        // window and act as usual (M724-fix2 swallowed them: Play/Pause and Stop did nothing and
+        // CH+/CH- scrolled the window while it was open); only UP/DOWN/PAGE scroll it.
         if (actions.infoWindowOpen) {
             when (kc) {
-                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP -> { if (down) actions.scrollInfoWindow(-1); return true }
-                KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_PAGE_DOWN -> { if (down) actions.scrollInfoWindow(+1); return true }
+                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_PAGE_UP -> { if (down) actions.scrollInfoWindow(-1); return true }
+                KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_PAGE_DOWN -> { if (down) actions.scrollInfoWindow(+1); return true }
                 KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> return true
                 KeyEvent.KEYCODE_INFO -> { if (down && event.repeatCount == 0) actions.closeInfoWindow(); return true }
                 KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_DOWN, KeyEvent.KEYCODE_VOLUME_MUTE -> return null
+                KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_CHANNEL_DOWN,
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY, KeyEvent.KEYCODE_MEDIA_PAUSE,
+                KeyEvent.KEYCODE_MEDIA_STOP, KeyEvent.KEYCODE_MEDIA_REWIND, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD,
+                KeyEvent.KEYCODE_MEDIA_NEXT, KeyEvent.KEYCODE_MEDIA_PREVIOUS, KeyEvent.KEYCODE_MEDIA_AUDIO_TRACK,
+                KeyEvent.KEYCODE_TV_TELETEXT, KeyEvent.KEYCODE_CAPTIONS, KeyEvent.KEYCODE_GUIDE,
+                KeyEvent.KEYCODE_TV_DATA_SERVICE, KeyEvent.KEYCODE_TV_CONTENTS_MENU, KeyEvent.KEYCODE_TV_MEDIA_CONTEXT_MENU -> {
+                    if (down && event.repeatCount == 0) actions.closeInfoWindow()
+                    // falls through to the normal handling below
+                }
                 else -> {
-                    if (okKey) { if (down && event.repeatCount == 0) actions.closeInfoWindow(); return true }
-                    return true
+                    if (kc in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 || kc in KeyEvent.KEYCODE_NUMPAD_0..KeyEvent.KEYCODE_NUMPAD_9) {
+                        if (down && event.repeatCount == 0) actions.closeInfoWindow()
+                        // falls through: the digit starts the channel-number entry
+                    } else {
+                        if (okKey) { if (down && event.repeatCount == 0) actions.closeInfoWindow(); return true }
+                        return true
+                    }
                 }
             }
         }

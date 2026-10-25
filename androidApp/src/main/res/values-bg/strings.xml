@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (SD канали): най-добро качество на картината</string>
     <string name="mpeg2_sw_note">MPEG-2 каналите се декодират софтуерно с премахване на презредовостта – ясна картина без назъбени ръбове. HD каналите (H.264, HEVC) остават хардуерни.</string>
     <string name="vlc_verbose_title">Подробен дневник на плейъра</string>
-    <string name="vlc_verbose_note">Само за диагностика на проблеми с възпроизвеждането. Забавя плейъра, после изключете.</string>
+    <string name="vlc_verbose_note">Само за диагностика на проблеми с възпроизвеждането. Забавя плейъра, после изключете. Докато е включено, дневникът на плейъра се записва и се изпраща заедно с диагностичния дневник.</string>
+    <string name="diag_player_log_note">Записан е и подробен дневник на плейъра; прилага се при изпращане на дневника.</string>
     <string name="dvr_rec_button">Запис</string>
     <string name="dvr_rec_working">Планиране…</string>
     <string name="dvr_rec_scheduled">Записът е планиран</string>

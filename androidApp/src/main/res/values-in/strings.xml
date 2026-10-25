@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (saluran SD): kualitas gambar terbaik</string>
     <string name="mpeg2_sw_note">Saluran MPEG-2 didekode dengan perangkat lunak beserta deinterlacing – gambar tajam tanpa tepi bergerigi. Saluran HD (H.264, HEVC) tetap di perangkat keras.</string>
     <string name="vlc_verbose_title">Log pemutar terperinci</string>
-    <string name="vlc_verbose_note">Hanya untuk mendiagnosis masalah pemutaran. Memperlambat pemutar; matikan setelah selesai.</string>
+    <string name="vlc_verbose_note">Hanya untuk mendiagnosis masalah pemutaran. Memperlambat pemutar; matikan setelah selesai. Saat aktif, log pemutar disimpan dan dikirim bersama log diagnostik.</string>
+    <string name="diag_player_log_note">Log pemutar terperinci juga direkam; dilampirkan saat log dikirim.</string>
     <string name="dvr_rec_button">Rekam</string>
     <string name="dvr_rec_working">Menjadwalkan…</string>
     <string name="dvr_rec_scheduled">Perekaman dijadwalkan</string>

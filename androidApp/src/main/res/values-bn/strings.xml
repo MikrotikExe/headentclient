@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (SD চ্যানেল): সেরা ছবির মান</string>
     <string name="mpeg2_sw_note">MPEG-2 চ্যানেল ডিইন্টারলেসিংসহ সফটওয়্যারে ডিকোড হয় – খাঁজকাটা কিনারা ছাড়া পরিষ্কার ছবি। HD চ্যানেল (H.264, HEVC) হার্ডওয়্যারে থাকে।</string>
     <string name="vlc_verbose_title">বিস্তারিত প্লেয়ার লগ</string>
-    <string name="vlc_verbose_note">শুধু প্লেব্যাক সমস্যা খোঁজার জন্য। প্লেয়ার ধীর হয়, পরে বন্ধ করুন.</string>
+    <string name="vlc_verbose_note">শুধু প্লেব্যাক সমস্যা খোঁজার জন্য। প্লেয়ার ধীর হয়, পরে বন্ধ করুন। চালু থাকলে প্লেয়ারের লগ সংরক্ষিত হয় এবং ডায়াগনস্টিক লগের সাথে পাঠানো হয়।</string>
+    <string name="diag_player_log_note">একটি বিস্তারিত প্লেয়ার লগও রেকর্ড হয়েছে; লগ পাঠানোর সময় এটি সংযুক্ত হয়।</string>
     <string name="dvr_rec_button">রেকর্ড</string>
     <string name="dvr_rec_working">শিডিউল হচ্ছে…</string>
     <string name="dvr_rec_scheduled">রেকর্ডিং শিডিউল হয়েছে</string>

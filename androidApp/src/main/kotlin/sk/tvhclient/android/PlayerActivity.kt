@@ -293,7 +293,7 @@ class PlayerActivity : ComponentActivity() {
                     }
                 }
                 override fun fallbackTitle(): String? = intent.getStringExtra(EXTRA_TITLE)
-                override fun onVideoCodec(codec: String) { runOnUiThread { this@PlayerActivity.onVideoCodec(codec) } }   // M722
+                override fun onVideoCodec(codec: String, height: Int) { runOnUiThread { this@PlayerActivity.onVideoCodec(codec, height) } }   // M722 / M730
                 override fun onDvrSeekLanded(fileMs: Long) {   // M727: the bar shows where the stream really is
                     val ms = (fileMs - dvrFileOffsetMs()).coerceAtLeast(0L)
                     dvr.playheadMsState.value = ms
@@ -369,11 +369,11 @@ class PlayerActivity : ComponentActivity() {
      * way round), the stream is reopened once by the same path — a second or so, like a profile
      * switch — and from then on the channel opens right the first time.
      */
-    private fun onVideoCodec(codec: String) {
+    private fun onVideoCodec(codec: String, height: Int) {
         if (seekablePlayback) return   // recordings keep the global mode
         val uuid = live.uuids.getOrNull(live.index) ?: return
-        ChannelCodecMemo.set(this, live.server?.id, uuid, codec)
-        val wanted = mediaFactory.softwareFor(codec)
+        val memo = ChannelCodecMemo.set(this, live.server?.id, uuid, codec, height)
+        val wanted = mediaFactory.softwareFor(memo)
         if (wanted == mediaFactory.lastSoftware || codecRestartedFor == uuid) return
         codecRestartedFor = uuid
         opener.replayCurrentLive()
@@ -383,8 +383,29 @@ class PlayerActivity : ComponentActivity() {
     private fun probeVideoCodec() {
         if (seekablePlayback || stream.htspStream || !engine.ready || engine.tornDown) return
         VlcEngine.videoInfoAsync(engine.player) { vi ->
-            ChannelCodecMemo.fromVlc(vi?.codec)?.let { onVideoCodec(it) }
+            ChannelCodecMemo.fromVlc(vi?.codec)?.let { onVideoCodec(it, vi?.height ?: 0) }
         }
+    }
+
+    /** The live channel already switched to software decoding in this activity (never twice). */
+    private var swFallbackFor: String? = null
+
+    /**
+     * M730 (issue #37): the stream has a video track and has been playing for seconds, yet the
+     * hardware decoder has not opened a video output — a black picture (Pixel 10, one
+     * transponder, HTSP and HTTP alike). The channel is marked for software decoding and
+     * reopened once; the mark stays, so the channel opens right next time. Recordings and
+     * media already decoded in software are left alone.
+     */
+    private fun onNoPictureFromHardware() {
+        if (seekablePlayback || mediaFactory.lastSoftware) return
+        val uuid = live.uuids.getOrNull(live.index) ?: return
+        if (swFallbackFor == uuid) return
+        swFallbackFor = uuid
+        ChannelCodecMemo.forceSoftware(this, live.server?.id, uuid, true)
+        CrashLogger.report(this, "PlayerActivity.hwFallback",
+            "hardware decoder gave no picture for $uuid (${if (stream.htspStream) "HTSP" else "HTTP"}) — reopening in software")
+        opener.replayCurrentLive()
     }
 
     private fun pokeControls() {
@@ -637,15 +658,23 @@ class PlayerActivity : ComponentActivity() {
             override fun recInProgressByChan(): Map<String, sk.tvhclient.shared.model.DvrEntry> = this@PlayerActivity.recInProgressByChan.value
             override fun dvrUuid(): String? = dvr.uuid
             override fun dvrFinished(): Boolean = seekablePlayback && dvr.uuid != null && !dvr.recording   // M727
-            override fun onTsDuration(fileMs: Long) {   // M727 (issue #28): the file's own length
-                if (!seekablePlayback || dvr.recording) return
+            override fun onTsDuration(fileMs: Long): Boolean {   // M727 (issue #28): the file's own length
+                if (!seekablePlayback || dvr.recording) return true
                 val len = fileMs - dvrFileOffsetMs()
+                // M730 (audit R13): plausible only within 1.5x of the planned length (+ 15 min of padding)
+                val planned = dvr.durationMs
+                if (planned > 0L && len > planned * 3 / 2 + 15 * 60_000L) {
+                    CrashLogger.report(this@PlayerActivity, "PlayerActivity.tsDuration",
+                        "file clock says ${len / 1000} s, planned ${planned / 1000} s — PCR jump inside the file, index not used")
+                    return false
+                }
                 if (len > 1000L && kotlin.math.abs(len - dvr.durationMs) > 5000L) {
                     if (VlcVerbosePref.get(this@PlayerActivity)) CrashLogger.report(this@PlayerActivity, "PlayerActivity.tsDuration",
                         "recording length ${dvr.durationMs / 1000} s (planned) -> ${len / 1000} s (from the file)")
                     dvr.durationMs = len
                     dvr.durationState.value = len
                 }
+                return true
             }
             override fun intentUuid(): String? = intent.getStringExtra(EXTRA_UUID)
             override fun startActivity(i: android.content.Intent) { this@PlayerActivity.startActivity(i) }
@@ -1303,6 +1332,7 @@ class PlayerActivity : ComponentActivity() {
             (durationMs <= 0 || durationMs - saved.posMs > 60_000)
         ) saved.posMs else 0L
 
+        PlayerLogCapture.start(this)   // M730: the verbose player log into diag/player.log (only with the setting on)
         engine.create()   // M539: libVLC + MediaPlayer + listener (reusable when recovering from stalled audio)
         stall.start()
 
@@ -2175,6 +2205,7 @@ class PlayerActivity : ComponentActivity() {
                     Toast.makeText(this@PlayerActivity, getString(R.string.playback_error, "VLC"), Toast.LENGTH_LONG).show()
                 }
                 override fun onStreamActivity() { liveStartGen++ }   // M714: disarms the start watchdog
+                override fun onNoPictureFromHardware() { this@PlayerActivity.onNoPictureFromHardware() }   // M730 (issue #37)
             })
     }
 
@@ -2241,6 +2272,7 @@ class PlayerActivity : ComponentActivity() {
     private val streamLocks: StreamLocks by lazy { StreamLocks(this, "HeadentClient:stream") }
 
     override fun onDestroy() {
+        PlayerLogCapture.stop()   // M730
         pip.destroy() // M578 session + receiver (M653)
         if (onCar) audioFocus.release()
         teletext.stopHttp()   // M552

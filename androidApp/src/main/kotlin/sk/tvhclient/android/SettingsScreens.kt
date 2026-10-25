@@ -1344,7 +1344,8 @@ internal fun AdvancedSettings(ctx: android.content.Context) {
         )
     }
         var logText by remember { mutableStateOf(CrashLogger.readText(ctx)) }
-        val hasLog = logText.isNotBlank()
+        var hasPlayerLog by remember { mutableStateOf(PlayerLogCapture.exists(ctx)) }   // M730
+        val hasLog = logText.isNotBlank() || hasPlayerLog
         Text(
             stringResource(R.string.diag_note),
             style = MaterialTheme.typography.bodyMedium,
@@ -1371,9 +1372,17 @@ internal fun AdvancedSettings(ctx: android.content.Context) {
             InfoLinkRow(stringResource(R.string.diag_send)) { CrashLogReporter.share(ctx) }
             Spacer(Modifier.height(8.dp))
             InfoLinkRow(stringResource(R.string.diag_clear)) {
-                CrashLogger.clear(ctx); logText = ""
+                CrashLogger.clear(ctx); PlayerLogCapture.clear(ctx); logText = ""; hasPlayerLog = false   // M730
             }
             Spacer(Modifier.height(8.dp))
+            if (hasPlayerLog) {   // M730: the player log is attached to the e-mail, not shown here
+                Text(
+                    stringResource(R.string.diag_player_log_note),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                )
+            }
             Text(
                 logText.take(4000),
                 style = MaterialTheme.typography.bodySmall,

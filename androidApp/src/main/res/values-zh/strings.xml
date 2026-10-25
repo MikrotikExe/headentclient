@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2（标清频道）：最佳画质</string>
     <string name="mpeg2_sw_note">MPEG-2 频道用软件解码并反交错——画面清晰无锯齿。高清频道（H.264、HEVC）仍用硬件。</string>
     <string name="vlc_verbose_title">播放器详细日志</string>
-    <string name="vlc_verbose_note">仅用于排查播放问题。会拖慢播放，排查后请关闭。</string>
+    <string name="vlc_verbose_note">仅用于排查播放问题。会拖慢播放，排查后请关闭。开启期间会保存播放器日志，并随诊断日志一起发送。</string>
+    <string name="diag_player_log_note">还记录了详细的播放器日志；发送日志时会一并附上。</string>
     <string name="dvr_rec_button">录制</string>
     <string name="dvr_rec_working">正在预约…</string>
     <string name="dvr_rec_scheduled">已预约录制</string>

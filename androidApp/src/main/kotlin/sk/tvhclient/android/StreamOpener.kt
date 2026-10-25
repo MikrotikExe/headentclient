@@ -52,15 +52,15 @@ internal class StreamOpener(
         fun fallbackTitle(): String?
         /** M727: a TS seek landed at file time [fileMs] (read from the file's own clock) — main thread. */
         fun onDvrSeekLanded(fileMs: Long)
-        /** M722: the video codec of the live stream is known (HTSP subscriptionStart) — any thread. */
-        fun onVideoCodec(codec: String)
+        /** M722: the video codec of the live stream is known (HTSP subscriptionStart) — any thread. M730: + height (0 = unknown). */
+        fun onVideoCodec(codec: String, height: Int)
         /** M724: the HTSP stream source / signal for the info window — any thread; null = a new stream starts. */
         fun onSourceInfo(info: sk.tvhclient.shared.htsp.HtspSourceInfo?)
         fun onSignal(sig: sk.tvhclient.shared.htsp.HtspSignal)
     }
 
-    /** M722: the video codec the current live channel had last time (ChannelCodecMemo), null = unknown. */
-    private fun liveCodec(): String? =
+    /** M722: what the current live channel's video looked like last time (ChannelCodecMemo), null = unknown. */
+    private fun liveCodec(): ChannelCodecMemo.Memo? =
         ChannelCodecMemo.get(ctx, live.server?.id, live.uuids.getOrNull(live.index))
 
     /** M255 — live over HTTP on a digest-only server: download via the feeder (same
@@ -202,7 +202,7 @@ internal class StreamOpener(
             feeder.onTeletextAvailable = { a -> hooks.teletextSetHtspAvailable(a) }
             feeder.onTeletext = { es -> hooks.teletextFeedHtsp(es) }
             feeder.onWaitingForTuner = { hooks.onWaitingForTuner() }   // M715
-            feeder.onVideoCodec = { c -> hooks.onVideoCodec(c) }        // M722
+            feeder.onVideoCodec = { c, h -> hooks.onVideoCodec(c, h) }  // M722 / M730
             feeder.onSourceInfo = { si -> hooks.onSourceInfo(si) }      // M724
             feeder.onSignal = { sg -> hooks.onSignal(sg) }              // M724
             hooks.onSourceInfo(null)
@@ -229,7 +229,9 @@ internal class StreamOpener(
     private fun playUrlDirect(url: String, startTimeSec: Long?, startFraction: Float? = null) {
         startPositionJob?.cancel(); startPositionJob = null
         hooks.ensureHealthyPlayer()   // M539
-        val m = media.forUrl(url, demuxFor(url))   // M703
+        // M730 (audit B8): a live reconnect keeps the channel's codec hint — without it the 3rd+ reconnect
+        // of an MPEG-2 channel went back to the hardware decoder and the one-off codec restart was spent
+        val m = media.forUrl(url, demuxFor(url), if (url.contains("/stream/")) liveCodec() else null)   // M703
         // M706: a TS recording starts at a position, not at a time (see StreamState.tsUrl)
         val byPosition = startFraction != null && url == stream.tsUrl
         if (startTimeSec != null && !byPosition) m.addOption(":start-time=$startTimeSec")

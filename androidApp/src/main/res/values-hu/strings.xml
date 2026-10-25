@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (SD csatornák): legjobb képminőség</string>
     <string name="mpeg2_sw_note">Az MPEG-2 csatornákat szoftver dekódolja váltottsoros szűréssel – éles kép fogazott szélek nélkül. A HD csatornák (H.264, HEVC) hardveresek maradnak.</string>
     <string name="vlc_verbose_title">Részletes lejátszónapló</string>
-    <string name="vlc_verbose_note">Csak lejátszási hibák kereséséhez. Lassítja a lejátszót, utána kapcsold ki.</string>
+    <string name="vlc_verbose_note">Csak lejátszási hibák kereséséhez. Lassítja a lejátszót, utána kapcsold ki. Amíg be van kapcsolva, a lejátszó naplója mentődik és a diagnosztikai naplóval együtt elküldhető.</string>
+    <string name="diag_player_log_note">Részletes lejátszónapló is készült; a napló küldésekor csatolódik.</string>
     <string name="dvr_rec_button">Felvétel</string>
     <string name="dvr_rec_working">Ütemezés…</string>
     <string name="dvr_rec_scheduled">Felvétel ütemezve</string>

@@ -55,22 +55,59 @@ object Mpeg2SoftwarePref {
 }
 
 /**
- * M722: the video codec of a channel as seen the last time it played (HTSP subscriptionStart
- * or the libVLC video track), so that the next opening chooses the decoder before the stream
- * starts. Values: "MPEG2VIDEO", "H264", "HEVC"… (the HTSP names).
+ * M722: the video of a channel as seen the last time it played (HTSP subscriptionStart or the
+ * libVLC video track), so that the next opening chooses the decoder before the stream starts.
+ * Codec values: "MPEG2VIDEO", "H264", "HEVC"… (the HTSP names). M730: the picture height too
+ * (the MPEG-2 quality option applies up to 720 lines), and the flag that the hardware decoder
+ * gave no picture on this channel (issue #37) — from then on it is decoded in software.
+ * Stored as one string: CODEC[@HEIGHT][!sw] (older entries hold the bare codec).
  */
 object ChannelCodecMemo {
     private const val PREFS = "codec_memo"
 
-    fun get(context: Context, serverId: String?, uuid: String?): String? {
-        if (serverId == null || uuid == null) return null
-        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("$serverId:$uuid", null)
+    data class Memo(val codec: String?, val height: Int, val swForced: Boolean) {
+        override fun toString(): String = buildString {
+            append(codec ?: "")
+            if (height > 0) append('@').append(height)
+            if (swForced) append("!sw")
+        }
+        companion object {
+            fun parse(raw: String?): Memo? {
+                if (raw.isNullOrBlank()) return null
+                var s = raw
+                val sw = s.endsWith("!sw")
+                if (sw) s = s.removeSuffix("!sw")
+                val at = s.indexOf('@')
+                val codec = (if (at >= 0) s.substring(0, at) else s).ifBlank { null }
+                val h = if (at >= 0) s.substring(at + 1).toIntOrNull() ?: 0 else 0
+                return Memo(codec, h, sw)
+            }
+        }
     }
 
-    fun set(context: Context, serverId: String?, uuid: String?, codec: String) {
-        if (serverId == null || uuid == null) return
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putString("$serverId:$uuid", codec).apply()
+    private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    fun get(context: Context, serverId: String?, uuid: String?): Memo? {
+        if (serverId == null || uuid == null) return null
+        return Memo.parse(prefs(context).getString("$serverId:$uuid", null))
+    }
+
+    /** Remembers the codec and, when known (> 0), the height; the software flag of the channel is kept. */
+    fun set(context: Context, serverId: String?, uuid: String?, codec: String, height: Int = 0): Memo? {
+        if (serverId == null || uuid == null) return null
+        val old = get(context, serverId, uuid)
+        val m = Memo(codec, if (height > 0) height else old?.height ?: 0, old?.swForced ?: false)
+        prefs(context).edit().putString("$serverId:$uuid", m.toString()).apply()
+        return m
+    }
+
+    /** M730 (issue #37): the hardware decoder gave no picture on this channel -> software from now on. */
+    fun forceSoftware(context: Context, serverId: String?, uuid: String?, on: Boolean): Memo? {
+        if (serverId == null || uuid == null) return null
+        val old = get(context, serverId, uuid)
+        val m = Memo(old?.codec, old?.height ?: 0, on)
+        prefs(context).edit().putString("$serverId:$uuid", m.toString()).apply()
+        return m
     }
 
     /** libVLC codec fourcc -> the HTSP name (mpgv/mp2v = MPEG-2). null = unknown. */

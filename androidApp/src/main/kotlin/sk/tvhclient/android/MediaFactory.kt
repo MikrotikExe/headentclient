@@ -20,12 +20,18 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
     @Volatile var lastSoftware: Boolean = false
         private set
 
-    /** M722: software decoding for this [codec] (HTSP name, null = unknown)? OFF mode, or MPEG-2 with the quality option. */
-    fun softwareFor(codec: String?): Boolean =
-        HwDecodePref.get(ctx) == HwDecodePref.OFF || (Mpeg2SoftwarePref.get(ctx) && codec == "MPEG2VIDEO")
+    /**
+     * M722: software decoding for a channel that looked like [memo] last time (null = unknown)?
+     * OFF mode; the channel on which the hardware decoder gave no picture (M730, issue #37); or
+     * MPEG-2 with the quality option — M730 (audit R16): only up to 720 lines, a 1080i MPEG-2
+     * channel would cost a weak box a software yadif at full HD.
+     */
+    fun softwareFor(memo: ChannelCodecMemo.Memo?): Boolean =
+        HwDecodePref.get(ctx) == HwDecodePref.OFF || memo?.swForced == true ||
+            (Mpeg2SoftwarePref.get(ctx) && memo?.codec == "MPEG2VIDEO" && (memo?.height ?: 0) <= 720)
 
-    /** Direct URL (HTTP live / DVR): HW/SW decoder, User-Agent, deinterlacing. [codec] = the channel's known video codec. */
-    fun forUrl(url: String, demux: String? = null, codec: String? = null): Media {
+    /** Direct URL (HTTP live / DVR): HW/SW decoder, User-Agent, deinterlacing. [codec] = what the channel's video looked like last time. */
+    fun forUrl(url: String, demux: String? = null, codec: ChannelCodecMemo.Memo? = null): Media {
         val m = Media(libVlc(), Uri.parse(url))
         if (demux != null) m.addOption(":demux=$demux")   // M703: e.g. "avformat,any" for Matroska recordings
         applyDecoder(m, codec)   // M447 / M722
@@ -38,7 +44,7 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
      * Feeder path (bytes through an fd): HW/SW decoder, [demux] (":demux=ts" or null = VLC probing),
      * file-caching [cachingMs], deinterlacing.
      */
-    fun forFeeder(fd: FileDescriptor, demux: String?, cachingMs: Int, codec: String? = null): Media {
+    fun forFeeder(fd: FileDescriptor, demux: String?, cachingMs: Int, codec: ChannelCodecMemo.Memo? = null): Media {
         val media = Media(libVlc(), fd)
         applyDecoder(media, codec)   // M447 / M722
         if (demux != null) media.addOption(":demux=$demux")
@@ -53,9 +59,12 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
      *    decoder without direct rendering — the frames pass through VLC's filters.
      *  - hardware AUTO: direct rendering as before (4K/HDR untouched; the filter never runs).
      */
-    private fun applyDecoder(m: Media, codec: String?) {
+    private fun applyDecoder(m: Media, codec: ChannelCodecMemo.Memo?) {
         val sw = softwareFor(codec)
         lastSoftware = sw
+        // M730: the decision goes into the diagnostic log with the verbose player log (issue #37)
+        if (VlcVerbosePref.get(ctx)) CrashLogger.report(ctx, "MediaFactory.decoder",
+            "decoder=${if (sw) "software" else "hardware"} mode=${HwDecodePref.get(ctx)} memo=${codec ?: "none"}")
         m.setHWDecoderEnabled(!sw, false)
         val (en, mode) = deinterlaceSpec(sw)
         m.addOption(":deinterlace=$en")

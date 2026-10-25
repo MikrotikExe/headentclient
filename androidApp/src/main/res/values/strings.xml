@@ -306,7 +306,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (SD channels): best picture quality</string>
     <string name="mpeg2_sw_note">MPEG-2 channels are decoded in software with deinterlacing – a sharp picture without jagged edges. HD channels (H.264, HEVC) stay in hardware.</string>
     <string name="vlc_verbose_title">Verbose player log</string>
-    <string name="vlc_verbose_note">Only for troubleshooting playback issues. Slows the player down; turn off when done.</string>
+    <string name="vlc_verbose_note">Only for troubleshooting playback issues. Slows the player down; turn off when done. While it is on, the player\'s log is saved and sent along with the diagnostic log.</string>
+    <string name="diag_player_log_note">A detailed player log was recorded too; it is attached when the log is sent.</string>
     <string name="dvr_rec_button">Record</string>
     <string name="dvr_rec_working">Scheduling…</string>
     <string name="dvr_rec_scheduled">Recording scheduled</string>

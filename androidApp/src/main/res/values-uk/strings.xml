@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (SD-канали): найкраща якість зображення</string>
     <string name="mpeg2_sw_note">Канали MPEG-2 декодуються програмно з деінтерлейсингом – чітке зображення без зубчастих країв. HD-канали (H.264, HEVC) лишаються апаратними.</string>
     <string name="vlc_verbose_title">Докладний журнал плеєра</string>
-    <string name="vlc_verbose_note">Лише для діагностики проблем відтворення. Сповільнює плеєр, потім вимкніть.</string>
+    <string name="vlc_verbose_note">Лише для діагностики проблем відтворення. Сповільнює плеєр, потім вимкніть. Поки увімкнено, журнал плеєра зберігається й надсилається разом із діагностичним журналом.</string>
+    <string name="diag_player_log_note">Записано також докладний журнал плеєра; він додається під час надсилання журналу.</string>
     <string name="dvr_rec_button">Записати</string>
     <string name="dvr_rec_working">Планування…</string>
     <string name="dvr_rec_scheduled">Запис заплановано</string>

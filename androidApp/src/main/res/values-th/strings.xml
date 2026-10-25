@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (ช่อง SD): คุณภาพภาพดีที่สุด</string>
     <string name="mpeg2_sw_note">ช่อง MPEG-2 ถอดรหัสด้วยซอฟต์แวร์พร้อมลบการสลับเส้น – ภาพคมชัดไม่มีขอบเป็นขั้นบันได ช่อง HD (H.264, HEVC) ยังใช้ฮาร์ดแวร์</string>
     <string name="vlc_verbose_title">บันทึกละเอียดของตัวเล่น</string>
-    <string name="vlc_verbose_note">ใช้เพื่อวิเคราะห์ปัญหาการเล่นเท่านั้น ทำให้ช้าลง ปิดเมื่อเสร็จ</string>
+    <string name="vlc_verbose_note">ใช้เพื่อวิเคราะห์ปัญหาการเล่นเท่านั้น ทำให้ช้าลง ปิดเมื่อเสร็จ ขณะเปิดอยู่ บันทึกของตัวเล่นจะถูกเก็บและส่งพร้อมบันทึกวินิจฉัย</string>
+    <string name="diag_player_log_note">มีการบันทึกล็อกตัวเล่นแบบละเอียดด้วย จะแนบไปเมื่อส่งบันทึก</string>
     <string name="dvr_rec_button">บันทึก</string>
     <string name="dvr_rec_working">กำลังตั้งเวลา…</string>
     <string name="dvr_rec_scheduled">ตั้งเวลาบันทึกแล้ว</string>

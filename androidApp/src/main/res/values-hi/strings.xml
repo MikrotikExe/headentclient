@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (SD चैनल): सर्वोत्तम चित्र गुणवत्ता</string>
     <string name="mpeg2_sw_note">MPEG-2 चैनल सॉफ़्टवेयर में डीइंटरलेसिंग के साथ डिकोड होते हैं – दांतेदार किनारों के बिना साफ़ तस्वीर। HD चैनल (H.264, HEVC) हार्डवेयर में रहते हैं।</string>
     <string name="vlc_verbose_title">विस्तृत प्लेयर लॉग</string>
-    <string name="vlc_verbose_note">केवल प्लेबैक समस्याओं की जाँच के लिए। प्लेयर धीमा होता है, बाद में बंद करें.</string>
+    <string name="vlc_verbose_note">केवल प्लेबैक समस्याओं की जाँच के लिए। प्लेयर धीमा होता है, बाद में बंद करें। चालू रहते समय प्लेयर का लॉग सहेजा जाता है और डायग्नोस्टिक लॉग के साथ भेजा जाता है।</string>
+    <string name="diag_player_log_note">प्लेयर का विस्तृत लॉग भी रिकॉर्ड हुआ; लॉग भेजते समय यह संलग्न होता है।</string>
     <string name="dvr_rec_button">रिकॉर्ड करें</string>
     <string name="dvr_rec_working">शेड्यूल हो रहा है…</string>
     <string name="dvr_rec_scheduled">रिकॉर्डिंग शेड्यूल हुई</string>

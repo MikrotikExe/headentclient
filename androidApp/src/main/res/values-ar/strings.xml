@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (قنوات SD): أفضل جودة صورة</string>
     <string name="mpeg2_sw_note">تُفك قنوات MPEG-2 برمجياً مع إزالة التشابك – صورة حادة بلا حواف مسننة. تبقى قنوات HD ‏(H.264، HEVC) على العتاد.</string>
     <string name="vlc_verbose_title">سجل مفصّل للمشغّل</string>
-    <string name="vlc_verbose_note">للتشخيص فقط عند مشاكل التشغيل. يبطئ المشغّل، أطفئه بعد الانتهاء.</string>
+    <string name="vlc_verbose_note">للتشخيص فقط عند مشاكل التشغيل. يبطئ المشغّل، أطفئه بعد الانتهاء. أثناء تشغيله يُحفظ سجل المشغّل ويُرسل مع سجل التشخيص.</string>
+    <string name="diag_player_log_note">تم تسجيل سجل مفصّل للمشغّل أيضًا؛ يُرفق عند إرسال السجل.</string>
     <string name="dvr_rec_button">تسجيل</string>
     <string name="dvr_rec_working">جارٍ الجدولة…</string>
     <string name="dvr_rec_scheduled">تمت جدولة التسجيل</string>

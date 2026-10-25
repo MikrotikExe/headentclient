@@ -306,7 +306,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (SD kanály): najlepšia kvalita obrazu</string>
     <string name="mpeg2_sw_note">MPEG-2 kanály dekóduje softvér s prekladaním – ostrý obraz bez zubatých hrán. HD kanály (H.264, HEVC) ostávajú v hardvéri.</string>
     <string name="vlc_verbose_title">Podrobný záznam prehrávača</string>
-    <string name="vlc_verbose_note">Len na hľadanie problémov s prehrávaním. Spomaľuje prehrávač, po diagnostike vypni.</string>
+    <string name="vlc_verbose_note">Len na hľadanie problémov s prehrávaním. Spomaľuje prehrávač, po diagnostike vypni. Kým je zapnutý, log prehrávača sa ukladá a odosiela spolu s diagnostickým logom.</string>
+    <string name="diag_player_log_note">Zaznamenal sa aj podrobný log prehrávača; pri odoslaní logu sa priloží.</string>
     <string name="dvr_rec_button">Nahrať</string>
     <string name="dvr_rec_working">Plánujem…</string>
     <string name="dvr_rec_scheduled">Nahrávka naplánovaná</string>

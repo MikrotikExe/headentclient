@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (kanały SD): najlepsza jakość obrazu</string>
     <string name="mpeg2_sw_note">Kanały MPEG-2 są dekodowane programowo z usuwaniem przeplotu – ostry obraz bez postrzępionych krawędzi. Kanały HD (H.264, HEVC) pozostają sprzętowe.</string>
     <string name="vlc_verbose_title">Szczegółowy dziennik odtwarzacza</string>
-    <string name="vlc_verbose_note">Tylko do diagnozowania problemów z odtwarzaniem. Spowalnia odtwarzacz; potem wyłącz.</string>
+    <string name="vlc_verbose_note">Tylko do diagnozowania problemów z odtwarzaniem. Spowalnia odtwarzacz; potem wyłącz. Gdy jest włączone, dziennik odtwarzacza jest zapisywany i wysyłany razem z dziennikiem diagnostycznym.</string>
+    <string name="diag_player_log_note">Zapisano też szczegółowy dziennik odtwarzacza; jest dołączany przy wysyłaniu dziennika.</string>
     <string name="dvr_rec_button">Nagraj</string>
     <string name="dvr_rec_working">Planowanie…</string>
     <string name="dvr_rec_scheduled">Nagranie zaplanowane</string>

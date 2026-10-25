@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (شبکه‌های SD): بهترین کیفیت تصویر</string>
     <string name="mpeg2_sw_note">شبکه‌های MPEG-2 نرم‌افزاری با رفع درهم‌بافتگی رمزگشایی می‌شوند – تصویر واضح بدون لبه‌های دندانه‌دار. شبکه‌های HD ‏(H.264، HEVC) سخت‌افزاری می‌مانند.</string>
     <string name="vlc_verbose_title">گزارش کامل پخش‌کننده</string>
-    <string name="vlc_verbose_note">فقط برای عیب‌یابی مشکلات پخش. پخش‌کننده را کند می‌کند؛ بعد خاموش کنید.</string>
+    <string name="vlc_verbose_note">فقط برای عیب‌یابی مشکلات پخش. پخش‌کننده را کند می‌کند؛ بعد خاموش کنید. تا وقتی روشن است، گزارش پخش‌کننده ذخیره و همراه گزارش تشخیصی ارسال می‌شود.</string>
+    <string name="diag_player_log_note">گزارش مفصل پخش‌کننده هم ضبط شد؛ هنگام ارسال گزارش پیوست می‌شود.</string>
     <string name="dvr_rec_button">ضبط</string>
     <string name="dvr_rec_working">در حال زمان‌بندی…</string>
     <string name="dvr_rec_scheduled">ضبط زمان‌بندی شد</string>

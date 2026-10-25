@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (canale SD): cea mai bună calitate a imaginii</string>
     <string name="mpeg2_sw_note">Canalele MPEG-2 sunt decodate software cu deinterlacing – imagine clară fără margini zimțate. Canalele HD (H.264, HEVC) rămân hardware.</string>
     <string name="vlc_verbose_title">Jurnal detaliat al playerului</string>
-    <string name="vlc_verbose_note">Doar pentru diagnosticarea problemelor de redare. Încetinește playerul; dezactivează după.</string>
+    <string name="vlc_verbose_note">Doar pentru diagnosticarea problemelor de redare. Încetinește playerul; dezactivează după. Cât este activ, jurnalul playerului se salvează și se trimite împreună cu jurnalul de diagnostic.</string>
+    <string name="diag_player_log_note">S-a înregistrat și un jurnal detaliat al playerului; se atașează la trimiterea jurnalului.</string>
     <string name="dvr_rec_button">Înregistrează</string>
     <string name="dvr_rec_working">Se programează…</string>
     <string name="dvr_rec_scheduled">Înregistrare programată</string>

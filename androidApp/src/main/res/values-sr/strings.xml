@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (SD канали): најбољи квалитет слике</string>
     <string name="mpeg2_sw_note">MPEG-2 канали се декодирају софтверски са уклањањем преплитања – оштра слика без назубљених ивица. HD канали (H.264, HEVC) остају хардверски.</string>
     <string name="vlc_verbose_title">Detaljan zapis plejera</string>
-    <string name="vlc_verbose_note">Samo za dijagnostiku problema sa reprodukcijom. Usporava plejer; posle isključi.</string>
+    <string name="vlc_verbose_note">Само за дијагностику проблема са репродукцијом. Успорава плејер; после искључи. Док је укључено, запис плејера се чува и шаље заједно са дијагностичким записом.</string>
+    <string name="diag_player_log_note">Забележен је и детаљан запис плејера; прилаже се при слању записа.</string>
     <string name="dvr_rec_button">Snimi</string>
     <string name="dvr_rec_working">Planiranje…</string>
     <string name="dvr_rec_scheduled">Snimanje zakazano</string>

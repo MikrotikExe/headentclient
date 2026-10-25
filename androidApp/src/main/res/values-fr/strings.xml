@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (chaînes SD) : meilleure qualité d\'image</string>
     <string name="mpeg2_sw_note">Les chaînes MPEG-2 sont décodées par logiciel avec désentrelacement : image nette sans bords en escalier. Les chaînes HD (H.264, HEVC) restent en matériel.</string>
     <string name="vlc_verbose_title">Journal détaillé du lecteur</string>
-    <string name="vlc_verbose_note">Uniquement pour diagnostiquer des problèmes de lecture. Ralentit le lecteur ; à désactiver ensuite.</string>
+    <string name="vlc_verbose_note">Uniquement pour diagnostiquer des problèmes de lecture. Ralentit le lecteur ; à désactiver ensuite. Tant qu\'il est actif, le journal du lecteur est enregistré et envoyé avec le journal de diagnostic.</string>
+    <string name="diag_player_log_note">Un journal détaillé du lecteur a aussi été enregistré ; il est joint à l\'envoi du journal.</string>
     <string name="dvr_rec_button">Enregistrer</string>
     <string name="dvr_rec_working">Programmation…</string>
     <string name="dvr_rec_scheduled">Enregistrement programmé</string>

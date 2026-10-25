@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2（SDチャンネル）：最高画質</string>
     <string name="mpeg2_sw_note">MPEG-2チャンネルはソフトウェアでインターレース解除してデコードします。ギザギザのない鮮明な映像になります。HDチャンネル（H.264、HEVC）はハードウェアのままです。</string>
     <string name="vlc_verbose_title">プレーヤーの詳細ログ</string>
-    <string name="vlc_verbose_note">再生の問題を調べるときだけ使用してください。動作が重くなるため、確認後はオフに。</string>
+    <string name="vlc_verbose_note">再生の問題を調べるときだけ使用してください。動作が重くなるため、確認後はオフに。オンの間はプレーヤーのログが保存され、診断ログと一緒に送信されます。</string>
+    <string name="diag_player_log_note">詳細なプレーヤーログも記録されました。ログ送信時に添付されます。</string>
     <string name="dvr_rec_button">録画</string>
     <string name="dvr_rec_working">予約中…</string>
     <string name="dvr_rec_scheduled">録画を予約しました</string>

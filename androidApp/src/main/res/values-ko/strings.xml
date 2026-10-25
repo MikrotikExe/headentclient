@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2(SD 채널): 최상의 화질</string>
     <string name="mpeg2_sw_note">MPEG-2 채널은 디인터레이싱과 함께 소프트웨어로 디코딩되어 계단 현상 없는 선명한 화면을 보여줍니다. HD 채널(H.264, HEVC)은 하드웨어를 유지합니다.</string>
     <string name="vlc_verbose_title">플레이어 상세 로그</string>
-    <string name="vlc_verbose_note">재생 문제 진단용입니다. 재생이 느려지므로 확인 후 끄세요.</string>
+    <string name="vlc_verbose_note">재생 문제 진단용입니다. 재생이 느려지므로 확인 후 끄세요. 켜져 있는 동안 플레이어 로그가 저장되어 진단 로그와 함께 전송됩니다.</string>
+    <string name="diag_player_log_note">자세한 플레이어 로그도 기록되었습니다. 로그를 보낼 때 첨부됩니다.</string>
     <string name="dvr_rec_button">녹화</string>
     <string name="dvr_rec_working">예약 중…</string>
     <string name="dvr_rec_scheduled">녹화가 예약되었습니다</string>

@@ -17,10 +17,14 @@ object CrashLogReporter {
 
     fun share(context: Context) {
         val file = CrashLogger.logFile(context)
-        if (!file.exists()) return
-        val uri = runCatching {
-            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-        }.getOrNull() ?: return
+        val playerLog = PlayerLogCapture.logFile(context).takeIf { it.exists() && it.length() > 0 }   // M730
+        if (!file.exists() && playerLog == null) return
+        val uris = ArrayList<android.net.Uri>()
+        for (f in listOfNotNull(file.takeIf { it.exists() }, playerLog)) {
+            runCatching { FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", f) }
+                .getOrNull()?.let { uris.add(it) }
+        }
+        if (uris.isEmpty()) return
 
         val now = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US).format(Date())
         val subject = "HeadentClient log — $now"
@@ -41,12 +45,13 @@ object CrashLogReporter {
             "App: $appVer\n" +
             "Date: $now\n"
 
-        val send = Intent(Intent.ACTION_SEND).apply {
+        // M730: two attachments (crash.log + player.log) go with ACTION_SEND_MULTIPLE
+        val send = Intent(if (uris.size > 1) Intent.ACTION_SEND_MULTIPLE else Intent.ACTION_SEND).apply {
             type = "message/rfc822"
             putExtra(Intent.EXTRA_EMAIL, arrayOf(SUPPORT))
             putExtra(Intent.EXTRA_SUBJECT, subject)
             putExtra(Intent.EXTRA_TEXT, body)
-            putExtra(Intent.EXTRA_STREAM, uri)
+            if (uris.size > 1) putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris) else putExtra(Intent.EXTRA_STREAM, uris[0])
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         val chooser = Intent.createChooser(send, subject)

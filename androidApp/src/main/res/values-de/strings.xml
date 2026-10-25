@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (SD-Sender): beste Bildqualität</string>
     <string name="mpeg2_sw_note">MPEG-2-Sender werden per Software mit Deinterlacing dekodiert – scharfes Bild ohne gezackte Kanten. HD-Sender (H.264, HEVC) bleiben in Hardware.</string>
     <string name="vlc_verbose_title">Ausführliches Player-Protokoll</string>
-    <string name="vlc_verbose_note">Nur zur Fehlersuche bei der Wiedergabe. Bremst den Player; danach ausschalten.</string>
+    <string name="vlc_verbose_note">Nur zur Fehlersuche bei der Wiedergabe. Bremst den Player; danach ausschalten. Solange es aktiv ist, wird das Player-Protokoll gespeichert und mit dem Diagnoseprotokoll gesendet.</string>
+    <string name="diag_player_log_note">Es wurde auch ein ausführliches Player-Protokoll aufgezeichnet; es wird beim Senden angehängt.</string>
     <string name="dvr_rec_button">Aufnehmen</string>
     <string name="dvr_rec_working">Wird geplant…</string>
     <string name="dvr_rec_scheduled">Aufnahme geplant</string>

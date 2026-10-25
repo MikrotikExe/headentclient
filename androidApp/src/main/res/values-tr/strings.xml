@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (SD kanallar): en iyi görüntü kalitesi</string>
     <string name="mpeg2_sw_note">MPEG-2 kanallar taramasızlaştırmayla yazılımda çözülür – tırtıklı kenarlar olmadan net görüntü. HD kanallar (H.264, HEVC) donanımda kalır.</string>
     <string name="vlc_verbose_title">Ayrıntılı oynatıcı günlüğü</string>
-    <string name="vlc_verbose_note">Yalnızca oynatma sorunlarını bulmak için. Oynatıcıyı yavaşlatır; sonra kapatın.</string>
+    <string name="vlc_verbose_note">Yalnızca oynatma sorunlarını bulmak için. Oynatıcıyı yavaşlatır; sonra kapatın. Açıkken oynatıcı günlüğü kaydedilir ve tanılama günlüğüyle birlikte gönderilir.</string>
+    <string name="diag_player_log_note">Ayrıntılı bir oynatıcı günlüğü de kaydedildi; günlük gönderilirken eklenir.</string>
     <string name="dvr_rec_button">Kaydet</string>
     <string name="dvr_rec_working">Planlanıyor…</string>
     <string name="dvr_rec_scheduled">Kayıt planlandı</string>

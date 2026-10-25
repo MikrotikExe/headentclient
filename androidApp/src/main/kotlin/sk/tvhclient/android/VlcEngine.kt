@@ -225,19 +225,27 @@ internal class VlcEngine(
         }
         private val mainHandler = Handler(Looper.getMainLooper())
 
+        /** M730: players whose [stopAsync] has not returned yet — [releaseVlc] waits for them (bounded). */
+        private val stopping: MutableSet<MediaPlayer> = java.util.Collections.synchronizedSet(HashSet())
+
         /**
          * Issue #32: stops [mp] OFF the main thread. `stop()` is synchronous and can hang on a box whose
          * audio decoder is stuck (M535: an ANR when it ran on the main thread). Its own thread, so a
-         * hanging stop does not block [videoInfoAsync]; under the read lock, so [releaseVlc] waits for it.
+         * hanging stop does not block [videoInfoAsync].
+         *
+         * M730 (audit B3): it no longer holds [nativeCallLock]. A hanging stop() used to keep the
+         * read lock for ever: every later [releaseVlc] queued for the write lock 3 s, and while a
+         * writer queues the ReentrantReadWriteLock stops admitting NEW readers, so the vlcQuery
+         * thread (AFR, codec, info window) froze for those 3 s on every channel change. Instead the
+         * player is noted in [stopping] and [releaseVlc] waits for THIS player only.
          */
         fun stopAsync(mp: MediaPlayer) {
             runCatching {
+                stopping.add(mp)
                 Thread({
-                    val rl = nativeCallLock.readLock()
-                    rl.lock()
-                    try { runCatching { mp.stop() } } finally { rl.unlock() }
+                    try { runCatching { mp.stop() } } finally { stopping.remove(mp) }
                 }, "HeadentClient:vlcStop").apply { isDaemon = true }.start()
-            }
+            }.onFailure { stopping.remove(mp) }
         }
 
         /**
@@ -331,6 +339,10 @@ internal class VlcEngine(
             }
             // letting the internal libVLC threads (vout/audio) finish before the mutexes are destroyed
             runCatching { Thread.sleep(150) }
+            // M730: not while stopAsync() is still inside stop() on this player (bounded wait)
+            var stopWait = 0L
+            while (stopping.contains(mp) && stopWait < 3_000L) { runCatching { Thread.sleep(50) }; stopWait += 50 }
+            if (stopping.contains(mp)) CrashLogger.report(ctx, "PlayerActivity.$where", "stop() still running after 3 s, releasing anyway")
             // M708: not while a video-track query is inside a native call on this player
             val wl = nativeCallLock.writeLock()
             val locked = runCatching { wl.tryLock(3, TimeUnit.SECONDS) }.getOrDefault(false)

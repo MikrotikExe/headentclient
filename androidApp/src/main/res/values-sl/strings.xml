@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (SD kanali): najboljša kakovost slike</string>
     <string name="mpeg2_sw_note">MPEG-2 kanali se dekodirajo programsko z razpletanjem – ostra slika brez nazobčanih robov. HD kanali (H.264, HEVC) ostanejo strojni.</string>
     <string name="vlc_verbose_title">Podroben dnevnik predvajalnika</string>
-    <string name="vlc_verbose_note">Samo za diagnostiko težav s predvajanjem. Upočasni predvajalnik; nato izklopi.</string>
+    <string name="vlc_verbose_note">Samo za diagnostiko težav s predvajanjem. Upočasni predvajalnik; nato izklopi. Dokler je vklopljeno, se dnevnik predvajalnika shranjuje in pošlje skupaj z diagnostičnim dnevnikom.</string>
+    <string name="diag_player_log_note">Zabeležen je tudi podroben dnevnik predvajalnika; ob pošiljanju dnevnika se priloži.</string>
     <string name="dvr_rec_button">Snemaj</string>
     <string name="dvr_rec_working">Načrtovanje…</string>
     <string name="dvr_rec_scheduled">Snemanje načrtovano</string>

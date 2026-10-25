@@ -283,7 +283,8 @@
     <string name="mpeg2_sw_title">MPEG-2 (kênh SD): chất lượng hình tốt nhất</string>
     <string name="mpeg2_sw_note">Kênh MPEG-2 được giải mã bằng phần mềm kèm khử xen kẽ – hình sắc nét không răng cưa. Kênh HD (H.264, HEVC) vẫn dùng phần cứng.</string>
     <string name="vlc_verbose_title">Nhật ký chi tiết của trình phát</string>
-    <string name="vlc_verbose_note">Chỉ để chẩn đoán lỗi phát. Làm chậm trình phát; xong thì tắt.</string>
+    <string name="vlc_verbose_note">Chỉ để chẩn đoán lỗi phát. Làm chậm trình phát; xong thì tắt. Khi đang bật, nhật ký trình phát được lưu và gửi cùng nhật ký chẩn đoán.</string>
+    <string name="diag_player_log_note">Nhật ký chi tiết của trình phát cũng đã được ghi; sẽ được đính kèm khi gửi nhật ký.</string>
     <string name="dvr_rec_button">Ghi</string>
     <string name="dvr_rec_working">Đang lên lịch…</string>
     <string name="dvr_rec_scheduled">Đã lên lịch ghi</string>
