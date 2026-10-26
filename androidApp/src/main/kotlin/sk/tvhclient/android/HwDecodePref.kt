@@ -110,18 +110,28 @@ object ChannelCodecMemo {
         return m
     }
 
-    /** libVLC codec fourcc -> the HTSP name (mpgv/mp2v = MPEG-2). null = unknown. */
-    fun fromVlc(fourcc: String?): String? = when (fourcc?.lowercase()) {
-        "mpgv", "mp2v", "mpg2" -> "MPEG2VIDEO"
-        "h264", "avc1" -> "H264"
-        "hevc", "hvc1", "hev1", "h265" -> "HEVC"
-        "vp9", "vp90" -> "VP9"
-        "av01", "av1" -> "AV1"
-        "mpga", "mp3", "mp2a" -> "MPEG2AUDIO"   // M724: audio too (the info window)
-        "a52", "a52b" -> "AC3"
-        "eac3" -> "EAC3"
-        "mp4a", "aac" -> "AAC"
-        null -> null
-        else -> fourcc.uppercase()
+    /**
+     * libVLC codec -> the HTSP name (mpgv/mp2v = MPEG-2). null = unknown.
+     * M734: libVLC-Android's IMedia.Track.codec is the codec DESCRIPTION ("MPEG-H Part2/HEVC (H.265)",
+     * "MPEG AAC Audio", "MPEG-1/2 Video"…), not the fourcc — until now nothing matched for an HTTP
+     * channel, the memo held the raw description and the MPEG-2 quality option never applied over
+     * HTTP. Both forms are recognised now.
+     */
+    fun fromVlc(codec: String?): String? {
+        if (codec.isNullOrBlank()) return null
+        val c = codec.lowercase()
+        return when {
+            c == "mpgv" || c == "mp2v" || c == "mpg2" || c.contains("mpeg-1/2 video") || c.contains("mpeg-2 video") || c.contains("mpeg video") -> "MPEG2VIDEO"
+            c == "h264" || c == "avc1" || c.contains("h.264") || c.contains("h264") || c.contains("avc") -> "H264"
+            c == "hevc" || c == "hvc1" || c == "hev1" || c == "h265" || c.contains("hevc") || c.contains("h.265") -> "HEVC"
+            c == "vp9" || c == "vp90" || c.contains("vp9") -> "VP9"
+            c == "av01" || c == "av1" || c.contains("av1") -> "AV1"
+            c == "mp4v" || c.contains("mpeg-4 video") -> "MPEG4VIDEO"
+            c == "eac3" || c.contains("e-ac-3") || c.contains("eac3") || c.contains("digital plus") -> "EAC3"
+            c == "a52" || c == "a52b" || c.contains("a52") || c.contains("ac-3") || c.contains("ac3") || c.contains("dolby digital") -> "AC3"
+            c == "mp4a" || c == "aac" || c.contains("aac") -> "AAC"
+            c == "mpga" || c == "mp3" || c == "mp2a" || c.contains("mpeg audio") || c.contains("mpeg-1/2 audio") || c.contains("mp3") -> "MPEG2AUDIO"   // M724
+            else -> codec.uppercase()
+        }
     }
 }

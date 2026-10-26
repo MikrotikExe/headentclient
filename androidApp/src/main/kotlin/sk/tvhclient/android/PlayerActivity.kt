@@ -344,7 +344,8 @@ class PlayerActivity : ComponentActivity() {
                 onResult(StreamDetails(
                     videoCodec = ChannelCodecMemo.fromVlc(vi?.codec) ?: src?.videoType,
                     width = vi?.width?.takeIf { it > 0 } ?: src?.width ?: 0,
-                    height = vi?.height?.takeIf { it > 0 } ?: src?.height ?: 0,
+                    // M734: libVLC reports the CODED height (1088 for 1080p — 16-line macroblock rows); show the display height
+                    height = (vi?.height?.takeIf { it > 0 } ?: src?.height ?: 0).let { h -> if (h == 1088) 1080 else if (h == 544) 540 else h },
                     fps = if (vi != null && vi.fpsDen > 0 && vi.fpsNum > 0) vi.fpsNum.toDouble() / vi.fpsDen else 0.0,
                     audioCodec = ChannelCodecMemo.fromVlc(ai?.codec) ?: src?.audioType,
                     audioChannels = ai?.channels?.takeIf { it > 0 } ?: src?.audioChannels ?: 0,

@@ -92,7 +92,11 @@ internal fun PlayerInfoWindow(
         androidx.compose.material3.Surface(
             color = playerScrim(),
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth(0.72f).widthIn(max = 560.dp)
+            // M734: a quarter narrower in landscape (TV) — the text was stretched across three
+            // quarters of the screen; a phone held upright keeps the old width (already narrow)
+            modifier = if (androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT)
+                Modifier.fillMaxWidth(0.72f).widthIn(max = 560.dp)
+            else Modifier.fillMaxWidth(0.54f).widthIn(max = 420.dp)
         ) {
             Column(
                 Modifier
