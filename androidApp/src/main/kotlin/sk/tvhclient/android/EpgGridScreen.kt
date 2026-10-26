@@ -341,6 +341,12 @@ fun EpgGridScreen(
     LaunchedEffect(infoSig) {
         if (infoSig > 0) detail = if (detail == null) lastFocused else null
     }
+    // M733 (issue #39): the GUIDE key / the TV guide button in the player asks for the GRID — the
+    // grid stays composed under the player (so the list does not flash on return), and when the
+    // channel had been started from a programme detail, that detail was still open on top of it
+    // and the viewer had to press BACK first. A new open request closes the detail.
+    val gridSig by TabController.epgGrid
+    LaunchedEffect(gridSig) { if (gridSig > 0) { detail = null; recordOnOpen = false } }
 
     var dayOffset by remember { mutableStateOf(0) }
     val dayStart = remember(dayOffset) { dayStartSec(dayOffset) }

@@ -108,11 +108,12 @@ class LiveEpgStoreTest {
     @Test
     fun awaitFreshWaitsForTheNextSyncAfterALostFeed() = runTest {   // M731 (audit R9)
         val s = LiveEpgStore("t6")
-        s.markSynced(alive = true, nowSec = now)
+        // synced a while ago (older than the polling grace), kept fresh only by the live feed
+        s.markSynced(alive = true, nowSec = now - LiveEpgStore.POLL_FRESH_SEC - 60)
         assertTrue(s.awaitFresh(10))
         s.markFeedDead()
         assertFalse(s.awaitFresh(50))                                             // no new sync inside the wait
-        s.markSynced(alive = true, nowSec = now + 1)
+        s.markSynced(alive = true, nowSec = now)
         assertTrue(s.awaitFresh(10))
     }
 
