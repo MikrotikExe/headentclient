@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -82,6 +84,13 @@ internal fun PlayerInfoWindow(
     }
     val tRange = if (progStart > 0 && progStop > progStart)
         clk(progStart) + " \u2013 " + clk(progStop) else ""
+    // M735: on a landscape screen (TV) the window is compact and at most 70 % of the screen height
+    // (it used to grow to the full height and cut off the bottom); upright phone: 80 %, sizes as before
+    val conf = androidx.compose.ui.platform.LocalConfiguration.current
+    val compact = conf.orientation != android.content.res.Configuration.ORIENTATION_PORTRAIT
+    val maxH = (conf.screenHeightDp * (if (compact) 0.70f else 0.80f)).dp
+    val gapL = if (compact) 8.dp else 14.dp    // the larger gaps between blocks
+    val gapXL = if (compact) 10.dp else 16.dp
     Box(
         Modifier
             .fillMaxSize()
@@ -94,13 +103,13 @@ internal fun PlayerInfoWindow(
             shape = RoundedCornerShape(16.dp),
             // M734: a quarter narrower in landscape (TV) — the text was stretched across three
             // quarters of the screen; a phone held upright keeps the old width (already narrow)
-            modifier = if (androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT)
-                Modifier.fillMaxWidth(0.72f).widthIn(max = 560.dp)
-            else Modifier.fillMaxWidth(0.54f).widthIn(max = 420.dp)
+            modifier = (if (!compact) Modifier.fillMaxWidth(0.72f).widthIn(max = 560.dp)
+                else Modifier.fillMaxWidth(0.54f).widthIn(max = 420.dp)).heightIn(max = maxH)
         ) {
+          Box {
             Column(
                 Modifier
-                    .padding(28.dp)
+                    .padding(if (compact) 20.dp else 28.dp)
                     .verticalScroll(infoScroll)
             ) {
                 val dvrTitle = dvrEntry?.dispTitle?.ifBlank { null } ?: progTitle.ifBlank { title }
@@ -166,45 +175,54 @@ internal fun PlayerInfoWindow(
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
                         }
-                        Spacer(Modifier.height(14.dp))
+                        Spacer(Modifier.height(gapL))
                     }
                     Text(
                         dvrTitle,
                         color = playerFg(),
                         fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp
+                        fontSize = if (compact) 19.sp else 22.sp
                     )
+                    val liveProg = !seekable && progStart > 0 && progStop > progStart
+                    val remainMin = ((progStop - liveNowSec) / 60).coerceAtLeast(0)
                     if (tRange.isNotBlank()) {
-                        Spacer(Modifier.height(6.dp))
-                        Text(tRange, color = playerFgDim(), fontSize = 15.sp)
+                        Spacer(Modifier.height(if (compact) 4.dp else 6.dp))
+                        // M735: compact = the time and "remaining" on one line
+                        val line = if (compact && liveProg) tRange + "  \u00B7  " + stringResource(R.string.time_remaining, remainMin) else tRange
+                        Text(line, color = playerFgDim(), fontSize = if (compact) 14.sp else 15.sp)
                     }
                     // progress + remaining time (live broadcast only)
-                    if (!seekable && progStart > 0 && progStop > progStart) {
+                    if (liveProg) {
                         val totalI = (progStop - progStart).coerceAtLeast(1)
                         val fracI = ((liveNowSec - progStart).toFloat() / totalI.toFloat())
                             .coerceIn(0f, 1f)
-                        val remainI = ((progStop - liveNowSec) / 60).coerceAtLeast(0)
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(if (compact) 8.dp else 12.dp))
                         androidx.compose.material3.LinearProgressIndicator(
                             progress = { fracI },
                             modifier = Modifier.fillMaxWidth().height(4.dp),
                             trackColor = playerTrack()
                         )
-                        Spacer(Modifier.height(6.dp))
-                        Text(stringResource(R.string.time_remaining, remainI), color = playerFgFaint(), fontSize = 13.sp)
+                        if (!compact) {
+                            Spacer(Modifier.height(6.dp))
+                            Text(stringResource(R.string.time_remaining, remainMin), color = playerFgFaint(), fontSize = 13.sp)
+                        }
                     }
                     if (!seekable && progImage.isNotBlank()) {   // M728 (issue #31)
-                        Spacer(Modifier.height(14.dp))
-                        ProgrammeImage(progImage, maxHeight = 160.dp, spaceAfter = 0.dp)
+                        Spacer(Modifier.height(gapL))
+                        ProgrammeImage(progImage, maxHeight = if (compact) 110.dp else 160.dp, spaceAfter = 0.dp)
                     }
                     if (progDesc.isNotBlank()) {
-                        Spacer(Modifier.height(14.dp))
-                        Text(progDesc, color = playerFgDim(), fontSize = 16.sp, lineHeight = 22.sp)
+                        Spacer(Modifier.height(gapL))
+                        // M735: compact = at most two lines (the full text is in the programme detail)
+                        Text(progDesc, color = playerFgDim(),
+                            fontSize = if (compact) 14.sp else 16.sp, lineHeight = if (compact) 19.sp else 22.sp,
+                            maxLines = if (compact) 2 else Int.MAX_VALUE,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     }
                 }
                 // M490: recording from the info window too (phone — touch, without focus)
                 if (dvrActivity?.dvrRecordVisible() == true) {
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(gapXL))
                     androidx.compose.material3.OutlinedButton(
                         onClick = { setShowInfo(false); dvrActivity?.toggleRecordCurrent() },
                         modifier = Modifier.fillMaxWidth()
@@ -222,7 +240,7 @@ internal fun PlayerInfoWindow(
                     }
                 }
                 if (nextTitle.isNotBlank()) {
-                    Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(gapXL))
                     val nr = when {
                         nextStart > 0 && nextStop > nextStart ->
                             clk(nextStart) + " \u2013 " + clk(nextStop) + "  "
@@ -233,11 +251,27 @@ internal fun PlayerInfoWindow(
                         // M491: it was hardcoded in Slovak
                         stringResource(R.string.mh_next) + " " + nr + nextTitle,
                         color = playerFgFaint(),
-                        fontSize = 14.sp
+                        fontSize = if (compact) 13.sp else 14.sp
                     )
                 }
-                if (streamDetails != null) StreamInfoSection(streamDetails)   // M724
+                if (streamDetails != null) StreamInfoSection(streamDetails, compact)   // M724 / M735
             }
+            // M735: a thin scroll indicator when the content is taller than the window
+            if (infoScroll.maxValue > 0) {
+                val frac = infoScroll.value.toFloat() / infoScroll.maxValue.toFloat()
+                Box(Modifier.matchParentSize().padding(end = 6.dp, top = 12.dp, bottom = 12.dp)) {
+                    androidx.compose.foundation.layout.BoxWithConstraints(
+                        Modifier.align(Alignment.TopEnd).fillMaxHeight().width(3.dp)
+                    ) {
+                        val thumb = maxHeight * 0.3f
+                        Box(
+                            Modifier.padding(top = (maxHeight - thumb) * frac).width(3.dp).height(thumb)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), RoundedCornerShape(2.dp))
+                        )
+                    }
+                }
+            }
+          }
         }
     }
 }

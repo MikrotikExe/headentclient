@@ -57,15 +57,20 @@ internal data class StreamDetails(
 
 /** The "Stream" section inside the info window (only with the setting on). */
 @Composable
-internal fun StreamInfoSection(d: StreamDetails) {
+internal fun StreamInfoSection(d: StreamDetails, compact: Boolean = false) {
     val label = playerFgFaint()
     val value = playerFgDim()
+    // M735: on a landscape screen (TV) tighter rows, and the decoder / provider join the line above
+    val rowH = if (compact) 19.dp else 22.dp
+    val labelSp = if (compact) 12.sp else 13.sp
+    val valueSp = if (compact) 13.sp else 14.sp
+    val labelW = if (compact) 96.dp else 118.dp
     @Composable
     fun row(name: String, text: String?) {
         if (text.isNullOrBlank()) return
-        Row(Modifier.fillMaxWidth().height(22.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(name, color = label, fontSize = 13.sp, modifier = Modifier.width(118.dp))
-            Text(text, color = value, fontSize = 14.sp, maxLines = 1,
+        Row(Modifier.fillMaxWidth().height(rowH), verticalAlignment = Alignment.CenterVertically) {
+            Text(name, color = label, fontSize = labelSp, modifier = Modifier.width(labelW))
+            Text(text, color = value, fontSize = valueSp, maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
         }
     }
@@ -76,8 +81,8 @@ internal fun StreamInfoSection(d: StreamDetails) {
      */
     @Composable
     fun bar(name: String, pct: Int, text: String) {
-        Row(Modifier.fillMaxWidth().height(22.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(name, color = label, fontSize = 13.sp, modifier = Modifier.width(118.dp))
+        Row(Modifier.fillMaxWidth().height(rowH), verticalAlignment = Alignment.CenterVertically) {
+            Text(name, color = label, fontSize = labelSp, modifier = Modifier.width(labelW))
             androidx.compose.foundation.layout.Box(
                 Modifier.width(160.dp).height(8.dp).clip(RoundedCornerShape(4.dp)).background(label.copy(alpha = 0.3f))
             ) {
@@ -87,14 +92,14 @@ internal fun StreamInfoSection(d: StreamDetails) {
                 )
             }
             Spacer(Modifier.width(10.dp))
-            Text(text, color = value, fontSize = 14.sp)
+            Text(text, color = value, fontSize = valueSp)
         }
     }
 
     Column {
-        Spacer(Modifier.height(14.dp))
-        Text(stringResource(R.string.si_section), color = playerFg(), fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(if (compact) 10.dp else 14.dp))
+        Text(stringResource(R.string.si_section), color = playerFg(), fontSize = labelSp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(if (compact) 2.dp else 4.dp))
         // video / audio / decoder
         val video = listOfNotNull(
             StreamDetails.codecName(d.videoCodec),
@@ -102,30 +107,35 @@ internal fun StreamInfoSection(d: StreamDetails) {
             if (d.fps > 0) (if (kotlin.math.abs(d.fps - Math.round(d.fps)) < 0.01) "${Math.round(d.fps)} fps"
                 else String.format(java.util.Locale.US, "%.2f fps", d.fps)) else null
         ).joinToString(" · ")
-        row(stringResource(R.string.si_video), video)
+        val decoderText = when (d.decoder) {
+            StreamDetails.DEC_SOFTWARE -> stringResource(R.string.hw_decode_off)
+            StreamDetails.DEC_DECODE -> stringResource(R.string.hw_decode_decode)
+            else -> stringResource(R.string.si_hardware)
+        }
+        row(stringResource(R.string.si_video), if (compact) listOf(video, decoderText).filter { it.isNotBlank() }.joinToString(" · ") else video)
         val audio = listOfNotNull(
             StreamDetails.codecName(d.audioCodec),
             if (d.audioChannels > 0) stringResource(R.string.si_channels, d.audioChannels) else null,
             if (d.audioRate > 0) "${d.audioRate / 1000} kHz" else null
         ).joinToString(" · ")
         row(stringResource(R.string.si_audio), audio)
-        row(stringResource(R.string.si_decoder), when (d.decoder) {
-            StreamDetails.DEC_SOFTWARE -> stringResource(R.string.hw_decode_off)
-            StreamDetails.DEC_DECODE -> stringResource(R.string.hw_decode_decode)
-            else -> stringResource(R.string.si_hardware)
-        })
+        if (!compact) row(stringResource(R.string.si_decoder), decoderText)
         // source (HTSP only)
         val src = d.source
         if (src != null) {
-            Spacer(Modifier.height(6.dp))
-            row(stringResource(R.string.si_service), src.service)
-            row(stringResource(R.string.si_provider), src.provider)
+            Spacer(Modifier.height(if (compact) 3.dp else 6.dp))
+            if (compact) {
+                row(stringResource(R.string.si_service), listOfNotNull(src.service, src.provider).filter { it.isNotBlank() }.joinToString(" · ").ifBlank { null })
+            } else {
+                row(stringResource(R.string.si_service), src.service)
+                row(stringResource(R.string.si_provider), src.provider)
+            }
             row(stringResource(R.string.si_mux), listOfNotNull(src.network, src.mux, src.satpos).joinToString(" · ").ifBlank { null })
             row(stringResource(R.string.si_adapter), src.adapter)
         }
         val sig = d.signal
         if (sig != null) {
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(if (compact) 3.dp else 6.dp))
             val decibel = sig.signal < 0 && sig.signal != -1 || (sig.signal == -1 && sig.snr in 1..25000)
             if (sig.signal != -1) {
                 if (decibel) {   // dBm × 1000: -90 dBm = empty, -30 dBm = full
@@ -155,7 +165,7 @@ internal fun StreamInfoSection(d: StreamDetails) {
             }
         }
         // connection
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(if (compact) 3.dp else 6.dp))
         row(stringResource(R.string.si_connection), listOfNotNull(
             if (d.htsp) "HTSP" else "HTTP",
             if (d.live && d.profile.isNotBlank()) d.profile else null,
