@@ -240,7 +240,6 @@
     <string name="sleep_off">Vypnout</string>
     <string name="sleep_set">Časovač: %1$d min</string>
     <string name="set_cat_remote">Dálkové ovládání</string>
-    <string name="remote_debug_title">Diagnostika kláves</string>
     <string name="remote_debug_enable">Zobrazovat kódy kláves</string>
     <string name="remote_debug_note">V přehrávači se při stisku neobvyklé klávesy krátce zobrazí její kód. Slouží ke zjištění kódu EPG tlačítka dálkového ovladače.</string>
     <string name="plock_grace_title">Po odemknutí nevyžadovat PIN</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">Aplikace – klient pro Tvheadend</string>
     <string name="login_in_progress">Přihlašování probíhá…</string>
     <string name="auto_pip_title">Automatický režim PiP</string>
-    <string name="sw_decode_title">Softwarové dekódování videa</string>
-    <string name="sw_decode_note">Zapni jen když se obraz na některých kanálech trhá nebo zamrzá. Více zatěžuje procesor.</string>
     <string name="hw_decode_title">Hardwarové dekódování videa</string>
     <string name="hw_decode_decode">Jen dekódování</string>
     <string name="hw_decode_off">Vypnuto (software)</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">Stanice se číslují 1, 2, 3… podle zobrazeného pořadí místo čísel ze serveru. Platí pro záložku Rádio, TV program i seznam stanic v přehrávači.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Úvodní obrazovka (TV)</string>
-    <string name="tile_list_title">Dlaždice TV kanály a Rádio otevřou seznam</string>
-    <string name="tile_list_note">Poslední kanál se spustí jako dosud a hned nad ním se otevře seznam kanálů nebo stanic.</string>
     <string name="tile_mode_title">Dlaždice TV kanály a Rádio</string>
     <string name="tile_mode_play">Spustí poslední kanál</string>
     <string name="tile_mode_list">Spustí poslední kanál a otevře nad ním seznam</string>

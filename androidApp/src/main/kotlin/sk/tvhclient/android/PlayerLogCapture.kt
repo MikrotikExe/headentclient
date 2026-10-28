@@ -22,6 +22,25 @@ object PlayerLogCapture {
 
     @Volatile private var proc: Process? = null
     @Volatile private var worker: Thread? = null
+    /** M736: the player instance that started the capture — a closing OLD instance (its onDestroy
+     *  comes after the new one's onCreate: "from the start", back to live, a channel from the EPG)
+     *  must not stop the capture the new instance relies on. */
+    @Volatile private var owner: Any? = null
+
+    // M736: libVLC -vv prints the MRL it opens, and a direct HTTP stream / recording URL carries the
+    // server login (http://user:password@host/…, StreamUrlBuilder.withCreds) — also as
+    // location='user:password@host…'. Its http module can print request headers too. All of it is
+    // masked before a line reaches the file, and so are the DvrProxy tokens (127.0.0.1:port/<32 hex>).
+    private val credInUrl = Regex("""([a-zA-Z][a-zA-Z0-9+.-]*://)[^/\s'"@]+@""")
+    private val credBare = Regex("""(^|[\s'"=(])[^\s/'"@:()]+:[^\s/'"@]*@(?=[A-Za-z0-9\[])""")
+    private val authHeader = Regex("""(?i)\b(authorization|proxy-authorization|cookie|set-cookie)(\s*[:=]\s*).*""")
+    private val proxyToken = Regex("""(127\.0\.0\.1:\d+/)[0-9a-f]{32}""")
+
+    internal fun redact(line: String): String = line
+        .replace(credInUrl, "$1***@")
+        .replace(credBare, "$1***@")
+        .replace(authHeader, "$1$2***")
+        .replace(proxyToken, "$1***")
 
     fun logFile(context: Context): File {
         val dir = File(context.filesDir, DIR).apply { mkdirs() }
@@ -30,8 +49,10 @@ object PlayerLogCapture {
 
     /** Starts reading when the setting is on (no-op otherwise or when already running). */
     @Synchronized
-    fun start(context: Context) {
-        if (!VlcVerbosePref.get(context) || worker?.isAlive == true) return
+    fun start(context: Context, owner: Any) {
+        if (!VlcVerbosePref.get(context)) return
+        this.owner = owner
+        if (worker?.isAlive == true) return
         val app = context.applicationContext
         val f = logFile(app)
         val t = Thread({
@@ -47,7 +68,7 @@ object PlayerLogCapture {
                 while (!Thread.currentThread().isInterrupted) {
                     val line = r.readLine() ?: break
                     if (line.startsWith("---")) continue   // "--------- beginning of main"
-                    buf.append(line).append('\n')
+                    buf.append(redact(line)).append('\n')
                     val now = System.currentTimeMillis()
                     if (buf.length > 8 * 1024 || now - lastFlush > 2000) {
                         flush(f, buf); lastFlush = now
@@ -63,8 +84,11 @@ object PlayerLogCapture {
         t.start()
     }
 
+    /** Stops the capture — only when [owner] is the instance that (re)started it last. */
     @Synchronized
-    fun stop() {
+    fun stop(owner: Any) {
+        if (this.owner !== owner) return
+        this.owner = null
         runCatching { proc?.destroy() }
         proc = null
         worker?.interrupt()

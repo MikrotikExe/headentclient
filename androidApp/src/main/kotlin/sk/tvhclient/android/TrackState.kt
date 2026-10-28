@@ -112,16 +112,6 @@ internal class TrackState(
         httpSpuWantName = if (cur >= 0) mp.spuTrackItems().firstOrNull { it.id == cur }?.name else null
     }
 
-    /** New channel: HTSP subtitles off, HTTP choice back to the default OFF, allow a re-parse. */
-    fun resetForNewChannel() {
-        selectedSubEs.value = -1
-        desiredSubName = null
-        httpSpuWantOff = true
-        httpSpuWantName = null
-        reparseDone = false
-        reparseHandler.removeCallbacksAndMessages(null)
-    }
-
     // ---- track list refresh after start ----
     // Tracks and DVB subtitle tracks only appear a few seconds after start. On some
     // streams ESAdded does not arrive reliably, so after Event.Playing we poll briefly and refresh

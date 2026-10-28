@@ -240,7 +240,6 @@
     <string name="sleep_off">Desligado</string>
     <string name="sleep_set">Temporizador: %1$d min</string>
     <string name="set_cat_remote">Comando</string>
-    <string name="remote_debug_title">Diagnóstico de códigos de teclas</string>
     <string name="remote_debug_enable">Mostrar códigos das teclas premidas</string>
     <string name="remote_debug_note">No leitor, premir uma tecla invulgar mostra brevemente o seu código. Usa-o para encontrar o código do botão EPG do teu comando.</string>
     <string name="plock_grace_title">Após desbloquear, não pedir o PIN durante</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">App cliente de Tvheadend</string>
     <string name="login_in_progress">A iniciar sessão…</string>
     <string name="auto_pip_title">Imagem na imagem automática</string>
-    <string name="sw_decode_title">Descodificação de vídeo por software</string>
-    <string name="sw_decode_note">Ativa só se a imagem falhar ou congelar nalguns canais. Usa mais CPU.</string>
     <string name="hw_decode_title">Decodificação de vídeo por hardware</string>
     <string name="hw_decode_decode">Apenas decodificação</string>
     <string name="hw_decode_off">Desligada (software)</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">As estações são numeradas 1, 2, 3… pela ordem mostrada em vez dos números do servidor. Aplica-se ao separador Rádio, ao guia e à lista de estações no reprodutor.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Ecrã inicial (TV)</string>
-    <string name="tile_list_title">Os mosaicos Canais de TV e Rádio abrem a lista</string>
-    <string name="tile_list_note">O último canal inicia como antes e a lista de canais ou estações abre-se logo por cima.</string>
     <string name="tile_mode_title">Blocos Canais de TV e Rádio</string>
     <string name="tile_mode_play">Iniciar o último canal</string>
     <string name="tile_mode_list">Iniciar o último canal e abrir a lista por cima</string>

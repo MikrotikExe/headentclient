@@ -240,7 +240,6 @@
     <string name="sleep_off">خاموش</string>
     <string name="sleep_set">زمان‌سنج خواب: %1$d دقیقه</string>
     <string name="set_cat_remote">کنترل از راه دور</string>
-    <string name="remote_debug_title">عیب‌یابی کد کلیدها</string>
     <string name="remote_debug_enable">نمایش کد کلیدهای فشرده‌شده</string>
     <string name="remote_debug_note">در پخش‌کننده، فشردن یک کلید غیرمعمول کد آن را برای لحظه‌ای نشان می‌دهد. از این برای یافتن کد دکمه EPG روی کنترل خود استفاده کنید.</string>
     <string name="plock_grace_title">پس از باز کردن قفل، تا این مدت PIN پرسیده نشود</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">برنامه کلاینت Tvheadend</string>
     <string name="login_in_progress">در حال ورود…</string>
     <string name="auto_pip_title">تصویر در تصویر خودکار</string>
-    <string name="sw_decode_title">رمزگشایی نرم‌افزاری ویدیو</string>
-    <string name="sw_decode_note">فقط اگر تصویر در برخی کانال‌ها می‌پرد یا یخ می‌زند فعال کنید. مصرف پردازنده بیشتر است.</string>
     <string name="hw_decode_title">رمزگشایی سخت‌افزاری ویدیو</string>
     <string name="hw_decode_decode">فقط رمزگشایی</string>
     <string name="hw_decode_off">خاموش (نرم‌افزاری)</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">ایستگاه‌ها به‌جای شماره‌های سرور، به ترتیب نمایش ۱، ۲، ۳… شماره‌گذاری می‌شوند. برای زبانه رادیو، راهنمای برنامه و فهرست ایستگاه‌های پخش‌کننده اعمال می‌شود.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">صفحهٔ اصلی (TV)</string>
-    <string name="tile_list_title">کاشی‌های کانال‌های تلویزیون و رادیو فهرست را باز می‌کنند</string>
-    <string name="tile_list_note">آخرین کانال مانند قبل شروع می‌شود و فهرست کانال‌ها یا ایستگاه‌ها بلافاصله روی آن باز می‌شود.</string>
     <string name="tile_mode_title">کاشی‌های کانال‌های تلویزیون و رادیو</string>
     <string name="tile_mode_play">پخش آخرین کانال</string>
     <string name="tile_mode_list">پخش آخرین کانال و باز کردن فهرست روی آن</string>

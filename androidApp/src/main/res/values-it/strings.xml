@@ -240,7 +240,6 @@
     <string name="sleep_off">Disattivato</string>
     <string name="sleep_set">Timer di spegnimento: %1$d min</string>
     <string name="set_cat_remote">Telecomando</string>
-    <string name="remote_debug_title">Diagnostica codici tasti</string>
     <string name="remote_debug_enable">Mostra i codici dei tasti premuti</string>
     <string name="remote_debug_note">Nel lettore, premendo un tasto insolito ne viene mostrato brevemente il codice. Usalo per trovare il codice del tasto EPG del tuo telecomando.</string>
     <string name="plock_grace_title">Dopo lo sblocco, non chiedere il PIN per</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">App client per Tvheadend</string>
     <string name="login_in_progress">Accesso in corso…</string>
     <string name="auto_pip_title">Picture-in-picture automatico</string>
-    <string name="sw_decode_title">Decodifica video software</string>
-    <string name="sw_decode_note">Attiva solo se il video scatta o si blocca su alcuni canali. Usa più CPU.</string>
     <string name="hw_decode_title">Decodifica video hardware</string>
     <string name="hw_decode_decode">Solo decodifica</string>
     <string name="hw_decode_off">Disattivata (software)</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">Le stazioni sono numerate 1, 2, 3… nell\'ordine mostrato invece dei numeri del server. Vale per la scheda Radio, la guida e l\'elenco delle stazioni nel lettore.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Schermata iniziale (TV)</string>
-    <string name="tile_list_title">I riquadri Canali TV e Radio aprono l’elenco</string>
-    <string name="tile_list_note">L’ultimo canale parte come prima e l’elenco dei canali o delle stazioni si apre subito sopra.</string>
     <string name="tile_mode_title">Riquadri Canali TV e Radio</string>
     <string name="tile_mode_play">Avvia l\'ultimo canale</string>
     <string name="tile_mode_list">Avvia l\'ultimo canale e apri la lista sopra</string>

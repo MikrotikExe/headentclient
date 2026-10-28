@@ -240,7 +240,6 @@
     <string name="sleep_off">关闭</string>
     <string name="sleep_set">睡眠定时器：%1$d 分钟</string>
     <string name="set_cat_remote">遥控器</string>
-    <string name="remote_debug_title">按键代码诊断</string>
     <string name="remote_debug_enable">显示按下的按键代码</string>
     <string name="remote_debug_note">在播放器中按下不常见的按键会短暂显示其代码。用它来查找你遥控器上 EPG 按键的代码。</string>
     <string name="plock_grace_title">解锁后在此时间内跳过 PIN</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">Tvheadend 客户端应用</string>
     <string name="login_in_progress">正在登录…</string>
     <string name="auto_pip_title">自动画中画</string>
-    <string name="sw_decode_title">软件视频解码</string>
-    <string name="sw_decode_note">仅当部分频道画面卡顿或停顿时开启。会占用更多 CPU。</string>
     <string name="hw_decode_title">硬件视频解码</string>
     <string name="hw_decode_decode">仅解码</string>
     <string name="hw_decode_off">关闭（软件）</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">电台按显示顺序编为 1、2、3…，而不使用服务器上的编号。适用于电台标签页、节目指南和播放器中的电台列表。</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">主屏幕 (TV)</string>
-    <string name="tile_list_title">电视频道和电台磁贴打开列表</string>
-    <string name="tile_list_note">上次的频道照常播放，并立即在其上方打开频道或电台列表。</string>
     <string name="tile_mode_title">电视频道和广播磁贴</string>
     <string name="tile_mode_play">播放上次的频道</string>
     <string name="tile_mode_list">播放上次的频道并在其上打开列表</string>

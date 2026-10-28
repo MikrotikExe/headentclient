@@ -27,8 +27,6 @@ class ReconnectController(
     private var liveAttempts = 0
     private var dvrAttempts = 0
 
-    val attempts: Int get() = liveAttempts
-
     /** Cancels the scheduled reconnect and hides the indicator. */
     fun cancel() {
         handler.removeCallbacksAndMessages(null)

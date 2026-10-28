@@ -240,7 +240,6 @@
     <string name="sleep_off">オフ</string>
     <string name="sleep_set">スリープタイマー：%1$d 分</string>
     <string name="set_cat_remote">リモコン</string>
-    <string name="remote_debug_title">キーコード診断</string>
     <string name="remote_debug_enable">押されたキーコードを表示</string>
     <string name="remote_debug_note">プレーヤーで珍しいキーを押すと、そのコードが短時間表示されます。リモコンの EPG ボタンのコードを調べるのに使えます。</string>
     <string name="plock_grace_title">解除後、この時間は PIN を省略</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">Tvheadend クライアントアプリ</string>
     <string name="login_in_progress">サインイン中…</string>
     <string name="auto_pip_title">自動ピクチャーインピクチャー</string>
-    <string name="sw_decode_title">ソフトウェアによる映像デコード</string>
-    <string name="sw_decode_note">一部のチャンネルで映像がカクつく・止まる場合のみ有効にしてください。CPU負荷が上がります。</string>
     <string name="hw_decode_title">ハードウェア動画デコード</string>
     <string name="hw_decode_decode">デコードのみ</string>
     <string name="hw_decode_off">オフ（ソフトウェア）</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">局にはサーバーの番号ではなく、表示順に 1、2、3… の番号が付きます。ラジオタブ、番組表、プレーヤーの局一覧に適用されます。</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">ホーム画面 (TV)</string>
-    <string name="tile_list_title">TVチャンネルとラジオのタイルで一覧を開く</string>
-    <string name="tile_list_note">最後のチャンネルはこれまで通り再生され、その上にチャンネルまたは局の一覧がすぐに開きます。</string>
     <string name="tile_mode_title">TVチャンネルとラジオのタイル</string>
     <string name="tile_mode_play">最後のチャンネルを再生</string>
     <string name="tile_mode_list">最後のチャンネルを再生し、その上にリストを開く</string>

@@ -184,12 +184,6 @@ class HtspClient(
         }
     }
 
-    /** M472: reads one asynchronous message (e.g. accessUpdate) and processes it. */
-    internal suspend fun pumpOnce() {
-        val m = kotlinx.coroutines.withTimeoutOrNull(1_500L) { recv() } ?: return
-        if ((m["method"] as? String) == "accessUpdate") applyAccessUpdate(m)
-    }
-
     internal suspend fun recvReply(s: Int, maxN: Int = 400): Map<String, Any?> {
         repeat(maxN) {
             val m = recv()

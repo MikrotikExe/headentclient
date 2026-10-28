@@ -1333,7 +1333,7 @@ class PlayerActivity : ComponentActivity() {
             (durationMs <= 0 || durationMs - saved.posMs > 60_000)
         ) saved.posMs else 0L
 
-        PlayerLogCapture.start(this)   // M730: the verbose player log into diag/player.log (only with the setting on)
+        PlayerLogCapture.start(this, this)   // M730: the verbose player log into diag/player.log (only with the setting on); M736: owned by this instance
         engine.create()   // M539: libVLC + MediaPlayer + listener (reusable when recovering from stalled audio)
         stall.start()
 
@@ -2273,7 +2273,7 @@ class PlayerActivity : ComponentActivity() {
     private val streamLocks: StreamLocks by lazy { StreamLocks(this, "HeadentClient:stream") }
 
     override fun onDestroy() {
-        PlayerLogCapture.stop()   // M730
+        PlayerLogCapture.stop(this)   // M730 / M736: a newer player instance keeps its capture
         pip.destroy() // M578 session + receiver (M653)
         if (onCar) audioFocus.release()
         teletext.stopHttp()   // M552

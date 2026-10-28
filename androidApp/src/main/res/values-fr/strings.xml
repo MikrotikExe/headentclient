@@ -240,7 +240,6 @@
     <string name="sleep_off">Désactivée</string>
     <string name="sleep_set">Minuterie de veille : %1$d min</string>
     <string name="set_cat_remote">Télécommande</string>
-    <string name="remote_debug_title">Diagnostic des codes de touches</string>
     <string name="remote_debug_enable">Afficher les codes des touches pressées</string>
     <string name="remote_debug_note">Dans le lecteur, appuyer sur une touche inhabituelle affiche brièvement son code. Utilisez-le pour trouver le code de la touche EPG de votre télécommande.</string>
     <string name="plock_grace_title">Après déverrouillage, ne pas redemander le PIN pendant</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">Application client Tvheadend</string>
     <string name="login_in_progress">Connexion…</string>
     <string name="auto_pip_title">Image dans l\'image automatique</string>
-    <string name="sw_decode_title">Décodage vidéo logiciel</string>
-    <string name="sw_decode_note">À activer seulement si l\'image saccade ou se fige sur certaines chaînes. Consomme plus de CPU.</string>
     <string name="hw_decode_title">Décodage vidéo matériel</string>
     <string name="hw_decode_decode">Décodage seul</string>
     <string name="hw_decode_off">Désactivé (logiciel)</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">Les stations sont numérotées 1, 2, 3… dans l\'ordre affiché au lieu des numéros du serveur. S\'applique à l\'onglet Radio, au guide et à la liste des stations du lecteur.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Écran d’accueil (TV)</string>
-    <string name="tile_list_title">Les tuiles Chaînes TV et Radio ouvrent la liste</string>
-    <string name="tile_list_note">La dernière chaîne démarre comme avant et la liste des chaînes ou des stations s’ouvre aussitôt par-dessus.</string>
     <string name="tile_mode_title">Tuiles Chaînes TV et Radio</string>
     <string name="tile_mode_play">Lancer la dernière chaîne</string>
     <string name="tile_mode_list">Lancer la dernière chaîne et ouvrir la liste par-dessus</string>

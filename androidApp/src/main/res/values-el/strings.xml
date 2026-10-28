@@ -240,7 +240,6 @@
     <string name="sleep_off">Ανενεργό</string>
     <string name="sleep_set">Χρονοδιακόπτης ύπνου: %1$d λεπτά</string>
     <string name="set_cat_remote">Τηλεχειριστήριο</string>
-    <string name="remote_debug_title">Διαγνωστικά κωδικών πλήκτρων</string>
     <string name="remote_debug_enable">Εμφάνιση κωδικών πατημένων πλήκτρων</string>
     <string name="remote_debug_note">Στο πρόγραμμα αναπαραγωγής, πατώντας ένα ασυνήθιστο πλήκτρο εμφανίζεται για λίγο ο κωδικός του. Χρησιμοποίησέ το για να βρεις τον κωδικό του πλήκτρου EPG στο τηλεχειριστήριό σου.</string>
     <string name="plock_grace_title">Μετά το ξεκλείδωμα, παράλειψη PIN για</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">Εφαρμογή πελάτη Tvheadend</string>
     <string name="login_in_progress">Σύνδεση…</string>
     <string name="auto_pip_title">Αυτόματη εικόνα σε εικόνα</string>
-    <string name="sw_decode_title">Λογισμική αποκωδικοποίηση βίντεο</string>
-    <string name="sw_decode_note">Ενεργοποιήστε μόνο αν η εικόνα κολλάει ή παγώνει σε ορισμένα κανάλια. Μεγαλύτερη χρήση CPU.</string>
     <string name="hw_decode_title">Αποκωδικοποίηση βίντεο σε υλικό</string>
     <string name="hw_decode_decode">Μόνο αποκωδικοποίηση</string>
     <string name="hw_decode_off">Ανενεργό (λογισμικό)</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">Οι σταθμοί αριθμούνται 1, 2, 3… με τη σειρά εμφάνισης αντί για τους αριθμούς του διακομιστή. Ισχύει για την καρτέλα Ραδιόφωνο, τον οδηγό και τη λίστα σταθμών στο player.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Αρχική οθόνη (TV)</string>
-    <string name="tile_list_title">Τα πλακίδια Κανάλια TV και Ραδιόφωνο ανοίγουν τη λίστα</string>
-    <string name="tile_list_note">Το τελευταίο κανάλι ξεκινά όπως πριν και η λίστα καναλιών ή σταθμών ανοίγει αμέσως από πάνω.</string>
     <string name="tile_mode_title">Πλακίδια Κανάλια TV και Ραδιόφωνο</string>
     <string name="tile_mode_play">Έναρξη του τελευταίου καναλιού</string>
     <string name="tile_mode_list">Έναρξη του τελευταίου καναλιού και άνοιγμα της λίστας από πάνω</string>

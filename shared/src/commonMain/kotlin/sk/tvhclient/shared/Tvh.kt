@@ -172,19 +172,10 @@ object Tvh {
                 it.fileSize > 0
         }
 
-    /** List of the upcoming programmes for a channel (HTSP, for the auto-advance in the list). */
+    /** List of the upcoming programmes per channel over HTSP (the auto-advance in the list). HTTP reads
+     *  the live window directly (ChannelsViewModel.startLive / PlayerEpgStore.startLive), M736. */
     suspend fun fetchEpgUpcoming(server: TvhServer): Map<String, List<sk.tvhclient.shared.model.EpgEvent>> =
-        if (server.connectionMode == "htsp")
-            sk.tvhclient.shared.htsp.HtspData.epgUpcomingMap(server, currentTimeSeconds())
-        else {
-            // M720: HTTP has a window too (comet feed) — the same now/next map as HTSP
-            val live = sk.tvhclient.shared.epg.LiveEpg.store(server.id)
-            sk.tvhclient.shared.epg.HttpEpgFeed.ensure(server)
-            if (live.awaitFresh(LIVE_WINDOW_WAIT_MS)) live.upcomingMap() else emptyMap()
-        }
-
-    /** M720: how long a now/next reader waits for the first live window. */
-    private const val LIVE_WINDOW_WAIT_MS = 12_000L
+        sk.tvhclient.shared.htsp.HtspData.epgUpcomingMap(server, currentTimeSeconds())
 
     /**
      * M720: the live EPG window of the server (see LiveEpg). HTTP: starts the comet feed when it

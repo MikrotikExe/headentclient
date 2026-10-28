@@ -240,7 +240,6 @@
     <string name="sleep_off">Mati</string>
     <string name="sleep_set">Pengatur waktu tidur: %1$d mnt</string>
     <string name="set_cat_remote">Remot</string>
-    <string name="remote_debug_title">Diagnostik kode tombol</string>
     <string name="remote_debug_enable">Tampilkan kode tombol yang ditekan</string>
     <string name="remote_debug_note">Di pemutar, menekan tombol yang tidak biasa akan menampilkan kodenya sebentar. Gunakan ini untuk menemukan kode tombol EPG pada remot Anda.</string>
     <string name="plock_grace_title">Setelah membuka kunci, lewati PIN selama</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">Aplikasi klien Tvheadend</string>
     <string name="login_in_progress">Sedang masuk…</string>
     <string name="auto_pip_title">Gambar dalam gambar otomatis</string>
-    <string name="sw_decode_title">Dekode video via perangkat lunak</string>
-    <string name="sw_decode_note">Aktifkan hanya jika video tersendat atau membeku di beberapa saluran. Lebih banyak CPU.</string>
     <string name="hw_decode_title">Dekode video perangkat keras</string>
     <string name="hw_decode_decode">Hanya dekode</string>
     <string name="hw_decode_off">Nonaktif (perangkat lunak)</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">Stasiun diberi nomor 1, 2, 3… sesuai urutan yang ditampilkan, bukan nomor dari server. Berlaku untuk tab Radio, panduan, dan daftar stasiun di pemutar.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Layar utama (TV)</string>
-    <string name="tile_list_title">Ubin Saluran TV dan Radio membuka daftar</string>
-    <string name="tile_list_note">Saluran terakhir diputar seperti biasa dan daftar saluran atau stasiun langsung terbuka di atasnya.</string>
     <string name="tile_mode_title">Ubin Saluran TV dan Radio</string>
     <string name="tile_mode_play">Mulai saluran terakhir</string>
     <string name="tile_mode_list">Mulai saluran terakhir dan buka daftar di atasnya</string>

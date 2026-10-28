@@ -240,7 +240,6 @@
     <string name="sleep_off">Вимкнено</string>
     <string name="sleep_set">Таймер сну: %1$d хв</string>
     <string name="set_cat_remote">Пульт</string>
-    <string name="remote_debug_title">Діагностика кодів клавіш</string>
     <string name="remote_debug_enable">Показувати коди натиснутих клавіш</string>
     <string name="remote_debug_note">У плеєрі натискання незвичної клавіші ненадовго показує її код. Скористайтеся цим, щоб знайти код клавіші EPG на вашому пульті.</string>
     <string name="plock_grace_title">Після розблокування не питати PIN протягом</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">Клієнтський застосунок Tvheadend</string>
     <string name="login_in_progress">Вхід…</string>
     <string name="auto_pip_title">Автоматичний «картинка в картинці»</string>
-    <string name="sw_decode_title">Програмне декодування відео</string>
-    <string name="sw_decode_note">Вмикайте, лише якщо відео смикається або завмирає на деяких каналах. Більше навантаження на CPU.</string>
     <string name="hw_decode_title">Апаратне декодування відео</string>
     <string name="hw_decode_decode">Лише декодування</string>
     <string name="hw_decode_off">Вимк. (програмне)</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">Станції нумеруються 1, 2, 3… у показаному порядку замість номерів із сервера. Діє для вкладки Радіо, телепрограми та списку станцій у програвачі.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Головний екран (TV)</string>
-    <string name="tile_list_title">Плитки «ТБ-канали» та «Радіо» відкривають список</string>
-    <string name="tile_list_note">Останній канал запускається як раніше, і над ним одразу відкривається список каналів або станцій.</string>
     <string name="tile_mode_title">Плитки ТБ-канали та Радіо</string>
     <string name="tile_mode_play">Запустити останній канал</string>
     <string name="tile_mode_list">Запустити останній канал і відкрити над ним список</string>

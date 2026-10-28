@@ -3,7 +3,8 @@ package sk.tvhclient.android
 import android.content.Context
 
 /**
- * M447: forced software video decoding.
+ * M447: forced software video decoding. M722: replaced by HwDecodePref (OFF mode); only read
+ * once by HwDecodePref.get to migrate the old switch.
  *
  * OFF by default — the app uses the device's hardware decoder (the correct
  * behaviour on the vast majority of boxes). It is switched on where the HW decoder
@@ -19,9 +20,4 @@ object SwDecodePref {
     fun get(context: Context): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getBoolean(KEY, false)
-
-    fun set(context: Context, enabled: Boolean) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit().putBoolean(KEY, enabled).apply()
-    }
 }

@@ -240,7 +240,6 @@
     <string name="sleep_off">Выкл.</string>
     <string name="sleep_set">Таймер сна: %1$d мин</string>
     <string name="set_cat_remote">Пульт</string>
-    <string name="remote_debug_title">Диагностика кодов клавиш</string>
     <string name="remote_debug_enable">Показывать коды нажатых клавиш</string>
     <string name="remote_debug_note">В плеере нажатие необычной клавиши ненадолго показывает её код. Используйте это, чтобы найти код клавиши EPG на вашем пульте.</string>
     <string name="plock_grace_title">После разблокировки не спрашивать PIN в течение</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">Клиентское приложение Tvheadend</string>
     <string name="login_in_progress">Вход…</string>
     <string name="auto_pip_title">Автоматический «картинка в картинке»</string>
-    <string name="sw_decode_title">Программное декодирование видео</string>
-    <string name="sw_decode_note">Включайте, только если видео подтормаживает или замирает на некоторых каналах. Выше нагрузка на CPU.</string>
     <string name="hw_decode_title">Аппаратное декодирование видео</string>
     <string name="hw_decode_decode">Только декодирование</string>
     <string name="hw_decode_off">Выкл. (программное)</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">Станции нумеруются 1, 2, 3… в показанном порядке вместо номеров с сервера. Действует для вкладки Радио, телепрограммы и списка станций в плеере.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Главный экран (TV)</string>
-    <string name="tile_list_title">Плитки «ТВ-каналы» и «Радио» открывают список</string>
-    <string name="tile_list_note">Последний канал запускается как раньше, и поверх него сразу открывается список каналов или станций.</string>
     <string name="tile_mode_title">Плитки ТВ-каналы и Радио</string>
     <string name="tile_mode_play">Запустить последний канал</string>
     <string name="tile_mode_list">Запустить последний канал и открыть над ним список</string>

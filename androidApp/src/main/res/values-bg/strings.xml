@@ -240,7 +240,6 @@
     <string name="sleep_off">Изключено</string>
     <string name="sleep_set">Таймер за сън: %1$d мин</string>
     <string name="set_cat_remote">Дистанционно</string>
-    <string name="remote_debug_title">Диагностика на кодове на клавиши</string>
     <string name="remote_debug_enable">Показване на кодовете на натиснатите клавиши</string>
     <string name="remote_debug_note">В плейъра натискането на необичаен клавиш за кратко показва неговия код. Използвайте това, за да намерите кода на бутона EPG на дистанционното си.</string>
     <string name="plock_grace_title">След отключване не питай за PIN в продължение на</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">Клиентско приложение за Tvheadend</string>
     <string name="login_in_progress">Влизане…</string>
     <string name="auto_pip_title">Автоматично картина в картина</string>
-    <string name="sw_decode_title">Софтуерно декодиране на видео</string>
-    <string name="sw_decode_note">Включете само ако видеото засича или замръзва на някои канали. Повече натоварване на процесора.</string>
     <string name="hw_decode_title">Хардуерно декодиране на видео</string>
     <string name="hw_decode_decode">Само декодиране</string>
     <string name="hw_decode_off">Изключено (софтуер)</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">Станциите се номерират 1, 2, 3… по показания ред вместо с номерата от сървъра. Важи за раздел Радио, справочника и списъка със станции в плейъра.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Начален екран (TV)</string>
-    <string name="tile_list_title">Плочките ТВ канали и Радио отварят списъка</string>
-    <string name="tile_list_note">Последният канал стартира както досега и списъкът с канали или станции се отваря веднага върху него.</string>
     <string name="tile_mode_title">Плочки ТВ канали и Радио</string>
     <string name="tile_mode_play">Пусни последния канал</string>
     <string name="tile_mode_list">Пусни последния канал и отвори списъка върху него</string>

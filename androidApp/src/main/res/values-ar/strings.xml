@@ -240,7 +240,6 @@
     <string name="sleep_off">إيقاف</string>
     <string name="sleep_set">مؤقّت السكون: %1$d دقيقة</string>
     <string name="set_cat_remote">جهاز التحكم</string>
-    <string name="remote_debug_title">تشخيص رموز المفاتيح</string>
     <string name="remote_debug_enable">إظهار رموز المفاتيح المضغوطة</string>
     <string name="remote_debug_note">في المشغّل، يؤدي الضغط على مفتاح غير معتاد إلى عرض رمزه لفترة وجيزة. استخدم ذلك للعثور على رمز زر EPG في جهاز التحكم لديك.</string>
     <string name="plock_grace_title">بعد إلغاء القفل، تخطَّ رمز PIN لمدة</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">تطبيق عميل Tvheadend</string>
     <string name="login_in_progress">جارٍ تسجيل الدخول…</string>
     <string name="auto_pip_title">صورة داخل صورة تلقائية</string>
-    <string name="sw_decode_title">فك ترميز الفيديو برمجيًا</string>
-    <string name="sw_decode_note">فعّله فقط إذا كان الفيديو يتقطع أو يتجمد في بعض القنوات. يستهلك معالجًا أكثر.</string>
     <string name="hw_decode_title">فك ترميز الفيديو بالعتاد</string>
     <string name="hw_decode_decode">فك الترميز فقط</string>
     <string name="hw_decode_off">متوقف (برمجي)</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">تُرقَّم المحطات 1، 2، 3… حسب الترتيب المعروض بدلاً من أرقام الخادم. يسري ذلك على تبويب الراديو ودليل البرامج وقائمة المحطات في المشغّل.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">الشاشة الرئيسية (TV)</string>
-    <string name="tile_list_title">بلاطتا قنوات التلفزيون والراديو تفتحان القائمة</string>
-    <string name="tile_list_note">تبدأ آخر قناة كما في السابق وتُفتح فوقها فوراً قائمة القنوات أو المحطات.</string>
     <string name="tile_mode_title">مربعات قنوات التلفاز والراديو</string>
     <string name="tile_mode_play">تشغيل آخر قناة</string>
     <string name="tile_mode_list">تشغيل آخر قناة وفتح القائمة فوقها</string>

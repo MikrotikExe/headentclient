@@ -1339,6 +1339,7 @@ internal fun AdvancedSettings(ctx: android.content.Context) {
             onChange = { on ->
                 vlcVerbose = on
                 VlcVerbosePref.set(ctx, on)
+                if (!on) PlayerLogCapture.clear(ctx)   // M736: the detailed log is not kept once diagnosing is over
                 TabController.settingsDirty.value = true
             }
         )

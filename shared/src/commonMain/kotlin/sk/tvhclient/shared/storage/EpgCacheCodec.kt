@@ -12,22 +12,12 @@ import sk.tvhclient.shared.model.EpgEvent
 object EpgCacheCodec {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
-    fun encode(data: Map<String, List<EpgEvent>>): String =
-        json.encodeToString(data)
-
-    fun decode(raw: String): Map<String, List<EpgEvent>> =
-        try {
-            json.decodeFromString(raw)
-        } catch (e: Exception) {
-            emptyMap()
-        }
-
     /**
      * Serialization of a SINGLE channel (its array of programmes) — for a streaming,
      * line-by-line write. The result is single-line JSON (strings have \n escaped), so it
      * can safely be stored as one line of the file. Peak memory = one channel, not the whole
      * map (this fixes the OOM on large servers, where the whole map was tens of MB in a single
-     * String). encode()/decode() remain for backward compatibility.
+     * String).
      */
     fun encodeChannel(events: List<EpgEvent>): String =
         json.encodeToString(events)

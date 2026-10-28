@@ -36,8 +36,6 @@ object PiconBgPref {
     fun stateOf(context: Context): MutableState<String> =
         state ?: mutableStateOf(load(context)).also { state = it }
 
-    fun get(context: Context): String = stateOf(context).value
-
     fun set(context: Context, value: String) {
         stateOf(context).value = value
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

@@ -240,7 +240,6 @@
     <string name="sleep_off">Искључено</string>
     <string name="sleep_set">Тајмер за спавање: %1$d мин</string>
     <string name="set_cat_remote">Даљински управљач</string>
-    <string name="remote_debug_title">Дијагностика кодова тастера</string>
     <string name="remote_debug_enable">Прикажи кодове притиснутих тастера</string>
     <string name="remote_debug_note">У плејеру, притисак на необичан тастер накратко приказује његов код. Користите то да пронађете код EPG тастера на свом даљинском.</string>
     <string name="plock_grace_title">После откључавања, не тражи PIN током</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">Tvheadend клијент апликација</string>
     <string name="login_in_progress">Пријављивање…</string>
     <string name="auto_pip_title">Аутоматска слика у слици</string>
-    <string name="sw_decode_title">Softversko dekodiranje videa</string>
-    <string name="sw_decode_note">Uključi samo ako se slika na nekim kanalima trza ili zamrzava. Veće opterećenje procesora.</string>
     <string name="hw_decode_title">Хардверско декодирање видеа</string>
     <string name="hw_decode_decode">Само декодирање</string>
     <string name="hw_decode_off">Искључено (софтвер)</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">Станице се нумеришу 1, 2, 3… по приказаном редоследу уместо бројева са сервера. Важи за картицу Радио, водич и листу станица у плејеру.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Početni ekran (TV)</string>
-    <string name="tile_list_title">Pločice TV kanali i Radio otvaraju listu</string>
-    <string name="tile_list_note">Poslednji kanal se pokreće kao i do sada, a lista kanala ili stanica se odmah otvara iznad njega.</string>
     <string name="tile_mode_title">Плочице ТВ канали и Радио</string>
     <string name="tile_mode_play">Покрени последњи канал</string>
     <string name="tile_mode_list">Покрени последњи канал и отвори листу преко њега</string>

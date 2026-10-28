@@ -3,4 +3,5 @@
 <full-backup-content>
     <exclude domain="sharedpref" path="tvh_secure_prefs.xml" />
     <exclude domain="file" path="epg_cache" />
+    <exclude domain="file" path="diag" />
 </full-backup-content>

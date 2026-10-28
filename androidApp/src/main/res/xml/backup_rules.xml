@@ -11,8 +11,11 @@
     <cloud-backup>
         <exclude domain="sharedpref" path="tvh_secure_prefs.xml" />
         <exclude domain="file" path="epg_cache" />
+        <!-- M736: the diagnostic logs (crash.log, player.log) are device-local and never backed up -->
+        <exclude domain="file" path="diag" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="tvh_secure_prefs.xml" />
+        <exclude domain="file" path="diag" />
     </device-transfer>
 </data-extraction-rules>

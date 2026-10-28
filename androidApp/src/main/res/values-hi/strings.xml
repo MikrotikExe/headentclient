@@ -240,7 +240,6 @@
     <string name="sleep_off">बंद</string>
     <string name="sleep_set">स्लीप टाइमर: %1$d मिनट</string>
     <string name="set_cat_remote">रिमोट कंट्रोल</string>
-    <string name="remote_debug_title">की-कोड डायग्नोस्टिक्स</string>
     <string name="remote_debug_enable">दबाए गए की-कोड दिखाएँ</string>
     <string name="remote_debug_note">प्लेयर में कोई असामान्य बटन दबाने पर उसका कोड कुछ देर के लिए दिखता है। इसका उपयोग अपने रिमोट के EPG बटन का कोड खोजने के लिए करें।</string>
     <string name="plock_grace_title">अनलॉक के बाद इतने समय तक PIN न पूछें</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">Tvheadend क्लाइंट ऐप</string>
     <string name="login_in_progress">साइन इन हो रहा है…</string>
     <string name="auto_pip_title">स्वचालित पिक्चर-इन-पिक्चर</string>
-    <string name="sw_decode_title">सॉफ़्टवेयर वीडियो डिकोडिंग</string>
-    <string name="sw_decode_note">केवल तभी चालू करें जब कुछ चैनलों पर वीडियो अटके या रुके। CPU अधिक उपयोग होता है.</string>
     <string name="hw_decode_title">हार्डवेयर वीडियो डिकोडिंग</string>
     <string name="hw_decode_decode">केवल डिकोडिंग</string>
     <string name="hw_decode_off">बंद (सॉफ़्टवेयर)</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">स्टेशनों को सर्वर के नंबरों के बजाय दिखाए गए क्रम में 1, 2, 3… नंबर दिए जाते हैं। रेडियो टैब, गाइड और प्लेयर की स्टेशन सूची पर लागू।</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">होम स्क्रीन (TV)</string>
-    <string name="tile_list_title">TV चैनल और रेडियो टाइल सूची खोलती हैं</string>
-    <string name="tile_list_note">आख़िरी चैनल पहले की तरह शुरू होता है और उसके ऊपर तुरंत चैनल या स्टेशन सूची खुल जाती है।</string>
     <string name="tile_mode_title">TV चैनल और रेडियो टाइलें</string>
     <string name="tile_mode_play">आख़िरी चैनल शुरू करें</string>
     <string name="tile_mode_list">आख़िरी चैनल शुरू करें और उसके ऊपर सूची खोलें</string>

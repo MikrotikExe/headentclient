@@ -91,15 +91,6 @@ object StreamUrlBuilder {
         withCreds(server, server.baseUrl.trimEnd('/') + "/dvrfile/" + dvrFileId)
 
     /**
-     * Local picon URL (imagecache). Returns the full URL including the creds for downloading.
-     */
-    fun piconUrl(server: TvhServer, iconPublicUrl: String?): String? {
-        val ipu = iconPublicUrl?.trim()?.trimStart('/') ?: return null
-        if (!ipu.startsWith("imagecache/")) return null
-        return withCreds(server, server.baseUrl.trimEnd('/') + "/" + ipu)
-    }
-
-    /**
      * Picon URL without creds — for Coil/OkHttp where auth goes through the Authorization
      * header (OkHttp does not send the userinfo from the URL automatically).
      */

@@ -240,7 +240,6 @@
     <string name="sleep_off">بند</string>
     <string name="sleep_set">نیند ٹائمر: %1$d منٹ</string>
     <string name="set_cat_remote">ریموٹ کنٹرول</string>
-    <string name="remote_debug_title">کی-کوڈ تشخیص</string>
     <string name="remote_debug_enable">دبائے گئے کی-کوڈ دکھائیں</string>
     <string name="remote_debug_note">پلیئر میں کوئی غیر معمولی بٹن دبانے پر اس کا کوڈ مختصر طور پر دکھتا ہے۔ اپنے ریموٹ کے EPG بٹن کا کوڈ تلاش کرنے کے لیے اسے استعمال کریں۔</string>
     <string name="plock_grace_title">قفل کھولنے کے بعد اتنی دیر تک PIN نہ پوچھیں</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">Tvheadend کلائنٹ ایپ</string>
     <string name="login_in_progress">سائن اِن ہو رہا ہے…</string>
     <string name="auto_pip_title">خودکار تصویر در تصویر</string>
-    <string name="sw_decode_title">سافٹ ویئر ویڈیو ڈی کوڈنگ</string>
-    <string name="sw_decode_note">صرف اس صورت میں آن کریں جب کچھ چینلز پر تصویر رکتی یا جمتی ہو۔ پروسیسر زیادہ استعمال ہوتا ہے۔</string>
     <string name="hw_decode_title">ہارڈویئر ویڈیو ڈی کوڈنگ</string>
     <string name="hw_decode_decode">صرف ڈی کوڈنگ</string>
     <string name="hw_decode_off">بند (سافٹ ویئر)</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">اسٹیشنوں کو سرور کے نمبروں کی بجائے دکھائی گئی ترتیب میں 1، 2، 3… نمبر دیے جاتے ہیں۔ ریڈیو ٹیب، گائیڈ اور پلیئر کی اسٹیشن فہرست پر لاگو ہوتا ہے۔</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">ہوم اسکرین (TV)</string>
-    <string name="tile_list_title">TV چینلز اور ریڈیو ٹائلیں فہرست کھولتی ہیں</string>
-    <string name="tile_list_note">آخری چینل پہلے کی طرح شروع ہوتا ہے اور اس کے اوپر فوراً چینلز یا اسٹیشنز کی فہرست کھل جاتی ہے۔</string>
     <string name="tile_mode_title">ٹی وی چینلز اور ریڈیو ٹائلیں</string>
     <string name="tile_mode_play">آخری چینل چلائیں</string>
     <string name="tile_mode_list">آخری چینل چلائیں اور اس پر فہرست کھولیں</string>

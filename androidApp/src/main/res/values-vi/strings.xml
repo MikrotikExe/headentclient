@@ -240,7 +240,6 @@
     <string name="sleep_off">Tắt</string>
     <string name="sleep_set">Hẹn giờ ngủ: %1$d phút</string>
     <string name="set_cat_remote">Điều khiển từ xa</string>
-    <string name="remote_debug_title">Chẩn đoán mã phím</string>
     <string name="remote_debug_enable">Hiện mã phím đã nhấn</string>
     <string name="remote_debug_note">Trong trình phát, nhấn một phím khác thường sẽ hiện mã của phím đó trong giây lát. Dùng nó để tìm mã phím EPG trên điều khiển của bạn.</string>
     <string name="plock_grace_title">Sau khi mở khóa, bỏ qua PIN trong</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">Ứng dụng khách Tvheadend</string>
     <string name="login_in_progress">Đang đăng nhập…</string>
     <string name="auto_pip_title">Hình trong hình tự động</string>
-    <string name="sw_decode_title">Giải mã video bằng phần mềm</string>
-    <string name="sw_decode_note">Chỉ bật nếu hình bị giật hoặc đứng ở một số kênh. Tốn CPU hơn.</string>
     <string name="hw_decode_title">Giải mã video bằng phần cứng</string>
     <string name="hw_decode_decode">Chỉ giải mã</string>
     <string name="hw_decode_off">Tắt (phần mềm)</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">Các đài được đánh số 1, 2, 3… theo thứ tự hiển thị thay cho số từ máy chủ. Áp dụng cho thẻ Radio, lịch phát sóng và danh sách đài trong trình phát.</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">Màn hình chính (TV)</string>
-    <string name="tile_list_title">Ô Kênh TV và Radio mở danh sách</string>
-    <string name="tile_list_note">Kênh gần nhất phát như trước và danh sách kênh hoặc đài mở ngay bên trên.</string>
     <string name="tile_mode_title">Ô Kênh TV và Radio</string>
     <string name="tile_mode_play">Mở kênh gần nhất</string>
     <string name="tile_mode_list">Mở kênh gần nhất và mở danh sách đè lên</string>

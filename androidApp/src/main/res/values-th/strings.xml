@@ -240,7 +240,6 @@
     <string name="sleep_off">ปิด</string>
     <string name="sleep_set">ตัวตั้งเวลาปิด: %1$d นาที</string>
     <string name="set_cat_remote">รีโมต</string>
-    <string name="remote_debug_title">การวินิจฉัยรหัสปุ่ม</string>
     <string name="remote_debug_enable">แสดงรหัสปุ่มที่กด</string>
     <string name="remote_debug_note">ในเครื่องเล่น การกดปุ่มที่ไม่ปกติจะแสดงรหัสของปุ่มนั้นชั่วครู่ ใช้เพื่อหารหัสปุ่ม EPG บนรีโมตของคุณ</string>
     <string name="plock_grace_title">หลังปลดล็อก ไม่ต้องถาม PIN เป็นเวลา</string>
@@ -274,8 +273,6 @@
     <string name="welcome_tagline">แอปไคลเอ็นต์ Tvheadend</string>
     <string name="login_in_progress">กำลังลงชื่อเข้าใช้…</string>
     <string name="auto_pip_title">ภาพซ้อนภาพอัตโนมัติ</string>
-    <string name="sw_decode_title">ถอดรหัสวิดีโอด้วยซอฟต์แวร์</string>
-    <string name="sw_decode_note">เปิดเฉพาะเมื่อภาพกระตุกหรือค้างในบางช่อง ใช้ CPU มากขึ้น</string>
     <string name="hw_decode_title">ถอดรหัสวิดีโอด้วยฮาร์ดแวร์</string>
     <string name="hw_decode_decode">ถอดรหัสเท่านั้น</string>
     <string name="hw_decode_off">ปิด (ซอฟต์แวร์)</string>
@@ -445,8 +442,6 @@
     <string name="radio_number_note">สถานีจะถูกนับ 1, 2, 3… ตามลำดับที่แสดงแทนหมายเลขจากเซิร์ฟเวอร์ ใช้กับแท็บวิทยุ ผังรายการ และรายการสถานีในเครื่องเล่น</string>
     <!-- M605/M606: tile -> list, DVR profile when recording -->
     <string name="tile_list_group">หน้าจอหลัก (TV)</string>
-    <string name="tile_list_title">ไทล์ช่องทีวีและวิทยุเปิดรายการ</string>
-    <string name="tile_list_note">ช่องล่าสุดเริ่มเล่นเหมือนเดิม และรายการช่องหรือสถานีจะเปิดขึ้นทับทันที</string>
     <string name="tile_mode_title">ไทล์ช่องทีวีและวิทยุ</string>
     <string name="tile_mode_play">เริ่มช่องล่าสุด</string>
     <string name="tile_mode_list">เริ่มช่องล่าสุดและเปิดรายการทับไว้</string>
