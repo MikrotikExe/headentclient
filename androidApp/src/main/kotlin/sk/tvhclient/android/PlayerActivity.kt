@@ -468,6 +468,7 @@ class PlayerActivity : ComponentActivity() {
 
     private fun togglePlayPause() {
         if (!engine.ready) return
+        afr.cancelPendingResume()   // M739 (audit B4): the user decides now, not the AFR timer
         timeshift.flushNow()   // deliver the accumulated skip so the server stays consistent
         if (isPlayingState.value) {
             if (stream.htspStream) stream.htspFeeder?.pause()         // stop HTSP delivery (even without timeshift)
@@ -700,6 +701,10 @@ class PlayerActivity : ComponentActivity() {
         RadioCenter.stations = LivePlaylist.channels.map {
             RadioCenter.RadioStation(it.uuid, it.name, it.piconUrl, it.nowTitle, it.nowStart, it.nowStop)
         }
+        // M739 (audit B9): this player lets go of its stream FIRST (feeders closed, libVLC stopped on a
+        // worker) — the radio service's request used to arrive while our subscription still held the
+        // account's only connection (a late 405, the radio stopped) or both played for a moment
+        teardownPlayerAsync()
         RadioCenter.play(
             this, server, uuid,
             ch?.name ?: "",
@@ -1049,7 +1054,7 @@ class PlayerActivity : ComponentActivity() {
                 override fun subtitleReset() { subOverlay?.reset() }
                 override fun restartCurrentChannel() {
                     val i = live.index
-                    if (i >= 0) { live.index = -1; switcher.switchToIndex(i, poke = false) }
+                    if (i >= 0) switcher.switchToIndex(i, poke = false, restart = true)   // M739 (audit B3)
                 }
             })
     }
@@ -1869,7 +1874,7 @@ class PlayerActivity : ComponentActivity() {
                                 Modifier.clip(RoundedCornerShape(12.dp))
                                     .background(if (eSel == 1) Color(0x55FF6B6B) else Color.Transparent)
                                     .border(1.dp, if (eSel == 1) Color(0xFFFF6B6B) else Color(0x33FFFFFF), RoundedCornerShape(12.dp))
-                                    .clickable { finish() }
+                                    .clickable { exitConfirmState.value = false; closePlayer() }   // M739 (audit B7)
                                     .padding(horizontal = 22.dp, vertical = 12.dp)
                             ) {
                                 Text(androidx.compose.ui.res.stringResource(R.string.exit_yes), color = Color(0xFFFF6B6B),
@@ -2081,8 +2086,26 @@ class PlayerActivity : ComponentActivity() {
                 this@PlayerActivity.requestPin(onOk = onOk, onCancel = onCancel, channelIndex = channelIndex)
             }
             override fun pausedForCar(): Boolean = this@PlayerActivity.pausedForCar
+            override fun pauseForBackground() {   // M739
+                afr.cancelPendingResume()
+                if (isPlayingState.value) togglePlayPause()
+                else runCatching { if (engine.player.isPlaying) engine.player.pause() }
+                pausedForBackground = true
+                streamLocks.release()   // M739 (audit B1): no wake/Wi-Fi lock for a paused player in the background
+            }
+            override fun resumeFromBackground() {   // M739
+                streamLocks.acquire()
+                val wasOurs = pausedForBackground
+                pausedForBackground = false
+                if (!engine.ready || engine.tornDown) return
+                if (wasOurs && !isPlayingState.value) togglePlayPause()
+                else runCatching { engine.player.play() }
+            }
         })
     }
+
+    /** M739: the player was paused by going to the background (not by the user). */
+    private var pausedForBackground = false
 
     override fun onStart() {
         super.onStart()

@@ -34,6 +34,14 @@ internal class BackgroundResume(
         fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, channelIndex: Int)
         /** Android Automotive OS: paused because driving covered the player (always false elsewhere). */
         fun pausedForCar(): Boolean
+        /**
+         * M739 (audit B1, B5, R18): pause for the background the way the pause button does — the HTSP
+         * feeder is paused (timeshift keeps the position, without it the stream is dropped), HTTP live
+         * releases the tuner after the grace period — and the wake/Wi-Fi locks are let go.
+         */
+        fun pauseForBackground()
+        /** M739: back in front after [pauseForBackground]: the locks again and play (a dropped stream reopens at live). */
+        fun resumeFromBackground()
     }
 
     private var wasPlaying = false
@@ -80,8 +88,8 @@ internal class BackgroundResume(
             }
             return
         }
-        if (mp.isPlaying) {
-            mp.pause()
+        if (mp.isPlaying || wasPlaying) {
+            hooks.pauseForBackground()   // M739: was a bare mp.pause()
         }
         // release the surface so it can be attached again after returning (otherwise a black screen)
         runCatching { mp.detachViews() }
@@ -123,12 +131,12 @@ internal class BackgroundResume(
             runCatching { if (mp.isPlaying) mp.pause() }
             ParentalLock.clearGrace(activity)   // M263: same as at start
             hooks.requestPin(
-                onOk = { runCatching { engine.player.play() } },
+                onOk = { hooks.resumeFromBackground() },
                 onCancel = { activity.finish() },
                 channelIndex = live.index
             )
         } else if (wasPlaying) {
-            runCatching { mp.play() }
+            hooks.resumeFromBackground()   // M739
         }
     }
 }

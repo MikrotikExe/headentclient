@@ -107,6 +107,8 @@ internal class StreamOpener(
                     } finally { api.close() }
                 }.getOrNull()
             }
+            // M739 (audit B8): the viewer zapped on meanwhile — this answer is for a channel no longer wanted
+            if (stream.currentStreamUrl != url) return@launch
             if (fixed != null && MediaFactory.looksLikeRestUuid(fixed)) {
                 LivePlaylist.channels = LivePlaylist.channels.map { if (it.uuid == pathId) it.copy(uuid = fixed) else it }
                 LivePlaylist.allChannels = LivePlaylist.allChannels.map { if (it.uuid == pathId) it.copy(uuid = fixed) else it }
@@ -137,6 +139,8 @@ internal class StreamOpener(
             // if the direct path fails, scheduleReconnect switches to the feeder.
             val nf = withContext(Dispatchers.IO) { DvrAuthProbe.needsFeederOrNull(server, MediaFactory.stripCreds(url)) }
             stream.liveNeedsFeeder = nf
+            // M739 (audit B8): a slow probe of channel B must not replace channel C started meanwhile
+            if (stream.currentStreamUrl != url) return@launch
             if (nf == true) playLiveViaFeeder(server, url) else playHttp(url)
         }
     }

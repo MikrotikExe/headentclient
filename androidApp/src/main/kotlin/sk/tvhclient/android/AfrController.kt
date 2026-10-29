@@ -31,6 +31,14 @@ class AfrController(
     private val videoLayout: () -> View?
 ) {
     private var retryPosted = false
+    /** M739 (audit B4): the pending "resume after the HDMI resync" — cancelled by the user or the background. */
+    private var resumeRunnable: Runnable? = null
+
+    /** The user paused/played, the player went to the background or the medium changed: no automatic resume. */
+    fun cancelPendingResume() {
+        resumeRunnable?.let { activity.window.decorView.removeCallbacks(it) }
+        resumeRunnable = null
+    }
 
     fun apply() {
         if (Build.VERSION.SDK_INT < 23) return
@@ -104,10 +112,17 @@ class AfrController(
             // and audio desync. Once it elapses playback resumes by itself.
             val delaySec = AfrDelayPref.get(activity)
             if (delaySec > 0 && mp.isPlaying) {
+                cancelPendingResume()
                 mp.pause()
-                activity.window.decorView.postDelayed({
-                    runCatching { player()?.play() }
-                }, delaySec * 1000L)
+                val r = Runnable {
+                    resumeRunnable = null
+                    // M739: only the same player, only while the activity is in front
+                    val started = (activity as? androidx.lifecycle.LifecycleOwner)?.lifecycle?.currentState
+                        ?.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED) ?: true
+                    if (started && player() === mp) runCatching { mp.play() }
+                }
+                resumeRunnable = r
+                activity.window.decorView.postDelayed(r, delaySec * 1000L)
             }
         }
     }
@@ -129,6 +144,7 @@ class AfrController(
 
     /** Returns the preferred display mode to the system (when leaving the player). */
     fun clear() {
+        cancelPendingResume()
         if (Build.VERSION.SDK_INT < 23) return
         runCatching {
             val lp = activity.window.attributes

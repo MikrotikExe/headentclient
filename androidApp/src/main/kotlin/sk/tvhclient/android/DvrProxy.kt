@@ -76,7 +76,7 @@ object DvrProxy {
         val base = server.baseUrl.trimEnd('/')
         val bare = MediaFactory.stripCreds(upstreamUrl)
         if (!bare.startsWith(base + "/")) return null
-        if (viaHtsp && !bare.substring(base.length).startsWith("/dvrfile/")) return null
+        if (!bare.substring(base.length).startsWith("/dvrfile/")) return null   // M739: recordings only (the proxy serves nothing else)
         val port = ensureStarted()
         // M715: a separate token for the HTSP mode, so one server can use both paths
         val token = tokens.getOrPut(if (viaHtsp) server.id + "|htsp" else server.id) { UUID.randomUUID().toString().replace("-", "") }
@@ -372,6 +372,9 @@ object DvrProxy {
         val token = path.substringBefore('/')
         val server = targets[token] ?: run { simple(404, "Not Found"); return }
         val rest = "/" + path.substringAfter('/', "")
+        // M739 (audit R10): only recordings — the proxy adds the account's login, so it must not
+        // forward anything else (e.g. GET-callable /api calls) for whoever learned the token
+        if (!rest.startsWith("/dvrfile/") || rest.contains("..")) { simple(403, "Forbidden"); return }
         if (token in htspTokens) { serveHtsp(server, rest, method, range, out, ::simple); return }   // M715
         val url = server.baseUrl.trimEnd('/') + rest
 

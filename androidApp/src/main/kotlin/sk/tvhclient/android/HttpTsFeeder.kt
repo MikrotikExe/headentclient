@@ -31,6 +31,10 @@ class HttpTsFeeder(
 ) {
 
     private var job: Job? = null
+    /** M739 (audit B6): the running HTTP call — stop() cancels it (a blocking execute()/read is not
+     *  interrupted by cancelling the coroutine; the socket stayed open until the 10 s read timeout,
+     *  and with a limit of one connection the next channel was refused as "connection limit"). */
+    @Volatile private var call: okhttp3.Call? = null
     private var readPfd: ParcelFileDescriptor? = null
     private var writePfd: ParcelFileDescriptor? = null
     private var out: OutputStream? = null
@@ -116,7 +120,9 @@ class HttpTsFeeder(
             var gotResponse = false   // M714
             try {
                 val sentAt = android.os.SystemClock.elapsedRealtime()
-                ok.newCall(req).execute().use { resp ->
+                val c = ok.newCall(req)
+                call = c
+                c.execute().use { resp ->
                     gotResponse = true
                     if (isLive && resp.code == 503) {
                         noStart = true   // M714: the subscription could not be created
@@ -176,6 +182,8 @@ class HttpTsFeeder(
     }
 
     fun stop() {
+        runCatching { call?.cancel() }   // M739: closes the socket at once, also inside a blocking read
+        call = null
         job?.cancel()
         job = null
         try { out?.close() } catch (_: Throwable) {}

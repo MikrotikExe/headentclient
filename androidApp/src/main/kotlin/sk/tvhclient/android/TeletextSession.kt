@@ -165,7 +165,9 @@ class TeletextSession(private val ctx: Context) {
         httpJob = scope.launch(Dispatchers.IO) {
             try {
                 val sentAt = android.os.SystemClock.elapsedRealtime()
-                ok.newCall(Request.Builder().url(url).build()).execute().use { resp ->
+                val c = ok.newCall(Request.Builder().url(url).build())
+                httpCall = c
+                c.execute().use { resp ->
                     // M713: the account's connection limit (the player's stream holds the only slot)
                     if (HttpTsFeeder.isConnLimitResponse(resp.code, android.os.SystemClock.elapsedRealtime() - sentAt)) {
                         CrashLogger.report(ctx, "Teletext", "http tap refused: connection limit")
@@ -205,7 +207,10 @@ class TeletextSession(private val ctx: Context) {
     }
 
     fun stopHttp() {
+        runCatching { httpCall?.cancel() }   // M739: a blocking read is not ended by cancelling the coroutine
+        httpCall = null
         httpJob?.cancel()
         httpJob = null
     }
+    @Volatile private var httpCall: okhttp3.Call? = null
 }

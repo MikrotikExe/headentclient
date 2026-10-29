@@ -178,7 +178,8 @@ internal class PlayerKeyRouter(
 
         // 0e) Confirmation of ending live playback (BACK) -> arrows + OK + BACK are handled by us
         if (exitConfirmState.value) return DialogKeys.twoChoice(kc, down, event, exitConfirmSelState,
-            onOk = { sel -> if (sel == 1) actions.finish() else exitConfirmState.value = false },
+            // M739 (audit B7): through closePlayer (LastPlayback.clear, radio handoff, return to live)
+            onOk = { sel -> if (sel == 1) { exitConfirmState.value = false; actions.closePlayer() } else exitConfirmState.value = false },
             onBack = { exitConfirmState.value = false })
 
         if (down) {

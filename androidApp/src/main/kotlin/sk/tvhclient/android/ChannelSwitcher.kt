@@ -92,12 +92,16 @@ internal class ChannelSwitcher(
         if (cid != null && directUrl == null && htspMode) {
             // stream over HTSP (9982). Timeshift features only if the pref is on and the server supports it.
             stream.currentStreamUrl = streamUrl  // HTTP fallback for the reconnect/reparse stop
+            val startIndex = live.index
             scope.launch {
                 val ts = TimeshiftPref.get(ctx) && withContext(Dispatchers.IO) {
                     runCatching {
                         HtspData.timeshiftAvailable(server, System.currentTimeMillis() / 1000)
                     }.getOrDefault(false)
                 }
+                // M739 (audit B8): a channel switch during the check started its own subscription —
+                // the first channel must not replace it
+                if (live.index != startIndex && actions.htspInitDone()) return@launch
                 if (actions.playHtspLive(server, cid, ts)) {
                     stream.htspStream = true
                     stream.htspLive = ts
@@ -250,27 +254,43 @@ internal class ChannelSwitcher(
     }
 
     /** Switches to a specific channel by index, rebuilds the URL and loads it. */
+    /** M739: the title / programme / highlight back on the channel that is playing (after a cancelled PIN). */
+    private fun restorePreview() {
+        val i = live.index
+        if (i < 0) return
+        live.indexState.value = i
+        live.titleState.value = live.names.getOrElse(i) { "" }
+        live.uuids.getOrNull(i)?.let { live.uuidState.value = it }
+        live.showProgramme(LivePlaylist.channels.getOrNull(i))
+    }
+
     fun saveLastLive(serverId: String?, uuid: String?) {
         if (serverId == null || uuid == null) return
         if (live.playKind == "radio") LastRadio.set(ctx, serverId, uuid) else LastChannel.set(ctx, serverId, uuid)
     }
 
-    fun switchToIndex(i: Int, poke: Boolean = true) {
+    /**
+     * [restart] (M739, audit B3): reopen the CURRENT channel (a profile change). It used to set
+     * live.index = -1 first — a cancelled PIN then left the index at -1 and CH+/CH- dead.
+     */
+    fun switchToIndex(i: Int, poke: Boolean = true, restart: Boolean = false) {
         if (i < 0 || i >= live.uuids.size) return
-        if (i == live.index) { if (poke) actions.pokeControls(); return }  // the same channel -> do not load it again
+        if (i == live.index && !restart) { if (poke) actions.pokeControls(); return }  // the same channel -> do not load it again
         rememberPlayback()  // M494: restore after an app restart
         val srv = live.server ?: return
         val uuid = live.uuids[i]
         // parental lock: a locked channel outside the 5-min window -> ask for the PIN
         if (ParentalLock.channelNeedsPin(ctx, srv.id, uuid)) {
-            actions.requestPin(onOk = { switchToIndex(i, poke) }, onCancel = { }, channelIndex = i)
+            // M739 (audit B2): a cancelled PIN puts the screen back on the channel that keeps playing
+            // (fast zapping had already shown the locked channel's title, EPG and record target)
+            actions.requestPin(onOk = { switchToIndex(i, poke, restart) }, onCancel = { restorePreview() }, channelIndex = i)
             return
         }
         // M392-fix3: the subtitle choice applies only to the current channel — when switching to ANOTHER
-        // channel reset it to off (like HTSP: desiredSubName = null). A restart of the
-        // same channel (profile change, applyProfileChange) comes here with the same uuid
-        // via liveIndex=-1, that is why we compare uuids, not indexes.
-        if (uuid != live.uuidState.value) {
+        // channel reset it to off (like HTSP: desiredSubName = null). M739 (audit B2): compared with
+        // the channel actually PLAYING — fast zapping (ZapDebounce.preview) already sets uuidState to
+        // the target, so the choice of the previous channel used to carry over.
+        if (restart.not() && uuid != live.uuids.getOrNull(live.index)) {
             tracks.httpSpuWantOff = true
             tracks.httpSpuWantName = null
         }
@@ -306,6 +326,7 @@ internal class ChannelSwitcher(
                         HtspData.timeshiftAvailable(srv, System.currentTimeMillis() / 1000)
                     }.getOrDefault(false)
                 }
+                if (live.index != i) return@launch   // M739 (audit B8): zapped on meanwhile
                 if (actions.playHtspLive(srv, cid, ts)) {
                     stream.htspStream = true; stream.htspLive = ts; stream.htspLiveState.value = ts
                 } else {
