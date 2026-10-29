@@ -534,4 +534,6 @@
     <string name="timers_no_day">Жодного дня</string>
     <string name="dur_min">%1$d хв</string>
     <string name="dur_hours">%1$d год</string>
+    <string name="srv_delete_title">Видалити сервер «%1$s»?</string>
+    <string name="srv_delete_msg">Також буде видалено його обрані, приховані й заблоковані канали, позиції перегляду та збережену телепрограму.</string>
 </resources>

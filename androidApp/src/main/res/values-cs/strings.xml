@@ -534,4 +534,6 @@
     <string name="timers_no_day">Žádný den</string>
     <string name="dur_min">%1$d min</string>
     <string name="dur_hours">%1$d h</string>
+    <string name="srv_delete_title">Smazat server „%1$s“?</string>
+    <string name="srv_delete_msg">Smažou se i jeho oblíbené, skryté a zamčené kanály, pozice sledování a uložený program.</string>
 </resources>

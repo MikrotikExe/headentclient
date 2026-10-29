@@ -534,4 +534,6 @@
     <string name="timers_no_day">কোনো দিন নয়</string>
     <string name="dur_min">%1$d মিনিট</string>
     <string name="dur_hours">%1$d ঘণ্টা</string>
+    <string name="srv_delete_title">সার্ভার “%1$s” মুছবেন?</string>
+    <string name="srv_delete_msg">এর প্রিয়, লুকানো ও লক করা চ্যানেল, দেখার অবস্থান এবং সংরক্ষিত অনুষ্ঠান সূচিও মুছে যাবে।</string>
 </resources>

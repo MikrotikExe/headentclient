@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -40,8 +41,19 @@ fun StatusMessage(
     detail: String? = null,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    focusAction: Boolean = false
 ) {
+    // M741: optional initial D-pad focus on the action (a TV screen with nothing else to focus)
+    val actionFocus = androidx.compose.runtime.remember { androidx.compose.ui.focus.FocusRequester() }
+    val actionMod = if (focusAction && onAction != null)
+        Modifier.focusRequester(actionFocus) else Modifier
+    if (focusAction && onAction != null) {
+        androidx.compose.runtime.LaunchedEffect(Unit) {
+            kotlinx.coroutines.delay(150)
+            runCatching { actionFocus.requestFocus() }
+        }
+    }
     if (isModernUi()) {
         // Modern mode (M331): icon in a teal chip, bold title, action as a pill
         val cs = MaterialTheme.colorScheme
@@ -66,7 +78,7 @@ fun StatusMessage(
                 if (actionLabel != null && onAction != null) {
                     Spacer(Modifier.height(18.dp))
                     Box(
-                        Modifier.clip(RoundedCornerShape(999.dp)).background(cs.primary)
+                        actionMod.clip(RoundedCornerShape(999.dp)).background(cs.primary)
                             .dpadFocusable(RoundedCornerShape(999.dp))
                             .clickable { onAction() }
                             .padding(horizontal = 26.dp, vertical = 11.dp)
@@ -104,7 +116,7 @@ fun StatusMessage(
             }
             if (actionLabel != null && onAction != null) {
                 Spacer(Modifier.height(16.dp))
-                Button(onClick = onAction) { Text(actionLabel) }
+                Button(onClick = onAction, modifier = actionMod) { Text(actionLabel) }
             }
         }
     }
@@ -128,8 +140,12 @@ fun NoServerStatus(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ErrorStatus(message: String, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+fun ErrorStatus(
+    message: String, onRetry: () -> Unit, modifier: Modifier = Modifier,
+    focusRetry: Boolean = false
+) {
     StatusMessage(
+        focusAction = focusRetry,
         icon = Icons.Default.CloudOff,
         title = stringResource(R.string.error_connection_title),
         detail = message,

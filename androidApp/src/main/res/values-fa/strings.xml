@@ -534,4 +534,6 @@
     <string name="timers_no_day">هیچ روزی</string>
     <string name="dur_min">%1$d دقیقه</string>
     <string name="dur_hours">%1$d ساعت</string>
+    <string name="srv_delete_title">سرور «%1$s» حذف شود؟</string>
+    <string name="srv_delete_msg">کانال‌های مورد علاقه، پنهان و قفل‌شده، موقعیت‌های تماشا و راهنمای برنامهٔ ذخیره‌شدهٔ آن نیز حذف می‌شوند.</string>
 </resources>

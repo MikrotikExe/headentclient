@@ -534,4 +534,6 @@
     <string name="timers_no_day">Нито един ден</string>
     <string name="dur_min">%1$d мин</string>
     <string name="dur_hours">%1$d ч</string>
+    <string name="srv_delete_title">Изтриване на сървъра „%1$s“?</string>
+    <string name="srv_delete_msg">Ще бъдат изтрити и любимите, скритите и заключените му канали, позициите на гледане и запазената програма.</string>
 </resources>

@@ -534,4 +534,6 @@
     <string name="timers_no_day">Ниједан дан</string>
     <string name="dur_min">%1$d мин</string>
     <string name="dur_hours">%1$d ч</string>
+    <string name="srv_delete_title">Обрисати сервер „%1$s“?</string>
+    <string name="srv_delete_msg">Биће обрисани и његови омиљени, скривени и закључани канали, позиције гледања и сачувани ТВ водич.</string>
 </resources>

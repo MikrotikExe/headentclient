@@ -534,4 +534,6 @@
     <string name="timers_no_day">Geen dag</string>
     <string name="dur_min">%1$d min</string>
     <string name="dur_hours">%1$d uur</string>
+    <string name="srv_delete_title">Server ‘%1$s’ verwijderen?</string>
+    <string name="srv_delete_msg">Ook de favoriete, verborgen en vergrendelde zenders, kijkposities en de opgeslagen programmagids worden verwijderd.</string>
 </resources>

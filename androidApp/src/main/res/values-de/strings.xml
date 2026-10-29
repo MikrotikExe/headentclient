@@ -534,4 +534,6 @@
     <string name="timers_no_day">Kein Tag</string>
     <string name="dur_min">%1$d Min.</string>
     <string name="dur_hours">%1$d Std.</string>
+    <string name="srv_delete_title">Server „%1$s“ löschen?</string>
+    <string name="srv_delete_msg">Auch seine favorisierten, ausgeblendeten und gesperrten Sender, Wiedergabepositionen und der gespeicherte Programmführer werden gelöscht.</string>
 </resources>

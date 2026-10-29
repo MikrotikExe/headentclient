@@ -534,4 +534,6 @@
     <string name="timers_no_day">Καμία ημέρα</string>
     <string name="dur_min">%1$d λεπ.</string>
     <string name="dur_hours">%1$d ώρ.</string>
+    <string name="srv_delete_title">Διαγραφή του διακομιστή «%1$s»;</string>
+    <string name="srv_delete_msg">Θα διαγραφούν επίσης τα αγαπημένα, κρυφά και κλειδωμένα κανάλια του, οι θέσεις προβολής και ο αποθηκευμένος οδηγός προγράμματος.</string>
 </resources>

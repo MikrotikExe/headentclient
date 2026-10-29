@@ -534,4 +534,6 @@
     <string name="timers_no_day">Ни одного дня</string>
     <string name="dur_min">%1$d мин</string>
     <string name="dur_hours">%1$d ч</string>
+    <string name="srv_delete_title">Удалить сервер «%1$s»?</string>
+    <string name="srv_delete_msg">Также будут удалены его избранные, скрытые и заблокированные каналы, позиции просмотра и сохранённая телепрограмма.</string>
 </resources>

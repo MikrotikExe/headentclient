@@ -614,6 +614,11 @@ private fun TvHomeHost() {
                     radioCategories = ((raState as? RadioState.Loaded)?.categories ?: emptyList())
                         .map { c -> c.copy(rows = RadioNumberingPref.apply(ctx, c.rows)) }
                 )
+            } else if (st is ChannelsState.Error) {
+                // M741 (audit F11): a failed channel load showed an endless spinner with only BACK
+                ErrorStatus(st.message, onRetry = { chVm.load(true) }, focusRetry = true)
+            } else if (st is ChannelsState.NoServer) {
+                NoServerStatus()
             } else {
                 CenterLoading()
             }

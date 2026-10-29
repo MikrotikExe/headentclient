@@ -534,4 +534,6 @@
     <string name="timers_no_day">요일 없음</string>
     <string name="dur_min">%1$d분</string>
     <string name="dur_hours">%1$d시간</string>
+    <string name="srv_delete_title">서버 “%1$s”을(를) 삭제할까요?</string>
+    <string name="srv_delete_msg">이 서버의 즐겨찾기·숨김·잠금 채널, 시청 위치, 저장된 편성표도 함께 삭제됩니다.</string>
 </resources>

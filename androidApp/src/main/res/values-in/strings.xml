@@ -534,4 +534,6 @@
     <string name="timers_no_day">Tidak ada hari</string>
     <string name="dur_min">%1$d mnt</string>
     <string name="dur_hours">%1$d jam</string>
+    <string name="srv_delete_title">Hapus server “%1$s”?</string>
+    <string name="srv_delete_msg">Saluran favorit, tersembunyi, dan terkunci, posisi tontonan, serta panduan acara yang tersimpan juga akan dihapus.</string>
 </resources>

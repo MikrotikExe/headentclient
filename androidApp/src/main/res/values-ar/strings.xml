@@ -534,4 +534,6 @@
     <string name="timers_no_day">لا يوم</string>
     <string name="dur_min">%1$d د</string>
     <string name="dur_hours">%1$d س</string>
+    <string name="srv_delete_title">حذف الخادم «%1$s»؟</string>
+    <string name="srv_delete_msg">سيتم أيضًا حذف قنواته المفضلة والمخفية والمقفلة ومواضع المشاهدة ودليل البرامج المحفوظ.</string>
 </resources>

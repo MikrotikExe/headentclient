@@ -534,4 +534,6 @@
     <string name="timers_no_day">曜日なし</string>
     <string name="dur_min">%1$d分</string>
     <string name="dur_hours">%1$d時間</string>
+    <string name="srv_delete_title">サーバー「%1$s」を削除しますか？</string>
+    <string name="srv_delete_msg">このサーバーのお気に入り・非表示・ロック中のチャンネル、視聴位置、保存済みの番組表も削除されます。</string>
 </resources>

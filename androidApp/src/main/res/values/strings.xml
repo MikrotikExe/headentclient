@@ -534,4 +534,6 @@
     <string name="timers_no_day">No day</string>
     <string name="dur_min">%1$d min</string>
     <string name="dur_hours">%1$d h</string>
+    <string name="srv_delete_title">Delete server “%1$s”?</string>
+    <string name="srv_delete_msg">Its favourite, hidden and locked channels, watch positions and stored programme guide will be deleted too.</string>
 </resources>

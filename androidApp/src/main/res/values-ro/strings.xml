@@ -534,4 +534,6 @@
     <string name="timers_no_day">Nicio zi</string>
     <string name="dur_min">%1$d min</string>
     <string name="dur_hours">%1$d h</string>
+    <string name="srv_delete_title">Ștergeți serverul „%1$s”?</string>
+    <string name="srv_delete_msg">Vor fi șterse și canalele sale favorite, ascunse și blocate, pozițiile de vizionare și ghidul de programe salvat.</string>
 </resources>

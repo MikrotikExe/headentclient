@@ -534,4 +534,6 @@
     <string name="timers_no_day">कोई दिन नहीं</string>
     <string name="dur_min">%1$d मिनट</string>
     <string name="dur_hours">%1$d घंटे</string>
+    <string name="srv_delete_title">सर्वर “%1$s” हटाएँ?</string>
+    <string name="srv_delete_msg">इसके पसंदीदा, छिपे और लॉक किए गए चैनल, देखने की स्थितियाँ और सहेजी गई कार्यक्रम गाइड भी हटा दी जाएँगी।</string>
 </resources>

@@ -534,4 +534,6 @@
     <string name="timers_no_day">Egyik nap sem</string>
     <string name="dur_min">%1$d perc</string>
     <string name="dur_hours">%1$d óra</string>
+    <string name="srv_delete_title">Törli a(z) „%1$s” szervert?</string>
+    <string name="srv_delete_msg">A kedvenc, rejtett és zárolt csatornái, a lejátszási pozíciók és a tárolt műsorújság is törlődik.</string>
 </resources>

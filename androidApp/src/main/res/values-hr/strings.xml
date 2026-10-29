@@ -534,4 +534,6 @@
     <string name="timers_no_day">Nijedan dan</string>
     <string name="dur_min">%1$d min</string>
     <string name="dur_hours">%1$d h</string>
+    <string name="srv_delete_title">Izbrisati poslužitelj „%1$s”?</string>
+    <string name="srv_delete_msg">Izbrisat će se i njegovi omiljeni, skriveni i zaključani kanali, pozicije gledanja i spremljeni programski vodič.</string>
 </resources>

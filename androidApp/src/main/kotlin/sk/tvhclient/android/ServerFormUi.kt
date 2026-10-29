@@ -67,6 +67,7 @@ fun ServerRow(
     onDelete: () -> Unit,
     editFocusRequester: FocusRequester? = null
 ) {
+    var askDelete by remember { mutableStateOf(false) }
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -96,9 +97,34 @@ fun ServerRow(
                     modifier = if (editFocusRequester != null)
                         Modifier.focusRequester(editFocusRequester) else Modifier
                 ) { Text(stringResource(R.string.edit)) }
-                TextButton(onClick = onDelete) { Text(stringResource(R.string.delete)) }
+                TextButton(onClick = { askDelete = true }) { Text(stringResource(R.string.delete)) }
             }
         }
+    }
+    // M741 (audit R11): deleting a server also wipes its favourites, hidden/locked channels,
+    // positions and stored EPG (M738) — one stray OK on a TV remote must not do that.
+    if (askDelete) {
+        val cancelFocus = remember { FocusRequester() }
+        LaunchedEffect(Unit) {
+            kotlinx.coroutines.delay(100)
+            runCatching { cancelFocus.requestFocus() }
+        }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { askDelete = false },
+            title = { Text(stringResource(R.string.srv_delete_title, server.name)) },
+            text = { Text(stringResource(R.string.srv_delete_msg)) },
+            confirmButton = {
+                TextButton(onClick = { askDelete = false; onDelete() }) {
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { askDelete = false },
+                    modifier = Modifier.focusRequester(cancelFocus)
+                ) { Text(stringResource(R.string.cancel)) }
+            }
+        )
     }
 }
 

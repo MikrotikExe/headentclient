@@ -534,4 +534,6 @@
     <string name="timers_no_day">Noben dan</string>
     <string name="dur_min">%1$d min</string>
     <string name="dur_hours">%1$d h</string>
+    <string name="srv_delete_title">Izbrišem strežnik »%1$s«?</string>
+    <string name="srv_delete_msg">Izbrisani bodo tudi njegovi priljubljeni, skriti in zaklenjeni kanali, položaji ogleda in shranjeni programski vodnik.</string>
 </resources>

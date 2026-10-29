@@ -534,4 +534,6 @@
     <string name="timers_no_day">کوئی دن نہیں</string>
     <string name="dur_min">%1$d منٹ</string>
     <string name="dur_hours">%1$d گھنٹے</string>
+    <string name="srv_delete_title">سرور “%1$s” حذف کریں؟</string>
+    <string name="srv_delete_msg">اس کے پسندیدہ، چھپے اور مقفل چینلز، دیکھنے کی پوزیشنز اور محفوظ پروگرام گائیڈ بھی حذف ہو جائیں گے۔</string>
 </resources>

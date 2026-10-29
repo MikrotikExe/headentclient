@@ -534,4 +534,6 @@
     <string name="timers_no_day">Hiçbir gün</string>
     <string name="dur_min">%1$d dk</string>
     <string name="dur_hours">%1$d sa</string>
+    <string name="srv_delete_title">“%1$s” sunucusu silinsin mi?</string>
+    <string name="srv_delete_msg">Favori, gizli ve kilitli kanalları, izleme konumları ve kayıtlı yayın akışı da silinecek.</string>
 </resources>

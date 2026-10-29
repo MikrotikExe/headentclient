@@ -534,4 +534,6 @@
     <string name="timers_no_day">Nenhum dia</string>
     <string name="dur_min">%1$d min</string>
     <string name="dur_hours">%1$d h</string>
+    <string name="srv_delete_title">Eliminar o servidor “%1$s”?</string>
+    <string name="srv_delete_msg">Os seus canais favoritos, ocultos e bloqueados, as posições de visualização e o guia de programação guardado também serão eliminados.</string>
 </resources>
