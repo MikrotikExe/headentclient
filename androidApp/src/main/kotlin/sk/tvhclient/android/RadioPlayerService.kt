@@ -137,12 +137,14 @@ class RadioPlayerService : Service() {
             // no creds or an unknown server -> a direct URL
             scope.launch {
                 if (closedTvForStart) kotlinx.coroutines.delay(400)  // M394-fix
+                awaitPreviousStop()   // M737
                 if (player === p) setDirectMedia(vlc, p, url)
             }
             return
         }
         scope.launch {
             if (closedTvForStart) kotlinx.coroutines.delay(400)  // M394-fix: so that the TV has time to release the slot
+            awaitPreviousStop()   // M737
             val needsFeeder = withContext(Dispatchers.IO) {
                 runCatching { DvrAuthProbe.needsFeeder(server, stripCreds(url)) }.getOrDefault(false)
             }
@@ -193,17 +195,40 @@ class RadioPlayerService : Service() {
         stopSelf()
     }
 
+    /**
+     * M737 (audit K8): stop() and release() off the main thread, as the TV player does since M535/M622 —
+     * stop() can hang on a stalled AudioTrack (a box after standby: ANR on a station change), and a
+     * release() straight after stop() met the still-running input thread (vlc_mutex_destroy abort on
+     * weak 32-bit boxes). The feeder is closed first, which ends the demux at once.
+     */
     private fun releasePlayer() {
         runCatching { httpFeeder?.stop() }
         httpFeeder = null
-        runCatching {
-            player?.setEventListener(null)
-            player?.stop()
-            player?.release()
-        }
+        val mp = player
+        val lib = libVlc
         player = null
-        runCatching { libVlc?.release() }
         libVlc = null
+        if (mp == null) { runCatching { lib?.release() }; return }
+        runCatching { mp.setEventListener(null) }
+        val app = applicationContext
+        releasing = mp
+        VlcEngine.stopAsync(mp)   // its own thread; isStopping(mp) until stop() returns
+        runCatching {
+            Thread({ VlcEngine.releaseVlc(app, mp, lib, "radio") }, "HeadentClient:radioRelease")
+                .apply { isDaemon = true }.start()
+        }
+    }
+
+    /** M737: the player being stopped in the background — the next station waits for its connection to close. */
+    @Volatile private var releasing: MediaPlayer? = null
+
+    /** Waits (max 1.5 s) until the previous station's stop() has returned — with a limit of one
+     *  connection the server would refuse the new station while the old one still holds the slot. */
+    private suspend fun awaitPreviousStop() {
+        val old = releasing ?: return
+        var waited = 0L
+        while (VlcEngine.isStopping(old) && waited < 1_500L) { kotlinx.coroutines.delay(50); waited += 50 }
+        if (releasing === old) releasing = null
     }
 
     // --- audio focus: pause on loss (a phone call, another app) ---

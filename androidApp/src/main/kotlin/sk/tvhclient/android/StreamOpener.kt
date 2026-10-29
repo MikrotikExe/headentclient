@@ -33,6 +33,8 @@ internal class StreamOpener(
     private val hooks: Hooks
 ) {
     interface Hooks {
+        /** M737 (audit K7): the player was torn down (closing) — nothing may open a stream on it any more. */
+        fun tornDown(): Boolean
         fun ensureHealthyPlayer()          // M539
         fun startPlayback()                // M539-fix2
         fun resetTimeshift()
@@ -66,6 +68,7 @@ internal class StreamOpener(
     /** M255 — live over HTTP on a digest-only server: download via the feeder (same
      *  as DVR), because libVLC cannot handle digest via the URL. No seek is needed for live. */
     fun playLiveViaFeeder(server: TvhServer, url: String) {
+        if (hooks.tornDown()) return   // M737: closing — no stream on a torn-down player
         hooks.ensureHealthyPlayer()
         hooks.resetTeletext()
         stream.resetForHttp(keepHttpFeeder = true)
@@ -120,6 +123,7 @@ internal class StreamOpener(
 
     /** Live HTTP with auth auto-detection: digest-only -> feeder, otherwise the direct path. */
     fun playLiveAuto(server: TvhServer, url: String) {
+        if (hooks.tornDown()) return   // M737: closing — no stream on a torn-down player
         if (server.connectionMode != "htsp" && healStaleLiveId(server, url)) return
         // M713: without an account only if teletext has not already switched this session to the feeder
         if (server.username.isEmpty() && stream.liveNeedsFeeder != true) { playHttp(url); return }
@@ -139,6 +143,7 @@ internal class StreamOpener(
 
     /** Ordinary HTTP playback (stops any HTSP feed). */
     fun playHttp(url: String) {
+        if (hooks.tornDown()) return   // M737: closing — no stream on a torn-down player
         hooks.ensureHealthyPlayer()
         hooks.resetTeletext()
         stream.resetForHttp(keepHttpFeeder = false)
@@ -163,6 +168,7 @@ internal class StreamOpener(
      * (user:pass@host). startByte = an optional offset for resume via HTTP Range.
      */
     fun playDvrViaFeeder(server: TvhServer, url: String, startByte: Long = 0L) {
+        if (hooks.tornDown()) return   // M737: closing — no stream on a torn-down player
         hooks.ensureHealthyPlayer()
         hooks.resetTeletext()   // archive: teletext for live only so far
         stream.resetForHttp(keepHttpFeeder = true)
@@ -188,6 +194,7 @@ internal class StreamOpener(
      * supports it; otherwise the HTTP path remains.
      */
     fun playHtspLive(server: TvhServer, channelId: Long, timeshift: Boolean): Boolean {
+        if (hooks.tornDown()) return false   // M737
         return try {
             hooks.ensureHealthyPlayer()
             stream.htspFeeder?.stop()
@@ -228,6 +235,7 @@ internal class StreamOpener(
 
     /** A direct HTTP medium without resetting the feeders/teletext (reconnect, reopen, seek), optionally with :start-time. */
     private fun playUrlDirect(url: String, startTimeSec: Long?, startFraction: Float? = null) {
+        if (hooks.tornDown()) return   // M737: closing — no stream on a torn-down player
         startPositionJob?.cancel(); startPositionJob = null
         hooks.ensureHealthyPlayer()   // M539
         // M730 (audit B8): a live reconnect keeps the channel's codec hint — without it the 3rd+ reconnect
@@ -273,6 +281,7 @@ internal class StreamOpener(
 
     /** One attempt to reconnect the live stream (ReconnectController.scheduleReconnect). */
     fun reconnectAttempt(attempt: Int, seekable: Boolean) {
+        if (hooks.tornDown()) return   // M737: closing — no stream on a torn-down player
         val srv = live.server
         val cid = live.uuids.getOrNull(live.index)?.toLongOrNull()
         val url = stream.currentStreamUrl
@@ -303,6 +312,7 @@ internal class StreamOpener(
 
     /** Restarts the current live channel by the same path (HTSP / feeder / HTTP) — after a player swap. */
     fun replayCurrentLive() {
+        if (hooks.tornDown()) return   // M737: closing — no stream on a torn-down player
         val srv = live.server
         val cid = live.uuids.getOrNull(live.index)?.toLongOrNull()
         val url = stream.currentStreamUrl
@@ -320,6 +330,7 @@ internal class StreamOpener(
 
     /** In-progress recording: reopen the stream from [startSec] (feeder: from the point we got to). */
     fun reopenDvrAt(url: String, startSec: Long, fileDurMs: Long = 0L) {
+        if (hooks.tornDown()) return   // M737: closing — no stream on a torn-down player
         if (stream.dvrViaFeeder) {
             // continue from the point we got to (a growing file) via HTTP Range
             val srv = live.server ?: return
@@ -337,6 +348,7 @@ internal class StreamOpener(
      * programme in the file, [fromMs] = where we are seeking from, [dur] = currently recorded duration of the programme.
      */
     fun seekDvrFile(url: String, fileMs: Long, offsetMs: Long, fromMs: Long, dur: Long) {
+        if (hooks.tornDown()) return   // M737: closing — no stream on a torn-down player
         // M727 (issue #28): a finished TS recording — find the byte by the file's own clock
         // (a few short Range reads), start there and seed the bar with the time actually found.
         // Falls back to the old estimate when the index is not usable.

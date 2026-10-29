@@ -206,4 +206,28 @@ class TsMuxerTimingTest {
         m.start()
         assertTrue(m.mux(2, es, pts = 1_000_000L, dts = null, randomAccess = false).isNotEmpty())
     }
+
+    /** M737 (audit K4): a PMT larger than one TS packet (many audio tracks) is split, not overrun. */
+    @Test
+    fun pmtWithManyAudioTracksSpansSeveralPackets() {
+        val streams = ArrayList<TsMuxer.Stream>()
+        streams.add(TsMuxer.Stream(index = 1, type = "H264"))
+        for (i in 0 until 24) streams.add(TsMuxer.Stream(index = 2 + i, type = "AC3", language = "eng"))
+        val m = TsMuxer(streams)
+        val out = m.start()
+        assertEquals(0, out.size % 188)
+        // PAT (1 packet) + PMT (24 x 11 + 5 + 16 bytes > 183 -> 2 packets)
+        assertTrue(out.size / 188 >= 3, "packets: ${out.size / 188}")
+        val pmtPackets = (0 until out.size / 188).map { out.copyOfRange(it * 188, it * 188 + 188) }
+            .filter { ((it[1].toInt() and 0x1F) shl 8 or (it[2].toInt() and 0xFF)) == 0x1000 }
+        assertTrue(pmtPackets.size >= 2)
+        assertEquals(0x40, pmtPackets[0][1].toInt() and 0x40, "first PMT packet has PUSI")
+        assertEquals(0, pmtPackets[1][1].toInt() and 0x40, "continuation has no PUSI")
+        // the continuity counters of the PMT packets follow each other
+        val cc0 = pmtPackets[0][3].toInt() and 0x0F
+        val cc1 = pmtPackets[1][3].toInt() and 0x0F
+        assertEquals((cc0 + 1) and 0x0F, cc1)
+        // and muxing a packet of the last audio track works
+        assertTrue(m.mux(25, es, pts = 1_000_000L, dts = null, randomAccess = false).isNotEmpty())
+    }
 }

@@ -220,7 +220,7 @@ class PlayerActivity : ComponentActivity() {
     // M636: reconnect timing/state in ReconnectController.kt; what is actually done on an attempt is below
     private val reconnect: ReconnectController by lazy {
         ReconnectController(this,
-            playerReady = { engine.ready },
+            playerReady = { engine.ready && !engine.tornDown },   // M737: no reconnect onto a closing player
             isPlaying = { engine.player.isPlaying })
     }
     // the spinner while seeking in timeshift (a short pipe -> libVLC resync)
@@ -230,7 +230,7 @@ class PlayerActivity : ComponentActivity() {
     // M648: seek target calculation, M594 recovery and the double-tap in DvrSeek.kt
     private val dvrSeek: DvrSeek by lazy {
         DvrSeek(this, lifecycleScope,
-            durMs = { if (dvr.durationMs > 0) dvr.durationMs else (if (engine.ready) engine.player.length else 0L) },
+            durMs = { if (dvr.durationMs > 0) dvr.durationMs else (if (!engine.quiet) engine.player.length else 0L) },
             recording = { dvr.recording },
             playheadMs = { dvr.playheadMsState.value },
             seekable = { engine.ready && seekablePlayback },
@@ -277,6 +277,7 @@ class PlayerActivity : ComponentActivity() {
         StreamOpener(this, lifecycleScope, stream, live, mediaFactory, tracks,
             player = { engine.player },
             hooks = object : StreamOpener.Hooks {
+                override fun tornDown(): Boolean = engine.tornDown   // M737
                 override fun ensureHealthyPlayer() { this@PlayerActivity.ensureHealthyPlayer() }
                 override fun startPlayback() { clearHttpPauseDrop(); engine.startPlayback() }   // a new medium ends a paused HTTP live (issue #32)
                 override fun resetTimeshift() { this@PlayerActivity.resetTimeshift() }
@@ -803,6 +804,20 @@ class PlayerActivity : ComponentActivity() {
             switchToIndex = { idx -> switcher.switchToIndex(idx) },
             onRequested = { okLongFired = false })   // the PIN prompt takes over input; the OK gesture is thereby ended
     }
+    /** M737: the subtitle overlay's last clock value (kept while the player is stopping). */
+    @Volatile private var lastSubClock = 0L
+    /** M737: the player must not be asked anything right now (a stop() runs on another thread). */
+    internal fun engineQuiet(): Boolean = engine.quiet
+
+    /** M737: the channel uuid whose parental lock guards the recording being opened (null = not a recording). */
+    private fun dvrLockUuid(): String? {
+        if (intent.getStringExtra(EXTRA_DVR_UUID) == null) return null
+        intent.getStringExtra(EXTRA_DVR_CHANNEL_UUID)?.takeIf { it.isNotBlank() }?.let { return it }
+        // older servers leave the recording's channel empty — match it by name
+        val name = intent.getStringExtra(EXTRA_DVR_CHANNEL_NAME)?.takeIf { it.isNotBlank() } ?: return null
+        return (LivePlaylist.allChannels + LivePlaylist.hiddenChannels + LivePlaylist.channels).firstOrNull { it.name == name }?.uuid
+    }
+
     private fun requestPin(onOk: () -> Unit, onCancel: () -> Unit, markUnlock: Boolean = true, channelIndex: Int? = null) {
         pin.request(onOk, onCancel, markUnlock, channelIndex)
     }
@@ -822,7 +837,7 @@ class PlayerActivity : ComponentActivity() {
     private val scrub: ScrubController by lazy {
         ScrubController(lifecycleScope,
             barMs = { if (dvr.recording) (dvr.durationMs - 45_000L).coerceAtLeast(1L) else dvr.durationMs },
-            durMs = { if (dvr.durationMs > 0) dvr.durationMs else (if (engine.ready) engine.player.length else 0L) },
+            durMs = { if (dvr.durationMs > 0) dvr.durationMs else (if (!engine.quiet) engine.player.length else 0L) },
             playheadMs = { dvr.playheadMsState.value },
             seekable = { engine.ready && seekablePlayback },
             seekAbsolute = { ms -> dvrSeek.seekAbsolute(ms) },
@@ -1145,7 +1160,7 @@ class PlayerActivity : ComponentActivity() {
     private val dvrInfoState = androidx.compose.runtime.mutableStateOf<sk.tvhclient.shared.model.DvrEntry?>(null)
 
     private fun saveDvrProgress() {
-        dvr.saveProgress(if (engine.ready && !engine.tornDown) engine.player else null)
+        dvr.saveProgress(if (!engine.quiet) engine.player else null)   // M737: not during a stop() elsewhere
     }
 
     /** M623: radio with the "Radio plays in the background" option (phone and TV) — sending the player
@@ -1183,7 +1198,8 @@ class PlayerActivity : ComponentActivity() {
         layout.addView(ov)
         subOverlay = ov
         ov.start(
-            clockSource = { if (engine.ready) engine.player.time else 0L },
+            // M737: not while a stop() runs on another thread — keep the last value (the overlay only times subtitles)
+            clockSource = { if (!engine.quiet) engine.player.time.also { lastSubClock = it } else lastSubClock },
             aspectSource = { videoAspect() }   // M708
         )
     }
@@ -1313,7 +1329,7 @@ class PlayerActivity : ComponentActivity() {
         if (dvr.recording) {
             DvrDurationTicker(
                 scope = lifecycleScope,
-                playerLength = { if (engine.ready) engine.player.length else 0L },
+                playerLength = { if (!engine.quiet) engine.player.length else 0L },
                 isRecording = { dvr.recording },
                 current = { dvr.durationMs },
                 set = { dvr.durationMs = it; dvr.durationState.value = it }
@@ -1467,7 +1483,10 @@ class PlayerActivity : ComponentActivity() {
                         // when switching inside an open player (list / background / digits).
                         // M605: the tile with the list first — the list opens right after start
                         if (listFirst) window.decorView.post { openChannelList() }
-                        if (ParentalLock.channelLockedProtected(this, server.id, channelUuid)) {
+                        // M737 (audit K1): a recording, the archive, "from the start" and continue-watching
+                        // carry no live channel uuid — the lock of the recording's channel applies to them
+                        // as well (until now every recording of a locked channel played without the PIN)
+                        if (ParentalLock.channelLockedProtected(this, server.id, channelUuid ?: dvrLockUuid())) {
                             // M263: cancel the old grace window so that in this session a locked channel
                             // really does require the PIN (even if the user switched away through the prompt and came back).
                             ParentalLock.clearGrace(this)
@@ -2231,6 +2250,11 @@ class PlayerActivity : ComponentActivity() {
 
     /** M535: stop/release libVLC on a worker thread (VlcEngine.teardownAsync); the feeders and the watchdog first. */
     private fun teardownPlayerAsync() {
+        // M737 (audit K7): a reconnect posted up to 8 s earlier, the 12 s watchdog or a pending zap
+        // must not open a stream on the player that is being stopped (it used to start a new feeder
+        // that nobody stopped, and the release then met a playing player)
+        reconnect.destroy()
+        zap.cancel()
         engine.teardownAsync {
             stall.destroy()   // M539
             stream.htspFeeder?.stop(); stream.htspFeeder = null
@@ -2332,6 +2356,7 @@ class PlayerActivity : ComponentActivity() {
         /** Recording details for the info window - one place for every DVR playback path. */
         fun putDvrInfo(intent: android.content.Intent, e: DvrEntry) {
             intent.putExtra(EXTRA_DVR_CHANNEL_NAME, e.channelName)
+            intent.putExtra(EXTRA_DVR_CHANNEL_UUID, e.channelUuid)   // M737: the parental lock of the recording's channel
             intent.putExtra(EXTRA_DVR_START_SEC, e.start)
             intent.putExtra(EXTRA_DVR_STOP_SEC, e.stop)
             intent.putExtra(EXTRA_DVR_DESCRIPTION, e.dispDescription)
@@ -2345,6 +2370,8 @@ class PlayerActivity : ComponentActivity() {
         const val EXTRA_DVR_PROG_START_SEC = "dvr_prog_start_sec"
         const val EXTRA_DVR_PROG_STOP_SEC = "dvr_prog_stop_sec"
         const val EXTRA_DVR_REAL_START_SEC = "dvr_real_start_sec"
+        /** M737: the channel a recording / catch-up belongs to — its parental lock applies to the recording too. */
+        const val EXTRA_DVR_CHANNEL_UUID = "dvr_channel_uuid"
 
         // A reference to the currently living player instance. When a new channel is opened we close the previous one
         // (including one hanging in PiP), otherwise the old PiP would stay hanging with the old channel.
@@ -2678,7 +2705,8 @@ private fun PlayerUi(
     // We do not use player.length for the scale - VLC reports it for a growing TS in coarse
     // jumps, which threw the left-hand side of the timer off. Fall back to the VLC length only when
     // we have no EPG time.
-    val lengthMs = if (dvr.knownDurationMs > 0) dvr.knownDurationMs else player.length.coerceAtLeast(0L)
+    val lengthMs = if (dvr.knownDurationMs > 0) dvr.knownDurationMs
+        else if (dvrActivity?.engineQuiet() == true) 0L else player.length.coerceAtLeast(0L)   // M737
     // A fresh duration for the ticker (otherwise LaunchedEffect(Unit) captures the value from start and
     // the left-hand side would not fit above the live-edge level at start).
     val lengthMsLive = androidx.compose.runtime.rememberUpdatedState(lengthMs)
@@ -2718,6 +2746,7 @@ private fun PlayerUi(
     if (flags.seekable) {
         DvrPositionTicker(
             player = player,
+            busy = { dvrActivity?.engineQuiet() == true },   // M737
             ctx = ctx,
             lengthMsLive = lengthMsLive,
             offsetMsLive = offsetMsLive,

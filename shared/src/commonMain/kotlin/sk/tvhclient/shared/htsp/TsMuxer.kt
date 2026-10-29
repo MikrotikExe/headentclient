@@ -470,8 +470,7 @@ class TsMuxer(streams: List<Stream>) {
         body.add((0xE0 or ((pmtPid ushr 8) and 0x1F)).toByte())
         body.add((pmtPid and 0xFF).toByte())
         appendCrc(body)
-        val cc = patCc; patCc = (patCc + 1) and 0x0F
-        return psiToTs(patPid, body.toByteArray(), cc)
+        return psiToTs(patPid, body.toByteArray()) { val c = patCc; patCc = (patCc + 1) and 0x0F; c }
     }
 
     /** ES_info for a track: audio -> ISO_639_language_descriptor (0x0A); DVB subtitles ->
@@ -507,9 +506,15 @@ class TsMuxer(streams: List<Stream>) {
     private fun pmt(): ByteArray {
         val body = ArrayList<Byte>()
         body.add(0x02)                                  // table_id PMT
-        val esInfos = tracks.map { esInfo(it) }
+        // a section is at most 1021 bytes long (section_length): tracks beyond it are left out of the PMT
+        val all = tracks.map { esInfo(it) }
         var esTotal = 0
-        for (i in tracks.indices) esTotal += 5 + esInfos[i].size
+        var fit = 0
+        for (i in tracks.indices) {
+            if (5 + 4 + esTotal + 5 + all[i].size + 4 > 1021) break
+            esTotal += 5 + all[i].size; fit++
+        }
+        val esInfos = all.subList(0, fit)
         val sectionLen = 5 + 4 + esTotal + 4
         body.add((0xB0 or ((sectionLen ushr 8) and 0x0F)).toByte())
         body.add((sectionLen and 0xFF).toByte())
@@ -520,7 +525,7 @@ class TsMuxer(streams: List<Stream>) {
         body.add((0xE0 or ((pcrPid ushr 8) and 0x1F)).toByte())
         body.add((pcrPid and 0xFF).toByte())
         body.add(0xF0.toByte()); body.add(0x00)         // program_info_length = 0
-        for (i in tracks.indices) {
+        for (i in esInfos.indices) {
             val t = tracks[i]
             val info = esInfos[i]
             body.add((t.streamType and 0xFF).toByte())
@@ -531,8 +536,7 @@ class TsMuxer(streams: List<Stream>) {
             for (b in info) body.add(b)
         }
         appendCrc(body)
-        val cc = pmtCc; pmtCc = (pmtCc + 1) and 0x0F
-        return psiToTs(pmtPid, body.toByteArray(), cc)
+        return psiToTs(pmtPid, body.toByteArray()) { val c = pmtCc; pmtCc = (pmtCc + 1) and 0x0F; c }
     }
 
     private fun appendCrc(body: ArrayList<Byte>) {
@@ -543,17 +547,32 @@ class TsMuxer(streams: List<Stream>) {
         body.add((crc and 0xFF).toByte())
     }
 
-    /** A PSI section into a single TS packet (PUSI=1, AFC=01), the rest stuffing 0xFF. */
-    private fun psiToTs(pid: Int, section: ByteArray, cc: Int): ByteArray {
-        val pkt = ByteArray(188) { 0xFF.toByte() }
-        pkt[0] = 0x47
-        pkt[1] = (0x40 or ((pid ushr 8) and 0x1F)).toByte()
-        pkt[2] = (pid and 0xFF).toByte()
-        pkt[3] = (0x10 or (cc and 0x0F)).toByte()
-        pkt[4] = 0x00                                   // pointer_field
-        var p = 5
-        for (b in section) { pkt[p++] = b }
-        return pkt
+    /**
+     * A PSI section into TS packets (AFC=01, the rest stuffing 0xFF): the first with PUSI=1 and the
+     * pointer_field, then continuation packets with PUSI=0. M737 (audit K4): until now the section
+     * always went into ONE packet (183 bytes) — a PMT of a channel with ~15 or more audio tracks ran
+     * past the end of the packet and threw at subscriptionStart, so such a channel never played over
+     * HTSP. [nextCc] gives the continuity counter of each packet.
+     */
+    private fun psiToTs(pid: Int, section: ByteArray, nextCc: () -> Int): ByteArray {
+        val first = 188 - 5                              // header + pointer_field
+        val rest = 188 - 4
+        val count = if (section.size <= first) 1 else 1 + (section.size - first + rest - 1) / rest
+        val out = ByteArray(count * 188) { 0xFF.toByte() }
+        var src = 0
+        for (k in 0 until count) {
+            val o = k * 188
+            out[o] = 0x47
+            out[o + 1] = ((if (k == 0) 0x40 else 0x00) or ((pid ushr 8) and 0x1F)).toByte()
+            out[o + 2] = (pid and 0xFF).toByte()
+            out[o + 3] = (0x10 or (nextCc() and 0x0F)).toByte()
+            var p = o + 4
+            if (k == 0) { out[p++] = 0x00 }              // pointer_field
+            val n = minOf(section.size - src, o + 188 - p)
+            section.copyInto(out, p, src, src + n)
+            src += n
+        }
+        return out
     }
 
     // ---- PES ----

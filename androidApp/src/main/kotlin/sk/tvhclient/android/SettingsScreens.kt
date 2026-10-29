@@ -936,6 +936,16 @@ internal fun ParentalSettings(ctx: android.content.Context) {
     var lockEnabled by remember { mutableStateOf(ParentalLock.isEnabled(ctx)) }
     var pinStage by remember { mutableStateOf(0) }
     var firstPin by remember { mutableStateOf("") }
+    // M737 (audit K2): with the lock on, turning it off, changing the PIN, the grace window or what
+    // the PIN protects needs the CURRENT PIN — until now anyone could do it whenever "Settings" was
+    // not among the protected things. Settings opened through the PIN gate count as verified.
+    var verified by remember {
+        mutableStateOf(!(ParentalLock.isEnabled(ctx) && ParentalLock.hasPin(ctx)) || ParentalLock.protectSettings(ctx))
+    }
+    var guarded by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val guard: (() -> Unit) -> Unit = { action ->
+        if (verified || !(ParentalLock.isEnabled(ctx) && ParentalLock.hasPin(ctx))) action() else guarded = action
+    }
     SettingsGroup("PIN") {
     SettingsSwitchRow(
         label = stringResource(R.string.plock_enable),
@@ -946,13 +956,13 @@ internal fun ParentalSettings(ctx: android.content.Context) {
                 if (ParentalLock.hasPin(ctx)) {
                     ParentalLock.setEnabled(ctx, true); lockEnabled = true
                 } else pinStage = 1
-            } else {
+            } else guard {
                 ParentalLock.setEnabled(ctx, false); lockEnabled = false
             }
         }
     )
     OutlinedButton(
-        onClick = { firstPin = ""; pinStage = 1 },
+        onClick = { guard { firstPin = ""; pinStage = 1 } },
         modifier = Modifier.padding(top = 4.dp)
     ) {
         Text(
@@ -996,11 +1006,11 @@ internal fun ParentalSettings(ctx: android.content.Context) {
         value = grace,
         options = graceOpts,
         optionLabel = graceLabel,
-        onSelect = { v ->
+        onSelect = { v -> guard {
             grace = v
             ParentalLock.setGraceMinutes(ctx, v.toIntOrNull() ?: ParentalLock.DEFAULT_GRACE_MIN)
             TabController.settingsDirty.value = true
-        }
+        } }
     )
 
     }
@@ -1010,14 +1020,24 @@ internal fun ParentalSettings(ctx: android.content.Context) {
     SettingsSwitchRow(
         label = stringResource(R.string.plock_scope_channels),
         checked = protCh,
-        onChange = { protCh = it; ParentalLock.setProtectChannels(ctx, it); TabController.settingsDirty.value = true }
+        onChange = { v -> guard { protCh = v; ParentalLock.setProtectChannels(ctx, v); TabController.settingsDirty.value = true } }
     )
     var protSet by remember { mutableStateOf(ParentalLock.protectSettings(ctx)) }
     SettingsSwitchRow(
         label = stringResource(R.string.plock_scope_settings),
         checked = protSet,
-        onChange = { protSet = it; ParentalLock.setProtectSettings(ctx, it); TabController.settingsDirty.value = true }
+        onChange = { v -> guard { protSet = v; ParentalLock.setProtectSettings(ctx, v); TabController.settingsDirty.value = true } }
     )
+    }
+
+    guarded?.let { action ->
+        PinDialog(
+            title = stringResource(R.string.plock_enter),
+            onDismiss = { guarded = null },
+            onComplete = { pin ->
+                if (ParentalLock.checkPin(ctx, pin)) { verified = true; guarded = null; action(); true } else false
+            }
+        )
     }
 
     if (pinStage == 1) {

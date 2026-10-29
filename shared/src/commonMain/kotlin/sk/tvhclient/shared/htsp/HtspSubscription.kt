@@ -77,8 +77,11 @@ class HtspSubscription internal constructor(
      *  Subtitles are NOT sent to libVLC — we decode and render them ourselves. */
     fun selectSubtitle(esIndex: Int) {
         subDecodeEs = esIndex
-        subDecoder.reset()
+        // M737 (audit R4): the decoder belongs to the run() loop — resetting it from the UI thread
+        // raced with a decode in progress; the loop resets it before its next packet instead
+        subResetPending = true
     }
+    @kotlin.concurrent.Volatile private var subResetPending = false
 
     internal companion object {
         /** M715: ~5 s of packets of an HD channel; more is dropped (see [fromReader]). */
@@ -202,6 +205,7 @@ class HtspSubscription internal constructor(
                         if (streamIdx == teletextEs) { onTeletext(esBin.toByteArray()); continue }   // M552
                         if (streamIdx == subDecodeEs) {
                             // the selected subtitle track: we decode and render it ourselves (it does not go to libVLC)
+                            if (subResetPending) { subResetPending = false; subDecoder.reset() }
                             val page = if (pts != null) subDecoder.decode(pts, esBin.toByteArray()) else null
                             if (page != null) {
                                 val origin = mx.timelineOriginPts()

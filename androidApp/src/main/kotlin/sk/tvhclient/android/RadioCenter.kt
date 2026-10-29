@@ -35,7 +35,15 @@ object RadioCenter {
         if (stations.isEmpty()) return
         val server = Tvh.store.active() ?: return
         val idx = stations.indexOfFirst { it.uuid == stationUuid.value }
-        val next = stations[((if (idx < 0) 0 else idx) + delta + stations.size) % stations.size]
+        // M737 (audit K3): next/previous (the bar, the notification, a headset) skips stations that
+        // need the PIN — the background player has no way to ask for it; they stay reachable from the list
+        var next: RadioStation? = null
+        for (step in 1..stations.size) {
+            val c = stations[((if (idx < 0) 0 else idx) + delta * step + stations.size * step) % stations.size]
+            if (c.uuid == stationUuid.value) continue
+            if (!ParentalLock.channelNeedsPin(context, server.id, c.uuid)) { next = c; break }
+        }
+        next ?: return
         play(context, server, next.uuid, next.name,
             picon = next.picon, epgTitle = next.nowTitle,
             epgStart = next.nowStart, epgStop = next.nowStop)

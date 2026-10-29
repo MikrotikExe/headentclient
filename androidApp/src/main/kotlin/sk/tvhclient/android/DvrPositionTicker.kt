@@ -39,10 +39,13 @@ internal fun DvrPositionTicker(
     dragging: () -> Boolean,
     onSeekToMs: (Long) -> Unit,
     onPlayheadMs: (Long) -> Unit,
+    /** M737: true = a stop() of the player runs on another thread — do not read position/isSeekable now. */
+    busy: () -> Boolean = { false },
 ) {
     LaunchedEffect(Unit) {
         var sinceSave = 0
         while (true) {
+            if (busy()) { kotlinx.coroutines.delay(1000); continue }   // M737 (audit K6)
             val nowMs = System.currentTimeMillis()
             val curLen = lengthMsLive.value
             val curOff = offsetMsLive.value

@@ -848,14 +848,29 @@ fun BackupControls(compact: Boolean = false, onImported: () -> Unit = {}) {
             ).show()
         }
     }
+    val importScope = androidx.compose.runtime.rememberCoroutineScope()
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
-        if (uri != null) {
-            val text = runCatching {
-                ctx.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-            }.getOrNull()
-            val ok = text != null && Backup.import(ctx, text)
+        if (uri != null) importScope.launch {
+            // M737 (audit K11): read (at most Backup.MAX_BYTES — a video picked by mistake is not read
+            // into memory) and restore off the main thread; only the result comes back to it
+            val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val text = runCatching {
+                    ctx.contentResolver.openInputStream(uri)?.use { ins ->
+                        val buf = java.io.ByteArrayOutputStream()
+                        val chunk = ByteArray(64 * 1024)
+                        while (true) {
+                            val n = ins.read(chunk)
+                            if (n < 0) break
+                            buf.write(chunk, 0, n)
+                            if (buf.size() > Backup.MAX_BYTES) return@use null
+                        }
+                        buf.toString("UTF-8")
+                    }
+                }.getOrNull()
+                text != null && Backup.import(ctx, text)
+            }
             Toast.makeText(
                 ctx, ctx.getString(if (ok) R.string.backup_imported else R.string.backup_failed),
                 Toast.LENGTH_LONG

@@ -98,6 +98,18 @@ internal class VlcEngine(
         player.setEventListener(events)   // M650: VlcEvents.kt
     }
 
+    private fun stoppingAdd(mp: MediaPlayer) { runCatching { stopping.add(mp) } }
+    private fun stoppingRemove(mp: MediaPlayer) { runCatching { stopping.remove(mp) } }
+
+    /**
+     * M737 (audit K6): libVLC's get_time / get_length / get_position / is_seekable take the input
+     * lock that stop() holds while the input thread winds down. stop() runs on a worker thread
+     * (teardown, the paused HTTP live drop), but the subtitle overlay (every 40 ms), the DVR tickers and
+     * the controls kept reading the clock on the MAIN thread — on a box whose audio decoder hangs that
+     * was an ANR / "Activity destroy timeout". true = do not touch the player now.
+     */
+    val quiet: Boolean get() = !ready || tornDown || isStopping(player)
+
     /** Replaces libVLC + MediaPlayer with new ones; releases the old ones on a worker thread. */
     fun recreate() {
         if (ready) {
@@ -178,9 +190,10 @@ internal class VlcEngine(
         val appCtx = ctx.applicationContext
         runCatching { mp.setEventListener(null) }
         val destroyed = destroyedLatch
+        stoppingAdd(mp)   // M737: the UI tickers stop reading the clock while this stop() runs
         val worker = Thread({
             val t0 = SystemClock.elapsedRealtime()
-            runCatching { mp.stop() }
+            try { runCatching { mp.stop() } } finally { stoppingRemove(mp) }
             // release() only after onDestroy — until then UI loops/handlers may still turn
             // to the (already stopped) player, and a call on a released object
             // would throw IllegalStateException.
@@ -227,6 +240,9 @@ internal class VlcEngine(
 
         /** M730: players whose [stopAsync] has not returned yet — [releaseVlc] waits for them (bounded). */
         private val stopping: MutableSet<MediaPlayer> = java.util.Collections.synchronizedSet(HashSet())
+
+        /** M737: a stop() of [mp] runs on another thread right now (stopAsync / teardown). */
+        fun isStopping(mp: MediaPlayer): Boolean = stopping.contains(mp)
 
         /**
          * Issue #32: stops [mp] OFF the main thread. `stop()` is synchronous and can hang on a box whose

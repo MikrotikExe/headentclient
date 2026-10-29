@@ -20,16 +20,21 @@ object StreamUrlBuilder {
     private const val STREAM_CH = "stream/channel/"
     private const val STREAM_CHID = "stream/channelid/"
 
-    private fun encode(s: String): String = buildString {
-        for (c in s) {
-            when {
-                c.isLetterOrDigit() || c in "-_.~" -> append(c)
-                else -> append('%').append(
-                    c.code.toString(16).uppercase().padStart(2, '0')
-                )
-            }
+    /**
+     * RFC 3986 percent-encoding of the UTF-8 bytes. M737 (audit K5): it encoded the UTF-16 code of a
+     * character ("€" -> "%20AC" = " AC", "§" -> "%A7" = a Latin-1 byte) and let non-ASCII letters
+     * through raw, so a password with such characters failed (401) on direct HTTP playback and
+     * recordings while the API (header auth) worked.
+     */
+    internal fun encode(s: String): String = buildString {
+        for (b in s.encodeToByteArray()) {
+            val v = b.toInt() and 0xFF
+            val c = v.toChar()
+            if ((c in 'A'..'Z') || (c in 'a'..'z') || (c in '0'..'9') || c == '-' || c == '_' || c == '.' || c == '~') append(c)
+            else { append('%'); append(HEX[v ushr 4]); append(HEX[v and 0x0F]) }
         }
     }
+    private const val HEX = "0123456789ABCDEF"
 
     private fun withCreds(server: TvhServer, fullUrl: String): String {
         if (server.username.isEmpty()) return fullUrl

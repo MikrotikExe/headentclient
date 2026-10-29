@@ -49,6 +49,10 @@ class DvbSubtitleDecoder {
     private var pageVersion = -1
 
     // display definition (resolution of the subtitle surface); default 720x576
+    /** M737: the largest plausible display / region side and area (DVB HD is 1920×1080). */
+    private val MAX_DIM = 4096
+    private val MAX_AREA = 1920 * 1080 * 2
+
     private var ddsW = 720
     private var ddsH = 576
     private var ddsX = 0
@@ -69,7 +73,13 @@ class DvbSubtitleDecoder {
      * segments 0x0F ...). Returns the composed page, or null if the set did not end the display
      * (0x80 missing) — in practice HTSP sends a complete set, so it always returns one.
      */
-    fun decode(pts: Long, data: ByteArray): DecodedPage? {
+    fun decode(pts: Long, data: ByteArray): DecodedPage? =
+        // M737 (audit K9): a damaged subtitle packet (weak DVB-T signal; the server passes damaged
+        // payloads through) used to throw out of here and end the whole live stream, not only the
+        // subtitles. A broken display-set is dropped and the decoder starts clean.
+        try { decodeSet(pts, data) } catch (e: Exception) { reset(); null } catch (e: OutOfMemoryError) { reset(); null }
+
+    private fun decodeSet(pts: Long, data: ByteArray): DecodedPage? {
         var i = 0
         var produced: DecodedPage? = null
         while (i + 6 <= data.size) {
@@ -126,6 +136,8 @@ class DvbSubtitleDecoder {
         var fill = (b ushr 3) and 1
         val width = ((d[p].toInt() and 0xFF) shl 8) or (d[p + 1].toInt() and 0xFF); p += 2
         val height = ((d[p].toInt() and 0xFF) shl 8) or (d[p + 1].toInt() and 0xFF); p += 2
+        // M737: sizes come straight from the stream — a damaged segment must not allocate gigabytes
+        if (width <= 0 || height <= 0 || width > MAX_DIM || height > MAX_DIM || width * height > MAX_AREA) return
         region.width = width
         region.height = height
         if (width * height != region.pbuf.size) {
@@ -236,6 +248,10 @@ class DvbSubtitleDecoder {
             val yMax = ((d[p].toInt() and 0xFF) shl 8) or (d[p + 1].toInt() and 0xFF); p += 2
             ddsX = xMin; ddsW = xMax - xMin + 1
             ddsY = yMin; ddsH = yMax - yMin + 1
+        }
+        // M737: a nonsense display definition (xMax < xMin, damaged sizes) -> the SD default
+        if (ddsW <= 0 || ddsH <= 0 || ddsW > MAX_DIM || ddsH > MAX_DIM || ddsW * ddsH > MAX_AREA) {
+            ddsX = 0; ddsY = 0; ddsW = 720; ddsH = 576
         }
     }
 

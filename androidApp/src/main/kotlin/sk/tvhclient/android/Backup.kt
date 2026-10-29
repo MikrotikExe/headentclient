@@ -35,35 +35,99 @@ object Backup {
         return root.toString(2)
     }
 
-    /** Returns true if the restore succeeded. */
+    /** M737: a backup larger than this is not a backup (a video picked by mistake) — refused before reading. */
+    const val MAX_BYTES = 5 * 1024 * 1024
+
+    /**
+     * Returns true if the restore succeeded. Call OFF the main thread.
+     *
+     * M737 (audit K11): the whole document is parsed and checked FIRST, and only a valid one is
+     * applied. Until now the servers were deleted before anything was checked: a file without a
+     * "servers" array wiped every server and reported success, a malformed entry left the servers
+     * gone and half of the settings overwritten, and a value of the wrong type (a hand-edited
+     * backup, or one from a version that changed a key) crashed the app at every start.
+     */
     fun import(ctx: Context, text: String): Boolean {
+        val plan = runCatching { parse(ctx, text) }.getOrNull() ?: return false
         return try {
-            val root = JSONObject(text)
-            if (root.optString("app") != "tvhclient") return false
-
-            // servers: delete the existing ones, add those from the backup
             Tvh.store.list().map { it.id }.forEach { Tvh.store.delete(it) }
-            val arr = root.optJSONArray("servers")
-            if (arr != null) {
-                for (i in 0 until arr.length()) {
-                    Tvh.store.upsert(jsonToServer(arr.getJSONObject(i)))
-                }
-            }
-            val active = root.opt("activeServerId")
-            if (active is String && active.isNotBlank()) Tvh.store.activeId = active
-
-            // SharedPreferences
-            val prefs = root.optJSONObject("prefs")
-            if (prefs != null) {
-                for (name in PREF_FILES) {
-                    val o = prefs.optJSONObject(name) ?: continue
-                    jsonToPrefs(ctx, name, o)
-                }
-            }
+            plan.servers.forEach { Tvh.store.upsert(it) }
+            Tvh.store.activeId = plan.activeId
+            for ((name, values) in plan.prefs) applyPrefs(ctx, name, values)
             true
         } catch (e: Exception) {
+            CrashLogger.report(ctx, "Backup.import", e)
             false
         }
+    }
+
+    private class Plan(val servers: List<TvhServer>, val activeId: String, val prefs: Map<String, Map<String, Any>>)
+
+    /** The checked content of a backup, or null when it is not a usable one. */
+    private fun parse(ctx: Context, text: String): Plan? {
+        val root = JSONObject(text)
+        if (root.optString("app") != "tvhclient") return null
+        val arr = root.optJSONArray("servers") ?: return null
+        val servers = ArrayList<TvhServer>()
+        val ids = HashSet<String>()
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: return null
+            val s = jsonToServer(o)
+            if (s.id.isBlank() || s.host.isBlank() || !ids.add(s.id)) return null
+            servers.add(s)
+        }
+        if (servers.isEmpty()) return null   // restoring "no servers" over working ones is never what was meant
+        val wanted = (root.opt("activeServerId") as? String)?.takeIf { it in ids }
+        val prefs = LinkedHashMap<String, Map<String, Any>>()
+        val po = root.optJSONObject("prefs")
+        if (po != null) for (name in PREF_FILES) {
+            val o = po.optJSONObject(name) ?: continue
+            prefs[name] = parsePrefs(ctx, name, o)
+        }
+        return Plan(servers, wanted ?: servers.first().id, prefs)
+    }
+
+    /**
+     * Typed values of one prefs file. A key whose value is malformed, or whose type differs from the
+     * type the app holds for it right now, is skipped (the app reads each key with one fixed type —
+     * a wrong one throws ClassCastException at the read).
+     */
+    private fun parsePrefs(ctx: Context, name: String, o: JSONObject): Map<String, Any> {
+        val current = ctx.getSharedPreferences(name, Context.MODE_PRIVATE).all
+        val out = LinkedHashMap<String, Any>()
+        val keys = o.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            val e = o.optJSONObject(key) ?: continue
+            val v: Any = runCatching<Any?> {
+                when (e.optString("t")) {
+                    "b" -> e.getBoolean("v")
+                    "i" -> e.getInt("v")
+                    "l" -> e.getLong("v")
+                    "f" -> e.getDouble("v").toFloat()
+                    "s" -> e.getString("v")
+                    "ss" -> {
+                        val a = e.getJSONArray("v")
+                        HashSet<String>().also { set -> for (i in 0 until a.length()) set.add(a.getString(i)) }
+                    }
+                    else -> null
+                }
+            }.getOrNull() ?: continue
+            val cur = current[key]
+            if (cur != null && !sameType(cur, v)) continue
+            out[key] = v
+        }
+        return out
+    }
+
+    private fun sameType(a: Any, b: Any): Boolean = when (a) {
+        is Boolean -> b is Boolean
+        is Int -> b is Int
+        is Long -> b is Long
+        is Float -> b is Float
+        is String -> b is String
+        is Set<*> -> b is Set<*>
+        else -> false
     }
 
     private fun serverToJson(s: TvhServer) = JSONObject().apply {
@@ -118,27 +182,17 @@ object Backup {
         return out
     }
 
-    private fun jsonToPrefs(ctx: Context, name: String, o: JSONObject) {
-        val sp = ctx.getSharedPreferences(name, Context.MODE_PRIVATE)
-        val ed = sp.edit()
+    @Suppress("UNCHECKED_CAST")
+    private fun applyPrefs(ctx: Context, name: String, values: Map<String, Any>) {
+        val ed = ctx.getSharedPreferences(name, Context.MODE_PRIVATE).edit()
         ed.clear()
-        val keys = o.keys()
-        while (keys.hasNext()) {
-            val key = keys.next()
-            val e = o.getJSONObject(key)
-            when (e.optString("t")) {
-                "b" -> ed.putBoolean(key, e.getBoolean("v"))
-                "i" -> ed.putInt(key, e.getInt("v"))
-                "l" -> ed.putLong(key, e.getLong("v"))
-                "f" -> ed.putFloat(key, e.getDouble("v").toFloat())
-                "s" -> ed.putString(key, e.getString("v"))
-                "ss" -> {
-                    val arr = e.getJSONArray("v")
-                    val set = HashSet<String>()
-                    for (i in 0 until arr.length()) set.add(arr.getString(i))
-                    ed.putStringSet(key, set)
-                }
-            }
+        for ((key, v) in values) when (v) {
+            is Boolean -> ed.putBoolean(key, v)
+            is Int -> ed.putInt(key, v)
+            is Long -> ed.putLong(key, v)
+            is Float -> ed.putFloat(key, v)
+            is String -> ed.putString(key, v)
+            is Set<*> -> ed.putStringSet(key, v as Set<String>)
         }
         // commit (synchronous) – so the data is on disk even on an immediate restart
         ed.commit()
