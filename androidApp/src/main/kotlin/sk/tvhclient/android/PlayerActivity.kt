@@ -1249,7 +1249,8 @@ class PlayerActivity : ComponentActivity() {
         if (directUrl == null && channelUuid != null && LivePlaylist.channels.isNotEmpty()) {
             live.uuids = LivePlaylist.channels.map { it.uuid }
             live.names = LivePlaylist.channels.map { it.name }
-            live.index = LivePlaylist.index.takeIf { it in live.uuids.indices }
+            // M740 (audit B13): the remembered index only when it really points at the opened channel
+            live.index = LivePlaylist.index.takeIf { it in live.uuids.indices && live.uuids[it] == channelUuid }
                 ?: live.uuids.indexOf(channelUuid)
             live.server = server
             switcher.saveLastLive(server.id, channelUuid)

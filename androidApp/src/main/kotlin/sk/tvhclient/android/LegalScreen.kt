@@ -118,8 +118,14 @@ internal fun LegalScreen(doc: LegalDoc, modifier: Modifier = Modifier, onBack: (
 }
 
 object LegalText {
-    fun privacy(lang: String): LegalDoc = if (lang == "en") PRIVACY_EN else PRIVACY_SK
-    fun terms(lang: String): LegalDoc = if (lang == "en") TERMS_EN else TERMS_SK
+    // M740 (audit F12): Slovak only for Slovak/Czech readers — "" (the app follows the system) resolves
+    // to the system language; every other language gets the English text (it was Slovak for all but "en")
+    private fun slovak(lang: String): Boolean {
+        val l = lang.ifBlank { java.util.Locale.getDefault().language }
+        return l == "sk" || l == "cs"
+    }
+    fun privacy(lang: String): LegalDoc = if (slovak(lang)) PRIVACY_SK else PRIVACY_EN
+    fun terms(lang: String): LegalDoc = if (slovak(lang)) TERMS_SK else TERMS_EN
 
     private val PRIVACY_SK = LegalDoc(
         title = "Zásady ochrany osobných údajov",

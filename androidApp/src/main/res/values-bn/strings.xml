@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">একটি রেকর্ডিং টিউনারটি নিয়ে নিয়েছে। টিউনার খালি হলে প্লেব্যাক চলবে।</string>
     <!-- M715 -->
     <string name="timers_no_day">কোনো দিন নয়</string>
+    <string name="dur_min">%1$d মিনিট</string>
+    <string name="dur_hours">%1$d ঘণ্টা</string>
 </resources>

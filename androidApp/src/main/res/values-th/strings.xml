@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">การบันทึกใช้จูนเนอร์อยู่ การเล่นจะดำเนินต่อเมื่อจูนเนอร์ว่าง</string>
     <!-- M715 -->
     <string name="timers_no_day">ไม่มีวัน</string>
+    <string name="dur_min">%1$d นาที</string>
+    <string name="dur_hours">%1$d ชม.</string>
 </resources>

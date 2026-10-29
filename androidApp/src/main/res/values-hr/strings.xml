@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">Snimanje je preuzelo tuner. Reprodukcija će se nastaviti kad se tuner oslobodi.</string>
     <!-- M715 -->
     <string name="timers_no_day">Nijedan dan</string>
+    <string name="dur_min">%1$d min</string>
+    <string name="dur_hours">%1$d h</string>
 </resources>

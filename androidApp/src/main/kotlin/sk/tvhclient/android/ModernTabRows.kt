@@ -152,7 +152,7 @@ internal fun ModernChannelTabRow(
             }
             val left = if (nowStop > nowSec && nowStart > 0) ((nowStop - nowSec) / 60).toInt() else null
             if (left != null) {
-                Text("$left min", color = cs.onSurfaceVariant, fontSize = 12.sp)
+                Text(stringResource(R.string.mh_left, left), color = cs.onSurfaceVariant, fontSize = 12.sp)   // M740
             }
         }
     }

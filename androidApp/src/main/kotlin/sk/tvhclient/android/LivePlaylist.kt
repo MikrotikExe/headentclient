@@ -104,6 +104,22 @@ object LivePlaylist {
     @Volatile
     var index: Int = -1
 
+    /**
+     * M740 (audit B13): a plain list without groups (the EPG grid, the phone home, the mini radio).
+     * Those writers used to replace only [channels] and left allChannels / groups / the active group
+     * of a previous context: the player then showed another group's label, its group cycling and
+     * search went back to that other list, and hidden channels became zappable after the grid.
+     */
+    fun setFlat(list: List<LiveChannel>, hidden: Set<String> = emptySet()) {
+        val visible = if (hidden.isEmpty()) list else list.filter { it.uuid !in hidden }
+        allChannels = visible
+        channels = visible
+        groups = emptyList()
+        activeGroupKey = GROUP_ALL
+        hiddenChannels = if (hidden.isEmpty()) emptyList() else list.filter { it.uuid in hidden }
+        index = -1
+    }
+
     fun setIndexForUuid(uuid: String?) {
         index = if (uuid == null) -1 else channels.indexOfFirst { it.uuid == uuid }
     }

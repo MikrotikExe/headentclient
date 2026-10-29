@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">Bir kayıt tuner\'ı aldı. Tuner boşaldığında oynatma devam edecek.</string>
     <!-- M715 -->
     <string name="timers_no_day">Hiçbir gün</string>
+    <string name="dur_min">%1$d dk</string>
+    <string name="dur_hours">%1$d sa</string>
 </resources>

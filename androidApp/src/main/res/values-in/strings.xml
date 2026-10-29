@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">Rekaman mengambil alih tuner. Pemutaran akan berlanjut saat tuner kosong.</string>
     <!-- M715 -->
     <string name="timers_no_day">Tidak ada hari</string>
+    <string name="dur_min">%1$d mnt</string>
+    <string name="dur_hours">%1$d jam</string>
 </resources>

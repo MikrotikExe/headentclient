@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">एक रिकॉर्डिंग ने ट्यूनर ले लिया है। ट्यूनर खाली होने पर प्लेबैक जारी रहेगा।</string>
     <!-- M715 -->
     <string name="timers_no_day">कोई दिन नहीं</string>
+    <string name="dur_min">%1$d मिनट</string>
+    <string name="dur_hours">%1$d घंटे</string>
 </resources>

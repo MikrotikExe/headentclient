@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">Een opname heeft de tuner overgenomen. Het afspelen gaat verder zodra de tuner vrij is.</string>
     <!-- M715 -->
     <string name="timers_no_day">Geen dag</string>
+    <string name="dur_min">%1$d min</string>
+    <string name="dur_hours">%1$d uur</string>
 </resources>

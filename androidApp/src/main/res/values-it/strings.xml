@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">Una registrazione ha occupato il sintonizzatore. La riproduzione riprenderà quando sarà libero.</string>
     <!-- M715 -->
     <string name="timers_no_day">Nessun giorno</string>
+    <string name="dur_min">%1$d min</string>
+    <string name="dur_hours">%1$d h</string>
 </resources>

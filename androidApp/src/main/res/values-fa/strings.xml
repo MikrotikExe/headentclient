@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">یک ضبط گیرنده را گرفته است. پخش وقتی گیرنده آزاد شود ادامه می‌یابد.</string>
     <!-- M715 -->
     <string name="timers_no_day">هیچ روزی</string>
+    <string name="dur_min">%1$d دقیقه</string>
+    <string name="dur_hours">%1$d ساعت</string>
 </resources>

@@ -88,6 +88,15 @@ object RadioCenter {
         val name = stationName.value
         if (uuid.isBlank()) return
         stop(context)
+        // M740 (audit B13): the full player gets the station list (it used to inherit whatever list the
+        // Channels tab left — TV channels with a stale index, and BACK handed a TV channel to the radio)
+        if (stations.isNotEmpty()) {
+            LivePlaylist.setFlat(stations.mapIndexed { i, st ->
+                LivePlaylist.LiveChannel(uuid = st.uuid, name = st.name, number = i + 1, piconUrl = st.picon,
+                    nowTitle = st.nowTitle, nowStart = st.nowStart, nowStop = st.nowStop)
+            })
+            LivePlaylist.setIndexForUuid(uuid)
+        }
         context.startActivity(Intent(context, PlayerActivity::class.java).apply {
             putExtra(PlayerActivity.EXTRA_UUID, uuid)
             putExtra(PlayerActivity.EXTRA_TITLE, name)

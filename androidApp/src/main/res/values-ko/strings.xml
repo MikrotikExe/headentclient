@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">녹화가 튜너를 사용 중입니다. 튜너가 비면 재생이 계속됩니다.</string>
     <!-- M715 -->
     <string name="timers_no_day">요일 없음</string>
+    <string name="dur_min">%1$d분</string>
+    <string name="dur_hours">%1$d시간</string>
 </resources>

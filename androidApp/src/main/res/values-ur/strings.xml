@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">ایک ریکارڈنگ نے ٹیونر لے لیا ہے۔ ٹیونر فارغ ہونے پر پلے بیک جاری رہے گا۔</string>
     <!-- M715 -->
     <string name="timers_no_day">کوئی دن نہیں</string>
+    <string name="dur_min">%1$d منٹ</string>
+    <string name="dur_hours">%1$d گھنٹے</string>
 </resources>

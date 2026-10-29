@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">Eine Aufnahme hat den Tuner übernommen. Die Wiedergabe geht weiter, sobald er frei ist.</string>
     <!-- M715 -->
     <string name="timers_no_day">Kein Tag</string>
+    <string name="dur_min">%1$d Min.</string>
+    <string name="dur_hours">%1$d Std.</string>
 </resources>

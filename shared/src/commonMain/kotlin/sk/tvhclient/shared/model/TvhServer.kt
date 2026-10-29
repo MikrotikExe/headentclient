@@ -28,6 +28,8 @@ data class TvhServer(
     val baseUrl: String
         get() {
             val scheme = if (useHttps) "https" else "http"
-            return "$scheme://$host:$port"
+            // M740: an IPv6 literal needs brackets in a URL ("fd00::10" -> "[fd00::10]")
+            val h = if (host.contains(':') && !host.startsWith("[")) "[$host]" else host
+            return "$scheme://$h:$port"
         }
 }

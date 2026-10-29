@@ -26,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,7 +79,7 @@ fun EpgScreen(channelUuid: String, channelName: String, onBack: () -> Unit) {
             }
             state = EpgState.Loaded(events)
         } catch (e: Exception) {
-            state = EpgState.Error(ConnLimitText.of(context, e.message) ?: e.message ?: "Error")   // M692
+            state = EpgState.Error(ConnLimitText.of(context, e.message) ?: e.message ?: context.getString(R.string.load_error))   // M692 / M740
         }
     }
 
@@ -147,9 +148,15 @@ private fun EpgList(events: List<EpgEvent>, onClick: (EpgEvent) -> Unit) {
 
 @Composable
 private fun EpgRow(ev: EpgEvent, isNow: Boolean, onClick: () -> Unit) {
+    // M740 (audit F16): the D-pad focus ring like every other list, and the running programme takes
+    // the focus when the screen opens (on TV nothing was focused and no row showed where the focus was)
+    val fr = remember { androidx.compose.ui.focus.FocusRequester() }
+    if (isNow) LaunchedEffect(Unit) { runCatching { fr.requestFocus() } }
     Row(
         Modifier
             .fillMaxWidth()
+            .focusRequester(fr)
+            .dpadFocusable()
             .clickable { onClick() }
             .background(if (isNow) Color(0x22FFFFFF) else Color.Transparent)
             .padding(horizontal = 12.dp, vertical = 8.dp)

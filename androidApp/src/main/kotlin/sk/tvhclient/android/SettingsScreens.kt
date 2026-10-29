@@ -996,9 +996,9 @@ internal fun ParentalSettings(ctx: android.content.Context) {
     val graceLabel: @Composable (String) -> String = { v ->
         when (v) {
             "0" -> stringResource(R.string.plock_grace_always)
-            "60" -> "1 h"
-            "120" -> "2 h"
-            else -> "$v min"
+            "60" -> stringResource(R.string.dur_hours, 1)   // M740: translated units
+            "120" -> stringResource(R.string.dur_hours, 2)
+            else -> stringResource(R.string.dur_min, v.toIntOrNull() ?: 0)
         }
     }
     DropdownField(

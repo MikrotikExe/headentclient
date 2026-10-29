@@ -168,6 +168,8 @@ class TvhApi(
             401, 403 -> ConnectionResult.AuthFailed(resp.status.value)
             else -> ConnectionResult.HttpError(resp.status.value)
         }
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e   // M740
     } catch (e: Exception) {
         ConnectionResult.NetworkError(e.message ?: e::class.simpleName ?: "unknown")
     }

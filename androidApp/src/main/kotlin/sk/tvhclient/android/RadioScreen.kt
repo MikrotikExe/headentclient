@@ -706,7 +706,9 @@ internal fun playRadio(
     epgStop: Long = row.nowStop
 ) {
     val server = Tvh.store.active() ?: return
-    LivePlaylist.channels = allRows.map {
+    // M740 (audit B13): the whole playlist state is the station list (search and group cycling in the
+    // player read allChannels / groups, which still held the TV list)
+    LivePlaylist.setFlat(allRows.map {
         LivePlaylist.LiveChannel(
             uuid = it.channel.uuid,
             name = it.channel.name,
@@ -716,7 +718,7 @@ internal fun playRadio(
             nowStart = it.nowStart,
             nowStop = it.nowStop
         )
-    }
+    })
     LivePlaylist.setIndexForUuid(row.channel.uuid)
     LastRadio.set(context, server.id, row.channel.uuid)
     // M340: on a phone the radio plays through the mini player (a foreground service + a bar

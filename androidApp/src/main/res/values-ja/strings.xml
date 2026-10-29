@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">録画がチューナーを使用しています。チューナーが空くと再生が再開されます。</string>
     <!-- M715 -->
     <string name="timers_no_day">曜日なし</string>
+    <string name="dur_min">%1$d分</string>
+    <string name="dur_hours">%1$d時間</string>
 </resources>

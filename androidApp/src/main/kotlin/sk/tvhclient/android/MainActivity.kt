@@ -77,6 +77,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.core.view.WindowCompat
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
@@ -319,9 +320,13 @@ private fun TvHomeHost() {
     // M397: we consume the signal ALREADY DURING composition — LaunchedEffect only ran after
     // the first frame, so when opening the TV guide from the player the intro flashed up.
     // Reading epgSigTv ensures a recomposition on a warm onNewIntent too.
+    // M740: the section the guide was opened from ("channels" in the list-only tile mode) — BACK returns there
+    var epgFromSection by remember { mutableStateOf("") }
     if (epgSigTv > 0 && TabController.epgPending) {
         TabController.epgPending = false
-        if (section != "epg") section = "epg"
+        // M740 (audit R12): not out of a settings form with unsaved changes (BACK there asks first)
+        val dirty = section == "settings" && TabController.settingsDirtyUnsaved.value
+        if (!dirty && section != "epg") { epgFromSection = if (section == "channels" || section == "radio") section else ""; section = "epg" }
     }
     var lastTile by remember { mutableStateOf("channels") }
     var play by remember { mutableStateOf("") }
@@ -349,6 +354,10 @@ private fun TvHomeHost() {
         if (reqTabTv !in 0..3) return@LaunchedEffect
         val t = reqTabTv
         TabController.requested.value = -1
+        // M740 (audit R12): a settings form with unsaved changes is not left by a coloured key —
+        // the changes would be lost without the "leave without saving?" question BACK asks
+        if (section == "settings" && t != 3 &&
+            TabController.settingsDirtyUnsaved.value) return@LaunchedEffect
         when (t) {
             0 -> {   // Channels: the player with the last channel (the same as the tile)
                 lastTile = "channels"; section = ""
@@ -587,7 +596,7 @@ private fun TvHomeHost() {
                         section = ""
                     }
                 } else {
-                    section = ""
+                    section = epgFromSection; epgFromSection = ""   // M740 (audit F15): back to the list it came from
                 }
             }
             androidx.activity.compose.BackHandler { epgBack() }
@@ -781,6 +790,9 @@ private fun TvExitDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
                         KeyEventType.KeyDown -> when (code) {
                             android.view.KeyEvent.KEYCODE_DPAD_LEFT -> { sel = 0; true }
                             android.view.KeyEvent.KEYCODE_DPAD_RIGHT -> { sel = 1; true }
+                            // M740 (audit B10): the overlay is not a window — UP/DOWN moved the focus to the
+                            // home tiles behind it and OK then opened a channel while the dialog stayed
+                            android.view.KeyEvent.KEYCODE_DPAD_UP, android.view.KeyEvent.KEYCODE_DPAD_DOWN -> true
                             // M268: we do the activation (OK/Enter) only on KeyUp and consume that one too.
                             // Otherwise, after the dialog is closed (Cancel), the KeyUp is passed to the home tile,
                             // whose clickable fires and opens the player by mistake. Just consume the KeyDown.
@@ -788,7 +800,7 @@ private fun TvExitDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
                         }
                         KeyEventType.KeyUp ->
                             if (activate) { if (sel == 1) onConfirm() else onCancel(); true }
-                            else false
+                            else code == android.view.KeyEvent.KEYCODE_DPAD_UP || code == android.view.KeyEvent.KEYCODE_DPAD_DOWN
                         else -> false   // BACK is left to close it via BackHandler
                     }
                 },
@@ -809,6 +821,7 @@ private fun TvExitDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
                     Modifier.clip(RoundedCornerShape(12.dp))
                         .background(if (sel == 0) Color(0x553B82F6) else Color.Transparent)
                         .border(1.dp, if (sel == 0) Color(0xFF3B82F6) else Color(0x33FFFFFF), RoundedCornerShape(12.dp))
+                        .focusProperties { canFocus = false }   // M740: touch only, the dialog holds the focus
                         .clickable { onCancel() }
                         .padding(horizontal = 22.dp, vertical = 12.dp)
                 ) {
@@ -820,6 +833,7 @@ private fun TvExitDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
                     Modifier.clip(RoundedCornerShape(12.dp))
                         .background(if (sel == 1) Color(0x55FF6B6B) else Color.Transparent)
                         .border(1.dp, if (sel == 1) Color(0xFFFF6B6B) else Color(0x33FFFFFF), RoundedCornerShape(12.dp))
+                        .focusProperties { canFocus = false }
                         .clickable { onConfirm() }
                         .padding(horizontal = 22.dp, vertical = 12.dp)
                 ) {
@@ -938,20 +952,21 @@ fun AppMain(initialTab: Int = 0, onExitToHome: (() -> Unit)? = null) {
     val reqTab by TabController.requested
     LaunchedEffect(reqTab) {
         if (reqTab in 0..3) {
-            when (reqTab) {
-                0 -> { resetCh++; tab = chIdx }
-                1 -> { resetRadio++; tab = radioIdx }
-                2 -> { resetDvr++; tab = dvrIdx }
-                3 -> { resetSet++; tab = setIdx }
-                else -> tab = reqTab
+            // M740 (audit R12): the coloured keys go through the same "unsaved changes" guard as the tabs
+            val go: () -> Unit = when (reqTab) {
+                0 -> { { resetCh++; tab = chIdx } }
+                1 -> { { resetRadio++; tab = radioIdx } }
+                2 -> { { resetDvr++; tab = dvrIdx } }
+                else -> { { resetSet++; tab = setIdx } }
             }
+            if (reqTab == 3) go() else guardLeave(go)
             TabController.requested.value = -1
         }
     }
 
     // EPG key -> switch to Channels (without a reset, so that the grid stays open)
     val epgSig by TabController.epgGrid
-    LaunchedEffect(epgSig) { if (epgSig > 0) tab = chIdx }
+    LaunchedEffect(epgSig) { if (epgSig > 0 && tab != chIdx) guardLeave { tab = chIdx } }   // M740: guarded too
 
     // M573: a deep link to a channel (a favourite's shortcut on a phone). The player needs
     // a populated LivePlaylist, which is why it waits for the channels to load (the same ViewModel

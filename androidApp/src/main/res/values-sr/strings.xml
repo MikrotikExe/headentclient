@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">Снимање је преузело тјунер. Репродукција ће се наставити када се тјунер ослободи.</string>
     <!-- M715 -->
     <string name="timers_no_day">Ниједан дан</string>
+    <string name="dur_min">%1$d мин</string>
+    <string name="dur_hours">%1$d ч</string>
 </resources>

@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">استحوذ تسجيل على الموالف. سيستمر التشغيل عندما يصبح الموالف متاحًا.</string>
     <!-- M715 -->
     <string name="timers_no_day">لا يوم</string>
+    <string name="dur_min">%1$d د</string>
+    <string name="dur_hours">%1$d س</string>
 </resources>

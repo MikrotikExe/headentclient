@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">Тюнер зайнято записом. Відтворення продовжиться, коли тюнер звільниться.</string>
     <!-- M715 -->
     <string name="timers_no_day">Жодного дня</string>
+    <string name="dur_min">%1$d хв</string>
+    <string name="dur_hours">%1$d год</string>
 </resources>

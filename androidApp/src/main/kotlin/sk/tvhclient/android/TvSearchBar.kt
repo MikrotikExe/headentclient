@@ -45,6 +45,8 @@ fun TvSearchBar(
     onUp: () -> Unit = {}
 ) {
     var editing by remember { mutableStateOf(false) }
+    // M740 (audit R13): the comment promised it, nothing did it — after typing the focus was lost
+    var wasEditing by remember { mutableStateOf(false) }
 
     if (editing) {
         val imeFocus = remember { FocusRequester() }
@@ -64,8 +66,11 @@ fun TvSearchBar(
                     ) { editing = false; true } else false
                 }
         )
-        LaunchedEffect(Unit) { runCatching { imeFocus.requestFocus() } }
+        LaunchedEffect(Unit) { runCatching { imeFocus.requestFocus() }; wasEditing = true }
     } else {
+        LaunchedEffect(editing) {
+            if (wasEditing) { wasEditing = false; kotlinx.coroutines.delay(50); runCatching { focusRequester.requestFocus() } }
+        }
         // Return focus to the field after the keyboard closes (so it does not hang)
         // modern mode: a pill with a subtle background; classic: the original border
         val modern = isModernUi()

@@ -311,9 +311,13 @@ fun EpgGridScreen(
         }
     }
     // The channel list for zapping and the list in the player (CH+/CH-, overlay)
+    // M740 (audit B13): the grid's list goes to the player only when the player is started FROM the
+    // grid (playFromGrid) — writing it on every composition replaced the Channels list's groups too
+    val gridPlaylist = remember { mutableStateOf<List<LivePlaylist.LiveChannel>>(emptyList()) }
+    val playFromGrid: () -> Unit = { LivePlaylist.setFlat(gridPlaylist.value, HiddenChannels.all(context, server?.id)) }
     LaunchedEffect(rows) {
         val nowS = System.currentTimeMillis() / 1000
-        LivePlaylist.channels = rows.map { r ->
+        gridPlaylist.value = (rows.map { r ->
             val cur = seed[r.channel.uuid]?.firstOrNull { it.isCurrentAt(nowS) }
             val nt = (cur?.title?.ifBlank { null }) ?: r.nowTitle ?: ""
             val ns = cur?.start ?: r.nowStart
@@ -327,7 +331,7 @@ fun EpgGridScreen(
                 nowStart = ns,
                 nowStop = ne
             )
-        }
+        })
     }
     val loader = remember(server?.id) { PiconImageLoader.get(context, server) }
 
@@ -905,11 +909,12 @@ fun EpgGridScreen(
                         // the "now" bubble go through formatTimeHm, here it was "%02d:00"
                         // hard-coded — the only place where the 24-hour format remained.
                         val ruler12 = !ClockPref.is24(LocalContext.current)
+                        val ampm = remember { java.text.DateFormatSymbols.getInstance().amPmStrings }   // M740
                         for (h in 0 until 24) {
                             Text(
                                 if (ruler12) {
                                     val h12 = if (h % 12 == 0) 12 else h % 12
-                                    "%d:00 %s".format(h12, if (h < 12) "AM" else "PM")
+                                    "%d:00 %s".format(h12, ampm[if (h < 12) 0 else 1])   // M740: the locale's AM/PM
                                 } else "%02d:00".format(h),
                                 modifier = Modifier.width((60 * pxMin).dp).padding(start = 4.dp, bottom = 4.dp),
                                 style = MaterialTheme.typography.labelSmall,
@@ -1062,11 +1067,11 @@ fun EpgGridScreen(
                         when (d) {
                             is GridDetail.Epg ->
                                 if (radioMode && onPlayRadio != null) onPlayRadio(d.row, d.ev)
-                                else playLive(context, d.row, d.ev, radioMode)   // M587
+                                else { playFromGrid(); playLive(context, d.row, d.ev, radioMode) }   // M587 / M740
                             is GridDetail.Dvr -> playDvr(context, d.rec)
                             is GridDetail.InProgress ->
                                 if (radioMode && onPlayRadio != null) onPlayRadio(d.row, null)
-                                else playLiveChannel(context, d.row, radioMode)
+                                else { playFromGrid(); playLiveChannel(context, d.row, radioMode) }   // M740
                         }
                     },
                     onPlayFromStart = (d as? GridDetail.InProgress)?.let { ip ->
@@ -1335,13 +1340,14 @@ private fun GridDetailContent(
             }
             Spacer(Modifier.height(8.dp))
             // The meta row: channel · date · time · length
+            val durText = stringResource(R.string.dur_min, durationMin.toInt())   // M740: translated unit
             val meta = buildString {
                 append(channelName)
                 append("  ·  ")
                 append(formatDayLabel(start))
                 append("  ·  ")
                 append(formatTimeHm(start)); append(" - "); append(formatTimeHm(stop))
-                if (durationMin > 0) { append("  ·  "); append(durationMin); append(" min") }
+                if (durationMin > 0) { append("  ·  "); append(durText) }
                 if (episode.isNotBlank()) { append("  ·  "); append(episode) }
                 if (ageRating > 0) { append("  ·  "); append(ageRating); append("+") }
             }

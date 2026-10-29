@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">Запис зае тунера. Възпроизвеждането ще продължи, когато тунерът се освободи.</string>
     <!-- M715 -->
     <string name="timers_no_day">Нито един ден</string>
+    <string name="dur_min">%1$d мин</string>
+    <string name="dur_hours">%1$d ч</string>
 </resources>

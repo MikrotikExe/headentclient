@@ -225,22 +225,27 @@ fun DvrScreen(vm: DvrViewModel = viewModel(), resetSignal: Int = 0) {
             loadImdbCache(context)
         }
         imdbTick++
-        // the titles of films/series that need looking up
-        val pending = LinkedHashSet<String>()
-        for (e in s.entries) {
-            val cat = DvrClassifier.classify(e)
-            if (cat != DvrClassifier.FILM && cat != DvrClassifier.SERIAL) continue
-            val title = e.title
-            if (ImdbLookup.isCached(title) || !ImdbLookup.worthSearching(title)) continue
-            pending.add(title)
+        // the titles of films/series that need looking up — M740 (audit B12): classified off the main
+        // thread (thousands of recordings made the phone stutter)
+        val pending = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            val p = LinkedHashSet<String>()
+            for (e in s.entries) {
+                val cat = DvrClassifier.classify(e)
+                if (cat != DvrClassifier.FILM && cat != DvrClassifier.SERIAL) continue
+                val title = e.title
+                if (ImdbLookup.isCached(title) || !ImdbLookup.worthSearching(title)) continue
+                p.add(title)
+            }
+            p
         }
         var done = 0
         for (title in pending) {
             if (ImdbLookup.fetch(title)) {
                 done++
+                // M740 (audit B12): saved every 20, but the list is redrawn only at the end — every
+                // redraw rebuilt the whole Archive (key below): the list jumped to the top every ~22 s
                 if (done % 20 == 0) {
                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { saveImdbCache(context) }
-                    imdbTick++  // incremental redraw
                 }
                 kotlinx.coroutines.delay(1100)  // IMDb rate-limit
             }
@@ -991,6 +996,7 @@ private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int, o
         Column(Modifier.weight(1f)) {
             Text(entry.title, style = MaterialTheme.typography.titleSmall,
                 maxLines = 2, overflow = TextOverflow.Ellipsis)
+            val minText = stringResource(R.string.dur_min, (entry.durationSec / 60).toInt())   // M740
             val meta = buildString {
                 if (entry.channelName.isNotBlank()) append(entry.channelName)
                 if (entry.start > 0) {
@@ -1000,7 +1006,7 @@ private fun RecordingRow(entry: DvrEntry, context: Context, progressTick: Int, o
                 val mins = entry.durationSec / 60
                 if (mins > 0) {
                     if (isNotEmpty()) append("  ·  ")
-                    append("$mins min")
+                    append(minText)
                 }
             }
             if (meta.isNotBlank()) {
@@ -1419,7 +1425,9 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
                         val res = if (q.isBlank()) emptyList()
                             else entries.filter { normalizeSearch(it.dispTitle).contains(q) || normalizeSearch(it.channelName).contains(q) }
                                 .sortedByDescending { it.start }
-                        ArcRecGrid(res, loaded, loader, context, progressTick)
+                        // M740 (audit B11): the results never take the focus — every keystroke changed the
+                        // first card, which grabbed the focus from the text field and closed the keyboard
+                        ArcRecGrid(res, loaded, loader, context, progressTick, autoFocus = false)
                     }
                     selKey == "_channels" && selChannel == null -> {
                         ArcFolderHeader(stringResource(R.string.dvr_by_channel))
@@ -1489,14 +1497,18 @@ fun TvArchiveScreen(vm: DvrViewModel = viewModel(), onBack: () -> Unit) {
 @Composable
 private fun ColumnScope.ArcRecGrid(list: List<DvrEntry>, loaded: DvrState.Loaded, loader: coil.ImageLoader, context: Context, progressTick: Int,
                                    /** M728: a running recording plays from the start (playDvrFile). */
-                                   onPlay: ((DvrEntry) -> Unit)? = null) {
+                                   onPlay: ((DvrEntry) -> Unit)? = null,
+                                   autoFocus: Boolean = true) {
+    // M740 (audit B11): the first card takes the focus ONCE, when the grid appears — not again
+    // whenever a refresh or the Recent re-order puts another recording first
+    val grabbed = remember { mutableStateOf(!autoFocus) }
     var focused by remember { mutableStateOf<DvrEntry?>(null) }
     var infoEntry by remember { mutableStateOf<DvrEntry?>(null) }
     LazyVerticalGrid(GridCells.Fixed(4), Modifier.fillMaxWidth().weight(1f).padding(8.dp)) {
         gridItems(list, key = { it.uuid }) { e ->
             // M514-fix: the recordings grid as well — after picking a date, focus should land
             // on the first programme, not hop back to "Recently watched"
-            Box(Modifier.arcAutoFocus(e.uuid == list.firstOrNull()?.uuid)) {
+            Box(Modifier.arcAutoFocus(!grabbed.value && e.uuid == list.firstOrNull()?.uuid) { grabbed.value = true }) {
                 ArcRecCard(e, loaded.channelPicons[e.channelName], loader, context, progressTick,
                     onFocus = { focused = e }, onClick = { if (onPlay != null) onPlay(e) else playDvr(context, e) }, onLong = { infoEntry = e })
             }
@@ -1518,10 +1530,10 @@ private fun ColumnScope.ArcRecGrid(list: List<DvrEntry>, loaded: DvrState.Loaded
  * itself must request it in the very composition in which it appears.
  */
 @Composable
-private fun Modifier.arcAutoFocus(active: Boolean): Modifier {
+private fun Modifier.arcAutoFocus(active: Boolean, onRequested: () -> Unit = {}): Modifier {
     if (!active) return this
     val fr = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { fr.requestFocus() } }
+    LaunchedEffect(Unit) { runCatching { fr.requestFocus() }; onRequested() }
     return this.focusRequester(fr)
 }
 

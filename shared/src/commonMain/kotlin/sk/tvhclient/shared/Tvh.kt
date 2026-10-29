@@ -38,6 +38,8 @@ object Tvh {
                         name = client.serverName ?: "Tvheadend"
                     )
                 )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e   // M740: a cancelled test is not a network error (testAuto would try the other mode)
             } catch (e: Exception) {
                 val detail = e.message ?: e::class.simpleName ?: "unknown error"
                 ConnectionResult.NetworkError("HTSP: $detail")

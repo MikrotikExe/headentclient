@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">Một bản ghi đã chiếm tuner. Phát lại sẽ tiếp tục khi tuner rảnh.</string>
     <!-- M715 -->
     <string name="timers_no_day">Không ngày nào</string>
+    <string name="dur_min">%1$d phút</string>
+    <string name="dur_hours">%1$d giờ</string>
 </resources>

@@ -105,13 +105,13 @@ fun ModernPhoneHomeScreen(
     fun play(uuid: String, title: String) {
         (chState as? ChannelsState.Loaded)?.let { st ->
             val hidden = HiddenChannels.all(ctx, Tvh.store.active()?.id)
-            LivePlaylist.channels = st.allRows.filter { it.channel.uuid !in hidden }.map { r ->
+            LivePlaylist.setFlat(hidden = hidden, list = st.allRows.map { r ->   // M740 (audit B13)
                 LivePlaylist.LiveChannel(
                     uuid = r.channel.uuid, name = r.channel.name,
                     number = r.channel.number ?: 0, piconUrl = r.piconUrl,
                     nowTitle = r.nowTitle ?: "", nowStart = r.nowStart, nowStop = r.nowStop
                 )
-            }
+            })
         }
         LivePlaylist.setIndexForUuid(uuid)
         runCatching {
@@ -295,7 +295,7 @@ fun ModernPhoneHomeScreen(
                     }
                     if (leftMin != null) {
                         Spacer(Modifier.width(10.dp))
-                        Text("$leftMin min", color = fgDim, fontSize = 11.sp)
+                        Text(stringResource(R.string.mh_left, leftMin), color = fgDim, fontSize = 11.sp)   // M740
                     }
                 }
                 Spacer(Modifier.height(8.dp))

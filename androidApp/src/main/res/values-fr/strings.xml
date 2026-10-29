@@ -532,4 +532,6 @@
     <string name="err_tuner_waiting">Un enregistrement a pris le tuner. La lecture reprendra quand il sera libre.</string>
     <!-- M715 -->
     <string name="timers_no_day">Aucun jour</string>
+    <string name="dur_min">%1$d min</string>
+    <string name="dur_hours">%1$d h</string>
 </resources>

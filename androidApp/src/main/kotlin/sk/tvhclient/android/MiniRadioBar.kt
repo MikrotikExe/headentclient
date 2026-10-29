@@ -62,8 +62,13 @@ fun MiniRadioBar() {
     val server = remember { Tvh.store.active() }
     val loader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
     // EPG line only while the programme is actually running (after it ends it would be misleading)
+    // M740 (audit F19): a 30 s tick re-checks it — nothing recomposed the bar when the programme ended
+    val tick = remember { androidx.compose.runtime.mutableLongStateOf(System.currentTimeMillis() / 1000) }
+    androidx.compose.runtime.LaunchedEffect(epgStop) {
+        while (true) { kotlinx.coroutines.delay(30_000); tick.longValue = System.currentTimeMillis() / 1000 }
+    }
     val epgLine = if (epgTitle.isNotBlank() &&
-        (epgStop <= 0L || System.currentTimeMillis() / 1000 < epgStop)
+        (epgStop <= 0L || tick.longValue < epgStop)
     ) epgTitle else ""
 
     Row(
@@ -150,8 +155,13 @@ fun TvRadioHomePanel(modifier: Modifier = Modifier) {
     val cs = MaterialTheme.colorScheme
     val server = remember { Tvh.store.active() }
     val loader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
+    // M740 (audit F19): a 30 s tick re-checks it — nothing recomposed the bar when the programme ended
+    val tick = remember { androidx.compose.runtime.mutableLongStateOf(System.currentTimeMillis() / 1000) }
+    androidx.compose.runtime.LaunchedEffect(epgStop) {
+        while (true) { kotlinx.coroutines.delay(30_000); tick.longValue = System.currentTimeMillis() / 1000 }
+    }
     val epgLine = if (epgTitle.isNotBlank() &&
-        (epgStop <= 0L || System.currentTimeMillis() / 1000 < epgStop)
+        (epgStop <= 0L || tick.longValue < epgStop)
     ) epgTitle else ""
 
     Column(
