@@ -116,12 +116,17 @@ internal class TimersViewModel : ViewModel() {
     }
 
     private var again = false
+    /** M738: the server of the refresh asked for while one was running (the newest wins). */
+    private var pending: TvhServer? = null
 
     /** A refresh while one is running is not lost — it runs once more when the current one ends. */
     fun refresh(server: TvhServer) {
-        if (_busy.value) { again = true; return }
-        _busy.value = true
+        // M738 (audit B14): rules of another server must never stay on screen — their toggle/delete
+        // buttons would send server A's ids to server B
+        if (loadedFor != null && loadedFor != server.id) _data.value = TimersData()
         loadedFor = server.id
+        if (_busy.value) { again = true; pending = server; return }
+        _busy.value = true
         viewModelScope.launch {
             val chans = withContext(Dispatchers.IO) {
                 runCatching {
@@ -133,7 +138,8 @@ internal class TimersViewModel : ViewModel() {
             val a = DvrController.autorecs(server)
             val t = DvrController.timerecs(server)
             val s = runCatching { DvrController.scheduledAll(server) }.getOrNull()
-            val old = _data.value
+            val old = if (loadedFor == server.id) _data.value else TimersData()
+            if (loadedFor != server.id) { _busy.value = false; pending?.let { pending = null; again = false; refresh(it) }; return@launch }
             _data.value = TimersData(
                 autorecs = a ?: old.autorecs,
                 timerecs = t ?: old.timerecs,
@@ -143,7 +149,7 @@ internal class TimersViewModel : ViewModel() {
                 failed = a == null || t == null
             )
             _busy.value = false
-            if (again) { again = false; refresh(server) }
+            if (again) { again = false; val next = pending ?: server; pending = null; refresh(next) }
         }
     }
 }

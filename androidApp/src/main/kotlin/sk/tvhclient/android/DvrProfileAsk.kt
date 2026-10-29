@@ -62,7 +62,7 @@ object DvrAskPref {
 }
 
 object DvrProfileAsk {
-    private val cache = HashMap<String, List<String>>()
+    private val cache: MutableMap<String, List<String>> = java.util.Collections.synchronizedMap(HashMap())   // M738: cleared from other threads too
 
     /**
      * The list of profiles to choose from, or empty when there is no need to ask (the option is off,

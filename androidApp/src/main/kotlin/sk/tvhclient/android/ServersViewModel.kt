@@ -75,6 +75,7 @@ class ServersViewModel : ViewModel() {
         // a change of server configuration (e.g. the connection method) -> the old cache and connection are invalid
         sk.tvhclient.shared.htsp.HtspData.reset(server.id)   // M721
         forgetLiveEpg(server.id)   // M720: the live window belongs to the old configuration
+        DvrProfileAsk.clear(server.id)   // M738: the DVR profiles may differ after the edit
         // M557: a different connection method = different channel identifiers (HTSP channelId vs HTTP
         // uuid) -> the player's process playlist and the remembered "last watched" are invalid
         if (old != null && old.connectionMode != server.connectionMode) {
@@ -90,9 +91,20 @@ class ServersViewModel : ViewModel() {
     }
 
     fun delete(id: String) {
+        val wasActive = store.activeId == id
         sk.tvhclient.shared.htsp.HtspData.reset(id)   // M721
         forgetLiveEpg(id)   // M720
         store.delete(id)
+        // M738 (audit B21): everything kept under the deleted server's id; its shortcuts / TV home row
+        runCatching {
+            val ctx = sk.tvhclient.shared.storage.AppContextHolder.context
+            ServerDataReset.onServerRemoved(ctx, id)
+            if (wasActive || store.list().isEmpty()) {
+                FavoriteShortcuts.clearAll(ctx)
+                LivePlaylist.reset()
+                if (RadioCenter.active.value) RadioCenter.stop(ctx)   // the radio of a deleted server stops
+            }
+        }
         refresh()
         TabController.dataReload.value++
     }
@@ -107,6 +119,10 @@ class ServersViewModel : ViewModel() {
     /** M720: stops the HTTP comet feed and drops the live EPG window of the server. */
     private fun forgetLiveEpg(id: String) {
         sk.tvhclient.shared.epg.HttpEpgFeed.stop(id)
+        // M738 (audit B18): HtspData.reset keeps the connection of a playing stream open — its live
+        // window is still the server's own and keeps updating; forgetting it then left the window
+        // "never fresh" for the rest of that connection (no now/next, every reader waiting 12 s)
+        if (sk.tvhclient.shared.htsp.HtspSessions.peek(id) != null) return
         viewModelScope.launch { sk.tvhclient.shared.epg.LiveEpg.forget(id) }
     }
 

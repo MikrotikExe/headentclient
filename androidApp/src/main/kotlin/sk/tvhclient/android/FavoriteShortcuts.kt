@@ -67,6 +67,23 @@ object FavoriteShortcuts {
         schedule(ctx.applicationContext, serverId)
     }
 
+    /**
+     * M738 (audit B21): the server the shortcuts and the TV home row were made for is gone — the
+     * launcher shortcuts and the row are removed (publish() returned early without an active server,
+     * so they stayed, pointing at channels that no longer exist). The next active server publishes
+     * its own when its channel list loads.
+     */
+    fun clearAll(ctx: Context) {
+        val app = ctx.applicationContext
+        job?.cancel()
+        rows = emptyMap(); epg = emptyMap()
+        lastSignature = null; lastTvSignature = null; lastComplete = false
+        scope.launch {
+            if (android.os.Build.VERSION.SDK_INT >= 25) runCatching { ShortcutManagerCompat.removeAllDynamicShortcuts(app) }
+            runCatching { TvHomeChannel.remove(app) }
+        }
+    }
+
     /** The favourites have changed (add, remove, move). */
     fun onFavoritesChanged(ctx: Context, serverId: String) {
         schedule(ctx.applicationContext, serverId)

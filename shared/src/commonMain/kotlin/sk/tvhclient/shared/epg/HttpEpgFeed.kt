@@ -91,7 +91,12 @@ object HttpEpgFeed {
                     try {
                         val reply = api.cometPoll(boxid, immediate = boxid == null)
                         if (reply.boxid != null) boxid = reply.boxid
-                        apply(reply.messages, api, store)
+                        // M738 (audit B17): the mailbox has already moved on — when loading the changed
+                        // events fails, the changes are lost; a full reload of the window right away
+                        // replaces them (until now stale now/next counted as fresh for up to 30 min)
+                        try { apply(reply.messages, api, store) }
+                        catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                        catch (e: Throwable) { lastFull = 0L }
                         failures = 0
                     } catch (e: TvhHttpException) {
                         when (e.httpCode) {

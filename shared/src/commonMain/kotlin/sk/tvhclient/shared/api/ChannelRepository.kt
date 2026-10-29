@@ -92,8 +92,9 @@ class ChannelRepository(
             if (rows.isNotEmpty()) categories.add(ChannelCategory(tag, rows))
         }
         // Channels without a tag — into "Other", so they don't get lost
-        val tagged = tvChannels.filter { it.tags.isNotEmpty() }.map { it.uuid }.toSet()
-        val untagged = tvChannels.filterNot { it.uuid in tagged }
+        // M738 (audit B15): "without a tag" = in none of the SHOWN categories — a channel whose only tag
+        // is disabled (or missing from the tag list) disappeared from every row, as radioCategories knew
+        val untagged = tvChannels.filter { ch -> tags.none { it.uuid in ch.tags } }
         if (untagged.isNotEmpty()) {
             categories.add(ChannelCategory(
                 tag = null,

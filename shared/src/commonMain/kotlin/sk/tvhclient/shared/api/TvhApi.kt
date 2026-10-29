@@ -394,7 +394,7 @@ class TvhApi(
             // filter the response by the event's channel (on correct servers a no-op;
             // events without a channelUuid are kept, we cannot judge them).
             .filter { it.channelUuid.isNullOrBlank() || it.channelUuid == channelUuid }
-            .distinctBy { it.eventId ?: "${'$'}{it.start}-${'$'}{it.title}" }
+            .distinctBy { it.eventId ?: "${it.start}-${it.title}" }   // M738 (audit B16): was a literal key
             .sortedBy { it.start }
     }
 

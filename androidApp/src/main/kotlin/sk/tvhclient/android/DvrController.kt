@@ -24,8 +24,21 @@ object DvrController {
 
     private val accessCache = HashMap<String, DvrAccess>()
 
-    private fun serviceFor(server: TvhServer): DvrService =
-        if (server.connectionMode == "htsp") HtspDvrService(server) else HttpDvrService(server)
+    /**
+     * M738 (audit B19): one HTTP service per server configuration — a new HttpDvrService (and with it a
+     * new HTTP client with its own connection pool and threads) used to be created for every DVR call
+     * and never closed. A changed configuration (host, login) replaces and closes the old one.
+     */
+    private val httpServices = HashMap<String, Pair<String, HttpDvrService>>()
+
+    private fun serviceFor(server: TvhServer): DvrService {
+        if (server.connectionMode == "htsp") return HtspDvrService(server)
+        val key = server.baseUrl + "|" + server.username + "|" + server.password.hashCode() + "|" + server.authMode
+        synchronized(httpServices) {
+            httpServices[server.id]?.let { (k, svc) -> if (k == key) return svc else runCatching { svc.close() } }
+            return HttpDvrService(server).also { httpServices[server.id] = key to it }
+        }
+    }
 
     /**
      * User rights; determined from the server the first time, then held.

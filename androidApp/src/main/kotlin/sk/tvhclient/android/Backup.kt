@@ -50,10 +50,21 @@ object Backup {
     fun import(ctx: Context, text: String): Boolean {
         val plan = runCatching { parse(ctx, text) }.getOrNull() ?: return false
         return try {
-            Tvh.store.list().map { it.id }.forEach { Tvh.store.delete(it) }
+            val oldIds = Tvh.store.list().map { it.id }
+            oldIds.forEach { Tvh.store.delete(it) }
             plan.servers.forEach { Tvh.store.upsert(it) }
             Tvh.store.activeId = plan.activeId
             for ((name, values) in plan.prefs) applyPrefs(ctx, name, values)
+            // M738 (audit B23): the process-wide per-server state of every old and new id is dropped,
+            // as save() does — a restored server with the same id but another host / connection mode
+            // used to keep the cached HTSP connection, the live EPG window and the picon loader
+            for (id in (oldIds + plan.servers.map { it.id }).toSet()) {
+                runCatching { sk.tvhclient.shared.htsp.HtspData.reset(id) }
+                runCatching { sk.tvhclient.shared.epg.HttpEpgFeed.stop(id) }
+                runCatching { kotlinx.coroutines.runBlocking { sk.tvhclient.shared.epg.LiveEpg.forget(id) } }
+                DvrProfileAsk.clear(id)
+            }
+            PiconImageLoader.invalidate()
             true
         } catch (e: Exception) {
             CrashLogger.report(ctx, "Backup.import", e)

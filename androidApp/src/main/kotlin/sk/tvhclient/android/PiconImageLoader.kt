@@ -20,20 +20,35 @@ import sk.tvhclient.shared.net.DigestAuthenticator
 object PiconImageLoader {
 
     @Volatile private var loader: ImageLoader? = null
-    @Volatile private var forServerId: String? = null
+    @Volatile private var forKey: String? = null
+    /** M738: one disk cache for every loader built (two DiskCache instances must not share a directory). */
+    @Volatile private var disk: DiskCache? = null
+
+    /**
+     * M738 (audit B22): the loader is keyed by what its auth depends on, not by the server id alone —
+     * after editing a server's password or host (same id) the old loader kept sending the old
+     * credentials / limiting them to the old host, and picons failed with 401 until a restart.
+     */
+    private fun keyOf(server: TvhServer?): String? = server?.let {
+        it.id + "|" + it.baseUrl + "|" + it.username + "|" + it.password.hashCode() + "|" + it.authMode
+    }
 
     fun get(context: Context, server: TvhServer?): ImageLoader {
+        val key = keyOf(server)
         val existing = loader
-        if (existing != null && forServerId == server?.id) return existing
+        if (existing != null && forKey == key) return existing
         synchronized(this) {
             val again = loader
-            if (again != null && forServerId == server?.id) return again
+            if (again != null && forKey == key) return again
             val built = build(context.applicationContext, server)
             loader = built
-            forServerId = server?.id
+            forKey = key
             return built
         }
     }
+
+    /** M738: forget the loader (a server deleted / a backup restored); the next get() builds a new one. */
+    fun invalidate() { synchronized(this) { loader = null; forKey = null } }
 
     /** M272: manual clearing of the picon cache (memory + disk) — for "Refresh list" in settings. */
     fun clearCache(context: Context, server: TvhServer?) {
@@ -80,10 +95,11 @@ object PiconImageLoader {
                 MemoryCache.Builder(context).maxSizePercent(0.15).build()
             }
             .diskCache {
-                DiskCache.Builder()
+                disk ?: DiskCache.Builder()
                     .directory(context.cacheDir.resolve("picons"))
                     .maxSizeBytes(50L * 1024 * 1024)
                     .build()
+                    .also { disk = it }
             }
             .build()
     }

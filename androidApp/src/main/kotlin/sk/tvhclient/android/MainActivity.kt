@@ -876,6 +876,8 @@ fun BackupControls(compact: Boolean = false, onImported: () -> Unit = {}) {
                 Toast.LENGTH_LONG
             ).show()
             if (ok) {
+                LivePlaylist.reset()                   // M738: the player's list belonged to the old data
+                TabController.dataReload.value++
                 onImported()
                 // redraw the app (loads the refreshed servers and language), without killing the process
                 (ctx as? android.app.Activity)?.recreate()

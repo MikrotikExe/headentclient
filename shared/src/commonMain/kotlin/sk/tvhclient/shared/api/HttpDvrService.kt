@@ -28,6 +28,9 @@ class HttpDvrService(private val server: TvhServer) : DvrService {
 
     private val api = TvhApi(server)
 
+    /** M738 (audit B19): the HTTP client of this service (DvrController keeps one service per server). */
+    fun close() = api.close()
+
     override suspend fun access(): DvrAccess = api.dvrAccess()
 
     /**

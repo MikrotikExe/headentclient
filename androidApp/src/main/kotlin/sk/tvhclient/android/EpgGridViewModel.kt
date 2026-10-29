@@ -36,15 +36,37 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
     private val _epg = MutableStateFlow<Map<String, List<EpgEvent>>>(emptyMap())
     val epg: StateFlow<Map<String, List<EpgEvent>>> = _epg
     private fun loadDiskAsync(replace: Boolean) {
+        val sid = serverId()
         viewModelScope.launch {
             val disk = withContext(Dispatchers.IO) {
-                runCatching { EpgCache.load(appCtx, serverId(), nowSec(), daysBack()) }.getOrDefault(emptyMap())
+                runCatching { EpgCache.load(appCtx, sid, nowSec(), daysBack()) }.getOrDefault(emptyMap())
             }
+            if (serverId() != sid) return@launch   // M738: the server changed meanwhile
             if (replace) _epg.value = disk
             else if (disk.isNotEmpty()) _epg.value = disk + _epg.value
         }
     }
     init { loadDiskAsync(replace = false) }
+
+    /** M738: the server (and its configuration generation) whose grid [_epg] holds. */
+    private var forKey: String = Tvh.store.active()?.id + "#" + TabController.dataReload.value
+
+    /**
+     * M738 (audit K10): the grid belongs to one server. The ViewModel lives for the whole activity,
+     * and after "Use server B" it kept server A's programmes, htspStarted stayed true (B's grid was
+     * never fetched) and the next persist() wrote A's events into B's disk cache. Called by every
+     * loader; the grid screen calls it too when it is shown.
+     */
+    fun ensureServer() {
+        val key = Tvh.store.active()?.id + "#" + TabController.dataReload.value
+        if (key == forKey) return
+        forKey = key
+        _epg.value = emptyMap()
+        inFlight.clear()
+        htspStarted = false
+        loadDiskAsync(replace = true)
+        _gen.value = _gen.value + 1
+    }
 
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading
@@ -58,6 +80,7 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
 
     /** HTTP: loads the EPG for a single channel if we do not have it yet (called when the row is shown). */
     fun ensureChannel(uuid: String) {
+        ensureServer()
         val server = Tvh.store.active() ?: return
         if (server.connectionMode == "htsp") return   // HTSP goes through loadHtsp()
         if (inFlight.contains(uuid)) return
@@ -69,14 +92,14 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
                     val api = Tvh.apiFor(server)
                     try { Tvh.fetchEpgForChannel(server, api, uuid) } finally { api.close() }
                 }
-                _epg.value = EpgCacheCodec.mergeChannel(_epg.value, uuid, evs)
+                if (Tvh.store.active()?.id == server.id) _epg.value = EpgCacheCodec.mergeChannel(_epg.value, uuid, evs)
             } catch (e: Exception) {
                 CrashLogger.report(getApplication(), "EpgGridViewModel", e)
             } finally {
                 inFlight.remove(uuid)
                 if (inFlight.isEmpty()) {
                     _loading.value = false
-                    persist()
+                    persist(server.id)
                 }
             }
         }
@@ -84,6 +107,7 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
 
     /** HTSP: one connection, all channels progressively (events arrive channel by channel). */
     fun loadHtsp() {
+        ensureServer()
         val server = Tvh.store.active() ?: return
         if (server.connectionMode != "htsp") return
         if (htspStarted) return
@@ -93,7 +117,7 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 withContext(Dispatchers.IO) {
                     Tvh.fetchEpgGridProgressive(server) { uuid, evs ->
-                        _epg.value = EpgCacheCodec.mergeChannel(_epg.value, uuid, evs)
+                        if (Tvh.store.active()?.id == server.id) _epg.value = EpgCacheCodec.mergeChannel(_epg.value, uuid, evs)
                     }
                 }
                 // M697: into the diagnostic log — which channels came back empty or failed,
@@ -108,15 +132,16 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
                 CrashLogger.report(getApplication(), "EpgGridViewModel", e)
             } finally {
                 _loading.value = false
-                persist()
+                persist(server.id)
             }
         }
     }
 
-    /** Saves the current EPG to disk (trimmed by daysBack). */
-    private fun persist() {
+    /** Saves the current EPG to disk (trimmed by daysBack) — only for the server it was loaded from (M738). */
+    private fun persist(forServerId: String) {
+        if (serverId() != forServerId) return
         val snapshot = _epg.value
-        val sid = serverId()
+        val sid = forServerId
         val db = daysBack()
         val n = nowSec()
         viewModelScope.launch(Dispatchers.IO) {

@@ -136,7 +136,11 @@ object Tvh {
             } catch (_: Exception) { emptyList() }
             return if (usable.isEmpty()) htsp else htsp.filter { it in usable }.ifEmpty { htsp }
         }
-        return runCatching { TvhApi(server).streamProfiles() }.getOrDefault(emptyList())
+        // M738 (audit B19): the client is closed (it was left open with its own pool and threads)
+        return runCatching {
+            val api = TvhApi(server)
+            try { api.streamProfiles() } finally { api.close() }
+        }.getOrDefault(emptyList())
     }
 
     /**

@@ -45,15 +45,34 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
     // Network data takes precedence: the cache is only filled in underneath what has already arrived.
     private val _epgMap = MutableStateFlow<Map<String, List<sk.tvhclient.shared.model.EpgEvent>>>(emptyMap())
     val epgMap: StateFlow<Map<String, List<sk.tvhclient.shared.model.EpgEvent>>> = _epgMap
-    init {
+    init { seedEpgFromDisk(sid()) }
+
+    /** M738: the server whose now/next [_epgMap] holds (the ViewModel lives for the whole activity). */
+    private var epgServerId: String? = Tvh.store.active()?.id
+
+    private fun seedEpgFromDisk(serverId: String) {
         viewModelScope.launch {
             val disk = withContext(Dispatchers.IO) {
                 runCatching {
-                    EpgCache.loadLive(appCtx, sid(), System.currentTimeMillis() / 1000, EpgRangePref.daysBack(appCtx))
+                    EpgCache.loadLive(appCtx, serverId, System.currentTimeMillis() / 1000, EpgRangePref.daysBack(appCtx))
                 }.getOrDefault(emptyMap())
             }
-            if (disk.isNotEmpty()) _epgMap.value = disk + _epgMap.value
+            if (disk.isNotEmpty() && Tvh.store.active()?.id == serverId) _epgMap.value = disk + _epgMap.value
         }
+    }
+
+    /**
+     * M738 (audit K10): another active server -> its own now/next. Until now the map was never cleared:
+     * with two HTSP servers (channel ids 1, 2, 3… on both) the tiles and the list showed server A's
+     * programmes on server B's channels, and the next save wrote A's events into B's disk cache.
+     */
+    private fun switchEpgServerIfNeeded(serverId: String) {
+        if (epgServerId == serverId) return
+        epgServerId = serverId
+        _epgMap.value = emptyMap()
+        nowNextRetries = 0
+        streamWaitJob?.cancel()
+        seedEpgFromDisk(serverId)
     }
 
     private val _viewMode = MutableStateFlow(ChannelViewMode.LIST)
@@ -86,6 +105,7 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = ChannelsState.NoServer
             return
         }
+        switchEpgServerIfNeeded(server.id)   // M738
         // M540: without force a running load is not interfered with; with force the old one is cancelled
         if (loadJob?.isActive == true) {
             if (!force) return
@@ -183,12 +203,12 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
                     loadHtspNowNext(server, retry = true)
                 }
             }
-            if (map.isNotEmpty()) {
+            if (map.isNotEmpty() && epgServerId == server.id) {   // M738: not a late answer of the previous server
                 _epgMap.value = _epgMap.value + map
                 // M278: save to disk (live cache), so that now/next survives a restart/restore
                 viewModelScope.launch(Dispatchers.IO) {
                     runCatching {
-                        EpgCache.saveLive(appCtx, sid(), map, System.currentTimeMillis() / 1000, EpgRangePref.daysBack(appCtx))
+                        EpgCache.saveLive(appCtx, server.id, map, System.currentTimeMillis() / 1000, EpgRangePref.daysBack(appCtx))
                     }
                 }
             }
@@ -217,6 +237,7 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
                 var lastApply = 0L
                 live.revision.collect {
                     if (live.syncedAt == 0L) return@collect
+                    if (epgServerId != server.id) return@collect   // M738: the active server changed
                     val since = System.currentTimeMillis() - lastApply   // at most every 2 s (conflated)
                     if (since < 2_000) kotlinx.coroutines.delay(2_000 - since)
                     lastApply = System.currentTimeMillis()
@@ -236,7 +257,7 @@ class ChannelsViewModel(app: Application) : AndroidViewModel(app) {
                     if (nowMs - liveSavedMs >= 60_000L) {
                         liveSavedMs = nowMs
                         launch(Dispatchers.IO) {
-                            runCatching { EpgCache.saveLive(appCtx, sid(), m, nowSec, EpgRangePref.daysBack(appCtx)) }
+                            runCatching { EpgCache.saveLive(appCtx, server.id, m, nowSec, EpgRangePref.daysBack(appCtx)) }   // M738
                         }
                     }
                 }

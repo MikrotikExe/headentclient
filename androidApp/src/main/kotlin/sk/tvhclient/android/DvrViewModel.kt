@@ -64,6 +64,10 @@ class DvrViewModel : ViewModel() {
         load(showLoading = false, refreshing = true)
     }
 
+    /** M738: the running load (a new one cancels it) and the server the loaded data belongs to. */
+    private var loadJob: kotlinx.coroutines.Job? = null
+    private var loadedFor: String? = null
+
     fun load(showLoading: Boolean = true, refreshing: Boolean = false) {
         val server = Tvh.store.active()
         if (server == null) {
@@ -72,10 +76,14 @@ class DvrViewModel : ViewModel() {
             return
         }
         if (refreshing) _refreshing.value = true
+        // M738 (audit B14): another server than the data on screen -> nothing of the old one may stay
+        // (a slow load of server A used to land after the switch to B and show A's recordings)
+        if (loadedFor != null && loadedFor != server.id) _state.value = DvrState.Loading
         if (showLoading && _state.value !is DvrState.Loaded) {
             _state.value = DvrState.Loading
         }
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             try {
                 suspend fun fetch(): List<Any> = withContext(Dispatchers.IO) {
                     val api = Tvh.apiFor(server)
@@ -111,6 +119,8 @@ class DvrViewModel : ViewModel() {
                     kotlinx.coroutines.delay(1000)
                     fetch()
                 }
+                if (Tvh.store.active()?.id != server.id) return@launch   // M738: switched meanwhile
+                loadedFor = server.id
                 @Suppress("UNCHECKED_CAST")
                 _state.value = DvrState.Loaded(
                     result[0] as List<DvrEntry>,

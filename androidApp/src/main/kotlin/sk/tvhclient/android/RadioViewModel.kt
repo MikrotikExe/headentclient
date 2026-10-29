@@ -44,6 +44,7 @@ class RadioViewModel : ViewModel() {
     }
 
     private var loadJob: kotlinx.coroutines.Job? = null   // M540
+    private var loadingFor: String? = null   // M738
 
     fun load() {
         val server = Tvh.store.active()
@@ -51,7 +52,11 @@ class RadioViewModel : ViewModel() {
             _state.value = RadioState.NoServer
             return
         }
-        if (loadJob?.isActive == true) return   // M540: already running (TV start calls load() twice)
+        // M540: already running (TV start calls load() twice) — M738 (audit B14): only when it loads the
+        // SAME server; a load of the previous server is cancelled (it used to swallow the reload for B)
+        if (loadJob?.isActive == true && loadingFor == server.id) return
+        loadJob?.cancel()
+        loadingFor = server.id
         _state.value = RadioState.Loading
         loadJob = viewModelScope.launch {
             try {
@@ -64,6 +69,7 @@ class RadioViewModel : ViewModel() {
                         api.close()
                     }
                 }
+                if (Tvh.store.active()?.id != server.id) return@launch   // M738: switched meanwhile
                 _state.value = RadioState.Loaded(data.first, data.second)
                 loadedOnce = true
             } catch (e: kotlinx.coroutines.CancellationException) {
