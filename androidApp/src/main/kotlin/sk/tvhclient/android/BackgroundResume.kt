@@ -55,7 +55,7 @@ internal class BackgroundResume(
         // Let the PiP window keep playing ONLY if we really are in PiP (our own flag from the callback, not the live
         // isInPictureInPictureMode - that one often still reports true while PiP is closing) and the app is only going
         // to the background. If the activity is finishing, fall through and stop playback.
-        if (android.os.Build.VERSION.SDK_INT >= 24 && hooks.inPip() && !activity.isFinishing) return true
+        if (hooks.inPip() && !activity.isFinishing) return true
         // a car pause is not "was playing": libVLC may still report playing right after the pause,
         // and after the drive the player stays paused until the user taps Play (PlayerActivity.onResume)
         wasPlaying = engine.ready && engine.player.isPlaying && !hooks.pausedForCar()

@@ -52,7 +52,7 @@ android {
 
     defaultConfig {
         applicationId = "sk.tvhclient"
-        minSdk = 23
+        minSdk = 24
         targetSdk = 36
         // M424-fix4: ABI filter ONLY for the universal build. With splits
         // enabled the ABIs are already restricted by include() in the splits block, and AGP rejects the

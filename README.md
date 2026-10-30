@@ -83,7 +83,7 @@ Jetpack Compose and libVLC.
 ## Requirements
 
 - A running [Tvheadend](https://tvheadend.org/) server you have access to
-- Android 6.0 (API 23) or newer; Android TV or phone
+- Android 7.0 (API 24) or newer; Android TV or phone
 
 Recording requires an account with DVR rights on the server. Timeshift is an
 HTSP feature and is not available over the HTTP path.

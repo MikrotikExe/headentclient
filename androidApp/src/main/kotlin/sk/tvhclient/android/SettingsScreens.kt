@@ -634,7 +634,7 @@ internal fun GeneralSettings(ctx: android.content.Context) {
     }
 
     fun requestOverlay() {
-        if (android.os.Build.VERSION.SDK_INT >= 23 && !Settings.canDrawOverlays(ctx)) {
+        if (!Settings.canDrawOverlays(ctx)) {
             val i = Intent(
                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 Uri.parse("package:" + ctx.packageName)

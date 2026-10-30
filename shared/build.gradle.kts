@@ -12,7 +12,7 @@ kotlin {
     android {
         namespace = "sk.tvhclient.shared"
         compileSdk = 36
-        minSdk = 23
+        minSdk = 24
         compilerOptions {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }

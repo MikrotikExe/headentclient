@@ -41,7 +41,6 @@ class AfrController(
     }
 
     fun apply() {
-        if (Build.VERSION.SDK_INT < 23) return
         if (!AfrPref.get(activity)) return
         val mp = player() ?: return
         // M708: the track is read off the main thread (the input lock of libVLC -> ANR)
@@ -145,7 +144,6 @@ class AfrController(
     /** Returns the preferred display mode to the system (when leaving the player). */
     fun clear() {
         cancelPendingResume()
-        if (Build.VERSION.SDK_INT < 23) return
         runCatching {
             val lp = activity.window.attributes
             if (lp.preferredDisplayModeId != 0) {

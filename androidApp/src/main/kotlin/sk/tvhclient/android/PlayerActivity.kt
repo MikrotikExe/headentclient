@@ -2194,7 +2194,7 @@ class PlayerActivity : ComponentActivity() {
         // M431: HOME during radio — no PiP window; in modern mode a handoff to the background
         if (live.playKind == "radio") { radioHandoffIfPossible(); return }
         if (!isTvDevice() && AutoPipPref.get(this) && pip.supported && isPlayingState.value &&
-            !(android.os.Build.VERSION.SDK_INT >= 24 && isInPictureInPictureMode)) {
+            !isInPictureInPictureMode) {
             pip.enterIfPossible()
         }
     }
@@ -2415,7 +2415,7 @@ class PlayerActivity : ComponentActivity() {
         fun closeIfInPip(): Boolean {
             val a = liveInstance?.get() ?: return false
             if (a.isFinishing || a.isDestroyed) return false
-            if (android.os.Build.VERSION.SDK_INT < 24 || !a.inPipState.value) return false
+            if (!a.inPipState.value) return false
             a.runOnUiThread { runCatching { a.finishAndRemoveTask() } }
             return true
         }
