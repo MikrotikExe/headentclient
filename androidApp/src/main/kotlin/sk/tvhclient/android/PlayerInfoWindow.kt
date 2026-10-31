@@ -79,8 +79,7 @@ internal fun PlayerInfoWindow(
     // Info window: detail of the currently running programme (INFO key / button)
     androidx.activity.compose.BackHandler { setShowInfo(false) }
     val clk: (Long) -> String = { sec ->
-        if (sec <= 0) "" else java.text.SimpleDateFormat(sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault())
-            .format(java.util.Date(sec * 1000))
+        if (sec <= 0) "" else sk.tvhclient.shared.DateFmtCache.format(sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault(), sec * 1000)   // M743
     }
     val tRange = if (progStart > 0 && progStop > progStart)
         clk(progStart) + " \u2013 " + clk(progStop) else ""

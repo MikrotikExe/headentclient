@@ -80,6 +80,15 @@ class TvhApplication : Application() {
         Thread({
             runCatching { sk.tvhclient.shared.Tvh.store.list() }
         }, "HeadentClient:storeWarmup").apply { isDaemon = true }.start()
+        // M743 (Play vitals 1.0.6: ANR in PlayerActivity.createPlayer / libvlc init): the first
+        // `LibVLC(...)` loads the native libraries (libvlc.so is tens of MB) on the main thread.
+        // Loading them here on a background thread takes that part off the player start; loading a
+        // library that is already loaded is a no-op, and any failure is left to libVLC's own load.
+        Thread({
+            for (lib in arrayOf("c++_shared", "vlc", "vlcjni")) {
+                if (runCatching { System.loadLibrary(lib) }.isFailure) break
+            }
+        }, "HeadentClient:vlcPreload").apply { isDaemon = true }.start()
         ClockPref.apply(this)       // clock format into the shared module (M423)
         // Since Android 8 SCREEN_ON cannot be registered in the manifest — only at runtime.
         val filter = IntentFilter().apply {

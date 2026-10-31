@@ -147,10 +147,8 @@ internal fun PlayerControlsOverlay(
             val curCh = liveChannels.getOrNull(liveCurrentIndex)
             val infoLoader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
             fun clock(sec: Long): String =
-                if (sec <= 0) "" else java.text.SimpleDateFormat(sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault())
-                    .format(java.util.Date(sec * 1000))
-            val dateTime = java.text.SimpleDateFormat("EEE d. M., " + sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault())
-                .format(java.util.Date(liveNowSec * 1000))
+                if (sec <= 0) "" else sk.tvhclient.shared.DateFmtCache.format(sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault(), sec * 1000)   // M743
+            val dateTime = sk.tvhclient.shared.DateFmtCache.format("EEE d. M., " + sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault(), liveNowSec * 1000)
             val hasNow = !seekable && progStart > 0 && progStop > progStart
             val total = (progStop - progStart).coerceAtLeast(1)
             val elapsed = (liveNowSec - progStart).coerceIn(0, total)

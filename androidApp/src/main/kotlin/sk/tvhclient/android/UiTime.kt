@@ -1,7 +1,5 @@
 package sk.tvhclient.android
 
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 import sk.tvhclient.shared.TimeFormatConfig
 
@@ -26,7 +24,7 @@ internal fun fmtMs(ms: Long): String {
 
 /** Hours:minutes from unix time in seconds (per the 12/24 h setting); 0 = empty string. */
 internal fun fmtClock(sec: Long): String =
-    if (sec <= 0) "" else SimpleDateFormat(TimeFormatConfig.hm, Locale.getDefault()).format(Date(sec * 1000))
+    if (sec <= 0) "" else sk.tvhclient.shared.DateFmtCache.format(TimeFormatConfig.hm, Locale.getDefault(), sec * 1000)   // M743
 
 /** A "from - to" range from two unix times; if the end is missing, only the start is returned. */
 internal fun fmtRange(a: Long, b: Long): String {

@@ -18,15 +18,40 @@ object TimeFormatConfig {
     var hm: String = "HH:mm"
 }
 
+/**
+ * M743 (Play vitals 1.0.6: ANR in formatTimeHm, many ANRs waiting for GC): a new SimpleDateFormat
+ * per call — the EPG grid, lists and tickers format thousands of times, each building a formatter
+ * (calendar, symbols, compiled pattern) and that garbage kept the GC busy on the main thread.
+ * One formatter per thread, pattern and locale is reused. SimpleDateFormat is not thread-safe,
+ * hence the ThreadLocal; the time zone is applied on every call, because a formatter keeps the
+ * zone it was created with and the user (or DST settings) may change it while the app runs.
+ */
+object DateFmtCache {
+    private val cache = object : ThreadLocal<HashMap<String, SimpleDateFormat>>() {
+        override fun initialValue() = HashMap<String, SimpleDateFormat>()
+    }
+
+    fun format(pattern: String, locale: Locale, epochMs: Long): String {
+        val map = cache.get()!!
+        val key = pattern + "|" + locale.toString()
+        val f = map[key] ?: SimpleDateFormat(pattern, locale).also {
+            if (map.size > 32) map.clear()
+            map[key] = it
+        }
+        f.timeZone = java.util.TimeZone.getDefault()
+        return f.format(Date(epochMs))
+    }
+}
+
 actual fun formatTimeHm(epochSec: Long): String =
-    SimpleDateFormat(TimeFormatConfig.hm, Locale.getDefault()).format(Date(epochSec * 1000))
+    DateFmtCache.format(TimeFormatConfig.hm, Locale.getDefault(), epochSec * 1000)
 
 actual fun formatDayLabel(epochSec: Long): String =
-    SimpleDateFormat("EEEE d.M.", Locale.getDefault()).format(Date(epochSec * 1000))
+    DateFmtCache.format("EEEE d.M.", Locale.getDefault(), epochSec * 1000)
         .replaceFirstChar { it.uppercase() }
 
 actual fun dateKey(epochSec: Long): String =
-    java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date(epochSec * 1000))
+    DateFmtCache.format("yyyy-MM-dd", Locale.US, epochSec * 1000)
 
 actual fun formatDateFull(epochSec: Long): String =
-    java.text.SimpleDateFormat("d.M.yyyy", java.util.Locale.getDefault()).format(java.util.Date(epochSec * 1000))
+    DateFmtCache.format("d.M.yyyy", Locale.getDefault(), epochSec * 1000)
