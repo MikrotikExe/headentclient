@@ -52,7 +52,7 @@ object HtspData {
     // UI's coroutines (Default/IO) and the EPG rounds at the same time — a plain ++ lost counts (a stuck
     // `streaming`) and a concurrently modified HashMap can corrupt itself. Every access is short and
     // non-suspending, so one lock on this object is enough.
-    @kotlin.jvm.Synchronized private fun <T> locked(block: () -> T): T = block()
+    @sk.tvhclient.shared.JvmSync private fun <T> locked(block: () -> T): T = block()
 
     fun streamStarted() { locked { streamCount++ } }
     fun streamStopped() { locked {

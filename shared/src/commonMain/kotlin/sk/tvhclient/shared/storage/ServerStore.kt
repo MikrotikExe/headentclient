@@ -39,7 +39,7 @@ class ServerStore(private val settings: Settings = createSecureSettings()) {
 
     fun get(id: String): TvhServer? = list().firstOrNull { it.id == id }
 
-    @kotlin.jvm.Synchronized
+    @sk.tvhclient.shared.JvmSync
     fun upsert(server: TvhServer) {
         val current = list().toMutableList()
         val idx = current.indexOfFirst { it.id == server.id }
@@ -48,7 +48,7 @@ class ServerStore(private val settings: Settings = createSecureSettings()) {
         if (activeId == null) activeId = server.id
     }
 
-    @kotlin.jvm.Synchronized
+    @sk.tvhclient.shared.JvmSync
     fun delete(id: String) {
         persist(list().filterNot { it.id == id })
         if (activeId == id) {
@@ -64,7 +64,7 @@ class ServerStore(private val settings: Settings = createSecureSettings()) {
             activeLoaded = true
             return v
         }
-        @kotlin.jvm.Synchronized set(value) {
+        @sk.tvhclient.shared.JvmSync set(value) {
             if (value == null) settings.remove(KEY_ACTIVE)
             else settings.putString(KEY_ACTIVE, value)
             cachedActive = value
