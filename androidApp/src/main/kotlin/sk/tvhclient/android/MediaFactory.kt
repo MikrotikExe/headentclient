@@ -14,11 +14,6 @@ import java.io.FileDescriptor
  */
 internal class MediaFactory(private val ctx: Context, private val libVlc: () -> LibVLC) {
 
-    private companion object {
-        /** M751: frame heights of interlaced broadcasts (SD 480i/576i, HD 1080i; 1088 = coded 1080). */
-        val INTERLACED_HEIGHTS = setOf(480, 576, 1080, 1088)
-    }
-
     fun userAgent(): String = sk.tvhclient.shared.ClientIdent.userAgent
 
     /** M722: was the last medium built for software decoding? (the one-off restart after the codec is known) */
@@ -148,6 +143,9 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
     }
 
     companion object {
+        /** M751: frame heights of interlaced broadcasts (SD 480i/576i, HD 1080i; 1088 = coded 1080). */
+        private val INTERLACED_HEIGHTS = setOf(480, 576, 1080, 1088)
+
         /** Removes user:pass@ from a URL (for the feeder/probe — auth is handled by OkHttp with a header). */
         fun stripCreds(url: String): String {
             val i = url.indexOf("://")
