@@ -71,7 +71,15 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
         // M752 (performance audit P2): software H.264/HEVC skips the loop filter on non-reference
         // frames — a weak box keeps up with less CPU, the picture loses next to nothing (MPEG-2 has no
         // loop filter, so it is unaffected). VLC's frame skipping is already on by default.
-        if (sw) m.addOption(":avcodec-skiploopfilter=1")
+        if (sw) {
+            // M753 (dream Player's software path, read from its libVLC configuration): deblocking by
+            // CPU class (1 = non-reference frames on 4+ cores, 3 = non-key frames on weaker chips),
+            // allowed speed-ups, IDCT skipped on non-reference frames; libVLC's threads stay automatic
+            val cores = Runtime.getRuntime().availableProcessors()
+            m.addOption(":avcodec-skiploopfilter=" + if (cores >= 4) 1 else 3)
+            m.addOption(":avcodec-fast")
+            m.addOption(":avcodec-skip-idct=1")
+        }
         var (en, mode) = deinterlaceSpec(sw)
         // M751: an interlaced channel with "Smooth interlaced HD channels" on — the hardware still
         // decodes, but the frames pass through VLC's deinterlacer instead of going straight to the
@@ -83,10 +91,21 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
         }
         m.addOption(":deinterlace=$en")
         if (mode != null) m.addOption(":deinterlace-mode=$mode")
-        if (!sw && (smooth || HwDecodePref.get(ctx) == HwDecodePref.DECODE || explicitDeinterlaceOnHw())) {
+        if (!sw && (smooth || noDirectRendering || HwDecodePref.get(ctx) == HwDecodePref.DECODE || explicitDeinterlaceOnHw())) {
             m.addOption(":no-mediacodec-dr")
             m.addOption(":no-omxil-dr")
         }
+    }
+
+    /**
+     * M753 (issue #37; dream Player does the same for this device): on Google Pixel 10 the hardware
+     * decoder with direct rendering gives no picture on some streams — hardware decoding stays, the
+     * frames just go through the player (no direct rendering), which works there. Until now the
+     * channel first showed black for seconds and then fell back to software (M730).
+     */
+    val noDirectRendering: Boolean by lazy {
+        android.os.Build.BRAND.equals("google", ignoreCase = true) &&
+            android.os.Build.MODEL.lowercase().contains("pixel 10")
     }
 
     /** M751: was the last medium built with the interlaced-channel path ([smoothFor])? */

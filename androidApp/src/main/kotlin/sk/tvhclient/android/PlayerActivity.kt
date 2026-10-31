@@ -334,7 +334,7 @@ class PlayerActivity : ComponentActivity() {
         val mp = engine.player
         val decoder = when {
             mediaFactory.lastSoftware -> StreamDetails.DEC_SOFTWARE
-            mediaFactory.lastSmooth ||   // M751
+            mediaFactory.lastSmooth || mediaFactory.noDirectRendering ||   // M751 / M753
             HwDecodePref.get(this) == HwDecodePref.DECODE || DeinterlacePref.get(this).let { it != DeinterlacePref.OFF && it != DeinterlacePref.AUTO } -> StreamDetails.DEC_DECODE
             else -> StreamDetails.DEC_HARDWARE
         }
