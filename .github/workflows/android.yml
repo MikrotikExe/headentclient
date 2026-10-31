@@ -74,6 +74,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: HeadentClient-debug
+          retention-days: 14   # M748 (audit R2): production-signed builds are kept 14 days, not 90
           # M424-fix2: splits only — a universal APK would double the artifact,
           # it is not needed for testing on a device (it belongs only in the GitHub Release)
           path: |
@@ -86,6 +87,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: HeadentClient-release
+          retention-days: 14   # M748 (audit R2): production-signed builds are kept 14 days, not 90
           # M424-fix2: splits only, the universal one is uploaded only in release.yml
           path: |
             androidApp/build/outputs/apk/release/*-arm64-v8a-*.apk
@@ -97,6 +99,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: HeadentClient-aab
+          retention-days: 14   # M748 (audit R2): production-signed builds are kept 14 days, not 90
           path: androidApp/build/outputs/bundle/release/*.aab
       # M544: R8 mapping — for decoding obfuscated stack traces from the diagnostic log
       # (and for uploading to the Play Console for that build)
@@ -104,6 +107,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: HeadentClient-mapping
+          retention-days: 14   # M748 (audit R2): production-signed builds are kept 14 days, not 90
           path: androidApp/build/outputs/mapping/release/mapping.txt
       # M743 (audit R-CI): the tests keep continue-on-error (the artifacts are still uploaded), but a
       # failing test now turns the run red at the very end instead of hiding behind a green check.
