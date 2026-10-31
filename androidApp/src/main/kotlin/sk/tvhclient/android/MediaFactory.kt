@@ -68,6 +68,10 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
         if (VlcVerbosePref.get(ctx)) CrashLogger.report(ctx, "MediaFactory.decoder",
             "decoder=${if (sw) "software" else "hardware"} mode=${HwDecodePref.get(ctx)} smooth=$smooth memo=${codec ?: "none"}")
         m.setHWDecoderEnabled(!sw, false)
+        // M752 (performance audit P2): software H.264/HEVC skips the loop filter on non-reference
+        // frames — a weak box keeps up with less CPU, the picture loses next to nothing (MPEG-2 has no
+        // loop filter, so it is unaffected). VLC's frame skipping is already on by default.
+        if (sw) m.addOption(":avcodec-skiploopfilter=1")
         var (en, mode) = deinterlaceSpec(sw)
         // M751: an interlaced channel with "Smooth interlaced HD channels" on — the hardware still
         // decodes, but the frames pass through VLC's deinterlacer instead of going straight to the

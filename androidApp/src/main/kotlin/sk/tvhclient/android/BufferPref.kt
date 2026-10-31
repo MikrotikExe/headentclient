@@ -29,8 +29,18 @@ object BufferPref {
     fun ms(context: Context): Int = when (get(context)) {
         SMALL -> 1500     // the original behaviour — fast LAN, lowest latency
         LARGE -> 6000     // fluctuating wifi / mobile — maximum resilience
-        else -> 3500      // MEDIUM default — balanced for wifi and mobile data
+        // MEDIUM default — balanced for wifi and mobile data. M752 (performance audit P1): on a wired
+        // (Ethernet) connection 1500 ms: Tvheadend sends live without an initial burst, so the first
+        // picture waited for the whole 3.5 s on every channel switch; a LAN does not need the reserve.
+        else -> if (onEthernet(context)) 1500 else 3500
     }
+
+    /** M752: the active network is Ethernet (a wired TV box). Any doubt = false (the wifi value). */
+    private fun onEthernet(context: Context): Boolean = runCatching {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val caps = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
+        caps.hasTransport(android.net.NetworkCapabilities.TRANSPORT_ETHERNET)
+    }.getOrDefault(false)
 
     /** M406-fix: buffer depth for the HTSP path (WE assemble the stream via TsMuxer).
      *  A big buffer here throws our PCR off and A/V drifts apart during ramp-up, so we keep
