@@ -48,13 +48,19 @@ object HtspData {
     /** M603: the last epgUpcomingMap was SKIPPED because a stream was running (it only returned the cache).
      *  The caller must not take this as an incomplete EPG — do not log, do not retry, nothing failed. */
     @kotlin.concurrent.Volatile var lastEpgSkipped: Boolean = false
-    fun streamStarted() { streamCount++ }
-    fun streamStopped() {
+    // M743 (audit R7): the stream counter and the maps below are touched from the feeders' threads, the
+    // UI's coroutines (Default/IO) and the EPG rounds at the same time — a plain ++ lost counts (a stuck
+    // `streaming`) and a concurrently modified HashMap can corrupt itself. Every access is short and
+    // non-suspending, so one lock on this object is enough.
+    @kotlin.jvm.Synchronized private fun <T> locked(block: () -> T): T = block()
+
+    fun streamStarted() { locked { streamCount++ } }
+    fun streamStopped() { locked {
         if (streamCount > 0) streamCount--
         // M692: the stream that used up the limit has ended — do not keep the app waiting for the
         // rest of a backoff window (up to 5 min) that was only caused by it
         if (streamCount == 0) connLimit.clear()
-    }
+    } }
 
     // ---- M692: the account's connection limit (connlimit) ----
     // The server log showed thousands of "multiple connections are not allowed for user X" a day,
@@ -74,7 +80,7 @@ object HtspData {
 
     /** M692: true while a previous connlimit refusal for this server is within its backoff window. */
     fun connLimitActive(server: TvhServer): Boolean {
-        val st = connLimit[server.id] ?: return false
+        val st = locked { connLimit[server.id] } ?: return false
         // refused while our own stream is running: the stream still holds the limit, so every
         // further attempt would be refused too — no more attempts until it stops (streamStopped clears it)
         if (st.duringStream && streaming) return true
@@ -83,13 +89,17 @@ object HtspData {
 
     private fun noteConnLimit(server: TvhServer) {
         val now = currentTimeSeconds()
-        val st = connLimit.getOrPut(server.id) { ConnLimitState(0, 0L) }
-        st.level = (st.level + 1).coerceAtMost(5)
-        val wait = (30L shl (st.level - 1)).coerceAtMost(300L)
-        st.until = now + wait
-        if (streaming) st.duringStream = true
-        if (now - connLimitReportedAt >= 300) {
-            connLimitReportedAt = now
+        val (wait, report) = locked {
+            val st = connLimit.getOrPut(server.id) { ConnLimitState(0, 0L) }
+            st.level = (st.level + 1).coerceAtMost(5)
+            val w = (30L shl (st.level - 1)).coerceAtMost(300L)
+            st.until = now + w
+            if (streaming) st.duringStream = true
+            val r = now - connLimitReportedAt >= 300
+            if (r) connLimitReportedAt = now
+            w to r
+        }
+        if (report) {
             runCatching {
                 onConnLimit?.invoke(
                     "connection limit reached for the account (streaming=$streaming) — next attempt in ${wait}s"
@@ -98,7 +108,7 @@ object HtspData {
         }
     }
 
-    private fun clearConnLimit(server: TvhServer) { connLimit.remove(server.id) }
+    private fun clearConnLimit(server: TvhServer) { locked { connLimit.remove(server.id) } }
 
     /** M692: called by the stream feeder when its own connection was refused with connlimit. */
     fun reportConnLimit(server: TvhServer) = noteConnLimit(server)
@@ -181,7 +191,7 @@ object HtspData {
     @Suppress("UNUSED_PARAMETER")
     suspend fun metadata(server: TvhServer, withEpg: Boolean, nowSec: Long, epgMaxDays: Int = 1): HtspClient.Metadata {
         val key = server.id
-        val c = cache[key]
+        val c = locked { cache[key] }
         if (c != null && connLimitActive(server)) return c.meta   // M692
         val meta = try {
             HtspSessions.get(server).metadata()
@@ -192,7 +202,7 @@ object HtspData {
             c?.meta?.let { return it }
             throw e
         }
-        if (meta.channels.isNotEmpty()) cache[key] = Cache(nowSec, meta, false)
+        if (meta.channels.isNotEmpty()) locked { cache[key] = Cache(nowSec, meta, false) }
         return meta
     }
 
@@ -216,7 +226,7 @@ object HtspData {
         var last: Throwable? = null
         val delays = longArrayOf(0L, 1_000L, 3_000L)
         val nowMs = currentTimeSeconds() * 1000
-        val cached = hostIp[server.host]?.takeIf { nowMs - it.second < 6 * 3600_000L }?.first
+        val cached = locked { hostIp[server.host] }?.takeIf { nowMs - it.second < 6 * 3600_000L }?.first
         for (d in delays) {
             if (d > 0) kotlinx.coroutines.delay(d)
             val hosts = if (cached != null && cached != server.host) listOf(server.host, cached) else listOf(server.host)
@@ -227,7 +237,7 @@ object HtspData {
                     if (h == server.host && !isIpLiteral(h)) {
                         // the connection via the name went through -> remember the IP for worse times
                         withContext(Dispatchers.Default) { sk.tvhclient.shared.net.resolveHostBlocking(h) }
-                            ?.let { hostIp[h] = it to nowMs }
+                            ?.let { ip -> locked { hostIp[h] = ip to nowMs } }
                     }
                     clearConnLimit(server)   // M692
                     return c
@@ -258,7 +268,7 @@ object HtspData {
             lastEpgSkipped = false; lastEpgFailed = 0; lastEpgEmpty = emptyList()
             return live.upcomingMap(nowSec)
         }
-        val nc = nowCache[server.id]
+        val nc = locked { nowCache[server.id] }
         lastEpgSkipped = false
         // M715: an overrunning programme ends at an unknown time -> such a round is kept only for a minute
         val ncTtl = if (nc != null && nc.map.values.any { l -> l.any { it.running } }) 60 else 600
@@ -357,8 +367,10 @@ object HtspData {
         // M551: an empty or incomplete result (getEvents failed) is NOT cached —
         // otherwise an empty map was returned for 10 minutes and the EPG in the player "got stuck"
         // (seen after switching the server from HTTP to HTSP mode while the app was running).
-        if (out.isNotEmpty() && failed == 0) nowCache[server.id] = NowCache(nowSec, out)
-        else nowCache.remove(server.id)
+        locked {
+            if (out.isNotEmpty() && failed == 0) nowCache[server.id] = NowCache(nowSec, out)
+            else nowCache.remove(server.id)
+        }
         lastEpgFailed = failed
         return out
     }
@@ -385,7 +397,7 @@ object HtspData {
      * server goes through [reset].
      */
     fun clear(serverId: String) {
-        cache.remove(serverId); nowCache.remove(serverId); capCache.remove(serverId)
+        locked { cache.remove(serverId); nowCache.remove(serverId); capCache.remove(serverId) }
     }
 
     /** M721: the server was edited or removed — drop the caches AND the connection (never under a running stream). */
@@ -401,7 +413,7 @@ object HtspData {
      * failure (port off/firewall/auth) -> reachable=false, empty caps.
      */
     suspend fun capabilities(server: TvhServer, nowSec: Long, ttl: Long = 600): Pair<Boolean, List<String>> {
-        val c = capCache[server.id]
+        val c = locked { capCache[server.id] }
         if (c != null && nowSec - c.ts < ttl) return c.reachable to c.caps
         // M692: within a connlimit backoff keep the last known answer (or "unknown" without
         // caching it) instead of another refused connection
@@ -417,7 +429,7 @@ object HtspData {
         } catch (e: Throwable) {
             false to emptyList<String>()
         }
-        capCache[server.id] = CapCache(nowSec, res.first, res.second)
+        locked { capCache[server.id] = CapCache(nowSec, res.first, res.second) }
         return res
     }
 

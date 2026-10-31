@@ -98,7 +98,7 @@ object TvHomeChannel {
 
             val poster = posterUri(app, server, row)
             // intent bound to this app (not a bare deep link that another app could take over)
-            val intent = Intent(Intent.ACTION_VIEW, DeepLink.channelUri(row.channel.uuid), app, MainActivity::class.java)
+            val intent = Intent(Intent.ACTION_VIEW, DeepLink.channelUri(row.channel.uuid, server.id), app, MainActivity::class.java)
             val b = PreviewProgram.Builder()
                 .setChannelId(channelId)
                 .setType(TvContractCompat.PreviewPrograms.TYPE_CHANNEL)

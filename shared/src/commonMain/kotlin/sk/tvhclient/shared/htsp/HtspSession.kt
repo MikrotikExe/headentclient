@@ -13,6 +13,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import sk.tvhclient.shared.currentTimeSeconds
+import sk.tvhclient.shared.monoSeconds
 import sk.tvhclient.shared.epg.LiveEpg
 import sk.tvhclient.shared.model.TvhServer
 
@@ -53,8 +54,8 @@ class HtspSession internal constructor(
 
     @kotlin.concurrent.Volatile var alive = true
         private set
-    @kotlin.concurrent.Volatile private var lastRecvSec = currentTimeSeconds()
-    @kotlin.concurrent.Volatile internal var lastUseSec = currentTimeSeconds()
+    @kotlin.concurrent.Volatile private var lastRecvSec = monoSeconds()
+    @kotlin.concurrent.Volatile internal var lastUseSec = monoSeconds()
         private set
 
     val serverCapabilities: List<String> get() = client.serverCapabilities
@@ -110,7 +111,7 @@ class HtspSession internal constructor(
         try {
             while (alive) {
                 val m = client.recv()
-                lastRecvSec = currentTimeSeconds()
+                lastRecvSec = monoSeconds()
                 val seq = (m["seq"] as? Long)?.toInt()
                 if (seq != null) {
                     val d = lock.withLock { pending.remove(seq) }
@@ -215,10 +216,10 @@ class HtspSession internal constructor(
             // With a subscription on this connection the burst now waits until the stream has been
             // flowing for EPG_STREAM_SETTLE_SEC (the player has its buffer); without one it goes
             // right away (the lists want now/next).
-            val t0 = currentTimeSeconds()
+            val t0 = monoSeconds()
             while (alive) {
                 val sub = lock.withLock { subs.values.firstOrNull() }
-                val now = currentTimeSeconds()
+                val now = monoSeconds()
                 if (sub == null) { if (now - t0 >= EPG_NO_STREAM_WAIT_SEC) break; delay(500); continue }
                 val fd = sub.firstDataSec
                 if (fd > 0L && now - fd >= EPG_STREAM_SETTLE_SEC) break
@@ -353,7 +354,7 @@ class HtspSession internal constructor(
             // no reply and nothing at all has arrived for a while — the connection is most likely
             // dead (Wi-Fi <-> LTE, NAT timeout); drop it so that the next use reconnects. While a
             // stream is flowing the connection is fine and the server is only slow.
-            if (currentTimeSeconds() - lastRecvSec >= 15) die(IllegalStateException("HTSP: no reply"))
+            if (monoSeconds() - lastRecvSec >= 15) die(IllegalStateException("HTSP: no reply"))
             throw IllegalStateException("HTSP: no reply arrived for $method")
         }
         return r
@@ -421,7 +422,7 @@ class HtspSession internal constructor(
         }
     }
 
-    private fun touch() { lastUseSec = currentTimeSeconds() }
+    private fun touch() { lastUseSec = monoSeconds() }
     /** M720: a screen keeps reading the live EPG window — count it as use (no idle close). */
     internal fun keepAlive() = touch()
 
@@ -515,7 +516,7 @@ object HtspSessions {
         janitor = janitorScope.launch {
             while (isActive) {
                 delay(60_000)
-                val now = currentTimeSeconds()
+                val now = monoSeconds()
                 val idle = mutex.withLock {
                     sessions.values.filter {
                         !it.hasActiveSubscriptions() && now - it.lastUseSec >= HtspSession.IDLE_CLOSE_SEC

@@ -126,7 +126,7 @@ object FavoriteShortcuts {
                 android.os.Build.VERSION.SDK_INT >= 26 -> IconCompat.createWithAdaptiveBitmap(squareIcon(picon, adaptive = true))
                 else -> IconCompat.createWithBitmap(squareIcon(picon, adaptive = false))
             }
-            val intent = Intent(Intent.ACTION_VIEW, DeepLink.channelUri(row.channel.uuid), app, MainActivity::class.java)
+            val intent = Intent(Intent.ACTION_VIEW, DeepLink.channelUri(row.channel.uuid, serverId), app, MainActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             list += ShortcutInfoCompat.Builder(app, "ch:" + row.channel.uuid)
                 .setShortLabel(row.channel.name.ifBlank { "#" + (row.channel.number ?: 0) })
@@ -217,7 +217,15 @@ object DeepLink {
 
     val pending = mutableStateOf<String?>(null)
 
-    fun channelUri(uuid: String): Uri = Uri.parse("$SCHEME://$HOST_CHANNEL/$uuid")
+    /** M743 (audit R3): the link carries the server it belongs to — a shortcut made on server A would
+     *  otherwise start a different channel with the same id on server B. */
+    private const val PARAM_SERVER = "srv"
+
+    fun channelUri(uuid: String, serverId: String? = null): Uri {
+        val b = Uri.Builder().scheme(SCHEME).authority(HOST_CHANNEL).appendPath(uuid)
+        if (!serverId.isNullOrBlank()) b.appendQueryParameter(PARAM_SERVER, serverId)
+        return b.build()
+    }
 
     /** Returns true if the intent was a deep link to a channel (and was taken over). */
     fun handle(intent: Intent?): Boolean {
@@ -226,6 +234,10 @@ object DeepLink {
         if (d.scheme != SCHEME || d.host != HOST_CHANNEL) return false
         val uuid = d.lastPathSegment?.trim().orEmpty()
         if (uuid.isEmpty()) return false
+        // M743: a link made for another server is ignored (the app just opens); links without the
+        // parameter (older shortcuts, adb, other apps) keep working on the active server as before
+        val srv = runCatching { d.getQueryParameter(PARAM_SERVER) }.getOrNull()
+        if (!srv.isNullOrBlank() && srv != sk.tvhclient.shared.Tvh.store.active()?.id) return true
         pending.value = uuid
         return true
     }

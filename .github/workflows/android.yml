@@ -53,6 +53,7 @@ jobs:
       # cannot be built on Linux. continue-on-error, so that a failing test does not lose the
       # artifacts (the result is in the log and in the run summary).
       - name: Shared unit tests
+        id: tests
         continue-on-error: true
         run: |
           set +e
@@ -104,4 +105,10 @@ jobs:
         with:
           name: HeadentClient-mapping
           path: androidApp/build/outputs/mapping/release/mapping.txt
-
+      # M743 (audit R-CI): the tests keep continue-on-error (the artifacts are still uploaded), but a
+      # failing test now turns the run red at the very end instead of hiding behind a green check.
+      - name: Fail the run if the unit tests failed
+        if: steps.tests.outcome == 'failure'
+        run: |
+          echo "::error::Shared unit tests failed - see the 'Shared unit tests' step."
+          exit 1

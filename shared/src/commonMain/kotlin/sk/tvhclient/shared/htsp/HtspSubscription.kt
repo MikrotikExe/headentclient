@@ -2,7 +2,7 @@ package sk.tvhclient.shared.htsp
 
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
-import sk.tvhclient.shared.currentTimeSeconds
+import sk.tvhclient.shared.monoSeconds
 
 /**
  * M693: one live HTSP subscription on the shared [HtspSession] connection, remuxed into MPEG-TS.
@@ -53,15 +53,15 @@ class HtspSubscription internal constructor(
      */
     internal fun fromReader(m: Map<String, Any?>) {
         if (m["method"] == "muxpkt") {
-            if (firstDataSec == 0L) firstDataSec = currentTimeSeconds()
+            if (firstDataSec == 0L) firstDataSec = monoSeconds()
             val pending = pktIn - pktOut
             if (dropping) {
                 val key = (m["frametype"] as? Long)?.toInt() == 'I'.code
-                val late = currentTimeSeconds() - dropSince >= RESYNC_MAX_SEC
+                val late = monoSeconds() - dropSince >= RESYNC_MAX_SEC
                 if (pending <= MAX_PENDING / 2 && (!hasVideo || key || late)) dropping = false else return
             } else if (pending >= MAX_PENDING) {
                 dropping = true
-                dropSince = currentTimeSeconds()
+                dropSince = monoSeconds()
                 return
             }
             pktIn++

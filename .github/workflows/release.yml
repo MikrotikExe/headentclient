@@ -59,6 +59,10 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
           printf 'storeFile=keystore.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
 
+      # M743 (audit R-CI): a release is not built from a commit whose unit tests fail
+      - name: Shared unit tests
+        run: gradle :shared:testAndroidHostTest
+
       - name: Build release APK (splits)
         run: |
           gradle :androidApp:assembleRelease

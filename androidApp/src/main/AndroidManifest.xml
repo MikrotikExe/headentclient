@@ -62,11 +62,12 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
             <!-- M573: deep link to a channel (favourites shortcuts, launchers, adb):
-                 headentclient://channel/<uuid> -->
+                 headentclient://channel/<uuid>[?srv=<server id>]
+                 M743 (audit R3): no BROWSABLE — a web page must not be able to start playback;
+                 shortcuts, the TV home row, launchers and adb use DEFAULT and keep working -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="headentclient" android:host="channel" />
             </intent-filter>
         </activity>

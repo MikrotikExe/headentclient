@@ -645,7 +645,10 @@ class TsMuxer(streams: List<Stream>) {
     /** M674: a TS packet with only an adaptation field and a PCR on the PCR PID (no payload, the CC is not incremented). */
     private fun writePcrOnly(pcrVal: Long, out: ByteArray, startOff: Int) {
         val pkt = TsPacketView(out, startOff)
-        val cc = trackByPid(pcrPid)?.cc ?: 0
+        // M743 (audit R14): Track.cc is the counter of the NEXT payload packet; a packet without a payload
+        // must repeat the counter of the last one sent on the PID (ISO 13818-1), i.e. cc - 1 — the value
+        // used until now was one higher, which a strict demuxer reports as a continuity error.
+        val cc = ((trackByPid(pcrPid)?.cc ?: 0) - 1) and 0x0F
         pkt[0] = 0x47
         pkt[1] = ((pcrPid ushr 8) and 0x1F).toByte()
         pkt[2] = (pcrPid and 0xFF).toByte()

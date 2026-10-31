@@ -161,9 +161,19 @@ class TsMuxerTimingTest {
     fun pcrOnlyPacketHasNoPayloadAndKeepsCc() {
         val m = muxer()
         m.start()
-        m.mux(1, es, pts = 1_007_200L, dts = 1_000_000L, randomAccess = true)
+        val video = m.mux(1, es, pts = 1_007_200L, dts = 1_000_000L, randomAccess = true)
         val out = m.mux(2, es, pts = 1_000_000L + 60_000L, dts = null, randomAccess = false)   // audio 667 ms ahead of the video (M732: > 500 ms)
         val first = out.copyOfRange(0, 188)
+        // M743 (audit R14): the CC of the PCR-only packet = the CC of the last video packet (no payload, no increment)
+        var lastVideoCc = -1
+        var o = 0
+        while (o + 188 <= video.size) {
+            val vpid = ((video[o + 1].toInt() and 0x1F) shl 8) or (video[o + 2].toInt() and 0xFF)
+            if (vpid == 0x1001) lastVideoCc = video[o + 3].toInt() and 0x0F
+            o += 188
+        }
+        assertTrue(lastVideoCc >= 0)
+        assertEquals(lastVideoCc, first[3].toInt() and 0x0F, "PCR-only CC repeats the last video CC")
         assertEquals(0x47, first[0].toInt() and 0xFF)
         val pid = ((first[1].toInt() and 0x1F) shl 8) or (first[2].toInt() and 0xFF)
         assertEquals(0x1001, pid, "the first packet is PCR-only on the video PID")

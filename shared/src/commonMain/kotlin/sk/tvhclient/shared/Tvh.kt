@@ -258,6 +258,15 @@ object Tvh {
 /** Current time in seconds — expect/actual per platform. */
 expect fun currentTimeSeconds(): Long
 
+/**
+ * M743 (audit R6): seconds on a monotonic clock, for measuring intervals (keepalive, idle close,
+ * waits). The wall clock jumps on a box that boots with a wrong time and fixes it via NTP later —
+ * a "no reply for 15 s" check then killed a healthy connection, or a wait never ended. Only
+ * differences are meaningful; the offset keeps the value well away from 0 (used as "not set").
+ */
+private val monoStart = kotlin.time.TimeSource.Monotonic.markNow()
+fun monoSeconds(): Long = 1_000_000L + monoStart.elapsedNow().inWholeSeconds
+
 /** Formats unix seconds as "HH:MM" in local time. expect/actual. */
 expect fun formatTimeHm(epochSec: Long): String
 
