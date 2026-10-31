@@ -39,7 +39,7 @@ internal fun PlayerTrackMenu(
         val items = when {
             menu == "profile" -> profileItems.mapIndexed { i, name -> TrackItem(i, name) }
             menu == "audio" -> player.audioTrackItems()
-            htspSpu -> htspSpuItems ?: emptyList()
+            htspSpu -> (htspSpuItems ?: emptyList()) + player.ccTrackItems()   // M755: + closed captions
             else -> player.spuTrackItems()
         }
         val currentId = when {

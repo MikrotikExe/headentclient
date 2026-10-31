@@ -63,7 +63,7 @@ internal class TrackState(
         return if (menuKind == "audio") {
             mp.audioTrackItems().map { it.id }
         } else {
-            val spu = if (htspStream) htspSpuItems() else mp.spuTrackItems()
+            val spu = if (htspStream) htspSpuItems() + mp.ccTrackItems() else mp.spuTrackItems()   // M755
             listOf(-1) + spu.map { it.id }  // -1 = Off
         }
     }

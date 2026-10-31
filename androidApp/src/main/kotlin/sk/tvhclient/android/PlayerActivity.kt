@@ -2562,6 +2562,20 @@ internal fun MediaPlayer.audioTrackItems(): List<TrackItem> {
     }
 }
 
+/**
+ * M755: closed captions (CEA-608/708, ATSC — issue from an HDHomeRun user) as libVLC finds them inside
+ * the video stream ("Closed captions 1", ...). Over HTSP the subtitle menu lists the server's DVB
+ * subtitle streams only, so these are appended to it with ids above [CC_ID_BASE]. Read only while the
+ * menu is open (a libVLC call, like the HTTP subtitle list).
+ */
+internal const val CC_ID_BASE = 1_000_000
+
+internal fun MediaPlayer.ccTrackItems(): List<TrackItem> {
+    val descs = runCatching { spuTracks }.getOrNull() ?: return emptyList()
+    return descs.filter { it.id >= 0 && it.name?.contains("caption", ignoreCase = true) == true }
+        .map { TrackItem(CC_ID_BASE + it.id, it.name ?: "CC") }
+}
+
 internal fun MediaPlayer.spuTrackItems(): List<TrackItem> {
     val descs = spuTracks ?: return emptyList()
     val langs = trackLanguages()

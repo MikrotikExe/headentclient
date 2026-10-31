@@ -35,6 +35,14 @@ internal class TrackMenuController(
         tracks.selectedSubEs.value = esIndex
         // We decode and render DVB subtitles ourselves; they do not go into libVLC. Selection = which ES to decode.
         hooks.subtitleReset()
+        if (esIndex >= CC_ID_BASE) {
+            // M755: closed captions live inside the video and libVLC renders them — our DVB decoder off
+            stream.htspFeeder?.selectSubtitle(-1)
+            runCatching { player()?.spuTrack = esIndex - CC_ID_BASE }
+            return
+        }
+        // a DVB stream or Off: libVLC's own caption track (if one was on) goes off
+        runCatching { player()?.let { if (it.spuTrack >= 0) it.spuTrack = -1 } }
         stream.htspFeeder?.selectSubtitle(esIndex)
     }
 
