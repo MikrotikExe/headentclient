@@ -543,4 +543,6 @@
     <string name="combs_help_title">Görüntüde tırtıklı tarak izleri mi var?</string>
     <string name="combs_help_msg">Hareket sırasında kenarlardaki yatay çizgiler, cihaz çipinin kendisi yumuşatmadığı geçmeli bir görüntü demektir. “%1$s” seçeneğini açın veya %2$s ayarını “%3$s”, %4$s ayarını “Yadif” yapın.</string>
     <string name="stutter_help_msg">Görüntü takılıyor veya donuyorsa (zayıf cihaz), sunucu ayarlarında %1$s ayarını “%2$s” yapın – performans açısından daha hafiftir.</string>
+    <string name="htsp_bridge_title">Yerel HTTP sunucusu üzerinden HTSP akışı</string>
+    <string name="htsp_bridge_note">Oynatıcı HTSP yayınını ağ akışı olarak alır ve HTTP\'deki gibi ağ arabelleğini kullanır; ağ dalgalanmalarına ve takılmalara daha iyi dayanır. Deneysel; oynatma daha çok takılırsa kapatın. Bir sonraki kanal başlangıcında geçerli olur.</string>
 </resources>

@@ -543,4 +543,6 @@
     <string name="combs_help_title">¿Peines dentados en la imagen?</string>
     <string name="combs_help_msg">Las rayas horizontales en los bordes con movimiento indican una imagen entrelazada que el chip del dispositivo no suaviza por sí solo. Activa «%1$s» o ajusta %2$s a «%3$s» y %4$s a «Yadif».</string>
     <string name="stutter_help_msg">Si la imagen da tirones o se congela (dispositivo modesto), cambia %1$s a «%2$s» en los ajustes del servidor: exige menos rendimiento.</string>
+    <string name="htsp_bridge_title">Stream HTSP a través de servidor HTTP local</string>
+    <string name="htsp_bridge_note">El reproductor recibe la emisión HTSP como un stream de red y usa el búfer de red como con HTTP: tolera mejor las fluctuaciones y los cortes de la red. Experimental; si la reproducción da más tirones, desactívalo. Se aplica al siguiente inicio de canal.</string>
 </resources>

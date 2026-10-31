@@ -543,4 +543,6 @@
     <string name="combs_help_title">Pentes serrilhados na imagem?</string>
     <string name="combs_help_msg">Riscas horizontais nas arestas em movimento indicam uma imagem entrelaçada que o chip do dispositivo não suaviza sozinho. Ative “%1$s” ou defina %2$s como “%3$s” e %4$s como “Yadif”.</string>
     <string name="stutter_help_msg">Se a imagem soluçar ou congelar (dispositivo mais fraco), mude %1$s para “%2$s” nas definições do servidor – é menos exigente.</string>
+    <string name="htsp_bridge_title">Stream HTSP via servidor HTTP local</string>
+    <string name="htsp_bridge_note">O leitor recebe a emissão HTSP como stream de rede e usa o buffer de rede como no HTTP – lida melhor com oscilações e soluços da rede. Experimental; se a reprodução soluçar mais, desative. Aplica-se no próximo arranque do canal.</string>
 </resources>

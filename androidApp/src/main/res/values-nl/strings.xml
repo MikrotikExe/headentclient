@@ -543,4 +543,6 @@
     <string name="combs_help_title">Kartelige kamstrepen in beeld?</string>
     <string name="combs_help_msg">Horizontale streepjes langs randen bij beweging wijzen op interlaced beeld dat de chip van het apparaat zelf niet gladstrijkt. Zet ‘%1$s’ aan, of stel %2$s in op ‘%3$s’ en %4$s op ‘Yadif’.</string>
     <string name="stutter_help_msg">Als het beeld hapert of vastloopt (zwakker apparaat), zet dan %1$s in de serverinstellingen op ‘%2$s’ – dat vraagt minder rekenkracht.</string>
+    <string name="htsp_bridge_title">HTSP-stream via lokale HTTP-server</string>
+    <string name="htsp_bridge_note">De speler ontvangt de HTSP-uitzending als netwerkstream en gebruikt de netwerkbuffer zoals bij HTTP – schommelingen en haperingen van het netwerk worden beter opgevangen. Experimenteel; hapert het afspelen meer, zet het uit. Geldt vanaf de volgende zenderstart.</string>
 </resources>

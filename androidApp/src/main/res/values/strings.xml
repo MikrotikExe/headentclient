@@ -543,4 +543,6 @@
     <string name="combs_help_title">Jagged combs in the picture?</string>
     <string name="combs_help_msg">Horizontal stripes on edges during motion mean an interlaced picture that the device chip does not smooth by itself. Turn on “%1$s”, or set %2$s to “%3$s” and %4$s to “Yadif”.</string>
     <string name="stutter_help_msg">If the picture stutters or freezes (weaker device), switch %1$s in the server settings to “%2$s” – it is lighter on performance.</string>
+    <string name="htsp_bridge_title">HTSP stream via local HTTP server</string>
+    <string name="htsp_bridge_note">The player receives the HTSP broadcast as a network stream and uses the network buffer as with HTTP – it copes better with network fluctuations and hiccups. Experimental; if playback stutters more, turn it off. Takes effect at the next channel start.</string>
 </resources>

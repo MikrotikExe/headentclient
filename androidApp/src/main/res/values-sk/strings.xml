@@ -543,4 +543,6 @@
     <string name="combs_help_title">Zubaté hrebene na obraze?</string>
     <string name="combs_help_msg">Vodorovné pásiky na hranách pri pohybe znamenajú prekladaný obraz, ktorý čip zariadenia sám nevyhladí. Zapni „%1$s“, prípadne nastav %2$s na „%3$s“ a %4$s na „Yadif“.</string>
     <string name="stutter_help_msg">Ak obraz trhá alebo sa seká (slabšie zariadenie), prepni v nastaveniach servera %1$s na „%2$s“ – je menej náročný na výkon.</string>
+    <string name="htsp_bridge_title">HTSP stream cez lokálny HTTP server</string>
+    <string name="htsp_bridge_note">Prehrávač dostane HTSP vysielanie ako sieťový stream a použije sieťovú vyrovnávaciu pamäť ako pri HTTP – lepšie zvláda kolísanie siete a zádrhy. Experimentálne; ak by prehrávanie trhalo viac, vypni. Prejaví sa pri ďalšom spustení kanála.</string>
 </resources>

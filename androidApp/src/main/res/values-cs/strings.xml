@@ -543,4 +543,6 @@
     <string name="combs_help_title">Zubaté hřebeny v obraze?</string>
     <string name="combs_help_msg">Vodorovné proužky na hranách při pohybu znamenají prokládaný obraz, který čip zařízení sám nevyhladí. Zapni „%1$s“, případně nastav %2$s na „%3$s“ a %4$s na „Yadif“.</string>
     <string name="stutter_help_msg">Pokud obraz trhá nebo se seká (slabší zařízení), přepni v nastavení serveru %1$s na „%2$s“ – je méně náročný na výkon.</string>
+    <string name="htsp_bridge_title">HTSP stream přes lokální HTTP server</string>
+    <string name="htsp_bridge_note">Přehrávač dostane HTSP vysílání jako síťový stream a použije síťovou vyrovnávací paměť jako u HTTP – lépe zvládá kolísání sítě a zádrhele. Experimentální; pokud by přehrávání trhalo více, vypni. Projeví se při dalším spuštění kanálu.</string>
 </resources>

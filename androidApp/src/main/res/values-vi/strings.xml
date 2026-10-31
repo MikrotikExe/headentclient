@@ -543,4 +543,6 @@
     <string name="combs_help_title">Hình có vệt răng lược lởm chởm?</string>
     <string name="combs_help_msg">Các sọc ngang ở mép khi chuyển động là hình xen kẽ mà chip của thiết bị không tự làm mịn. Bật “%1$s”, hoặc đặt %2$s thành “%3$s” và %4$s thành “Yadif”.</string>
     <string name="stutter_help_msg">Nếu hình bị giật hoặc đứng (thiết bị yếu), đổi %1$s trong cài đặt máy chủ thành “%2$s” – nhẹ hơn cho hiệu năng.</string>
+    <string name="htsp_bridge_title">Luồng HTSP qua máy chủ HTTP cục bộ</string>
+    <string name="htsp_bridge_note">Trình phát nhận phát sóng HTSP như luồng mạng và dùng bộ đệm mạng như với HTTP – chịu dao động và gián đoạn mạng tốt hơn. Thử nghiệm; nếu phát giật hơn, hãy tắt. Có hiệu lực từ lần bật kênh tiếp theo.</string>
 </resources>

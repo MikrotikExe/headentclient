@@ -109,6 +109,25 @@ class HtspTsFeeder(
     // limit them to one per user and it would drop playback)
     private var streamMarked = false
 
+    /** M754: the loopback HTTP stream of this feeder (instead of the pipe), see [LiveHttpBridge]. */
+    @Volatile private var bridge: LiveHttpBridge.Source? = null
+
+    /**
+     * M754 (performance audit P3): the same feed, but libVLC reads it over a loopback HTTP connection
+     * ([LiveHttpBridge]) as a live network stream — with the network buffer and the clock correction
+     * the pipe (a "file" to libVLC) never had. Returns the URL to open. Call off the main thread.
+     */
+    fun startHttp(channelId: Long, scope: CoroutineScope, profile: String? = null): String {
+        this.scope = scope
+        if (!streamMarked) { streamMarked = true; sk.tvhclient.shared.htsp.HtspData.streamStarted() }   // M595
+        val (src, url) = LiveHttpBridge.open()
+        bridge = src
+        launchFeed(channelId, scope, profile,
+            sink = { bytes -> src.offer(bytes) },
+            finish = { src.close() })
+        return url
+    }
+
     fun start(channelId: Long, scope: CoroutineScope, profile: String? = null): FileDescriptor {
         this.scope = scope
         if (!streamMarked) { streamMarked = true; sk.tvhclient.shared.htsp.HtspData.streamStarted() }   // M595
@@ -147,6 +166,21 @@ class HtspTsFeeder(
         writer.priority = Thread.MAX_PRIORITY
         writer.start()
         tsWriter = writer
+        launchFeed(channelId, scope, profile,
+            sink = { bytes -> queue.offer(bytes, 10, java.util.concurrent.TimeUnit.SECONDS) },
+            finish = {
+                runCatching { queue.offer(ByteArray(0)) }   // M481
+                runCatching { writer.interrupt() }
+                runCatching { writer.join(500) }
+                try { os.close() } catch (_: Throwable) {}
+            })
+        return read.fileDescriptor
+    }
+
+    /** The subscription loop shared by the pipe and the HTTP bridge: [sink] takes a TS block (false = the
+     *  consumer did not drain it in time), [finish] closes the consumer side at the end. */
+    private fun launchFeed(channelId: Long, scope: CoroutineScope, profile: String?,
+                           sink: (ByteArray) -> Boolean, finish: () -> Unit) {
         job = scope.launch(Dispatchers.IO) {
             // M408: the keepalive is now done by the shared session itself
             try {
@@ -178,7 +212,7 @@ class HtspTsFeeder(
                                     d("A/V pts offset (audio - video) ${subscription.avDeltaMs() ?: "?"} ms, pending ${subscription.pendingPackets()} pkts, buffer ${bufferTicks / 90} ms")
                                 }
                             }
-                            if (!queue.offer(bytes, 10, java.util.concurrent.TimeUnit.SECONDS)) {
+                            if (!sink(bytes)) {
                                 throw java.io.IOException("TS queue did not drain")
                             }
                         }
@@ -213,13 +247,9 @@ class HtspTsFeeder(
                 }
             } finally {
                 sub = null
-                runCatching { queue.offer(ByteArray(0)) }   // M481
-                runCatching { writer.interrupt() }
-                runCatching { writer.join(500) }
-                try { os.close() } catch (_: Throwable) {}
+                runCatching { finish() }
             }
         }
-        return read.fileDescriptor
     }
 
     /** Selection of the subtitle track sent into libVLC (esIndex; -1 = none). */
@@ -264,6 +294,7 @@ class HtspTsFeeder(
         // responding. offer() does not wait for room; the wake-up is handled by the interrupt.
         runCatching { tsQueue?.offer(ByteArray(0)) }
         runCatching { tsWriter?.interrupt() }
+        runCatching { bridge?.close() }; bridge = null   // M754
         tsQueue = null
         tsWriter = null
         try { out?.close() } catch (_: Throwable) {}

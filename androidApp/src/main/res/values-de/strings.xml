@@ -543,4 +543,6 @@
     <string name="combs_help_title">Zackige Kammeffekte im Bild?</string>
     <string name="combs_help_msg">Waagerechte Streifen an Kanten bei Bewegung bedeuten ein Interlaced-Bild, das der Chip des Geräts nicht selbst glättet. Schalte „%1$s“ ein oder stelle %2$s auf „%3$s“ und %4$s auf „Yadif“.</string>
     <string name="stutter_help_msg">Wenn das Bild ruckelt oder hängt (schwächeres Gerät), stelle in den Servereinstellungen %1$s auf „%2$s“ – das braucht weniger Leistung.</string>
+    <string name="htsp_bridge_title">HTSP-Stream über lokalen HTTP-Server</string>
+    <string name="htsp_bridge_note">Der Player erhält die HTSP-Übertragung als Netzwerkstream und nutzt den Netzwerkpuffer wie bei HTTP – Schwankungen und Aussetzer im Netz werden besser abgefangen. Experimentell; ruckelt die Wiedergabe stärker, ausschalten. Gilt ab dem nächsten Senderstart.</string>
 </resources>

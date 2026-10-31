@@ -543,4 +543,6 @@
     <string name="combs_help_title">Ada efek sisir bergerigi di gambar?</string>
     <string name="combs_help_msg">Garis horizontal di tepi saat bergerak menandakan gambar interlaced yang tidak dihaluskan sendiri oleh chip perangkat. Aktifkan “%1$s”, atau atur %2$s ke “%3$s” dan %4$s ke “Yadif”.</string>
     <string name="stutter_help_msg">Jika gambar tersendat atau macet (perangkat lebih lemah), ubah %1$s di pengaturan server ke “%2$s” – lebih ringan bagi performa.</string>
+    <string name="htsp_bridge_title">Stream HTSP lewat server HTTP lokal</string>
+    <string name="htsp_bridge_note">Pemutar menerima siaran HTSP sebagai stream jaringan dan memakai buffer jaringan seperti pada HTTP – lebih tahan terhadap fluktuasi dan tersendatnya jaringan. Eksperimental; jika pemutaran lebih tersendat, matikan. Berlaku saat saluran dimulai berikutnya.</string>
 </resources>

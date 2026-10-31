@@ -543,4 +543,6 @@
     <string name="combs_help_title">Nazobčani glavniki na sliki?</string>
     <string name="combs_help_msg">Vodoravne črte na robovih med gibanjem pomenijo prepleteno sliko, ki je čip naprave sam ne zgladi. Vklopi »%1$s« ali nastavi %2$s na »%3$s« in %4$s na »Yadif«.</string>
     <string name="stutter_help_msg">Če slika poskakuje ali zastaja (šibkejša naprava), v nastavitvah strežnika preklopi %1$s na »%2$s« – je manj zahtevno.</string>
+    <string name="htsp_bridge_title">HTSP tok prek lokalnega strežnika HTTP</string>
+    <string name="htsp_bridge_note">Predvajalnik prejme oddajo HTSP kot omrežni tok in uporabi omrežni medpomnilnik kot pri HTTP – bolje prenaša nihanja omrežja in zatikanje. Poskusno; če predvajanje bolj zatika, izklopi. Velja od naslednjega zagona kanala.</string>
 </resources>

@@ -543,4 +543,6 @@
     <string name="combs_help_title">映像にくし状のギザギザ？</string>
     <string name="combs_help_msg">動きのある場面で輪郭に出る横縞は、端末のチップが自分で処理しないインターレース映像です。「%1$s」をオンにするか、%2$sを「%3$s」、%4$sを「Yadif」に設定してください。</string>
     <string name="stutter_help_msg">映像がカクついたり止まったりする場合（性能の低い端末）は、サーバー設定の%1$sを「%2$s」に切り替えてください。負荷が軽くなります。</string>
+    <string name="htsp_bridge_title">ローカルHTTPサーバー経由のHTSPストリーム</string>
+    <string name="htsp_bridge_note">プレーヤーはHTSP放送をネットワークストリームとして受け取り、HTTPと同様にネットワークバッファを使います。ネットワークの揺らぎや途切れに強くなります。実験的機能で、再生のカクつきが増える場合はオフにしてください。次にチャンネルを開始したときから有効です。</string>
 </resources>

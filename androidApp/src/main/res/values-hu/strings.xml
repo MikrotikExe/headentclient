@@ -543,4 +543,6 @@
     <string name="combs_help_title">Fésűs, csipkés kép?</string>
     <string name="combs_help_msg">A mozgás közben az éleken látható vízszintes csíkok váltottsoros képet jelentenek, amelyet az eszköz chipje nem simít ki. Kapcsold be: „%1$s”, vagy állítsd a(z) %2$s beállítást „%3$s” értékre és a(z) %4$s beállítást „Yadif” értékre.</string>
     <string name="stutter_help_msg">Ha a kép akadozik vagy megakad (gyengébb eszköz), a szerver beállításaiban állítsd a(z) %1$s beállítást „%2$s” értékre – kisebb teljesítményt igényel.</string>
+    <string name="htsp_bridge_title">HTSP stream helyi HTTP-szerveren át</string>
+    <string name="htsp_bridge_note">A lejátszó az HTSP adást hálózati streamként kapja, és a hálózati puffert használja, mint HTTP-nél – jobban bírja a hálózat ingadozását és az akadásokat. Kísérleti; ha a lejátszás jobban akadozik, kapcsold ki. A következő csatornaindításkor lép életbe.</string>
 </resources>

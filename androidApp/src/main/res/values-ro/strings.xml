@@ -543,4 +543,6 @@
     <string name="combs_help_title">Pieptăni zimțați în imagine?</string>
     <string name="combs_help_msg">Dungile orizontale pe margini în mișcare indică o imagine întrețesută pe care cipul dispozitivului nu o netezește singur. Activează „%1$s” sau setează %2$s la „%3$s” și %4$s la „Yadif”.</string>
     <string name="stutter_help_msg">Dacă imaginea sacadează sau se blochează (dispozitiv mai slab), comută %1$s la „%2$s” în setările serverului – necesită mai puțină putere.</string>
+    <string name="htsp_bridge_title">Stream HTSP prin server HTTP local</string>
+    <string name="htsp_bridge_note">Playerul primește emisia HTSP ca stream de rețea și folosește bufferul de rețea ca la HTTP – face față mai bine oscilațiilor și sacadărilor rețelei. Experimental; dacă redarea sacadează mai mult, dezactivează. Se aplică la următoarea pornire a canalului.</string>
 </resources>

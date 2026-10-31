@@ -59,6 +59,24 @@ object InterlacedSmoothPref {
     }
 }
 
+/**
+ * M754: the HTSP live stream handed to libVLC over a loopback HTTP connection instead of a pipe
+ * (LiveHttpBridge) — libVLC then treats it as a live network stream with the network buffer.
+ * Experimental, off by default; applies from the next channel start.
+ */
+object HtspHttpBridgePref {
+    private const val PREFS = "app_prefs"
+    private const val KEY = "htsp_http_bridge"
+
+    fun get(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY, false)
+
+    fun set(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY, enabled).apply()
+    }
+}
+
 object Mpeg2SoftwarePref {
     private const val PREFS = "app_prefs"
     private const val KEY = "mpeg2_sw"

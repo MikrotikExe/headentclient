@@ -543,4 +543,6 @@
     <string name="combs_help_title">Pettini seghettati nell\'immagine?</string>
     <string name="combs_help_msg">Strisce orizzontali sui bordi in movimento indicano un\'immagine interlacciata che il chip del dispositivo non leviga da solo. Attiva «%1$s» oppure imposta %2$s su «%3$s» e %4$s su «Yadif».</string>
     <string name="stutter_help_msg">Se l\'immagine scatta o si blocca (dispositivo meno potente), imposta %1$s su «%2$s» nelle impostazioni del server: richiede meno prestazioni.</string>
+    <string name="htsp_bridge_title">Stream HTSP tramite server HTTP locale</string>
+    <string name="htsp_bridge_note">Il player riceve la trasmissione HTSP come stream di rete e usa il buffer di rete come con HTTP: gestisce meglio oscillazioni e intoppi della rete. Sperimentale; se la riproduzione scatta di più, disattivalo. Ha effetto al prossimo avvio del canale.</string>
 </resources>

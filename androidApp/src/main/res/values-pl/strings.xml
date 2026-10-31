@@ -543,4 +543,6 @@
     <string name="combs_help_title">Postrzępione grzebienie na obrazie?</string>
     <string name="combs_help_msg">Poziome paski na krawędziach w ruchu oznaczają obraz z przeplotem, którego układ urządzenia sam nie wygładza. Włącz „%1$s” albo ustaw %2$s na „%3$s” i %4$s na „Yadif”.</string>
     <string name="stutter_help_msg">Jeśli obraz się tnie lub zacina (słabsze urządzenie), przełącz w ustawieniach serwera %1$s na „%2$s” – jest mniej wymagający.</string>
+    <string name="htsp_bridge_title">Strumień HTSP przez lokalny serwer HTTP</string>
+    <string name="htsp_bridge_note">Odtwarzacz otrzymuje przekaz HTSP jako strumień sieciowy i używa bufora sieciowego jak przy HTTP – lepiej radzi sobie z wahaniami sieci i zacięciami. Eksperymentalne; jeśli odtwarzanie tnie się bardziej, wyłącz. Działa od następnego uruchomienia kanału.</string>
 </resources>

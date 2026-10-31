@@ -246,8 +246,15 @@ internal class StreamOpener(
             tracks.selectedSubEs.value = -1
             tracks.desiredSubName = null
             hooks.resetTimeshift()
-            val fd = feeder.start(channelId, scope, live.server?.profile)   // M476
-            val m = media.forFeeder(fd, "ts", BufferPref.htspMs(ctx), liveCodec())   // M722
+            val m = if (HtspHttpBridgePref.get(ctx)) {
+                // M754: libVLC reads the stream over loopback HTTP as a live network stream — the
+                // network buffer of the HTTP path applies (per medium, the global value may differ)
+                val url = feeder.startHttp(channelId, scope, live.server?.profile)
+                media.forUrl(url, "ts", liveCodec()).also { it.addOption(":network-caching=" + BufferPref.ms(ctx)) }
+            } else {
+                val fd = feeder.start(channelId, scope, live.server?.profile)   // M476
+                media.forFeeder(fd, "ts", BufferPref.htspMs(ctx), liveCodec())   // M722
+            }
             setMediaAndPlay(m)   // M747
             true
         } catch (e: Throwable) {

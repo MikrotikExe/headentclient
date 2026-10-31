@@ -1357,6 +1357,7 @@ class PlayerActivity : ComponentActivity() {
             (durationMs <= 0 || durationMs - saved.posMs > 60_000)
         ) saved.posMs else 0L
 
+        if (HtspHttpBridgePref.get(this)) LiveHttpBridge.warmUp()   // M754: bind the loopback server off the main thread
         PlayerLogCapture.start(this, this)   // M730: the verbose player log into diag/player.log (only with the setting on); M736: owned by this instance
         engine.create()   // M539: libVLC + MediaPlayer + listener (reusable when recovering from stalled audio)
         stall.start()

@@ -543,4 +543,6 @@
     <string name="combs_help_title">Des peignes dans l\'image ?</string>
     <string name="combs_help_msg">Des stries horizontales sur les contours en mouvement signalent une image entrelacée que la puce de l\'appareil ne lisse pas d\'elle-même. Activez « %1$s », ou réglez %2$s sur « %3$s » et %4$s sur « Yadif ».</string>
     <string name="stutter_help_msg">Si l\'image saccade ou se fige (appareil modeste), réglez %1$s sur « %2$s » dans les paramètres du serveur – c\'est moins gourmand.</string>
+    <string name="htsp_bridge_title">Flux HTSP via un serveur HTTP local</string>
+    <string name="htsp_bridge_note">Le lecteur reçoit la diffusion HTSP comme un flux réseau et utilise le tampon réseau comme en HTTP : il supporte mieux les fluctuations et les à-coups du réseau. Expérimental ; si la lecture saccade davantage, désactivez. Prend effet au prochain démarrage de chaîne.</string>
 </resources>

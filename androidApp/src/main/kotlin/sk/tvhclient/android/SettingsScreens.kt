@@ -1284,6 +1284,22 @@ internal fun AdvancedSettings(ctx: android.content.Context) {
             modifier = Modifier.dpadReadable().padding(horizontal = 8.dp, vertical = 4.dp)
         )
     }
+    // M754: HTSP live over the loopback HTTP bridge (experimental, off by default)
+    SettingsGroupDivider()
+    run {
+        var bridge by remember { mutableStateOf(HtspHttpBridgePref.get(ctx)) }
+        SettingsSwitchRow(
+            label = stringResource(R.string.htsp_bridge_title),
+            note = stringResource(R.string.htsp_bridge_note),
+            checked = bridge,
+            onChange = { on ->
+                bridge = on
+                HtspHttpBridgePref.set(ctx, on)
+                TabController.settingsDirty.value = true
+            }
+        )
+    }
+    SettingsGroupDivider()
 
     var deint by remember { mutableStateOf(DeinterlacePref.get(ctx)) }
     val deintLabel: @Composable (String) -> String = { v ->
