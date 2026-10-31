@@ -60,6 +60,25 @@ class BootReceiver : BroadcastReceiver() {
         if (!boot) return
         WakeKeeperService.ensure(context)   // M716: "start on wake" also after a reboot without opening the app
         if (!AutostartPref.isEnabled(context)) return
+        if (!firstForThisBoot(context)) return   // M746
         AutostartLaunch.bringToFrontOrStart(context)   // M535
+    }
+
+    /**
+     * M746 (audit R16): the receiver has to be exported for the system's boot broadcasts, so any
+     * app could send it these actions again and again and keep pulling Headent to the front. The
+     * launch now happens once per boot (Settings.Global.BOOT_COUNT); this also avoids a double
+     * launch on boxes that send both BOOT_COMPLETED and QUICKBOOT_POWERON. Where the counter is not
+     * available, it behaves as before.
+     */
+    private fun firstForThisBoot(context: Context): Boolean {
+        val boot = runCatching {
+            android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.BOOT_COUNT, -1)
+        }.getOrDefault(-1)
+        if (boot < 0) return true
+        val prefs = context.getSharedPreferences("boot_receiver", Context.MODE_PRIVATE)
+        if (prefs.getInt("last_boot", -1) == boot) return false
+        prefs.edit().putInt("last_boot", boot).apply()
+        return true
     }
 }

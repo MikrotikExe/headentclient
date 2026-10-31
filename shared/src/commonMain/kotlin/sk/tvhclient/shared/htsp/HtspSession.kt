@@ -227,16 +227,21 @@ class HtspSession internal constructor(
                 delay(500)
             }
             if (!alive) return@launch
+            var windowEnd = 0L
             try {
                 val args = HashMap<String, Any?>()
                 args["epg"] = 1L
                 args["epgMaxTime"] = currentTimeSeconds() + LiveEpg.WINDOW_SEC
+                windowEnd = args["epgMaxTime"] as Long
+                epg.beginBurst()   // M746 (audit R5)
                 client.epgLanguage.takeIf { it.isNotBlank() }?.let { args["language"] = it }
                 client.send("enableAsyncMetadata", args, withSeq = false)
                 request("getDiskSpace", timeoutMs = 300_000)   // the sentinel: replied after the burst (a huge EPG on a slow link takes a while)
+                epg.endBurst(complete = alive, windowEnd = windowEnd)
                 epg.markSynced(alive = alive)
                 if (!alive) epg.markFeedDead()
             } catch (e: Throwable) {
+                runCatching { kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { epg.endBurst(complete = false, windowEnd = windowEnd) } }
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 // M731 (audit B7): the sentinel timed out but the connection lives — the events ARE
                 // in the store (the server keeps pushing and sliding the window), so the window

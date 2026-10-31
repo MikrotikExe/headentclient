@@ -126,4 +126,31 @@ class LiveEpgStoreTest {
         s.delete(listOf(1L)); s.publish(now)
         assertEquals(setOf(2L), s.knownIds)
     }
+
+    /** M746 (audit R5): a reconnect burst drops upcoming events the server no longer has; a burst that
+     *  did not complete, or misses most of the window, prunes nothing. */
+    @Test
+    fun reconnectBurstDropsEventsDeletedWhileOffline() = runTest {
+        val s = LiveEpgStore("t-burst")
+        val all = (1L..10L).map { ev(it, "a", now + it * 600, now + it * 600 + 600) }
+        s.upsert(all, now)
+        // incomplete burst: nothing is pruned
+        s.beginBurst()
+        s.upsert(all.filter { it.eventId != 5L }, now)
+        s.endBurst(complete = false, windowEnd = now + LiveEpg.WINDOW_SEC, nowSec = now)
+        s.publish(now, force = true)
+        assertEquals(10, s.snapshot["a"]?.size)
+        // complete burst without event 5 (deleted on the server while offline): 5 is gone
+        s.beginBurst()
+        s.upsert(all.filter { it.eventId != 5L }, now)
+        s.endBurst(complete = true, windowEnd = now + LiveEpg.WINDOW_SEC, nowSec = now)
+        s.publish(now, force = true)
+        assertEquals((1L..10L).filter { it != 5L }, s.snapshot["a"]?.mapNotNull { it.eventId }?.sorted())
+        // a burst that brings only a fraction of the window is suspicious: nothing is pruned
+        s.beginBurst()
+        s.upsert(all.take(2), now)
+        s.endBurst(complete = true, windowEnd = now + LiveEpg.WINDOW_SEC, nowSec = now)
+        s.publish(now, force = true)
+        assertEquals(9, s.snapshot["a"]?.size)
+    }
 }

@@ -72,6 +72,8 @@ class LiveEpgStore internal constructor(val serverId: String) {
         private set
 
     private var dirty = false
+    /** M746 (audit R5): ids received during the current HTSP window burst (null = no burst running). */
+    private var burstSeen: HashSet<Long>? = null
     private var flushJob: Job? = null
     private var tickJob: Job? = null
 
@@ -107,6 +109,7 @@ class LiveEpgStore internal constructor(val serverId: String) {
                 // an overrunning programme the server still holds as running, M715)
                 if (e.start > maxStart) continue
                 if (e.stop < nowSec - PAST_KEEP_SEC && !(nowPointer[ch] == id && e.stop >= nowSec - EpgEvent.MAX_OVERRUN_SEC)) continue
+                burstSeen?.add(id)
                 val old = events.put(id, e)
                 if (old != null && old.channelUuid != ch) byChannel[old.channelUuid]?.remove(id)
                 byChannel.getOrPut(ch) { HashSet() }.add(id)
@@ -126,6 +129,40 @@ class LiveEpgStore internal constructor(val serverId: String) {
             }
         }
         scheduleFlush()
+    }
+
+    /**
+     * M746 (audit R5): a new HTSP connection asks for the window again and the server sends every
+     * event in it. Events deleted on the server while we were disconnected never get an eventDelete,
+     * so they stayed in the window for up to its whole length (6 h). [beginBurst] starts noting the
+     * ids that arrive; [endBurst] with complete=true (the sentinel reply came) drops the still-upcoming
+     * events of the window that the burst did not contain. Programmes already over and the overrunning
+     * "now" ones are not touched, and a suspicious result (nothing received, or most of the window
+     * missing) prunes nothing.
+     */
+    suspend fun beginBurst() { mutex.withLock { burstSeen = HashSet() } }
+
+    suspend fun endBurst(complete: Boolean, windowEnd: Long, nowSec: Long = currentTimeSeconds()) {
+        var pruned = false
+        mutex.withLock {
+            val seen = burstSeen
+            burstSeen = null
+            if (!complete || seen == null || seen.isEmpty()) return@withLock
+            val stale = events.values.filter { e ->
+                val id = e.eventId
+                id != null && id !in seen && e.stop > nowSec && e.start < windowEnd &&
+                    e.channelUuid?.let { nowPointer[it] } != id
+            }
+            if (stale.isEmpty() || stale.size * 5 > events.size) return@withLock
+            for (e in stale) {
+                val id = e.eventId ?: continue
+                events.remove(id)
+                e.channelUuid?.let { byChannel[it]?.remove(id) }
+            }
+            dirty = true
+            pruned = true
+        }
+        if (pruned) scheduleFlush()
     }
 
     /** The whole window at once (HTTP load): everything not in [list] is dropped. */

@@ -149,8 +149,16 @@ class HtspClient(
                 s = seq
                 msg["seq"] = s.toLong()
             }
-            write!!.writeByteArray(Htsmsg.serialize(msg))
-            write!!.flush()
+            // M746 (audit R15): once a message is being written it is written whole — a cancellation in
+            // the middle (a closed screen, a zap) left half a message on the shared connection and the
+            // server read the rest of the stream as garbage. A dead socket still ends the write: close()
+            // (keepalive / die) fails it with an exception.
+            val bytes = Htsmsg.serialize(msg)
+            val w = write!!
+            withContext(NonCancellable) {
+                w.writeByteArray(bytes)
+                w.flush()
+            }
             s
         }
     }

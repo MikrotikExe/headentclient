@@ -4,4 +4,5 @@
     <exclude domain="sharedpref" path="tvh_secure_prefs.xml" />
     <exclude domain="file" path="epg_cache" />
     <exclude domain="file" path="diag" />
+    <exclude domain="sharedpref" path="boot_receiver.xml" />
 </full-backup-content>
