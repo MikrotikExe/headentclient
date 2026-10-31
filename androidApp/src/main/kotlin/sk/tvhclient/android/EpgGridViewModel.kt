@@ -99,7 +99,7 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
                 inFlight.remove(uuid)
                 if (inFlight.isEmpty()) {
                     _loading.value = false
-                    persist(server.id)
+                    schedulePersist(server.id)   // M750
                 }
             }
         }
@@ -116,8 +116,28 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    Tvh.fetchEpgGridProgressive(server) { uuid, evs ->
-                        if (Tvh.store.active()?.id == server.id) _epg.value = EpgCacheCodec.mergeChannel(_epg.value, uuid, evs)
+                    // M750 (performance audit U2): channels arrive one by one (~300 in ~15 s); publishing
+                    // a new map for each redrew the grid 10-50x a second. They are collected and
+                    // published at most every 400 ms, and once more at the end (also after a failure).
+                    val pending = LinkedHashMap<String, List<sk.tvhclient.shared.model.EpgEvent>>()
+                    var lastPub = 0L
+                    fun flush() {
+                        if (pending.isEmpty()) return
+                        if (Tvh.store.active()?.id == server.id) {
+                            var m = _epg.value
+                            for ((u, evs) in pending) m = EpgCacheCodec.mergeChannel(m, u, evs)
+                            _epg.value = m
+                        }
+                        pending.clear()
+                        lastPub = android.os.SystemClock.elapsedRealtime()
+                    }
+                    try {
+                        Tvh.fetchEpgGridProgressive(server) { uuid, evs ->
+                            pending[uuid] = evs
+                            if (android.os.SystemClock.elapsedRealtime() - lastPub >= 400L) flush()
+                        }
+                    } finally {
+                        flush()
                     }
                 }
                 // M697: into the diagnostic log — which channels came back empty or failed,
@@ -138,6 +158,34 @@ class EpgGridViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Saves the current EPG to disk (trimmed by daysBack) — only for the server it was loaded from (M738). */
+    /** M750 (performance audit U8): in HTTP mode the rows load as they scroll into view and the queue
+     *  drained again and again, each time serializing the WHOLE grid to disk. One save 3 s after the
+     *  last drain instead; a pending save still runs when the ViewModel goes away. */
+    private var persistJob: kotlinx.coroutines.Job? = null
+    @Volatile private var pendingPersist: String? = null
+
+    private fun schedulePersist(forServerId: String) {
+        pendingPersist = forServerId
+        persistJob?.cancel()
+        persistJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(3_000)
+            pendingPersist = null
+            persist(forServerId)
+        }
+    }
+
+    override fun onCleared() {
+        val sid = pendingPersist
+        if (sid != null && serverId() == sid) {
+            val snapshot = _epg.value
+            val db = daysBack()
+            val n = nowSec()
+            val app = appCtx
+            Thread({ runCatching { EpgCache.save(app, sid, snapshot, n, db) } }, "HeadentClient:epgSave").start()
+        }
+        super.onCleared()
+    }
+
     private fun persist(forServerId: String) {
         if (serverId() != forServerId) return
         val snapshot = _epg.value

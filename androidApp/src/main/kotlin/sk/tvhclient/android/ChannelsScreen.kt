@@ -255,6 +255,16 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
     val st0 = state
     if (showGrid) {
         if (st0 is ChannelsState.Loaded) {
+            // M750 (performance audit U9): built once per radio state / numbering setting, not on every
+            // redraw (live EPG ticks) — new rows made the grid's radio group start over each time
+            val radioNumOn = RadioNumberingPref.get(ctx)
+            val gridRadioRows = androidx.compose.runtime.remember(raState, radioNumOn) {
+                RadioNumberingPref.apply(ctx, (raState as? RadioState.Loaded)?.rows ?: emptyList())
+            }
+            val gridRadioCats = androidx.compose.runtime.remember(raState, radioNumOn) {
+                ((raState as? RadioState.Loaded)?.categories ?: emptyList())
+                    .map { c -> c.copy(rows = RadioNumberingPref.apply(ctx, c.rows)) }
+            }
             EpgGridScreen(
                 allRows = st0.allRows,
                 categories = st0.categories,
@@ -286,9 +296,8 @@ fun ChannelsScreen(vm: ChannelsViewModel = viewModel(), resetSignal: Int = 0, on
                 startInRadio = TabController.epgRadio,   // M591
                 focusUuid = TabController.epgReturnUuid,   // M592
                 openToken = TabController.epgGrid.value,   // M593-fix
-                radioRows = RadioNumberingPref.apply(ctx, (raState as? RadioState.Loaded)?.rows ?: emptyList()),   // M602
-                radioCategories = ((raState as? RadioState.Loaded)?.categories ?: emptyList())
-                    .map { c -> c.copy(rows = RadioNumberingPref.apply(ctx, c.rows)) },
+                radioRows = gridRadioRows,   // M602
+                radioCategories = gridRadioCats,
                 onPlayRadio = { row, ev ->
                     val all = (raState as? RadioState.Loaded)?.rows ?: listOf(row)
                     playRadio(

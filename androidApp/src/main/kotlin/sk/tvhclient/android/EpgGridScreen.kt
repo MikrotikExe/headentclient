@@ -1025,8 +1025,12 @@ fun EpgGridScreen(
                         (inProgressByChannel[row.channel.uuid] ?: inProgressByChannel[row.channel.name] ?: emptyList())
                             .filter { it.stop > dayStart && it.start < dayEnd }
                     }
-                    val rowEvents = remember(uuid, epg, dayStart, dayEnd) {
-                        (epg[uuid] ?: emptyList()).filter { it.stop > dayStart && it.start < dayEnd }
+                    // M750 (performance audit U2): keyed on THIS channel's list, not on the whole map —
+                    // the progressive load publishes a new map per channel and every visible row used to
+                    // re-filter and redraw; an unchanged list keeps its identity, so the row is skipped
+                    val chEvents = epg[uuid]
+                    val rowEvents = remember(uuid, chEvents, dayStart, dayEnd) {
+                        (chEvents ?: emptyList()).filter { it.stop > dayStart && it.start < dayEnd }
                     }
                     EpgGridRow(
                         row = row,
@@ -1862,6 +1866,7 @@ private fun EpgGridRow(
                     val startMin = (((vStart - dayStart) / 60).toInt()).coerceAtLeast(0)
                     val endMin = (((vStop - dayStart) / 60).toInt()).coerceAtMost(DAY_MIN)
                     if (endMin <= visStartMin || startMin >= visEndMin || startMin >= endMin) return@forEachIndexed
+                    androidx.compose.runtime.key(rb.start) {   // M750 (U4)
                     if (rb.inProgress) {
                         if (modern) ModernGridBlock(
                             startMin = startMin,
@@ -1911,6 +1916,7 @@ private fun EpgGridRow(
                             onFocused = { onFocusDetail(GridDetail.Dvr(row, rb.entry)) }
                         )
                     }
+                    }
                 }
                 // Programmes from the EPG including past ones (history); skip those that
                 // are already shown by some merged recording block, so that there are not two blocks
@@ -1923,6 +1929,9 @@ private fun EpgGridRow(
                     val startMin = (((ev.start - dayStart) / 60).toInt()).coerceAtLeast(0)
                     val endMin = (((ev.stop - dayStart) / 60).toInt()).coerceAtMost(DAY_MIN)
                     if (endMin <= visStartMin || startMin >= visEndMin) return@forEach
+                    // M750 (performance audit U4): a stable identity per programme — when the visible window
+                    // shifts, the following blocks no longer land in another slot and redraw
+                    androidx.compose.runtime.key(ev.start) {
                     val isNow = ev.start <= now && now < ev.stop
                     val isPast = ev.stop <= now
                     if (modern) ModernGridBlock(
@@ -1965,6 +1974,7 @@ private fun EpgGridRow(
                         onClick = { onEventClick(row, ev) },
                         onFocused = { onFocusDetail(GridDetail.Epg(row, ev)) }
                     )
+                    }
                 }
                 // The vertical live line of the current time (subtle, matching the colour);
                 // modern mode: a more prominent teal line continuing from the bubble in the axis

@@ -16,10 +16,19 @@ object Favorites {
     val revision = kotlinx.coroutines.flow.MutableStateFlow(0)
     private fun key(serverId: String) = "fav:$serverId"
 
+    /** M750 (performance audit U5): the parsed set per server, reused while the stored string is the
+     *  same — isFav is called per row on every selection move in the player's channel list. */
+    private val parsed = HashMap<String, Pair<String, Set<String>>>()
+
     fun all(context: Context, serverId: String): Set<String> {
         val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString(key(serverId), "") ?: ""
-        return raw.split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
+        synchronized(parsed) {
+            parsed[serverId]?.let { (r, set) -> if (r == raw) return set }
+        }
+        val set = raw.split(",").map { it.trim() }.filter { it.isNotBlank() }.toSet()
+        synchronized(parsed) { parsed[serverId] = raw to set }
+        return set
     }
 
     /** M541: favourites IN ORDER (order of adding / manual arrangement). */

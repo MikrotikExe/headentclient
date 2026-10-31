@@ -603,6 +603,16 @@ private fun TvHomeHost() {
             androidx.activity.compose.BackHandler { epgBack() }
             val st = chState
             if (st is ChannelsState.Loaded) {
+                // M750 (performance audit U9): built once per radio state / numbering setting, not on every
+                // redraw (live EPG ticks) — new rows made the grid's radio group start over each time
+                val radioNumOn = RadioNumberingPref.get(ctx)
+                val gridRadioRows = androidx.compose.runtime.remember(raState, radioNumOn) {
+                    RadioNumberingPref.apply(ctx, (raState as? RadioState.Loaded)?.rows ?: emptyList())
+                }
+                val gridRadioCats = androidx.compose.runtime.remember(raState, radioNumOn) {
+                    ((raState as? RadioState.Loaded)?.categories ?: emptyList())
+                        .map { c -> c.copy(rows = RadioNumberingPref.apply(ctx, c.rows)) }
+                }
                 EpgGridScreen(
                     allRows = st.allRows, categories = st.categories, seed = epgMap,
                     onBack = { epgBack() },
@@ -611,9 +621,8 @@ private fun TvHomeHost() {
                     openToken = TabController.epgGrid.value,   // M593-fix
 
                     // M587: radio stations as a further group in the grid filter
-                    radioRows = RadioNumberingPref.apply(ctx, (raState as? RadioState.Loaded)?.rows ?: emptyList()),   // M602
-                    radioCategories = ((raState as? RadioState.Loaded)?.categories ?: emptyList())
-                        .map { c -> c.copy(rows = RadioNumberingPref.apply(ctx, c.rows)) }
+                    radioRows = gridRadioRows,   // M602
+                    radioCategories = gridRadioCats
                 )
             } else if (st is ChannelsState.Error) {
                 // M741 (audit F11): a failed channel load showed an endless spinner with only BACK
