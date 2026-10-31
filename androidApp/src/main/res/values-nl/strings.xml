@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d uur</string>
     <string name="srv_delete_title">Server ‘%1$s’ verwijderen?</string>
     <string name="srv_delete_msg">Ook de favoriete, verborgen en vergrendelde zenders, kijkposities en de opgeslagen programmagids worden verwijderd.</string>
+    <string name="backup_secrets_title">De back-up bevat wachtwoorden</string>
+    <string name="backup_secrets_msg">Het bestand bevat de serverwachtwoorden en de ouderlijke pincode in leesbare vorm. Bewaar het op een veilige plek en stuur het naar niemand.</string>
 </resources>

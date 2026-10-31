@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d sa</string>
     <string name="srv_delete_title">“%1$s” sunucusu silinsin mi?</string>
     <string name="srv_delete_msg">Favori, gizli ve kilitli kanalları, izleme konumları ve kayıtlı yayın akışı da silinecek.</string>
+    <string name="backup_secrets_title">Yedek parolalar içeriyor</string>
+    <string name="backup_secrets_msg">Dosya, sunucu parolalarını ve ebeveyn PIN\'ini okunabilir biçimde içerecek. Güvenli bir yerde saklayın ve kimseye göndermeyin.</string>
 </resources>

@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d ώρ.</string>
     <string name="srv_delete_title">Διαγραφή του διακομιστή «%1$s»;</string>
     <string name="srv_delete_msg">Θα διαγραφούν επίσης τα αγαπημένα, κρυφά και κλειδωμένα κανάλια του, οι θέσεις προβολής και ο αποθηκευμένος οδηγός προγράμματος.</string>
+    <string name="backup_secrets_title">Το αντίγραφο περιέχει κωδικούς</string>
+    <string name="backup_secrets_msg">Το αρχείο θα περιέχει τους κωδικούς των διακομιστών και το γονικό PIN σε αναγνώσιμη μορφή. Φυλάξτε το σε ασφαλές μέρος και μην το στείλετε σε κανέναν.</string>
 </resources>

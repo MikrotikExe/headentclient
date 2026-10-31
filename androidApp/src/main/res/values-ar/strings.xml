@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d س</string>
     <string name="srv_delete_title">حذف الخادم «%1$s»؟</string>
     <string name="srv_delete_msg">سيتم أيضًا حذف قنواته المفضلة والمخفية والمقفلة ومواضع المشاهدة ودليل البرامج المحفوظ.</string>
+    <string name="backup_secrets_title">النسخة الاحتياطية تحتوي على كلمات مرور</string>
+    <string name="backup_secrets_msg">سيحتوي الملف على كلمات مرور الخوادم ورمز PIN للرقابة الأبوية بشكل مقروء. احفظه في مكان آمن ولا ترسله إلى أحد.</string>
 </resources>

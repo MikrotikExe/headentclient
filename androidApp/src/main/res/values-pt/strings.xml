@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d h</string>
     <string name="srv_delete_title">Eliminar o servidor “%1$s”?</string>
     <string name="srv_delete_msg">Os seus canais favoritos, ocultos e bloqueados, as posições de visualização e o guia de programação guardado também serão eliminados.</string>
+    <string name="backup_secrets_title">A cópia contém palavras-passe</string>
+    <string name="backup_secrets_msg">O ficheiro terá as palavras-passe dos servidores e o PIN parental em forma legível. Guarde-o num local seguro e não o envie a ninguém.</string>
 </resources>

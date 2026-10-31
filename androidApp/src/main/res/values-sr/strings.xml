@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d ч</string>
     <string name="srv_delete_title">Обрисати сервер „%1$s“?</string>
     <string name="srv_delete_msg">Биће обрисани и његови омиљени, скривени и закључани канали, позиције гледања и сачувани ТВ водич.</string>
+    <string name="backup_secrets_title">Резервна копија садржи лозинке</string>
+    <string name="backup_secrets_msg">Датотека ће садржати лозинке сервера и родитељски PIN у читљивом облику. Сачувај је на безбедном месту и не шаљи је никоме.</string>
 </resources>

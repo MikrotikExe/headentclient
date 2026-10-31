@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d Std.</string>
     <string name="srv_delete_title">Server „%1$s“ löschen?</string>
     <string name="srv_delete_msg">Auch seine favorisierten, ausgeblendeten und gesperrten Sender, Wiedergabepositionen und der gespeicherte Programmführer werden gelöscht.</string>
+    <string name="backup_secrets_title">Die Sicherung enthält Passwörter</string>
+    <string name="backup_secrets_msg">Die Datei enthält die Server-Passwörter und die Kindersicherungs-PIN in lesbarer Form. Bewahre sie an einem sicheren Ort auf und schicke sie niemandem.</string>
 </resources>

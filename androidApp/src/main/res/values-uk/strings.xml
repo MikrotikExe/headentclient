@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d год</string>
     <string name="srv_delete_title">Видалити сервер «%1$s»?</string>
     <string name="srv_delete_msg">Також буде видалено його обрані, приховані й заблоковані канали, позиції перегляду та збережену телепрограму.</string>
+    <string name="backup_secrets_title">Резервна копія містить паролі</string>
+    <string name="backup_secrets_msg">Файл міститиме паролі серверів і батьківський PIN у відкритому вигляді. Зберігайте його в надійному місці й нікому не надсилайте.</string>
 </resources>

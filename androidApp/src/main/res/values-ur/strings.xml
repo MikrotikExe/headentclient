@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d گھنٹے</string>
     <string name="srv_delete_title">سرور “%1$s” حذف کریں؟</string>
     <string name="srv_delete_msg">اس کے پسندیدہ، چھپے اور مقفل چینلز، دیکھنے کی پوزیشنز اور محفوظ پروگرام گائیڈ بھی حذف ہو جائیں گے۔</string>
+    <string name="backup_secrets_title">بیک اپ میں پاس ورڈ شامل ہیں</string>
+    <string name="backup_secrets_msg">فائل میں سرورز کے پاس ورڈ اور پیرنٹل PIN پڑھنے کے قابل شکل میں ہوں گے۔ اسے محفوظ جگہ رکھیں اور کسی کو نہ بھیجیں۔</string>
 </resources>

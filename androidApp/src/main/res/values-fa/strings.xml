@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d ساعت</string>
     <string name="srv_delete_title">سرور «%1$s» حذف شود؟</string>
     <string name="srv_delete_msg">کانال‌های مورد علاقه، پنهان و قفل‌شده، موقعیت‌های تماشا و راهنمای برنامهٔ ذخیره‌شدهٔ آن نیز حذف می‌شوند.</string>
+    <string name="backup_secrets_title">پشتیبان شامل گذرواژه‌ها است</string>
+    <string name="backup_secrets_msg">فایل شامل گذرواژه‌های سرورها و PIN کنترل والدین به‌صورت خوانا خواهد بود. آن را در جای امن نگه دارید و برای کسی نفرستید.</string>
 </resources>

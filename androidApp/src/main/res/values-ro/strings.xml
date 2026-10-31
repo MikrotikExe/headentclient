@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d h</string>
     <string name="srv_delete_title">Ștergeți serverul „%1$s”?</string>
     <string name="srv_delete_msg">Vor fi șterse și canalele sale favorite, ascunse și blocate, pozițiile de vizionare și ghidul de programe salvat.</string>
+    <string name="backup_secrets_title">Copia de rezervă conține parole</string>
+    <string name="backup_secrets_msg">Fișierul va conține parolele serverelor și PIN-ul parental în formă lizibilă. Păstrează-l într-un loc sigur și nu-l trimite nimănui.</string>
 </resources>

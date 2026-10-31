@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d घंटे</string>
     <string name="srv_delete_title">सर्वर “%1$s” हटाएँ?</string>
     <string name="srv_delete_msg">इसके पसंदीदा, छिपे और लॉक किए गए चैनल, देखने की स्थितियाँ और सहेजी गई कार्यक्रम गाइड भी हटा दी जाएँगी।</string>
+    <string name="backup_secrets_title">बैकअप में पासवर्ड हैं</string>
+    <string name="backup_secrets_msg">फ़ाइल में सर्वर के पासवर्ड और पैरेंटल PIN पढ़ने योग्य रूप में होंगे। इसे सुरक्षित जगह रखें और किसी को न भेजें।</string>
 </resources>

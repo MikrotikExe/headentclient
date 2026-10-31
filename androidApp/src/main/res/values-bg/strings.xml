@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d ч</string>
     <string name="srv_delete_title">Изтриване на сървъра „%1$s“?</string>
     <string name="srv_delete_msg">Ще бъдат изтрити и любимите, скритите и заключените му канали, позициите на гледане и запазената програма.</string>
+    <string name="backup_secrets_title">Архивът съдържа пароли</string>
+    <string name="backup_secrets_msg">Файлът ще съдържа паролите на сървърите и родителския ПИН в четим вид. Пазете го на сигурно място и не го изпращайте на никого.</string>
 </resources>

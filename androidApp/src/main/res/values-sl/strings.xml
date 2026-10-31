@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d h</string>
     <string name="srv_delete_title">Izbrišem strežnik »%1$s«?</string>
     <string name="srv_delete_msg">Izbrisani bodo tudi njegovi priljubljeni, skriti in zaklenjeni kanali, položaji ogleda in shranjeni programski vodnik.</string>
+    <string name="backup_secrets_title">Varnostna kopija vsebuje gesla</string>
+    <string name="backup_secrets_msg">Datoteka bo vsebovala gesla strežnikov in starševsko kodo PIN v berljivi obliki. Shrani jo na varno mesto in je ne pošiljaj nikomur.</string>
 </resources>

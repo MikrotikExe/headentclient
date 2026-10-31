@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d ঘণ্টা</string>
     <string name="srv_delete_title">সার্ভার “%1$s” মুছবেন?</string>
     <string name="srv_delete_msg">এর প্রিয়, লুকানো ও লক করা চ্যানেল, দেখার অবস্থান এবং সংরক্ষিত অনুষ্ঠান সূচিও মুছে যাবে।</string>
+    <string name="backup_secrets_title">ব্যাকআপে পাসওয়ার্ড রয়েছে</string>
+    <string name="backup_secrets_msg">ফাইলে সার্ভারের পাসওয়ার্ড ও প্যারেন্টাল PIN পাঠযোগ্য আকারে থাকবে। এটি নিরাপদ জায়গায় রাখুন এবং কাউকে পাঠাবেন না।</string>
 </resources>

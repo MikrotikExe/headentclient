@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d giờ</string>
     <string name="srv_delete_title">Xóa máy chủ “%1$s”?</string>
     <string name="srv_delete_msg">Các kênh yêu thích, bị ẩn và bị khóa, vị trí xem và lịch phát sóng đã lưu của máy chủ này cũng sẽ bị xóa.</string>
+    <string name="backup_secrets_title">Bản sao lưu chứa mật khẩu</string>
+    <string name="backup_secrets_msg">Tệp sẽ chứa mật khẩu máy chủ và mã PIN kiểm soát của phụ huynh ở dạng đọc được. Hãy lưu ở nơi an toàn và không gửi cho ai.</string>
 </resources>

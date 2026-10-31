@@ -536,4 +536,6 @@
     <string name="dur_hours">%1$d ชม.</string>
     <string name="srv_delete_title">ลบเซิร์ฟเวอร์ “%1$s” หรือไม่?</string>
     <string name="srv_delete_msg">ช่องโปรด ช่องที่ซ่อนและล็อก ตำแหน่งการรับชม และผังรายการที่บันทึกไว้ของเซิร์ฟเวอร์นี้จะถูกลบด้วย</string>
+    <string name="backup_secrets_title">ข้อมูลสำรองมีรหัสผ่าน</string>
+    <string name="backup_secrets_msg">ไฟล์จะมีรหัสผ่านของเซิร์ฟเวอร์และ PIN ควบคุมโดยผู้ปกครองในรูปแบบที่อ่านได้ โปรดเก็บไว้ในที่ปลอดภัยและอย่าส่งให้ใคร</string>
 </resources>

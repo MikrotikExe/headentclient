@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.SettingsRemote
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.automirrored.filled.Dvr
 import androidx.compose.material.icons.filled.Home
@@ -903,13 +904,43 @@ fun BackupControls(compact: Boolean = false, onImported: () -> Unit = {}) {
             }
         }
     }
+    // M749 (audit R1): the backup holds the server passwords and the parental PIN in plain text —
+    // the user is told so before the file is created
+    var exportAsk by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    if (exportAsk) {
+        val confirmFocus = androidx.compose.runtime.remember { androidx.compose.ui.focus.FocusRequester() }
+        androidx.compose.runtime.LaunchedEffect(Unit) {
+            kotlinx.coroutines.delay(100)
+            runCatching { confirmFocus.requestFocus() }
+        }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { exportAsk = false },
+            icon = { androidx.compose.material3.Icon(Icons.Filled.Warning, contentDescription = null) },
+            title = { Text(stringResource(R.string.backup_secrets_title)) },
+            text = { Text(stringResource(R.string.backup_secrets_msg)) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        exportAsk = false
+                        runCatching { exportLauncher.launch("tvhclient-zaloha.json") }
+                    },
+                    modifier = Modifier.focusRequester(confirmFocus)
+                ) { Text(stringResource(R.string.backup_export)) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { exportAsk = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
     if (compact) {
         androidx.compose.material3.TextButton(
             onClick = { runCatching { importLauncher.launch(arrayOf("*/*")) } }
         ) { Text(stringResource(R.string.backup_restore)) }
     } else {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { runCatching { exportLauncher.launch("tvhclient-zaloha.json") } }) {
+            OutlinedButton(onClick = { exportAsk = true }) {
                 Text(stringResource(R.string.backup_export))
             }
             OutlinedButton(onClick = { runCatching { importLauncher.launch(arrayOf("*/*")) } }) {
