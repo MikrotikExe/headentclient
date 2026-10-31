@@ -538,4 +538,9 @@
     <string name="srv_delete_msg">Izbrisani bodo tudi njegovi priljubljeni, skriti in zaklenjeni kanali, položaji ogleda in shranjeni programski vodnik.</string>
     <string name="backup_secrets_title">Varnostna kopija vsebuje gesla</string>
     <string name="backup_secrets_msg">Datoteka bo vsebovala gesla strežnikov in starševsko kodo PIN v berljivi obliki. Shrani jo na varno mesto in je ne pošiljaj nikomur.</string>
+    <string name="interlaced_smooth_title">Zgladi prepletene HD kanale</string>
+    <string name="interlaced_smooth_note">Kanali, oddajani prepleteno (576i, 1080i), gredo skozi predvajalnik z odpravo prepletanja. Vklopi, če vidiš glavnike. Velja pri strojnem dekodiranju Samodejno; na šibkejših napravah lahko nekoliko poveča obremenitev.</string>
+    <string name="combs_help_title">Nazobčani glavniki na sliki?</string>
+    <string name="combs_help_msg">Vodoravne črte na robovih med gibanjem pomenijo prepleteno sliko, ki je čip naprave sam ne zgladi. Vklopi »%1$s« ali nastavi %2$s na »%3$s« in %4$s na »Yadif«.</string>
+    <string name="stutter_help_msg">Če slika poskakuje ali zastaja (šibkejša naprava), v nastavitvah strežnika preklopi %1$s na »%2$s« – je manj zahtevno.</string>
 </resources>

@@ -538,4 +538,9 @@
     <string name="srv_delete_msg">Izbrisat će se i njegovi omiljeni, skriveni i zaključani kanali, pozicije gledanja i spremljeni programski vodič.</string>
     <string name="backup_secrets_title">Sigurnosna kopija sadrži lozinke</string>
     <string name="backup_secrets_msg">Datoteka će sadržavati lozinke poslužitelja i roditeljski PIN u čitljivom obliku. Spremi je na sigurno mjesto i ne šalji je nikome.</string>
+    <string name="interlaced_smooth_title">Izgladi isprepletene HD kanale</string>
+    <string name="interlaced_smooth_note">Kanali emitirani isprepleteno (576i, 1080i) ići će kroz player s deinterlacingom. Uključi ako vidiš češljeve. Vrijedi uz hardversko dekodiranje Automatski; na slabijim uređajima može malo povećati opterećenje.</string>
+    <string name="combs_help_title">Nazubljeni češljevi na slici?</string>
+    <string name="combs_help_msg">Vodoravne pruge na rubovima pri kretanju znače isprepletenu sliku koju čip uređaja sam ne izgladi. Uključi „%1$s” ili postavi %2$s na „%3$s” i %4$s na „Yadif”.</string>
+    <string name="stutter_help_msg">Ako slika trza ili zastaje (slabiji uređaj), u postavkama poslužitelja prebaci %1$s na „%2$s” – manje je zahtjevno.</string>
 </resources>

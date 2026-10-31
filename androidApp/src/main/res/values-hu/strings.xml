@@ -538,4 +538,9 @@
     <string name="srv_delete_msg">A kedvenc, rejtett és zárolt csatornái, a lejátszási pozíciók és a tárolt műsorújság is törlődik.</string>
     <string name="backup_secrets_title">A mentés jelszavakat tartalmaz</string>
     <string name="backup_secrets_msg">A fájl olvasható formában tartalmazza a szerverjelszavakat és a szülői PIN-kódot. Tárold biztonságos helyen, és ne küldd el senkinek.</string>
+    <string name="interlaced_smooth_title">Váltottsoros HD csatornák simítása</string>
+    <string name="interlaced_smooth_note">A váltottsorosan sugárzott csatornák (576i, 1080i) deinterlace-szel mennek át a lejátszón. Kapcsold be, ha fésűs hatást látsz. Automatikus hardveres dekódolásnál érvényes; gyengébb eszközön kicsit nagyobb terhelést okozhat.</string>
+    <string name="combs_help_title">Fésűs, csipkés kép?</string>
+    <string name="combs_help_msg">A mozgás közben az éleken látható vízszintes csíkok váltottsoros képet jelentenek, amelyet az eszköz chipje nem simít ki. Kapcsold be: „%1$s”, vagy állítsd a(z) %2$s beállítást „%3$s” értékre és a(z) %4$s beállítást „Yadif” értékre.</string>
+    <string name="stutter_help_msg">Ha a kép akadozik vagy megakad (gyengébb eszköz), a szerver beállításaiban állítsd a(z) %1$s beállítást „%2$s” értékre – kisebb teljesítményt igényel.</string>
 </resources>

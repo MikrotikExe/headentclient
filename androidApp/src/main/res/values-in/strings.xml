@@ -538,4 +538,9 @@
     <string name="srv_delete_msg">Saluran favorit, tersembunyi, dan terkunci, posisi tontonan, serta panduan acara yang tersimpan juga akan dihapus.</string>
     <string name="backup_secrets_title">Cadangan berisi kata sandi</string>
     <string name="backup_secrets_msg">File akan berisi kata sandi server dan PIN kontrol orang tua dalam bentuk yang dapat dibaca. Simpan di tempat aman dan jangan kirim ke siapa pun.</string>
+    <string name="interlaced_smooth_title">Haluskan saluran HD interlaced</string>
+    <string name="interlaced_smooth_note">Saluran yang disiarkan interlaced (576i, 1080i) akan melewati pemutar dengan deinterlacing. Aktifkan jika Anda melihat efek sisir. Berlaku saat dekode perangkat keras Otomatis; dapat sedikit menambah beban pada perangkat yang lebih lemah.</string>
+    <string name="combs_help_title">Ada efek sisir bergerigi di gambar?</string>
+    <string name="combs_help_msg">Garis horizontal di tepi saat bergerak menandakan gambar interlaced yang tidak dihaluskan sendiri oleh chip perangkat. Aktifkan “%1$s”, atau atur %2$s ke “%3$s” dan %4$s ke “Yadif”.</string>
+    <string name="stutter_help_msg">Jika gambar tersendat atau macet (perangkat lebih lemah), ubah %1$s di pengaturan server ke “%2$s” – lebih ringan bagi performa.</string>
 </resources>

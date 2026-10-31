@@ -14,6 +14,11 @@ import java.io.FileDescriptor
  */
 internal class MediaFactory(private val ctx: Context, private val libVlc: () -> LibVLC) {
 
+    private companion object {
+        /** M751: frame heights of interlaced broadcasts (SD 480i/576i, HD 1080i; 1088 = coded 1080). */
+        val INTERLACED_HEIGHTS = setOf(480, 576, 1080, 1088)
+    }
+
     fun userAgent(): String = sk.tvhclient.shared.ClientIdent.userAgent
 
     /** M722: was the last medium built for software decoding? (the one-off restart after the codec is known) */
@@ -61,19 +66,43 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
      */
     private fun applyDecoder(m: Media, codec: ChannelCodecMemo.Memo?) {
         val sw = softwareFor(codec)
+        val smooth = !sw && smoothFor(codec)
         lastSoftware = sw
+        lastSmooth = smooth
         // M730: the decision goes into the diagnostic log with the verbose player log (issue #37)
         if (VlcVerbosePref.get(ctx)) CrashLogger.report(ctx, "MediaFactory.decoder",
-            "decoder=${if (sw) "software" else "hardware"} mode=${HwDecodePref.get(ctx)} memo=${codec ?: "none"}")
+            "decoder=${if (sw) "software" else "hardware"} mode=${HwDecodePref.get(ctx)} smooth=$smooth memo=${codec ?: "none"}")
         m.setHWDecoderEnabled(!sw, false)
-        val (en, mode) = deinterlaceSpec(sw)
+        var (en, mode) = deinterlaceSpec(sw)
+        // M751: an interlaced channel with "Smooth interlaced HD channels" on — the hardware still
+        // decodes, but the frames pass through VLC's deinterlacer instead of going straight to the
+        // screen (where the filter never runs and a chip that does not deinterlace shows combs).
+        // An explicit "Off" in the deinterlacing setting is respected.
+        if (smooth && DeinterlacePref.get(ctx) != DeinterlacePref.OFF) {
+            en = "1"
+            if (mode == null) mode = "linear"
+        }
         m.addOption(":deinterlace=$en")
         if (mode != null) m.addOption(":deinterlace-mode=$mode")
-        if (!sw && (HwDecodePref.get(ctx) == HwDecodePref.DECODE || explicitDeinterlaceOnHw())) {
+        if (!sw && (smooth || HwDecodePref.get(ctx) == HwDecodePref.DECODE || explicitDeinterlaceOnHw())) {
             m.addOption(":no-mediacodec-dr")
             m.addOption(":no-omxil-dr")
         }
     }
+
+    /** M751: was the last medium built with the interlaced-channel path ([smoothFor])? */
+    @Volatile var lastSmooth: Boolean = false
+        private set
+
+    /**
+     * M751: "Smooth interlaced HD channels" applies to a channel that looked interlaced last time —
+     * 480/576/1080 lines (1088 = 1080 from the decoder). Only in hardware AUTO mode: DECODE already
+     * passes the frames through the filters, OFF decodes in software. 720p, 4K and an unknown channel
+     * stay on direct rendering.
+     */
+    fun smoothFor(memo: ChannelCodecMemo.Memo?): Boolean =
+        memo != null && memo.height in INTERLACED_HEIGHTS &&
+            HwDecodePref.get(ctx) == HwDecodePref.AUTO && InterlacedSmoothPref.get(ctx)
 
     /** Deinterlacing mode from the settings -> (the --deinterlace value, the mode or null).
      *  -1 = automatic (deinterlaces only an interlaced source), 0 = off, 1 = on.

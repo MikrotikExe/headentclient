@@ -538,4 +538,9 @@
     <string name="srv_delete_msg">Zostaną też usunięte jego ulubione, ukryte i zablokowane kanały, pozycje odtwarzania oraz zapisany program.</string>
     <string name="backup_secrets_title">Kopia zawiera hasła</string>
     <string name="backup_secrets_msg">Plik będzie zawierał hasła do serwerów i PIN kontroli rodzicielskiej w czytelnej postaci. Przechowuj go w bezpiecznym miejscu i nikomu go nie wysyłaj.</string>
+    <string name="interlaced_smooth_title">Wygładzaj kanały HD z przeplotem</string>
+    <string name="interlaced_smooth_note">Kanały nadawane z przeplotem (576i, 1080i) przejdą przez odtwarzacz z usuwaniem przeplotu. Włącz, jeśli widzisz grzebienie. Dotyczy dekodowania sprzętowego Automatycznie; na słabszych urządzeniach może nieco zwiększyć obciążenie.</string>
+    <string name="combs_help_title">Postrzępione grzebienie na obrazie?</string>
+    <string name="combs_help_msg">Poziome paski na krawędziach w ruchu oznaczają obraz z przeplotem, którego układ urządzenia sam nie wygładza. Włącz „%1$s” albo ustaw %2$s na „%3$s” i %4$s na „Yadif”.</string>
+    <string name="stutter_help_msg">Jeśli obraz się tnie lub zacina (słabsze urządzenie), przełącz w ustawieniach serwera %1$s na „%2$s” – jest mniej wymagający.</string>
 </resources>

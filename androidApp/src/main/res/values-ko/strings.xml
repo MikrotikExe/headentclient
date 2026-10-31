@@ -538,4 +538,9 @@
     <string name="srv_delete_msg">이 서버의 즐겨찾기·숨김·잠금 채널, 시청 위치, 저장된 편성표도 함께 삭제됩니다.</string>
     <string name="backup_secrets_title">백업에 비밀번호가 포함됩니다</string>
     <string name="backup_secrets_msg">파일에 서버 비밀번호와 자녀 보호 PIN이 읽을 수 있는 형태로 들어 있습니다. 안전한 곳에 보관하고 다른 사람에게 보내지 마세요.</string>
+    <string name="interlaced_smooth_title">인터레이스 HD 채널 부드럽게</string>
+    <string name="interlaced_smooth_note">인터레이스로 송출되는 채널(576i, 1080i)을 디인터레이싱과 함께 플레이어로 처리합니다. 빗살 무늬가 보이면 켜세요. 하드웨어 디코딩이 자동일 때 적용되며, 성능이 낮은 기기에서는 부하가 약간 늘 수 있습니다.</string>
+    <string name="combs_help_title">화면에 톱니 모양 빗살 무늬?</string>
+    <string name="combs_help_msg">움직일 때 가장자리에 생기는 가로줄은 기기 칩이 스스로 처리하지 않는 인터레이스 영상입니다. “%1$s”을(를) 켜거나 %2$s을(를) “%3$s”, %4$s을(를) “Yadif”로 설정하세요.</string>
+    <string name="stutter_help_msg">화면이 끊기거나 멈추면(성능이 낮은 기기) 서버 설정에서 %1$s을(를) “%2$s”(으)로 바꾸세요. 성능 부담이 적습니다.</string>
 </resources>

@@ -334,6 +334,7 @@ class PlayerActivity : ComponentActivity() {
         val mp = engine.player
         val decoder = when {
             mediaFactory.lastSoftware -> StreamDetails.DEC_SOFTWARE
+            mediaFactory.lastSmooth ||   // M751
             HwDecodePref.get(this) == HwDecodePref.DECODE || DeinterlacePref.get(this).let { it != DeinterlacePref.OFF && it != DeinterlacePref.AUTO } -> StreamDetails.DEC_DECODE
             else -> StreamDetails.DEC_HARDWARE
         }
@@ -376,7 +377,8 @@ class PlayerActivity : ComponentActivity() {
         val uuid = live.uuids.getOrNull(live.index) ?: return
         val memo = ChannelCodecMemo.set(this, live.server?.id, uuid, codec, height)
         val wanted = mediaFactory.softwareFor(memo)
-        if (wanted == mediaFactory.lastSoftware || codecRestartedFor == uuid) return
+        val wantedSmooth = !wanted && mediaFactory.smoothFor(memo)   // M751
+        if ((wanted == mediaFactory.lastSoftware && wantedSmooth == mediaFactory.lastSmooth) || codecRestartedFor == uuid) return
         codecRestartedFor = uuid
         opener.replayCurrentLive()
     }

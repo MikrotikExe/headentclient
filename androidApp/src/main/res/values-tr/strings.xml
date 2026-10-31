@@ -538,4 +538,9 @@
     <string name="srv_delete_msg">Favori, gizli ve kilitli kanalları, izleme konumları ve kayıtlı yayın akışı da silinecek.</string>
     <string name="backup_secrets_title">Yedek parolalar içeriyor</string>
     <string name="backup_secrets_msg">Dosya, sunucu parolalarını ve ebeveyn PIN\'ini okunabilir biçimde içerecek. Güvenli bir yerde saklayın ve kimseye göndermeyin.</string>
+    <string name="interlaced_smooth_title">Geçmeli HD kanalları yumuşat</string>
+    <string name="interlaced_smooth_note">Geçmeli yayınlanan kanallar (576i, 1080i) oynatıcıdan deinterlacing ile geçer. Tarak izleri görüyorsanız açın. Donanım kod çözme Otomatik iken geçerlidir; zayıf cihazlarda yükü biraz artırabilir.</string>
+    <string name="combs_help_title">Görüntüde tırtıklı tarak izleri mi var?</string>
+    <string name="combs_help_msg">Hareket sırasında kenarlardaki yatay çizgiler, cihaz çipinin kendisi yumuşatmadığı geçmeli bir görüntü demektir. “%1$s” seçeneğini açın veya %2$s ayarını “%3$s”, %4$s ayarını “Yadif” yapın.</string>
+    <string name="stutter_help_msg">Görüntü takılıyor veya donuyorsa (zayıf cihaz), sunucu ayarlarında %1$s ayarını “%2$s” yapın – performans açısından daha hafiftir.</string>
 </resources>

@@ -538,4 +538,9 @@
     <string name="srv_delete_msg">Zmažú sa aj jeho obľúbené, skryté a zamknuté kanály, pozície sledovania a uložený program.</string>
     <string name="backup_secrets_title">Záloha obsahuje heslá</string>
     <string name="backup_secrets_msg">Súbor bude obsahovať heslá k serverom a rodičovský PIN v čitateľnej podobe. Ulož ho na bezpečné miesto a nikomu ho neposielaj.</string>
+    <string name="interlaced_smooth_title">Vyhladiť prekladané HD kanály</string>
+    <string name="interlaced_smooth_note">Kanály vysielané prekladane (576i, 1080i) pôjdu cez prehrávač s deinterlacingom. Zapni, ak vidíš hrebene. Platí pri hardvérovom dekódovaní Automaticky; na slabších zariadeniach môže mierne zvýšiť záťaž.</string>
+    <string name="combs_help_title">Zubaté hrebene na obraze?</string>
+    <string name="combs_help_msg">Vodorovné pásiky na hranách pri pohybe znamenajú prekladaný obraz, ktorý čip zariadenia sám nevyhladí. Zapni „%1$s“, prípadne nastav %2$s na „%3$s“ a %4$s na „Yadif“.</string>
+    <string name="stutter_help_msg">Ak obraz trhá alebo sa seká (slabšie zariadenie), prepni v nastaveniach servera %1$s na „%2$s“ – je menej náročný na výkon.</string>
 </resources>

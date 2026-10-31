@@ -538,4 +538,9 @@
     <string name="srv_delete_msg">Verranno eliminati anche i suoi canali preferiti, nascosti e bloccati, le posizioni di visione e la guida programmi salvata.</string>
     <string name="backup_secrets_title">Il backup contiene password</string>
     <string name="backup_secrets_msg">Il file conterrà le password dei server e il PIN parentale in forma leggibile. Conservalo in un luogo sicuro e non inviarlo a nessuno.</string>
+    <string name="interlaced_smooth_title">Leviga i canali HD interlacciati</string>
+    <string name="interlaced_smooth_note">I canali trasmessi in interlacciato (576i, 1080i) passeranno dal player con deinterlacciamento. Attivalo se vedi i pettini. Vale con la decodifica hardware Automatica; sui dispositivi meno potenti può aumentare un po\' il carico.</string>
+    <string name="combs_help_title">Pettini seghettati nell\'immagine?</string>
+    <string name="combs_help_msg">Strisce orizzontali sui bordi in movimento indicano un\'immagine interlacciata che il chip del dispositivo non leviga da solo. Attiva «%1$s» oppure imposta %2$s su «%3$s» e %4$s su «Yadif».</string>
+    <string name="stutter_help_msg">Se l\'immagine scatta o si blocca (dispositivo meno potente), imposta %1$s su «%2$s» nelle impostazioni del server: richiede meno prestazioni.</string>
 </resources>

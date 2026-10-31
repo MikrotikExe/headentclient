@@ -538,4 +538,9 @@
     <string name="srv_delete_msg">Auch seine favorisierten, ausgeblendeten und gesperrten Sender, Wiedergabepositionen und der gespeicherte Programmführer werden gelöscht.</string>
     <string name="backup_secrets_title">Die Sicherung enthält Passwörter</string>
     <string name="backup_secrets_msg">Die Datei enthält die Server-Passwörter und die Kindersicherungs-PIN in lesbarer Form. Bewahre sie an einem sicheren Ort auf und schicke sie niemandem.</string>
+    <string name="interlaced_smooth_title">Interlaced-HD-Sender glätten</string>
+    <string name="interlaced_smooth_note">Interlaced ausgestrahlte Sender (576i, 1080i) laufen mit Deinterlacing durch den Player. Einschalten, wenn du Kammeffekte siehst. Gilt bei Hardware-Dekodierung Automatisch; kann schwächere Geräte etwas mehr belasten.</string>
+    <string name="combs_help_title">Zackige Kammeffekte im Bild?</string>
+    <string name="combs_help_msg">Waagerechte Streifen an Kanten bei Bewegung bedeuten ein Interlaced-Bild, das der Chip des Geräts nicht selbst glättet. Schalte „%1$s“ ein oder stelle %2$s auf „%3$s“ und %4$s auf „Yadif“.</string>
+    <string name="stutter_help_msg">Wenn das Bild ruckelt oder hängt (schwächeres Gerät), stelle in den Servereinstellungen %1$s auf „%2$s“ – das braucht weniger Leistung.</string>
 </resources>

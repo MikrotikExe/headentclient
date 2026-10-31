@@ -41,6 +41,24 @@ object HwDecodePref {
  * gives a properly deinterlaced, sharp picture on boxes whose hardware decoder outputs an
  * interlaced or half-height picture. H.264 / HEVC stay in hardware. On by default.
  */
+/**
+ * M751: "Smooth interlaced HD channels" — a channel that was interlaced last time goes through the
+ * hardware decoder without direct rendering and VLC's deinterlacer (see MediaFactory.smoothFor).
+ * Off by default: nothing changes until the user turns it on.
+ */
+object InterlacedSmoothPref {
+    private const val PREFS = "app_prefs"
+    private const val KEY = "interlaced_smooth"
+
+    fun get(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY, false)
+
+    fun set(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit().putBoolean(KEY, enabled).apply()
+    }
+}
+
 object Mpeg2SoftwarePref {
     private const val PREFS = "app_prefs"
     private const val KEY = "mpeg2_sw"

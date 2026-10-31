@@ -538,4 +538,9 @@
     <string name="srv_delete_msg">其收藏、隐藏和锁定的频道、观看进度以及已保存的节目指南也将一并删除。</string>
     <string name="backup_secrets_title">备份包含密码</string>
     <string name="backup_secrets_msg">该文件将以可读形式包含服务器密码和家长控制 PIN。请将其保存在安全的地方，不要发送给任何人。</string>
+    <string name="interlaced_smooth_title">平滑隔行 HD 频道</string>
+    <string name="interlaced_smooth_note">隔行播出的频道（576i、1080i）将经播放器去隔行处理。如看到梳状条纹请开启。适用于硬件解码为“自动”时；在性能较弱的设备上可能略增负载。</string>
+    <string name="combs_help_title">画面出现锯齿状梳纹？</string>
+    <string name="combs_help_msg">运动时边缘出现的横纹表示隔行画面，设备芯片不会自行平滑。请开启“%1$s”，或将%2$s设为“%3$s”、%4$s设为“Yadif”。</string>
+    <string name="stutter_help_msg">如果画面卡顿或停顿（性能较弱的设备），请在服务器设置中将%1$s切换为“%2$s”——对性能要求更低。</string>
 </resources>

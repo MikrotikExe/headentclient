@@ -37,6 +37,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -1306,6 +1307,22 @@ internal fun AdvancedSettings(ctx: android.content.Context) {
             TabController.settingsDirty.value = true
         }
     )
+    // M751: interlaced HD channels through VLC's deinterlacer (opt-in) + what to do about combs
+    SettingsGroupDivider()
+    run {
+        var smooth by remember { mutableStateOf(InterlacedSmoothPref.get(ctx)) }
+        SettingsSwitchRow(
+            label = stringResource(R.string.interlaced_smooth_title),
+            note = stringResource(R.string.interlaced_smooth_note),
+            checked = smooth,
+            onChange = { on ->
+                smooth = on
+                InterlacedSmoothPref.set(ctx, on)
+                TabController.settingsDirty.value = true
+            }
+        )
+    }
+    CombsHelpCard()
 
     if (isTvDev) {
         SettingsGroupDivider()
@@ -1460,5 +1477,59 @@ private fun InfoLinkRow(label: String, onClick: () -> Unit) {
     ) {
         Text(label, style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.primary)
+    }
+}
+
+/**
+ * M751: a short explanation of interlacing combs (and of stutter on weak devices) right under the
+ * decoder options. Focusable with a visible frame, so a remote can move onto it and the list
+ * scrolls it into view; it does nothing on OK.
+ */
+@Composable
+private fun CombsHelpCard() {
+    val cs = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(12.dp)
+    androidx.compose.foundation.layout.Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 8.dp)
+            .dpadFocusable(shape)
+            .background(cs.secondaryContainer.copy(alpha = 0.45f), shape)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+    ) {
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            androidx.compose.material3.Icon(
+                androidx.compose.material.icons.Icons.Filled.Info, contentDescription = null,
+                tint = cs.primary, modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                stringResource(R.string.combs_help_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            stringResource(
+                R.string.combs_help_msg,
+                stringResource(R.string.interlaced_smooth_title),
+                stringResource(R.string.hw_decode_title),
+                stringResource(R.string.hw_decode_decode),
+                stringResource(R.string.deint_title)
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = cs.onSurfaceVariant
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            stringResource(
+                R.string.stutter_help_msg,
+                stringResource(R.string.field_conn_mode),
+                stringResource(R.string.conn_http)
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = cs.onSurfaceVariant
+        )
     }
 }

@@ -538,4 +538,9 @@
     <string name="srv_delete_msg">También se eliminarán sus canales favoritos, ocultos y bloqueados, las posiciones de reproducción y la guía de programación guardada.</string>
     <string name="backup_secrets_title">La copia contiene contraseñas</string>
     <string name="backup_secrets_msg">El archivo contendrá las contraseñas de los servidores y el PIN parental en forma legible. Guárdalo en un lugar seguro y no se lo envíes a nadie.</string>
+    <string name="interlaced_smooth_title">Suavizar canales HD entrelazados</string>
+    <string name="interlaced_smooth_note">Los canales emitidos en entrelazado (576i, 1080i) pasarán por el reproductor con desentrelazado. Actívalo si ves peines. Se aplica con la decodificación por hardware en Automático; puede aumentar algo la carga en dispositivos modestos.</string>
+    <string name="combs_help_title">¿Peines dentados en la imagen?</string>
+    <string name="combs_help_msg">Las rayas horizontales en los bordes con movimiento indican una imagen entrelazada que el chip del dispositivo no suaviza por sí solo. Activa «%1$s» o ajusta %2$s a «%3$s» y %4$s a «Yadif».</string>
+    <string name="stutter_help_msg">Si la imagen da tirones o se congela (dispositivo modesto), cambia %1$s a «%2$s» en los ajustes del servidor: exige menos rendimiento.</string>
 </resources>

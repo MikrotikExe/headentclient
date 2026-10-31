@@ -538,4 +538,9 @@
     <string name="srv_delete_msg">Its favourite, hidden and locked channels, watch positions and stored programme guide will be deleted too.</string>
     <string name="backup_secrets_title">The backup contains passwords</string>
     <string name="backup_secrets_msg">The file will contain the server passwords and the parental PIN in readable form. Keep it in a safe place and do not send it to anyone.</string>
+    <string name="interlaced_smooth_title">Smooth interlaced HD channels</string>
+    <string name="interlaced_smooth_note">Channels broadcast interlaced (576i, 1080i) go through the player with deinterlacing. Turn on if you see combs. Applies to hardware decoding set to Automatic; may add a little load on weaker devices.</string>
+    <string name="combs_help_title">Jagged combs in the picture?</string>
+    <string name="combs_help_msg">Horizontal stripes on edges during motion mean an interlaced picture that the device chip does not smooth by itself. Turn on “%1$s”, or set %2$s to “%3$s” and %4$s to “Yadif”.</string>
+    <string name="stutter_help_msg">If the picture stutters or freezes (weaker device), switch %1$s in the server settings to “%2$s” – it is lighter on performance.</string>
 </resources>
