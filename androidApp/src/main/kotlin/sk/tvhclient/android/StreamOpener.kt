@@ -61,6 +61,35 @@ internal class StreamOpener(
         fun onSignal(sig: sk.tvhclient.shared.htsp.HtspSignal)
     }
 
+    /** M747: the latest medium handed to [setMediaAndPlay]; an older deferred one is dropped. */
+    private var mediaGen = 0
+
+    /**
+     * M747 (audit R9): hands [m] to the player and starts playback (+ [after]) WITHOUT the main thread
+     * waiting for libVLC. When the player still has a medium (an input thread may be alive), it is
+     * stopped on a worker first ([VlcEngine.stopThen]) and the medium is set when that is done; only the
+     * newest request is carried out. A player without a medium (the first open) is set directly.
+     */
+    private fun setMediaAndPlay(m: org.videolan.libvlc.Media, after: () -> Unit = {}) {
+        val mp = player()
+        val gen = ++mediaGen
+        val hadMedia = runCatching { mp.media?.let { it.release(); true } ?: false }.getOrDefault(true)
+        if (!hadMedia && !VlcEngine.isStopping(mp)) {
+            mp.media = m
+            m.release()
+            hooks.startPlayback()
+            after()
+            return
+        }
+        VlcEngine.stopThen(mp) {
+            if (gen != mediaGen || hooks.tornDown() || player() !== mp) { runCatching { m.release() }; return@stopThen }
+            mp.media = m
+            m.release()
+            hooks.startPlayback()
+            after()
+        }
+    }
+
     /** M722: what the current live channel's video looked like last time (ChannelCodecMemo), null = unknown. */
     private fun liveCodec(): ChannelCodecMemo.Memo? =
         ChannelCodecMemo.get(ctx, live.server?.id, live.uuids.getOrNull(live.index))
@@ -80,9 +109,7 @@ internal class StreamOpener(
         hooks.teletextAttachFeeder(feeder)   // M713: before start, so the PMT is not missed
         val fd = feeder.start(scope)
         val m = media.forFeeder(fd, media.feederDemuxFor(url), BufferPref.ms(ctx), liveCodec())   // M381/M509/M722
-        player().media = m
-        m.release()
-        hooks.startPlayback()
+        setMediaAndPlay(m)   // M747
     }
 
     /** M390-fix4: in HTTP mode an old (HTSP numeric) channel identity arrived —
@@ -156,10 +183,9 @@ internal class StreamOpener(
         hooks.onSourceInfo(null)   // M724: HTTP has no source info
         // M722: a live channel brings its remembered codec (MPEG-2 -> software); a recording not
         val m = media.forUrl(url, demuxFor(url), if (url.contains("/stream/")) liveCodec() else null)   // M703
-        player().media = m
-        m.release()
-        hooks.startPlayback()
-        if (url.contains("/stream/")) hooks.onDirectLiveStart()   // M714
+        setMediaAndPlay(m) {   // M747
+            if (url.contains("/stream/")) hooks.onDirectLiveStart()   // M714
+        }
     }
 
     /** M703: avformat (with a fallback) for a Matroska recording, the default demuxer otherwise. */
@@ -187,9 +213,7 @@ internal class StreamOpener(
         // the radio logo. The file is read from the beginning, so it determines the container
         // reliably by itself (EBML / ftyp / TS sync header).
         val m = media.forFeeder(fd, null, BufferPref.htspMs(ctx))
-        player().media = m
-        m.release()
-        hooks.startPlayback()
+        setMediaAndPlay(m)   // M747 (the archive-seek ANR: setMedia joined the old input on the main thread)
     }
 
     /**
@@ -224,9 +248,7 @@ internal class StreamOpener(
             hooks.resetTimeshift()
             val fd = feeder.start(channelId, scope, live.server?.profile)   // M476
             val m = media.forFeeder(fd, "ts", BufferPref.htspMs(ctx), liveCodec())   // M722
-            player().media = m
-            m.release()
-            hooks.startPlayback()
+            setMediaAndPlay(m)   // M747
             true
         } catch (e: Throwable) {
             stream.htspFeeder?.stop()
@@ -251,10 +273,9 @@ internal class StreamOpener(
         // M727: the position is a BYTE fraction. Without this libVLC's TS demuxer maps it onto its own
         // time span (pcr first .. the last dts seen so far — near the start right after opening).
         if (byPosition) m.addOption(":ts-seek-percent")
-        player().media = m
-        m.release()
-        hooks.startPlayback()   // M539-fix2
-        if (byPosition) applyStartPosition(url, startFraction!!)
+        setMediaAndPlay(m) {   // M747; M539-fix2
+            if (byPosition) applyStartPosition(url, startFraction!!)
+        }
     }
 
     private var startPositionJob: Job? = null

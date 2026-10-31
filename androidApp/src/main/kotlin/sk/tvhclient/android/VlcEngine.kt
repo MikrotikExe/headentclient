@@ -255,6 +255,39 @@ internal class VlcEngine(
          * thread (AFR, codec, info window) froze for those 3 s on every channel change. Instead the
          * player is noted in [stopping] and [releaseVlc] waits for THIS player only.
          */
+        /** M747: callbacks waiting for a stop of the player started by [stopThen]. */
+        private val afterStop = HashMap<MediaPlayer, MutableList<() -> Unit>>()
+
+        /**
+         * M747 (audit R9, Play vitals 1.0.6: ANR libvlc_media_player_set_media -> input_Close -> vlc_join
+         * from an archive seek): `setMedia` on a player that still has an input closes and JOINS the old
+         * input thread on the calling thread — on a box whose decoder is still starting or stuck, the
+         * main thread waited for it. This stops [mp] on a worker thread first and then runs [onMain] on
+         * the main thread, where setMedia finds no input and returns at once. Callers that arrive while
+         * the stop runs are queued behind it (no second stop), and a stop started by [stopAsync] is waited
+         * for by the worker, never by the main thread.
+         */
+        fun stopThen(mp: MediaPlayer, onMain: () -> Unit) {
+            synchronized(afterStop) {
+                val pending = afterStop[mp]
+                if (pending != null) { pending.add(onMain); return }
+                afterStop[mp] = mutableListOf(onMain)
+            }
+            stopping.add(mp)
+            val started = runCatching {
+                Thread({
+                    try { runCatching { mp.stop() } } finally { stopping.remove(mp) }
+                    val cbs = synchronized(afterStop) { afterStop.remove(mp) } ?: emptyList<() -> Unit>()
+                    mainHandler.post { for (cb in cbs) runCatching { cb() } }
+                }, "HeadentClient:vlcStopThen").apply { isDaemon = true }.start()
+            }.isSuccess
+            if (!started) {
+                stopping.remove(mp)
+                val cbs = synchronized(afterStop) { afterStop.remove(mp) } ?: emptyList<() -> Unit>()
+                mainHandler.post { for (cb in cbs) runCatching { cb() } }
+            }
+        }
+
         fun stopAsync(mp: MediaPlayer) {
             runCatching {
                 stopping.add(mp)
