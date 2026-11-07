@@ -53,6 +53,8 @@ internal class VlcEvents(
         fun onStreamActivity()
         /** M730 (issue #37): playing with a video track for seconds, yet no video output was opened. */
         fun onNoPictureFromHardware()
+        /** M756-fix (issue #40): a video output has just opened (the first frame is on the screen). */
+        fun onVoutOpened()
     }
 
     /** M730: libVLC has a video output open (the last Vout event had a count > 0). Not reset on a
@@ -118,7 +120,10 @@ internal class VlcEvents(
             }
             MediaPlayer.Event.Paused -> { actions.setPlaying(false); actions.keepScreenOn(false); actions.refreshPipIfActive() }
             MediaPlayer.Event.Stopped -> { actions.setPlaying(false); actions.keepScreenOn(false); actions.refreshPipIfActive() }
-            MediaPlayer.Event.Vout -> { voutOpen = event.voutCount > 0; if (voutOpen) hasVideo.value = true }
+            MediaPlayer.Event.Vout -> {
+                voutOpen = event.voutCount > 0
+                if (voutOpen) { hasVideo.value = true; actions.onVoutOpened() }   // M756-fix
+            }
             MediaPlayer.Event.ESSelected -> {
                 // M392-fix2: libVLC has just picked a track on its own (e.g. the default subtitles
                 // in a matroska) — enforce the user's wish (off / a specific language)

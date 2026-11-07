@@ -233,23 +233,44 @@ class PlayerActivity : ComponentActivity() {
      */
     private val videoCoverState = androidx.compose.runtime.mutableStateOf(false)
     private var videoCoverJob: kotlinx.coroutines.Job? = null
+    /** M756-fix: a video output opened since the cover went up (the uncover is then timed from it). */
+    private var coverVoutSeen = false
 
     private fun coverVideo() {
         if (!seekablePlayback) return
         videoCoverState.value = true
+        coverVoutSeen = false
         videoCoverJob?.cancel()
         videoCoverJob = lifecycleScope.launch {
-            kotlinx.coroutines.delay(3000)   // safety: never longer than this
+            kotlinx.coroutines.delay(4000)   // safety: never longer than this
             videoCoverState.value = false
         }
     }
 
-    /** The picture is up (Playing / buffered): the cover goes after the layout had time to settle. */
-    private fun uncoverVideoSoon() {
+    /**
+     * M756-fix (issue #40): the timing is taken from the Vout event (the first frame is on the
+     * screen), not from Playing. With the hardware decoder Playing comes well before the first
+     * decoded frame — the cover went down while the picture was still being laid out with the
+     * wrong aspect; with software decoding the two are close and it worked. From Vout the layout
+     * correction follows within a few frames, 700 ms covers it on both paths.
+     */
+    private fun onVoutOpened() {
+        if (!videoCoverState.value) return
+        coverVoutSeen = true
+        uncoverVideoSoon(700)
+    }
+
+    /** Playing / buffered without a Vout yet: a fallback only (e.g. an output reused without a new Vout). */
+    private fun uncoverVideoAfterPlaying() {
+        if (!videoCoverState.value || coverVoutSeen) return
+        uncoverVideoSoon(1500)
+    }
+
+    private fun uncoverVideoSoon(delayMs: Long) {
         if (!videoCoverState.value) return
         videoCoverJob?.cancel()
         videoCoverJob = lifecycleScope.launch {
-            kotlinx.coroutines.delay(400)
+            kotlinx.coroutines.delay(delayMs)
             videoCoverState.value = false
         }
     }
@@ -589,7 +610,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     /** Turns off the seek spinner (Playing/Buffering reached 100 %, or a new live start). */
-    private fun hideSeekSpinner() { seekSpinnerJob?.cancel(); seekingState.value = false; uncoverVideoSoon() }   // M756
+    private fun hideSeekSpinner() { seekSpinnerJob?.cancel(); seekingState.value = false; uncoverVideoAfterPlaying() }   // M756, M756-fix
 
     /** The spinner in the middle during a resync; a Playing/Buffering event turns it off, fallback after 4 s. */
     private fun showSeekSpinner() {
@@ -2272,6 +2293,7 @@ class PlayerActivity : ComponentActivity() {
                 override fun maybeApplyAfr() { afr.apply(); probeVideoCodec() }   // M722: the codec too
                 override fun keepScreenOn(on: Boolean) { this@PlayerActivity.keepScreenOn(on) }
                 override fun hideSeekSpinner() { this@PlayerActivity.hideSeekSpinner() }
+                override fun onVoutOpened() { this@PlayerActivity.onVoutOpened() }   // M756-fix
                 override fun scheduleTrackRefresh() { tracks.scheduleRefresh() }
                 override fun maybeReparseForTracks() { this@PlayerActivity.maybeReparseForTracks() }
                 override fun bumpTrackList() { tracks.bumpListVersion() }
