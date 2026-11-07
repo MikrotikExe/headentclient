@@ -180,6 +180,8 @@ internal data class PlaybackFlags(
     val hasVideo: Boolean = true,
     val reconnecting: Boolean = false,
     val seeking: Boolean = false,
+    /** M756 (issue #40): a black cover over the video while a recording (re)starts, until the layout has settled. */
+    val videoCover: Boolean = false,
     val playing: Boolean = true,
     val returnLiveOnBack: Boolean = false,
     val sleepDeadline: Long = 0

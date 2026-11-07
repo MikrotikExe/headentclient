@@ -225,6 +225,34 @@ class PlayerActivity : ComponentActivity() {
     }
     // the spinner while seeking in timeshift (a short pipe -> libVLC resync)
     private val seekingState = androidx.compose.runtime.mutableStateOf(false)
+    /**
+     * M756 (issue #40): on an MPEG-2 recording libVLC first lays the picture out with a square pixel
+     * aspect (4:3-ish) and corrects it to 16:9 a few frames later — on every start and seek. The
+     * video is covered in black from the start/seek until shortly after the first frame, so the
+     * jump is not seen. Live playback is not affected (its layout is right from the first frame).
+     */
+    private val videoCoverState = androidx.compose.runtime.mutableStateOf(false)
+    private var videoCoverJob: kotlinx.coroutines.Job? = null
+
+    private fun coverVideo() {
+        if (!seekablePlayback) return
+        videoCoverState.value = true
+        videoCoverJob?.cancel()
+        videoCoverJob = lifecycleScope.launch {
+            kotlinx.coroutines.delay(3000)   // safety: never longer than this
+            videoCoverState.value = false
+        }
+    }
+
+    /** The picture is up (Playing / buffered): the cover goes after the layout had time to settle. */
+    private fun uncoverVideoSoon() {
+        if (!videoCoverState.value) return
+        videoCoverJob?.cancel()
+        videoCoverJob = lifecycleScope.launch {
+            kotlinx.coroutines.delay(400)
+            videoCoverState.value = false
+        }
+    }
     private var seekSpinnerJob: kotlinx.coroutines.Job? = null
     // YouTube-style double-tap seeking: accumulated seconds (+/-), 0 = hidden
     // M648: seek target calculation, M594 recovery and the double-tap in DvrSeek.kt
@@ -561,7 +589,7 @@ class PlayerActivity : ComponentActivity() {
     }
 
     /** Turns off the seek spinner (Playing/Buffering reached 100 %, or a new live start). */
-    private fun hideSeekSpinner() { seekSpinnerJob?.cancel(); seekingState.value = false }
+    private fun hideSeekSpinner() { seekSpinnerJob?.cancel(); seekingState.value = false; uncoverVideoSoon() }   // M756
 
     /** The spinner in the middle during a resync; a Playing/Buffering event turns it off, fallback after 4 s. */
     private fun showSeekSpinner() {
@@ -597,6 +625,7 @@ class PlayerActivity : ComponentActivity() {
             kotlinx.coroutines.delay(6000)
             seekingState.value = false
         }
+        coverVideo()   // M756 (issue #40)
         opener.seekDvrFile(url, fileMs, offsetMs, fromMs, dur)   // M670: the body is in StreamOpener
         // M594: the time and target of the last seek — when an end/error arrives right after it,
         // it is a hit EOF (the file is shorter than the duration from the EPG) and not a real end
@@ -1427,6 +1456,7 @@ class PlayerActivity : ComponentActivity() {
                     hasVideo = vlcEvents.hasVideo.value,
                     reconnecting = reconnect.reconnecting.value,
                     seeking = seekingState.value,
+                    videoCover = videoCoverState.value,   // M756
                     playing = isPlayingState.value,
                     sleepDeadline = sleep.deadlineState.value,
                     timeshiftEngaged = timeshift.engaged.value,
@@ -1486,7 +1516,7 @@ class PlayerActivity : ComponentActivity() {
                     onAttach = { layout -> attachVideo(layout) },
                     onStart = {
                         // M658: the HTSP/HTTP/DVR branching of the first start — ChannelSwitcher.playInitial
-                        val doPlay: () -> Unit = { switcher.playInitial(server, channelUuid, directUrl, streamUrl) }
+                        val doPlay: () -> Unit = { coverVideo(); switcher.playInitial(server, channelUuid, directUrl, streamUrl) }   // M756: cover a recording's start
                         // parental lock: on EVERY opening of the player with a locked channel
                         // ask for the PIN (regardless of the grace window). The grace ("do not ask for X min") applies only
                         // when switching inside an open player (list / background / digits).
@@ -2938,6 +2968,8 @@ private fun PlayerUi(
             onStart = callbacks.onStart
         )
 
+        // M756 (issue #40): black until the recording's first frames have a settled layout
+        if (flags.videoCover && !inPreview) Box(Modifier.fillMaxSize().background(Color.Black))
         // M630: the small overlays in PlayerOverlays.kt (order preserved)
         // Audio-only (radio): a centred logo instead of black; on TV with the list in preview
         if (!flags.hasVideo) RadioCenterLogo(programme.centerLogoUrl, server, if (inPreview) previewRect else null)
