@@ -96,15 +96,18 @@ object Mpeg2SoftwarePref {
  * Codec values: "MPEG2VIDEO", "H264", "HEVC"… (the HTSP names). M730: the picture height too
  * (the MPEG-2 quality option applies up to 720 lines), and the flag that the hardware decoder
  * gave no picture on this channel (issue #37) — from then on it is decoded in software.
- * Stored as one string: CODEC[@HEIGHT][!sw] (older entries hold the bare codec).
+ * Stored as one string: CODEC[@HEIGHT][#FPS][!sw] (older entries hold the bare codec).
+ * M758: the frame rate too (0 = unknown) — 1080 lines at 50 frames per second is a progressive
+ * channel, not an interlaced one.
  */
 object ChannelCodecMemo {
     private const val PREFS = "codec_memo"
 
-    data class Memo(val codec: String?, val height: Int, val swForced: Boolean) {
+    data class Memo(val codec: String?, val height: Int, val swForced: Boolean, val fps: Int = 0) {
         override fun toString(): String = buildString {
             append(codec ?: "")
             if (height > 0) append('@').append(height)
+            if (fps > 0) append('#').append(fps)
             if (swForced) append("!sw")
         }
         companion object {
@@ -113,10 +116,17 @@ object ChannelCodecMemo {
                 var s = raw
                 val sw = s.endsWith("!sw")
                 if (sw) s = s.removeSuffix("!sw")
+                // M758: an optional "#FPS" at the end (only digits after the last '#')
+                var fps = 0
+                val hash = s.lastIndexOf('#')
+                if (hash >= 0) {
+                    val f = s.substring(hash + 1).toIntOrNull()
+                    if (f != null) { fps = f; s = s.substring(0, hash) }
+                }
                 val at = s.indexOf('@')
                 val codec = (if (at >= 0) s.substring(0, at) else s).ifBlank { null }
                 val h = if (at >= 0) s.substring(at + 1).toIntOrNull() ?: 0 else 0
-                return Memo(codec, h, sw)
+                return Memo(codec, h, sw, fps)
             }
         }
     }
@@ -129,10 +139,11 @@ object ChannelCodecMemo {
     }
 
     /** Remembers the codec and, when known (> 0), the height; the software flag of the channel is kept. */
-    fun set(context: Context, serverId: String?, uuid: String?, codec: String, height: Int = 0): Memo? {
+    fun set(context: Context, serverId: String?, uuid: String?, codec: String, height: Int = 0, fps: Int = 0): Memo? {
         if (serverId == null || uuid == null) return null
         val old = get(context, serverId, uuid)
-        val m = Memo(codec, if (height > 0) height else old?.height ?: 0, old?.swForced ?: false)
+        val m = Memo(codec, if (height > 0) height else old?.height ?: 0, old?.swForced ?: false,
+            if (fps > 0) fps else old?.fps ?: 0)
         prefs(context).edit().putString("$serverId:$uuid", m.toString()).apply()
         return m
     }
@@ -141,7 +152,7 @@ object ChannelCodecMemo {
     fun forceSoftware(context: Context, serverId: String?, uuid: String?, on: Boolean): Memo? {
         if (serverId == null || uuid == null) return null
         val old = get(context, serverId, uuid)
-        val m = Memo(old?.codec, old?.height ?: 0, on)
+        val m = Memo(old?.codec, old?.height ?: 0, on, old?.fps ?: 0)
         prefs(context).edit().putString("$serverId:$uuid", m.toString()).apply()
         return m
     }

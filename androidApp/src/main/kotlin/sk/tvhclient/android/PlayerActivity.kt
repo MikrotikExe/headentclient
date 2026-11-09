@@ -343,7 +343,7 @@ class PlayerActivity : ComponentActivity() {
                     }
                 }
                 override fun fallbackTitle(): String? = intent.getStringExtra(EXTRA_TITLE)
-                override fun onVideoCodec(codec: String, height: Int) { runOnUiThread { this@PlayerActivity.onVideoCodec(codec, height) } }   // M722 / M730
+                override fun onVideoCodec(codec: String, height: Int, fps: Int) { runOnUiThread { this@PlayerActivity.onVideoCodec(codec, height, fps) } }   // M722 / M730 / M758
                 override fun onDvrSeekLanded(fileMs: Long) {   // M727: the bar shows where the stream really is
                     val ms = (fileMs - dvrFileOffsetMs()).coerceAtLeast(0L)
                     dvr.playheadMsState.value = ms
@@ -384,7 +384,7 @@ class PlayerActivity : ComponentActivity() {
         val decoder = when {
             mediaFactory.lastSoftware -> StreamDetails.DEC_SOFTWARE
             mediaFactory.lastSmooth || mediaFactory.noDirectRendering ||   // M751 / M753
-            HwDecodePref.get(this) == HwDecodePref.DECODE || DeinterlacePref.get(this).let { it != DeinterlacePref.OFF && it != DeinterlacePref.AUTO } -> StreamDetails.DEC_DECODE
+            HwDecodePref.get(this) == HwDecodePref.DECODE -> StreamDetails.DEC_DECODE   // M758: an explicit deinterlacing mode is part of lastSmooth now
             else -> StreamDetails.DEC_HARDWARE
         }
         val htsp = stream.htspStream
@@ -421,10 +421,10 @@ class PlayerActivity : ComponentActivity() {
      * way round), the stream is reopened once by the same path — a second or so, like a profile
      * switch — and from then on the channel opens right the first time.
      */
-    private fun onVideoCodec(codec: String, height: Int) {
+    private fun onVideoCodec(codec: String, height: Int, fps: Int = 0) {
         if (seekablePlayback) return   // recordings keep the global mode
         val uuid = live.uuids.getOrNull(live.index) ?: return
-        val memo = ChannelCodecMemo.set(this, live.server?.id, uuid, codec, height)
+        val memo = ChannelCodecMemo.set(this, live.server?.id, uuid, codec, height, fps)
         val wanted = mediaFactory.softwareFor(memo)
         val wantedSmooth = !wanted && mediaFactory.smoothFor(memo)   // M751
         if ((wanted == mediaFactory.lastSoftware && wantedSmooth == mediaFactory.lastSmooth) || codecRestartedFor == uuid) return
@@ -436,7 +436,10 @@ class PlayerActivity : ComponentActivity() {
     private fun probeVideoCodec() {
         if (seekablePlayback || stream.htspStream || !engine.ready || engine.tornDown) return
         VlcEngine.videoInfoAsync(engine.player) { vi ->
-            ChannelCodecMemo.fromVlc(vi?.codec)?.let { onVideoCodec(it, vi?.height ?: 0) }
+            // M758: the frame rate of the track too (1080p50 is not an interlaced channel)
+            val fps = if (vi != null && vi.fpsNum > 0 && vi.fpsDen > 0)
+                ((vi.fpsNum.toLong() + vi.fpsDen / 2) / vi.fpsDen).toInt().takeIf { it in 10..120 } ?: 0 else 0
+            ChannelCodecMemo.fromVlc(vi?.codec)?.let { onVideoCodec(it, vi?.height ?: 0, fps) }
         }
     }
 

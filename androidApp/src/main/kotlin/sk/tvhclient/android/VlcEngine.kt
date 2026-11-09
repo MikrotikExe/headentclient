@@ -77,7 +77,9 @@ internal class VlcEngine(
         )
         // Deinterlacing (global, so that it applies already on the first open; per-medium
         // it is set again on every channel switch)
-        val (dEn, dMode) = media.deinterlaceSpec()
+        var (dEn, dMode) = media.deinterlaceSpec()
+        // M758 (audit K1): the video output reads these only from here — see forceDeinterlaceGlobally
+        if (media.forceDeinterlaceGlobally()) { dEn = "1"; if (dMode == null) dMode = "linear" }
         options.add("--deinterlace=$dEn")
         if (dMode != null) options.add("--deinterlace-mode=$dMode")
         libVlc = LibVLC(ctx, options)

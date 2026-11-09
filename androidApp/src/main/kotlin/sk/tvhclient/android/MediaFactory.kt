@@ -61,7 +61,10 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
      */
     private fun applyDecoder(m: Media, codec: ChannelCodecMemo.Memo?) {
         val sw = softwareFor(codec)
-        val smooth = !sw && smoothFor(codec)
+        // M758: with an explicit deinterlacing mode an UNKNOWN video (a recording, a channel opened
+        // for the first time) keeps going through the filter as it did until now
+        val smooth = !sw && (smoothFor(codec) ||
+            (codec == null && HwDecodePref.get(ctx) == HwDecodePref.AUTO && explicitDeinterlaceOnHw()))
         lastSoftware = sw
         lastSmooth = smooth
         // M730: the decision goes into the diagnostic log with the verbose player log (issue #37)
@@ -91,7 +94,10 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
         }
         m.addOption(":deinterlace=$en")
         if (mode != null) m.addOption(":deinterlace-mode=$mode")
-        if (!sw && (smooth || noDirectRendering || HwDecodePref.get(ctx) == HwDecodePref.DECODE || explicitDeinterlaceOnHw())) {
+        // M758 (audit K3): an explicit deinterlacing mode no longer switches direct rendering off on
+        // EVERY channel — only on the interlaced ones ([smoothFor]); 720p50 and 4K keep going
+        // straight to the screen (there the filter doubled the frames for nothing).
+        if (!sw && (smooth || noDirectRendering || HwDecodePref.get(ctx) == HwDecodePref.DECODE)) {
             m.addOption(":no-mediacodec-dr")
             m.addOption(":no-omxil-dr")
         }
@@ -119,8 +125,36 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
      * stay on direct rendering.
      */
     fun smoothFor(memo: ChannelCodecMemo.Memo?): Boolean =
-        memo != null && memo.height in INTERLACED_HEIGHTS &&
-            HwDecodePref.get(ctx) == HwDecodePref.AUTO && InterlacedSmoothPref.get(ctx)
+        looksInterlaced(memo) && HwDecodePref.get(ctx) == HwDecodePref.AUTO &&
+            DeinterlacePref.get(ctx) != DeinterlacePref.OFF &&
+            (InterlacedSmoothPref.get(ctx) || explicitDeinterlaceOnHw())   // M758: an explicit mode too
+
+    /**
+     * M758 (audit K2): does the channel look interlaced? The frame height alone is not enough —
+     * 1080 lines at 50 frames per second (typically HEVC in DVB-T2) is progressive, and pushing it
+     * through the deinterlacer would double it to 100 frames per second. Interlaced = 480/576/1080
+     * lines, at most 30 frames per second (unknown rate: as before, by the height), not HEVC
+     * (broadcast HEVC is progressive).
+     */
+    fun looksInterlaced(memo: ChannelCodecMemo.Memo?): Boolean =
+        memo != null && memo.height in INTERLACED_HEIGHTS && memo.codec != "HEVC" &&
+            (memo.fps == 0 || memo.fps <= 30)
+
+    /**
+     * M758 (audit K1): VLC's video output takes "deinterlace" from the PLAYER (that is, from the
+     * LibVLC options the player was created with), never from the medium — the output is a child
+     * of the player, not of the input (vout_Request(resource parent), interlacing.c) — and the
+     * automatic mode never engages with the hardware decoder, because every MediaCodec picture is
+     * marked progressive (mediacodec.c). The per-medium ":deinterlace=1" of M751 therefore never
+     * switched the filter on. With "Smooth interlaced HD channels" on (deinterlacing Auto, hardware
+     * Auto) the filter is forced globally instead: interlaced channels go without direct rendering
+     * ([smoothFor]) and get it; progressive ones stay on direct rendering, where the filter cannot
+     * attach (opaque pictures) and nothing changes. Not on devices that never render directly
+     * ([noDirectRendering]) — every channel would be filtered there.
+     */
+    fun forceDeinterlaceGlobally(): Boolean =
+        HwDecodePref.get(ctx) == HwDecodePref.AUTO && InterlacedSmoothPref.get(ctx) &&
+            DeinterlacePref.get(ctx) == DeinterlacePref.AUTO && !noDirectRendering
 
     /** Deinterlacing mode from the settings -> (the --deinterlace value, the mode or null).
      *  -1 = automatic (deinterlaces only an interlaced source), 0 = off, 1 = on.

@@ -126,7 +126,7 @@ class HtspSubscription internal constructor(
         onTeletextAvailable: (Boolean) -> Unit = {},
         /** M722: the type of the first video track (from subscriptionStart), e.g. "MPEG2VIDEO", and
          *  M730: its picture height in lines (0 = the server does not know it yet). */
-        onVideoCodec: (codec: String, height: Int) -> Unit = { _, _ -> },
+        onVideoCodec: (codec: String, height: Int, fps: Int) -> Unit = { _, _, _ -> },
         /** M724: the source of the stream (subscriptionStart: sourceinfo + the tracks) for the info window. */
         onSourceInfo: (HtspSourceInfo) -> Unit = {},
         /** M724: signalStatus (about once a second) for the info window. */
@@ -183,7 +183,11 @@ class HtspSubscription internal constructor(
                         onTeletextAvailable(teletextEs >= 0)
                         streams.firstOrNull { it.type in VIDEO_TYPES }?.let { v ->   // M722 / M730
                             val vm = sl.firstOrNull { (it as? Map<*, *>)?.get("index") == v.index.toLong() } as? Map<*, *>
-                            onVideoCodec(v.type, (vm?.get("height") as? Long)?.toInt() ?: 0)
+                            // M758: the frame duration (90 kHz ticks, we subscribe with 90khz=1) -> frames
+                            // per second; 0 = unknown (the server has not measured it yet)
+                            val dur = (vm?.get("duration") as? Long) ?: 0L
+                            val fps = if (dur in 600L..9000L) ((90_000L + dur / 2) / dur).toInt() else 0
+                            onVideoCodec(v.type, (vm?.get("height") as? Long)?.toInt() ?: 0, fps)
                         }
                         onSourceInfo(HtspSourceInfo.from(m, sl))   // M724
                         val existing = muxer

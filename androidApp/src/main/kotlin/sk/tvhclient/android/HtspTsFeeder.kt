@@ -93,7 +93,7 @@ class HtspTsFeeder(
     @Volatile var onTeletext: ((ByteArray) -> Unit)? = null
     @Volatile var onTeletextAvailable: ((Boolean) -> Unit)? = null
     /** M722: the video codec from subscriptionStart (HTSP type name, e.g. "MPEG2VIDEO") and M730: its height (0 = unknown). */
-    @Volatile var onVideoCodec: ((String, Int) -> Unit)? = null
+    @Volatile var onVideoCodec: ((String, Int, Int) -> Unit)? = null
     /** M724: the stream source (subscriptionStart) and the signal (signalStatus) for the info window. */
     @Volatile var onSourceInfo: ((sk.tvhclient.shared.htsp.HtspSourceInfo) -> Unit)? = null
     @Volatile var onSignal: ((sk.tvhclient.shared.htsp.HtspSignal) -> Unit)? = null
@@ -231,7 +231,7 @@ class HtspTsFeeder(
                     onSubtitles = { subs -> subtitleStreams = subs },
                     onSubtitlePage = { page, targetMs -> onSubtitlePage?.invoke(page, targetMs) },
                     onTeletextAvailable = { a -> hasTeletext = a; onTeletextAvailable?.invoke(a) },   // M552
-                    onVideoCodec = { c, h -> onVideoCodec?.invoke(c, h) },   // M722 / M730
+                    onVideoCodec = { c, h, f -> onVideoCodec?.invoke(c, h, f) },   // M722 / M730 / M758
                     onSourceInfo = { si -> onSourceInfo?.invoke(si) },   // M724
                     onSignal = { sg -> onSignal?.invoke(sg) },           // M724
                     onQueueStatus = { b, p, i, bytes ->                  // M757
