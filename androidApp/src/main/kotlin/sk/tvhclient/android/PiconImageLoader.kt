@@ -50,6 +50,9 @@ object PiconImageLoader {
     /** M738: forget the loader (a server deleted / a backup restored); the next get() builds a new one. */
     fun invalidate() { synchronized(this) { loader = null; forKey = null } }
 
+    /** M761 (audit S6): the system is short of memory — let the decoded picons go (the disk cache stays). */
+    fun trimMemory() { runCatching { loader?.memoryCache?.clear() } }
+
     /** M272: manual clearing of the picon cache (memory + disk) — for "Refresh list" in settings. */
     fun clearCache(context: Context, server: TvhServer?) {
         val il = get(context, server)
@@ -92,7 +95,10 @@ object PiconImageLoader {
         return ImageLoader.Builder(context)
             .okHttpClient(ok)
             .memoryCache {
-                MemoryCache.Builder(context).maxSizePercent(0.15).build()
+                // M761: a smaller share on devices with little memory (largeHeap makes 15 % tens of MB)
+                val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? android.app.ActivityManager
+                val small = am != null && (am.isLowRamDevice || am.memoryClass <= 128)
+                MemoryCache.Builder(context).maxSizePercent(if (small) 0.08 else 0.15).build()
             }
             .diskCache {
                 disk ?: DiskCache.Builder()

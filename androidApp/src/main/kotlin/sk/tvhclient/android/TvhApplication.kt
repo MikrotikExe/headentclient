@@ -46,6 +46,19 @@ class TvhApplication : Application() {
         }
     }
 
+    /**
+     * M761 (audit S6): running low on memory (or the app went to the background and the system
+     * wants memory back) — drop the decoded picons instead of letting the system kill the process.
+     * Not on UI_HIDDEN alone: the player may be in picture-in-picture.
+     */
+    @Suppress("DEPRECATION")   // the trim levels are deprecated since API 34, still delivered
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level == TRIM_MEMORY_RUNNING_LOW || level == TRIM_MEMORY_RUNNING_CRITICAL || level >= TRIM_MEMORY_BACKGROUND) {
+            PiconImageLoader.trimMemory()
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         // M440: version into the unified client identity (User-Agent, HTSP clientname)

@@ -75,7 +75,7 @@ internal fun TvChannelListOverlay(
     channelNavIndex: Int,
     epgLoading: Boolean,
     lockTick: Int,
-    liveNowSec: Long,
+    liveNowSec: androidx.compose.runtime.State<Long>,   // M761: read where it is shown
     onLoadChannelEpg: (String, (List<EpgEvent>) -> Unit) -> Unit,
     channelGroupLabel: String,
     channelGroupPicker: Boolean,
@@ -108,7 +108,7 @@ internal fun TvChannelListOverlay(
         epgT = emptyList()
         onLoadChannelEpg(uuid) { list -> epgT = list }
     }
-    val nowT = liveNowSec
+    val nowT = liveNowSec.value
     val curT = epgT.firstOrNull { it.isCurrentAt(nowT) }
     // M715: during an overrun the next programme has already "started" by the schedule — list from the current's end
     val nextT = epgT.filter { it !== curT && it.start >= (curT?.stop ?: nowT) }.sortedBy { it.start }.take(4)

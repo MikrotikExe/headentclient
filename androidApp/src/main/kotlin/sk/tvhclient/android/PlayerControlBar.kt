@@ -88,7 +88,7 @@ internal fun PlayerControlsOverlay(
     liveChannels: List<LivePlaylist.LiveChannel>,
     liveCurrentIndex: Int,
     server: TvhServer?,
-    liveNowSec: Long,
+    liveNowSec: androidx.compose.runtime.State<Long>,   // M761: read where it is shown
     progStart: Long,
     progStop: Long,
     progTitle: String,
@@ -148,12 +148,12 @@ internal fun PlayerControlsOverlay(
             val infoLoader = remember(server?.id) { PiconImageLoader.get(ctx, server) }
             fun clock(sec: Long): String =
                 if (sec <= 0) "" else sk.tvhclient.shared.DateFmtCache.format(sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault(), sec * 1000)   // M743
-            val dateTime = sk.tvhclient.shared.DateFmtCache.format("EEE d. M., " + sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault(), liveNowSec * 1000)
+            val dateTime = sk.tvhclient.shared.DateFmtCache.format("EEE d. M., " + sk.tvhclient.shared.TimeFormatConfig.hm, java.util.Locale.getDefault(), liveNowSec.value * 1000)
             val hasNow = !seekable && progStart > 0 && progStop > progStart
             val total = (progStop - progStart).coerceAtLeast(1)
-            val elapsed = (liveNowSec - progStart).coerceIn(0, total)
+            val elapsed = (liveNowSec.value - progStart).coerceIn(0, total)
             val fracNow = elapsed.toFloat() / total.toFloat()
-            val remainMin = if (hasNow) ((progStop - liveNowSec) / 60).coerceAtLeast(0) else 0
+            val remainMin = if (hasNow) ((progStop - liveNowSec.value) / 60).coerceAtLeast(0) else 0
             // scaling by the box resolution (a compact, readable bar)
             // Measure the real window width (BoxWithConstraints), not Configuration.screenWidthDp —
             // on some devices it reports a wrong value (compact layout in landscape).

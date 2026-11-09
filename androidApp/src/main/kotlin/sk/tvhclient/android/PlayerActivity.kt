@@ -2874,7 +2874,9 @@ private fun PlayerUi(
     }
 
     // Live progress of the current programme (from the EPG): ticks every second
-    var liveNowSec by remember { mutableStateOf(System.currentTimeMillis() / 1000) }
+    // M761 (audit V2): held as a State and read only inside the panels that show it — read here it
+    // recomposed the whole PlayerUi every second of live playback, controls hidden or not
+    val liveNowSec = remember { mutableStateOf(System.currentTimeMillis() / 1000) }
     // The current programme (mutable — when it runs out the next one is loaded)
     var progStart by remember(liveChannelUuid) { mutableStateOf(programme.startSec) }
     var progStop by remember(liveChannelUuid) { mutableStateOf(programme.stopSec) }
@@ -2894,7 +2896,7 @@ private fun PlayerUi(
         hasLiveProg = hasLiveProg,
         progStart = { progStart },
         progStop = { progStop },
-        onTick = { liveNowSec = it },
+        onTick = { liveNowSec.value = it },
         onProgramme = { cur, nx ->
             progStart = cur.start; progStop = cur.stop
             progTitle = cur.title

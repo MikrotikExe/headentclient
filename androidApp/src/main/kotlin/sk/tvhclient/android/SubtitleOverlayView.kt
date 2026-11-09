@@ -35,22 +35,40 @@ class SubtitleOverlayView(context: Context) : View(context) {
     private val dst = Rect()
     private val handler = Handler(Looper.getMainLooper())
     private var running = false
+    /** M761: [start] was called and [stopTicker] not yet — the ticker may run when there is work. */
+    @Volatile private var started = false
 
+    /**
+     * M761 (audit V1): the ticker runs only while there is something to time — a page waiting in
+     * the queue or a page on the screen (its timeout). Until now it ran 25 times a second on the
+     * main thread for the whole playback, each time asking libVLC for the clock, even with no
+     * subtitles selected at all.
+     */
     private val tick = object : Runnable {
         override fun run() {
             if (!running) return
             update()
+            val idle = bitmap == null && synchronized(lock) { queue.isEmpty() }
+            if (idle) { running = false; return }
             handler.postDelayed(this, 40)
+        }
+    }
+
+    /** Starts the ticker if it is allowed and not running (safe from any thread). */
+    private fun kick() {
+        handler.post {
+            if (started && !running) { running = true; tick.run() }
         }
     }
 
     fun start(clockSource: () -> Long, aspectSource: () -> Float) {
         clock = clockSource
         aspect = aspectSource
-        if (!running) { running = true; handler.post(tick) }
+        started = true
+        kick()
     }
 
-    fun stopTicker() { running = false; handler.removeCallbacks(tick) }
+    fun stopTicker() { started = false; running = false; handler.removeCallbacks(tick) }
 
     /** A newly decoded page with a target time (ms on the player axis). */
     fun onPage(page: DvbSubtitleDecoder.DecodedPage, targetMs: Long) {
@@ -64,6 +82,7 @@ class SubtitleOverlayView(context: Context) : View(context) {
             queue.sortBy { it.targetMs }
             while (queue.size > 256) queue.removeAt(0)
         }
+        kick()   // M761
     }
 
     /** Clears the state (channel/language switch, subtitles turned off). */

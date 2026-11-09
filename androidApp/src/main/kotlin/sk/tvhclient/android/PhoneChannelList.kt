@@ -58,7 +58,7 @@ internal fun PhoneChannelListOverlay(
     channelNavIndex: Int,
     epgLoading: Boolean,
     lockTick: Int,
-    liveNowSec: Long,
+    liveNowSec: androidx.compose.runtime.State<Long>,   // M761: read where it is shown
     onSelectChannel: (Int) -> Unit,
     onChannelLongPress: (Int) -> Unit,
     onClose: () -> Unit
@@ -189,7 +189,7 @@ internal fun PhoneChannelListOverlay(
                             ch = ch,
                             selected = selected,
                             locked = locked,
-                            nowSec = liveNowSec,
+                            nowSec = liveNowSec.value,
                             imageLoader = loader,
                             onClick = { onSelectChannel(idx); onClose() },
                             onLongClick = { onChannelLongPress(idx) },
@@ -276,7 +276,7 @@ internal fun PhoneChannelListOverlay(
                                 )
                                 if (ch.nowStop > ch.nowStart) {
                                     val total = (ch.nowStop - ch.nowStart).coerceAtLeast(1)
-                                    val frac = (liveNowSec - ch.nowStart)
+                                    val frac = (liveNowSec.value - ch.nowStart)
                                         .coerceIn(0, total).toFloat() / total
                                     androidx.compose.material3.LinearProgressIndicator(
                                         progress = { frac },

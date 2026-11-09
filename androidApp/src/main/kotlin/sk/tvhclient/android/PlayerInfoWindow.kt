@@ -54,7 +54,7 @@ internal fun PlayerInfoWindow(
     nextTitle: String,
     nextStart: Long,
     nextStop: Long,
-    liveNowSec: Long,
+    liveNowSec: androidx.compose.runtime.State<Long>,   // M761: read where it is shown
     liveChannels: List<LivePlaylist.LiveChannel>,
     liveCurrentIndex: Int,
     dvrActivity: PlayerActivity?,
@@ -183,7 +183,7 @@ internal fun PlayerInfoWindow(
                         fontSize = if (compact) 19.sp else 22.sp
                     )
                     val liveProg = !seekable && progStart > 0 && progStop > progStart
-                    val remainMin = ((progStop - liveNowSec) / 60).coerceAtLeast(0)
+                    val remainMin = ((progStop - liveNowSec.value) / 60).coerceAtLeast(0)
                     if (tRange.isNotBlank()) {
                         Spacer(Modifier.height(if (compact) 4.dp else 6.dp))
                         // M735: compact = the time and "remaining" on one line
@@ -193,7 +193,7 @@ internal fun PlayerInfoWindow(
                     // progress + remaining time (live broadcast only)
                     if (liveProg) {
                         val totalI = (progStop - progStart).coerceAtLeast(1)
-                        val fracI = ((liveNowSec - progStart).toFloat() / totalI.toFloat())
+                        val fracI = ((liveNowSec.value - progStart).toFloat() / totalI.toFloat())
                             .coerceIn(0f, 1f)
                         Spacer(Modifier.height(if (compact) 8.dp else 12.dp))
                         androidx.compose.material3.LinearProgressIndicator(
