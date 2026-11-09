@@ -50,6 +50,7 @@ object BufferPref {
     fun htspMs(context: Context): Int = when (get(context)) {
         SMALL -> 1500
         LARGE -> 3000
-        else -> 2200
+        // M757 (audit H6): on a wired connection the same 1500 ms as the HTTP path (M752)
+        else -> if (onEthernet(context)) 1500 else 2200
     }
 }

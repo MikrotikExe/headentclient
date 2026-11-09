@@ -102,7 +102,14 @@ class HtspClient(
             val sel = SelectorManager(Dispatchers.Default)
             selector = sel
             val s = withTimeoutOrNull(8_000) {
-                aSocket(sel).tcp().connect(host, port)
+                // M757 (audit H3): a bigger receive buffer keeps a burst on our side instead of in the
+                // server's (small) subscription queue; no Nagle delay for the small control messages;
+                // TCP keep-alive so a silently dead peer is noticed. The system may cap the buffer.
+                aSocket(sel).tcp().connect(host, port) {
+                    noDelay = true
+                    keepAlive = true
+                    receiveBufferSize = 1024 * 1024
+                }
             } ?: run {
                 sel.close()
                 throw IllegalStateException("port $port unreachable (timeout) — is HTSP forwarded?")

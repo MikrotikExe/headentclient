@@ -142,7 +142,13 @@ class HtspSubscription internal constructor(
          * the subscription therefore waits instead of ending. [run] returns when the server starts
          * it again, so the caller opens a fresh stream (a new timeline for libVLC).
          */
-        onWaitingForTuner: ((String?) -> Unit)? = null
+        onWaitingForTuner: ((String?) -> Unit)? = null,
+        /**
+         * M757 (audit H2): queueStatus (about once a second) — the frames the SERVER has dropped for
+         * this subscription so far (its queue was full: B first, then P, then everything) and the
+         * bytes waiting in its queue.
+         */
+        onQueueStatus: (bDrops: Long, pDrops: Long, iDrops: Long, queuedBytes: Long) -> Unit = { _, _, _, _ -> }
     ) {
         var teletextEs = -1   // M552
         var waitingForTuner = false   // M715
@@ -225,6 +231,11 @@ class HtspSubscription internal constructor(
                         val st = (m["start"] as? Long) ?: 0L
                         val en = (m["end"] as? Long) ?: 0L
                         onStatus(shift, full, st, en)
+                    }
+                    "queueStatus" -> {   // M757
+                        onQueueStatus(
+                            (m["Bdrops"] as? Long) ?: 0L, (m["Pdrops"] as? Long) ?: 0L,
+                            (m["Idrops"] as? Long) ?: 0L, (m["bytes"] as? Long) ?: 0L)
                     }
                     "signalStatus" -> {   // M724
                         onSignal(HtspSignal(

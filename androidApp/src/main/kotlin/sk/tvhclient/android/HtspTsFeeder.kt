@@ -97,6 +97,14 @@ class HtspTsFeeder(
     /** M724: the stream source (subscriptionStart) and the signal (signalStatus) for the info window. */
     @Volatile var onSourceInfo: ((sk.tvhclient.shared.htsp.HtspSourceInfo) -> Unit)? = null
     @Volatile var onSignal: ((sk.tvhclient.shared.htsp.HtspSignal) -> Unit)? = null
+    /**
+     * M757 (audit H2): the server dropped frames for this stream (its subscription queue was full —
+     * the client did not read fast enough). Called with a ready diagnostic line, at most once per
+     * 30 s and only when the counters have grown.
+     */
+    @Volatile var onServerDrops: ((String) -> Unit)? = null
+    private var lastDropTotal = 0L
+    private var lastDropReportMs = 0L
 
     /** Starts the feed for a channel and returns the read FileDescriptor for libVLC. */
     /**
@@ -226,6 +234,17 @@ class HtspTsFeeder(
                     onVideoCodec = { c, h -> onVideoCodec?.invoke(c, h) },   // M722 / M730
                     onSourceInfo = { si -> onSourceInfo?.invoke(si) },   // M724
                     onSignal = { sg -> onSignal?.invoke(sg) },           // M724
+                    onQueueStatus = { b, p, i, bytes ->                  // M757
+                        val total = b + p + i
+                        if (total > lastDropTotal) {
+                            val nowMs = android.os.SystemClock.elapsedRealtime()
+                            if (lastDropReportMs == 0L || nowMs - lastDropReportMs >= 30_000L) {
+                                lastDropReportMs = nowMs
+                                lastDropTotal = total
+                                onServerDrops?.invoke("server dropped frames (queue full): B=$b P=$p I=$i, queued $bytes bytes")
+                            }
+                        }
+                    },
                     onTeletext = { es -> onTeletext?.invoke(es) },
                     // M714: no free tuner before the start -> end with the reason (the server would
                     // keep retrying silently and the player would wait on a black screen)
@@ -281,7 +300,7 @@ class HtspTsFeeder(
         if (streamMarked) { streamMarked = false; sk.tvhclient.shared.htsp.HtspData.streamStopped() }   // M595
         // M732 (audit R17): no callbacks from a stopped feeder — a late subscriptionStart of the old
         // subscription could otherwise write the codec memo / source info of the NEXT channel
-        onVideoCodec = null; onSourceInfo = null; onSignal = null; onDiag = null
+        onVideoCodec = null; onSourceInfo = null; onSignal = null; onDiag = null; onServerDrops = null
         onTeletextAvailable = null; onTeletext = null; onSubtitlePage = null; onWaitingForTuner = null
         job?.cancel()
         job = null

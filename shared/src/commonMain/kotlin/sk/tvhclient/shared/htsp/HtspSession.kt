@@ -389,6 +389,11 @@ class HtspSession internal constructor(
         args["subscriptionId"] = sub.subscriptionId.toLong()
         args["90khz"] = 1L
         args["normts"] = 1L
+        // M757 (audit H1): without it Tvheadend keeps only 500 kB per subscription (about a quarter of
+        // a second of an HD channel) and, when the client hesitates for a moment (Wi-Fi, a weak box,
+        // a GC pause), drops B frames, then P frames (htsp_stream_deliver) — with interlaced H.264
+        // single fields, which shows as stripes and a broken picture. Kodi asks for 10 MB.
+        args["queueDepth"] = QUEUE_DEPTH_BYTES
         if (timeshiftPeriodSec > 0) args["timeshiftPeriod"] = timeshiftPeriodSec.toLong()
         if (!profile.isNullOrBlank()) args["profile"] = profile
         // With seq: a refused subscribe (e.g. the connection limit is used up by another device)
@@ -458,6 +463,8 @@ class HtspSession internal constructor(
     companion object {
         /** No request and no stream for this long -> the connection is closed. */
         const val IDLE_CLOSE_SEC = 300L
+        /** M757: the server-side queue of a subscription (bytes) before it starts dropping frames. */
+        const val QUEUE_DEPTH_BYTES = 5_000_000L
         /** M720: the EPG window is asked for this long after the initial sync. */
         const val EPG_REQUEST_DELAY_MS = 1_500L
         /** M732: no subscription appears within this -> the EPG is asked for at once. */
