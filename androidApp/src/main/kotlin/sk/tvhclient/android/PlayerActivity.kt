@@ -221,7 +221,8 @@ class PlayerActivity : ComponentActivity() {
     private val reconnect: ReconnectController by lazy {
         ReconnectController(this,
             playerReady = { engine.ready && !engine.tornDown },   // M737: no reconnect onto a closing player
-            isPlaying = { engine.player.isPlaying })
+            isPlaying = { engine.player.isPlaying },
+            active = { lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED) })   // M760
     }
     // the spinner while seeking in timeshift (a short pipe -> libVLC resync)
     private val seekingState = androidx.compose.runtime.mutableStateOf(false)

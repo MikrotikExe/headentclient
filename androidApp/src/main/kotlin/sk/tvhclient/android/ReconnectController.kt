@@ -20,17 +20,22 @@ import androidx.compose.runtime.mutableStateOf
 class ReconnectController(
     private val ctx: Context,
     private val playerReady: () -> Boolean,
-    private val isPlaying: () -> Boolean
+    private val isPlaying: () -> Boolean,
+    /** M760: the player is in front (started) — the slow phase does not open streams in the background. */
+    private val active: () -> Boolean = { true }
 ) {
     val reconnecting = mutableStateOf(false)
     private val handler = Handler(Looper.getMainLooper())
     private var liveAttempts = 0
     private var dvrAttempts = 0
+    /** M760: the quick attempts are used up, the slow ones run (the message was shown once). */
+    private var slowPhase = false
 
     /** Cancels the scheduled reconnect and hides the indicator. */
     fun cancel() {
         handler.removeCallbacksAndMessages(null)
         liveAttempts = 0
+        slowPhase = false
         reconnecting.value = false
     }
 
@@ -49,8 +54,24 @@ class ReconnectController(
     fun scheduleReconnect(retry: (attempt: Int) -> Unit) {
         if (!playerReady()) return
         if (liveAttempts >= MAX_LIVE) {
-            reconnecting.value = false
-            Toast.makeText(ctx, ctx.getString(R.string.reconnect_failed), Toast.LENGTH_LONG).show()
+            // M760 (audit S2): the quick attempts are used up. Until now the player gave up here for
+            // good — a box left running did not come back after a longer server or network outage
+            // until somebody pressed a button. The message is shown once and the attempts go on
+            // slowly for as long as the player is in front; Playing (cancel) ends them.
+            if (!slowPhase) {
+                slowPhase = true
+                Toast.makeText(ctx, ctx.getString(R.string.reconnect_failed), Toast.LENGTH_LONG).show()
+            }
+            reconnecting.value = true
+            handler.removeCallbacksAndMessages(null)
+            handler.postDelayed({
+                if (!playerReady()) return@postDelayed
+                if (!active()) { scheduleReconnect(retry); return@postDelayed }   // in the background: only wait
+                runCatching { retry(liveAttempts) }
+                handler.postDelayed({
+                    if (playerReady() && reconnecting.value && !isPlaying()) scheduleReconnect(retry)
+                }, 12000)
+            }, SLOW_DELAY_MS)
             return
         }
         liveAttempts++
@@ -90,6 +111,8 @@ class ReconnectController(
 
     private companion object {
         const val MAX_LIVE = 8
+        /** M760: the pause before each attempt of the slow phase. */
+        const val SLOW_DELAY_MS = 30_000L
         const val MAX_DVR = 5
     }
 }
