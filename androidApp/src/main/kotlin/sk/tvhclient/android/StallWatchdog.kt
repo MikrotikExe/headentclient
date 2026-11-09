@@ -23,6 +23,12 @@ import org.videolan.libvlc.MediaPlayer
 internal class StallWatchdog(
     private val ctx: Context,
     private val player: () -> MediaPlayer?,
+    /**
+     * M759 (audit S1): a stop() of the player runs on another thread right now (every channel change
+     * since M747). It holds libVLC's input lock for its whole duration and `audioTrack` below waits
+     * for that lock — on the main thread. The sample is skipped; the next one comes in a second.
+     */
+    private val busy: () -> Boolean,
     private val recreateAllowed: () -> Boolean,
     private val onRecreate: () -> Unit
 ) {
@@ -38,6 +44,7 @@ internal class StallWatchdog(
     private val tick = object : Runnable {
         override fun run() {
             val mp = player() ?: return
+            if (busy()) { handler.postDelayed(this, 1000); return }   // M759
             val playing = runCatching { mp.isPlaying }.getOrDefault(false)
             var audio = -1; var demux = -1
             val m = runCatching { mp.media }.getOrNull()

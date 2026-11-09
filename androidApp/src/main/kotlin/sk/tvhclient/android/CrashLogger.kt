@@ -41,16 +41,35 @@ object CrashLogger {
 
     /** Manual report of a caught error from a critical place (the app does not crash). */
     fun report(context: Context, where: String, throwable: Throwable) {
-        runCatching { write(context.applicationContext, "ERROR", where, throwable) }
+        val app = context.applicationContext
+        val at = Date()
+        async { write(app, "ERROR", where, throwable, at = at) }
     }
 
     fun report(context: Context, where: String, message: String) {
-        runCatching { write(context.applicationContext, "WARN", where, null, message) }
+        val app = context.applicationContext
+        val at = Date()
+        async { write(app, "WARN", where, null, message, at) }
     }
 
+    /**
+     * M759 (audit S7): reports are written on one background thread — they used to do file I/O on
+     * the caller's thread, usually the main one. A fatal crash is still written synchronously
+     * ([install]), the process ends right after it.
+     */
+    private val writer = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+        Thread(r, "HeadentClient:diagLog").apply { isDaemon = true }
+    }
+
+    private fun async(job: () -> Unit) {
+        val queued = runCatching { writer.execute { runCatching { job() } } }.isSuccess
+        if (!queued) runCatching { job() }
+    }
+
+    @Synchronized
     private fun write(
         context: Context, level: String, where: String,
-        throwable: Throwable?, message: String? = null
+        throwable: Throwable?, message: String? = null, at: Date = Date()
     ) {
         val f = logFile(context)
         if (f.exists() && f.length() > MAX_BYTES) {
@@ -59,7 +78,7 @@ object CrashLogger {
         } else if (!f.exists()) {
             runCatching { f.writeText(header(context) + "\n") }
         }
-        val ts = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
+        val ts = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(at)
         val sb = StringBuilder()
         sb.append("\n[$ts] $level @ $where\n")
         message?.let { sb.append("  $it\n") }

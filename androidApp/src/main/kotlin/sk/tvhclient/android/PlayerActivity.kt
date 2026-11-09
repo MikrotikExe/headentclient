@@ -100,7 +100,7 @@ class PlayerActivity : ComponentActivity() {
     // M637: track state (audio/subtitles/profile) in TrackState.kt
     private val tracks: TrackState by lazy {
         TrackState(this,
-            player = { if (engine.ready && !engine.tornDown) engine.player else null },
+            player = { if (!engine.quiet) engine.player else null },   // M759 (audit S1): not during a stop() elsewhere
             htspFeeder = { stream.htspFeeder })
     }
     // M392: the subtitle state from before the stream restart on a profile change (HTTP live) —
@@ -1104,7 +1104,7 @@ class PlayerActivity : ComponentActivity() {
     // M671: track menu actions (HTSP subtitles, profile, D-pad selection) in TrackMenuController.kt
     private val trackMenu: TrackMenuController by lazy {
         TrackMenuController(this, lifecycleScope, tracks, live, stream,
-            player = { if (engine.ready) engine.player else null },
+            player = { if (!engine.quiet) engine.player else null },   // M759 (audit S1)
             hooks = object : TrackMenuController.Hooks {
                 override fun subtitleReset() { subOverlay?.reset() }
                 override fun restartCurrentChannel() {
@@ -2272,7 +2272,7 @@ class PlayerActivity : ComponentActivity() {
     // M650: libVLC events in VlcEvents.kt (the same instance for every (re)created player)
     private val vlcEvents: VlcEvents by lazy {
         VlcEvents(
-            player = { if (!engine.tornDown && engine.ready) engine.player else null },
+            player = { if (!engine.quiet) engine.player else null },   // M759 (audit S1)
             seekable = { seekablePlayback },
             dvrRecording = { dvr.recording },
             htspStream = { stream.htspStream },
@@ -2315,6 +2315,7 @@ class PlayerActivity : ComponentActivity() {
     private val stall: StallWatchdog by lazy {
         StallWatchdog(this,
             player = { if (!engine.tornDown && engine.ready) engine.player else null },
+            busy = { engine.ready && !engine.tornDown && VlcEngine.isStopping(engine.player) },   // M759 (audit S1)
             recreateAllowed = { !seekablePlayback && !reconnect.reconnecting.value },
             onRecreate = { engine.recreate(); opener.replayCurrentLive() })
     }
@@ -2373,7 +2374,7 @@ class PlayerActivity : ComponentActivity() {
 
     private val afr: AfrController by lazy {
         AfrController(this, isTvBox,
-            player = { if (engine.ready && !engine.tornDown) engine.player else null },
+            player = { if (!engine.quiet) engine.player else null },   // M759 (audit S1)
             videoLayout = { videoLayout })
     }
     private val streamLocks: StreamLocks by lazy { StreamLocks(this, "HeadentClient:stream") }

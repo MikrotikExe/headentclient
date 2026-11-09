@@ -67,19 +67,26 @@ object RadioCenter {
             putExtra(RadioPlayerService.EXTRA_UUID, uuid)
             putExtra(RadioPlayerService.EXTRA_EPG, epgTitle)
         }
-        androidx.core.content.ContextCompat.startForegroundService(context, i)
+        // M759 (audit S4): Android 12+ refuses a foreground service started from the background with
+        // an exception — the radio then simply does not start instead of the app crashing
+        runCatching { androidx.core.content.ContextCompat.startForegroundService(context, i) }
+            .onFailure { CrashLogger.report(context, "RadioCenter.play", it) }
     }
 
     fun toggle(context: Context) {
-        context.startService(Intent(context, RadioPlayerService::class.java).apply {
-            action = RadioPlayerService.ACTION_TOGGLE
-        })
+        runCatching {   // M759: startService from the background throws (the service is gone then anyway)
+            context.startService(Intent(context, RadioPlayerService::class.java).apply {
+                action = RadioPlayerService.ACTION_TOGGLE
+            })
+        }
     }
 
     fun stop(context: Context) {
-        context.startService(Intent(context, RadioPlayerService::class.java).apply {
-            action = RadioPlayerService.ACTION_STOP
-        })
+        runCatching {   // M759
+            context.startService(Intent(context, RadioPlayerService::class.java).apply {
+                action = RadioPlayerService.ACTION_STOP
+            })
+        }
     }
 
     /** Tap on the bar: closes the mini player and opens the full radio player. */

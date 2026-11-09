@@ -28,10 +28,9 @@ class WakeKeeperService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (!AutostartPref.isWakeEnabled(this)) {
-            stopSelf()
-            return START_NOT_STICKY
-        }
+        // M759 (audit S4): startForeground comes FIRST — a service started with startForegroundService
+        // that stops without it is killed by the system with an exception (the option switched off
+        // between the start request and this call)
         val ok = runCatching {
             if (Build.VERSION.SDK_INT >= 34) {
                 startForeground(NOTIF_ID, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
@@ -41,6 +40,11 @@ class WakeKeeperService : Service() {
         }
         if (ok.isFailure) {
             CrashLogger.report(this, "WakeKeeper", ok.exceptionOrNull() ?: Exception("startForeground failed"))
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        if (!AutostartPref.isWakeEnabled(this)) {
+            runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
             stopSelf()
             return START_NOT_STICKY
         }

@@ -88,7 +88,13 @@ class RadioPlayerService : Service() {
         }
         updateSessionMetadata()
         updatePlaybackState(playing = true)
-        startForeground(NOTIF_ID, buildNotification(playing = true))
+        // M759 (audit S4): refused by the system (started from the background on Android 12+) -> stop cleanly
+        val fg = runCatching { startForeground(NOTIF_ID, buildNotification(playing = true)) }
+        if (fg.isFailure) {
+            CrashLogger.report(this, "RadioPlayerService.startForeground", fg.exceptionOrNull() ?: Exception("startForeground failed"))
+            stopEverything()
+            return
+        }
         acquireLocks()   // M623
         releasePlayer()
         // M394-fix: release any TV stream (including PiP) — with a limit of 1 connection

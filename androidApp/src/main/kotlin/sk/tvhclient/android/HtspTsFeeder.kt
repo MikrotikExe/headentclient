@@ -317,7 +317,7 @@ class HtspTsFeeder(
         tsQueue = null
         tsWriter = null
         try { out?.close() } catch (_: Throwable) {}
-        try { readPfd?.close() } catch (_: Throwable) {}
+        readPfd?.let { LateFdClose.close(it) }   // M759 (audit H5)
         try { writePfd?.close() } catch (_: Throwable) {}
         out = null
         readPfd = null

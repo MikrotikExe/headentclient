@@ -93,7 +93,9 @@ class HttpTsFeeder(
             )
         } else null
 
-        val builder = OkHttpClient.Builder()
+        // M759 (audit S5): one shared client (threads, connection pool) — until now every stream built
+        // its own and none was ever shut down
+        val builder = sharedClient.newBuilder()
             .addInterceptor { chain ->
                 val r = chain.request().newBuilder().apply {
                     header("User-Agent", sk.tvhclient.shared.ClientIdent.userAgent)
@@ -159,6 +161,9 @@ class HttpTsFeeder(
     }
 
     companion object {
+        /** M759: the base client all feeders derive from (newBuilder shares its dispatcher and pool). */
+        private val sharedClient: OkHttpClient by lazy { OkHttpClient() }
+
         /**
          * M694: Tvheadend's answer to a stream request over the account's connection limit.
          * tcp_connection_launch() holds the request for 5 s (waiting for another connection of
@@ -187,7 +192,7 @@ class HttpTsFeeder(
         job?.cancel()
         job = null
         try { out?.close() } catch (_: Throwable) {}
-        try { readPfd?.close() } catch (_: Throwable) {}
+        readPfd?.let { LateFdClose.close(it) }   // M759 (audit H5)
         try { writePfd?.close() } catch (_: Throwable) {}
         out = null
         readPfd = null
