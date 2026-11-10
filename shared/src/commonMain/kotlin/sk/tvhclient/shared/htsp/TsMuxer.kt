@@ -641,28 +641,27 @@ class TsMuxer(streams: List<Stream>) {
 
     // ---- TS packetization ----
 
-    /** M453: writes the TS packets directly into `out` starting at index `startOff`. */
+    /** M453: writes the TS packets directly into `out` starting at index `startOff` (M762: no view object per packet). */
     /** M674: a TS packet with only an adaptation field and a PCR on the PCR PID (no payload, the CC is not incremented). */
     private fun writePcrOnly(pcrVal: Long, out: ByteArray, startOff: Int) {
-        val pkt = TsPacketView(out, startOff)
         // M743 (audit R14): Track.cc is the counter of the NEXT payload packet; a packet without a payload
         // must repeat the counter of the last one sent on the PID (ISO 13818-1), i.e. cc - 1 — the value
         // used until now was one higher, which a strict demuxer reports as a continuity error.
         val cc = ((trackByPid(pcrPid)?.cc ?: 0) - 1) and 0x0F
-        pkt[0] = 0x47
-        pkt[1] = ((pcrPid ushr 8) and 0x1F).toByte()
-        pkt[2] = (pcrPid and 0xFF).toByte()
-        pkt[3] = (0x20 or cc).toByte()          // AFC=10: adaptation field only
-        pkt[4] = 183.toByte()                    // afLen = the rest of the packet
-        pkt[5] = 0x10                            // PCR_flag
+        out[startOff + 0] = 0x47
+        out[startOff + 1] = ((pcrPid ushr 8) and 0x1F).toByte()
+        out[startOff + 2] = (pcrPid and 0xFF).toByte()
+        out[startOff + 3] = (0x20 or cc).toByte()          // AFC=10: adaptation field only
+        out[startOff + 4] = 183.toByte()                    // afLen = the rest of the packet
+        out[startOff + 5] = 0x10                            // PCR_flag
         val base = pcrVal and 0x1FFFFFFFFL
-        pkt[6] = ((base ushr 25) and 0xFF).toByte()
-        pkt[7] = ((base ushr 17) and 0xFF).toByte()
-        pkt[8] = ((base ushr 9) and 0xFF).toByte()
-        pkt[9] = ((base ushr 1) and 0xFF).toByte()
-        pkt[10] = ((((base and 1L).toInt()) shl 7) or 0x7E).toByte()
-        pkt[11] = 0x00
-        for (i in 12 until 188) pkt[i] = 0xFF.toByte()
+        out[startOff + 6] = ((base ushr 25) and 0xFF).toByte()
+        out[startOff + 7] = ((base ushr 17) and 0xFF).toByte()
+        out[startOff + 8] = ((base ushr 9) and 0xFF).toByte()
+        out[startOff + 9] = ((base ushr 1) and 0xFF).toByte()
+        out[startOff + 10] = ((((base and 1L).toInt()) shl 7) or 0x7E).toByte()
+        out[startOff + 11] = 0x00
+        for (i in 12 until 188) out[startOff + i] = 0xFF.toByte()
         lastPcrOut = pcrVal
     }
 
@@ -685,38 +684,37 @@ class TsMuxer(streams: List<Stream>) {
             val rapHere = first && rap
             val indicators = pcrHere || rapHere
 
-            val pkt = TsPacketView(out, base)
-            pkt[0] = 0x47
+            out[base + 0] = 0x47
             var b1 = (t.pid ushr 8) and 0x1F
             if (first) b1 = b1 or 0x40                  // PUSI
-            pkt[1] = b1.toByte()
-            pkt[2] = (t.pid and 0xFF).toByte()
+            out[base + 1] = b1.toByte()
+            out[base + 2] = (t.pid and 0xFF).toByte()
             val cc = t.cc; t.cc = (t.cc + 1) and 0x0F
 
             val payloadStart: Int
             val take: Int
             if (!indicators && remaining >= 184) {
-                pkt[3] = (0x10 or cc).toByte()          // AFC=01
+                out[base + 3] = (0x10 or cc).toByte()          // AFC=01
                 payloadStart = 4
                 take = 184
             } else if (!indicators && remaining == 183) {
-                pkt[3] = (0x30 or cc).toByte()          // AFC=11, afLen=0
-                pkt[4] = 0x00
+                out[base + 3] = (0x30 or cc).toByte()          // AFC=11, afLen=0
+                out[base + 4] = 0x00
                 payloadStart = 5
                 take = 183
             } else {
-                pkt[3] = (0x30 or cc).toByte()          // AFC=11
+                out[base + 3] = (0x30 or cc).toByte()          // AFC=11
                 val mandatory = if (pcrHere) 7 else 1   // flags(+pcr)
                 val payloadAvail = 184 - 1 - mandatory
                 take = if (remaining >= payloadAvail) payloadAvail else remaining
                 val stuffing = payloadAvail - take
                 val afContentLen = mandatory + stuffing
-                pkt[4] = afContentLen.toByte()
+                out[base + 4] = afContentLen.toByte()
                 var idx = 5
                 var flags = 0
                 if (rapHere) flags = flags or 0x40
                 if (pcrHere) flags = flags or 0x10
-                pkt[idx++] = flags.toByte()
+                out[base + idx++] = flags.toByte()
                 if (pcrHere) {
                     // M463: the value is interpolated across the frame, so that the PCR
                     // rises smoothly even inside a large keyframe
@@ -725,16 +723,16 @@ class TsMuxer(streams: List<Stream>) {
                     else pcrBase!!
                     pcrIdx += PCR_MAX_GAP_PKT
                     lastPcrOut = interp   // M674
-                    val base = interp and 0x1FFFFFFFFL
-                    pkt[idx++] = ((base ushr 25) and 0xFF).toByte()
-                    pkt[idx++] = ((base ushr 17) and 0xFF).toByte()
-                    pkt[idx++] = ((base ushr 9) and 0xFF).toByte()
-                    pkt[idx++] = ((base ushr 1) and 0xFF).toByte()
-                    pkt[idx++] = ((((base and 1L).toInt()) shl 7) or 0x7E).toByte()
-                    pkt[idx++] = 0x00
+                    val pcrBits = interp and 0x1FFFFFFFFL
+                    out[base + idx++] = ((pcrBits ushr 25) and 0xFF).toByte()
+                    out[base + idx++] = ((pcrBits ushr 17) and 0xFF).toByte()
+                    out[base + idx++] = ((pcrBits ushr 9) and 0xFF).toByte()
+                    out[base + idx++] = ((pcrBits ushr 1) and 0xFF).toByte()
+                    out[base + idx++] = ((((pcrBits and 1L).toInt()) shl 7) or 0x7E).toByte()
+                    out[base + idx++] = 0x00
                 }
                 var s = stuffing
-                while (s > 0) { pkt[idx++] = 0xFF.toByte(); s-- }
+                while (s > 0) { out[base + idx++] = 0xFF.toByte(); s-- }
                 payloadStart = 5 + afContentLen
             }
             // M668: a chunk of the PES from pos of length take is made up of the header and/or the ES — without an intermediate copy
@@ -762,14 +760,6 @@ class TsMuxer(streams: List<Stream>) {
         var o = 0
         for (p in packets) { p.copyInto(res, o); o += p.size }
         return res
-    }
-
-    /**
-     * A thin view of a 188-byte slice of the resulting array — so that the body of writePackets
-     * can write through `pkt[i]` without allocating a separate array per packet.
-     */
-    private class TsPacketView(private val buf: ByteArray, private val off: Int) {
-        operator fun set(i: Int, v: Byte) { buf[off + i] = v }
     }
 
     private fun crc32(data: ByteArray): Long {

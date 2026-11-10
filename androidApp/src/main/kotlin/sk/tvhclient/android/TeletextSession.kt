@@ -1,17 +1,14 @@
 package sk.tvhclient.android
 
 import android.content.Context
-import android.util.Base64
 import androidx.compose.runtime.mutableStateOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import sk.tvhclient.shared.model.TvhServer
-import sk.tvhclient.shared.net.DigestAuthenticator
 import sk.tvhclient.shared.stream.StreamUrlBuilder
 import sk.tvhclient.shared.teletext.TeletextDecoder
 import sk.tvhclient.shared.teletext.TeletextTsTap
@@ -140,26 +137,9 @@ class TeletextSession(private val ctx: Context) {
         if (httpRunning) return
         httpNoTeletext.value = false
         val url = StreamUrlBuilder.liveUrlNoCreds(server, channelUuid, "pass", null, htsp = false)
-        val hasCreds = server.username.isNotEmpty()
-        val preemptiveBasic: String? = if (hasCreds && server.authMode != "digest") {
-            "Basic " + Base64.encodeToString(
-                sk.tvhclient.shared.net.TvhCredEscape.basicPair(server.username, server.password)   /* M712 */.toByteArray(Charsets.UTF_8), Base64.NO_WRAP
-            )
-        } else null
-        val builder = OkHttpClient.Builder()
+        val builder = TvhOkHttp.authBuilder(server)   // M762
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
-            .addInterceptor { chain ->
-                val r = chain.request().newBuilder().apply {
-                    header("User-Agent", sk.tvhclient.shared.ClientIdent.userAgent)
-                    if (preemptiveBasic != null && sk.tvhclient.shared.net.AuthSchemeMemo.basicAllowed(server.authMode, chain.request().url))   // M715
-                        header("Authorization", preemptiveBasic)
-                }.build()
-                chain.proceed(r)
-            }
-        if (hasCreds && server.authMode != "none") {
-            builder.authenticator(DigestAuthenticator(server.username, server.password))
-        }
         val ok = builder.build()
         val tap = TeletextTsTap(decoder)
         httpJob = scope.launch(Dispatchers.IO) {

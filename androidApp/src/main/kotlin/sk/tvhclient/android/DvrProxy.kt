@@ -1,13 +1,11 @@
 package sk.tvhclient.android
 
 import android.os.SystemClock
-import android.util.Base64
 import kotlinx.coroutines.runBlocking
 import sk.tvhclient.shared.htsp.HtspDvrFile
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import sk.tvhclient.shared.model.TvhServer
-import sk.tvhclient.shared.net.DigestAuthenticator
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.InputStream
@@ -238,29 +236,11 @@ object DvrProxy {
     private fun client(server: TvhServer): OkHttpClient {
         val key = server.id + "|" + server.username + "|" + server.password.hashCode() + "|" + server.authMode
         return clients.getOrPut(key) {
-            val hasCreds = server.username.isNotEmpty()
-            // the same authentication as HttpTsFeeder (M253): preemptive basic unless the server is
-            // set to digest, and a digest authenticator for the 401 challenge
-            val preemptiveBasic: String? = if (hasCreds && server.authMode != "digest") {
-                "Basic " + Base64.encodeToString(
-                    sk.tvhclient.shared.net.TvhCredEscape.basicPair(server.username, server.password)   /* M712 */.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
-            } else null
-            val b = OkHttpClient.Builder()
+            // the same authentication as HttpTsFeeder (M253) — M762: TvhOkHttp.
+            // No transparent gzip: it would drop Content-Length and break Range.
+            val b = TvhOkHttp.authBuilder(server, listOf("Accept-Encoding" to "identity"))
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
-                .addInterceptor { chain ->
-                    val r = chain.request().newBuilder().apply {
-                        header("User-Agent", sk.tvhclient.shared.ClientIdent.userAgent)
-                        // no transparent gzip: it would drop Content-Length and break Range
-                        header("Accept-Encoding", "identity")
-                        if (preemptiveBasic != null && sk.tvhclient.shared.net.AuthSchemeMemo.basicAllowed(server.authMode, chain.request().url))   // M715
-                            header("Authorization", preemptiveBasic)
-                    }.build()
-                    chain.proceed(r)
-                }
-            if (hasCreds && server.authMode != "none") {
-                b.authenticator(DigestAuthenticator(server.username, server.password))
-            }
             b.build()
         }
     }

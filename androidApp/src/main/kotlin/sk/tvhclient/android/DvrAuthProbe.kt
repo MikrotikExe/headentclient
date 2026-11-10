@@ -36,7 +36,7 @@ object DvrAuthProbe {
         cache[server.id]?.let { return it }
         val probeUrl = server.baseUrl.trimEnd('/') + "/api/serverinfo"
         return try {
-            val ok = OkHttpClient.Builder()
+            val ok = TvhOkHttp.base.newBuilder()   // M762: the shared pool
                 .connectTimeout(5, TimeUnit.SECONDS)
                 .readTimeout(5, TimeUnit.SECONDS)
                 .build()

@@ -1,15 +1,12 @@
 package sk.tvhclient.android
 
 import android.os.ParcelFileDescriptor
-import android.util.Base64
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import sk.tvhclient.shared.model.TvhServer
-import sk.tvhclient.shared.net.DigestAuthenticator
 import java.io.FileDescriptor
 import java.io.OutputStream
 
@@ -85,28 +82,8 @@ class HttpTsFeeder(
         val os = ParcelFileDescriptor.AutoCloseOutputStream(write)
         out = os
 
-        val hasCreds = server.username.isNotEmpty()
-        val preemptiveBasic: String? = if (hasCreds && server.authMode != "digest") {
-            "Basic " + Base64.encodeToString(
-                sk.tvhclient.shared.net.TvhCredEscape.basicPair(server.username, server.password)   /* M712 */.toByteArray(Charsets.UTF_8),
-                Base64.NO_WRAP
-            )
-        } else null
-
-        // M759 (audit S5): one shared client (threads, connection pool) — until now every stream built
-        // its own and none was ever shut down
-        val builder = sharedClient.newBuilder()
-            .addInterceptor { chain ->
-                val r = chain.request().newBuilder().apply {
-                    header("User-Agent", sk.tvhclient.shared.ClientIdent.userAgent)
-                    if (preemptiveBasic != null && sk.tvhclient.shared.net.AuthSchemeMemo.basicAllowed(server.authMode, chain.request().url))   // M715
-                        header("Authorization", preemptiveBasic)
-                }.build()
-                chain.proceed(r)
-            }
-        if (hasCreds && server.authMode != "none") {
-            builder.authenticator(DigestAuthenticator(server.username, server.password))
-        }
+        // M759 / M762: the shared client with the server's authentication (TvhOkHttp)
+        val builder = TvhOkHttp.authBuilder(server)
         // M714: an empty answer (see [noStart]) must not be retried silently by OkHttp
         if (isLive) builder.retryOnConnectionFailure(false)
         val ok = builder.build()
@@ -161,9 +138,6 @@ class HttpTsFeeder(
     }
 
     companion object {
-        /** M759: the base client all feeders derive from (newBuilder shares its dispatcher and pool). */
-        private val sharedClient: OkHttpClient by lazy { OkHttpClient() }
-
         /**
          * M694: Tvheadend's answer to a stream request over the account's connection limit.
          * tcp_connection_launch() holds the request for 5 s (waiting for another connection of

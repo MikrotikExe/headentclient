@@ -83,17 +83,11 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
             m.addOption(":avcodec-fast")
             m.addOption(":avcodec-skip-idct=1")
         }
-        var (en, mode) = deinterlaceSpec(sw)
-        // M751: an interlaced channel with "Smooth interlaced HD channels" on — the hardware still
-        // decodes, but the frames pass through VLC's deinterlacer instead of going straight to the
-        // screen (where the filter never runs and a chip that does not deinterlace shows combs).
-        // An explicit "Off" in the deinterlacing setting is respected.
-        if (smooth && DeinterlacePref.get(ctx) != DeinterlacePref.OFF) {
-            en = "1"
-            if (mode == null) mode = "linear"
-        }
-        m.addOption(":deinterlace=$en")
-        if (mode != null) m.addOption(":deinterlace-mode=$mode")
+        // M762: the per-medium ":deinterlace" / ":deinterlace-mode" options are gone — VLC's video
+        // output never read them (M758, audit K1); deinterlacing is set once, globally, when the
+        // player is created (VlcEngine.create). What a medium decides is only whether its frames
+        // pass through VLC's filters at all: an interlaced channel ([smooth], M751) goes without
+        // direct rendering, everything else straight to the screen.
         // M758 (audit K3): an explicit deinterlacing mode no longer switches direct rendering off on
         // EVERY channel — only on the interlaced ones ([smoothFor]); 720p50 and 4K keep going
         // straight to the screen (there the filter doubled the frames for nothing).
@@ -156,7 +150,8 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
         HwDecodePref.get(ctx) == HwDecodePref.AUTO && InterlacedSmoothPref.get(ctx) &&
             DeinterlacePref.get(ctx) == DeinterlacePref.AUTO && !noDirectRendering
 
-    /** Deinterlacing mode from the settings -> (the --deinterlace value, the mode or null).
+    /** Deinterlacing mode from the settings -> (the --deinterlace value, the mode or null); used for
+     *  the GLOBAL options of the player (the only place VLC's video output reads them from).
      *  -1 = automatic (deinterlaces only an interlaced source), 0 = off, 1 = on.
      *
      *  M718 (issue #23): with hardware decoding (without direct rendering) the frames arrive as

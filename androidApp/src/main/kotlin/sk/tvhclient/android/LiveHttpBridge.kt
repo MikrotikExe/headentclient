@@ -79,12 +79,6 @@ object LiveHttpBridge {
         return src to "http://127.0.0.1:$port/live/$token"
     }
 
-    /** True for a URL this bridge produced. */
-    fun isBridgeUrl(url: String?): Boolean {
-        val s = socket ?: return false
-        return url != null && url.startsWith("http://127.0.0.1:${s.localPort}/live/")
-    }
-
     private fun acceptLoop(s: ServerSocket) {
         while (!s.isClosed) {
             val c = try { s.accept() } catch (_: Throwable) { break }
