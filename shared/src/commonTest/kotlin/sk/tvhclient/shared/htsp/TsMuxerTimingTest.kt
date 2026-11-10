@@ -156,6 +156,27 @@ class TsMuxerTimingTest {
         assertTrue(resumed.pcr.first().second >= last, "PCR must not go backwards after video returns")
     }
 
+    /** M763 (issue #25): video DTS 1.5 s ahead of the audio arriving with it -> the PCR stays behind the audio PTS. */
+    @Test
+    fun pcrStaysBehindAudioWhenVideoRunsFarAhead() {
+        val m = muxer()
+        m.start()
+        var apts = 1_000_000L
+        var checked = 0
+        for (i in 0 until 40) {
+            val audio = parse(m.mux(2, es, pts = apts, dts = null, randomAccess = false))
+            val aOut = audio.pes.first { it.pid == 0x1002 }.pts!!
+            val vdts = apts + 135_000L
+            val video = parse(m.mux(1, es, pts = vdts + 7_200L, dts = vdts, randomAccess = i == 0))
+            for ((_, pcr) in video.pcr) {
+                assertTrue(pcr <= aOut, "PCR $pcr must not be later than the audio PTS $aOut")
+                checked++
+            }
+            apts += 3_600L
+        }
+        assertTrue(checked >= 40, "every video frame carries a PCR: $checked")
+    }
+
     /** M674: a PCR-only packet = just an adaptation field, without a payload; it does not change the CC of the video track. */
     @Test
     fun pcrOnlyPacketHasNoPayloadAndKeepsCc() {

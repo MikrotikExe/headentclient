@@ -76,6 +76,21 @@ class TsMuxer(streams: List<Stream>) {
      *  outage still shows within half a second. */
     private val PCR_STALL_TICKS = 45_000L
 
+    /**
+     * M763 (issue #25): the PCR also has to stay BEHIND the audio. It is derived from the video DTS
+     * minus [PCR_LEAD], which assumes the video runs at most that far ahead of the sound in the
+     * multiplex. On broadcasts with a long video buffer (HEVC in DVB-T2: the video DTS 1-2 s ahead
+     * of the audio arriving at the same moment) the PCR was then LATER than the audio's PTS — to
+     * the player the sound arrived after its time, and once that exceeded its buffer the sound
+     * lagged behind the picture. The PCR is now held at least [AUDIO_PCR_LEAD] before the newest
+     * audio PTS, as long as audio is flowing ([AUDIO_FRESH_FRAMES] video frames without an audio
+     * packet = the audio is silent, the video alone drives the clock again).
+     */
+    private val AUDIO_PCR_LEAD = 27_000L
+    private val AUDIO_FRESH_FRAMES = 12
+    private var lastAudioOut: Long? = null
+    private var videoSinceAudio = 0
+
     /** M732: the last INPUT pts of audio / video (90 kHz) — the A/V offset for the diagnostic log. */
     private var lastAudioPtsIn: Long? = null
     private var lastVideoPtsIn: Long? = null
@@ -268,6 +283,8 @@ class TsMuxer(streams: List<Stream>) {
         val (op, od) = remap(pts, dts)
         // M732 (audit R3): the input A/V offset for the diagnostic log (issue #25)
         if (pts != null) { if (t.isVideo) lastVideoPtsIn = pts else lastAudioPtsIn = pts }
+        // M763: the newest audio time on the output timeline (the PCR stays behind it)
+        if (t.isVideo) videoSinceAudio++ else { (op ?: od)?.let { lastAudioOut = it }; videoSinceAudio = 0 }
         // M713: Tvheadend's parsers already deliver AAC as ADTS frames (parse_mp4a_data keeps the
         // whole ADTS frame, parser_latm builds a 7-byte ADTS header). Only raw AAC (e.g. from a
         // transcoding profile) gets our header; a second header broke the audio on AAC channels.
@@ -319,7 +336,13 @@ class TsMuxer(streams: List<Stream>) {
         // with a margin — that is why the picture was smooth there.
         val dtsNow = if (t.pid == pcrPid) (outDts ?: outPts) else null
         // M674: the PCR never goes backwards (after a PCR-only packet derived from audio)
-        val pcr = if (dtsNow != null) maxOf((dtsNow - PCR_LEAD).coerceAtLeast(0L), lastPcrOut) else null
+        var pcrWanted = dtsNow?.let { (it - PCR_LEAD).coerceAtLeast(0L) }
+        // M763 (issue #25): never later than shortly before the newest audio (while audio flows)
+        val audioRef = lastAudioOut
+        if (pcrWanted != null && t.isVideo && audioRef != null && videoSinceAudio <= AUDIO_FRESH_FRAMES) {
+            pcrWanted = minOf(pcrWanted, (audioRef - AUDIO_PCR_LEAD).coerceAtLeast(0L))
+        }
+        val pcr = if (pcrWanted != null) maxOf(pcrWanted, lastPcrOut) else null
         // M674: the video PID is silent and audio has already got ahead of the last PCR -> a PCR-only packet before this PES
         // audio only — subtitles have a PTS (the display time) far ahead of the video, the PCR cannot be derived from them
         val otherDts = if (dtsNow == null && !t.isSubtitle) (outDts ?: outPts) else null
