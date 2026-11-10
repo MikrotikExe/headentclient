@@ -425,7 +425,7 @@ class PlayerActivity : ComponentActivity() {
         val uuid = live.uuids.getOrNull(live.index) ?: return
         val memo = ChannelCodecMemo.set(this, live.server?.id, uuid, codec, height, fps)
         val wanted = mediaFactory.softwareFor(memo)
-        val wantedSmooth = !wanted && mediaFactory.smoothFor(memo)   // M751
+        val wantedSmooth = false   // M765: a known channel never takes the no-direct-rendering path (M751) any more
         if ((wanted == mediaFactory.lastSoftware && wantedSmooth == mediaFactory.lastSmooth) || codecRestartedFor == uuid) return
         codecRestartedFor = uuid
         opener.replayCurrentLive()

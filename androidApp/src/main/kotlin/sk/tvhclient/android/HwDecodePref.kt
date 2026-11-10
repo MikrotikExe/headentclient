@@ -42,8 +42,9 @@ object HwDecodePref {
  * interlaced or half-height picture. H.264 / HEVC stay in hardware. On by default.
  */
 /**
- * M751: "Smooth interlaced HD channels" — a channel that was interlaced last time goes through the
- * hardware decoder without direct rendering and VLC's deinterlacer (see MediaFactory.smoothFor).
+ * M751: "Smooth interlaced HD channels" — a channel that was interlaced last time is deinterlaced.
+ * M765: it is decoded in software for that (see MediaFactory.deinterlaceInSoftware); the hardware
+ * decoder without direct rendering froze the picture on Amlogic boxes.
  * Off by default: nothing changes until the user turns it on.
  */
 object InterlacedSmoothPref {

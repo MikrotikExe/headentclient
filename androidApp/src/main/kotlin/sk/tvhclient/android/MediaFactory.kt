@@ -28,7 +28,26 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
      */
     fun softwareFor(memo: ChannelCodecMemo.Memo?): Boolean =
         HwDecodePref.get(ctx) == HwDecodePref.OFF || memo?.swForced == true ||
-            (Mpeg2SoftwarePref.get(ctx) && memo?.codec == "MPEG2VIDEO" && (memo?.height ?: 0) <= 720)
+            (Mpeg2SoftwarePref.get(ctx) && memo?.codec == "MPEG2VIDEO" && (memo?.height ?: 0) <= 720) ||
+            deinterlaceInSoftware(memo)
+
+    /**
+     * M765: an interlaced channel that is to be deinterlaced ("Smooth interlaced HD channels", or an
+     * explicit deinterlacing mode) is decoded in SOFTWARE in hardware AUTO mode.
+     *
+     * M751/M758 sent such a channel through the hardware decoder without direct rendering. On an
+     * Amlogic box that path shows one frame and then the picture stands while the sound goes on —
+     * with or without the filter (tested 10 Nov 2026: "Decoding only" freezes the same way), so it
+     * is the decoder's buffer output itself. The software decoder is the path that works on every
+     * device, and it marks its frames as interlaced, so VLC's automatic deinterlacing engages by
+     * itself (the hardware decoder marks every frame progressive). The price is CPU: 576i is cheap,
+     * 1080i needs a reasonably fast box — the option is off by default and the settings say so.
+     * "Decoding only" stays what it was for the devices where it works.
+     */
+    fun deinterlaceInSoftware(memo: ChannelCodecMemo.Memo?): Boolean =
+        looksInterlaced(memo) && HwDecodePref.get(ctx) == HwDecodePref.AUTO &&
+            DeinterlacePref.get(ctx) != DeinterlacePref.OFF &&
+            (InterlacedSmoothPref.get(ctx) || explicitDeinterlaceOnHw())
 
     /** Direct URL (HTTP live / DVR): HW/SW decoder, User-Agent, deinterlacing. [codec] = what the channel's video looked like last time. */
     fun forUrl(url: String, demux: String? = null, codec: ChannelCodecMemo.Memo? = null): Media {
@@ -63,8 +82,8 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
         val sw = softwareFor(codec)
         // M758: with an explicit deinterlacing mode an UNKNOWN video (a recording, a channel opened
         // for the first time) keeps going through the filter as it did until now
-        val smooth = !sw && (smoothFor(codec) ||
-            (codec == null && HwDecodePref.get(ctx) == HwDecodePref.AUTO && explicitDeinterlaceOnHw()))
+        // (M765: a KNOWN interlaced channel is decoded in software instead — [deinterlaceInSoftware])
+        val smooth = !sw && codec == null && HwDecodePref.get(ctx) == HwDecodePref.AUTO && explicitDeinterlaceOnHw()
         lastSoftware = sw
         lastSmooth = smooth
         // M730: the decision goes into the diagnostic log with the verbose player log (issue #37)
@@ -86,11 +105,11 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
         // M762: the per-medium ":deinterlace" / ":deinterlace-mode" options are gone — VLC's video
         // output never read them (M758, audit K1); deinterlacing is set once, globally, when the
         // player is created (VlcEngine.create). What a medium decides is only whether its frames
-        // pass through VLC's filters at all: an interlaced channel ([smooth], M751) goes without
-        // direct rendering, everything else straight to the screen.
-        // M758 (audit K3): an explicit deinterlacing mode no longer switches direct rendering off on
-        // EVERY channel — only on the interlaced ones ([smoothFor]); 720p50 and 4K keep going
-        // straight to the screen (there the filter doubled the frames for nothing).
+        // pass through VLC's filters at all.
+        // M758 (audit K3) / M765: an explicit deinterlacing mode no longer switches direct rendering
+        // off on EVERY channel — a known interlaced channel is decoded in software, a known
+        // progressive one (720p50, 4K) goes straight to the screen; only an unknown video ([smooth])
+        // still goes without direct rendering.
         if (!sw && (smooth || noDirectRendering || HwDecodePref.get(ctx) == HwDecodePref.DECODE)) {
             m.addOption(":no-mediacodec-dr")
             m.addOption(":no-omxil-dr")
@@ -108,20 +127,10 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
             android.os.Build.MODEL.lowercase().contains("pixel 10")
     }
 
-    /** M751: was the last medium built with the interlaced-channel path ([smoothFor])? */
+    /** M751 / M765: was the last medium built for the hardware decoder without direct rendering
+     *  because of an explicit deinterlacing mode on a video not known yet? */
     @Volatile var lastSmooth: Boolean = false
         private set
-
-    /**
-     * M751: "Smooth interlaced HD channels" applies to a channel that looked interlaced last time —
-     * 480/576/1080 lines (1088 = 1080 from the decoder). Only in hardware AUTO mode: DECODE already
-     * passes the frames through the filters, OFF decodes in software. 720p, 4K and an unknown channel
-     * stay on direct rendering.
-     */
-    fun smoothFor(memo: ChannelCodecMemo.Memo?): Boolean =
-        looksInterlaced(memo) && HwDecodePref.get(ctx) == HwDecodePref.AUTO &&
-            DeinterlacePref.get(ctx) != DeinterlacePref.OFF &&
-            (InterlacedSmoothPref.get(ctx) || explicitDeinterlaceOnHw())   // M758: an explicit mode too
 
     /**
      * M758 (audit K2): does the channel look interlaced? The frame height alone is not enough —
@@ -133,22 +142,6 @@ internal class MediaFactory(private val ctx: Context, private val libVlc: () -> 
     fun looksInterlaced(memo: ChannelCodecMemo.Memo?): Boolean =
         memo != null && memo.height in INTERLACED_HEIGHTS && memo.codec != "HEVC" &&
             (memo.fps == 0 || memo.fps <= 30)
-
-    /**
-     * M758 (audit K1): VLC's video output takes "deinterlace" from the PLAYER (that is, from the
-     * LibVLC options the player was created with), never from the medium — the output is a child
-     * of the player, not of the input (vout_Request(resource parent), interlacing.c) — and the
-     * automatic mode never engages with the hardware decoder, because every MediaCodec picture is
-     * marked progressive (mediacodec.c). The per-medium ":deinterlace=1" of M751 therefore never
-     * switched the filter on. With "Smooth interlaced HD channels" on (deinterlacing Auto, hardware
-     * Auto) the filter is forced globally instead: interlaced channels go without direct rendering
-     * ([smoothFor]) and get it; progressive ones stay on direct rendering, where the filter cannot
-     * attach (opaque pictures) and nothing changes. Not on devices that never render directly
-     * ([noDirectRendering]) — every channel would be filtered there.
-     */
-    fun forceDeinterlaceGlobally(): Boolean =
-        HwDecodePref.get(ctx) == HwDecodePref.AUTO && InterlacedSmoothPref.get(ctx) &&
-            DeinterlacePref.get(ctx) == DeinterlacePref.AUTO && !noDirectRendering
 
     /** Deinterlacing mode from the settings -> (the --deinterlace value, the mode or null); used for
      *  the GLOBAL options of the player (the only place VLC's video output reads them from).

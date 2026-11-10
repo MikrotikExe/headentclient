@@ -77,9 +77,11 @@ internal class VlcEngine(
         )
         // Deinterlacing (global, so that it applies already on the first open; per-medium
         // it is set again on every channel switch)
-        var (dEn, dMode) = media.deinterlaceSpec()
-        // M758 (audit K1): the video output reads these only from here — see forceDeinterlaceGlobally
-        if (media.forceDeinterlaceGlobally()) { dEn = "1"; if (dMode == null) dMode = "linear" }
+        // M758 (audit K1): VLC's video output reads the deinterlacing options only from here (the
+        // player's LibVLC options), never from a medium. M765: nothing is forced — the channels to
+        // deinterlace are decoded in software, whose frames are marked interlaced, so the automatic
+        // mode engages on exactly those.
+        val (dEn, dMode) = media.deinterlaceSpec()
         options.add("--deinterlace=$dEn")
         if (dMode != null) options.add("--deinterlace-mode=$dMode")
         libVlc = LibVLC(ctx, options)
