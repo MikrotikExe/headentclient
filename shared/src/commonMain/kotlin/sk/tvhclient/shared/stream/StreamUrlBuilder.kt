@@ -21,6 +21,15 @@ object StreamUrlBuilder {
     private const val STREAM_CHID = "stream/channelid/"
 
     /**
+     * M764: the size of Tvheadend's output queue for a live HTTP stream (webui.c http_stream_channel,
+     * the `qsize` argument). The default is 1.5 MB — well under a second of an HD channel — and once
+     * it is full the server silently throws stream data away (streaming.c, "queue size protection"),
+     * which shows as a broken picture after any short hiccup of the client or the network. The same
+     * 5 MB the HTSP subscription asks for since M757. Servers that do not know the argument ignore it.
+     */
+    private const val LIVE_QSIZE = "qsize=5000000"
+
+    /**
      * RFC 3986 percent-encoding of the UTF-8 bytes. M737 (audit K5): it encoded the UTF-16 code of a
      * character ("€" -> "%20AC" = " AC", "§" -> "%A7" = a Latin-1 byte) and let non-ASCII letters
      * through raw, so a password with such characters failed (401) on direct HTTP playback and
@@ -58,7 +67,8 @@ object StreamUrlBuilder {
         val q = mutableListOf<String>()
         if (!profile.isNullOrBlank()) q.add("profile=" + encode(profile))
         if (!title.isNullOrBlank()) q.add("title=" + encode(title))
-        if (q.isNotEmpty()) url += "?" + q.joinToString("&")
+        q.add(LIVE_QSIZE)   // M764
+        url += "?" + q.joinToString("&")
         return withCreds(server, url)
     }
 
@@ -88,7 +98,8 @@ object StreamUrlBuilder {
         val q = mutableListOf<String>()
         if (profile.isNotBlank()) q.add("profile=" + encode(profile))
         if (!channelTitle.isNullOrBlank()) q.add("title=" + encode(channelTitle))
-        if (q.isNotEmpty()) url += "?" + q.joinToString("&")
+        q.add(LIVE_QSIZE)   // M764
+        url += "?" + q.joinToString("&")
         return url
     }
 
