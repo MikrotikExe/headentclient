@@ -2530,20 +2530,8 @@ private fun VideoSurface(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
-                // M767: with the direct output libVLC sizes its surfaces and their frame to the fitted
-                // video in fixed pixels, so they no longer follow the Compose size: after the move from
-                // the preview rectangle of the channel list to full screen the picture stayed
-                // preview-sized in the corner (seen over ADB on 11 Nov 2026). The layout therefore sits
-                // in a holder that does follow Compose; whenever the holder's size changes, libVLC's
-                // layout and frame are let go again and libVLC fits the video anew.
-                val holder = FrameLayout(ctx)
-                holder.addView(layout)
-                holder.addOnLayoutChangeListener { v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
-                    if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) {
-                        v.post { releaseVideoFrame(layout) }
-                    }
-                }
                 onAttach(layout)
+                kickFrameOnVideoResize(layout)   // M767-fix
                 // M264: run the gate (the parental lock on opening) only after the surface is attached,
                 // on a clean looper tick. Writing pinPromptState directly in the Compose layout phase
                 // was sometimes lost on a cold start (the first opening) -> the PIN was never asked for.
@@ -2551,27 +2539,48 @@ private fun VideoSurface(
                     act?.initialStartDone = true
                     layout.post { onStart() }
                 }
-                holder
+                layout
             }
         )
     }
 }
 
-/** M767: libVLC's video layout and the surface frame inside it back to "fill the parent" (see [VideoSurface]). */
-private fun releaseVideoFrame(layout: ViewGroup) {
-    fun fill(v: android.view.View) {
-        val lp = v.layoutParams ?: return
-        if (lp.width != ViewGroup.LayoutParams.MATCH_PARENT || lp.height != ViewGroup.LayoutParams.MATCH_PARENT) {
-            lp.width = ViewGroup.LayoutParams.MATCH_PARENT
-            lp.height = ViewGroup.LayoutParams.MATCH_PARENT
-            v.layoutParams = lp
+/**
+ * M767-fix: with the direct video output (M766) a resized video surface kept its old size on the
+ * screen until the window drew its next frame: Android applies the SurfaceView's new geometry
+ * together with the next frame of the window, and after the move from the preview rectangle of the
+ * channel list to full screen nothing in the window changes any more — the picture stayed
+ * preview-sized in the corner until an overlay was opened (measured over ADB on 11 Nov 2026: the
+ * views were full-screen, the surface's crop still 555x312, the window's frame counter stood still;
+ * opening the panel fixed it at once). With the OpenGL output libVLC redrew the surface itself.
+ * M767's first attempt (a holder around the layout) answered a cause that was not the real one and
+ * is gone. Whenever one of libVLC's surfaces gets new bounds, the window is now made to draw a real
+ * frame — a few times, since libVLC resizes its surfaces one step later than the layout. A frame
+ * with no change in it would be skipped by the renderer, so one pixel in the corner, next to
+ * invisible (alpha 1 or 2 of 255), switches between two values.
+ */
+private fun kickFrameOnVideoResize(layout: ViewGroup) {
+    val pixel = android.view.View(layout.context)
+    pixel.layoutParams = FrameLayout.LayoutParams(1, 1)
+    pixel.setBackgroundColor(0x01000000)
+    layout.addView(pixel)
+    var flip = false
+    val kick = Runnable {
+        flip = !flip
+        pixel.setBackgroundColor(if (flip) 0x02000000 else 0x01000000)
+        pixel.invalidate()
+    }
+    val listener = android.view.View.OnLayoutChangeListener { _, l, t, r, b, ol, ot, oldR, ob ->
+        if (l != ol || t != ot || r != oldR || b != ob) {
+            for (delay in longArrayOf(0L, 120L, 400L, 1000L)) pixel.postDelayed(kick, delay)
         }
     }
-    fill(layout)
-    for (i in 0 until layout.childCount) {
-        val child = layout.getChildAt(i)
-        if (child is ViewGroup) fill(child)   // the frame; the surfaces themselves are sized by libVLC
+    fun walk(v: android.view.View) {
+        if (v is android.view.SurfaceView) v.addOnLayoutChangeListener(listener)
+        else if (v is ViewGroup) for (i in 0 until v.childCount) walk(v.getChildAt(i))
     }
+    walk(layout)
+    layout.addOnLayoutChangeListener(listener)
 }
 
 /** A single track (audio or subtitles) from libVLC. */
