@@ -124,7 +124,8 @@ internal class BackgroundResume(
             }
             return
         }
-        hooks.videoLayout()?.let { runCatching { mp.attachViews(it, null, true, false)   // M766: with the subtitle surface (direct video output) } }
+        // M766: with the subtitle surface (direct video output)
+        hooks.videoLayout()?.let { runCatching { mp.attachViews(it, null, true, false) } }
         // parental lock: if we are returning from the background to a locked LIVE channel,
         // ask for the PIN again (every return to the player = PIN, as at start).
         if (locked) {
