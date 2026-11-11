@@ -113,8 +113,23 @@ class TvhApi(
         path: String,
         pageLimit: Int = 500,
         extraParams: Map<String, String> = emptyMap()
-    ): List<JsonObject> {
-        val entries = mutableListOf<JsonObject>()
+    ): List<JsonObject> = apiGetAllMapped(path, pageLimit, extraParams) { it }
+
+    /**
+     * M769: the same paging, each page turned into its final objects right away.
+     * [apiGetAll] kept the JSON trees of ALL pages until the last one arrived — with an archive of
+     * several thousand recordings that was tens of megabytes of trees alive at once (measured on a
+     * 2 GB box, 11 Nov 2026: the heap grew past 140 MB while the archive loaded, with collections of
+     * up to a second). Now only one page's tree lives at a time; the result is the same list.
+     */
+    private suspend fun <T> apiGetAllMapped(
+        path: String,
+        pageLimit: Int = 500,
+        extraParams: Map<String, String> = emptyMap(),
+        transform: (JsonObject) -> T?
+    ): List<T> {
+        val out = ArrayList<T>()
+        var seen = 0
         var start = 0
         var total: Int? = null
         repeat(200) {
@@ -124,17 +139,18 @@ class TvhApi(
             ))
             val page = (data["entries"] as? JsonArray)?.mapNotNull { it as? JsonObject }
                 ?: emptyList()
-            entries.addAll(page)
+            for (obj in page) transform(obj)?.let { out.add(it) }
+            seen += page.size
             if (total == null) {
                 total = (data["total"] as? kotlinx.serialization.json.JsonPrimitive)
                     ?.let { runCatching { it.int }.getOrNull() }
             }
             val t = total
-            if (t != null && entries.size >= t) return entries
-            if (page.isEmpty() || page.size < pageLimit) return entries
+            if (t != null && seen >= t) return out
+            if (page.isEmpty() || page.size < pageLimit) return out
             start += pageLimit
         }
-        return entries
+        return out
     }
 
     /** Removes duplicate DVR entries by uuid (the grid_* pages
@@ -408,11 +424,11 @@ class TvhApi(
      * Without the right to see failed recordings the second grid is simply empty.
      */
     suspend fun dvrFinished(): List<sk.tvhclient.shared.model.DvrEntry> {
-        val ok = apiGetAll("api/dvr/entry/grid_finished", pageLimit = 500).mapNotNull {
+        val ok = apiGetAllMapped("api/dvr/entry/grid_finished", pageLimit = 500) {
             runCatching { decode<sk.tvhclient.shared.model.DvrEntry>(it) }.getOrNull()
         }
         val failed = runCatching {
-            apiGetAll("api/dvr/entry/grid_failed", pageLimit = 500).mapNotNull {
+            apiGetAllMapped("api/dvr/entry/grid_failed", pageLimit = 500) {
                 runCatching { decode<sk.tvhclient.shared.model.DvrEntry>(it) }.getOrNull()
             }.filter { it.fileSize > 0 }
         }.getOrDefault(emptyList())
@@ -421,7 +437,7 @@ class TvhApi(
 
     /** Scheduled/in-progress recordings (grid_upcoming). */
     suspend fun dvrUpcoming(): List<sk.tvhclient.shared.model.DvrEntry> =
-        apiGetAll("api/dvr/entry/grid_upcoming", pageLimit = 500).mapNotNull {
+        apiGetAllMapped("api/dvr/entry/grid_upcoming", pageLimit = 500) {
             runCatching { decode<sk.tvhclient.shared.model.DvrEntry>(it) }.getOrNull()
         }.dedupByUuid()
 
