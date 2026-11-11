@@ -97,7 +97,8 @@ object Mpeg2SoftwarePref {
  * Codec values: "MPEG2VIDEO", "H264", "HEVC"… (the HTSP names). M730: the picture height too
  * (the MPEG-2 quality option applies up to 720 lines), and the flag that the hardware decoder
  * gave no picture on this channel (issue #37) — from then on it is decoded in software.
- * Stored as one string: CODEC[@HEIGHT][#FPS][!sw] (older entries hold the bare codec).
+ * Stored as one string: CODEC[@HEIGHT][#FPS][!s2] (older entries hold the bare codec; M766: the
+ * old "!sw" mark is ignored).
  * M758: the frame rate too (0 = unknown) — 1080 lines at 50 frames per second is a progressive
  * channel, not an interlaced one.
  */
@@ -109,14 +110,26 @@ object ChannelCodecMemo {
             append(codec ?: "")
             if (height > 0) append('@').append(height)
             if (fps > 0) append('#').append(fps)
-            if (swForced) append("!sw")
+            if (swForced) append(SW_MARK)
         }
         companion object {
+            /**
+             * M766: the software mark of a channel. Until M765 it was "!sw"; those marks were made
+             * while hardware frames still went through OpenGL (and during the frozen-picture tests
+             * of M758), and nothing ever cleared them — a marked channel stayed in software for good.
+             * With the direct video output the old marks are ignored once; a channel whose hardware
+             * decoder really gives no picture is marked again on its first opening (M730).
+             */
+            private const val SW_MARK = "!s2"
+            private const val OLD_SW_MARK = "!sw"
+
             fun parse(raw: String?): Memo? {
                 if (raw.isNullOrBlank()) return null
                 var s = raw
-                val sw = s.endsWith("!sw")
-                if (sw) s = s.removeSuffix("!sw")
+                val sw = s.endsWith(SW_MARK)
+                if (sw) s = s.removeSuffix(SW_MARK)
+                // M766: a mark from before the direct video output is dropped (see [SW_MARK])
+                else if (s.endsWith(OLD_SW_MARK)) s = s.removeSuffix(OLD_SW_MARK)
                 // M758: an optional "#FPS" at the end (only digits after the last '#')
                 var fps = 0
                 val hash = s.lastIndexOf('#')

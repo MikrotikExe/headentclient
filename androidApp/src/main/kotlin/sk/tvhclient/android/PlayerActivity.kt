@@ -1238,7 +1238,14 @@ class PlayerActivity : ComponentActivity() {
     /** M658: attaching the video layout from PlayerUi (originally the onAttach lambda in setContent). */
     private fun attachVideo(layout: VLCVideoLayout) {
         videoLayout = layout
-        engine.player.attachViews(layout, null, false, false)
+        // M766: WITH the subtitle surface. Without it libVLC's direct video output refuses hardware
+        // frames ("cannot blend subtitles with an opaque surface, trying next vout") and they take
+        // the detour decoder -> SurfaceTexture -> OpenGL ES -> an RGBA surface: extra GPU work on
+        // every frame, and the system no longer sees a video layer — an Amlogic box then composes
+        // the picture as graphics and its hardware deinterlacer never runs (combing on 1080i,
+        // measured over ADB on 11 Nov 2026). With the surface the decoder renders straight into the
+        // SurfaceView, as in VLC for Android itself. Software decoding keeps using OpenGL ES.
+        engine.player.attachViews(layout, null, true, false)
         // M539-fix2: the new player was waiting for its own (new) surface — start it now
         if (engine.onSurfaceAttached()) {
             layout.post { runCatching { if (!engine.tornDown) engine.player.play() } }
