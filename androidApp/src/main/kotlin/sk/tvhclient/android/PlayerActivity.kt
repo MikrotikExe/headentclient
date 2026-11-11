@@ -471,7 +471,12 @@ class PlayerActivity : ComponentActivity() {
     }
     // INFO key / button -> a window with the current programme's details
     private val infoPokeState = androidx.compose.runtime.mutableStateOf(0)
-    private fun toggleInfo() { infoPokeState.value = infoPokeState.value + 1 }
+    // M768: not over the channel list — the info window opened underneath it and showed through
+    // the rows and the preview rectangle (an open window can still be closed)
+    private fun toggleInfo() {
+        if (channelListOpen && !infoWindowOpen.value) return
+        infoPokeState.value = infoPokeState.value + 1
+    }
     // EPG key / button -> open the TV guide (the grid) in the main app
     // M383-fix: the EPG may only be opened AFTER the PiP transition has completed — a startActivity
     // fired during the PiP transition is swallowed by the system on many devices (you see

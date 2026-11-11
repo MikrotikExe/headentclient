@@ -1324,7 +1324,10 @@ fun ServerList(vm: ServersViewModel, resetSignal: Int = 0) {
     // on a phone we hide it — a phone is the remote, not the controlled device.
     val ctxTvChk = androidx.compose.ui.platform.LocalContext.current
     val isTvSettings = remember { isTvUiMode(ctxTvChk) }   // M679
-    val effective = section ?: "general"
+    // M768: after BACK from a section's content to the category list the side panel keeps showing
+    // the category that was left (it also keeps the focus) — until now the content jumped to
+    // "General" while the focus stayed on the left category
+    val effective = section ?: lastSection ?: "general"
 
     // shared section content (used in both the sidebar and the drill-down mode)
     val renderContent: @Composable (String) -> Unit = { sec ->
