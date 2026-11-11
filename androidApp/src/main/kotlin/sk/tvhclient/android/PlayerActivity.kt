@@ -2530,6 +2530,19 @@ private fun VideoSurface(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
+                // M767: with the direct output libVLC sizes its surfaces and their frame to the fitted
+                // video in fixed pixels, so they no longer follow the Compose size: after the move from
+                // the preview rectangle of the channel list to full screen the picture stayed
+                // preview-sized in the corner (seen over ADB on 11 Nov 2026). The layout therefore sits
+                // in a holder that does follow Compose; whenever the holder's size changes, libVLC's
+                // layout and frame are let go again and libVLC fits the video anew.
+                val holder = FrameLayout(ctx)
+                holder.addView(layout)
+                holder.addOnLayoutChangeListener { v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+                    if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) {
+                        v.post { releaseVideoFrame(layout) }
+                    }
+                }
                 onAttach(layout)
                 // M264: run the gate (the parental lock on opening) only after the surface is attached,
                 // on a clean looper tick. Writing pinPromptState directly in the Compose layout phase
@@ -2538,9 +2551,26 @@ private fun VideoSurface(
                     act?.initialStartDone = true
                     layout.post { onStart() }
                 }
-                layout
+                holder
             }
         )
+    }
+}
+
+/** M767: libVLC's video layout and the surface frame inside it back to "fill the parent" (see [VideoSurface]). */
+private fun releaseVideoFrame(layout: ViewGroup) {
+    fun fill(v: android.view.View) {
+        val lp = v.layoutParams ?: return
+        if (lp.width != ViewGroup.LayoutParams.MATCH_PARENT || lp.height != ViewGroup.LayoutParams.MATCH_PARENT) {
+            lp.width = ViewGroup.LayoutParams.MATCH_PARENT
+            lp.height = ViewGroup.LayoutParams.MATCH_PARENT
+            v.layoutParams = lp
+        }
+    }
+    fill(layout)
+    for (i in 0 until layout.childCount) {
+        val child = layout.getChildAt(i)
+        if (child is ViewGroup) fill(child)   // the frame; the surfaces themselves are sized by libVLC
     }
 }
 
